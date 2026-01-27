@@ -13,11 +13,17 @@
   (doc 'type '(-> (List State) (List Symbol) (List Transition) State (List State) (List EpsilonTransition) FSM))
   (doc 'description "Create FSM with states, alphabet, transitions, start state, accepting states, and optional epsilon-transitions")
   (list 'fsm states alphabet transitions start accepting
-        (if (null? epsilon) '() (car epsilon))))
+        (if (null? epsilon) '() (car epsilon))
+        '()))  ; Empty assertions list for backward compatibility
+
+(define (make-fsm-with-assertions states alphabet transitions start accepting epsilon assertions)
+  (doc 'type '(-> (List State) (List Symbol) (List Transition) State (List State) (List EpsilonTransition) (List Assertion) FSM))
+  (doc 'description "Create FSM with assertion transitions (for anchors and lookahead)")
+  (list 'fsm states alphabet transitions start accepting epsilon assertions))
 
 (define (fsm? x)
   (doc 'type '(-> α Boolean))
-  (and (list? x) (= (length x) 7) (eq? (car x) 'fsm)))
+  (and (list? x) (>= (length x) 7) (eq? (car x) 'fsm)))
 
 (define (fsm-states fsm)
   (doc 'type '(-> FSM (List State)))
@@ -42,6 +48,13 @@
 (define (fsm-epsilon fsm)
   (doc 'type '(-> FSM (List EpsilonTransition)))
   (list-ref fsm 6))
+
+(define (fsm-assertions fsm)
+  (doc 'type '(-> FSM (List Assertion)))
+  (doc 'description "Get assertion transitions (anchors, lookahead). Format: (from-state type ...args target-state)")
+  (if (>= (length fsm) 8)
+      (list-ref fsm 7)
+      '()))
 
 (define (fsm-deterministic? fsm)
   (doc 'type '(-> FSM Boolean))
@@ -147,7 +160,102 @@
 (define (fsm-accepts? fsm input)
   (doc 'type '(-> FSM (Union String (List Symbol)) Boolean))
   (doc 'description "Check if FSM accepts input")
-  (just? (fsm-run fsm input)))
+  (if (null? (fsm-assertions fsm))
+      (just? (fsm-run fsm input))
+      (just? (fsm-run-with-assertions fsm input))))
+
+;;; ============================================================
+;;; Assertion-aware execution
+;;; ============================================================
+
+;;; Check if an assertion succeeds given context
+(define (assertion-succeeds? assertion pos input-vec len)
+  (let ([type (cadr assertion)])
+    (cond
+     [(eq? type 'anchor)
+      (let ([anchor-type (caddr assertion)])
+        (cond
+         [(eq? anchor-type 'start) (= pos 0)]
+         [(eq? anchor-type 'end) (= pos len)]
+         [else #f]))]
+     [(eq? type 'lookahead)
+      (let* ([inner-fsm (caddr assertion)]
+             [positive? (cadddr assertion)]
+             ;; Get remaining input as string
+             [remaining (list->string
+                         (let loop ([i pos] [acc '()])
+                           (if (>= i len)
+                               (reverse acc)
+                               (loop (+ i 1) (cons (vector-ref input-vec i) acc)))))]
+             ;; Run inner FSM with assertion support (inner may contain anchors)
+             [matches? (just? (fsm-run-with-assertions inner-fsm remaining))])
+        (if positive? matches? (not matches?)))]
+     [else #f])))
+
+;;; Get assertion targets from a state that succeed in current context
+(define (get-assertion-targets fsm state pos input-vec len)
+  (fold-left (lambda (acc assertion)
+               (if (and (equal? (car assertion) state)
+                        (assertion-succeeds? assertion pos input-vec len))
+                   ;; Target is last element of assertion
+                   (cons (car (reverse assertion)) acc)
+                   acc))
+             '()
+             (fsm-assertions fsm)))
+
+;;; Epsilon-closure with assertion support
+(define (epsilon-closure-with-context fsm state pos input-vec len)
+  (let loop ([frontier (list state)] [visited '()])
+    (if (null? frontier)
+        visited
+        (let ([s (car frontier)])
+          (if (member s visited)
+              (loop (cdr frontier) visited)
+              (let* ([eps-targets (get-all-epsilon-targets fsm s)]
+                     [assert-targets (get-assertion-targets fsm s pos input-vec len)]
+                     [all-targets (append eps-targets assert-targets)]
+                     [new-frontier (append all-targets (cdr frontier))])
+                (loop new-frontier (cons s visited))))))))
+
+;;; Epsilon-closure-set with context
+(define (epsilon-closure-set-with-context fsm states pos input-vec len)
+  (fold-left (lambda (acc s)
+               (union equal? acc (epsilon-closure-with-context fsm s pos input-vec len)))
+             '()
+             states))
+
+;;; Move with context (for assertion-aware execution)
+(define (fsm-move-with-context fsm states input pos input-vec len)
+  (let* ([direct-targets
+          (fold-left (lambda (acc s)
+                       (union equal? acc (fsm-delta fsm s input)))
+                     '()
+                     states)])
+    (epsilon-closure-set-with-context fsm direct-targets pos input-vec len)))
+
+;;; Run FSM with assertion support
+(define (fsm-run-with-assertions fsm input)
+  (doc 'type '(-> FSM (Union String (List Symbol)) (Option (List State))))
+  (doc 'description "Run FSM with assertion support (anchors, lookahead)")
+  (let* ([input-list (if (string? input) (string->list input) input)]
+         [input-vec (list->vector input-list)]
+         [len (vector-length input-vec)]
+         ;; Start with epsilon-closure at position 0
+         [start-states (epsilon-closure-with-context fsm (fsm-start fsm) 0 input-vec len)])
+    ;; Process each input symbol
+    (let loop ([states start-states] [pos 0])
+      (if (= pos len)
+          ;; At end: check for accepting state
+          (if (exists (lambda (s) (member s (fsm-accepting fsm))) states)
+              (just states)
+              nothing)
+          ;; Process next character
+          (let ([sym (vector-ref input-vec pos)]
+                [next-pos (+ pos 1)])
+            (let ([next-states (fsm-move-with-context fsm states sym next-pos input-vec len)])
+              (if (null? next-states)
+                  nothing
+                  (loop next-states next-pos))))))))
 
 (doc 'section 'fsm-language-operations)
 
@@ -272,8 +380,22 @@
          [new-eps (map (lambda (e)
                                (cons (rename (car e))
                                      (map rename (cdr e))))
-                       (fsm-epsilon fsm))])
-        (make-fsm new-states (fsm-alphabet fsm) new-trans new-start new-accepting new-eps)))
+                       (fsm-epsilon fsm))]
+         ;; Rename states in assertions: (from-state type ...args target-state)
+         ;; For anchor: (s0 'anchor 'start s1) or (s0 'anchor 'end s1)
+         ;; For lookahead: (s0 'lookahead inner-fsm positive? s1)
+         [new-assertions (map (lambda (a)
+                                (let* ([from (car a)]
+                                       [type (cadr a)]
+                                       [rest (cddr a)]           ; Everything after from and type
+                                       [target (car (reverse rest))]
+                                       [middle (reverse (cdr (reverse rest)))])  ; Everything between type and target
+                                  (append (list (rename from) type)
+                                          middle
+                                          (list (rename target)))))
+                              (fsm-assertions fsm))])
+        (make-fsm-with-assertions new-states (fsm-alphabet fsm) new-trans
+                                  new-start new-accepting new-eps new-assertions)))
 
 (define (fsm-union fsm1 fsm2)
   (doc 'type '(-> FSM FSM FSM))
@@ -287,8 +409,10 @@
          [all-trans (append (fsm-transitions m1) (fsm-transitions m2))]
          [all-accepting (append (fsm-accepting m1) (fsm-accepting m2))]
          [new-eps (cons (cons new-start (list (fsm-start m1) (fsm-start m2)))
-                        (append (fsm-epsilon m1) (fsm-epsilon m2)))])
-        (make-fsm all-states all-alphabet all-trans new-start all-accepting new-eps)))
+                        (append (fsm-epsilon m1) (fsm-epsilon m2)))]
+         [all-assertions (append (fsm-assertions m1) (fsm-assertions m2))])
+        (make-fsm-with-assertions all-states all-alphabet all-trans
+                                  new-start all-accepting new-eps all-assertions)))
 
 (define (fsm-concat fsm1 fsm2)
   (doc 'type '(-> FSM FSM FSM))
@@ -303,9 +427,10 @@
                           (fsm-accepting m1))]
          [all-eps (append bridge-eps
                           (fsm-epsilon m1)
-                          (fsm-epsilon m2))])
-        (make-fsm all-states all-alphabet all-trans
-                  (fsm-start m1) (fsm-accepting m2) all-eps)))
+                          (fsm-epsilon m2))]
+         [all-assertions (append (fsm-assertions m1) (fsm-assertions m2))])
+        (make-fsm-with-assertions all-states all-alphabet all-trans
+                                  (fsm-start m1) (fsm-accepting m2) all-eps all-assertions)))
 
 (define (fsm-star fsm)
   (doc 'type '(-> FSM FSM))
@@ -321,8 +446,8 @@
          [all-eps (cons start-eps (append loop-eps (fsm-epsilon m)))]
          ;; New start is also accepting (accepts empty)
          [all-accepting (cons new-start (fsm-accepting m))])
-        (make-fsm all-states (fsm-alphabet m) (fsm-transitions m)
-                  new-start all-accepting all-eps)))
+        (make-fsm-with-assertions all-states (fsm-alphabet m) (fsm-transitions m)
+                                  new-start all-accepting all-eps (fsm-assertions m))))
 
 (define (fsm-plus fsm)
   (doc 'type '(-> FSM FSM))
@@ -339,8 +464,8 @@
          [all-eps (cons start-eps (fsm-epsilon m))]
          ;; New start is accepting
          [all-accepting (cons new-start (fsm-accepting m))])
-        (make-fsm all-states (fsm-alphabet m) (fsm-transitions m)
-                  new-start all-accepting all-eps)))
+        (make-fsm-with-assertions all-states (fsm-alphabet m) (fsm-transitions m)
+                                  new-start all-accepting all-eps (fsm-assertions m))))
 
 (doc 'section 'fsm-builders)
 

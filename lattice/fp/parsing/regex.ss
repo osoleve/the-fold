@@ -13,7 +13,10 @@
 ;;;   Grouping:      (ab)
 ;;;   Char classes:  [abc], [a-z], [^abc]
 ;;;   Dot (any):     .
-;;;   Escapes:       \*, \+, \?, \., \[, \], \(, \), \|, \\, \n, \t, \r
+;;;   Escapes:       \*, \+, \?, \., \[, \], \(, \), \|, \\, \n, \t, \r, \{, \}
+;;;   Quantifiers:   a{3}, a{2,4}, a{2,}, a{,4}
+;;;   Anchors:       ^ (start), $ (end)
+;;;   Lookahead:     (?=...) positive, (?!...) negative
 ;;;
 ;;; Dependencies:
 ;;;   - core/base/prelude.ss
@@ -155,6 +158,51 @@
 (define (regex-empty? x)
   (and (pair? x) (eq? (car x) 'regex-empty)))
 
+;;; Quantifier ranges: {n}, {n,m}, {n,}, {,m}
+(define (regex-repeat expr min max)
+  (doc 'type '(-> RegexAST Nat (Option Nat) RegexAST))
+  (doc 'description "Bounded repetition. max = #f means unbounded.")
+  (list 'regex-repeat expr min max))
+
+(define (regex-repeat? x)
+  (and (pair? x) (eq? (car x) 'regex-repeat)))
+
+(define (regex-repeat-expr x)
+  (cadr x))
+
+(define (regex-repeat-min x)
+  (caddr x))
+
+(define (regex-repeat-max x)
+  (cadddr x))
+
+;;; Anchors: ^ (start of string), $ (end of string)
+(define (regex-anchor type)
+  (doc 'type '(-> Symbol RegexAST))
+  (doc 'description "Zero-width anchor. type = 'start or 'end")
+  (list 'regex-anchor type))
+
+(define (regex-anchor? x)
+  (and (pair? x) (eq? (car x) 'regex-anchor)))
+
+(define (regex-anchor-type x)
+  (cadr x))
+
+;;; Lookahead assertions: (?=...) and (?!...)
+(define (regex-lookahead expr positive?)
+  (doc 'type '(-> RegexAST Boolean RegexAST))
+  (doc 'description "Lookahead assertion. positive? = #t for (?=...), #f for (?!...)")
+  (list 'regex-lookahead expr positive?))
+
+(define (regex-lookahead? x)
+  (and (pair? x) (eq? (car x) 'regex-lookahead)))
+
+(define (regex-lookahead-expr x)
+  (cadr x))
+
+(define (regex-lookahead-positive? x)
+  (caddr x))
+
 ;;; ============================================================
 ;;; Section 3: Regex Parser
 ;;; ============================================================
@@ -165,8 +213,11 @@
 ;;;   regex     = alt
 ;;;   alt       = seq ('|' seq)*
 ;;;   seq       = postfix+
-;;;   postfix   = atom ('*' | '+' | '?')*
-;;;   atom      = literal | '.' | class | '(' regex ')'
+;;;   postfix   = atom ('*' | '+' | '?' | interval)*
+;;;   interval  = '{' num '}' | '{' num? ',' num? '}'
+;;;   atom      = lookahead | group | class | anchor | dot | literal
+;;;   lookahead = '(?' ('=' | '!') regex ')'
+;;;   anchor    = '^' | '$'
 ;;;   class     = '[' '^'? (char | range)+ ']'
 ;;;   literal   = char | escape
 
@@ -185,7 +236,7 @@
         (parser-or
          (parser-bind (char #\\) (lambda (_) (parser-pure #\\)))
          ;; Meta characters that need escaping
-         (one-of "*+?.|[]()^$"))))))))
+         (one-of "*+?.|[]()^${}"))))))))
 
 ;;; Literal character (not a metachar, or escaped)
 (define (parse-literal)
@@ -193,7 +244,7 @@
   (parser-map regex-lit
               (parser-or (parse-escape)
                          (satisfy (lambda (c)
-                                    (not (member c '(#\* #\+ #\? #\. #\| #\[ #\] #\( #\) #\\))))
+                                    (not (member c '(#\* #\+ #\? #\. #\| #\[ #\] #\( #\) #\\ #\^ #\$ #\{))))
                                   "literal character"))))
 
 ;;; Dot (any character)
@@ -270,31 +321,111 @@
          (lambda (_)
            (parser-pure (regex-group expr)))))))))
 
-;;; Atom: literal | dot | class | group
+;;; Lookahead assertion: (?=...) or (?!...)
+;;; Wrapped in try for backtracking when used in choice with parse-group
+(define (parse-lookahead)
+  (doc 'type '(Parser RegexAST))
+  (try
+   (parser-bind
+    (char #\()
+    (lambda (_)
+      (parser-bind
+       (char #\?)
+       (lambda (_)
+         (parser-bind
+          (one-of "=!")
+          (lambda (type-char)
+            (parser-bind
+             (parse-regex)
+             (lambda (inner)
+               (parser-bind
+                (char #\))
+                (lambda (_)
+                  (parser-pure
+                   (regex-lookahead inner (char=? type-char #\=)))))))))))))))
+
+;;; Anchor: ^ or $
+(define (parse-anchor)
+  (doc 'type '(Parser RegexAST))
+  (parser-or
+   (parser-bind (char #\^) (lambda (_) (parser-pure (regex-anchor 'start))))
+   (parser-bind (char #\$) (lambda (_) (parser-pure (regex-anchor 'end))))))
+
+;;; Interval quantifier: {n}, {n,}, {,m}, {n,m}
+(define (parse-interval)
+  (doc 'type '(Parser (Pair Nat (Option Nat))))
+  (doc 'description "Parse interval quantifier, returns (min . max) where max=#f means unbounded")
+  (parser-bind
+   (char #\{)
+   (lambda (_)
+     (parser-bind
+      (option-maybe natural)
+      (lambda (min-maybe)
+        (parser-or
+         ;; Case: {n} - exact count (requires min to be present)
+         (parser-bind
+          (char #\})
+          (lambda (_)
+            (if (nothing? min-maybe)
+                (parser-fail "empty interval {} is invalid")
+                (let ([n (from-just min-maybe)])
+                  (parser-pure (cons n n))))))
+         ;; Case: {n,}, {,m}, or {n,m}
+         (parser-bind
+          (char #\,)
+          (lambda (_)
+            (parser-bind
+             (option-maybe natural)
+             (lambda (max-maybe)
+               (parser-bind
+                (char #\})
+                (lambda (_)
+                  (let ([min (if (nothing? min-maybe) 0 (from-just min-maybe))]
+                        [max (if (nothing? max-maybe) #f (from-just max-maybe))])
+                    ;; Validate: if both present, min <= max
+                    (if (and max (> min max))
+                        (parser-fail "interval min > max")
+                        (parser-pure (cons min max))))))))))))))))
+
+;;; Atom: lookahead | group | class | anchor | dot | literal
 (define (parse-atom)
   (doc 'type '(Parser RegexAST))
-  (choice (list (parse-group)
+  (choice (list (parse-lookahead)  ; Must come before parse-group
+                (parse-group)
                 (parse-class)
+                (parse-anchor)
                 (parse-dot)
                 (parse-literal))))
 
-;;; Postfix operators: atom followed by *, +, ?
+;;; Single postfix operator: *, +, ?, or {n,m}
+(define (parse-postfix-op)
+  (doc 'type '(Parser (Union Char (Pair Nat (Option Nat)))))
+  (parser-or
+   (one-of "*+?")
+   (parse-interval)))
+
+;;; Apply a postfix operator to an expression
+(define (apply-postfix-op expr op)
+  (cond
+   [(char? op)
+    (cond
+     [(char=? op #\*) (regex-star expr)]
+     [(char=? op #\+) (regex-plus expr)]
+     [(char=? op #\?) (regex-opt expr)])]
+   [(pair? op)
+    ;; Interval: (min . max)
+    (regex-repeat expr (car op) (cdr op))]))
+
+;;; Postfix operators: atom followed by *, +, ?, {n,m}
 (define (parse-postfix)
   (doc 'type '(Parser RegexAST))
   (parser-bind
    (parse-atom)
    (lambda (atom)
      (parser-bind
-      (many (one-of "*+?"))
+      (many (parse-postfix-op))
       (lambda (ops)
-        (parser-pure
-         (fold-left (lambda (expr op)
-                      (cond
-                       [(char=? op #\*) (regex-star expr)]
-                       [(char=? op #\+) (regex-plus expr)]
-                       [(char=? op #\?) (regex-opt expr)]))
-                    atom
-                    ops)))))))
+        (parser-pure (fold-left apply-postfix-op atom ops)))))))
 
 ;;; Sequence: one or more postfix expressions concatenated
 (define (parse-seq)
@@ -410,8 +541,88 @@
    [(regex-group? ast)
     (regex-compile (regex-group-expr ast) universe)]
 
+   ;; Repeat: {n}, {n,m}, {n,}, {,m}
+   [(regex-repeat? ast)
+    (compile-repeat (regex-repeat-expr ast)
+                    (regex-repeat-min ast)
+                    (regex-repeat-max ast)
+                    universe)]
+
+   ;; Anchor: ^ or $
+   [(regex-anchor? ast)
+    (compile-anchor (regex-anchor-type ast))]
+
+   ;; Lookahead: (?=...) or (?!...)
+   [(regex-lookahead? ast)
+    (compile-lookahead (regex-lookahead-expr ast)
+                       (regex-lookahead-positive? ast)
+                       universe)]
+
    [else
     (error 'regex-compile (format "Unknown AST node: ~a" ast))]))
+
+;;; Helper: compile repeat quantifier {n,m}
+(define (compile-repeat expr min max universe)
+  (doc 'type '(-> RegexAST Nat (Option Nat) (List Char) FSM))
+  (let ([base (regex-compile expr universe)])
+    (cond
+     ;; {0,0} → empty string
+     [(and (= min 0) (eqv? max 0))
+      (fsm-epsilon-lang)]
+     ;; {0} also empty string (degenerate)
+     [(and (= min 0) (eqv? max 0))
+      (fsm-epsilon-lang)]
+     ;; {n} or {n,n} → concatenate n copies
+     [(eqv? min max)
+      (if (= min 0)
+          (fsm-epsilon-lang)
+          (fold-left fsm-concat
+                     (regex-compile expr universe)
+                     (map (lambda (_) (regex-compile expr universe))
+                          (iota (- min 1)))))]
+     ;; {0,m} → m optionals chained
+     [(= min 0)
+      (fold-left (lambda (acc _)
+                   (fsm-optional (fsm-concat (regex-compile expr universe) acc)))
+                 (fsm-epsilon-lang)
+                 (iota max))]
+     ;; {n,} → n copies then star
+     [(not max)
+      (let ([required (fold-left fsm-concat
+                                 (regex-compile expr universe)
+                                 (map (lambda (_) (regex-compile expr universe))
+                                      (iota (- min 1))))])
+        (fsm-concat required (fsm-star (regex-compile expr universe))))]
+     ;; {n,m} → n copies then (m-n) optionals
+     [else
+      (let* ([required (fold-left fsm-concat
+                                  (regex-compile expr universe)
+                                  (map (lambda (_) (regex-compile expr universe))
+                                       (iota (- min 1))))]
+             [optional (fold-left (lambda (acc _)
+                                    (fsm-concat (fsm-optional (regex-compile expr universe)) acc))
+                                  (fsm-epsilon-lang)
+                                  (iota (- max min)))])
+        (fsm-concat required optional))])))
+
+;;; Helper: compile anchor (^ or $)
+(define (compile-anchor type)
+  (doc 'type '(-> Symbol FSM))
+  (let ([s0 (fsm-fresh-state "anc")]
+        [s1 (fsm-fresh-state "anc")])
+    (make-fsm-with-assertions
+     (list s0 s1) '() '() s0 (list s1) '()
+     (list (list s0 'anchor type s1)))))
+
+;;; Helper: compile lookahead assertion
+(define (compile-lookahead expr positive? universe)
+  (doc 'type '(-> RegexAST Boolean (List Char) FSM))
+  (let ([inner (regex-compile expr universe)]
+        [s0 (fsm-fresh-state "la")]
+        [s1 (fsm-fresh-state "la")])
+    (make-fsm-with-assertions
+     (list s0 s1) '() '() s0 (list s1) '()
+     (list (list s0 'lookahead inner positive? s1)))))
 
 ;;; ============================================================
 ;;; Section 5: High-Level Interface
@@ -488,6 +699,19 @@
     (format "opt(~a)" (regex-ast->string (regex-opt-expr ast)))]
    [(regex-group? ast)
     (format "group(~a)" (regex-ast->string (regex-group-expr ast)))]
+   [(regex-repeat? ast)
+    (let ([min (regex-repeat-min ast)]
+          [max (regex-repeat-max ast)])
+      (format "repeat(~a,~a,~a)"
+              (regex-ast->string (regex-repeat-expr ast))
+              min
+              (if max max "inf")))]
+   [(regex-anchor? ast)
+    (format "anchor(~a)" (regex-anchor-type ast))]
+   [(regex-lookahead? ast)
+    (format "~a(~a)"
+            (if (regex-lookahead-positive? ast) "lookahead" "neglookahead")
+            (regex-ast->string (regex-lookahead-expr ast)))]
    [else (format "unknown(~a)" ast)]))
 
 ;;; Helper: string-join
@@ -504,16 +728,20 @@
 
 ;;; AST Constructors:
 ;;;   regex-lit, regex-dot, regex-class, regex-seq, regex-alt,
-;;;   regex-star, regex-plus, regex-opt, regex-group, regex-empty
+;;;   regex-star, regex-plus, regex-opt, regex-group, regex-empty,
+;;;   regex-repeat, regex-anchor, regex-lookahead
 ;;;
 ;;; AST Predicates:
 ;;;   regex-lit?, regex-dot?, regex-class?, regex-seq?, regex-alt?,
-;;;   regex-star?, regex-plus?, regex-opt?, regex-group?, regex-empty?
+;;;   regex-star?, regex-plus?, regex-opt?, regex-group?, regex-empty?,
+;;;   regex-repeat?, regex-anchor?, regex-lookahead?
 ;;;
 ;;; AST Accessors:
 ;;;   regex-lit-char, regex-class-chars, regex-class-negated?,
 ;;;   regex-seq-exprs, regex-alt-exprs, regex-star-expr,
-;;;   regex-plus-expr, regex-opt-expr, regex-group-expr
+;;;   regex-plus-expr, regex-opt-expr, regex-group-expr,
+;;;   regex-repeat-expr, regex-repeat-min, regex-repeat-max,
+;;;   regex-anchor-type, regex-lookahead-expr, regex-lookahead-positive?
 ;;;
 ;;; Parsing:
 ;;;   regex-parse
