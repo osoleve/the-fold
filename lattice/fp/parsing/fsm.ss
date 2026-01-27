@@ -187,8 +187,9 @@
                            (if (>= i len)
                                (reverse acc)
                                (loop (+ i 1) (cons (vector-ref input-vec i) acc)))))]
-             ;; Run inner FSM with assertion support (inner may contain anchors)
-             [matches? (just? (fsm-run-with-assertions inner-fsm remaining))])
+             ;; Lookahead checks if inner pattern matches a PREFIX of remaining input
+             ;; (not the entire remaining string)
+             [matches? (fsm-accepts-prefix-with-assertions? inner-fsm remaining)])
         (if positive? matches? (not matches?)))]
      [else #f])))
 
@@ -257,6 +258,31 @@
                   nothing
                   (loop next-states next-pos))))))))
 
+;;; Check if FSM accepts a PREFIX of input (for lookahead semantics)
+;;; Returns #t if FSM reaches an accepting state at any point, even with input remaining
+(define (fsm-accepts-prefix-with-assertions? fsm input)
+  (doc 'type '(-> FSM (Union String (List Symbol)) Boolean))
+  (doc 'description "Check if FSM accepts any prefix of input (for lookahead)")
+  (let* ([input-list (if (string? input) (string->list input) input)]
+         [input-vec (list->vector input-list)]
+         [len (vector-length input-vec)]
+         [start-states (epsilon-closure-with-context fsm (fsm-start fsm) 0 input-vec len)])
+    ;; Check if we're already in accepting state (empty prefix)
+    (let loop ([states start-states] [pos 0])
+      (cond
+       ;; If currently in accepting state, prefix accepted
+       [(exists (lambda (s) (member s (fsm-accepting fsm))) states) #t]
+       ;; If no more input, we're done (didn't find accepting state)
+       [(= pos len) #f]
+       ;; Process next character
+       [else
+        (let ([sym (vector-ref input-vec pos)]
+              [next-pos (+ pos 1)])
+          (let ([next-states (fsm-move-with-context fsm states sym next-pos input-vec len)])
+            (if (null? next-states)
+                #f  ; Dead end
+                (loop next-states next-pos))))]))))
+
 (doc 'section 'fsm-language-operations)
 
 (define (fsm-reachable fsm)
@@ -305,8 +331,11 @@
 
 (define (nfa->dfa nfa)
   (doc 'type '(-> FSM FSM))
-  (doc 'description "Convert NFA to DFA using subset construction")
-  (let* ([alphabet (fsm-alphabet nfa)]
+  (doc 'description "Convert NFA to DFA using subset construction. If NFA has assertions (anchors/lookahead), returns NFA unchanged since assertions require position-aware execution.")
+  ;; Assertions don't translate to DFA - return NFA unchanged
+  (if (not (null? (fsm-assertions nfa)))
+      nfa
+      (let* ([alphabet (fsm-alphabet nfa)]
          [start-set (epsilon-closure nfa (fsm-start nfa))]
          [start-name (state-set->name start-set)])
         (let loop ([worklist (list start-set)]
@@ -350,7 +379,7 @@
                                       (append new-trans dfa-trans)
                                       (if is-accepting
                                           (cons current-name dfa-accepting)
-                                          dfa-accepting)))))))))
+                                          dfa-accepting))))))))))
 
 (doc 'section 'fsm-composition)
 
@@ -509,9 +538,12 @@
 
 (define (fsm-minimize dfa)
   (doc 'type '(-> FSM FSM))
-  (doc 'description "Minimize a DFA using partition refinement (Hopcroft's algorithm)")
-  (if (not (fsm-deterministic? dfa))
-      (fsm-minimize (nfa->dfa dfa))
+  (doc 'description "Minimize a DFA using partition refinement. If FSM has assertions, returns unchanged since assertions require position-aware execution.")
+  ;; Assertions don't survive minimization - return unchanged
+  (if (not (null? (fsm-assertions dfa)))
+      dfa
+      (if (not (fsm-deterministic? dfa))
+          (fsm-minimize (nfa->dfa dfa))
       (let* ([states (fsm-states dfa)]
              [alphabet (fsm-alphabet dfa)]
              [accepting (fsm-accepting dfa)]
@@ -524,7 +556,7 @@
                  (let ([new-partition (refine-partition dfa partition alphabet)])
                       (if (= (length new-partition) (length partition))
                           (build-minimized-dfa dfa partition)
-                          (refine new-partition)))))))
+                          (refine new-partition))))))))
 
 ;;; refine-partition : FSM × (List (List State)) × (List Symbol) → (List (List State))
 ;;; Refine partition by checking transitions

@@ -569,38 +569,33 @@
      ;; {0,0} → empty string
      [(and (= min 0) (eqv? max 0))
       (fsm-epsilon-lang)]
-     ;; {0} also empty string (degenerate)
-     [(and (= min 0) (eqv? max 0))
-      (fsm-epsilon-lang)]
-     ;; {n} or {n,n} → concatenate n copies
-     [(eqv? min max)
-      (if (= min 0)
-          (fsm-epsilon-lang)
-          (fold-left fsm-concat
-                     (regex-compile expr universe)
-                     (map (lambda (_) (regex-compile expr universe))
-                          (iota (- min 1)))))]
+     ;; {0,} → star (equivalent to a*)
+     [(and (= min 0) (not max))
+      (fsm-star base)]
      ;; {0,m} → m optionals chained
      [(= min 0)
       (fold-left (lambda (acc _)
-                   (fsm-optional (fsm-concat (regex-compile expr universe) acc)))
+                   (fsm-optional (fsm-concat base acc)))
                  (fsm-epsilon-lang)
                  (iota max))]
+     ;; {n} or {n,n} → concatenate n copies
+     [(eqv? min max)
+      (fold-left fsm-concat base
+                 (map (lambda (_) (regex-compile expr universe))
+                      (iota (- min 1))))]
      ;; {n,} → n copies then star
      [(not max)
-      (let ([required (fold-left fsm-concat
-                                 (regex-compile expr universe)
+      (let ([required (fold-left fsm-concat base
                                  (map (lambda (_) (regex-compile expr universe))
                                       (iota (- min 1))))])
-        (fsm-concat required (fsm-star (regex-compile expr universe))))]
+        (fsm-concat required (fsm-star base)))]
      ;; {n,m} → n copies then (m-n) optionals
      [else
-      (let* ([required (fold-left fsm-concat
-                                  (regex-compile expr universe)
+      (let* ([required (fold-left fsm-concat base
                                   (map (lambda (_) (regex-compile expr universe))
                                        (iota (- min 1))))]
              [optional (fold-left (lambda (acc _)
-                                    (fsm-concat (fsm-optional (regex-compile expr universe)) acc))
+                                    (fsm-concat (fsm-optional base) acc))
                                   (fsm-epsilon-lang)
                                   (iota (- max min)))])
         (fsm-concat required optional))])))
@@ -668,7 +663,10 @@
    [(pattern input universe)
     (doc 'type '(-> String String (Option (List Char)) (Maybe (List State))))
     (doc 'description "Match regex pattern against input. Returns Just final-states on match, Nothing otherwise.")
-    (fsm-run (regex->nfa pattern universe) input)]))
+    (let ([nfa (regex->nfa pattern universe)])
+      (if (null? (fsm-assertions nfa))
+          (fsm-run nfa input)
+          (fsm-run-with-assertions nfa input)))]))
 
 ;;; ============================================================
 ;;; Section 6: Utilities
