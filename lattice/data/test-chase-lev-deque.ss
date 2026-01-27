@@ -44,6 +44,30 @@
     (let ([d (make-chase-lev-deque 16)])
       (deque-push! d 'x)
       (deque-pop! d)
+      (assert-equal 'empty (deque-pop! d))))
+
+  (define-test "deque-steal! returns oldest (FIFO from top)"
+    (let ([d (make-chase-lev-deque 16)])
+      (deque-push! d 'first)
+      (deque-push! d 'second)
+      (deque-push! d 'third)
+      ;; Steal takes from top (oldest)
+      (assert-equal 'first (deque-steal! d))
+      (assert-equal 'second (deque-steal! d))))
+
+  (define-test "deque-steal! on empty returns 'empty"
+    (let ([d (make-chase-lev-deque 16)])
+      (assert-equal 'empty (deque-steal! d))))
+
+  (define-test "deque-steal! and deque-pop! work together"
+    (let ([d (make-chase-lev-deque 16)])
+      (deque-push! d 'a)
+      (deque-push! d 'b)
+      (deque-push! d 'c)
+      ;; Steal oldest, pop newest
+      (assert-equal 'a (deque-steal! d))
+      (assert-equal 'c (deque-pop! d))
+      (assert-equal 'b (deque-pop! d))
       (assert-equal 'empty (deque-pop! d)))))
 
 (run-all-tests)

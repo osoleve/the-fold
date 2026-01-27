@@ -112,3 +112,19 @@ Uses CAS when contending with thieves on last element.")
              (begin
                (set-box! (deque-bottom-box d) (+ t 1))
                'empty)))])))
+
+(define (deque-steal! d)
+  (doc 'type '(-> ChaselevDeque (U Task 'empty 'abort)))
+  (doc 'description "Thief steals from top. Returns task, 'empty, or 'abort (CAS failed).")
+  (let* ([t (deque-top d)]
+         [b (deque-bottom d)])
+    (if (>= t b)
+        'empty
+        (let* ([buf (deque-buffer d)]
+               [cap (vector-length buf)]
+               [task (vector-ref buf (mod t cap))])
+          (if (box-cas! (deque-top-box d) t (+ t 1))
+              (begin
+                (vector-set! buf (mod t cap) #f)  ; Clear for GC
+                task)
+              'abort)))))  ; Another thief won, caller should retry elsewhere
