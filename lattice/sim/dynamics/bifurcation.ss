@@ -1226,7 +1226,7 @@ newly-created branches by perturbing along the critical eigenvector.")
                    ;; Find the smallest singular value
                    [min-idx (find-min-singular-value-index sigma n)]
                    [min-val (matrix-ref sigma min-idx min-idx)])
-                  (if (> min-val 1e-4)
+                  (if (> min-val 1e-6)
                       #f  ; No near-zero singular value - not at a bifurcation
                       ;; Extract the corresponding column of V
                       (let ([eigenvec (make-vector n 0)])
@@ -1312,8 +1312,8 @@ For pitchfork: new branches only exist past the bifurcation, so we step forward 
              (if (not effective-eigenvec)
                  #f
                  (let ([sign (if (eq? direction 'upper) 1.0 -1.0)])
-                      ;; Try stepping forward in parameter AND perturbing state
-                      (let try-combo ([param-steps '(0.0 0.01 0.05 0.1)]
+                      ;; Try stepping in parameter (both directions for sub/supercritical) AND perturbing state
+                      (let try-combo ([param-steps '(0.0 0.01 -0.01 0.05 -0.05 0.1 -0.1)]
                                       [state-scales '(0.01 0.05 0.1 0.5 1.0)])
                            (if (null? state-scales)
                                #f

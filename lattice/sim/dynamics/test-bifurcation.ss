@@ -505,9 +505,9 @@
           (assert-false eigenvec)))
 
   (define-test "switch-branch-adaptive finds upper branch of pitchfork"
-    ;; Pitchfork at r=0.1: has branches at x=0 (unstable) and x=±sqrt(0.1)
+    ;; Pitchfork at r=0.5: has branches at x=0 (unstable) and x=±sqrt(0.5) ≈ ±0.707
     (let* ([psys (pitchfork-normal-form-param)]
-           [r 0.1]  ; Slightly past bifurcation
+           [r 0.5]  ; Well past bifurcation for clear separation
            [sys (instantiate-at psys r)]
            ;; Find the origin branch (should be unstable)
            [origin-fp (vector 0.0)]
@@ -518,10 +518,10 @@
               (begin
                 (assert-true (pair? result))
                 (assert-true (vector? (car result)))
-                ;; The new fixed point should be away from origin
-                (assert-true (> (abs (vector-ref (car result) 0)) 0.1)))
-              ;; If switch fails, that's acceptable for the origin (it's not the bifurcation point)
-              #t)))
+                ;; The new fixed point should be noticeably away from origin
+                (assert-true (> (abs (vector-ref (car result) 0)) 0.3)))
+              ;; If switch fails, that's a problem at this parameter
+              (assert-true #f))))
 
   (define-test "switch-branch-adaptive finds branches at pitchfork bifurcation"
     ;; At exactly r=0 (or very close), we should be able to detect both branches emerging
