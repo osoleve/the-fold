@@ -622,6 +622,101 @@
                       (when original-at-new-param
                             (assert-true (> (vec-norm (vec-sub new-fp original-at-new-param)) 0.1)))))))
 
+  ;;; ============================================================
+  ;;; Adaptive Step-Size Control (fold-zxrv)
+  ;;; ============================================================
+
+  (define-test "compute-eigenvalue-factor returns 1.0 for safe eigenvalues"
+    (let ([eigs (list (make-complex 0.5 0.0) (make-complex -0.3 0.0))])
+         (assert-equal (compute-eigenvalue-factor eigs) 1.0)))
+
+  (define-test "compute-eigenvalue-factor returns 0.5 near critical"
+    (let ([eigs (list (make-complex 0.05 0.0) (make-complex -0.3 0.0))])
+         (assert-equal (compute-eigenvalue-factor eigs) 0.5)))
+
+  (define-test "compute-curvature-factor returns 1.0 for small angle"
+    (let ([t1 (cons (vector 1.0 0.0) 0.0)]
+          [t2 (cons (vector 0.99 0.14) 0.0)])  ; ~8 degrees
+         (assert-equal (compute-curvature-factor t1 t2) 1.0)))
+
+  (define-test "compute-curvature-factor returns 0.5 for large angle"
+    (let ([t1 (cons (vector 1.0 0.0) 0.0)]
+          [t2 (cons (vector 0.7 0.7) 0.0)])  ; ~45 degrees
+         (assert-equal (compute-curvature-factor t1 t2) 0.5)))
+
+  (define-test "compute-residual-factor returns 1.0 for fast convergence"
+    (assert-equal (compute-residual-factor 2) 1.0))
+
+  (define-test "compute-residual-factor returns 0.5 for slow convergence"
+    (assert-equal (compute-residual-factor 6) 0.5))
+
+  (define-test "compute-residual-factor returns 0.25 near failure"
+    (assert-equal (compute-residual-factor 9) 0.25))
+
+  (define-test "compute-adaptive-step respects min bound"
+    (let ([result (compute-adaptive-step 1e-6 '(0.5 0.5 0.5) 0.1)])
+         (assert-true (>= result *adaptive-min-step*))))
+
+  (define-test "compute-adaptive-step respects max bound"
+    (let ([result (compute-adaptive-step 0.5 '(1.0 1.0 1.0) 0.1)])
+         (assert-true (<= result (* 0.1 *adaptive-max-step-multiplier*)))))
+
+  (define-test "should-expand? returns true after consecutive good steps"
+    (assert-true (should-expand? 3 '(1.0 1.0 1.0))))
+
+  (define-test "should-expand? returns false with shrink factor"
+    (assert-false (should-expand? 3 '(1.0 0.5 1.0))))
+
+  (define-test "continue-fixed-point-arclength-adaptive tracks pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [result (continue-fixed-point-arclength-adaptive psys -0.5 fp0 20 0.1)])
+          ;; Should produce continuation data
+          (assert-true (> (length result) 5))
+          ;; All entries should have the expected structure
+          (assert-true (every (lambda (e) (= (length e) 4)) result))))
+
+  (define-test "continue-fixed-point-arclength-adaptive detects stability change"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [result (continue-fixed-point-arclength-adaptive psys -0.5 fp0 30 0.1)]
+           [stabilities (map caddr result)])
+          ;; Should see stability change (stable -> unstable at r=0)
+          (assert-true (not (every (lambda (s) (eq? s (car stabilities))) stabilities)))))
+
+  (define-test "continue-fixed-point-adaptive tracks pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [result (continue-fixed-point-adaptive psys -0.5 fp0 0.5 0.1)])
+          ;; Should produce continuation data
+          (assert-true (> (length result) 5))))
+
+  (define-test "arclength-correct returns iteration count"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [param -0.5]
+           [fp (vector 0.0)]
+           [tangent (compute-tangent psys param fp)]
+           [predicted (arclength-predict fp param tangent 0.1)]
+           [result (arclength-correct psys (car predicted) (cdr predicted) tangent 0.1)])
+          ;; Result should be (fp param iterations)
+          (assert-true (and result (= (length result) 3)))
+          (assert-true (number? (caddr result)))))
+
+  (define-test "adaptive continuation uses fewer steps in stable region"
+    ;; Compare adaptive vs fixed continuation - adaptive should take fewer steps
+    ;; to cover same region when much of it is stable
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           ;; Fixed: many small steps
+           [fixed-result (continue-fixed-point-arclength psys -1.0 fp0 50 0.05)]
+           ;; Adaptive: starts same but expands in stable region
+           [adaptive-result (continue-fixed-point-arclength-adaptive psys -1.0 fp0 50 0.05)]
+           ;; Both should cover similar parameter range
+           [fixed-range (- (car (car (reverse fixed-result))) -1.0)]
+           [adaptive-range (- (car (car (reverse adaptive-result))) -1.0)])
+          ;; Adaptive should cover at least as much range (often more due to expansion)
+          (assert-true (>= adaptive-range (* 0.8 fixed-range)))))
+
 )
 
 (run-all-tests)

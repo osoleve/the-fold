@@ -203,7 +203,8 @@
                                     ;; Correction failed - return what we have
                                     (reverse (cons entry results))
                                     (let* ([new-fp (car corrected)]
-                                           [new-param (cdr corrected)]
+                                           [new-param (cadr corrected)]
+                                           ;; corrected is (fp param iterations) - iterations available at (caddr corrected)
                                            ;; Compute new tangent for next step
                                            [new-tangent (compute-tangent psys new-param new-fp)])
                                           (if (not new-tangent)
@@ -322,9 +323,9 @@
         (cons new-fp new-param)))
 
 (define (arclength-correct psys pred-fp pred-param tangent ds)
-  (doc 'type '(-> ParamODE Vec Number (Pair Vec Number) Number (Option (Pair Vec Number))))
+  (doc 'type '(-> ParamODE Vec Number (Pair Vec Number) Number (Option (List Vec Number Nat))))
   (doc 'description "Corrector: solve bordered system F(x,p)=0 with arclength constraint")
-  (doc 'returns "(corrected-fp . corrected-param) or #f if correction fails")
+  (doc 'returns "(corrected-fp corrected-param iterations) or #f if correction fails")
   (let* ([tangent-x (car tangent)]
          [tangent-p (cdr tangent)]
          [n (vector-length pred-fp)])
@@ -341,7 +342,7 @@
                         [f-val (eval-vector-field sys 0 fp)]
                         [f-norm (vec-norm f-val)])
                        (if (< f-norm *continuation-tolerance*)
-                           (cons fp param)  ; Converged
+                           (list fp param iter)  ; Converged with iteration count
                            ;; Compute correction
                            (let* ([jac-x (compute-jacobian sys fp *continuation-step-size*)]
                                   [jac-p (compute-parameter-jacobian psys param fp *continuation-step-size*)]
@@ -411,6 +412,264 @@
             (cons (vec-scale -1.0 (car new-tangent))
                   (- (cdr new-tangent)))
             new-tangent)))
+
+;;; ============================================================
+;;; Section: Adaptive Step-Size Control
+;;; ============================================================
+
+(doc 'section 'adaptive-step-size)
+(doc 'note "Adaptive step-size control for continuation methods.
+Shrinks steps near bifurcations (eigenvalue proximity), tight curves (curvature),
+or when Newton has difficulty (iteration count). Expands steps in stable regions.")
+
+;; Adaptive step-size parameters
+(define *adaptive-eigenvalue-threshold* 0.1)   ; Shrink when |Re(λ)| < this
+(define *adaptive-curvature-threshold* 0.26)   ; ~15 degrees in radians
+(define *adaptive-residual-threshold* 4)       ; Shrink when iters > this
+(define *adaptive-residual-critical* 8)        ; Strong shrink when iters > this
+(define *adaptive-min-step* 1e-5)              ; Floor to prevent stalling
+(define *adaptive-max-step-multiplier* 2.0)    ; Cap on expansion
+(define *adaptive-expansion-count* 3)          ; Consecutive good steps to expand
+(define *adaptive-shrink-factor* 0.5)          ; Shrink multiplier
+(define *adaptive-expand-factor* 1.5)          ; Expand multiplier
+
+(define (compute-eigenvalue-factor eigenvalues)
+  (doc 'export #t)
+  (doc 'type '(-> (List Complex) Number))
+  (doc 'description "Compute step-size factor based on eigenvalue proximity to critical values")
+  (doc 'returns "1.0 if safe, 0.5 if near bifurcation")
+  (if (null? eigenvalues)
+      1.0
+      (let ([min-real-mag (apply min (map (lambda (e) (abs (complex-real e))) eigenvalues))])
+           (if (< min-real-mag *adaptive-eigenvalue-threshold*)
+               *adaptive-shrink-factor*
+               1.0))))
+
+(define (compute-curvature-factor old-tangent new-tangent)
+  (doc 'export #t)
+  (doc 'type '(-> (Pair Vec Number) (Pair Vec Number) Number))
+  (doc 'description "Compute step-size factor based on tangent direction change (curvature)")
+  (doc 'returns "1.0 if smooth, 0.5 if sharp turn")
+  (if (or (not old-tangent) (not new-tangent))
+      1.0
+      (let* ([dot (+ (vec-dot (car old-tangent) (car new-tangent))
+                     (* (cdr old-tangent) (cdr new-tangent)))]
+             ;; Clamp dot to [-1, 1] to avoid acos domain errors
+             [clamped-dot (max -1.0 (min 1.0 dot))]
+             [angle (acos (abs clamped-dot))])  ; Use abs since tangents may be flipped
+            (if (> angle *adaptive-curvature-threshold*)
+                *adaptive-shrink-factor*
+                1.0))))
+
+(define (compute-residual-factor iterations)
+  (doc 'export #t)
+  (doc 'type '(-> Nat Number))
+  (doc 'description "Compute step-size factor based on Newton iteration count")
+  (doc 'returns "1.0 if fast convergence, 0.5 if slow, 0.25 if near failure")
+  (cond
+   [(> iterations *adaptive-residual-critical*) 0.25]
+   [(> iterations *adaptive-residual-threshold*) *adaptive-shrink-factor*]
+   [else 1.0]))
+
+(define (compute-adaptive-step current-step factors base-step)
+  (doc 'type '(-> Number (List Number) Number Number))
+  (doc 'description "Compute new step size from factors, respecting min/max bounds")
+  (let* ([combined-factor (apply min factors)]
+         [new-step (* current-step combined-factor)]
+         [min-step *adaptive-min-step*]
+         [max-step (* base-step *adaptive-max-step-multiplier*)])
+        (max min-step (min max-step new-step))))
+
+(define (should-expand? good-step-count factors)
+  (doc 'type '(-> Nat (List Number) Boolean))
+  (doc 'description "Check if step size should be expanded")
+  (and (>= good-step-count *adaptive-expansion-count*)
+       (every (lambda (f) (>= f 1.0)) factors)))
+
+(define (continue-fixed-point-arclength-adaptive psys param0 fp0 num-steps base-step)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Nat Number (List (List Number Vec Symbol (List Complex)))))
+  (doc 'description "Continue a fixed point branch using adaptive pseudo-arclength continuation")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param0 "starting parameter value")
+  (doc 'param 'fp0 "starting fixed point (must satisfy f(x,p)=0)")
+  (doc 'param 'num-steps "maximum number of continuation steps")
+  (doc 'param 'base-step "initial arc-length step size (can be negative for reverse direction)")
+  (doc 'returns "list of (param fixed-point stability eigenvalues) tuples along the branch")
+  (doc 'note "Adapts step size based on eigenvalue proximity, curvature, and Newton iterations")
+  (let* ([n (vector-length fp0)]
+         [sign (if (>= base-step 0) 1 -1)]
+         [abs-base (abs base-step)])
+        ;; Compute initial tangent
+        (let ([tangent0 (compute-tangent psys param0 fp0)])
+             (if (not tangent0)
+                 (list (list param0 fp0 'unknown '()))  ; Can't compute tangent
+                 (let loop ([k 0]
+                            [param param0]
+                            [fp fp0]
+                            [tangent tangent0]
+                            [current-step abs-base]
+                            [good-steps 0]              ; Consecutive steps with all factors = 1.0
+                            [prev-tangent #f]           ; For curvature computation
+                            [results '()])
+                      (if (>= k num-steps)
+                          (reverse results)
+                          ;; Record current point with stability analysis
+                          (let* ([sys (instantiate-at psys param)]
+                                 [analysis (analyze-stability-general sys fp *continuation-step-size*)]
+                                 [stability (car analysis)]
+                                 [eigenvalues (cdr analysis)]
+                                 [entry (list param fp stability eigenvalues)]
+                                 ;; Predictor step along tangent
+                                 [predicted (arclength-predict fp param tangent (* sign current-step))]
+                                 [pred-fp (car predicted)]
+                                 [pred-param (cdr predicted)]
+                                 ;; Corrector with retry logic
+                                 [correct-result (arclength-correct-with-retry
+                                                  psys pred-fp pred-param tangent
+                                                  (* sign current-step) current-step)])
+                                (if (not correct-result)
+                                    ;; Correction failed even after retries - return what we have
+                                    (reverse (cons entry results))
+                                    (let* ([new-fp (car correct-result)]
+                                           [new-param (cadr correct-result)]
+                                           [iterations (caddr correct-result)]
+                                           [used-step (cadddr correct-result)]  ; May be smaller if retried
+                                           ;; Compute new tangent for next step
+                                           [new-tangent (compute-tangent psys new-param new-fp)])
+                                          (if (not new-tangent)
+                                              (reverse (cons entry results))
+                                              ;; Compute adaptive factors
+                                              (let* ([oriented-tangent (orient-tangent new-tangent tangent)]
+                                                     [eig-factor (compute-eigenvalue-factor eigenvalues)]
+                                                     [curv-factor (compute-curvature-factor prev-tangent oriented-tangent)]
+                                                     [res-factor (compute-residual-factor iterations)]
+                                                     [factors (list eig-factor curv-factor res-factor)]
+                                                     ;; Update good-steps counter
+                                                     [all-good (every (lambda (f) (>= f 1.0)) factors)]
+                                                     [new-good-steps (if all-good (+ good-steps 1) 0)]
+                                                     ;; Compute new step size
+                                                     [expanded-step (if (should-expand? new-good-steps factors)
+                                                                        (min (* used-step *adaptive-expand-factor*)
+                                                                             (* abs-base *adaptive-max-step-multiplier*))
+                                                                        used-step)]
+                                                     [new-step (compute-adaptive-step expanded-step factors abs-base)])
+                                                    (loop (+ k 1) new-param new-fp oriented-tangent
+                                                          new-step
+                                                          (if (should-expand? new-good-steps factors) 0 new-good-steps)
+                                                          oriented-tangent
+                                                          (cons entry results)))))))))))))
+
+(define (arclength-correct-with-retry psys pred-fp pred-param tangent ds current-step)
+  (doc 'type '(-> ParamODE Vec Number (Pair Vec Number) Number Number
+                  (Option (List Vec Number Nat Number))))
+  (doc 'description "Attempt arclength correction with retry on failure")
+  (doc 'returns "(fp param iterations used-step) or #f if all retries fail")
+  (let retry-loop ([step current-step]
+                   [attempts 0])
+       (if (or (>= attempts 5) (< step *adaptive-min-step*))
+           #f  ; Give up after 5 attempts or step too small
+           (let* ([scaled-ds (* (/ step current-step) ds)]  ; Scale ds proportionally
+                  [predicted (arclength-predict pred-fp pred-param tangent scaled-ds)]
+                  [result (arclength-correct psys (car predicted) (cdr predicted) tangent scaled-ds)])
+                 (if result
+                     (list (car result) (cadr result) (caddr result) step)
+                     ;; Retry with smaller step
+                     (retry-loop (* step *adaptive-shrink-factor*) (+ attempts 1)))))))
+
+(define (continue-fixed-point-adaptive psys param0 fp0 param-end base-step)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Number Number (List (List Number Vec Symbol (List Complex)))))
+  (doc 'description "Continue a fixed point branch with adaptive step size (fixed-parameter method)")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param0 "starting parameter value")
+  (doc 'param 'fp0 "starting fixed point")
+  (doc 'param 'param-end "ending parameter value")
+  (doc 'param 'base-step "initial parameter step size")
+  (doc 'returns "list of (param fixed-point stability eigenvalues) tuples along the branch")
+  (doc 'note "Uses eigenvalue + residual indicators only (curvature disabled for fixed-param)")
+  (let ([direction (if (> param-end param0) 1 -1)]
+        [abs-base (abs base-step)])
+       (let loop ([param param0]
+                  [fp fp0]
+                  [current-step abs-base]
+                  [good-steps 0]
+                  [results '()])
+            (if (if (> direction 0)
+                    (> param param-end)
+                    (< param param-end))
+                (reverse results)
+                ;; Analyze stability at current point
+                (let* ([sys (instantiate-at psys param)]
+                       [analysis (analyze-stability-general sys fp *continuation-step-size*)]
+                       [stability (car analysis)]
+                       [eigenvalues (cdr analysis)]
+                       [entry (list param fp stability eigenvalues)]
+                       ;; Predict next fixed point
+                       [next-param (+ param (* direction current-step))]
+                       ;; Correct with retry logic
+                       [next-result (find-fixed-point-with-retry psys next-param fp current-step)])
+                      (if (not next-result)
+                          ;; Continuation failed - return what we have
+                          (reverse (cons entry results))
+                          (let* ([next-fp (car next-result)]
+                                 [iterations (cadr next-result)]
+                                 [used-step (caddr next-result)]
+                                 ;; Compute adaptive factors (no curvature for fixed-param)
+                                 [eig-factor (compute-eigenvalue-factor eigenvalues)]
+                                 [res-factor (compute-residual-factor iterations)]
+                                 [factors (list eig-factor res-factor)]
+                                 ;; Update good-steps counter
+                                 [all-good (every (lambda (f) (>= f 1.0)) factors)]
+                                 [new-good-steps (if all-good (+ good-steps 1) 0)]
+                                 ;; Compute new step size
+                                 [expanded-step (if (should-expand? new-good-steps factors)
+                                                    (min (* used-step *adaptive-expand-factor*)
+                                                         (* abs-base *adaptive-max-step-multiplier*))
+                                                    used-step)]
+                                 [new-step (compute-adaptive-step expanded-step factors abs-base)]
+                                 ;; Actual next param using the step that worked
+                                 [actual-next-param (+ param (* direction used-step))])
+                                (loop actual-next-param next-fp new-step
+                                      (if (should-expand? new-good-steps factors) 0 new-good-steps)
+                                      (cons entry results)))))))))
+
+(define (find-fixed-point-with-retry psys param fp-guess current-step)
+  (doc 'type '(-> ParamODE Number Vec Number (Option (List Vec Nat Number))))
+  (doc 'description "Find fixed point with retry on failure")
+  (doc 'returns "(fp iterations used-step) or #f if all retries fail")
+  (let retry-loop ([step current-step]
+                   [attempts 0])
+       (if (or (>= attempts 5) (< step *adaptive-min-step*))
+           #f
+           (let* ([sys (instantiate-at psys param)]
+                  [result (find-fixed-point-robust-with-iters sys fp-guess
+                                                              *continuation-tolerance*
+                                                              *continuation-step-size*
+                                                              *continuation-max-newton*)])
+                 (if result
+                     (list (car result) (cadr result) step)
+                     ;; Retry with smaller step - move param closer to previous
+                     (retry-loop (* step *adaptive-shrink-factor*) (+ attempts 1)))))))
+
+(define (find-fixed-point-robust-with-iters sys initial-guess tolerance step-size max-iter)
+  (doc 'type '(-> ODE Vec Number Number Nat (Option (List Vec Nat))))
+  (doc 'description "Find fixed point using robust Newton, returning iteration count")
+  (doc 'returns "(fixed-point iterations) or #f if not found")
+  (let loop ([x initial-guess] [iter 0])
+       (if (>= iter max-iter)
+           #f
+           (let* ([fx (eval-vector-field sys 0 x)]
+                  [norm-fx (vec-norm fx)])
+                 (if (< norm-fx tolerance)
+                     (list x iter)
+                     (let* ([jac (compute-jacobian sys x step-size)]
+                            [jac-pinv (pseudoinverse jac)])
+                           (if (and (pair? jac-pinv) (eq? (car jac-pinv) 'error))
+                               #f
+                               (let* ([delta (matrix-vec-mul jac-pinv fx)]
+                                      [x-new (vec-sub x delta)])
+                                     (loop x-new (+ iter 1))))))))))
 
 (define (find-all-fixed-points sys search-region grid-density tolerance)
   (doc 'export #t)
