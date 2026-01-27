@@ -173,6 +173,83 @@
 )
 
 ;;; ============================================================================
+;;; Minimax Method Tests
+;;; ============================================================================
+
+(test-group "minimax"
+
+  (define-test minimax-condorcet-winner
+    ;; When Condorcet winner exists, minimax should find it
+    (let ([profile (make-preference-profile '((a b c) (a b c) (a c b)))])
+      (assert-equal 'a (minimax-winner profile))))
+
+  (define-test minimax-cycle
+    ;; In a perfect cycle, all have same score - returns one deterministically
+    (let ([profile (condorcet-cycle-example)])
+      (let ([winner (minimax-winner profile)])
+        (assert-true (and (member winner '(a b c)) #t)))))
+
+  (define-test minimax-scores
+    ;; Verify minimax scores: worst margin against each candidate
+    (let ([profile (make-preference-profile '((a b c) (a b c) (b a c)))])
+      ;; a beats b 2-1, a beats c 3-0. a's worst = 1 (vs b)
+      ;; b loses to a 1-2, b beats c 3-0. b's worst = -1 (vs a)
+      ;; c loses to a 0-3, c loses to b 0-3. c's worst = -3
+      (assert-true (> (minimax-score 'a profile) (minimax-score 'b profile)))
+      (assert-true (> (minimax-score 'b profile) (minimax-score 'c profile)))))
+
+  (define-test minimax-ranking
+    (let ([profile (make-preference-profile '((a b c) (a b c) (b c a)))])
+      (let ([ranking (minimax-ranking profile)])
+        (assert-equal 'a (car ranking)))))
+
+  (define-test minimax-empty
+    (let ([profile (make-preference-profile '())])
+      (assert-equal #f (minimax-winner profile))))
+
+)
+
+;;; ============================================================================
+;;; Smith Set Tests
+;;; ============================================================================
+
+(test-group "smith-set"
+
+  (define-test smith-condorcet-winner
+    ;; When Condorcet winner exists, Smith set should be singleton
+    (let ([profile (make-preference-profile '((a b c) (a b c) (a c b)))])
+      (assert-equal '(a) (smith-set profile))))
+
+  (define-test smith-cycle
+    ;; In a Condorcet cycle, Smith set contains all candidates
+    (let ([profile (condorcet-cycle-example)])
+      (let ([smith (smith-set profile)])
+        (assert-equal 3 (length smith))
+        (assert-true (and (member 'a smith) #t))
+        (assert-true (and (member 'b smith) #t))
+        (assert-true (and (member 'c smith) #t)))))
+
+  (define-test smith-partial-domination
+    ;; Profile where some candidates dominate others but form cycle among themselves
+    ;; a > b > c > a (cycle), but all beat d
+    (let ([profile (make-preference-profile
+                     '((a b c d) (b c a d) (c a b d)))])
+      (let ([smith (smith-set profile)])
+        ;; Smith set should be {a, b, c}, excluding d
+        (assert-equal 3 (length smith))
+        (assert-false (member 'd smith)))))
+
+  (define-test smith-empty-profile
+    (let ([profile (make-preference-profile '())])
+      (assert-equal '() (smith-set profile))))
+
+  (define-test smith-single-candidate
+    (let ([profile (make-preference-profile '((a) (a)))])
+      (assert-equal '(a) (smith-set profile))))
+
+)
+
+;;; ============================================================================
 ;;; Edge Cases
 ;;; ============================================================================
 
@@ -183,7 +260,9 @@
       (assert-equal 'a (plurality-winner profile))
       (assert-equal 'a (borda-winner profile))
       (assert-equal 'a (condorcet-winner profile))
-      (assert-equal 'a (copeland-winner profile))))
+      (assert-equal 'a (copeland-winner profile))
+      (assert-equal 'a (minimax-winner profile))
+      (assert-equal '(a) (smith-set profile))))
 
   (define-test single-voter
     (let ([profile (make-preference-profile '((x y z)))])

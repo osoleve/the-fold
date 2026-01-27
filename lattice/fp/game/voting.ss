@@ -301,6 +301,108 @@
   (sort (lambda (a b) (> (copeland-score a profile) (copeland-score b profile)))
         (profile-candidates profile)))
 
+(doc 'section 'minimax-method)
+(doc 'note "Minimax selects the candidate whose worst pairwise defeat is smallest. Also known as Simpson-Kramer method. If a Condorcet winner exists, minimax selects them.")
+
+(define (minimax-score candidate profile)
+  (doc 'export #t)
+  (doc 'type '(-> Candidate PreferenceProfile Int))
+  (doc 'description "Compute minimax score: the worst (most negative) pairwise margin against this candidate. Higher is better (less bad worst loss). A positive score means undefeated.")
+  (let ([others (remove candidate (profile-candidates profile))])
+    (if (null? others)
+        0  ; No opponents
+        (apply min (map (lambda (other)
+                          (pairwise-margin candidate other profile))
+                        others)))))
+
+;;; minimax-winner : PreferenceProfile -> Candidate | #f
+;;; Winner under minimax method (smallest worst defeat).
+;;; Returns #f for empty profiles.
+(define (minimax-winner profile)
+  (doc 'export #t)
+  (if (profile-empty? profile)
+      #f
+      (argmax (lambda (c) (minimax-score c profile))
+              (profile-candidates profile))))
+
+;;; minimax-ranking : PreferenceProfile -> (List Candidate)
+;;; Full ranking by minimax scores (best worst-case first).
+(define (minimax-ranking profile)
+  (doc 'export #t)
+  (sort (lambda (a b) (> (minimax-score a profile) (minimax-score b profile)))
+        (profile-candidates profile)))
+
+(doc 'section 'smith-set)
+(doc 'note "The Smith set is the smallest non-empty set of candidates such that every member beats every non-member pairwise. Contains the Condorcet winner if one exists. The Schulze winner is always in the Smith set.")
+
+(define (smith-set profile)
+  (doc 'export #t)
+  (doc 'type '(-> PreferenceProfile (List Candidate)))
+  (doc 'description "Compute the Smith set: smallest dominating set. Uses iterative elimination: start with all candidates, remove any candidate beaten by someone staying.")
+  (if (profile-empty? profile)
+      '()
+      (let ([candidates (profile-candidates profile)])
+        ;; Build defeat relation: who beats whom?
+        (let ([dominated-by (make-eq-hashtable)])
+          ;; For each candidate, record who beats them
+          (for-each
+           (lambda (c)
+             (hashtable-set! dominated-by c
+               (filter (lambda (other)
+                         (> (pairwise-margin other c profile) 0))
+                       (remove c candidates))))
+           candidates)
+          ;; Iteratively remove dominated candidates
+          ;; A candidate is removable if beaten by someone not being removed
+          (let loop ([remaining candidates])
+            (let ([removable
+                   (filter (lambda (c)
+                             ;; c is removable if some remaining candidate beats c
+                             (any? (lambda (other)
+                                     (and (not (eq? other c))
+                                          (member other remaining)
+                                          (> (pairwise-margin other c profile) 0)))
+                                   remaining))
+                           remaining)])
+              ;; Find candidates beaten by ALL other remaining candidates
+              (let ([truly-dominated
+                     (filter (lambda (c)
+                               (let ([dominated-count
+                                      (count-if (lambda (other)
+                                                  (and (not (eq? other c))
+                                                       (member other remaining)
+                                                       (> (pairwise-margin other c profile) 0)))
+                                                remaining)])
+                                 ;; Dominated by at least one, and not dominating anyone outside Smith
+                                 (and (> dominated-count 0)
+                                      (not (any? (lambda (other)
+                                                   (and (not (eq? other c))
+                                                        (member other remaining)
+                                                        (> (pairwise-margin c other profile) 0)
+                                                        (= dominated-count (- (length remaining) 1))))
+                                                 remaining)))))
+                             remaining)])
+                ;; Remove only those strictly dominated by remaining set
+                (let ([to-remove
+                       (filter (lambda (c)
+                                 ;; Remove if every other remaining candidate beats c
+                                 (let ([dominated-by-all?
+                                        (for-all? (lambda (other)
+                                                    (or (eq? other c)
+                                                        (> (pairwise-margin other c profile) 0)))
+                                                  remaining)])
+                                   dominated-by-all?))
+                               remaining)])
+                  (if (or (null? to-remove) (= (length to-remove) (length remaining)))
+                      remaining  ; Fixed point reached
+                      (loop (filter (lambda (c) (not (member c to-remove))) remaining)))))))))))
+
+;;; any? : (a -> Bool) (List a) -> Bool
+(define (any? pred lst)
+  (and (not (null? lst))
+       (or (pred (car lst))
+           (any? pred (cdr lst)))))
+
 (doc 'section 'schulze-method)
 (doc 'note "The Schulze method resolves Condorcet cycles by finding the strongest beatpath from each candidate to each other. Strength of path is the minimum margin along the path. This implementation uses the MARGIN variant (defeats require strictly positive margins). Other variants include: Winning Votes (uses raw vote counts instead of margins), Ratio (uses ratio of votes for/against). The Margin variant is the most common and is clone-independent")
 
@@ -523,7 +625,9 @@
 ;;;   condorcet-winner?, condorcet-winner, condorcet-loser?
 ;;;   pairwise-margin, pairwise-beats?
 ;;;   copeland-winner, copeland-ranking, copeland-score
+;;;   minimax-winner, minimax-ranking, minimax-score
 ;;;   schulze-winner, schulze-ranking
+;;;   smith-set
 ;;;
 ;;; Analysis:
 ;;;   manipulation-possible?
