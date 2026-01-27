@@ -4,7 +4,7 @@
 (doc 'description "Builds the chapter-navigable technical report by parsing markdown chapters and injecting content into the template")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'note "Dogfoods the lattice/dsl/markdown parser")
+(doc 'note "Dogfooding the lattice/dsl/markdown parser")
 (doc 'usage "scheme --script boundary/tools/build-nav-report.ss")
 (load "lattice/dsl/markdown/block-parser.ss")
 (load "lattice/dsl/markdown/html.ss")
@@ -22,6 +22,8 @@
     ("type-theory"      "05-the-type-theory.md")
     ("module-system"    "06-the-module-system.md")
     ("implementation"   "07-implementation.md")
+    ("egraph-core"      "07b-egraph-core.md")
+    ("equality-sat"     "07c-equality-saturation.md")
     ("meta-tooling"     "08-developer-and-meta-tooling.md")
     ("agent-substrate"  "09-agent-substrate.md")
     ("evaluation"       "10-evaluation.md")
@@ -103,167 +105,1062 @@
     <meta charset=\"UTF-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
     <title>The Fold: Technical Report</title>
+    <meta name=\"description\" content=\"Technical report for The Fold: A Content-Addressable Homoiconic Universe built on Chez Scheme\">
+    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
+    <link href=\"https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap\" rel=\"stylesheet\">
     <style>
+        /* ═══════════════════════════════════════════════════════════════
+           THE FOLD — Research Terminal Aesthetic
+           A scholarly document viewer with terminal undertones
+           ═══════════════════════════════════════════════════════════════ */
+
         :root {
+            /* Dark theme (default) */
+            --bg-deep: #0a0c10;
             --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --text-primary: #e6edf3;
-            --text-secondary: #8b949e;
-            --text-muted: #6e7681;
-            --accent: #7c3aed;
-            --accent-dim: #5b21b6;
-            --border: #30363d;
-            --code-bg: #1c2128;
-            --link: #a78bfa;
-            --link-hover: #c4b5fd;
-            --sidebar-width: 280px;
-            --content-max: 800px;
+            --bg-secondary: #151b23;
+            --bg-tertiary: #1c2430;
+            --bg-elevated: #212a36;
+
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --text-faint: #475569;
+
+            --accent-primary: #c084fc;
+            --accent-secondary: #a855f7;
+            --accent-tertiary: #7c3aed;
+            --accent-glow: rgba(168, 85, 247, 0.15);
+            --accent-subtle: rgba(168, 85, 247, 0.08);
+
+            --border-primary: #2d3748;
+            --border-secondary: #1e293b;
+            --border-accent: rgba(168, 85, 247, 0.3);
+
+            --code-bg: #0f1419;
+            --code-border: #1e293b;
+            --code-text: #e879f9;
+
+            --link: #c084fc;
+            --link-hover: #e879f9;
+
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
+
+            /* Layout */
+            --sidebar-width: 320px;
+            --content-max: 780px;
+            --header-height: 64px;
+
+            /* Typography scale */
+            --text-xs: 0.75rem;
+            --text-sm: 0.875rem;
+            --text-base: 1rem;
+            --text-lg: 1.125rem;
+            --text-xl: 1.25rem;
+            --text-2xl: 1.5rem;
+            --text-3xl: 1.875rem;
+            --text-4xl: 2.25rem;
+
+            /* Transitions */
+            --transition-fast: 0.15s ease;
+            --transition-base: 0.25s ease;
+            --transition-slow: 0.4s ease;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; scroll-padding-top: 2rem; }
+        /* Light theme */
+        [data-theme=\"light\"] {
+            --bg-deep: #f8fafc;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f1f5f9;
+            --bg-tertiary: #e2e8f0;
+            --bg-elevated: #ffffff;
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.7;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --text-faint: #94a3b8;
+
+            --accent-primary: #7c3aed;
+            --accent-secondary: #6d28d9;
+            --accent-tertiary: #5b21b6;
+            --accent-glow: rgba(124, 58, 237, 0.12);
+            --accent-subtle: rgba(124, 58, 237, 0.06);
+
+            --border-primary: #e2e8f0;
+            --border-secondary: #cbd5e1;
+            --border-accent: rgba(124, 58, 237, 0.25);
+
+            --code-bg: #f8fafc;
+            --code-border: #e2e8f0;
+            --code-text: #7c3aed;
+
+            --link: #7c3aed;
+            --link-hover: #6d28d9;
+        }
+
+        /* Reset & base */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: calc(var(--header-height) + 2rem);
             font-size: 16px;
         }
 
-        /* Sidebar */
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Ambient background texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-glow) 0%, transparent 50%),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(124, 58, 237, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Noise texture overlay */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url(\"data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\");
+            opacity: 0.015;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           HEADER BAR
+           ═══════════════════════════════════════════════════════════════ */
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            height: var(--header-height);
+            background: rgba(13, 17, 23, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            z-index: 90;
+            transition: left var(--transition-base);
+        }
+
+        [data-theme=\"light\"] .header {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .breadcrumb {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb-sep {
+            color: var(--text-faint);
+        }
+
+        .breadcrumb-current {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Search */
+        .search-container {
+            position: relative;
+        }
+
+        .search-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .search-toggle:hover {
+            background: var(--bg-elevated);
+            border-color: var(--border-accent);
+            color: var(--text-secondary);
+        }
+
+        .search-toggle kbd {
+            font-family: inherit;
+            font-size: var(--text-xs);
+            padding: 0.125rem 0.375rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            color: var(--text-faint);
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--border-accent);
+            color: var(--accent-primary);
+        }
+
+        .theme-toggle svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .theme-toggle .icon-sun { display: none; }
+        .theme-toggle .icon-moon { display: block; }
+        [data-theme=\"light\"] .theme-toggle .icon-sun { display: block; }
+        [data-theme=\"light\"] .theme-toggle .icon-moon { display: none; }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SIDEBAR NAVIGATION
+           ═══════════════════════════════════════════════════════════════ */
+
         .sidebar {
             position: fixed;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             width: var(--sidebar-width);
             height: 100vh;
             background: var(--bg-secondary);
-            border-right: 1px solid var(--border);
-            overflow-y: auto;
-            padding: 1.5rem 0;
+            border-right: 1px solid var(--border-secondary);
+            display: flex;
+            flex-direction: column;
             z-index: 100;
+            transition: transform var(--transition-base);
         }
 
         .sidebar-header {
-            padding: 0 1.5rem 1.5rem;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 1rem;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-secondary);
         }
 
-        .sidebar-title { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
-        .sidebar-subtitle { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            margin-bottom: 0.75rem;
+        }
 
-        .nav-section { padding: 0.5rem 0; }
+        .sidebar-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-tertiary) 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cormorant Garamond', serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: white;
+            box-shadow: 0 2px 8px var(--accent-glow);
+        }
+
+        .sidebar-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: var(--text-xl);
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .sidebar-subtitle {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Navigation */
+        .nav-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-primary) transparent;
+        }
+
+        .nav-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .nav-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .nav-container::-webkit-scrollbar-thumb {
+            background: var(--border-primary);
+            border-radius: 3px;
+        }
+
+        .nav-section {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.625rem 1.5rem;
+            cursor: pointer;
+            user-select: none;
+        }
+
         .nav-section-title {
-            font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
-            text-transform: uppercase; letter-spacing: 0.08em;
-            padding: 0.75rem 1.5rem 0.5rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--text-faint);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .nav-section-toggle {
+            width: 16px;
+            height: 16px;
+            color: var(--text-faint);
+            transition: transform var(--transition-fast);
+        }
+
+        .nav-section.collapsed .nav-section-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .nav-section-items {
+            overflow: hidden;
+            transition: max-height var(--transition-base);
+        }
+
+        .nav-section.collapsed .nav-section-items {
+            max-height: 0 !important;
         }
 
         .nav-link {
-            display: block; padding: 0.5rem 1.5rem;
-            color: var(--text-secondary); text-decoration: none;
-            font-size: 0.875rem; transition: all 0.15s ease;
+            display: flex;
+            align-items: baseline;
+            gap: 0.625rem;
+            padding: 0.5rem 1.5rem 0.5rem 1.75rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: var(--text-sm);
             border-left: 2px solid transparent;
+            transition: all var(--transition-fast);
+            position: relative;
         }
 
-        .nav-link:hover { color: var(--text-primary); background: var(--bg-tertiary); }
-        .nav-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(124, 58, 237, 0.1); }
-        .nav-link .chapter-num { color: var(--text-muted); font-size: 0.75rem; margin-right: 0.5rem; font-variant-numeric: tabular-nums; }
-
-        /* Main content */
-        .main { margin-left: var(--sidebar-width); min-height: 100vh; }
-        .content { max-width: var(--content-max); margin: 0 auto; padding: 3rem 2rem 6rem; }
-
-        /* Typography */
-        h1 {
-            font-size: 2.5rem; font-weight: 700; line-height: 1.2; margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 50%, #5b21b6 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: transparent;
+            transition: background var(--transition-fast);
         }
 
-        .doc-meta { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--accent-subtle);
+        }
 
-        h2 { font-size: 1.75rem; font-weight: 600; margin-top: 3rem; margin-bottom: 1rem; padding-top: 1rem; color: var(--text-primary); }
-        h2:first-of-type { margin-top: 0; }
-        h3 { font-size: 1.25rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.75rem; color: var(--text-primary); }
-        h4 { font-size: 1rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; color: var(--text-secondary); }
+        .nav-link:hover::before {
+            background: var(--accent-primary);
+        }
 
-        p { margin-bottom: 1rem; color: var(--text-secondary); }
-        strong { color: var(--text-primary); font-weight: 600; }
-        em { font-style: italic; color: var(--text-primary); }
-        a { color: var(--link); text-decoration: none; }
-        a:hover { color: var(--link-hover); text-decoration: underline; }
+        .nav-link.active {
+            color: var(--accent-primary);
+            background: var(--accent-subtle);
+            font-weight: 500;
+        }
 
-        ul, ol { margin-bottom: 1rem; padding-left: 1.5rem; color: var(--text-secondary); }
-        li { margin-bottom: 0.5rem; }
-        li::marker { color: var(--text-muted); }
+        .nav-link.active::before {
+            background: var(--accent-primary);
+        }
 
+        .nav-link .chapter-num {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-xs);
+            color: var(--text-faint);
+            min-width: 1.75rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .nav-link.active .chapter-num {
+            color: var(--accent-secondary);
+        }
+
+        /* Subsection links */
+        .nav-subsection {
+            padding-left: 3rem;
+        }
+
+        .nav-subsection .nav-link {
+            font-size: var(--text-xs);
+            padding: 0.375rem 1rem 0.375rem 0;
+            color: var(--text-muted);
+            border-left: none;
+        }
+
+        .nav-subsection .nav-link::before {
+            display: none;
+        }
+
+        .nav-subsection .nav-link:hover {
+            color: var(--text-secondary);
+            background: transparent;
+        }
+
+        .nav-subsection .nav-link.active {
+            color: var(--accent-primary);
+            background: transparent;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MAIN CONTENT AREA
+           ═══════════════════════════════════════════════════════════════ */
+
+        .main {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            padding-top: var(--header-height);
+            transition: margin-left var(--transition-base);
+        }
+
+        .content {
+            max-width: var(--content-max);
+            margin: 0 auto;
+            padding: 3rem 2.5rem 6rem;
+        }
+
+        /* Document header */
+        .doc-header {
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-secondary);
+        }
+
+        .doc-header h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: var(--text-4xl);
+            font-weight: 600;
+            line-height: 1.2;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.75rem;
+        }
+
+        .doc-header h1 span {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-tertiary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .doc-meta {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+        }
+
+        .doc-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .doc-meta-item svg {
+            width: 16px;
+            height: 16px;
+            color: var(--text-faint);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           TYPOGRAPHY
+           ═══════════════════════════════════════════════════════════════ */
+
+        h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: var(--text-2xl);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 3.5rem;
+            margin-bottom: 1rem;
+            padding-top: 1.5rem;
+            letter-spacing: -0.01em;
+            position: relative;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+            padding-top: 0;
+        }
+
+        h3 {
+            font-family: 'DM Sans', sans-serif;
+            font-size: var(--text-lg);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h4 {
+            font-family: 'DM Sans', sans-serif;
+            font-size: var(--text-base);
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1.25rem;
+            color: var(--text-secondary);
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        em {
+            font-style: italic;
+            color: var(--text-primary);
+        }
+
+        a {
+            color: var(--link);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        a:hover {
+            color: var(--link-hover);
+        }
+
+        /* Section anchor links */
+        .section-anchor {
+            color: var(--text-faint);
+            margin-left: 0.5rem;
+            opacity: 0;
+            font-weight: 400;
+            transition: opacity var(--transition-fast), color var(--transition-fast);
+            text-decoration: none;
+        }
+
+        h2:hover .section-anchor,
+        h3:hover .section-anchor {
+            opacity: 1;
+        }
+
+        .section-anchor:hover {
+            color: var(--accent-primary);
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        li::marker {
+            color: var(--text-faint);
+        }
+
+        /* Code */
         code {
-            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-            font-size: 0.875em; background: var(--code-bg);
-            padding: 0.2em 0.4em; border-radius: 4px; color: #f0abfc;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9em;
+            background: var(--code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            color: var(--code-text);
+            border: 1px solid var(--code-border);
         }
 
         pre {
-            background: var(--code-bg); border: 1px solid var(--border);
-            border-radius: 8px; padding: 1rem 1.25rem; overflow-x: auto;
-            margin-bottom: 1.5rem; font-size: 0.875rem; line-height: 1.6;
+            position: relative;
+            background: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            font-size: var(--text-sm);
+            line-height: 1.6;
         }
 
-        pre code { background: none; padding: 0; color: var(--text-primary); }
+        pre::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-tertiary));
+            border-radius: 10px 10px 0 0;
+            opacity: 0.5;
+        }
 
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text-primary);
+            border: none;
+            font-size: inherit;
+        }
+
+        /* Blockquotes */
         blockquote {
-            border-left: 3px solid var(--accent); margin: 1.5rem 0;
-            padding: 0.5rem 0 0.5rem 1.25rem; color: var(--text-secondary);
-            background: rgba(124, 58, 237, 0.05); border-radius: 0 8px 8px 0;
-        }
-        blockquote p:last-child { margin-bottom: 0; }
-
-        table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.875rem; }
-        th, td { text-align: left; padding: 0.75rem 1rem; border: 1px solid var(--border); }
-        th { background: var(--bg-tertiary); font-weight: 600; color: var(--text-primary); }
-        td { color: var(--text-secondary); }
-        tr:nth-child(even) td { background: var(--bg-secondary); }
-
-        hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
-
-        .section-anchor { color: var(--text-muted); margin-left: 0.5rem; opacity: 0; transition: opacity 0.15s ease; text-decoration: none; }
-        h2:hover .section-anchor, h3:hover .section-anchor { opacity: 1; }
-        .section-anchor:hover { color: var(--accent); }
-
-        .abstract { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 2rem; margin-bottom: 2rem; }
-        .abstract-title { font-size: 0.75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1rem; }
-        .abstract p { font-size: 0.95rem; }
-
-        .menu-toggle { display: none; position: fixed; top: 1rem; left: 1rem; z-index: 200; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; cursor: pointer; color: var(--text-primary); }
-        .menu-toggle svg { display: block; width: 24px; height: 24px; }
-
-        @media (max-width: 900px) {
-            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
-            .sidebar.open { transform: translateX(0); }
-            .main { margin-left: 0; }
-            .menu-toggle { display: block; }
-            .content { padding: 4rem 1.5rem 4rem; }
-            h1 { font-size: 2rem; }
-            h2 { font-size: 1.5rem; }
+            position: relative;
+            margin: 1.5rem 0;
+            padding: 1rem 1.5rem;
+            background: var(--accent-subtle);
+            border-radius: 0 10px 10px 0;
+            color: var(--text-secondary);
         }
 
-        .overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); z-index: 50; }
-        .overlay.open { display: block; }
+        blockquote::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: linear-gradient(180deg, var(--accent-primary), var(--accent-tertiary));
+            border-radius: 3px;
+        }
 
-        .progress { position: fixed; top: 0; left: var(--sidebar-width); right: 0; height: 3px; background: var(--bg-tertiary); z-index: 100; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, var(--accent), #a78bfa); width: 0%; transition: width 0.1s ease; }
-        @media (max-width: 900px) { .progress { left: 0; } }
+        blockquote p:last-child {
+            margin-bottom: 0;
+        }
 
-        .generated { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-muted); text-align: center; }
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: var(--text-sm);
+        }
+
+        th, td {
+            text-align: left;
+            padding: 0.875rem 1rem;
+            border: 1px solid var(--border-primary);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:nth-child(even) td {
+            background: var(--bg-secondary);
+        }
+
+        /* Horizontal rules */
+        hr {
+            border: none;
+            border-top: 1px solid var(--border-secondary);
+            margin: 3rem 0;
+        }
+
+        /* Abstract */
+        .abstract {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 2rem 2.5rem;
+            margin-bottom: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .abstract::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-tertiary), var(--accent-primary));
+        }
+
+        .abstract-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-xs);
+            font-weight: 600;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 1rem;
+        }
+
+        .abstract p {
+            font-size: var(--text-sm);
+            line-height: 1.8;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SEARCH MODAL
+           ═══════════════════════════════════════════════════════════════ */
+
+        .search-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            padding: 15vh 1rem 1rem;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+
+        .search-modal.open {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .search-dialog {
+            max-width: 600px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            animation: slideUp 0.2s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .search-input-container {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-secondary);
+        }
+
+        .search-input-container svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-muted);
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-base);
+            color: var(--text-primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-results {
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .search-result {
+            display: block;
+            padding: 0.875rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: background var(--transition-fast);
+        }
+
+        .search-result:hover,
+        .search-result.selected {
+            background: var(--bg-tertiary);
+        }
+
+        .search-result-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .search-result-context {
+            font-size: var(--text-sm);
+            color: var(--text-muted);
+        }
+
+        .search-result mark {
+            background: var(--accent-glow);
+            color: var(--accent-primary);
+            padding: 0.1em 0.2em;
+            border-radius: 2px;
+        }
+
+        .search-footer {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--border-secondary);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-xs);
+            color: var(--text-muted);
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .search-footer kbd {
+            font-family: inherit;
+            padding: 0.125rem 0.375rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 4px;
+            margin-right: 0.25rem;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PROGRESS BAR
+           ═══════════════════════════════════════════════════════════════ */
+
+        .progress {
+            position: fixed;
+            top: 0;
+            left: var(--sidebar-width);
+            right: 0;
+            height: 2px;
+            background: var(--bg-tertiary);
+            z-index: 95;
+            transition: left var(--transition-base);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MOBILE NAVIGATION
+           ═══════════════════════════════════════════════════════════════ */
+
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 200;
+            width: 44px;
+            height: 44px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 10px;
+            cursor: pointer;
+            color: var(--text-primary);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-toggle svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 50;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        .overlay.open {
+            display: block;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RESPONSIVE DESIGN
+           ═══════════════════════════════════════════════════════════════ */
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main {
+                margin-left: 0;
+            }
+
+            .header {
+                left: 0;
+            }
+
+            .progress {
+                left: 0;
+            }
+
+            .menu-toggle {
+                display: flex;
+            }
+
+            .content {
+                padding: calc(var(--header-height) + 2rem) 1.5rem 4rem;
+            }
+
+            .doc-header h1 {
+                font-size: var(--text-3xl);
+            }
+
+            .doc-meta {
+                flex-wrap: wrap;
+                gap: 0.75rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .content {
+                padding: calc(var(--header-height) + 1.5rem) 1rem 3rem;
+            }
+
+            .doc-header h1 {
+                font-size: var(--text-2xl);
+            }
+
+            h2 {
+                font-size: var(--text-xl);
+            }
+
+            .abstract {
+                padding: 1.5rem;
+            }
+
+            pre {
+                padding: 1rem;
+                font-size: var(--text-xs);
+            }
+
+            .search-toggle span {
+                display: none;
+            }
+
+            .header-actions {
+                gap: 0.5rem;
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FOOTER
+           ═══════════════════════════════════════════════════════════════ */
+
+        .generated {
+            margin-top: 4rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-secondary);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: var(--text-xs);
+            color: var(--text-faint);
+            text-align: center;
+        }
+
+        .generated a {
+            color: var(--text-muted);
+        }
+
+        .generated a:hover {
+            color: var(--accent-primary);
+        }
     </style>
-    <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
-    <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
-    <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap\" rel=\"stylesheet\">
 </head>
 <body>
+    <!-- Mobile menu toggle -->
     <button class=\"menu-toggle\" onclick=\"toggleMenu()\" aria-label=\"Toggle navigation\">
         <svg fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
             <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M4 6h16M4 12h16M4 18h16\"/>
@@ -272,65 +1169,181 @@
 
     <div class=\"overlay\" onclick=\"toggleMenu()\"></div>
 
+    <!-- Sidebar -->
     <nav class=\"sidebar\">
         <div class=\"sidebar-header\">
-            <div class=\"sidebar-title\">The Fold</div>
-            <div class=\"sidebar-subtitle\">Technical Report</div>
+            <a href=\"#\" class=\"sidebar-brand\">
+                <div class=\"sidebar-logo\">λ</div>
+                <div class=\"sidebar-title\">The Fold</div>
+            </a>
+            <div class=\"sidebar-subtitle\">Technical Report · 2026</div>
         </div>
 
-        <div class=\"nav-section\">
-            <a href=\"#abstract\" class=\"nav-link active\">Abstract</a>
-        </div>
+        <div class=\"nav-container\">
+            <div class=\"nav-section\">
+                <a href=\"#abstract\" class=\"nav-link active\">Abstract</a>
+            </div>
 
-        <div class=\"nav-section\">
-            <div class=\"nav-section-title\">Foundations</div>
-            <a href=\"#introduction\" class=\"nav-link\"><span class=\"chapter-num\">1</span>Introduction</a>
-            <a href=\"#architecture\" class=\"nav-link\"><span class=\"chapter-num\">2</span>System Architecture</a>
-            <a href=\"#block-machine\" class=\"nav-link\"><span class=\"chapter-num\">3</span>The Block Machine</a>
-            <a href=\"#block-calculus\" class=\"nav-link\"><span class=\"chapter-num\">4</span>The Block Calculus</a>
-        </div>
+            <div class=\"nav-section\">
+                <div class=\"nav-section-header\" onclick=\"toggleSection(this.parentElement)\">
+                    <span class=\"nav-section-title\">Foundations</span>
+                    <svg class=\"nav-section-toggle\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                        <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"/>
+                    </svg>
+                </div>
+                <div class=\"nav-section-items\">
+                    <a href=\"#introduction\" class=\"nav-link\"><span class=\"chapter-num\">1</span>Introduction</a>
+                    <a href=\"#architecture\" class=\"nav-link\"><span class=\"chapter-num\">2</span>System Architecture</a>
+                    <a href=\"#block-machine\" class=\"nav-link\"><span class=\"chapter-num\">3</span>The Block Machine</a>
+                    <a href=\"#block-calculus\" class=\"nav-link\"><span class=\"chapter-num\">4</span>The Block Calculus</a>
+                </div>
+            </div>
 
-        <div class=\"nav-section\">
-            <div class=\"nav-section-title\">Type System</div>
-            <a href=\"#type-theory\" class=\"nav-link\"><span class=\"chapter-num\">5</span>The Type Theory</a>
-            <a href=\"#module-system\" class=\"nav-link\"><span class=\"chapter-num\">6</span>The Module System</a>
-        </div>
+            <div class=\"nav-section\">
+                <div class=\"nav-section-header\" onclick=\"toggleSection(this.parentElement)\">
+                    <span class=\"nav-section-title\">Type System</span>
+                    <svg class=\"nav-section-toggle\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                        <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"/>
+                    </svg>
+                </div>
+                <div class=\"nav-section-items\">
+                    <a href=\"#type-theory\" class=\"nav-link\"><span class=\"chapter-num\">5</span>The Type Theory</a>
+                    <a href=\"#module-system\" class=\"nav-link\"><span class=\"chapter-num\">6</span>The Module System</a>
+                </div>
+            </div>
 
-        <div class=\"nav-section\">
-            <div class=\"nav-section-title\">Practice</div>
-            <a href=\"#implementation\" class=\"nav-link\"><span class=\"chapter-num\">7</span>Implementation</a>
-            <a href=\"#meta-tooling\" class=\"nav-link\"><span class=\"chapter-num\">8</span>Meta-Tooling</a>
-            <a href=\"#agent-substrate\" class=\"nav-link\"><span class=\"chapter-num\">9</span>Agent Substrate</a>
-            <a href=\"#evaluation\" class=\"nav-link\"><span class=\"chapter-num\">10</span>Evaluation</a>
-        </div>
+            <div class=\"nav-section\">
+                <div class=\"nav-section-header\" onclick=\"toggleSection(this.parentElement)\">
+                    <span class=\"nav-section-title\">Implementation</span>
+                    <svg class=\"nav-section-toggle\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                        <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"/>
+                    </svg>
+                </div>
+                <div class=\"nav-section-items\">
+                    <a href=\"#implementation\" class=\"nav-link\"><span class=\"chapter-num\">7</span>Implementation</a>
+                    <a href=\"#egraph-core\" class=\"nav-link\"><span class=\"chapter-num\">7b</span>E-Graph Core</a>
+                    <a href=\"#equality-sat\" class=\"nav-link\"><span class=\"chapter-num\">7c</span>Equality Saturation</a>
+                    <a href=\"#meta-tooling\" class=\"nav-link\"><span class=\"chapter-num\">8</span>Meta-Tooling</a>
+                    <a href=\"#agent-substrate\" class=\"nav-link\"><span class=\"chapter-num\">9</span>Agent Substrate</a>
+                    <a href=\"#evaluation\" class=\"nav-link\"><span class=\"chapter-num\">10</span>Evaluation</a>
+                </div>
+            </div>
 
-        <div class=\"nav-section\">
-            <div class=\"nav-section-title\">Context</div>
-            <a href=\"#related-work\" class=\"nav-link\"><span class=\"chapter-num\">11</span>Related Work</a>
-            <a href=\"#limitations\" class=\"nav-link\"><span class=\"chapter-num\">12</span>Limitations</a>
-            <a href=\"#future-work\" class=\"nav-link\"><span class=\"chapter-num\">13</span>Future Work</a>
-            <a href=\"#conclusion\" class=\"nav-link\"><span class=\"chapter-num\">14</span>Conclusion</a>
-        </div>
+            <div class=\"nav-section\">
+                <div class=\"nav-section-header\" onclick=\"toggleSection(this.parentElement)\">
+                    <span class=\"nav-section-title\">Context</span>
+                    <svg class=\"nav-section-toggle\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                        <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"/>
+                    </svg>
+                </div>
+                <div class=\"nav-section-items\">
+                    <a href=\"#related-work\" class=\"nav-link\"><span class=\"chapter-num\">11</span>Related Work</a>
+                    <a href=\"#limitations\" class=\"nav-link\"><span class=\"chapter-num\">12</span>Limitations</a>
+                    <a href=\"#future-work\" class=\"nav-link\"><span class=\"chapter-num\">13</span>Future Work</a>
+                    <a href=\"#conclusion\" class=\"nav-link\"><span class=\"chapter-num\">14</span>Conclusion</a>
+                </div>
+            </div>
 
-        <div class=\"nav-section\">
-            <div class=\"nav-section-title\">Appendices</div>
-            <a href=\"#appendix-a\" class=\"nav-link\"><span class=\"chapter-num\">A</span>Block Calculus Syntax</a>
-            <a href=\"#appendix-b\" class=\"nav-link\"><span class=\"chapter-num\">B</span>Type Grammar</a>
-            <a href=\"#appendix-c\" class=\"nav-link\"><span class=\"chapter-num\">C</span>Kind Grammar</a>
-            <a href=\"#appendix-d\" class=\"nav-link\"><span class=\"chapter-num\">D</span>Manifest Schema</a>
-            <a href=\"#appendix-e\" class=\"nav-link\"><span class=\"chapter-num\">E</span>Comparison with Unison</a>
-            <a href=\"#references\" class=\"nav-link\">References</a>
+            <div class=\"nav-section\">
+                <div class=\"nav-section-header\" onclick=\"toggleSection(this.parentElement)\">
+                    <span class=\"nav-section-title\">Appendices</span>
+                    <svg class=\"nav-section-toggle\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                        <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M19 9l-7 7-7-7\"/>
+                    </svg>
+                </div>
+                <div class=\"nav-section-items\">
+                    <a href=\"#appendix-a\" class=\"nav-link\"><span class=\"chapter-num\">A</span>Block Calculus Syntax</a>
+                    <a href=\"#appendix-b\" class=\"nav-link\"><span class=\"chapter-num\">B</span>Type Grammar</a>
+                    <a href=\"#appendix-c\" class=\"nav-link\"><span class=\"chapter-num\">C</span>Kind Grammar</a>
+                    <a href=\"#appendix-d\" class=\"nav-link\"><span class=\"chapter-num\">D</span>Manifest Schema</a>
+                    <a href=\"#appendix-e\" class=\"nav-link\"><span class=\"chapter-num\">E</span>Comparison with Unison</a>
+                    <a href=\"#references\" class=\"nav-link\">References</a>
+                </div>
+            </div>
         </div>
     </nav>
 
+    <!-- Progress bar -->
     <div class=\"progress\">
         <div class=\"progress-bar\"></div>
     </div>
 
+    <!-- Header -->
+    <header class=\"header\">
+        <div class=\"header-left\">
+            <div class=\"breadcrumb\">
+                <span>docs</span>
+                <span class=\"breadcrumb-sep\">/</span>
+                <span class=\"breadcrumb-current\">technical-report</span>
+            </div>
+        </div>
+        <div class=\"header-actions\">
+            <button class=\"search-toggle\" onclick=\"openSearch()\">
+                <svg width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                    <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"/>
+                </svg>
+                <span>Search...</span>
+                <kbd>⌘K</kbd>
+            </button>
+            <button class=\"theme-toggle\" onclick=\"toggleTheme()\" aria-label=\"Toggle theme\">
+                <svg class=\"icon-moon\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                    <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z\"/>
+                </svg>
+                <svg class=\"icon-sun\" fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                    <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z\"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Search modal -->
+    <div class=\"search-modal\" id=\"searchModal\" onclick=\"if(event.target === this) closeSearch()\">
+        <div class=\"search-dialog\">
+            <div class=\"search-input-container\">
+                <svg fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                    <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z\"/>
+                </svg>
+                <input type=\"text\" class=\"search-input\" id=\"searchInput\" placeholder=\"Search documentation...\" oninput=\"handleSearch(this.value)\">
+            </div>
+            <div class=\"search-results\" id=\"searchResults\">
+                <div style=\"padding: 2rem; text-align: center; color: var(--text-muted);\">
+                    Type to search chapters, sections, and keywords
+                </div>
+            </div>
+            <div class=\"search-footer\">
+                <span><kbd>↵</kbd> to select</span>
+                <span><kbd>↑</kbd><kbd>↓</kbd> to navigate</span>
+                <span><kbd>esc</kbd> to close</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
     <main class=\"main\">
         <div class=\"content\">
-            <h1>The Fold: A Content-Addressable Homoiconic Universe</h1>
-            <div class=\"doc-meta\">Technical Report &middot; January 2026</div>
+            <div class=\"doc-header\">
+                <h1>The Fold: <span>A Content-Addressable Homoiconic Universe</span></h1>
+                <div class=\"doc-meta\">
+                    <div class=\"doc-meta-item\">
+                        <svg fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z\"/>
+                        </svg>
+                        Technical Report
+                    </div>
+                    <div class=\"doc-meta-item\">
+                        <svg fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z\"/>
+                        </svg>
+                        January 2026
+                    </div>
+                    <div class=\"doc-meta-item\">
+                        <svg fill=\"none\" stroke=\"currentColor\" viewBox=\"0 0 24 24\">
+                            <path stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4\"/>
+                        </svg>
+                        Chez Scheme
+                    </div>
+                </div>
+            </div>
 
 ")
 
@@ -467,51 +1480,191 @@
 ")
 
 (define *page-footer* "
-            <div class=\"generated\">Generated by The Fold's markdown parser (dogfooding lattice/dsl/markdown)</div>
+            <div class=\"generated\">
+                Generated by The Fold's markdown parser &mdash; dogfooding <code>lattice/dsl/markdown</code>
+            </div>
         </div>
     </main>
 
     <script>
+        // ═══════════════════════════════════════════════════════════════
+        // INTERACTIVE FUNCTIONALITY
+        // ═══════════════════════════════════════════════════════════════
+
+        // Theme management
+        function getPreferredTheme() {
+            const saved = localStorage.getItem('theme');
+            if (saved) return saved;
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'dark';
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        // Initialize theme
+        setTheme(getPreferredTheme());
+
+        // Mobile menu
         function toggleMenu() {
             document.querySelector('.sidebar').classList.toggle('open');
             document.querySelector('.overlay').classList.toggle('open');
         }
 
+        // Section collapse
+        function toggleSection(section) {
+            section.classList.toggle('collapsed');
+            const items = section.querySelector('.nav-section-items');
+            if (items) {
+                if (section.classList.contains('collapsed')) {
+                    items.style.maxHeight = '0';
+                } else {
+                    items.style.maxHeight = items.scrollHeight + 'px';
+                }
+            }
+        }
+
+        // Initialize section heights
+        document.querySelectorAll('.nav-section-items').forEach(items => {
+            items.style.maxHeight = items.scrollHeight + 'px';
+        });
+
+        // Active section tracking
         const sections = document.querySelectorAll('section[id]');
         const navLinks = document.querySelectorAll('.nav-link');
+        let currentSection = '';
 
         function updateActiveLink() {
             const scrollY = window.scrollY;
+            const headerOffset = 100;
+
             sections.forEach(section => {
-                const sectionTop = section.offsetTop - 100;
+                const sectionTop = section.offsetTop - headerOffset;
                 const sectionHeight = section.offsetHeight;
                 const sectionId = section.getAttribute('id');
+
                 if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
-                    navLinks.forEach(link => {
-                        link.classList.remove('active');
-                        if (link.getAttribute('href') === '#' + sectionId) {
-                            link.classList.add('active');
-                        }
-                    });
+                    if (currentSection !== sectionId) {
+                        currentSection = sectionId;
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if (link.getAttribute('href') === '#' + sectionId) {
+                                link.classList.add('active');
+                                // Update breadcrumb
+                                const breadcrumb = document.querySelector('.breadcrumb-current');
+                                if (breadcrumb) {
+                                    breadcrumb.textContent = link.textContent.trim() || sectionId;
+                                }
+                            }
+                        });
+                    }
                 }
             });
         }
 
+        // Progress bar
         function updateProgress() {
             const scrollTop = window.scrollY;
             const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            const progress = (scrollTop / docHeight) * 100;
+            const progress = Math.min((scrollTop / docHeight) * 100, 100);
             document.querySelector('.progress-bar').style.width = progress + '%';
         }
 
-        window.addEventListener('scroll', () => { updateActiveLink(); updateProgress(); });
+        // Scroll event listeners
+        let ticking = false;
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    updateActiveLink();
+                    updateProgress();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
 
+        // Close mobile menu on link click
         navLinks.forEach(link => {
             link.addEventListener('click', () => {
                 document.querySelector('.sidebar').classList.remove('open');
                 document.querySelector('.overlay').classList.remove('open');
             });
         });
+
+        // Search functionality
+        const searchData = [];
+        sections.forEach(section => {
+            const id = section.getAttribute('id');
+            const h2 = section.querySelector('h2');
+            const title = h2 ? h2.textContent.replace('#', '').trim() : id;
+            const text = section.textContent.substring(0, 500);
+            searchData.push({ id, title, text });
+        });
+
+        function openSearch() {
+            document.getElementById('searchModal').classList.add('open');
+            document.getElementById('searchInput').focus();
+        }
+
+        function closeSearch() {
+            document.getElementById('searchModal').classList.remove('open');
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').innerHTML = '<div style=\"padding: 2rem; text-align: center; color: var(--text-muted);\">Type to search chapters, sections, and keywords</div>';
+        }
+
+        function handleSearch(query) {
+            const resultsContainer = document.getElementById('searchResults');
+
+            if (!query.trim()) {
+                resultsContainer.innerHTML = '<div style=\"padding: 2rem; text-align: center; color: var(--text-muted);\">Type to search chapters, sections, and keywords</div>';
+                return;
+            }
+
+            const lowerQuery = query.toLowerCase();
+            const results = searchData.filter(item =>
+                item.title.toLowerCase().includes(lowerQuery) ||
+                item.text.toLowerCase().includes(lowerQuery)
+            ).slice(0, 8);
+
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div style=\"padding: 2rem; text-align: center; color: var(--text-muted);\">No results found</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = results.map(result => {
+                const contextStart = Math.max(0, result.text.toLowerCase().indexOf(lowerQuery) - 40);
+                const context = result.text.substring(contextStart, contextStart + 100).replace(/\\s+/g, ' ').trim();
+                return `
+                    <a href=\"#${result.id}\" class=\"search-result\" onclick=\"closeSearch()\">
+                        <div class=\"search-result-title\">${result.title}</div>
+                        <div class=\"search-result-context\">${context}...</div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Cmd/Ctrl + K to open search
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                openSearch();
+            }
+            // Escape to close search
+            if (e.key === 'Escape') {
+                closeSearch();
+            }
+        });
+
+        // Initialize
+        updateActiveLink();
+        updateProgress();
     </script>
 </body>
 </html>
@@ -525,6 +1678,8 @@
     ("type-theory"      "5. The Type Theory")
     ("module-system"    "6. The Module System")
     ("implementation"   "7. Implementation")
+    ("egraph-core"      "7b. E-Graph Data Structures")
+    ("equality-sat"     "7c. Equality Saturation")
     ("meta-tooling"     "8. Developer and Meta-Tooling")
     ("agent-substrate"  "9. The Fold as Agent Substrate")
     ("evaluation"       "10. Evaluation")
