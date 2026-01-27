@@ -18,6 +18,31 @@
     (let ([pool (make-thread-pool 2)])
       (assert-true (thread-pool? pool))
       (assert-equal 2 (pool-worker-count pool))
-      (pool-shutdown! pool))))
+      (pool-shutdown! pool)))
+
+  (define-test "pool-start! launches workers"
+    (let ([pool (make-thread-pool 2)])
+      (pool-start! pool)
+      (assert-true (pool-running? pool))
+      (sleep (make-time 'time-duration 0 0))  ; Yield
+      (pool-shutdown! pool)
+      (pool-wait-shutdown! pool)))
+
+  (define-test "pool executes submitted task"
+    (let ([pool (make-thread-pool 2)]
+          [result-box (box #f)])
+      (pool-start! pool)
+      (pool-submit! pool (make-task (lambda ()
+                                      (set-box! result-box 42)
+                                      42)
+                                    #f))
+      ;; Wait for result
+      (let loop ([n 100])
+        (when (and (> n 0) (not (unbox result-box)))
+          (sleep (make-time 'time-duration 10000000 0))  ; 10ms
+          (loop (- n 1))))
+      (pool-shutdown! pool)
+      (pool-wait-shutdown! pool)
+      (assert-equal 42 (unbox result-box)))))
 
 (run-all-tests)
