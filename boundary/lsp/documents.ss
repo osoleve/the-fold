@@ -353,9 +353,29 @@
          [(or (< offset 0) (> offset len)) #f]
          ;; At end of document - check previous char
          [(= offset len)
-          (if (and (> len 0) (symbol-char? (string-ref content (- len 1))))
-              (symbol-at-offset doc (- offset 1))
-              #f)]
+          (cond
+            [(= len 0) #f]
+            [(symbol-char? (string-ref content (- len 1)))
+             (symbol-at-offset doc (- offset 1))]
+            ;; Check if previous char was closing pipe of pipe-quoted symbol
+            [(and (> len 0) (char=? (string-ref content (- len 1)) #\|))
+             (symbol-at-offset doc (- offset 1))]
+            [else #f])]
+         ;; Inside pipe-quoted symbol |...|
+         [(inside-pipe-quoted? content offset)
+          (let* ([start (find-pipe-quoted-start content offset)]
+                 [end (find-pipe-quoted-end content offset)])
+                (if (< start end)
+                    (substring content start end)
+                    #f))]
+         ;; On opening pipe - include entire pipe-quoted symbol
+         [(and (< offset len)
+               (char=? (string-ref content offset) #\|)
+               (not (inside-pipe-quoted? content offset)))
+          (let ([end (find-pipe-quoted-end content (+ offset 1))])
+            (if (> end (+ offset 1))
+                (substring content offset end)
+                #f))]
          ;; Current char is a symbol char - find bounds
          [(symbol-char? (string-ref content offset))
           (let* ([start (find-symbol-start content offset)]
@@ -366,6 +386,9 @@
          ;; Current char is NOT a symbol char - check previous position
          ;; This handles cursor-at-end-of-symbol (e.g., "define|")
          [(and (> offset 0) (symbol-char? (string-ref content (- offset 1))))
+          (symbol-at-offset doc (- offset 1))]
+         ;; Check if previous char was closing pipe of pipe-quoted symbol
+         [(and (> offset 0) (char=? (string-ref content (- offset 1)) #\|))
           (symbol-at-offset doc (- offset 1))]
          ;; No symbol at or before this position
          [else #f])))
@@ -402,6 +425,39 @@
       (char-numeric? c)
       (and (memv c '(#\! #\$ #\% #\& #\* #\+ #\- #\. #\/
                      #\: #\< #\= #\> #\? #\@ #\^ #\_ #\~)) #t)))
+
+(doc 'section 'pipe-quoted-symbols)
+
+(doc inside-pipe-quoted? 'type '(-> String Int Boolean))
+(doc inside-pipe-quoted? 'description "Check if offset is inside a pipe-quoted symbol |...|")
+(doc inside-pipe-quoted? 'note "Counts unescaped pipes before offset - odd count means inside")
+(define (inside-pipe-quoted? content offset)
+  (let ([len (string-length content)])
+    (let loop ([i 0] [count 0])
+      (cond
+        [(>= i offset) (odd? count)]
+        [(>= i len) (odd? count)]
+        [(char=? (string-ref content i) #\|) (loop (+ i 1) (+ count 1))]
+        [else (loop (+ i 1) count)]))))
+
+(doc find-pipe-quoted-start 'type '(-> String Int Int))
+(doc find-pipe-quoted-start 'description "Find opening pipe of pipe-quoted symbol")
+(define (find-pipe-quoted-start content offset)
+  (let loop ([i (- offset 1)])
+    (cond
+      [(< i 0) 0]
+      [(char=? (string-ref content i) #\|) i]
+      [else (loop (- i 1))])))
+
+(doc find-pipe-quoted-end 'type '(-> String Int Int))
+(doc find-pipe-quoted-end 'description "Find closing pipe of pipe-quoted symbol (exclusive)")
+(define (find-pipe-quoted-end content offset)
+  (let ([len (string-length content)])
+    (let loop ([i offset])
+      (cond
+        [(>= i len) len]
+        [(char=? (string-ref content i) #\|) (+ i 1)]
+        [else (loop (+ i 1))]))))
 
 (doc 'section 'span-re-export)
 

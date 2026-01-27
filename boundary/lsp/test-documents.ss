@@ -149,6 +149,31 @@
 (define special-doc (make-document "file:///s.ss" 1 "(string->number x)"))
 (test "symbol-at-offset special" "string->number" (symbol-at-offset special-doc 1))
 
+;; Pipe-quoted symbols |...|
+(define pipe-doc (make-document "file:///p.ss" 1 "(|foo bar| x)"))
+;; Inside pipe-quoted symbol
+(test "symbol-at-offset pipe-quoted inside" "|foo bar|" (symbol-at-offset pipe-doc 2))
+(test "symbol-at-offset pipe-quoted middle" "|foo bar|" (symbol-at-offset pipe-doc 5))
+;; On opening pipe
+(test "symbol-at-offset pipe-quoted start" "|foo bar|" (symbol-at-offset pipe-doc 1))
+;; On closing pipe
+(test "symbol-at-offset pipe-quoted end-pipe" "|foo bar|" (symbol-at-offset pipe-doc 9))
+;; After closing pipe (cursor at position 10)
+(test "symbol-at-offset pipe-quoted after" "|foo bar|" (symbol-at-offset pipe-doc 10))
+
+;; Pipe-quoted with special chars
+(define pipe-special-doc (make-document "file:///ps.ss" 1 "|hello world!|"))
+(test "symbol-at-offset pipe-quoted special" "|hello world!|"
+      (symbol-at-offset pipe-special-doc 1))
+
+;; Multiple pipe-quoted symbols in same doc
+;; Content: (|a b| |c d|) - positions: 0=( 1=| 2=a 3=  4=b 5=| 6=  7=| 8=c 9=  10=d 11=| 12=)
+(define multi-pipe-doc (make-document "file:///mp.ss" 1 "(|a b| |c d|)"))
+(test "symbol-at-offset multi-pipe first" "|a b|" (symbol-at-offset multi-pipe-doc 2))
+(test "symbol-at-offset multi-pipe second" "|c d|" (symbol-at-offset multi-pipe-doc 8))
+;; Between the two pipe-quoted symbols (on space at position 6)
+(test "symbol-at-offset multi-pipe between" "|a b|" (symbol-at-offset multi-pipe-doc 6))
+
 ;;; ====
 ;;; Document Store Tests
 ;;; ====
