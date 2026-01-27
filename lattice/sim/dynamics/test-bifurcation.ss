@@ -595,6 +595,33 @@
           ;; Should find at least the original and one other branch
           (assert-true (>= (length branches) 1))))
 
+  (define-test "switch-branch-adaptive handles large parameter steps correctly"
+    ;; Test for fold-zxtw: verify that large parameter steps don't cause false positives
+    ;; by comparing to where the original branch moved, not the original fp
+    (let* ([psys (pitchfork-normal-form-param)]
+           ;; Start at r=0.5 (well past bifurcation, branches at x = ±sqrt(0.5) ≈ ±0.707)
+           [r-start 0.5]
+           [origin-fp (vector 0.0)]
+           ;; The fix ensures we track where the original branch went at new-param.
+           ;; For pitchfork, origin stays at x=0 for all r, so original branch tracking
+           ;; should correctly identify when we've switched to sqrt(r) or -sqrt(r) branch.
+           [result (switch-branch-adaptive psys r-start origin-fp 'upper)])
+          ;; If we find a result, verify it's actually on a different branch
+          (when result
+                (let* ([new-fp (car result)]
+                       [new-param (cdr result)]
+                       [sys (instantiate-at psys new-param)]
+                       ;; Converge from origin at new-param to find original branch there
+                       [original-at-new-param (find-fixed-point-robust
+                                               sys origin-fp
+                                               *branch-switch-tolerance*
+                                               *continuation-step-size*
+                                               *branch-switch-max-iter*)])
+                      ;; The found point should be different from where original branch is
+                      ;; For pitchfork at r>0, upper branch at sqrt(r), origin still at 0
+                      (when original-at-new-param
+                            (assert-true (> (vec-norm (vec-sub new-fp original-at-new-param)) 0.1)))))))
+
 )
 
 (run-all-tests)

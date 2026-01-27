@@ -1326,6 +1326,12 @@ For pitchfork: new branches only exist past the bifurcation, so we step forward 
                                                [perturbation (vec-scale (* sign scale) effective-eigenvec)]
                                                [perturbed-fp (vec-add fp perturbation)]
                                                [sys (instantiate-at psys new-param)]
+                                               ;; Track where the original branch moved at new-param
+                                               ;; For large param steps, comparing to the original fp causes false positives
+                                               [original-at-new-param (find-fixed-point-robust sys fp
+                                                                                               *branch-switch-tolerance*
+                                                                                               *continuation-step-size*
+                                                                                               *branch-switch-max-iter*)]
                                                ;; Use robust solver - near bifurcations the Jacobian is nearly singular
                                                [new-fp (find-fixed-point-robust sys perturbed-fp
                                                                                 *branch-switch-tolerance*
@@ -1335,7 +1341,13 @@ For pitchfork: new branches only exist past the bifurcation, so we step forward 
                                                [(not new-fp)
                                                 (try-param (cdr psteps))]
                                                ;; Did we find a genuinely different point?
-                                               [(< (vec-norm (vec-sub new-fp fp)) (* 0.1 scale))
+                                               ;; Compare to where original branch is at new-param (not original fp)
+                                               [(and original-at-new-param
+                                                     (< (vec-norm (vec-sub new-fp original-at-new-param)) (* 0.1 scale)))
+                                                (try-param (cdr psteps))]
+                                               ;; If original branch didn't converge at new-param, fall back to comparing to fp
+                                               [(and (not original-at-new-param)
+                                                     (< (vec-norm (vec-sub new-fp fp)) (* 0.1 scale)))
                                                 (try-param (cdr psteps))]
                                                [else
                                                 (cons new-fp new-param)])))))))))))
