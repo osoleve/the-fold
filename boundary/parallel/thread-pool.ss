@@ -41,14 +41,49 @@
 (define (worker-state w) (unbox (list-ref w 4)))
 (define (worker-state-set! w s) (set-box! (list-ref w 4) s))
 
+;;; Thread-safe injection queue for external submissions
+;;; Uses a simple lock-based queue since external submissions are infrequent
+(define (make-injection-queue)
+  (list 'injection-queue
+        (box '())      ; queue (list of tasks)
+        (box #f)))     ; lock (mutex simulation via CAS)
+
+(define (injection-queue-lock! q)
+  "Acquire lock using spinlock with CAS."
+  (let ([lock-box (caddr q)])
+    (let spin ()
+      (unless (box-cas! lock-box #f #t)
+        (spin)))))
+
+(define (injection-queue-unlock! q)
+  "Release lock."
+  (set-box! (caddr q) #f))
+
+(define (injection-queue-push! q task)
+  "Thread-safe push to injection queue."
+  (injection-queue-lock! q)
+  (let ([queue-box (cadr q)])
+    (set-box! queue-box (cons task (unbox queue-box))))
+  (injection-queue-unlock! q))
+
+(define (injection-queue-take-all! q)
+  "Atomically take all tasks from queue. Returns list (may be empty)."
+  (injection-queue-lock! q)
+  (let* ([queue-box (cadr q)]
+         [tasks (reverse (unbox queue-box))])  ; FIFO order
+    (set-box! queue-box '())
+    (injection-queue-unlock! q)
+    tasks))
+
 ;;; Thread pool record
 (define (make-thread-pool num-workers)
   (doc 'type '(-> Nat ThreadPool))
   (let ([workers (list->vector
                    (map make-worker (iota num-workers)))]
         [running-box (box #f)]
-        [shutdown-box (box #f)])
-    (list 'thread-pool workers running-box shutdown-box)))
+        [shutdown-box (box #f)]
+        [injection-queue (make-injection-queue)])
+    (list 'thread-pool workers running-box shutdown-box injection-queue)))
 
 (define (thread-pool? x) (and (pair? x) (eq? (car x) 'thread-pool)))
 (define (pool-workers p) (list-ref p 1))
@@ -56,6 +91,7 @@
 (define (pool-running-set! p v) (set-box! (list-ref p 2) v))
 (define (pool-shutdown? p) (unbox (list-ref p 3)))
 (define (pool-shutdown-set! p v) (set-box! (list-ref p 3) v))
+(define (pool-injection-queue p) (list-ref p 4))
 
 (define (pool-worker-count p)
   (vector-length (pool-workers p)))
@@ -66,15 +102,11 @@
   (pool-shutdown-set! p #t)
   (pool-running-set! p #f))
 
-;;; Global submit deque for external task submission
-(define (pool-submit-deque p)
-  ;; Use worker 0's deque for submissions (simple approach)
-  (worker-deque (vector-ref (pool-workers p) 0)))
-
 (define (pool-submit! p task)
   (doc 'type '(-> ThreadPool Task Void))
-  (doc 'description "Submit task to pool for execution.")
-  (deque-push! (pool-submit-deque p) task))
+  (doc 'description "Submit task to pool for execution.
+Uses thread-safe injection queue to avoid multi-producer race on deques.")
+  (injection-queue-push! (pool-injection-queue p) task))
 
 ;;; Random number generator for victim selection
 (define *random-state* (box (current-time)))
@@ -112,6 +144,15 @@
     (let ([result ((task-thunk task))])
       (task-complete! task 'ok result))))
 
+;;; Check injection queue and move tasks to worker's deque
+(define (drain-injection-queue! worker pool)
+  "Move tasks from injection queue to this worker's deque."
+  (let ([tasks (injection-queue-take-all! (pool-injection-queue pool))])
+    (for-each (lambda (task)
+                (deque-push! (worker-deque worker) task))
+              tasks)
+    (not (null? tasks))))  ; Return #t if we got any tasks
+
 ;;; Worker main loop
 (define (worker-loop worker pool)
   (let loop ([backoff 1])
@@ -126,16 +167,20 @@
             (run-task task)
             (loop 1)]
            [else
-            (worker-state-set! worker 'stealing)
-            (let ([stolen (try-steal pool worker)])
-              (cond
-                [stolen
-                 (run-task stolen)
-                 (loop 1)]
-                [else
-                 ;; Exponential backoff
-                 (sleep (make-time 'time-duration (* backoff 1000000) 0))
-                 (loop (min (* backoff 2) 100))]))]))])))
+            ;; No local work - check injection queue first (all workers share this)
+            (if (drain-injection-queue! worker pool)
+                (loop 1)  ; Got tasks from injection queue, try again
+                (begin
+                  (worker-state-set! worker 'stealing)
+                  (let ([stolen (try-steal pool worker)])
+                    (cond
+                      [stolen
+                       (run-task stolen)
+                       (loop 1)]
+                      [else
+                       ;; Exponential backoff
+                       (sleep (make-time 'time-duration (* backoff 1000000) 0))
+                       (loop (min (* backoff 2) 100))]))))]))])))
 
 ;;; Start the pool
 (define (pool-start! p)
