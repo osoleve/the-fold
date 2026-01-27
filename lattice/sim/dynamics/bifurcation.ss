@@ -1340,14 +1340,13 @@ For pitchfork: new branches only exist past the bifurcation, so we step forward 
                                               (cond
                                                [(not new-fp)
                                                 (try-param (cdr psteps))]
+                                               ;; If we couldn't track where original branch went, reject this step
+                                               ;; Falling back to comparing to fp would re-introduce false positives
+                                               [(not original-at-new-param)
+                                                (try-param (cdr psteps))]
                                                ;; Did we find a genuinely different point?
                                                ;; Compare to where original branch is at new-param (not original fp)
-                                               [(and original-at-new-param
-                                                     (< (vec-norm (vec-sub new-fp original-at-new-param)) (* 0.1 scale)))
-                                                (try-param (cdr psteps))]
-                                               ;; If original branch didn't converge at new-param, fall back to comparing to fp
-                                               [(and (not original-at-new-param)
-                                                     (< (vec-norm (vec-sub new-fp fp)) (* 0.1 scale)))
+                                               [(< (vec-norm (vec-sub new-fp original-at-new-param)) (* 0.1 scale))
                                                 (try-param (cdr psteps))]
                                                [else
                                                 (cons new-fp new-param)])))))))))))
@@ -1379,9 +1378,23 @@ At transcritical: returns 2 branches that exchange stability.")
                                branches)]
                [with-lower (if (and lower (car lower)
                                     ;; Check it's not the same as upper
+                                    ;; Must compare at same parameter - if params differ, project lower to upper's param
                                     (or (not upper)
                                         (not (car upper))
-                                        (> (vec-norm (vec-sub (car lower) (car upper))) 1e-6)))
+                                        (let* ([upper-param (cdr upper)]
+                                               [lower-param (cdr lower)])
+                                              (if (< (abs (- upper-param lower-param)) 1e-10)
+                                                  ;; Same param - compare directly
+                                                  (> (vec-norm (vec-sub (car lower) (car upper))) 1e-6)
+                                                  ;; Different params - project lower to upper's param and compare
+                                                  (let* ([sys-at-upper (instantiate-at psys upper-param)]
+                                                         [lower-projected (find-fixed-point-robust
+                                                                           sys-at-upper (car lower)
+                                                                           *branch-switch-tolerance*
+                                                                           *continuation-step-size*
+                                                                           *branch-switch-max-iter*)])
+                                                        (or (not lower-projected)
+                                                            (> (vec-norm (vec-sub lower-projected (car upper))) 1e-6)))))))
                                (cons (cons 'lower (car lower)) with-upper)
                                with-upper)])
               with-lower)))
