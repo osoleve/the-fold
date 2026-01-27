@@ -296,12 +296,73 @@
       (assert-false (fsm-accepts? nfa ""))))
 
   (define-test alt-with-empty
-    ;; a| means "a or empty"... actually this might be a parse issue
-    ;; Let's test a|b|c instead
+    ;; a|b|c - multiple alternatives
     (let ([nfa (regex->nfa "a|b|c")])
       (assert-true (fsm-accepts? nfa "a"))
       (assert-true (fsm-accepts? nfa "b"))
-      (assert-true (fsm-accepts? nfa "c")))))
+      (assert-true (fsm-accepts? nfa "c"))))
+
+  (define-test escaped-backslash
+    ;; \\\\ in regex matches a single backslash
+    (let ([nfa (regex->nfa "\\\\")])
+      (assert-true (fsm-accepts? nfa "\\"))
+      (assert-false (fsm-accepts? nfa ""))))
+
+  (define-test dash-at-start-of-class
+    ;; [-a] means literal dash or 'a'
+    (let ([nfa (regex->nfa "[-a]")])
+      (assert-true (fsm-accepts? nfa "-"))
+      (assert-true (fsm-accepts? nfa "a"))))
+
+  (define-test dash-at-end-of-class
+    ;; [a-] means 'a' or literal dash
+    (let ([nfa (regex->nfa "[a-]")])
+      (assert-true (fsm-accepts? nfa "a"))
+      (assert-true (fsm-accepts? nfa "-")))))
+
+;;; ============================================================
+;;; Malformed Input Tests (Parser Robustness)
+;;; ============================================================
+
+(test-group regex-malformed
+  (define-test unclosed-group
+    ;; (a should fail to parse
+    (let ([result (regex-parse "(a")])
+      (assert-true (left? result))))
+
+  (define-test unclosed-class
+    ;; [abc should fail to parse
+    (let ([result (regex-parse "[abc")])
+      (assert-true (left? result))))
+
+  (define-test invalid-range-becomes-literals
+    ;; [z-a] - when range is invalid (z > a), backtracking parses as 3 literals
+    (let ([result (regex-parse "[z-a]")])
+      (assert-true (right? result))
+      (let ([ast (from-right result)])
+        (assert-true (regex-class? ast))
+        ;; Should have 3 chars: z, -, a
+        (assert-equal 3 (length (regex-class-chars ast))))))
+
+  (define-test unmatched-close-paren
+    ;; a) should fail
+    (let ([result (regex-parse "a)")])
+      (assert-true (left? result))))
+
+  (define-test close-bracket-needs-escape
+    ;; a] fails because ] is a metachar outside class (use \] instead)
+    (let ([result (regex-parse "a]")])
+      (assert-true (left? result))))
+
+  (define-test escaped-close-bracket
+    ;; a\\] should match "a]"
+    (let ([nfa (regex->nfa "a\\]")])
+      (assert-true (fsm-accepts? nfa "a]"))))
+
+  (define-test trailing-backslash
+    ;; a\\ at end (just backslash, no escape char) should fail
+    (let ([result (regex-parse "a\\")])
+      (assert-true (left? result)))))
 
 ;;; ============================================================
 ;;; Run Tests
