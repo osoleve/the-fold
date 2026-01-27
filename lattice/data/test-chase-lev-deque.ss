@@ -25,6 +25,25 @@
       (deque-push! d 'a)
       (deque-push! d 'b)
       (deque-push! d 'c)
-      (assert-equal 3 (deque-size d)))))
+      (assert-equal 3 (deque-size d))))
+
+  (define-test "deque-pop! returns last pushed (LIFO)"
+    (let ([d (make-chase-lev-deque 16)])
+      (deque-push! d 'first)
+      (deque-push! d 'second)
+      (deque-push! d 'third)
+      (assert-equal 'third (deque-pop! d))
+      (assert-equal 'second (deque-pop! d))
+      (assert-equal 'first (deque-pop! d))))
+
+  (define-test "deque-pop! on empty returns 'empty"
+    (let ([d (make-chase-lev-deque 16)])
+      (assert-equal 'empty (deque-pop! d))))
+
+  (define-test "deque-pop! after emptying returns 'empty"
+    (let ([d (make-chase-lev-deque 16)])
+      (deque-push! d 'x)
+      (deque-pop! d)
+      (assert-equal 'empty (deque-pop! d)))))
 
 (run-all-tests)

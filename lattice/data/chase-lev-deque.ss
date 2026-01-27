@@ -77,3 +77,38 @@ Uses monotonic 64-bit indices to avoid ABA problem.")
                      (vector-ref old-buf (mod i old-cap)))
         (loop (+ i 1))))
     (set-box! (deque-buffer-box d) new-buf)))
+
+(define (deque-pop! d)
+  (doc 'type '(-> ChaselevDeque (U Task 'empty)))
+  (doc 'description "Owner pops from bottom. Returns 'empty if deque is empty.
+Uses CAS when contending with thieves on last element.")
+  (let* ([b (- (deque-bottom d) 1)]
+         [_ (set-box! (deque-bottom-box d) b)]  ; Decrement first
+         [t (deque-top d)])
+    (cond
+      [(< b t)
+       ;; Queue was empty, restore bottom
+       (set-box! (deque-bottom-box d) t)
+       'empty]
+      [(> b t)
+       ;; Multiple elements, safe to take
+       (let* ([buf (deque-buffer d)]
+              [cap (vector-length buf)]
+              [task (vector-ref buf (mod b cap))])
+         (vector-set! buf (mod b cap) #f)  ; Clear for GC
+         task)]
+      [else
+       ;; b == t: Last element, race with thieves
+       (let* ([buf (deque-buffer d)]
+              [cap (vector-length buf)]
+              [task (vector-ref buf (mod b cap))])
+         (if (box-cas! (deque-top-box d) t (+ t 1))
+             ;; Won the race
+             (begin
+               (set-box! (deque-bottom-box d) (+ t 1))
+               (vector-set! buf (mod b cap) #f)
+               task)
+             ;; Lost to thief
+             (begin
+               (set-box! (deque-bottom-box d) (+ t 1))
+               'empty)))])))
