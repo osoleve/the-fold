@@ -1,6 +1,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
+(load "lattice/linalg/svd.ss")  ; For null-space computation in branch switching
 (load "lattice/numeric/complex.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
 (load "lattice/sim/dynamics/stability.ss")
@@ -1191,6 +1192,186 @@ At a real eigenvalue zero-crossing:
                (let ([curr (caddr (car rest))])
                     (loop curr (cdr rest)
                           (if (eq? prev curr) count (+ count 1))))))))
+
+;;; ============================================================
+;;; Section: Branch Switching
+;;; ============================================================
+
+(doc 'section 'branch-switching)
+(doc 'note "After detecting a pitchfork or transcritical bifurcation, switch to
+newly-created branches by perturbing along the critical eigenvector.")
+
+(define *branch-switch-perturbation* 0.01)
+(define *branch-switch-tolerance* 1e-8)
+(define *branch-switch-max-iter* 50)
+
+(define (compute-critical-eigenvector psys param fp)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec (Option Vec)))
+  (doc 'description "Compute the eigenvector corresponding to the zero eigenvalue at a bifurcation")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param "parameter value at the bifurcation")
+  (doc 'param 'fp "fixed point at the bifurcation")
+  (doc 'returns "unit eigenvector in the null space of the Jacobian, or #f if none found")
+  (doc 'note "Uses SVD to find the null space robustly. Near-zero singular values (< 1e-6) indicate the null space.")
+  (let* ([sys (instantiate-at psys param)]
+         [jac (compute-jacobian sys fp *continuation-step-size*)]
+         [n (matrix-rows jac)]
+         [svd-result (svd jac)])
+        (if (and (pair? svd-result) (eq? (car svd-result) 'error))
+            #f  ; SVD failed
+            (let* ([u (car svd-result)]
+                   [sigma (cadr svd-result)]
+                   [v (caddr svd-result)]
+                   ;; Find the smallest singular value
+                   [min-idx (find-min-singular-value-index sigma n)]
+                   [min-val (matrix-ref sigma min-idx min-idx)])
+                  (if (> min-val 1e-4)
+                      #f  ; No near-zero singular value - not at a bifurcation
+                      ;; Extract the corresponding column of V
+                      (let ([eigenvec (make-vector n 0)])
+                           (do ([i 0 (+ i 1)])
+                               ((= i n) eigenvec)
+                               (vector-set! eigenvec i (matrix-ref v i min-idx)))))))))
+
+(define (find-min-singular-value-index sigma n)
+  (doc 'type '(-> Matrix Nat Nat))
+  (doc 'description "Find index of smallest diagonal element in Σ matrix")
+  (let loop ([i 0] [min-idx 0] [min-val (abs (matrix-ref sigma 0 0))])
+       (if (= i n)
+           min-idx
+           (let ([val (abs (matrix-ref sigma i i))])
+                (if (< val min-val)
+                    (loop (+ i 1) i val)
+                    (loop (+ i 1) min-idx min-val))))))
+
+(define (switch-branch psys continuation-data bifurcation-index direction)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE (List (List Number Vec Symbol (List Complex))) Nat Symbol
+                  (Option (Pair Vec Number))))
+  (doc 'description "Switch to a new branch after a pitchfork or transcritical bifurcation")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'continuation-data "output from continue-fixed-point or continue-fixed-point-arclength")
+  (doc 'param 'bifurcation-index "index into continuation-data of the bifurcation point (0-based)")
+  (doc 'param 'direction "which branch to switch to: 'upper or 'lower (sign of perturbation)")
+  (doc 'returns "(new-fixed-point . param) on the new branch, or #f if switch failed")
+  (doc 'note "After switching, use continue-fixed-point-arclength to follow the new branch")
+  (if (>= bifurcation-index (length continuation-data))
+      #f
+      (let* ([bif-point (list-ref continuation-data bifurcation-index)]
+             [param (car bif-point)]
+             [fp (cadr bif-point)]
+             ;; Get critical eigenvector at bifurcation
+             [eigenvec (compute-critical-eigenvector psys param fp)])
+            (if (not eigenvec)
+                #f  ; Couldn't compute eigenvector
+                ;; Perturb in the chosen direction
+                (let* ([sign (if (eq? direction 'upper) 1.0 -1.0)]
+                       [perturbation (vec-scale (* sign *branch-switch-perturbation*) eigenvec)]
+                       [perturbed-fp (vec-add fp perturbation)]
+                       ;; Use Newton iteration to converge to the new fixed point
+                       [sys (instantiate-at psys param)]
+                       [new-fp (find-fixed-point-newton sys perturbed-fp
+                                                        *branch-switch-tolerance*
+                                                        *continuation-step-size*
+                                                        *branch-switch-max-iter*)])
+                      (if (not new-fp)
+                          #f  ; Newton failed
+                          ;; Verify we're on a different branch (not back on the original)
+                          (if (< (vec-norm (vec-sub new-fp fp)) (* 2 *branch-switch-perturbation*))
+                              #f  ; Converged back to original - try larger perturbation
+                              (cons new-fp param))))))))
+
+(define (switch-branch-adaptive psys param fp direction)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Symbol (Option (Pair Vec Number))))
+  (doc 'description "Switch to a new branch with adaptive perturbation size")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param "parameter value at or near the bifurcation")
+  (doc 'param 'fp "fixed point at or near the bifurcation")
+  (doc 'param 'direction "'upper or 'lower")
+  (doc 'returns "(new-fixed-point . new-param) or #f")
+  (doc 'note "Steps forward in parameter and perturbs state to find new branch.
+For pitchfork: new branches only exist past the bifurcation, so we step forward in parameter.")
+  ;; First try to find eigenvector at current point
+  (let ([eigenvec (compute-critical-eigenvector psys param fp)])
+       ;; If no zero eigenvalue at current point, try nearby parameter values
+       (let* ([effective-eigenvec
+               (or eigenvec
+                   ;; Try to find eigenvector at nearby parameters
+                   (let search-param ([offsets '(-0.01 0.01 -0.05 0.05)])
+                        (if (null? offsets)
+                            #f
+                            (let ([ev (compute-critical-eigenvector psys (+ param (car offsets)) fp)])
+                                 (or ev (search-param (cdr offsets))))))
+                   ;; Fallback: use unit vector as perturbation direction
+                   (let ([n (vector-length fp)])
+                        (if (= n 1)
+                            (vector 1.0)
+                            #f)))])
+             (if (not effective-eigenvec)
+                 #f
+                 (let ([sign (if (eq? direction 'upper) 1.0 -1.0)])
+                      ;; Try stepping forward in parameter AND perturbing state
+                      (let try-combo ([param-steps '(0.0 0.01 0.05 0.1)]
+                                      [state-scales '(0.01 0.05 0.1 0.5 1.0)])
+                           (if (null? state-scales)
+                               #f
+                               (let try-param ([psteps param-steps])
+                                    (if (null? psteps)
+                                        (try-combo param-steps (cdr state-scales))
+                                        (let* ([dparam (car psteps)]
+                                               [new-param (+ param dparam)]
+                                               [scale (car state-scales)]
+                                               [perturbation (vec-scale (* sign scale) effective-eigenvec)]
+                                               [perturbed-fp (vec-add fp perturbation)]
+                                               [sys (instantiate-at psys new-param)]
+                                               [new-fp (find-fixed-point-newton sys perturbed-fp
+                                                                                *branch-switch-tolerance*
+                                                                                *continuation-step-size*
+                                                                                *branch-switch-max-iter*)])
+                                              (cond
+                                               [(not new-fp)
+                                                (try-param (cdr psteps))]
+                                               ;; Did we find a genuinely different point?
+                                               [(< (vec-norm (vec-sub new-fp fp)) (* 0.1 scale))
+                                                (try-param (cdr psteps))]
+                                               [else
+                                                (cons new-fp new-param)])))))))))))
+
+(define (continue-switched-branch psys param fp num-steps step-size)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Nat Number (List (List Number Vec Symbol (List Complex)))))
+  (doc 'description "Continue along a new branch after switching")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param "parameter value (from switch-branch result)")
+  (doc 'param 'fp "fixed point on the new branch (from switch-branch result)")
+  (doc 'param 'num-steps "number of continuation steps")
+  (doc 'param 'step-size "arc-length step (positive to continue away from bifurcation)")
+  (doc 'returns "continuation data for the new branch")
+  (continue-fixed-point-arclength psys param fp num-steps step-size))
+
+(define (find-all-branches-at-bifurcation psys param fp)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec (List (Pair Symbol Vec))))
+  (doc 'description "Find all fixed point branches at a bifurcation")
+  (doc 'returns "list of (branch-label . fixed-point) pairs, suitable for assq lookup")
+  (doc 'note "At pitchfork: returns 3 branches (original + upper + lower).
+At transcritical: returns 2 branches that exchange stability.")
+  (let* ([upper (switch-branch-adaptive psys param fp 'upper)]
+         [lower (switch-branch-adaptive psys param fp 'lower)]
+         [branches (list (cons 'original fp))])
+        (let* ([with-upper (if (and upper (car upper))
+                               (cons (cons 'upper (car upper)) branches)
+                               branches)]
+               [with-lower (if (and lower (car lower)
+                                    ;; Check it's not the same as upper
+                                    (or (not upper)
+                                        (not (car upper))
+                                        (> (vec-norm (vec-sub (car lower) (car upper))) 1e-6)))
+                               (cons (cons 'lower (car lower)) with-upper)
+                               with-upper)])
+              with-lower)))
 
 ;;; ============================================================
 ;;; Section: Classic Parameterized Systems
