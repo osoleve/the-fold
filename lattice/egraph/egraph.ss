@@ -125,23 +125,25 @@
 
 ;;; egraph-lookup : EGraph × ENode → EClassId | #f
 ;;; Look up an e-node in the hashcons table.
-;;; Returns the e-class ID if found, #f otherwise.
+;;; Returns the canonical e-class ID if found, #f otherwise.
 (define (egraph-lookup eg enode)
   (doc 'type (-> EGraph ENode (Or EClassId #f)))
-  (doc 'description "Look up e-node in hashcons, return e-class ID or #f.")
+  (doc 'description "Look up e-node in hashcons, return canonical e-class ID or #f.")
   (doc 'export #t)
   (let* ([uf (egraph-uf eg)]
          [canonical (enode-canonicalize enode uf)]
-         [hashcons (egraph-hashcons eg)])
-    (hashtable-ref hashcons canonical #f)))
+         [hashcons (egraph-hashcons eg)]
+         [found (hashtable-ref hashcons canonical #f)])
+    ;; Return canonical (root) ID, not potentially stale hashcons entry
+    (and found (uf-find uf found))))
 
 ;;; egraph-add-enode! : EGraph × ENode → EClassId
 ;;; Add an e-node to the e-graph.
-;;; If already present (via hashcons), return existing e-class.
+;;; If already present (via hashcons), return existing e-class (canonicalized).
 ;;; Otherwise, create new e-class and add to hashcons.
 (define (egraph-add-enode! eg enode)
   (doc 'type (-> EGraph ENode EClassId))
-  (doc 'description "Add e-node, return its e-class ID (new or existing).")
+  (doc 'description "Add e-node, return its canonical e-class ID (new or existing).")
   (doc 'export #t)
   (let* ([uf (egraph-uf eg)]
          [canonical (enode-canonicalize enode uf)]
@@ -150,7 +152,8 @@
     (if existing
         (begin
           (egraph-inc-stat! eg 3)  ; hashcons hit
-          existing)
+          ;; Return canonical ID, not potentially stale hashcons entry
+          (uf-find uf existing))
         (let* ([classes (egraph-classes eg)]
                [new-id (uf-make-set! uf)])
           (egraph-inc-stat! eg 0)  ; add
@@ -158,7 +161,7 @@
           (hashtable-set! hashcons canonical new-id)
           ;; Add to e-class store
           (eclass-add-node! classes new-id canonical)
-          ;; Register as parent of children
+          ;; Register as parent of children (use canonical IDs)
           (let ([children (enode-children canonical)])
             (do ([i 0 (+ i 1)])
                 ((>= i (vector-length children)))
@@ -218,14 +221,18 @@
   (let ([uf (egraph-uf eg)]
         [classes (egraph-classes eg)]
         [hashcons (egraph-hashcons eg)]
+        [visited (make-eqv-hashtable)]  ; Track processed roots this pass
         [count 0])
     (let loop ()
       (let ([dirty-id (egraph-pop-dirty! eg)])
         (if (not dirty-id)
             count
+            ;; Process the ROOT of the dirty ID (not the dirty ID itself)
+            ;; This fixes the bug where non-root dirty IDs were skipped
             (let ([root (uf-find uf dirty-id)])
-              ;; Only process if this is the canonical representative
-              (when (= dirty-id root)
+              ;; Only process each root once per rebuild pass
+              (unless (hashtable-ref visited root #f)
+                (hashtable-set! visited root #t)
                 (egraph-inc-stat! eg 2)  ; rebuild
                 (set! count (+ count 1))
                 ;; Get all e-nodes in this class
@@ -242,7 +249,7 @@
                            [(not existing)
                             ;; Not in hashcons, add it
                             (hashtable-set! hashcons canonical root)]
-                           [(not (= existing root))
+                           [(not (= (uf-find uf existing) root))
                             ;; Exists in different class, need to merge
                             ;; Update hashcons to point to new root
                             (let ([new-root (egraph-merge! eg root existing)])

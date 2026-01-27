@@ -105,24 +105,25 @@
 
 ;;; enode-hash : ENode → Fixnum
 ;;; Hash function for e-nodes (for hashcons table).
-;;; Bounded to avoid bignum promotion in hashtable lookups.
-;;; Supports symbols, numbers, strings, booleans, and characters.
+;;; Bounded to fixnum range to avoid bignum promotion in hashtable lookups.
+;;; Supports symbols, numbers (including bignums), strings, booleans, and characters.
 (define (enode-hash enode)
   (doc 'type (-> ENode Fixnum))
   (doc 'description "Compute hash of an e-node for hashconsing.")
   (doc 'export #t)
   (let* ([op (enode-op enode)]
          [children (enode-children enode)]
-         [h (fxand (cond
-                     [(symbol? op) (symbol-hash op)]
-                     [(number? op) (abs (exact (truncate op)))]
-                     [(string? op) (string-hash op)]
-                     [(boolean? op) (if op 1 0)]
-                     [(char? op) (char->integer op)]
-                     [else (equal-hash op)])  ; Fallback for other types
-                   #xFFFFFF)])
+         ;; Hash the operator, ensuring result fits in fixnum range
+         ;; Use modulo for numbers to handle bignums safely
+         [op-hash (cond
+                    [(symbol? op) (fxand (symbol-hash op) #xFFFFFF)]
+                    [(number? op) (modulo (abs (exact (truncate op))) #x1000000)]
+                    [(string? op) (fxand (string-hash op) #xFFFFFF)]
+                    [(boolean? op) (if op 1 0)]
+                    [(char? op) (fxand (char->integer op) #xFFFFFF)]
+                    [else (fxand (equal-hash op) #xFFFFFF)])])
     (do ([i 0 (+ i 1)]
-         [acc h (fxand (+ (* acc 31) (vector-ref children i)) #xFFFFFF)])
+         [acc op-hash (fxand (+ (* acc 31) (vector-ref children i)) #xFFFFFF)])
         ((>= i (vector-length children)) acc))))
 
 ;;; ============================================================

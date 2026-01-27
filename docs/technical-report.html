@@ -7450,6 +7450,52 @@ Without scheduling, saturation is O(rules × classes × matches) per iteration. 
 <ul>
 <li>Backoff prevents wasting time on dormant rules</li><li>Worklist avoids redundant work on stable classes</li><li>Priority focuses on productive rules first</li></ul>
 
+<p>
+<strong>Thread Safety</strong></p>
+
+<p>
+The e-graph implementation is <strong>not thread-safe</strong>. Concurrent access to the same e-graph from multiple threads would cause data races on:</p>
+
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Mutable State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Union-find</td>
+<td><code>parent</code> and <code>rank</code> vectors</td>
+</tr>
+<tr>
+<td>E-class store</td>
+<td>Node lists, parent sets</td>
+</tr>
+<tr>
+<td>Hashcons table</td>
+<td>E-node → e-class mappings</td>
+</tr>
+<tr>
+<td>Dirty worklist</td>
+<td>Set of classes needing rebuild</td>
+</tr>
+<tr>
+<td>Statistics</td>
+<td>Counter updates</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+For concurrent use cases:</p>
+
+<ol>
+<li><strong>Separate e-graphs per thread</strong>: Each thread operates on its own e-graph instance (preferred for embarrassingly parallel workloads)</li><li><strong>External synchronization</strong>: Wrap e-graph operations in mutexes (simple but coarse-grained)</li><li><strong>Functional/persistent design</strong>: A future enhancement could use persistent data structures for lock-free concurrent reads</li></ol>
+
+<p>
+The current design prioritizes single-threaded performance—mutation enables O(1) hashcons updates and O(α(n)) union-find operations. For CUDA codegen, where e-graphs optimize individual kernels, single-threaded operation is sufficient.</p>
+
 <h3>
 7b.11 Performance Characteristics</h3>
 

@@ -160,6 +160,25 @@
           (assert-true (> processed 0))
           (assert-equal (egraph-find eg fx) (egraph-find eg fy))))))
 
+  (define-test "egraph-rebuild! processes non-root dirty IDs"
+    ;; Regression test: dirty IDs that aren't roots must still trigger rebuild
+    ;; of their root class. Previously, non-root dirty IDs were skipped.
+    (let ([eg (make-egraph)])
+      ;; Create (f a), (f b), (f c)
+      (let ([fa (egraph-add-term! eg '(f a))]
+            [fb (egraph-add-term! eg '(f b))]
+            [fc (egraph-add-term! eg '(f c))]
+            [a (egraph-add-term! eg 'a)]
+            [b (egraph-add-term! eg 'b)]
+            [c (egraph-add-term! eg 'c)])
+        ;; Merge a=b, then b=c (b becomes non-root after first merge)
+        (egraph-merge! eg a b)
+        (egraph-merge! eg b c)
+        (egraph-saturate-rebuild! eg)
+        ;; All three (f _) terms should be equivalent
+        (assert-equal (egraph-find eg fa) (egraph-find eg fb))
+        (assert-equal (egraph-find eg fb) (egraph-find eg fc)))))
+
   (define-test "egraph-rebuild! handles chain merges"
     (let ([eg (make-egraph)])
       ;; (g (f x)) and (g (f y))
