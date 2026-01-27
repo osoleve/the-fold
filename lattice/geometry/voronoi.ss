@@ -203,8 +203,9 @@
                     (make-vector (length points) #t))  ; all unbounded
       (let* ([sites (list->vector points)]
              [n (vector-length sites)]
-             ;; Compute Delaunay triangulation
-             [del-tris (delaunay-triangulate points)]
+             ;; Compute Delaunay triangulation (now returns triangulation record)
+             [del-tri (delaunay-triangulate points)]
+             [del-tris (triangulation-triangles del-tri)]
              [triangles (list->vector del-tris)]
              [num-tris (vector-length triangles)]
              ;; Compute circumcenters (Voronoi vertices)

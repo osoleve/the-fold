@@ -96,10 +96,19 @@
     marching-cubes marching-cubes-sphere marching-cubes-torus)
 
    (mesh-gen
+    ;; Points and triangles
     make-point2 point2-x point2-y
     make-tri2 tri2? tri2-p1 tri2-p2 tri2-p3 tri2-points
     tri2-area tri2-circumcenter tri2-circumradius-sq point-in-circumcircle?
-    delaunay-triangulate
+    ;; Triangulation record (BREAKING: delaunay-triangulate now returns this)
+    triangulation? triangulation-points triangulation-triangles
+    triangulation-boundary triangle-neighbors
+    delaunay-triangulate build-adjacency
+    ;; Point location (O(√n) walking)
+    orient2d barycentric-coords
+    location? location-triangle location-bary
+    locate-point interpolate-at
+    ;; Quality metrics
     tri2-edge-lengths tri2-aspect-ratio tri2-angles tri2-min-angle tri2-max-angle
     mesh-quality-report refine-mesh
     triangles-to-3d random-points-in-rect render-mesh-2d)
@@ -192,8 +201,10 @@
     "Marching cubes isosurface extraction. Converts implicit surfaces (SDFs) to
      triangle meshes at specified resolution.")
    (mesh-gen "mesh-gen.ss"
-    "2D mesh generation with Delaunay triangulation (Bowyer-Watson), quality metrics
-     (aspect ratio, angles), and Ruppert refinement. Includes 3D elevation and ASCII viz.")
+    "2D mesh generation with Delaunay triangulation (Bowyer-Watson), O(√n) point location
+     via walking algorithm, barycentric interpolation, quality metrics (aspect ratio, angles),
+     and Ruppert refinement. BREAKING: delaunay-triangulate now returns a triangulation record
+     with adjacency; use triangulation-triangles to extract the triangle list.")
    (mesh-topology "mesh-topology.ss"
     "Topological analysis of triangle meshes via homology. Computes Betti numbers,
      validates manifold properties, detects non-manifold edges, and verifies mesh
