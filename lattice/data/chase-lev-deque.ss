@@ -44,3 +44,36 @@ Uses monotonic 64-bit indices to avoid ABA problem.")
   (doc 'type '(-> ChaselevDeque Boolean))
   (doc 'description "Check if deque appears empty.")
   (<= (deque-bottom d) (deque-top d)))
+
+(define (deque-push! d task)
+  (doc 'type '(-> ChaselevDeque Task Void))
+  (doc 'description "Owner pushes task to bottom. Resizes if full.")
+  (let* ([b (deque-bottom d)]
+         [t (deque-top d)]
+         [buf (deque-buffer d)]
+         [cap (vector-length buf)])
+    ;; Resize if full
+    (when (>= (- b t) cap)
+      (deque-resize! d))
+    ;; Write task and increment bottom
+    (let ([buf (deque-buffer d)]  ; Re-read after potential resize
+          [cap (vector-length (deque-buffer d))])
+      (vector-set! buf (mod b cap) task)
+      (set-box! (deque-bottom-box d) (+ b 1)))))
+
+(define (deque-resize! d)
+  (doc 'type '(-> ChaselevDeque Void))
+  (doc 'description "Double buffer capacity, copying valid elements.")
+  (let* ([old-buf (deque-buffer d)]
+         [old-cap (vector-length old-buf)]
+         [new-cap (* old-cap 2)]
+         [new-buf (make-vector new-cap #f)]
+         [t (deque-top d)]
+         [b (deque-bottom d)])
+    ;; Copy valid elements [t, b) to new buffer
+    (let loop ([i t])
+      (when (< i b)
+        (vector-set! new-buf (mod i new-cap)
+                     (vector-ref old-buf (mod i old-cap)))
+        (loop (+ i 1))))
+    (set-box! (deque-buffer-box d) new-buf)))
