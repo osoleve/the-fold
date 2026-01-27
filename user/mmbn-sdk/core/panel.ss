@@ -202,15 +202,15 @@ that affect movement and combat, and can change ownership during battle.")
   (doc 'type '(-> BattleGrid Int Symbol BattleGrid))
   (doc 'description "Steal an entire column for a team")
   (doc 'export #t)
-  (let loop ([row 0] [g grid])
-    (if (>= row (grid-rows grid))
-        g
-        (let ([panel (grid-ref g col row)])
-          (if (and panel (not (eq? (panel-owner panel) new-owner)))
-              (loop (+ row 1)
-                    (grid-set g col row
-                              (panel-with-owner panel new-owner #t)))
-              (loop (+ row 1) g))))))
+  ;; Single vector-copy, update all rows in place
+  (let ([new-panels (vector-copy (battle-grid%-panels grid))])
+    (do ([row 0 (+ row 1)])
+        ((>= row (grid-rows grid))
+         (make-battle-grid% new-panels (grid-cols grid) (grid-rows grid)))
+      (let* ([idx (grid-idx grid col row)]
+             [panel (vector-ref new-panels idx)])
+        (when (and panel (not (eq? (panel-owner panel) new-owner)))
+          (vector-set! new-panels idx (panel-with-owner panel new-owner #t)))))))
 
 ;;; ============================================================
 ;;; Grid Rendering Helpers

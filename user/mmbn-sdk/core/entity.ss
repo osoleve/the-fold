@@ -31,6 +31,11 @@ and updates.")
 (define-protocol/default (entity-solid? e) (lambda (x) #f))
 (define-protocol/default (entity-update e dt world) (lambda (e d w) e))
 (define-protocol/default (entity-on-hit e damage source) (lambda (e d s) e))
+(define-protocol/default (entity-dead? e) (lambda (e)
+  ;; Default: dead if has HP and HP <= 0
+  (let ([hp (entity-hp e)])
+    (and hp (<= hp 0)))))
+(define-protocol/default (entity-events e) (lambda (x) '()))  ; Event accumulator
 
 ;;; ============================================================
 ;;; Entity Constructors
@@ -189,11 +194,16 @@ and updates.")
   (filter-map
    (lambda (e)
      (let ([updated (entity-update e dt world)])
-       (if (and (entity-hp updated)
-                (<= (entity-hp updated) 0))
+       (if (entity-dead? updated)
            #f  ; Remove dead entities
            updated)))
    entities))
+
+(define (collect-entity-events entities)
+  (doc 'type '(-> (List Entity) (List Event)))
+  (doc 'description "Gather events from all entities (fired shots, spawns, etc.)")
+  (doc 'export #t)
+  (apply append (map entity-events entities)))
 
 (display "mmbn/entity.ss loaded.\n")
 (display "  (make-entity type pos sprite . props) — Create entity\n")

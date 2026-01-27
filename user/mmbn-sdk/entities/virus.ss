@@ -73,7 +73,8 @@ inhabit the Net and attack Navis. Each virus type has unique behavior and attack
           (solid . #t)
           (state . idle)
           (action-timer . ,(+ 1000 (random 1000)))  ; Random delay
-          (guard-timer . 0))))
+          (guard-timer . 0)
+          (attack-timer . 0))))
 
 (define (mettaur-state m)
   (entity-get m 'state 'idle))
@@ -83,6 +84,9 @@ inhabit the Net and attack Navis. Each virus type has unique behavior and attack
 
 (define (mettaur-guard-timer m)
   (entity-get m 'guard-timer 0))
+
+(define (mettaur-attack-timer m)
+  (entity-get m 'attack-timer 0))
 
 ;;; ============================================================
 ;;; Mettaur Protocol Implementations
@@ -130,7 +134,8 @@ inhabit the Net and attack Navis. Each virus type has unique behavior and attack
   (lambda (m dt world)
     (let* ([state (mettaur-state m)]
            [action-timer (mettaur-action-timer m)]
-           [guard-timer (mettaur-guard-timer m)])
+           [guard-timer (mettaur-guard-timer m)]
+           [attack-timer (mettaur-attack-timer m)])
       (case state
         [(idle)
          ;; Count down to next action
@@ -145,14 +150,20 @@ inhabit the Net and attack Navis. Each virus type has unique behavior and attack
          ;; Guard phase - invincible
          (let ([new-timer (- guard-timer dt)])
            (if (<= new-timer 0)
-               ;; Attack!
-               (mettaur-set-prop m 'state 'attack)
+               ;; Attack! Set attack timer for animation duration
+               (mettaur-set-prop
+                (mettaur-set-prop m 'state 'attack)
+                'attack-timer 300)  ; 300ms attack animation
                (mettaur-set-prop m 'guard-timer new-timer)))]
         [(attack)
-         ;; After attack, return to idle
-         (mettaur-set-prop
-          (mettaur-set-prop m 'state 'idle)
-          'action-timer (+ 1500 (random 1000)))]
+         ;; Count down attack animation
+         (let ([new-timer (- attack-timer dt)])
+           (if (<= new-timer 0)
+               ;; Attack complete, return to idle
+               (mettaur-set-prop
+                (mettaur-set-prop m 'state 'idle)
+                'action-timer (+ 1500 (random 1000)))
+               (mettaur-set-prop m 'attack-timer new-timer)))]
         [else m]))))
 
 (implement-protocol! 'entity-on-hit 'mettaur
@@ -198,7 +209,8 @@ inhabit the Net and attack Navis. Each virus type has unique behavior and attack
           (max-hp . ,hp)
           (team . enemy)
           (solid . #t)
-          (fire-timer . ,(+ 500 (random 500))))))
+          (fire-timer . ,(+ 500 (random 500)))
+          (pending-events . ()))))
 
 (implement-protocol! 'entity-pos 'canodumb
   (lambda (c) (cadr c)))
@@ -229,21 +241,27 @@ inhabit the Net and attack Navis. Each virus type has unique behavior and attack
   (lambda (c dt world)
     ;; Canodumb just fires periodically
     (let* ([timer (entity-get c 'fire-timer 0)]
-           [new-timer (- timer dt)])
+           [new-timer (- timer dt)]
+           [props (entity-props c)])
       (if (<= new-timer 0)
-          ;; Fire and reset timer (actual projectile handled by battle system)
-          (let* ([props (entity-props c)]
+          ;; Fire and reset timer, queue fire event
+          (let* ([fire-event `(projectile ,(entity-pos c) dir-left 10)]
                  [new-props (cons (cons 'fire-timer (+ 800 (random 400)))
-                                  (cons (cons 'fired #t)
+                                  (cons (cons 'pending-events (list fire-event))
                                         (remp (lambda (p)
-                                                (memq (car p) '(fire-timer fired)))
+                                                (memq (car p) '(fire-timer pending-events)))
                                               props)))])
             (list 'canodumb (cadr c) (caddr c) new-props))
-          ;; Just update timer
-          (let* ([props (entity-props c)]
-                 [new-props (cons (cons 'fire-timer new-timer)
-                                  (remp (lambda (p) (eq? (car p) 'fire-timer)) props))])
+          ;; Just update timer, clear events
+          (let* ([new-props (cons (cons 'fire-timer new-timer)
+                                  (cons (cons 'pending-events '())
+                                        (remp (lambda (p)
+                                                (memq (car p) '(fire-timer pending-events)))
+                                              props)))])
             (list 'canodumb (cadr c) (caddr c) new-props))))))
+
+(implement-protocol! 'entity-events 'canodumb
+  (lambda (c) (entity-get c 'pending-events '())))
 
 (implement-protocol! 'entity-on-hit 'canodumb
   (lambda (c damage source)
