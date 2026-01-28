@@ -257,7 +257,7 @@ Dependencies:
                       ((= k nnz))
                       (vector-set! indices k k))
                   ;; Sort indices by (row, col) lexicographic order
-                  (vector-sort!
+                  (vector-sort-by!
                    (lambda (a b)
                            (let ([ra (vector-ref row-idx a)]
                                  [rb (vector-ref row-idx b)])
@@ -314,7 +314,7 @@ Dependencies:
                       ((= k nnz))
                       (vector-set! indices k k))
                   ;; Sort indices by (col, row) lexicographic order
-                  (vector-sort!
+                  (vector-sort-by!
                    (lambda (a b)
                            (let ([ca (vector-ref col-idx a)]
                                  [cb (vector-ref col-idx b)])

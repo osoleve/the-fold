@@ -5,7 +5,7 @@
 (load "core/base/prelude.ss")
 
 (doc 'module 'sort)
-(doc 'description "Sorting algorithms for lists")
+(doc 'description "Sorting algorithms for lists and vectors")
 (doc 'layer 'lattice)
 (doc 'tier 0)
 (doc 'purity 'total)
@@ -289,3 +289,58 @@
   (doc 'type (-> Nat (List α) (List α)))
   (doc 'description "Get k smallest elements (in ascending order)")
   (take-sorted k (sort lst)))
+
+(doc 'section 'vector-sorting)
+
+(define (vector-swap! vec i j)
+  (doc 'type (-> (Vector α) Nat Nat Void))
+  (doc 'description "Swap elements at indices i and j in-place")
+  (let ([tmp (vector-ref vec i)])
+    (vector-set! vec i (vector-ref vec j))
+    (vector-set! vec j tmp)))
+
+(define (vector-sort-by! cmp vec)
+  (doc 'type (-> (-> α α Boolean) (Vector α) Void))
+  (doc 'description "Sort vector in-place using heapsort with custom comparator")
+  (doc 'note "O(n log n) worst-case, O(1) extra space")
+  (doc 'note "Transparent implementation using only vector-ref/vector-set!")
+  (let ([n (vector-length vec)])
+    (define (sift-down! root end)
+      (let loop ([r root])
+        (let ([left (+ (* 2 r) 1)])
+          (when (< left end)
+            (let* ([right (+ left 1)]
+                   [largest r]
+                   [largest (if (cmp (vector-ref vec largest)
+                                     (vector-ref vec left))
+                                left largest)]
+                   [largest (if (and (< right end)
+                                     (cmp (vector-ref vec largest)
+                                          (vector-ref vec right)))
+                                right largest)])
+              (unless (= largest r)
+                (vector-swap! vec r largest)
+                (loop largest)))))))
+    ;; Build max-heap
+    (let loop ([start (- (quotient n 2) 1)])
+      (when (>= start 0)
+        (sift-down! start n)
+        (loop (- start 1))))
+    ;; Extract elements from heap
+    (let loop ([end (- n 1)])
+      (when (> end 0)
+        (vector-swap! vec 0 end)
+        (sift-down! 0 end)
+        (loop (- end 1))))))
+
+(define (vector-sort-by cmp vec)
+  (doc 'type (-> (-> α α Boolean) (Vector α) (Vector α)))
+  (doc 'description "Return new sorted vector using custom comparator")
+  (doc 'note "Non-destructive: original vector is unchanged")
+  (let* ([n (vector-length vec)]
+         [copy (make-vector n)])
+    (do ([i 0 (+ i 1)])
+        ((= i n))
+      (vector-set! copy i (vector-ref vec i)))
+    (vector-sort-by! cmp copy)
+    copy))

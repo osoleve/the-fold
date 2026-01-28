@@ -135,7 +135,7 @@
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
             eigs
-            (let ([sorted (vector-sort < eigs)])
+            (let ([sorted (vector-sort-by < eigs)])
                  ;; Return second smallest eigenvalue
                  ;; (first is always ~0 for connected graph)
                  (if (>= (vector-length sorted) 2)
@@ -492,7 +492,7 @@
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
             eigs
-            (let* ([sorted (vector-sort < eigs)]
+            (let* ([sorted (vector-sort-by < eigs)]
                    [lambda-1 (vector-ref sorted 0)]
                    [lambda-2 (if (>= n 2) (vector-ref sorted 1) 0)]
                    [lambda-max (vector-ref sorted (- n 1))])

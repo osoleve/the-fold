@@ -148,13 +148,13 @@
 ;; Smallest eigenvalue of Laplacian should be 0
 (let* ([L (laplacian triangle-adj)]
        [eigs (eigenvalues L)]
-       [sorted (vector-sort < eigs)])
+       [sorted (vector-sort-by < eigs)])
       (test-approx "triangle λ_1 ≈ 0" 0.0 (vector-ref sorted 0) tol))
 
 ;; For K_3, all non-zero eigenvalues should be 3
 (let* ([L (laplacian triangle-adj)]
        [eigs (eigenvalues L)]
-       [sorted (vector-sort < eigs)])
+       [sorted (vector-sort-by < eigs)])
       (test-approx "triangle λ_2 ≈ 3" 3.0 (vector-ref sorted 1) 0.01)
       (test-approx "triangle λ_3 ≈ 3" 3.0 (vector-ref sorted 2) 0.01))
 

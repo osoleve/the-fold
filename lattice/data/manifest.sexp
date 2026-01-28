@@ -14,7 +14,7 @@
     dictionaries, collection utilities, and unified collection protocols.")
 
   (keywords (data-structure graph heap priority-queue leftist-heap heapsort
-             sort merge-sort quicksort insertion-sort stable-sort median
+             sort merge-sort quicksort insertion-sort stable-sort median heapsort vector-sort
              avl-tree balanced-tree ordered-map range-query bst
              tree dictionary alist queue stack bfs dfs shortest-path pagerank
              collection adjacency-matrix floyd-warshall dijkstra
@@ -35,7 +35,7 @@
 
   (modules
    (avl-tree "avl-tree.ss" "Self-balancing AVL tree with O(log n) operations")
-   (sort "sort.ss" "Sorting algorithms: merge sort, quicksort, insertion sort")
+   (sort "sort.ss" "Sorting algorithms for lists and vectors: merge sort, quicksort, insertion sort, heapsort")
    (heap "heap.ss" "Leftist heap and priority queue with O(log n) operations")
    (stack "stack.ss" "LIFO stack operations")
    (queue "queue.ss" "FIFO queue with amortized O(1) ops")
