@@ -745,7 +745,8 @@
          ;; Balanced - done
          (values col in-str 0)]
         [else
-         (let ([c (string-ref line col)])
+         (let ([c (string-ref line col)]
+               [next-c (and (< (+ col 1) len) (string-ref line (+ col 1)))])
            (cond
              ;; String handling
              [(and in-str (char=? c #\\))
@@ -759,6 +760,51 @@
              ;; Line comment - continue on next line
              [(char=? c #\;)
               (values len in-str d)]
+             ;; Block comment #|...|# - skip entire comment
+             [(and (char=? c #\#) next-c (char=? next-c #\|))
+              (let skip-block ([i (+ col 2)] [block-depth 1])
+                (cond
+                  [(>= i len)
+                   ;; Block comment continues to next line
+                   (values i in-str d)]
+                  [(and (< (+ i 1) len)
+                        (char=? (string-ref line i) #\|)
+                        (char=? (string-ref line (+ i 1)) #\#))
+                   (if (= block-depth 1)
+                       (loop (+ i 2) d in-str)  ; Comment closed, continue
+                       (skip-block (+ i 2) (- block-depth 1)))]
+                  [(and (< (+ i 1) len)
+                        (char=? (string-ref line i) #\#)
+                        (char=? (string-ref line (+ i 1)) #\|))
+                   (skip-block (+ i 2) (+ block-depth 1))]  ; Nested
+                  [else
+                   (skip-block (+ i 1) block-depth)]))]
+             ;; Character literal #\x - skip it (handles #\), #\(, #\", etc.)
+             [(and (char=? c #\#) next-c (char=? next-c #\\))
+              (let ([char-pos (+ col 2)])
+                (if (>= char-pos len)
+                    (loop char-pos d in-str)
+                    (let ([char-start (string-ref line char-pos)])
+                      (if (char-alphabetic? char-start)
+                          ;; Named char like #\newline - scan to end
+                          (let scan ([i (+ char-pos 1)])
+                            (if (or (>= i len)
+                                    (not (char-alphabetic? (string-ref line i))))
+                                (loop i d in-str)
+                                (scan (+ i 1))))
+                          ;; Simple char like #\) or #\(
+                          (loop (+ char-pos 1) d in-str)))))]
+             ;; Pipe-quoted symbol |...| - skip to closing pipe
+             [(char=? c #\|)
+              (let scan-pipe ([i (+ col 1)])
+                (cond
+                  [(>= i len)
+                   ;; Pipe symbol continues to next line
+                   (values i in-str d)]
+                  [(char=? (string-ref line i) #\|)
+                   (loop (+ i 1) d in-str)]  ; Found closing pipe
+                  [else
+                   (scan-pipe (+ i 1))]))]
              ;; Nested opener
              [(or (char=? c #\() (char=? c #\[) (char=? c #\{))
               (loop (+ col 1) (+ d 1) in-str)]
