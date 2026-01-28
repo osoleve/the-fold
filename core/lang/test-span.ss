@@ -1,16 +1,12 @@
-;;; fabric/stitches/test-span.ss — Tests for Position-Aware Parser Combinators
+;;; core/lang/test-span.ss — Tests for Position-Aware Parser Combinators
+;;; Standardized to use test-framework.ss
 
-(load "core/test-framework.ss")
+(load "core/testing/test-framework.ss")
 (load "core/lang/span.ss")
 
-(display "
-")
-(display "====
-")
-(display "         SPAN (Position-Aware Parsing) TESTS
-")
-(display "====
-")
+;;; ============================================================================
+;;; Tests
+;;; ============================================================================
 
 ;;; ====
 ;;; Span Tests
@@ -460,25 +456,8 @@
                           (assert-equal 1 (span-end-line sp))
                           (assert-equal 4 (span-end-column sp))))))
 
-;;; ====
-;;; Summary
-;;; ====
+;;; ============================================================================
+;;; Run all tests
+;;; ============================================================================
 
-(display "
-")
-(display "====
-")
-(printf "Tests passed: ~a
-" *tests-passed*)
-(printf "Tests failed: ~a
-" *tests-failed*)
-(printf "Total tests:  ~a
-" *tests-run*)
-
-(if (= *tests-failed* 0)
-    (display "
-[SUCCESS] All span tests passed.
-")
-    (display "
-[FAILURE] Some span tests failed.
-"))
+(run-all-tests-and-exit)

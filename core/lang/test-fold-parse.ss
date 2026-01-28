@@ -1,313 +1,309 @@
-;;; fabric/stitches/test-fold-parse.ss — Tests for Fold Parser
+;;; core/lang/test-fold-parse.ss — Tests for Fold Parser
+;;; Standardized to use test-framework.ss
 ;;;
 ;;; Tests the spanned parser combinators and Fold syntax parser.
 
+(load "core/testing/test-framework.ss")
 (load "core/lang/fold-parse.ss")
 
-(display "Fold Parser Tests\n")
-(display "====\n\n")
+;;; ============================================================================
+;;; Domain-specific assertions
+;;; ============================================================================
 
-(define tests-passed 0)
-(define tests-failed 0)
-
-(define (test name expected actual)
-  (if (equal? expected actual)
-      (begin
-       (set! tests-passed (+ tests-passed 1))
-       (display "  ✓ ") (display name) (newline))
-      (begin
-       (set! tests-failed (+ tests-failed 1))
-       (display "  ✗ ") (display name)
-       (display " — expected ") (write expected)
-       (display ", got ") (write actual)
-       (newline))))
-
-(define (test-parse name input expected)
+(define (assert-parse name expected input)
+  "Assert that parsing input produces expected AST (stripped of spans)"
   (let ([result (parse-fold-expr input)])
-       (if (eq? (car result) 'ok)
-           (test name expected (strip-spans (cadr result)))
-           (begin
-            (set! tests-failed (+ tests-failed 1))
-            (display "  ✗ ") (display name)
-            (display " — parse failed: ") (write result)
-            (newline)))))
+    (if (eq? (car result) 'ok)
+        (if (equal? expected (strip-spans (cadr result)))
+            #t
+            (begin
+              (inc-failed!)
+              (display "    ") (display (ctx-name)) (display " - ")
+              (display name) (display ": expected ")
+              (write expected) (display ", got ")
+              (write (strip-spans (cadr result))) (newline)
+              #f))
+        (begin
+          (inc-failed!)
+          (display "    ") (display (ctx-name)) (display " - ")
+          (display name) (display " parse failed: ")
+          (write result) (newline)
+          #f))))
 
-(define (test-parse-error name input)
+(define (assert-parse-error name input)
+  "Assert that parsing input fails"
   (let ([result (parse-fold-expr input)])
-       (if (eq? (car result) 'error)
-           (begin
-            (set! tests-passed (+ tests-passed 1))
-            (display "  ✓ ") (display name) (display " (correctly failed)") (newline))
-           (begin
-            (set! tests-failed (+ tests-failed 1))
-            (display "  ✗ ") (display name)
-            (display " — should have failed, got: ") (write result)
-            (newline)))))
+    (if (eq? (car result) 'error)
+        #t
+        (begin
+          (inc-failed!)
+          (display "    ") (display (ctx-name)) (display " - ")
+          (display name) (display " should have failed, got: ")
+          (write result) (newline)
+          #f))))
 
-;;; ====
-;;; Span Tests
-;;; ====
+;;; ============================================================================
+;;; Tests
+;;; ============================================================================
 
-(display "Spans:\n")
+(test-group spans
+  (define-test "make-span"
+    (assert-equal '(span "test.ss" 1 5 2 10)
+                  (make-span "test.ss" 1 5 2 10)))
 
-(test "make-span"
-      '(span "test.ss" 1 5 2 10)
-      (make-span "test.ss" 1 5 2 10))
+  (define-test "span?"
+    (assert-true (span? (make-span "x" 1 1 1 1))))
 
-(test "span?"
-      #t
-      (span? (make-span "x" 1 1 1 1)))
+  (define-test "span-file"
+    (assert-equal "test.ss"
+                  (span-file (make-span "test.ss" 1 5 2 10))))
 
-(test "span-file"
-      "test.ss"
-      (span-file (make-span "test.ss" 1 5 2 10)))
+  (define-test "span-line"
+    (assert-equal 1
+                  (span-line (make-span "test.ss" 1 5 2 10))))
 
-(test "span-line"
-      1
-      (span-line (make-span "test.ss" 1 5 2 10)))
+  (define-test "span-column"
+    (assert-equal 5
+                  (span-column (make-span "test.ss" 1 5 2 10))))
 
-(test "span-column"
-      5
-      (span-column (make-span "test.ss" 1 5 2 10)))
+  (define-test "format-span"
+    (assert-equal "test.ss:1:5"
+                  (format-span (make-span "test.ss" 1 5 2 10)))))
 
-(test "format-span"
-      "test.ss:1:5"
-      (format-span (make-span "test.ss" 1 5 2 10)))
+(test-group parser-state
+  (define-test "initial-state"
+    (assert-true (state? (initial-state "hello"))))
 
-;;; ====
-;;; State Tests
-;;; ====
+  (define-test "state-input"
+    (assert-equal "hello"
+                  (state-input (initial-state "hello"))))
 
-(display "\nParser State:\n")
+  (define-test "state-line initial"
+    (assert-equal 1
+                  (state-line (initial-state "hello"))))
 
-(test "initial-state"
-      #t
-      (state? (initial-state "hello")))
+  (define-test "state-column initial"
+    (assert-equal 1
+                  (state-column (initial-state "hello"))))
 
-(test "state-input"
-      "hello"
-      (state-input (initial-state "hello")))
+  (define-test "advance-state input"
+    (let ([s (advance-state (initial-state "ab") #\a)])
+      (assert-equal "b" (state-remaining-input s))))
 
-(test "state-line initial"
-      1
-      (state-line (initial-state "hello")))
+  (define-test "advance-state column"
+    (let ([s (advance-state (initial-state "ab") #\a)])
+      (assert-equal 2 (state-column s))))
 
-(test "state-column initial"
-      1
-      (state-column (initial-state "hello")))
+  (define-test "advance-state newline line"
+    (let* ([s (advance-state (initial-state "a\nb") #\a)]
+           [s2 (advance-state s #\newline)])
+      (assert-equal 2 (state-line s2))))
 
-(let ([s (advance-state (initial-state "ab") #\a)])
-     (test "advance-state input"
-           "b"
-           (state-remaining-input s))
-     (test "advance-state column"
-           2
-           (state-column s)))
+  (define-test "advance-state newline column"
+    (let* ([s (advance-state (initial-state "a\nb") #\a)]
+           [s2 (advance-state s #\newline)])
+      (assert-equal 1 (state-column s2)))))
 
-(let ([s (advance-state (initial-state "a\nb") #\a)])
-     (let ([s2 (advance-state s #\newline)])
-          (test "advance-state newline line"
-                2
-                (state-line s2))
-          (test "advance-state newline column"
-                1
-                (state-column s2))))
+(test-group basic-parsers
+  (define-test "s-item success"
+    (let ([result (run-spanned s-item "abc")])
+      (assert-equal #\a (spanned-value result))))
 
-;;; ====
-;;; Basic Parser Tests
-;;; ====
+  (define-test "s-item remaining"
+    (let ([result (run-spanned s-item "abc")])
+      (assert-equal "bc" (state-remaining-input (spanned-state result)))))
 
-(display "\nBasic Parsers:\n")
+  (define-test "s-item empty fails"
+    (let ([result (run-spanned s-item "")])
+      (assert-true (spanned-err? result))))
 
-(let ([result (run-spanned s-item "abc")])
-     (test "s-item success"
-           #\a
-           (spanned-value result))
-     (test "s-item remaining"
-           "bc"
-           (state-remaining-input (spanned-state result))))
+  (define-test "s-eof at end"
+    (let ([result (run-spanned s-eof "")])
+      (assert-true (spanned-ok? result))))
 
-(let ([result (run-spanned s-item "")])
-     (test "s-item empty fails"
-           #t
-           (spanned-err? result)))
+  (define-test "s-eof not at end"
+    (let ([result (run-spanned s-eof "x")])
+      (assert-true (spanned-err? result)))))
 
-(let ([result (run-spanned s-eof "")])
-     (test "s-eof at end"
-           #t
-           (spanned-ok? result)))
+(test-group numbers
+  (define-test "integer"
+    (assert-parse "integer" 42 "42"))
 
-(let ([result (run-spanned s-eof "x")])
-     (test "s-eof not at end"
-           #t
-           (spanned-err? result)))
+  (define-test "negative integer"
+    (assert-parse "negative integer" -17 "-17"))
 
-;;; ====
-;;; Number Parsing
-;;; ====
+  (define-test "zero"
+    (assert-parse "zero" 0 "0"))
 
-(display "\nNumbers:\n")
+  (define-test "float"
+    (assert-parse "float" 3.14 "3.14"))
 
-(test-parse "integer" "42" 42)
-(test-parse "negative integer" "-17" -17)
-(test-parse "zero" "0" 0)
-(test-parse "float" "3.14" 3.14)
-(test-parse "negative float" "-2.5" -2.5)
+  (define-test "negative float"
+    (assert-parse "negative float" -2.5 "-2.5")))
 
-;;; ====
-;;; String Parsing
-;;; ====
+(test-group strings
+  (define-test "empty string"
+    (assert-parse "empty string" "" "\"\""))
 
-(display "\nStrings:\n")
+  (define-test "simple string"
+    (assert-parse "simple string" "hello" "\"hello\""))
 
-(test-parse "empty string" "\"\"" "")
-(test-parse "simple string" "\"hello\"" "hello")
-(test-parse "string with spaces" "\"hello world\"" "hello world")
-(test-parse "string with escape" "\"a\\nb\"" "a\nb")
-(test-parse "string with quote" "\"say \\\"hi\\\"\"" "say \"hi\"")
+  (define-test "string with spaces"
+    (assert-parse "string with spaces" "hello world" "\"hello world\""))
 
-;;; ====
-;;; Boolean Parsing
-;;; ====
+  (define-test "string with escape"
+    (assert-parse "string with escape" "a\nb" "\"a\\nb\""))
 
-(display "\nBooleans:\n")
+  (define-test "string with quote"
+    (assert-parse "string with quote" "say \"hi\"" "\"say \\\"hi\\\"\"")))
 
-(test-parse "true" "#t" #t)
-(test-parse "false" "#f" #f)
+(test-group booleans
+  (define-test "true"
+    (assert-parse "true" #t "#t"))
 
-;;; ====
-;;; Symbol Parsing
-;;; ====
+  (define-test "false"
+    (assert-parse "false" #f "#f")))
 
-(display "\nSymbols:\n")
+(test-group symbols
+  (define-test "simple symbol"
+    (assert-parse "simple symbol" 'foo "foo"))
 
-(test-parse "simple symbol" "foo" 'foo)
-(test-parse "symbol with dash" "foo-bar" 'foo-bar)
-(test-parse "symbol with numbers" "x123" 'x123)
-(test-parse "symbol with special" "list?" 'list?)
-(test-parse "plus symbol" "+" '+)
-(test-parse "arrow symbol" "->" '->)
+  (define-test "symbol with dash"
+    (assert-parse "symbol with dash" 'foo-bar "foo-bar"))
 
-;;; ====
-;;; List Parsing
-;;; ====
+  (define-test "symbol with numbers"
+    (assert-parse "symbol with numbers" 'x123 "x123"))
 
-(display "\nLists:\n")
+  (define-test "symbol with special"
+    (assert-parse "symbol with special" 'list? "list?"))
 
-(test-parse "empty list" "()" '())
-(test-parse "single element" "(x)" '(x))
-(test-parse "multiple elements" "(a b c)" '(a b c))
-(test-parse "nested list" "((a b) c)" '((a b) c))
-(test-parse "mixed types" "(1 \"hi\" x)" '(1 "hi" x))
-(test-parse "lambda" "(fn (x) x)" '(fn (x) x))
-(test-parse "let" "(let ((x 1)) x)" '(let ((x 1)) x))
+  (define-test "plus symbol"
+    (assert-parse "plus symbol" '+ "+"))
 
-;;; ====
-;;; Quote Parsing
-;;; ====
+  (define-test "arrow symbol"
+    (assert-parse "arrow symbol" '-> "->")))
 
-(display "\nQuotes:\n")
+(test-group lists
+  (define-test "empty list"
+    (assert-parse "empty list" '() "()"))
 
-(test-parse "quoted symbol" "'x" '(quote x))
-(test-parse "quoted list" "'(1 2 3)" '(quote (1 2 3)))
-(test-parse "quasiquote" "`x" '(quasiquote x))
-(test-parse "unquote" ",x" '(unquote x))
-(test-parse "unquote-splicing" ",@xs" '(unquote-splicing xs))
+  (define-test "single element"
+    (assert-parse "single element" '(x) "(x)"))
 
-;;; ====
-;;; Comments
-;;; ====
+  (define-test "multiple elements"
+    (assert-parse "multiple elements" '(a b c) "(a b c)"))
 
-(display "\nComments:\n")
+  (define-test "nested list"
+    (assert-parse "nested list" '((a b) c) "((a b) c)"))
 
-(test-parse "after comment" "; comment\n42" 42)
-(test-parse "inline comment" "42 ; comment" 42)
+  (define-test "mixed types"
+    (assert-parse "mixed types" '(1 "hi" x) "(1 \"hi\" x)"))
 
-;;; ====
-;;; Whitespace Handling
-;;; ====
+  (define-test "lambda"
+    (assert-parse "lambda" '(fn (x) x) "(fn (x) x)"))
 
-(display "\nWhitespace:\n")
+  (define-test "let"
+    (assert-parse "let" '(let ((x 1)) x) "(let ((x 1)) x)")))
 
-(test-parse "leading space" "  42" 42)
-(test-parse "trailing space" "42  " 42)
-(test-parse "multiline" "(a\n  b\n  c)" '(a b c))
-(test-parse "tabs" "(\ta\tb\t)" '(a b))
+(test-group quotes
+  (define-test "quoted symbol"
+    (assert-parse "quoted symbol" '(quote x) "'x"))
 
-;;; ====
-;;; Span Tracking
-;;; ====
+  (define-test "quoted list"
+    (assert-parse "quoted list" '(quote (1 2 3)) "'(1 2 3)"))
 
-(display "\nSpan Tracking:\n")
+  (define-test "quasiquote"
+    (assert-parse "quasiquote" '(quasiquote x) "`x"))
 
-(let ([result (parse-fold-expr "42" "test.ss")])
-     (if (eq? (car result) 'ok)
-         (let ([ast (cadr result)])
-              (test "span preserved"
-                    #t
-                    (spanned-value? ast))
-              (test "span file"
-                    "test.ss"
-                    (span-file (get-value-span ast)))
-              (test "span line"
-                    1
-                    (span-line (get-value-span ast)))
-              (test "span column"
-                    1
-                    (span-column (get-value-span ast))))
-         (begin
-          (set! tests-failed (+ tests-failed 1))
-          (display "  ✗ span tracking failed to parse\n"))))
+  (define-test "unquote"
+    (assert-parse "unquote" '(unquote x) ",x"))
 
-(let ([result (parse-fold-expr "  42" "test.ss")])
-     (if (eq? (car result) 'ok)
-         (let ([ast (cadr result)])
-              (test "span after whitespace column"
-                    3
-                    (span-column (get-value-span ast))))
-         (begin
-          (set! tests-failed (+ tests-failed 1))
-          (display "  ✗ span after whitespace failed to parse\n"))))
+  (define-test "unquote-splicing"
+    (assert-parse "unquote-splicing" '(unquote-splicing xs) ",@xs")))
 
-;;; ====
-;;; Error Cases
-;;; ====
+(test-group comments
+  (define-test "after comment"
+    (assert-parse "after comment" 42 "; comment\n42"))
 
-(display "\nError Cases:\n")
+  (define-test "inline comment"
+    (assert-parse "inline comment" 42 "42 ; comment")))
 
-(test-parse-error "unclosed string" "\"hello")
-(test-parse-error "unclosed paren" "(a b")
-;; Note: "a)" parses 'a' successfully, leaving ')' - this is correct single-expr behavior
-(test-parse "partial input" "a)" 'a)
-(test-parse-error "empty input" "")
+(test-group whitespace
+  (define-test "leading space"
+    (assert-parse "leading space" 42 "  42"))
 
-;;; ====
-;;; Complex Examples
-;;; ====
+  (define-test "trailing space"
+    (assert-parse "trailing space" 42 "42  "))
 
-(display "\nComplex Examples:\n")
+  (define-test "multiline"
+    (assert-parse "multiline" '(a b c) "(a\n  b\n  c)"))
 
-(test-parse "factorial"
-            "(fix fact (fn (n) (if (= n 0) 1 (* n (fact (- n 1))))))"
-            '(fix fact (fn (n) (if (= n 0) 1 (* n (fact (- n 1)))))))
+  (define-test "tabs"
+    (assert-parse "tabs" '(a b) "(\ta\tb\t)")))
 
-(test-parse "let with multiple bindings"
-            "(let ((x 1) (y 2)) (+ x y))"
-            '(let ((x 1) (y 2)) (+ x y)))
+(test-group span-tracking
+  (define-test "span preserved"
+    (let ([result (parse-fold-expr "42" "test.ss")])
+      (if (eq? (car result) 'ok)
+          (assert-true (spanned-value? (cadr result)))
+          (begin (inc-failed!) #f))))
 
-(test-parse "case expression"
-            "(case x ((True) 1) ((False) 0))"
-            '(case x ((True) 1) ((False) 0)))
+  (define-test "span file"
+    (let ([result (parse-fold-expr "42" "test.ss")])
+      (if (eq? (car result) 'ok)
+          (assert-equal "test.ss" (span-file (get-value-span (cadr result))))
+          (begin (inc-failed!) #f))))
 
-;;; ====
-;;; Summary
-;;; ====
+  (define-test "span line"
+    (let ([result (parse-fold-expr "42" "test.ss")])
+      (if (eq? (car result) 'ok)
+          (assert-equal 1 (span-line (get-value-span (cadr result))))
+          (begin (inc-failed!) #f))))
 
-(newline)
-(display "====\n")
-(display (string-append "Passed: " (number->string tests-passed) "\n"))
-(display (string-append "Failed: " (number->string tests-failed) "\n"))
+  (define-test "span column"
+    (let ([result (parse-fold-expr "42" "test.ss")])
+      (if (eq? (car result) 'ok)
+          (assert-equal 1 (span-column (get-value-span (cadr result))))
+          (begin (inc-failed!) #f))))
 
-(if (= tests-failed 0)
-    (display "\n✓ All Fold parser tests passed!\n")
-    (display "\n✗ Some tests failed!\n"))
+  (define-test "span after whitespace column"
+    (let ([result (parse-fold-expr "  42" "test.ss")])
+      (if (eq? (car result) 'ok)
+          (assert-equal 3 (span-column (get-value-span (cadr result))))
+          (begin (inc-failed!) #f)))))
+
+(test-group error-cases
+  (define-test "unclosed string"
+    (assert-parse-error "unclosed string" "\"hello"))
+
+  (define-test "unclosed paren"
+    (assert-parse-error "unclosed paren" "(a b"))
+
+  ;; Note: "a)" parses 'a' successfully, leaving ')' - this is correct single-expr behavior
+  (define-test "partial input"
+    (assert-parse "partial input" 'a "a)"))
+
+  (define-test "empty input"
+    (assert-parse-error "empty input" "")))
+
+(test-group complex-examples
+  (define-test "factorial"
+    (assert-parse "factorial"
+                  '(fix fact (fn (n) (if (= n 0) 1 (* n (fact (- n 1))))))
+                  "(fix fact (fn (n) (if (= n 0) 1 (* n (fact (- n 1))))))"))
+
+  (define-test "let with multiple bindings"
+    (assert-parse "let with multiple bindings"
+                  '(let ((x 1) (y 2)) (+ x y))
+                  "(let ((x 1) (y 2)) (+ x y))"))
+
+  (define-test "case expression"
+    (assert-parse "case expression"
+                  '(case x ((True) 1) ((False) 0))
+                  "(case x ((True) 1) ((False) 0))")))
+
+;;; ============================================================================
+;;; Run all tests
+;;; ============================================================================
+
+(run-all-tests-and-exit)
