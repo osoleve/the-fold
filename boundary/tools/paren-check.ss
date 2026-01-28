@@ -818,6 +818,7 @@
                     ;; Actually, simpler: just return our current depth, caller handles
                     (values new-col new-str d)))]
              ;; Pipe-quoted symbol |...| - skip to closing pipe
+             ;; Note: || inside pipe symbol represents literal |
              [(char=? c #\|)
               (let scan-pipe ([i (+ col 1)])
                 (cond
@@ -825,7 +826,11 @@
                    ;; Pipe symbol continues to next line
                    (values i in-str d)]
                   [(char=? (string-ref line i) #\|)
-                   (loop (+ i 1) d in-str)]  ; Found closing pipe
+                   ;; Check for escaped pipe ||
+                   (if (and (< (+ i 1) len)
+                            (char=? (string-ref line (+ i 1)) #\|))
+                       (scan-pipe (+ i 2))  ; Skip escaped ||, continue
+                       (loop (+ i 1) d in-str))]  ; Found closing pipe
                   [else
                    (scan-pipe (+ i 1))]))]
              ;; Nested opener
@@ -855,6 +860,7 @@
                           #f)])
           (cond
             ;; Continuation of multi-line pipe-quoted symbol |...|
+            ;; Note: || inside pipe symbol represents literal |
             [in-pipe
              (let scan-pipe ([i col])
                (cond
@@ -862,8 +868,11 @@
                   ;; Still in pipe symbol - continue to next line
                   (values stack errors in-string in-block in-datum #t)]
                  [(char=? (string-ref line i) #\|)
-                  ;; Found closing pipe
-                  (char-loop (+ i 1) stack errors in-string in-block in-datum #f)]
+                  ;; Check for escaped pipe ||
+                  (if (and (< (+ i 1) (string-length line))
+                           (char=? (string-ref line (+ i 1)) #\|))
+                      (scan-pipe (+ i 2))  ; Skip escaped ||, continue
+                      (char-loop (+ i 1) stack errors in-string in-block in-datum #f))]
                  [else
                   (scan-pipe (+ i 1))]))]
 
@@ -1051,6 +1060,7 @@
 
             ;; Pipe-delimited symbol |foo(bar)| - skip to closing pipe
             ;; These can contain parens that shouldn't be counted
+            ;; Note: || inside pipe symbol represents literal |
             [(char=? c #\|)
              (let scan-pipe ([i (+ col 1)])
                (cond
@@ -1058,8 +1068,11 @@
                   ;; Unclosed pipe symbol - continue to next line with in-pipe=#t
                   (values stack errors in-string in-block in-datum #t)]
                  [(char=? (string-ref line i) #\|)
-                  ;; Found closing pipe
-                  (char-loop (+ i 1) stack errors in-string in-block in-datum #f)]
+                  ;; Check for escaped pipe ||
+                  (if (and (< (+ i 1) (string-length line))
+                           (char=? (string-ref line (+ i 1)) #\|))
+                      (scan-pipe (+ i 2))  ; Skip escaped ||, continue
+                      (char-loop (+ i 1) stack errors in-string in-block in-datum #f))]
                  [else
                   (scan-pipe (+ i 1))]))]
 
