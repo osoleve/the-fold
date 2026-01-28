@@ -254,6 +254,54 @@
           (assert-false (normal-form-is-pitchfork? sys (vector 0.0) 1e-4))))
 
   ;;; ============================================================
+  ;;; N-Dimensional Normal Form Classification (fold-zxsh)
+  ;;; ============================================================
+
+  (define-test "classify-codim1-bifurcation-nd works for 1D pitchfork"
+    ;; Should fall back to 1D fast path
+    (let* ([psys (pitchfork-normal-form-param)]
+           [bif-type (classify-codim1-bifurcation-nd psys 0.0 (vector 0.0) 1e-4)])
+          (assert-equal bif-type 'pitchfork)))
+
+  (define-test "classify-codim1-bifurcation-nd works for 1D transcritical"
+    (let* ([psys (transcritical-normal-form-param)]
+           [bif-type (classify-codim1-bifurcation-nd psys 0.0 (vector 0.0) 1e-4)])
+          (assert-equal bif-type 'transcritical)))
+
+  (define-test "compute-critical-eigenvectors-svd finds zero eigenvalue direction"
+    ;; At pitchfork r=0, Jacobian is [[0]] for 1D, eigenvalue is 0
+    (let* ([psys (pitchfork-normal-form-param)]
+           [sys (instantiate-at psys 0.0)]
+           [jac (compute-jacobian sys (vector 0.0) 1e-6)]
+           [result (compute-critical-eigenvectors-svd jac)])
+          ;; Should find eigenvectors (1D system)
+          (assert-true (and result (= (length result) 2)))
+          ;; Both should be unit vectors
+          (assert-true (< (abs (- (vec-norm (car result)) 1.0)) 0.01))))
+
+  (define-test "classify-codim1-bifurcation-nd handles 2D Hopf system at saddle-node"
+    ;; The Hopf normal form at r=0 has purely imaginary eigenvalues (not zero),
+    ;; so this should return 'unknown (not a fold bifurcation)
+    (let* ([psys (hopf-normal-form-param)]
+           [bif-type (classify-codim1-bifurcation-nd psys 0.0 (vector 0.0 0.0) 1e-4)])
+          ;; At Hopf, eigenvalues are purely imaginary, not zero
+          ;; So SVD won't find a near-zero singular value
+          (assert-equal bif-type 'unknown)))
+
+  (define-test "compute-nd-directional-derivatives returns valid derivatives"
+    ;; For 1D pitchfork, use identity for right/left vecs
+    (let* ([psys (pitchfork-normal-form-param)]
+           [sys (instantiate-at psys 0.0)]
+           [right-vec (vector 1.0)]
+           [left-vec (vector 1.0)]
+           [derivs (compute-nd-directional-derivatives sys (vector 0.0) right-vec left-vec 1e-4)])
+          ;; For pitchfork dx/dt = rx - x³, at r=0, x=0:
+          ;; g''(0) = d²f/dx² = -6x|_{x=0} = 0
+          (assert-true (< (abs (car derivs)) 0.01))
+          ;; g'''(0) = d³f/dx³ = -6
+          (assert-true (< (abs (+ (cadr derivs) 6)) 1.0))))
+
+  ;;; ============================================================
   ;;; Bifurcation Detection
   ;;; ============================================================
 

@@ -926,6 +926,114 @@ At a real eigenvalue zero-crossing:
                 [else 'unknown]))])))
 
 ;;; ============================================================
+;;; Section: N-Dimensional Normal Form Classification
+;;; ============================================================
+
+(doc 'section 'nd-normal-form-classification)
+(doc 'note "Extend normal form analysis to n-dimensional systems via center manifold reduction.
+At a bifurcation with a zero eigenvalue, dynamics projects onto 1D center manifold.
+Uses left/right critical eigenvectors to compute directional derivatives.")
+
+(define (compute-critical-eigenvectors-svd jac)
+  (doc 'type '(-> Matrix (Option (List Vec Vec))))
+  (doc 'description "Compute both left and right critical eigenvectors using SVD")
+  (doc 'returns "(right-eigenvec left-eigenvec) or #f if no zero eigenvalue")
+  (let* ([n (matrix-rows jac)]
+         [svd-result (svd jac)])
+        (if (and (pair? svd-result) (eq? (car svd-result) 'error))
+            #f
+            (let* ([u (car svd-result)]
+                   [sigma (cadr svd-result)]
+                   [v (caddr svd-result)]
+                   [min-idx (find-min-singular-value-index sigma n)]
+                   [min-val (matrix-ref sigma min-idx min-idx)])
+                  (if (> min-val 1e-6)
+                      #f  ; Not at a bifurcation
+                      ;; Right eigenvector: column of V
+                      ;; Left eigenvector: column of U
+                      (let ([right-vec (make-vector n 0)]
+                            [left-vec (make-vector n 0)])
+                           (do ([i 0 (+ i 1)])
+                               ((= i n))
+                               (vector-set! right-vec i (matrix-ref v i min-idx))
+                               (vector-set! left-vec i (matrix-ref u i min-idx)))
+                           (list right-vec left-vec)))))))
+
+(define (normalize-eigenvector-pair right-vec left-vec)
+  (doc 'type '(-> Vec Vec (List Vec Vec)))
+  (doc 'description "Normalize eigenvector pair so that wᵀv = 1")
+  (let ([dot (vec-dot left-vec right-vec)])
+       (if (< (abs dot) 1e-10)
+           (list right-vec left-vec)  ; Already orthogonal or degenerate
+           (list right-vec (vec-scale (/ 1.0 dot) left-vec)))))
+
+(define (compute-nd-directional-derivatives sys fp right-vec left-vec h)
+  (doc 'type '(-> ODE Vec Vec Vec Number (List Number Number)))
+  (doc 'description "Compute 2nd and 3rd directional derivatives along center manifold")
+  (doc 'param 'right-vec "right critical eigenvector (v where Jv=0)")
+  (doc 'param 'left-vec "left critical eigenvector (w where wᵀJ=0), normalized so wᵀv=1")
+  (doc 'returns "(d²(wᵀf)/dξ²  d³(wᵀf)/dξ³) where ξ parameterizes center manifold")
+  ;; Define the projected function g(ξ) = wᵀf(x* + ξv)
+  (let* ([g (lambda (xi)
+              (let* ([x (vec-add fp (vec-scale xi right-vec))]
+                     [fx (eval-vector-field sys 0 x)])
+                    (vec-dot left-vec fx)))]
+         ;; Second derivative: g''(0) = (g(h) - 2g(0) + g(-h)) / h²
+         [g0 (g 0)]
+         [gpp (/ (+ (g h) (g (- h)) (* -2 g0)) (* h h))]
+         ;; Third derivative: g'''(0) = (g(2h) - 2g(h) + 2g(-h) - g(-2h)) / (2h³)
+         [gppp (/ (+ (g (* 2 h))
+                     (* -2 (g h))
+                     (* 2 (g (- h)))
+                     (- (g (* -2 h))))
+                  (* 2 h h h))])
+        (list gpp gppp)))
+
+(define (classify-codim1-bifurcation-nd psys param fp h)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Number Symbol))
+  (doc 'description "Classify a codimension-1 bifurcation for n-dimensional systems")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'param "parameter value at the bifurcation")
+  (doc 'param 'fp "fixed point (equilibrium) at bifurcation")
+  (doc 'param 'h "step size for numerical differentiation")
+  (doc 'returns "'pitchfork, 'transcritical, 'saddle-node, or 'unknown")
+  (doc 'note "Uses center manifold reduction via SVD to handle arbitrary dimensions")
+  (let* ([sys (instantiate-at psys param)]
+         [n (ode-dimension sys)])
+        (cond
+         ;; 1D case: use existing fast path
+         [(= n 1)
+          (classify-codim1-bifurcation sys fp h)]
+         ;; n > 1: use center manifold reduction
+         [else
+          (let* ([jac (compute-jacobian sys fp *continuation-step-size*)]
+                 [eigenpair (compute-critical-eigenvectors-svd jac)])
+                (if (not eigenpair)
+                    'unknown  ; Not at a bifurcation (no zero eigenvalue)
+                    (let* ([right-vec (car eigenpair)]
+                           [left-vec (cadr eigenpair)]
+                           [normalized (normalize-eigenvector-pair right-vec left-vec)]
+                           [norm-right (car normalized)]
+                           [norm-left (cadr normalized)]
+                           [derivs (compute-nd-directional-derivatives sys fp norm-right norm-left h)]
+                           [gpp (car derivs)]
+                           [gppp (cadr derivs)])
+                          (cond
+                           ;; Pitchfork: g'' ≈ 0, g''' ≠ 0
+                           [(and (< (abs gpp) *normal-form-tolerance*)
+                                 (> (abs gppp) *normal-form-tolerance*))
+                            'pitchfork]
+                           ;; Transcritical: g'' ≠ 0
+                           [(> (abs gpp) *normal-form-tolerance*)
+                            'transcritical]
+                           ;; Saddle-node (fold): both derivatives small suggests simple fold
+                           [(and (< (abs gpp) *normal-form-tolerance*)
+                                 (< (abs gppp) *normal-form-tolerance*))
+                            'saddle-node]
+                           [else 'unknown]))))])))
+
+;;; ============================================================
 ;;; Section: Bifurcation Diagrams
 ;;; ============================================================
 
@@ -1502,13 +1610,15 @@ newly-created branches by perturbing along the critical eigenvector.")
 (define (find-min-singular-value-index sigma n)
   (doc 'type '(-> Matrix Nat Nat))
   (doc 'description "Find index of smallest diagonal element in Σ matrix")
-  (let loop ([i 0] [min-idx 0] [min-val (abs (matrix-ref sigma 0 0))])
-       (if (= i n)
-           min-idx
-           (let ([val (abs (matrix-ref sigma i i))])
-                (if (< val min-val)
-                    (loop (+ i 1) i val)
-                    (loop (+ i 1) min-idx min-val))))))
+  (if (= n 0)
+      0  ; Degenerate case: 0-dim system returns 0
+      (let loop ([i 0] [min-idx 0] [min-val (abs (matrix-ref sigma 0 0))])
+           (if (= i n)
+               min-idx
+               (let ([val (abs (matrix-ref sigma i i))])
+                    (if (< val min-val)
+                        (loop (+ i 1) i val)
+                        (loop (+ i 1) min-idx min-val)))))))
 
 (define (switch-branch psys continuation-data bifurcation-index direction)
   (doc 'export #t)
