@@ -1,24 +1,10 @@
+(load "core/testing/test-framework.ss")
 (load "boundary/lsp/capabilities.ss")
 
 (doc 'module 'lsp/test-capabilities)
 (doc 'description "Tests for LSP Capabilities")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-
-(define tests-passed 0)
-(define tests-failed 0)
-
-(define (test name expected actual)
-  (if (equal? expected actual)
-      (begin
-       (set! tests-passed (+ tests-passed 1))
-       (display "  ✓ ") (display name) (newline))
-      (begin
-       (set! tests-failed (+ tests-failed 1))
-       (display "  ✗ ") (display name)
-       (display " — expected ") (write expected)
-       (display ", got ") (write actual)
-       (newline))))
 
 (display "Testing capabilities.ss\n")
 (display "====\n\n")
@@ -27,36 +13,36 @@
 ;;; Find References Tests
 ;;; ====
 
-(display "Find References:\n")
-
 ;; Set up a test document
 (doc-open! "file:///test-refs.ss" 1 "(define foo 42)\n(display foo)\n(+ foo 1)")
-
-;; Test symbol position finding
 (define test-content "(define foo 42)\n(display foo)\n(+ foo 1)")
-(define positions (find-symbol-positions test-content "foo"))
-(test "find-symbol-positions count" 3 (length positions))
-(test "find-symbol-positions first" 8 (car positions))  ; "foo" in define
 
-;; Test complete-symbol-match?
-(test "complete-symbol-match? true" #t (complete-symbol-match? "foo bar" 0 3))
-(test "complete-symbol-match? false start" #f (complete-symbol-match? "afoo bar" 1 3))
-(test "complete-symbol-match? false end" #f (complete-symbol-match? "foob bar" 0 3))
+(test-group find-references
+  (define-test find-symbol-positions-count
+    (let ([positions (find-symbol-positions test-content "foo")])
+      (assert-equal 3 (length positions))))
 
-;; Test find-symbol-positions excludes comments
-(test "find-symbol-positions excludes comment"
-      '(0)  ; Only first "foo", not the one in comment
-      (find-symbol-positions "foo ; foo in comment" "foo"))
+  (define-test find-symbol-positions-first
+    (let ([positions (find-symbol-positions test-content "foo")])
+      (assert-equal 8 (car positions))))
 
-;; Test find-symbol-positions excludes strings
-(test "find-symbol-positions excludes string"
-      '(0)  ; Only first "foo", not the one in string
-      (find-symbol-positions "foo \"contains foo\"" "foo"))
+  (define-test complete-symbol-match-true
+    (assert-true (complete-symbol-match? "foo bar" 0 3)))
 
-;; Test find-symbol-positions with mixed content
-(test "find-symbol-positions mixed"
-      '(0 24)  ; First and last "bar", not comment or string
-      (find-symbol-positions "bar ; bar comment\n\"bar\" bar" "bar"))
+  (define-test complete-symbol-match-false-start
+    (assert-false (complete-symbol-match? "afoo bar" 1 3)))
+
+  (define-test complete-symbol-match-false-end
+    (assert-false (complete-symbol-match? "foob bar" 0 3)))
+
+  (define-test find-symbol-positions-excludes-comment
+    (assert-equal '(0) (find-symbol-positions "foo ; foo in comment" "foo")))
+
+  (define-test find-symbol-positions-excludes-string
+    (assert-equal '(0) (find-symbol-positions "foo \"contains foo\"" "foo")))
+
+  (define-test find-symbol-positions-mixed
+    (assert-equal '(0 24) (find-symbol-positions "bar ; bar comment\n\"bar\" bar" "bar"))))
 
 ;; Clean up
 (doc-close! "file:///test-refs.ss")
@@ -65,22 +51,26 @@
 ;;; Workspace Symbol Tests
 ;;; ====
 
-(display "\nWorkspace Symbol:\n")
-
 ;; Set up test documents
 (doc-open! "file:///ws1.ss" 1 "(define alpha 1)\n(define beta 2)")
 (doc-open! "file:///ws2.ss" 1 "(define alpha-two 3)")
 
-;; Test workspace symbol search
-(let ([results (compute-workspace-symbols "alpha")])
-     (test "workspace-symbols finds matches" #t (json-array? results))
-     (test "workspace-symbols count" 2 (length (cdr results))))  ; 2 matches
+(test-group workspace-symbols
+  (define-test workspace-symbols-finds-matches
+    (let ([results (compute-workspace-symbols "alpha")])
+      (assert-true (json-array? results))))
 
-(let ([results (compute-workspace-symbols "beta")])
-     (test "workspace-symbols beta count" 1 (length (cdr results))))
+  (define-test workspace-symbols-count
+    (let ([results (compute-workspace-symbols "alpha")])
+      (assert-equal 2 (length (cdr results)))))
 
-(let ([results (compute-workspace-symbols "")])
-     (test "workspace-symbols empty query" 3 (length (cdr results))))  ; all 3 definitions
+  (define-test workspace-symbols-beta-count
+    (let ([results (compute-workspace-symbols "beta")])
+      (assert-equal 1 (length (cdr results)))))
+
+  (define-test workspace-symbols-empty-query
+    (let ([results (compute-workspace-symbols "")])
+      (assert-equal 3 (length (cdr results))))))
 
 ;; Clean up
 (doc-close! "file:///ws1.ss")
@@ -90,112 +80,146 @@
 ;;; Case-Insensitive Search Tests
 ;;; ====
 
-(display "\nCase-Insensitive Search:\n")
+(test-group case-insensitive-search
+  (define-test string-contains-ci-match
+    (assert-true (string-contains-ci? "HelloWorld" "world")))
 
-(test "string-contains-ci? match" #t (string-contains-ci? "HelloWorld" "world"))
-(test "string-contains-ci? no match" #f (string-contains-ci? "hello" "xyz"))
-(test "string-downcase" "hello" (string-downcase "HeLLo"))
+  (define-test string-contains-ci-no-match
+    (assert-false (string-contains-ci? "hello" "xyz")))
+
+  (define-test string-downcase
+    (assert-equal "hello" (string-downcase "HeLLo"))))
 
 ;;; ====
 ;;; Symbol Kind Tests
 ;;; ====
 
-(display "\nSymbol Kind:\n")
+(test-group symbol-kind
+  (define-test symbol-kind-define
+    (assert-equal 12 (symbol-kind->lsp-kind 'define)))
 
-(test "symbol-kind->lsp-kind define" 12 (symbol-kind->lsp-kind 'define))
-(test "symbol-kind->lsp-kind syntax" 14 (symbol-kind->lsp-kind 'syntax))
-(test "symbol-kind->lsp-kind variable" 13 (symbol-kind->lsp-kind 'variable))
+  (define-test symbol-kind-syntax
+    (assert-equal 14 (symbol-kind->lsp-kind 'syntax)))
+
+  (define-test symbol-kind-variable
+    (assert-equal 13 (symbol-kind->lsp-kind 'variable))))
 
 ;;; ====
-;;; Formatting Tests (if available)
+;;; Formatting Tests
 ;;; ====
 
-(display "\nFormatting:\n")
+(test-group formatting
+  (define-test read-all-sexps-count
+    (if *pretty-available*
+        (let ([exprs (read-all-sexps-from-string "(+ 1 2) (- 3 4)")])
+          (assert-equal 2 (length exprs)))
+        (assert-true #t)))
 
-(if *pretty-available*
-    (begin
-     ;; Test read-all-sexps-from-string (renamed to avoid conflict with docs.ss)
-     (let ([exprs (read-all-sexps-from-string "(+ 1 2) (- 3 4)")])
-          (test "read-all-sexps count" 2 (length exprs))
-          (test "read-all-sexps first" '(+ 1 2) (car exprs)))
-     
-     ;; Test format-scheme-code
-     (let ([formatted (format-scheme-code "(define x 1)" 2)])
-          (test "format-scheme-code works" #t (string? formatted)))
-     
-     ;; Test end-of-document
-     (doc-open! "file:///fmt.ss" 1 "line1\nline2")
-     (let ([end-pos (end-of-document (doc-get "file:///fmt.ss"))])
-          (test "end-of-document line" 1 (json-get end-pos "line"))
-          (test "end-of-document char" 5 (json-get end-pos "character")))
-     (doc-close! "file:///fmt.ss"))
-    (begin
-     (display "  (skipping - pretty printer not available)\n")))
+  (define-test read-all-sexps-first
+    (if *pretty-available*
+        (let ([exprs (read-all-sexps-from-string "(+ 1 2) (- 3 4)")])
+          (assert-equal '(+ 1 2) (car exprs)))
+        (assert-true #t)))
+
+  (define-test format-scheme-code-works
+    (if *pretty-available*
+        (let ([formatted (format-scheme-code "(define x 1)" 2)])
+          (assert-true (string? formatted)))
+        (assert-true #t)))
+
+  (define-test end-of-document-line
+    (if *pretty-available*
+        (begin
+          (doc-open! "file:///fmt.ss" 1 "line1\nline2")
+          (let ([end-pos (end-of-document (doc-get "file:///fmt.ss"))])
+            (doc-close! "file:///fmt.ss")
+            (assert-equal 1 (json-get end-pos "line"))))
+        (assert-true #t)))
+
+  (define-test end-of-document-char
+    (if *pretty-available*
+        (begin
+          (doc-open! "file:///fmt2.ss" 1 "line1\nline2")
+          (let ([end-pos (end-of-document (doc-get "file:///fmt2.ss"))])
+            (doc-close! "file:///fmt2.ss")
+            (assert-equal 5 (json-get end-pos "character"))))
+        (assert-true #t))))
 
 ;;; ====
 ;;; Rename Tests
 ;;; ====
 
-(display "\nRename:\n")
-
 ;; Set up test documents for rename
 (doc-open! "file:///rename1.ss" 1 "(define foo 42)\n(+ foo 1)")
 (doc-open! "file:///rename2.ss" 1 "(display foo)")
 
-;; Test compute-rename-edits-in-doc
-(let ([edits (compute-rename-edits-in-doc "file:///rename1.ss" "foo" "bar")])
-     (test "rename-edits-in-doc count" 2 (length edits))
-     (test "rename-edits-in-doc is text-edit" #t
-           (if (and (json-object? (car edits))
-                    (json-get (car edits) "newText"))
-               #t #f))
-     (test "rename-edits-in-doc newText" "bar" (json-get (car edits) "newText")))
+(test-group rename
+  (define-test rename-edits-in-doc-count
+    (let ([edits (compute-rename-edits-in-doc "file:///rename1.ss" "foo" "bar")])
+      (assert-equal 2 (length edits))))
 
-;; Test compute-rename-edits across documents
-(let ([edits-by-uri (compute-rename-edits "foo" "bar")])
-     (test "rename-edits uri count" 2 (length edits-by-uri)))
+  (define-test rename-edits-in-doc-is-text-edit
+    (let ([edits (compute-rename-edits-in-doc "file:///rename1.ss" "foo" "bar")])
+      (assert-true (if (and (json-object? (car edits))
+                            (json-get (car edits) "newText"))
+                       #t #f))))
 
-;; Test full compute-rename
-(let* ([doc (doc-get "file:///rename1.ss")]
-       [pos (make-position 0 8)]  ; Position of "foo" in define
-       [result (compute-rename doc pos "bar")])
-      (test "compute-rename returns object" #t (json-object? result))
-      (test "compute-rename has changes" #t (if (json-get result "changes") #t #f)))
+  (define-test rename-edits-in-doc-newText
+    (let ([edits (compute-rename-edits-in-doc "file:///rename1.ss" "foo" "bar")])
+      (assert-equal "bar" (json-get (car edits) "newText"))))
+
+  (define-test rename-edits-uri-count
+    (let ([edits-by-uri (compute-rename-edits "foo" "bar")])
+      (assert-equal 2 (length edits-by-uri))))
+
+  (define-test compute-rename-returns-object
+    (let* ([doc (doc-get "file:///rename1.ss")]
+           [pos (make-position 0 8)]
+           [result (compute-rename doc pos "bar")])
+      (assert-true (json-object? result))))
+
+  (define-test compute-rename-has-changes
+    (let* ([doc (doc-get "file:///rename1.ss")]
+           [pos (make-position 0 8)]
+           [result (compute-rename doc pos "bar")])
+      (assert-true (if (json-get result "changes") #t #f)))))
 
 ;; Clean up
 (doc-close! "file:///rename1.ss")
 (doc-close! "file:///rename2.ss")
 
-(display "\nScope-Aware Rename:\n")
+;;; ====
+;;; Scope-Aware Rename Tests
+;;; ====
 
-;; Test that local bindings are NOT renamed globally
-;; This tests the critical fix for fold-zxqb
 (doc-open! "file:///scope1.ss" 1
            "(define foo 1)\n(let ((foo 2)) foo)\nfoo")
 
-;; Test symbol-binding-type detection
-(let* ([doc (doc-get "file:///scope1.ss")]
-       [global-pos (make-position 0 8)]   ; "foo" in (define foo 1)
-       [let-bind-pos (make-position 1 7)] ; "foo" in (let ((foo ...
-       [let-use-pos (make-position 1 17)] ; "foo" in body of let
-       [outer-use-pos (make-position 2 0)]) ; "foo" at end
-      ;; Test binding type detection
-      (test "binding-type global def" 'global
-            (symbol-binding-type doc (lsp-position->offset doc global-pos)))
-      ;; The let-bound "foo" should be local
-      (test "binding-type let-def" 'local-def
-            (symbol-binding-type doc (lsp-position->offset doc let-bind-pos))))
+(test-group scope-aware-rename
+  (define-test binding-type-global-def
+    (let* ([doc (doc-get "file:///scope1.ss")]
+           [global-pos (make-position 0 8)])
+      (assert-equal 'global
+                    (symbol-binding-type doc (lsp-position->offset doc global-pos)))))
 
-;; Test that filter-shadowed-positions works
-(let* ([doc (doc-get "file:///scope1.ss")]
-       [content (document-content doc)]
-       [all-foo-positions (find-symbol-positions content "foo")]
-       [filtered (filter-shadowed-positions content "foo" all-foo-positions)])
-      ;; Should have 4 total "foo" positions
-      (test "scope: total foo count" 4 (length all-foo-positions))
-      ;; Filter should remove the shadowed ones (inside let body)
-      ;; Actually the current implementation may vary - let's just check it returns some
-      (test "scope: filtered has positions" #t (> (length filtered) 0)))
+  (define-test binding-type-let-def
+    (let* ([doc (doc-get "file:///scope1.ss")]
+           [let-bind-pos (make-position 1 7)])
+      (assert-equal 'local-def
+                    (symbol-binding-type doc (lsp-position->offset doc let-bind-pos)))))
+
+  (define-test scope-total-foo-count
+    (let* ([doc (doc-get "file:///scope1.ss")]
+           [content (document-content doc)]
+           [all-foo-positions (find-symbol-positions content "foo")])
+      (assert-equal 4 (length all-foo-positions))))
+
+  (define-test scope-filtered-has-positions
+    (let* ([doc (doc-get "file:///scope1.ss")]
+           [content (document-content doc)]
+           [all-foo-positions (find-symbol-positions content "foo")]
+           [filtered (filter-shadowed-positions content "foo" all-foo-positions)])
+      (assert-true (> (length filtered) 0)))))
 
 (doc-close! "file:///scope1.ss")
 
@@ -203,145 +227,203 @@
 ;;; Snippet Completions Tests
 ;;; ====
 
-(display "\nSnippet Completions:\n")
+(test-group snippet-completions
+  (define-test snippet-completions-finds-matches
+    (let ([snippets (snippet-completions "def")])
+      (assert-true (> (length snippets) 0))))
 
-(let ([snippets (snippet-completions "def")])
-     (test "snippet-completions finds matches" #t (> (length snippets) 0))
-     (let ([item (car snippets)])
-          (test "snippet has insertTextFormat" 2 (json-get item "insertTextFormat"))
-          (test "snippet has insertText" #t (if (json-get item "insertText") #t #f))))
+  (define-test snippet-has-insertTextFormat
+    (let* ([snippets (snippet-completions "def")]
+           [item (car snippets)])
+      (assert-equal 2 (json-get item "insertTextFormat"))))
 
-(let ([snippets (snippet-completions "")])
-     (test "empty prefix returns all snippets" #t (>= (length snippets) 10)))
+  (define-test snippet-has-insertText
+    (let* ([snippets (snippet-completions "def")]
+           [item (car snippets)])
+      (assert-true (if (json-get item "insertText") #t #f))))
+
+  (define-test empty-prefix-returns-all-snippets
+    (let ([snippets (snippet-completions "")])
+      (assert-true (>= (length snippets) 10)))))
 
 ;;; ====
 ;;; Code Action Tests
 ;;; ====
 
-(display "\nCode Actions:\n")
+(test-group code-actions
+  (define-test string-contains-true
+    (assert-true (string-contains? "hello world" "world")))
 
-;; Test string-contains?
-(test "string-contains? true" #t (string-contains? "hello world" "world"))
-(test "string-contains? false" #f (string-contains? "hello world" "xyz"))
+  (define-test string-contains-false
+    (assert-false (string-contains? "hello world" "xyz")))
 
-;; Test extract-undefined-name
-(test "extract-undefined-name" "foo" (extract-undefined-name "undefined variable: foo"))
-(test "extract-undefined-name none" #f (extract-undefined-name "some other error"))
+  (define-test extract-undefined-name
+    (assert-equal "foo" (extract-undefined-name "undefined variable: foo")))
 
-;; Test code action generation for diagnostics
-(doc-open! "file:///action-test.ss" 1 "(define x 1)")
-(let* ([doc (doc-get "file:///action-test.ss")]
-       [diag (json-obj "message" "undefined variable: bar"
-                       "range" (make-range (make-position 0 0) (make-position 0 5)))]
-       [context (json-obj "diagnostics" (json-arr diag))]
-       [actions (compute-code-actions doc "file:///action-test.ss"
-                                      (make-range (make-position 0 0) (make-position 0 5))
-                                      context)])
-      (test "code-actions returns array" #t (json-array? actions))
-      (test "code-actions for undefined var" #t (> (length (cdr actions)) 0)))
+  (define-test extract-undefined-name-none
+    (assert-equal #f (extract-undefined-name "some other error")))
 
-(doc-close! "file:///action-test.ss")
+  (define-test code-actions-returns-array
+    (begin
+      (doc-open! "file:///action-test.ss" 1 "(define x 1)")
+      (let* ([doc (doc-get "file:///action-test.ss")]
+             [diag (json-obj "message" "undefined variable: bar"
+                             "range" (make-range (make-position 0 0) (make-position 0 5)))]
+             [context (json-obj "diagnostics" (json-arr diag))]
+             [actions (compute-code-actions doc "file:///action-test.ss"
+                                            (make-range (make-position 0 0) (make-position 0 5))
+                                            context)])
+        (doc-close! "file:///action-test.ss")
+        (assert-true (json-array? actions)))))
+
+  (define-test code-actions-for-undefined-var
+    (begin
+      (doc-open! "file:///action-test2.ss" 1 "(define x 1)")
+      (let* ([doc (doc-get "file:///action-test2.ss")]
+             [diag (json-obj "message" "undefined variable: bar"
+                             "range" (make-range (make-position 0 0) (make-position 0 5)))]
+             [context (json-obj "diagnostics" (json-arr diag))]
+             [actions (compute-code-actions doc "file:///action-test2.ss"
+                                            (make-range (make-position 0 0) (make-position 0 5))
+                                            context)])
+        (doc-close! "file:///action-test2.ss")
+        (assert-true (> (length (cdr actions)) 0))))))
 
 ;;; ====
 ;;; Semantic Tokens Tests
 ;;; ====
 
-(display "\nSemantic Tokens:\n")
+(test-group semantic-tokens
+  (define-test classify-symbol-keyword
+    (assert-equal *token-keyword* (car (classify-symbol "define"))))
 
-;; Test classify-symbol
-(test "classify-symbol keyword" *token-keyword* (car (classify-symbol "define")))
-(test "classify-symbol operator" *token-operator* (car (classify-symbol "+")))
-(test "classify-symbol operator null?" *token-operator* (car (classify-symbol "null?")))  ; In operators list
-(test "classify-symbol keyword set!" *token-keyword* (car (classify-symbol "set!")))      ; In keywords list
-(test "classify-symbol predicate" *token-function* (car (classify-symbol "my-pred?")))    ; Ends with ?
-(test "classify-symbol mutator" *token-function* (car (classify-symbol "mutate!")))       ; Ends with !
-(test "classify-symbol constant" *mod-readonly* (cdr (classify-symbol "*foo*")))
+  (define-test classify-symbol-operator
+    (assert-equal *token-operator* (car (classify-symbol "+"))))
 
-;; Test tokenize-scheme
-(let* ([tokens (tokenize-scheme "(define x 42) ; comment")]
-       [count (length tokens)])
-      (test "tokenize-scheme count" #t (> count 3))
-      ;; Check that we have keyword, variable, number, comment
-      (test "tokenize-scheme has tokens" #t (> count 0)))
+  (define-test classify-symbol-operator-null
+    (assert-equal *token-operator* (car (classify-symbol "null?"))))
 
-;; Test encode-tokens
-(let* ([tokens '((0 0 6 0 0) (0 7 1 2 0) (0 9 2 4 0))]  ; keyword, var, number
-       [encoded (encode-tokens tokens)])
-      (test "encode-tokens length" 15 (length encoded))  ; 3 tokens * 5 ints
-      (test "encode-tokens first deltaLine" 0 (car encoded)))
+  (define-test classify-symbol-keyword-set
+    (assert-equal *token-keyword* (car (classify-symbol "set!"))))
 
-;; Test full semantic tokens
-(doc-open! "file:///semantic-test.ss" 1 "(define foo 42)")
-(let* ([doc (doc-get "file:///semantic-test.ss")]
-       [result (compute-semantic-tokens doc)])
-      (test "semantic-tokens has data" #t (if (json-get result "data") #t #f)))
-(doc-close! "file:///semantic-test.ss")
+  (define-test classify-symbol-predicate
+    (assert-equal *token-function* (car (classify-symbol "my-pred?"))))
+
+  (define-test classify-symbol-mutator
+    (assert-equal *token-function* (car (classify-symbol "mutate!"))))
+
+  (define-test classify-symbol-constant
+    (assert-equal *mod-readonly* (cdr (classify-symbol "*foo*"))))
+
+  (define-test tokenize-scheme-count
+    (let* ([tokens (tokenize-scheme "(define x 42) ; comment")]
+           [count (length tokens)])
+      (assert-true (> count 3))))
+
+  (define-test tokenize-scheme-has-tokens
+    (let* ([tokens (tokenize-scheme "(define x 42) ; comment")]
+           [count (length tokens)])
+      (assert-true (> count 0))))
+
+  (define-test encode-tokens-length
+    (let* ([tokens '((0 0 6 0 0) (0 7 1 2 0) (0 9 2 4 0))]
+           [encoded (encode-tokens tokens)])
+      (assert-equal 15 (length encoded))))
+
+  (define-test encode-tokens-first-deltaLine
+    (let* ([tokens '((0 0 6 0 0) (0 7 1 2 0) (0 9 2 4 0))]
+           [encoded (encode-tokens tokens)])
+      (assert-equal 0 (car encoded))))
+
+  (define-test semantic-tokens-has-data
+    (begin
+      (doc-open! "file:///semantic-test.ss" 1 "(define foo 42)")
+      (let* ([doc (doc-get "file:///semantic-test.ss")]
+             [result (compute-semantic-tokens doc)])
+        (doc-close! "file:///semantic-test.ss")
+        (assert-true (if (json-get result "data") #t #f))))))
 
 ;;; ====
 ;;; Incremental Document Sync Tests
 ;;; ====
 
-(display "\nIncremental Sync:\n")
+(test-group incremental-sync
+  (define-test full-replacement
+    (let ([result (apply-single-change "hello world" (json-obj "text" "goodbye"))])
+      (assert-equal "goodbye" result)))
 
-;; Test apply-single-change with full replacement
-(let ([result (apply-single-change "hello world" (json-obj "text" "goodbye"))])
-     (test "full replacement" "goodbye" result))
+  (define-test range-replacement
+    (let ([result (apply-single-change "hello world"
+                                       (json-obj "range" (json-obj "start" (json-obj "line" 0 "character" 0)
+                                                                   "end" (json-obj "line" 0 "character" 5))
+                                                 "text" "hi"))])
+      (assert-equal "hi world" result)))
 
-;; Test apply-single-change with range
-(let ([change (json-obj "range" (json-obj "start" (json-obj "line" 0 "character" 0)
-                                          "end" (json-obj "line" 0 "character" 5))
-                        "text" "hi")]
-      [result (apply-single-change "hello world" (json-obj "range" (json-obj "start" (json-obj "line" 0 "character" 0)
-                                                                             "end" (json-obj "line" 0 "character" 5))
-                                                           "text" "hi"))])
-     (test "range replacement" "hi world" result))
+  (define-test string-split-newlines-count
+    (let ([lines (string-split-newlines "a\nb\nc")])
+      (assert-equal 3 (length lines))))
 
-;; Test string-split-newlines
-(let ([lines (string-split-newlines "a\nb\nc")])
-     (test "string-split-newlines count" 3 (length lines))
-     (test "string-split-newlines first" "a" (car lines)))
+  (define-test string-split-newlines-first
+    (let ([lines (string-split-newlines "a\nb\nc")])
+      (assert-equal "a" (car lines))))
 
-;; Test lines-offset
-(let ([lines '("abc" "defgh" "ij")])
-     (test "lines-offset 0" 0 (lines-offset lines 0))
-     (test "lines-offset 1" 4 (lines-offset lines 1))   ; "abc" + \n
-     (test "lines-offset 2" 10 (lines-offset lines 2))) ; "abc\n" + "defgh\n"
+  (define-test lines-offset-0
+    (let ([lines '("abc" "defgh" "ij")])
+      (assert-equal 0 (lines-offset lines 0))))
+
+  (define-test lines-offset-1
+    (let ([lines '("abc" "defgh" "ij")])
+      (assert-equal 4 (lines-offset lines 1))))
+
+  (define-test lines-offset-2
+    (let ([lines '("abc" "defgh" "ij")])
+      (assert-equal 10 (lines-offset lines 2)))))
 
 ;;; ====
 ;;; Hover Tests
 ;;; ====
 
-(display "\nHover:\n")
-
 ;; Set up test document
 (doc-open! "file:///hover-test.ss" 1 "(define my-func 42)\n(+ my-func 1)")
 
-;; Test primitive-type lookup (uses Unicode arrows and Greek letters)
-(test "primitive-type +" "(Int → Int → Int)" (primitive-type "+"))
-(test "primitive-type car" "((Pair α β) → α)" (primitive-type "car"))
-(test "primitive-type cons" "(α → β → (Pair α β))" (primitive-type "cons"))
-(test "primitive-type unknown" #f (primitive-type "unknown-prim"))
+(test-group hover
+  (define-test primitive-type-plus
+    (assert-equal "(Int → Int → Int)" (primitive-type "+")))
 
-;; Test format-hover-text with type info
-(let ([hover (format-hover-text "+" #f "(Int -> Int -> Int)" #f)])
-     (test "format-hover-text with type" #t (string? hover))
-     (test "format-hover-text contains type" #t (string-contains? hover "Int")))
+  (define-test primitive-type-car
+    (assert-equal "((Pair α β) → α)" (primitive-type "car")))
 
-;; Test format-hover-text with type and doc description
-(let ([hover (format-hover-text "add" #f "(Int -> Int -> Int)" "Adds two numbers")])
-     (test "format-hover-text with type+desc" #t (string? hover))
-     (test "format-hover-text contains desc" #t (string-contains? hover "Adds two numbers")))
+  (define-test primitive-type-cons
+    (assert-equal "(α → β → (Pair α β))" (primitive-type "cons")))
 
-;; Test format-hover-text with no info
-(let ([hover (format-hover-text "unknown-symbol" #f #f #f)])
-     (test "format-hover-text unknown" #f hover))
+  (define-test primitive-type-unknown
+    (assert-equal #f (primitive-type "unknown-prim")))
 
-;; Test compute-hover with primitive
-(let* ([doc (doc-get "file:///hover-test.ss")]
-       [pos (make-position 1 1)]  ; Position of +
-       [result (compute-hover doc pos)])
-      ;; Result should be a hover object or null
-      (test "compute-hover returns value" #t (or (json-object? result) (eq? result 'null))))
+  (define-test format-hover-text-with-type
+    (let ([hover (format-hover-text "+" #f "(Int -> Int -> Int)" #f)])
+      (assert-true (string? hover))))
+
+  (define-test format-hover-text-contains-type
+    (let ([hover (format-hover-text "+" #f "(Int -> Int -> Int)" #f)])
+      (assert-true (string-contains? hover "Int"))))
+
+  (define-test format-hover-text-with-type-and-desc
+    (let ([hover (format-hover-text "add" #f "(Int -> Int -> Int)" "Adds two numbers")])
+      (assert-true (string? hover))))
+
+  (define-test format-hover-text-contains-desc
+    (let ([hover (format-hover-text "add" #f "(Int -> Int -> Int)" "Adds two numbers")])
+      (assert-true (string-contains? hover "Adds two numbers"))))
+
+  (define-test format-hover-text-unknown
+    (let ([hover (format-hover-text "unknown-symbol" #f #f #f)])
+      (assert-equal #f hover)))
+
+  (define-test compute-hover-returns-value
+    (let* ([doc (doc-get "file:///hover-test.ss")]
+           [pos (make-position 1 1)]
+           [result (compute-hover doc pos)])
+      (assert-true (or (json-object? result) (eq? result 'null))))))
 
 ;; Clean up
 (doc-close! "file:///hover-test.ss")
@@ -350,42 +432,56 @@
 ;;; Completion Tests
 ;;; ====
 
-(display "\nCompletion:\n")
-
 ;; Set up test document
 (doc-open! "file:///completion-test.ss" 1 "(def")
 
-;; Test keyword-completions
-(let ([completions (keyword-completions "def")])
-     (test "keyword-completions not empty" #t (> (length completions) 0))
-     ;; Should include "define"
-     (let ([labels (map (lambda (c) (json-get c "label")) completions)])
-          (test "keyword-completions has define" #t (and (member "define" labels) #t))))
+(test-group completion
+  (define-test keyword-completions-not-empty
+    (let ([completions (keyword-completions "def")])
+      (assert-true (> (length completions) 0))))
 
-(let ([completions (keyword-completions "")])
-     (test "keyword-completions empty prefix" #t (> (length completions) 10)))
+  (define-test keyword-completions-has-define
+    (let* ([completions (keyword-completions "def")]
+           [labels (map (lambda (c) (json-get c "label")) completions)])
+      (assert-true (if (member "define" labels) #t #f))))
 
-;; Test primitive-completions
-(let ([completions (primitive-completions "ca")])
-     (test "primitive-completions not empty" #t (> (length completions) 0))
-     (let ([labels (map (lambda (c) (json-get c "label")) completions)])
-          (test "primitive-completions has car" #t (and (member "car" labels) #t))))
+  (define-test keyword-completions-empty-prefix
+    (let ([completions (keyword-completions "")])
+      (assert-true (> (length completions) 10))))
 
-;; Test completion-prefix-at-offset
-(let ([prefix (completion-prefix-at-offset (doc-get "file:///completion-test.ss") 4)])
-     (test "completion-prefix-at-offset" "def" prefix))
+  (define-test primitive-completions-not-empty
+    (let ([completions (primitive-completions "ca")])
+      (assert-true (> (length completions) 0))))
 
-;; Test find-completion-start
-(test "find-completion-start at symbol end" 1 (find-completion-start "(abc" 4))
-(test "find-completion-start at paren" 0 (find-completion-start "(abc" 0))
-(test "find-completion-start mid-symbol" 0 (find-completion-start "foo" 2))
+  (define-test primitive-completions-has-car
+    (let* ([completions (primitive-completions "ca")]
+           [labels (map (lambda (c) (json-get c "label")) completions)])
+      (assert-true (if (member "car" labels) #t #f))))
 
-;; Test compute-completions
-(let* ([doc (doc-get "file:///completion-test.ss")]
-       [pos (make-position 0 4)]
-       [result (compute-completions doc pos)])
-      (test "compute-completions returns object" #t (json-object? result))
-      (test "compute-completions has items" #t (if (json-get result "items") #t #f)))
+  (define-test completion-prefix-at-offset
+    (let ([prefix (completion-prefix-at-offset (doc-get "file:///completion-test.ss") 4)])
+      (assert-equal "def" prefix)))
+
+  (define-test find-completion-start-at-symbol-end
+    (assert-equal 1 (find-completion-start "(abc" 4)))
+
+  (define-test find-completion-start-at-paren
+    (assert-equal 0 (find-completion-start "(abc" 0)))
+
+  (define-test find-completion-start-mid-symbol
+    (assert-equal 0 (find-completion-start "foo" 2)))
+
+  (define-test compute-completions-returns-object
+    (let* ([doc (doc-get "file:///completion-test.ss")]
+           [pos (make-position 0 4)]
+           [result (compute-completions doc pos)])
+      (assert-true (json-object? result))))
+
+  (define-test compute-completions-has-items
+    (let* ([doc (doc-get "file:///completion-test.ss")]
+           [pos (make-position 0 4)]
+           [result (compute-completions doc pos)])
+      (assert-true (if (json-get result "items") #t #f)))))
 
 ;; Clean up
 (doc-close! "file:///completion-test.ss")
@@ -394,22 +490,19 @@
 ;;; Go-to-Definition Tests
 ;;; ====
 
-(display "\nGo-to-Definition:\n")
-
 ;; Set up test document
 (doc-open! "file:///goto-test.ss" 1 "(define my-var 42)\n(+ my-var 1)")
 
-;; Test compute-definition (will return null if index not available)
-(let* ([doc (doc-get "file:///goto-test.ss")]
-       [pos (make-position 1 3)])  ; Position of "my-var" reference
-      ;; compute-definition returns null or location
-      (let ([result (compute-definition doc pos)])
-           (test "compute-definition returns value" #t
-                 (or (eq? result 'null) (json-object? result)))))
+(test-group go-to-definition
+  (define-test compute-definition-returns-value
+    (let* ([doc (doc-get "file:///goto-test.ss")]
+           [pos (make-position 1 3)]
+           [result (compute-definition doc pos)])
+      (assert-true (or (eq? result 'null) (json-object? result)))))
 
-;; Test lookup-symbol-info (depends on index availability)
-(let ([info (lookup-symbol-info "unknown-symbol")])
-     (test "lookup-symbol-info unknown" #f info))
+  (define-test lookup-symbol-info-unknown
+    (let ([info (lookup-symbol-info "unknown-symbol")])
+      (assert-equal #f info))))
 
 ;; Clean up
 (doc-close! "file:///goto-test.ss")
@@ -418,42 +511,69 @@
 ;;; Document Symbols Tests
 ;;; ====
 
-(display "\nDocument Symbols:\n")
-
 ;; Set up test document with multiple definitions
 (doc-open! "file:///symbols-test.ss" 1
            "(define foo 1)\n(define (bar x) (+ x 1))\n(define-syntax my-macro\n  (syntax-rules () [(_ x) x]))")
 
-;; Test extract-definitions
-(let ([defs (extract-definitions "(define foo 1)\n(define bar 2)\n(define-syntax baz)")])
-     (test "extract-definitions count" 3 (length defs))
-     (test "extract-definitions first name" "foo" (car (car defs)))
-     (test "extract-definitions second name" "bar" (car (cadr defs)))
-     (test "extract-definitions third name" "baz" (car (caddr defs))))
+(test-group document-symbols
+  (define-test extract-definitions-count
+    (let ([defs (extract-definitions "(define foo 1)\n(define bar 2)\n(define-syntax baz)")])
+      (assert-equal 3 (length defs))))
 
-;; Test definition-line?
-(test "definition-line? define" #t (definition-line? "(define foo 1)"))
-(test "definition-line? define-syntax" #t (definition-line? "(define-syntax bar)"))
-(test "definition-line? other" #f (definition-line? "(+ 1 2)"))
-(test "definition-line? indented" #t (definition-line? "  (define foo 1)"))
+  (define-test extract-definitions-first-name
+    (let ([defs (extract-definitions "(define foo 1)\n(define bar 2)\n(define-syntax baz)")])
+      (assert-equal "foo" (car (car defs)))))
 
-;; Test extract-definition-name
-(test "extract-definition-name var" "foo" (extract-definition-name "(define foo 1)"))
-(test "extract-definition-name fn" "bar" (extract-definition-name "(define (bar x) x)"))
-(test "extract-definition-name syntax" "baz" (extract-definition-name "(define-syntax baz)"))
+  (define-test extract-definitions-second-name
+    (let ([defs (extract-definitions "(define foo 1)\n(define bar 2)\n(define-syntax baz)")])
+      (assert-equal "bar" (car (cadr defs)))))
 
-;; Test compute-document-symbols
-(let* ([doc (doc-get "file:///symbols-test.ss")]
-       [symbols (compute-document-symbols doc)])
-      (test "compute-document-symbols is array" #t (json-array? symbols))
-      (test "compute-document-symbols count" 3 (length (cdr symbols))))
+  (define-test extract-definitions-third-name
+    (let ([defs (extract-definitions "(define foo 1)\n(define bar 2)\n(define-syntax baz)")])
+      (assert-equal "baz" (car (caddr defs)))))
 
-;; Test definition->document-symbol
-(let* ([doc (doc-get "file:///symbols-test.ss")]
-       [def '("test-name" define 5)]
-       [sym (definition->document-symbol doc def)])
-      (test "definition->document-symbol name" "test-name" (json-get sym "name"))
-      (test "definition->document-symbol kind" 12 (json-get sym "kind")))
+  (define-test definition-line-define
+    (assert-true (definition-line? "(define foo 1)")))
+
+  (define-test definition-line-define-syntax
+    (assert-true (definition-line? "(define-syntax bar)")))
+
+  (define-test definition-line-other
+    (assert-false (definition-line? "(+ 1 2)")))
+
+  (define-test definition-line-indented
+    (assert-true (definition-line? "  (define foo 1)")))
+
+  (define-test extract-definition-name-var
+    (assert-equal "foo" (extract-definition-name "(define foo 1)")))
+
+  (define-test extract-definition-name-fn
+    (assert-equal "bar" (extract-definition-name "(define (bar x) x)")))
+
+  (define-test extract-definition-name-syntax
+    (assert-equal "baz" (extract-definition-name "(define-syntax baz)")))
+
+  (define-test compute-document-symbols-is-array
+    (let* ([doc (doc-get "file:///symbols-test.ss")]
+           [symbols (compute-document-symbols doc)])
+      (assert-true (json-array? symbols))))
+
+  (define-test compute-document-symbols-count
+    (let* ([doc (doc-get "file:///symbols-test.ss")]
+           [symbols (compute-document-symbols doc)])
+      (assert-equal 3 (length (cdr symbols)))))
+
+  (define-test definition->document-symbol-name
+    (let* ([doc (doc-get "file:///symbols-test.ss")]
+           [def '("test-name" define 5)]
+           [sym (definition->document-symbol doc def)])
+      (assert-equal "test-name" (json-get sym "name"))))
+
+  (define-test definition->document-symbol-kind
+    (let* ([doc (doc-get "file:///symbols-test.ss")]
+           [def '("test-name" define 5)]
+           [sym (definition->document-symbol doc def)])
+      (assert-equal 12 (json-get sym "kind")))))
 
 ;; Clean up
 (doc-close! "file:///symbols-test.ss")
@@ -462,190 +582,239 @@
 ;;; Signature Help Tests
 ;;; ====
 
-(display "\nSignature Help:\n")
+(test-group signature-help
+  (define-test lookup-signature-map-found
+    (let ([sig (lookup-signature "map")])
+      (assert-true (if sig #t #f))))
 
-;; Test lookup-signature
-(let ([sig (lookup-signature "map")])
-     (test "lookup-signature map found" #t (if sig #t #f))
-     (test "lookup-signature map label" "(map f lst)" (cadr sig)))
+  (define-test lookup-signature-map-label
+    (let ([sig (lookup-signature "map")])
+      (assert-equal "(map f lst)" (cadr sig))))
 
-(let ([sig (lookup-signature "unknown-function")])
-     (test "lookup-signature unknown" #f sig))
+  (define-test lookup-signature-unknown
+    (let ([sig (lookup-signature "unknown-function")])
+      (assert-equal #f sig)))
 
-;; Test find-enclosing-call
-(doc-open! "file:///sig-test.ss" 1 "(map foo bar)")
-(let* ([doc (doc-get "file:///sig-test.ss")]
-       [call-info (find-enclosing-call doc 5)])  ; Position 5 is in "foo" (first argument)
-      (if call-info
-          (begin
-           (test "find-enclosing-call fn name" "map" (car call-info))
-           (test "find-enclosing-call param idx" 0 (cdr call-info)))  ; 0 = first argument (0-indexed)
-          (test "find-enclosing-call found" #t #f)))
+  (define-test find-enclosing-call-fn-name
+    (begin
+      (doc-open! "file:///sig-test.ss" 1 "(map foo bar)")
+      (let* ([doc (doc-get "file:///sig-test.ss")]
+             [call-info (find-enclosing-call doc 5)])
+        (doc-close! "file:///sig-test.ss")
+        (if call-info
+            (assert-equal "map" (car call-info))
+            (assert-true #f)))))
 
-;; Test extract-symbol-at
-(test "extract-symbol-at basic" "foo" (extract-symbol-at "  foo bar" 2))
-(test "extract-symbol-at whitespace" "bar" (extract-symbol-at "  bar" 0))
+  (define-test find-enclosing-call-param-idx
+    (begin
+      (doc-open! "file:///sig-test2.ss" 1 "(map foo bar)")
+      (let* ([doc (doc-get "file:///sig-test2.ss")]
+             [call-info (find-enclosing-call doc 5)])
+        (doc-close! "file:///sig-test2.ss")
+        (if call-info
+            (assert-equal 0 (cdr call-info))
+            (assert-true #f)))))
 
-;; Clean up
-(doc-close! "file:///sig-test.ss")
+  (define-test extract-symbol-at-basic
+    (assert-equal "foo" (extract-symbol-at "  foo bar" 2)))
+
+  (define-test extract-symbol-at-whitespace
+    (assert-equal "bar" (extract-symbol-at "  bar" 0))))
 
 ;;; ====
 ;;; String Utility Tests
 ;;; ====
 
-(display "\nString Utilities:\n")
+(test-group string-utilities
+  (define-test string-prefix-true
+    (assert-true (string-prefix? "define" "def")))
 
-;; Test string-prefix?
-(test "string-prefix? true" #t (string-prefix? "define" "def"))
-(test "string-prefix? false" #f (string-prefix? "define" "xyz"))
-(test "string-prefix? exact" #t (string-prefix? "foo" "foo"))
-(test "string-prefix? empty" #t (string-prefix? "anything" ""))
+  (define-test string-prefix-false
+    (assert-false (string-prefix? "define" "xyz")))
 
-;; Test string-suffix?
-(test "string-suffix? true" #t (string-suffix? "hello?" "?"))
-(test "string-suffix? false" #f (string-suffix? "hello" "?"))
-(test "string-suffix? exact" #t (string-suffix? "foo" "foo"))
+  (define-test string-prefix-exact
+    (assert-true (string-prefix? "foo" "foo")))
 
-;; Test symbol-char?
-(test "symbol-char? letter" #t (symbol-char? #\a))
-(test "symbol-char? digit" #t (symbol-char? #\5))
-(test "symbol-char? hyphen" #t (symbol-char? #\-))
-(test "symbol-char? question" #t (symbol-char? #\?))
-(test "symbol-char? bang" #t (symbol-char? #\!))
-(test "symbol-char? paren" #f (symbol-char? #\())
-(test "symbol-char? space" #f (symbol-char? #\ ))
+  (define-test string-prefix-empty
+    (assert-true (string-prefix? "anything" "")))
 
-;; Test string-trim-left
-(test "string-trim-left basic" "hello" (string-trim-left "  hello"))
-(test "string-trim-left no trim" "hello" (string-trim-left "hello"))
-(test "string-trim-left all spaces" "" (string-trim-left "   "))
+  (define-test string-suffix-true
+    (assert-true (string-suffix? "hello?" "?")))
+
+  (define-test string-suffix-false
+    (assert-false (string-suffix? "hello" "?")))
+
+  (define-test string-suffix-exact
+    (assert-true (string-suffix? "foo" "foo")))
+
+  (define-test symbol-char-letter
+    (assert-true (symbol-char? #\a)))
+
+  (define-test symbol-char-digit
+    (assert-true (symbol-char? #\5)))
+
+  (define-test symbol-char-hyphen
+    (assert-true (symbol-char? #\-)))
+
+  (define-test symbol-char-question
+    (assert-true (symbol-char? #\?)))
+
+  (define-test symbol-char-bang
+    (assert-true (symbol-char? #\!)))
+
+  (define-test symbol-char-paren
+    (assert-false (symbol-char? #\()))
+
+  (define-test symbol-char-space
+    (assert-false (symbol-char? #\ )))
+
+  (define-test string-trim-left-basic
+    (assert-equal "hello" (string-trim-left "  hello")))
+
+  (define-test string-trim-left-no-trim
+    (assert-equal "hello" (string-trim-left "hello")))
+
+  (define-test string-trim-left-all-spaces
+    (assert-equal "" (string-trim-left "   "))))
 
 ;;; ====
 ;;; Tokenizer Helpers Tests
 ;;; ====
 
-(display "\nTokenizer Helpers:\n")
+(test-group tokenizer-helpers
+  (define-test find-line-end-basic
+    (assert-equal 5 (find-line-end "hello\nworld" 0)))
 
-;; Test find-line-end
-(test "find-line-end basic" 5 (find-line-end "hello\nworld" 0))
-(test "find-line-end no newline" 5 (find-line-end "hello" 0))
+  (define-test find-line-end-no-newline
+    (assert-equal 5 (find-line-end "hello" 0)))
 
-;; Test find-string-end
-(test "find-string-end basic" 6 (find-string-end "hello\"rest" 0))
-(test "find-string-end with escape" 7 (find-string-end "he\\\"lo\"rest" 0))  ; Quote at pos 6, return 7
-(test "find-string-end unclosed" #f (find-string-end "hello" 0))
+  (define-test find-string-end-basic
+    (assert-equal 6 (find-string-end "hello\"rest" 0)))
 
-;; Test find-number-end
-(test "find-number-end int" 3 (find-number-end "123abc" 0))
-(test "find-number-end float" 5 (find-number-end "12.34abc" 0))
-(test "find-number-end negative" 4 (find-number-end "-123abc" 0))
+  (define-test find-string-end-with-escape
+    (assert-equal 7 (find-string-end "he\\\"lo\"rest" 0)))
+
+  (define-test find-string-end-unclosed
+    (assert-equal #f (find-string-end "hello" 0)))
+
+  (define-test find-number-end-int
+    (assert-equal 3 (find-number-end "123abc" 0)))
+
+  (define-test find-number-end-float
+    (assert-equal 5 (find-number-end "12.34abc" 0)))
+
+  (define-test find-number-end-negative
+    (assert-equal 4 (find-number-end "-123abc" 0))))
 
 ;;; ====
 ;;; Parameter Flattening Tests
 ;;; ====
 
-(display "\nParameter Flattening:\n")
+(test-group parameter-flattening
+  (define-test flatten-params-proper-list
+    (assert-equal '(a b c) (flatten-params '(a b c))))
 
-;; Test flatten-params: proper list
-(test "flatten-params proper list" '(a b c) (flatten-params '(a b c)))
+  (define-test flatten-params-dotted-tail
+    (assert-equal '(a b rest) (flatten-params '(a b . rest))))
 
-;; Test flatten-params: improper list (dotted tail)
-(test "flatten-params dotted tail" '(a b rest) (flatten-params '(a b . rest)))
+  (define-test flatten-params-single-symbol
+    (assert-equal '(args) (flatten-params 'args)))
 
-;; Test flatten-params: single symbol (variadic)
-(test "flatten-params single symbol" '(args) (flatten-params 'args))
+  (define-test flatten-params-empty
+    (assert-equal '() (flatten-params '())))
 
-;; Test flatten-params: empty
-(test "flatten-params empty" '() (flatten-params '()))
-
-;; Test flatten-params: single element proper list
-(test "flatten-params single element" '(x) (flatten-params '(x)))
+  (define-test flatten-params-single-element
+    (assert-equal '(x) (flatten-params '(x)))))
 
 ;;; ====
 ;;; Multi-line String/Comment Detection Tests
 ;;; ====
 
-(display "\nMulti-line String/Comment Detection:\n")
-
-;; Test inside-string? for single-line strings
-(test "inside-string? outside" #f (inside-string? "foo bar" 3))
-(test "inside-string? inside" #t (inside-string? "foo \"bar\" baz" 6))
-(test "inside-string? at quote" #f (inside-string? "foo \"bar\" baz" 4))  ; At opening quote
-
-;; Test inside-string? for MULTI-LINE strings (the bug case)
 (define multiline-str "\"line1\nline2\nline3\"")
-(test "inside-string? multiline line1" #t (inside-string? multiline-str 3))   ; Inside line1
-(test "inside-string? multiline line2" #t (inside-string? multiline-str 10))  ; Inside line2
-(test "inside-string? multiline line3" #t (inside-string? multiline-str 16))  ; Inside line3
-
-;; Test inside-string? with escaped quotes
-(test "inside-string? escaped quote" #t (inside-string? "\"foo\\\"bar\"" 6))  ; After escaped quote
-
-;; Test inside-comment? for simple comments
-(test "inside-comment? in comment" #t (inside-comment? "foo ; comment" 8))
-(test "inside-comment? before comment" #f (inside-comment? "foo ; comment" 2))
-
-;; Test inside-comment? with ; inside string (should NOT be comment)
-(test "inside-comment? semicolon in string" #f (inside-comment? "\"foo ; bar\"" 6))
-
-;; Test inside-comment? with ; inside MULTI-LINE string (the bug case)
 (define multiline-with-semi "\"line1\n; fake comment\nline3\"")
-(test "inside-comment? multi-line ; in string" #f
-      (inside-comment? multiline-with-semi 10))  ; At the ; which is inside string
-
-;; Test find-symbol-positions with multi-line string
 (define multiline-code "foo\n\"bar\nfoo\nbaz\"\nfoo")
-(test "find-symbol-positions multi-line string"
-      '(0 18)  ; First foo and last foo, not foo inside string
-      (find-symbol-positions multiline-code "foo"))
+
+(test-group multiline-string-comment-detection
+  (define-test inside-string-outside
+    (assert-false (inside-string? "foo bar" 3)))
+
+  (define-test inside-string-inside
+    (assert-true (inside-string? "foo \"bar\" baz" 6)))
+
+  (define-test inside-string-at-quote
+    (assert-false (inside-string? "foo \"bar\" baz" 4)))
+
+  (define-test inside-string-multiline-line1
+    (assert-true (inside-string? multiline-str 3)))
+
+  (define-test inside-string-multiline-line2
+    (assert-true (inside-string? multiline-str 10)))
+
+  (define-test inside-string-multiline-line3
+    (assert-true (inside-string? multiline-str 16)))
+
+  (define-test inside-string-escaped-quote
+    (assert-true (inside-string? "\"foo\\\"bar\"" 6)))
+
+  (define-test inside-comment-in-comment
+    (assert-true (inside-comment? "foo ; comment" 8)))
+
+  (define-test inside-comment-before-comment
+    (assert-false (inside-comment? "foo ; comment" 2)))
+
+  (define-test inside-comment-semicolon-in-string
+    (assert-false (inside-comment? "\"foo ; bar\"" 6)))
+
+  (define-test inside-comment-multiline-semicolon-in-string
+    (assert-false (inside-comment? multiline-with-semi 10)))
+
+  (define-test find-symbol-positions-multiline-string
+    (assert-equal '(0 18) (find-symbol-positions multiline-code "foo"))))
 
 ;;; ====
 ;;; Let Initializer Binding Tests
 ;;; ====
 
-(display "\nLet Initializer Bindings:\n")
-
-;; Test that symbols in let initializers can find outer bindings
 (define let-init-form '(define (test-fn outer-var)
                          (let ([x (+ outer-var 1)])
                            x)))
-(test "let initializer finds param"
-      '((outer-var . param))
-      (extract-local-bindings let-init-form 'outer-var))
 
-;; Test let* sequential scoping - earlier bindings visible to later initializers
 (define let*-form '(define (test-fn p)
                      (let* ([x (+ p 1)]
                             [y (* x 2)])
                        (+ x y))))
-(let ([bindings (extract-local-bindings let*-form 'x)])
-     (test "let* sequential scoping - x visible in y's initializer"
-           #t
-           (if (assq 'x bindings) #t #f)))
 
-;; Test let parallel binding - sibling bindings NOT visible
 (define let-form '(define (test-fn p)
                     (let ([x (+ p 1)]
-                          [y (+ x 2)])  ; x here should NOT see let-bound x
+                          [y (+ x 2)])
                       (+ x y))))
-(let ([bindings (extract-local-bindings let-form 'x)])
-     ;; For regular let, x in y's initializer should only find outer scope
-     (test "let parallel binding - x not visible to sibling"
-           #f
-           (if (assq 'x bindings) #t #f)))
 
-;; Test letrec - all bindings visible to all initializers
 (define letrec-form '(define (test-fn)
                        (letrec ([even? (lambda (n) (if (= n 0) #t (odd? (- n 1))))]
                                 [odd? (lambda (n) (if (= n 0) #f (even? (- n 1))))])
                          (even? 4))))
-(let ([bindings (extract-local-bindings letrec-form 'odd?)])
-     (test "letrec mutual recursion - odd? visible in even? init"
-           #t
-           (if (assq 'odd? bindings) #t #f)))
 
-;;; Summary
-(display "\n====\n")
-(printf "Passed: ~a, Failed: ~a\n" tests-passed tests-failed)
-(when (> tests-failed 0)
-      (exit 1))
+(test-group let-initializer-bindings
+  (define-test let-initializer-finds-param
+    (assert-equal '((outer-var . param))
+                  (extract-local-bindings let-init-form 'outer-var)))
+
+  (define-test let*-sequential-scoping
+    (let ([bindings (extract-local-bindings let*-form 'x)])
+      (assert-true (if (assq 'x bindings) #t #f))))
+
+  (define-test let-parallel-binding
+    (let ([bindings (extract-local-bindings let-form 'x)])
+      (assert-false (if (assq 'x bindings) #t #f))))
+
+  (define-test letrec-mutual-recursion
+    (let ([bindings (extract-local-bindings letrec-form 'odd?)])
+      (assert-true (if (assq 'odd? bindings) #t #f)))))
+
+;;; ====
+;;; Run Tests
+;;; ====
+
+(print-summary)
+(when (> *tests-failed* 0)
+  (exit 1))

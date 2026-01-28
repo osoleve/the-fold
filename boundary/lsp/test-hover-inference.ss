@@ -1,3 +1,4 @@
+(load "core/testing/test-framework.ss")
 (load "boundary/lsp/capabilities.ss")
 
 (doc 'module 'lsp/test-hover-inference)
@@ -5,138 +6,145 @@
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
 
+(display "Testing hover-inference integration\n")
+(display "====\n\n")
+
 ;;; ====
-;;; Test Helpers
+;;; Helper
 ;;; ====
 
-(define (test name expected actual)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (if (equal? expected actual)
-      (display "✓")
-      (begin
-       (display "✗
-    expected: ")
-       (display expected)
-       (display "
-    got: ")
-       (display actual)))
-  (newline))
-
-(define (test-true name actual)
-  (test name #t (if actual #t #f)))
-
-(define (test-false name actual)
-  (test name #f actual))
-
-(define (section name)
-  (newline)
-  (display name)
-  (newline))
-
-(doc string-contains? 'type '(-> String String Boolean))
 (define (string-contains? str substr)
   (let ([str-len (string-length str)]
         [sub-len (string-length substr)])
-       (let loop ([i 0])
-            (cond
-             [(> (+ i sub-len) str-len) #f]
-             [(string=? (substring str i (+ i sub-len)) substr) #t]
-             [else (loop (+ i 1))]))))
+    (let loop ([i 0])
+      (cond
+        [(> (+ i sub-len) str-len) #f]
+        [(string=? (substring str i (+ i sub-len)) substr) #t]
+        [else (loop (+ i 1))]))))
 
 ;;; ====
-;;; Test: Type Inference Available
+;;; Type Inference Loading Tests
 ;;; ====
 
-(section "Type Inference Loading")
+(test-group type-inference-loading
+  (define-test infer-ss-loaded
+    (assert-true (if *infer-available* #t #f)))
 
-(test-true "infer.ss loaded" *infer-available*)
-(test-true "types.ss loaded" (top-level-bound? 'type->string))
-
-;;; ====
-;;; Test: Extract Definitions
-;;; ====
-
-(section "Extract Definitions")
-
-(let ([defs (parse-definitions "(define x 42)")])
-  (test "simple define count" 1 (length defs))
-  (test-true "has x binding" (assq 'x defs)))
-
-(let ([defs (parse-definitions "(define (f x) (+ x 1))")])
-  (test "function define count" 1 (length defs))
-  (test-true "has f binding" (assq 'f defs)))
-
-(let ([defs (parse-definitions "(define a 1)\n(define b 2)\n(define c 3)")])
-  (test "multiple defines" 3 (length defs)))
+  (define-test types-ss-loaded
+    (assert-true (if (top-level-bound? 'type->string) #t #f))))
 
 ;;; ====
-;;; Test: Build Type Environment
+;;; Extract Definitions Tests
 ;;; ====
 
-(section "Build Type Environment")
+(test-group extract-definitions
+  (define-test simple-define-count
+    (let ([defs (parse-definitions "(define x 42)")])
+      (assert-equal 1 (length defs))))
 
-(let* ([defs (parse-definitions "(define x 42)")]
-       [env (build-tenv-from-defs defs)])
-  (test-true "x in env" (tenv-lookup env 'x))
-  (test "x is Int" 'Int (tenv-lookup env 'x)))
+  (define-test simple-define-has-x
+    (let ([defs (parse-definitions "(define x 42)")])
+      (assert-true (if (assq 'x defs) #t #f))))
 
-(let* ([defs (parse-definitions "(define id (fn (x) x))")]
-       [env (build-tenv-from-defs defs)]
-       [id-type (tenv-lookup env 'id)])
-  (test-true "id in env" id-type)
-  ;; id should be polymorphic
-  (test-true "id is polymorphic or function"
-             (and (pair? id-type)
-                  (or (eq? (car id-type) '->)
-                      (eq? (car id-type) '∀)))))
+  (define-test function-define-count
+    (let ([defs (parse-definitions "(define (f x) (+ x 1))")])
+      (assert-equal 1 (length defs))))
 
-;;; ====
-;;; Test: Try Infer Type
-;;; ====
+  (define-test function-define-has-f
+    (let ([defs (parse-definitions "(define (f x) (+ x 1))")])
+      (assert-true (if (assq 'f defs) #t #f))))
 
-(section "Try Infer Type")
-
-;; Simple constant
-(let ([type (try-infer-type "x" "(define x 42)")])
-  (test "infer x=42" "Int" type))
-
-;; Identity function
-(let ([type (try-infer-type "id" "(define id (fn (x) x))")])
-  (test-true "infer identity function" type)
-  (test-true "identity is polymorphic" (and type (string-contains? type "→"))))
-
-;; Boolean
-(let ([type (try-infer-type "flag" "(define flag #t)")])
-  (test "infer flag=#t" "Bool" type))
-
-;; String
-(let ([type (try-infer-type "msg" "(define msg \"hello\")")])
-  (test "infer msg=string" "String" type))
-
-;; Function using another definition
-(let ([type (try-infer-type "double" "(define x 5)\n(define double (fn (n) (prim 'add n n)))")])
-  (test-true "infer double function" type)
-  (test-true "double takes Int" (and type (string-contains? type "Int"))))
+  (define-test multiple-defines
+    (let ([defs (parse-definitions "(define a 1)\n(define b 2)\n(define c 3)")])
+      (assert-equal 3 (length defs)))))
 
 ;;; ====
-;;; Test: Fallback Behavior
+;;; Build Type Environment Tests
 ;;; ====
 
-(section "Fallback Behavior")
+(test-group build-type-environment
+  (define-test x-in-env
+    (let* ([defs (parse-definitions "(define x 42)")]
+           [env (build-tenv-from-defs defs)])
+      (assert-true (if (tenv-lookup env 'x) #t #f))))
 
-;; get-type-string still works for primitives
-(test "primitive + type" "(Int → Int → Int)" (primitive-type "+"))
-(test "primitive map type" "((α → β) → (List α) → (List β))" (primitive-type "map"))
+  (define-test x-is-int
+    (let* ([defs (parse-definitions "(define x 42)")]
+           [env (build-tenv-from-defs defs)])
+      (assert-equal 'Int (tenv-lookup env 'x))))
 
-;; Unknown symbol returns #f
-(test-false "unknown symbol" (try-infer-type "nonexistent" "(define x 1)"))
+  (define-test id-in-env
+    (let* ([defs (parse-definitions "(define id (fn (x) x))")]
+           [env (build-tenv-from-defs defs)]
+           [id-type (tenv-lookup env 'id)])
+      (assert-true (if id-type #t #f))))
+
+  (define-test id-is-polymorphic-or-function
+    (let* ([defs (parse-definitions "(define id (fn (x) x))")]
+           [env (build-tenv-from-defs defs)]
+           [id-type (tenv-lookup env 'id)])
+      (assert-true (and (pair? id-type)
+                        (or (eq? (car id-type) '->)
+                            (eq? (car id-type) '∀)))))))
 
 ;;; ====
-;;; Summary
+;;; Try Infer Type Tests
 ;;; ====
 
-(newline)
-(display "Hover type inference tests complete.")
-(newline)
+(test-group try-infer-type
+  ;; Simple constant
+  (define-test infer-x-42
+    (let ([type (try-infer-type "x" "(define x 42)")])
+      (assert-equal "Int" type)))
+
+  ;; Identity function
+  (define-test infer-identity-function
+    (let ([type (try-infer-type "id" "(define id (fn (x) x))")])
+      (assert-true (if type #t #f))))
+
+  (define-test identity-is-polymorphic
+    (let ([type (try-infer-type "id" "(define id (fn (x) x))")])
+      (assert-true (if (and type (string-contains? type "→")) #t #f))))
+
+  ;; Boolean
+  (define-test infer-flag-bool
+    (let ([type (try-infer-type "flag" "(define flag #t)")])
+      (assert-equal "Bool" type)))
+
+  ;; String
+  (define-test infer-msg-string
+    (let ([type (try-infer-type "msg" "(define msg \"hello\")")])
+      (assert-equal "String" type)))
+
+  ;; Function using another definition
+  (define-test infer-double-function
+    (let ([type (try-infer-type "double" "(define x 5)\n(define double (fn (n) (prim 'add n n)))")])
+      (assert-true (if type #t #f))))
+
+  (define-test double-takes-int
+    (let ([type (try-infer-type "double" "(define x 5)\n(define double (fn (n) (prim 'add n n)))")])
+      (assert-true (if (and type (string-contains? type "Int")) #t #f)))))
+
+;;; ====
+;;; Fallback Behavior Tests
+;;; ====
+
+(test-group fallback-behavior
+  ;; get-type-string still works for primitives
+  (define-test primitive-plus-type
+    (assert-equal "(Int → Int → Int)" (primitive-type "+")))
+
+  (define-test primitive-map-type
+    (assert-equal "((α → β) → (List α) → (List β))" (primitive-type "map")))
+
+  ;; Unknown symbol returns #f
+  (define-test unknown-symbol
+    (assert-false (try-infer-type "nonexistent" "(define x 1)"))))
+
+;;; ====
+;;; Run Tests
+;;; ====
+
+(print-summary)
+(when (> *tests-failed* 0)
+  (exit 1))
