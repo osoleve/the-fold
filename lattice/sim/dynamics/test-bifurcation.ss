@@ -785,6 +785,90 @@
           ;; Adaptive should cover at least as much range (often more due to expansion)
           (assert-true (>= adaptive-range (* 0.8 fixed-range)))))
 
+  ;;; ============================================================
+  ;;; Automatic Bifurcation Diagram
+  ;;; ============================================================
+
+  (define-test "make-work-item creates valid work item"
+    (let ([item (make-work-item 'branch-0 1.5 (vector 0.0) 'forward)])
+         (assert-true (work-item? item))
+         (assert-equal (work-item-id item) 'branch-0)
+         (assert-equal (work-item-param item) 1.5)
+         (assert-equal (work-item-direction item) 'forward)))
+
+  (define-test "make-bifurcation-diagram creates valid structure"
+    (let ([diag (make-bifurcation-diagram
+                 '((branch-0 . ((0.0 #(0.0) stable ()))))
+                 '()
+                 '((param-range . (-1.0 . 1.0))))])
+         (assert-true (bifurcation-diagram? diag))
+         (assert-equal (length (diagram-branches diag)) 1)
+         (assert-equal (length (diagram-bifurcations diag)) 0)))
+
+  (define-test "spatial-hash registers and looks up points"
+    (let* ([hash (make-spatial-hash -1.0 1.0 1.0 100)]
+           [_ (spatial-hash-register! hash 0.5 (vector 0.3) 'branch-0)]
+           [result (spatial-hash-lookup hash 0.5 (vector 0.3))])
+          (assert-equal result 'branch-0)))
+
+  (define-test "spatial-hash returns #f for unregistered points"
+    (let* ([hash (make-spatial-hash -1.0 1.0 1.0 100)]
+           [result (spatial-hash-lookup hash 0.5 (vector 0.3))])
+          (assert-false result)))
+
+  (define-test "trace-bifurcation-diagram produces valid diagram for pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [diag (trace-bifurcation-diagram psys -0.5 fp0 -1.0 1.0 50)])
+          (assert-true (bifurcation-diagram? diag))
+          ;; Should have at least the starting branch
+          (assert-true (> (length (diagram-branches diag)) 0))))
+
+  (define-test "trace-bifurcation-diagram finds bifurcation in pitchfork"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [diag (trace-bifurcation-diagram psys -0.5 fp0 -1.0 1.0 100)])
+          ;; Should detect the pitchfork bifurcation at r=0
+          (assert-true (> (length (diagram-bifurcations diag)) 0))))
+
+  (define-test "diagram-branch retrieves correct branch"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [diag (trace-bifurcation-diagram psys -0.5 fp0 -1.0 1.0 50)]
+           [branch (diagram-branch diag 'branch-0)])
+          ;; Branch-0 should exist and have points
+          (assert-true (and branch (> (length branch) 0)))))
+
+  (define-test "diagram-summary returns valid statistics"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [diag (trace-bifurcation-diagram psys -0.5 fp0 -1.0 1.0 50)]
+           [summary (diagram-summary diag)])
+          ;; Should have expected keys (assq returns pair, check it's truthy)
+          (assert-true (pair? (assq 'branch-count summary)))
+          (assert-true (pair? (assq 'total-points summary)))
+          (assert-true (pair? (assq 'bifurcation-count summary)))))
+
+  (define-test "diagram-stable-points filters correctly"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [diag (trace-bifurcation-diagram psys -0.5 fp0 -1.0 1.0 50)]
+           [stable (diagram-stable-points diag)])
+          ;; Should have some stable points (origin is stable for r < 0)
+          (assert-true (> (length stable) 0))
+          ;; All returned points should have stable-like classification
+          (assert-true (null? (filter (lambda (pt)
+                                        (not (memq (caddr pt) '(stable stable-node stable-focus))))
+                                      stable)))))
+
+  (define-test "diagram-points-at-param finds cross-section"
+    (let* ([psys (pitchfork-normal-form-param)]
+           [fp0 (vector 0.0)]
+           [diag (trace-bifurcation-diagram psys -0.5 fp0 -1.0 1.0 50)]
+           [points (diagram-points-at-param diag -0.3 0.1)])
+          ;; Should find at least the origin branch near r = -0.3
+          (assert-true (> (length points) 0))))
+
 )
 
 (run-all-tests)

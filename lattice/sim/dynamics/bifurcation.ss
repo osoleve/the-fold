@@ -1881,3 +1881,308 @@ At transcritical: returns 2 branches that exchange stability.")
                           (vector (- (- (* r x) y) (* x r2))
                                   (- (+ x (* r y)) (* y r2)))))
             2))))
+
+;;; ============================================================
+;;; Section: Automatic Bifurcation Diagram Generation
+;;; ============================================================
+
+(doc 'section 'automatic-bifurcation-diagrams)
+(doc 'note "Automatic exploration of complete bifurcation diagrams")
+
+;; Default parameters for diagram tracing
+(define *diagram-default-max-steps* 200)
+(define *diagram-grid-divisions* 100)
+(define *diagram-collision-tolerance* 1e-4)
+
+;; Work item for the exploration queue
+(define (make-work-item id param fp direction)
+  (list 'work-item id param fp direction))
+
+(define (work-item? x)
+  (and (pair? x) (eq? (car x) 'work-item)))
+
+(define (work-item-id item) (cadr item))
+(define (work-item-param item) (caddr item))
+(define (work-item-fp item) (cadddr item))
+(define (work-item-direction item) (car (cddddr item)))
+
+;; Bifurcation diagram structure
+(define (make-bifurcation-diagram branches bifurcations metadata)
+  (list 'bifurcation-diagram branches bifurcations metadata))
+
+(define (bifurcation-diagram? x)
+  (and (pair? x) (eq? (car x) 'bifurcation-diagram)))
+
+(define (diagram-branches diag)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram (List (Pair Symbol (List ...)))))
+  (doc 'description "Get all branches from a bifurcation diagram")
+  (cadr diag))
+
+(define (diagram-bifurcations diag)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram (List ...)))
+  (doc 'description "Get all bifurcation records from a diagram")
+  (caddr diag))
+
+(define (diagram-metadata diag)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram (List (Pair Symbol Any))))
+  (doc 'description "Get metadata from a bifurcation diagram")
+  (cadddr diag))
+
+(define (diagram-branch diag id)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram Symbol (Option (List ...))))
+  (doc 'description "Get a specific branch by ID")
+  (let ([entry (assq id (diagram-branches diag))])
+       (and entry (cdr entry))))
+
+(define (diagram-bifurcations-of-type diag type)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram Symbol (List ...)))
+  (doc 'description "Get bifurcations of a specific type (pitchfork, hopf, etc.)")
+  (filter (lambda (b) (eq? (car b) type))
+          (diagram-bifurcations diag)))
+
+;; Spatial hash for collision detection
+(define (make-spatial-hash p-min p-max fp-scale divisions)
+  (let ([dp (/ (- p-max p-min) divisions)]
+        [table (make-hashtable equal-hash equal?)])
+       (list 'spatial-hash p-min dp fp-scale table)))
+
+(define (spatial-hash-cell hash param fp)
+  (let* ([p-min (cadr hash)]
+         [dp (caddr hash)]
+         [fp-scale (cadddr hash)]
+         [p-idx (inexact->exact (floor (/ (- param p-min) dp)))]
+         [fp-val (if (vector? fp) (vector-ref fp 0) fp)]
+         [fp-idx (inexact->exact (floor (/ fp-val fp-scale)))])
+        (cons p-idx fp-idx)))
+
+(define (spatial-hash-register! hash param fp branch-id)
+  (let* ([table (car (cddddr hash))]
+         [cell (spatial-hash-cell hash param fp)])
+        (hashtable-set! table cell branch-id)))
+
+(define (spatial-hash-lookup hash param fp)
+  (let* ([table (car (cddddr hash))]
+         [cell (spatial-hash-cell hash param fp)])
+        (hashtable-ref table cell #f)))
+
+(define (register-branch-points! hash branch-id points)
+  (for-each (lambda (pt)
+              (spatial-hash-register! hash (car pt) (cadr pt) branch-id))
+            points))
+
+;; Filter continuation data to bounds
+(define (filter-within-bounds cont-data p-min p-max)
+  (filter (lambda (pt)
+            (let ([p (car pt)])
+                 (and (>= p p-min) (<= p p-max))))
+          cont-data))
+
+;; Branch status tracking
+(define (make-branch-record id data status parent-bif)
+  (list id data status parent-bif))
+
+(define (branch-record-id rec) (car rec))
+(define (branch-record-data rec) (cadr rec))
+(define (branch-record-status rec) (caddr rec))
+(define (branch-record-parent rec) (cadddr rec))
+
+;; Spawn new branches at bifurcations
+(define (spawn-branches-at-bifurcation psys bif parent-id p-min p-max spatial-hash next-id)
+  (let* ([bif-type (car bif)]
+         [bif-param (cadr bif)]
+         [bif-fp (caddr bif)]
+         [results '()]
+         [children '()])
+        ;; Try upper direction
+        (let ([upper (switch-branch-adaptive psys bif-param bif-fp 'upper)])
+             (when (and upper (car upper))
+                   (let* ([new-fp (car upper)]
+                          [new-param (cdr upper)])
+                         (when (and (>= new-param p-min) (<= new-param p-max)
+                                    (not (spatial-hash-lookup spatial-hash new-param new-fp)))
+                               (let ([new-id (string->symbol (format "branch-~a" next-id))])
+                                    (set! results (cons (make-work-item new-id new-param new-fp
+                                                                        (if (> new-param bif-param) 'forward 'backward))
+                                                        results))
+                                    (set! children (cons (cons new-id 'upper) children))
+                                    (set! next-id (+ next-id 1)))))))
+        ;; Try lower direction
+        (let ([lower (switch-branch-adaptive psys bif-param bif-fp 'lower)])
+             (when (and lower (car lower))
+                   (let* ([new-fp (car lower)]
+                          [new-param (cdr lower)])
+                         (when (and (>= new-param p-min) (<= new-param p-max)
+                                    (not (spatial-hash-lookup spatial-hash new-param new-fp)))
+                               (let ([new-id (string->symbol (format "branch-~a" next-id))])
+                                    (set! results (cons (make-work-item new-id new-param new-fp
+                                                                        (if (> new-param bif-param) 'forward 'backward))
+                                                        results))
+                                    (set! children (cons (cons new-id 'lower) children))
+                                    (set! next-id (+ next-id 1)))))))
+        (list results children next-id)))
+
+;; Main entry point
+(define (trace-bifurcation-diagram psys start-param start-fp p-min p-max . opts)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE Number Vec Number Number ... BifurcationDiagram))
+  (doc 'description "Automatically trace a complete bifurcation diagram")
+  (doc 'param 'psys "parameterized ODE system")
+  (doc 'param 'start-param "initial parameter value")
+  (doc 'param 'start-fp "initial fixed point")
+  (doc 'param 'p-min "minimum parameter value")
+  (doc 'param 'p-max "maximum parameter value")
+  (doc 'param 'opts "optional: max-steps-per-branch (default 200)")
+  (doc 'returns "bifurcation diagram with all branches and bifurcation records")
+  (let* ([max-steps (if (null? opts) *diagram-default-max-steps* (car opts))]
+         [base-step (/ (- p-max p-min) max-steps)]
+         [fp-scale (max 0.1 (vec-norm start-fp))]  ; Scale for spatial hash
+         [spatial-hash (make-spatial-hash p-min p-max fp-scale *diagram-grid-divisions*)]
+         [branches '()]
+         [bifurcations '()]
+         [next-branch-id 1]
+         [total-steps 0]
+         ;; Start with initial branch going both directions
+         [queue (list (make-work-item 'branch-0 start-param start-fp 'forward)
+                      (make-work-item 'branch-0-back start-param start-fp 'backward))])
+
+        ;; Process queue
+        (let loop ([q queue])
+             (if (null? q)
+                 ;; Done - build result
+                 (make-bifurcation-diagram
+                  (reverse branches)
+                  (reverse bifurcations)
+                  `((param-range . (,p-min . ,p-max))
+                    (total-steps . ,total-steps)
+                    (branch-count . ,(length branches))))
+
+                 ;; Process next work item
+                 (let* ([item (car q)]
+                        [branch-id (work-item-id item)]
+                        [p-start (work-item-param item)]
+                        [fp-start (work-item-fp item)]
+                        [dir (work-item-direction item)]
+                        [step (if (eq? dir 'forward) base-step (- base-step))])
+
+                       ;; Continue this branch
+                       (let* ([cont-result (continue-fixed-point-arclength-adaptive
+                                            psys p-start fp-start max-steps step)]
+                              [cont-data (if (null? cont-result) '() cont-result)]
+                              [filtered (filter-within-bounds cont-data p-min p-max)]
+                              [status (cond
+                                       [(null? filtered) 'failed]
+                                       [(< (length filtered) 3) 'stalled]
+                                       [else 'complete])])
+
+                             ;; Register points in spatial hash
+                             (register-branch-points! spatial-hash branch-id filtered)
+
+                             ;; Add branch to results
+                             (set! branches (cons (cons branch-id filtered) branches))
+                             (set! total-steps (+ total-steps (length filtered)))
+
+                             ;; Detect bifurcations if we have enough data
+                             (let* ([bifs (if (>= (length filtered) 2)
+                                              (detect-bifurcations filtered psys)
+                                              '())]
+                                    [new-work '()])
+
+                                   ;; Process each bifurcation
+                                   (for-each
+                                    (lambda (bif)
+                                      (let* ([spawn-result (spawn-branches-at-bifurcation
+                                                           psys bif branch-id p-min p-max
+                                                           spatial-hash next-branch-id)]
+                                             [new-items (car spawn-result)]
+                                             [children (cadr spawn-result)]
+                                             [new-next-id (caddr spawn-result)])
+                                            ;; Record bifurcation
+                                            (set! bifurcations
+                                                  (cons (list (car bif)      ; type
+                                                              (cadr bif)     ; param
+                                                              (caddr bif)    ; fp
+                                                              branch-id      ; parent
+                                                              children)      ; children with directions
+                                                        bifurcations))
+                                            (set! new-work (append new-work new-items))
+                                            (set! next-branch-id new-next-id)))
+                                    bifs)
+
+                                   ;; Continue with remaining queue
+                                   (loop (append (cdr q) new-work)))))))))
+
+;; Helper to check stability
+(define (stability-is-stable? stab)
+  (memq stab '(stable stable-node stable-focus stable-spiral)))
+
+(define (stability-is-unstable? stab)
+  (memq stab '(unstable unstable-node unstable-focus unstable-spiral saddle)))
+
+;; Query functions
+(define (diagram-stable-points diag)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram (List (List Number Vec))))
+  (doc 'description "Get all stable points from all branches")
+  (apply append
+         (map (lambda (branch)
+                (filter (lambda (pt) (stability-is-stable? (caddr pt)))
+                        (cdr branch)))
+              (diagram-branches diag))))
+
+(define (diagram-unstable-points diag)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram (List (List Number Vec))))
+  (doc 'description "Get all unstable points from all branches")
+  (apply append
+         (map (lambda (branch)
+                (filter (lambda (pt) (stability-is-unstable? (caddr pt)))
+                        (cdr branch)))
+              (diagram-branches diag))))
+
+(define (diagram-points-at-param diag p tol)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram Number Number (List (List Symbol Vec Symbol))))
+  (doc 'description "Get all fixed points at a given parameter value (within tolerance)")
+  (doc 'returns "list of (branch-id fixed-point stability)")
+  (apply append
+         (map (lambda (branch)
+                (let ([id (car branch)]
+                      [matches (filter (lambda (pt)
+                                        (< (abs (- (car pt) p)) tol))
+                                       (cdr branch))])
+                     (map (lambda (pt) (list id (cadr pt) (caddr pt)))
+                          matches)))
+              (diagram-branches diag))))
+
+(define (diagram-summary diag)
+  (doc 'export #t)
+  (doc 'type '(-> BifurcationDiagram (List (Pair Symbol Any))))
+  (doc 'description "Get summary statistics for a bifurcation diagram")
+  (let* ([branches (diagram-branches diag)]
+         [bifs (diagram-bifurcations diag)]
+         [meta (diagram-metadata diag)]
+         [total-points (apply + (map (lambda (b) (length (cdr b))) branches))]
+         [bif-types (map car bifs)]
+         [type-counts (let loop ([types bif-types] [counts '()])
+                           (if (null? types)
+                               counts
+                               (let* ([t (car types)]
+                                      [entry (assq t counts)])
+                                     (loop (cdr types)
+                                           (if entry
+                                               (map (lambda (c)
+                                                      (if (eq? (car c) t)
+                                                          (cons t (+ (cdr c) 1))
+                                                          c))
+                                                    counts)
+                                               (cons (cons t 1) counts))))))])
+        `((branch-count . ,(length branches))
+          (total-points . ,total-points)
+          (bifurcation-count . ,(length bifs))
+          (bifurcation-types . ,type-counts)
+          ,@meta)))
