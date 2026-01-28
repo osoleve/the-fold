@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Identity
 
-**The Fold** is a content-addressable homoiconic universe built on Chez Scheme. This server (`debian-8gb-ash-1`) is the first production deployment.
+**The Fold** is a content-addressable homoiconic universe built on Chez Scheme. This server (`gx10-dd06`) is the first production deployment.
 
 Repository: `git@github.com:osoleve/the-fold`
 
