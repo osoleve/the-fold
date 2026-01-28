@@ -467,8 +467,8 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
   (doc 'description "Compute step-size factor based on Newton iteration count")
   (doc 'returns "1.0 if fast convergence, 0.5 if slow, 0.25 if near failure")
   (cond
-   [(> iterations *adaptive-residual-critical*) 0.25]
-   [(> iterations *adaptive-residual-threshold*) *adaptive-shrink-factor*]
+   [(>= iterations *adaptive-residual-critical*) 0.25]   ; 8+ iterations = near failure
+   [(> iterations *adaptive-residual-threshold*) *adaptive-shrink-factor*]  ; 5-7 = slow
    [else 1.0]))
 
 (define (compute-adaptive-step current-step factors base-step)
@@ -513,20 +513,22 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
                             [prev-tangent #f]           ; For curvature computation
                             [results '()])
                       (if (>= k num-steps)
-                          (reverse results)
+                          ;; Record final point before returning
+                          (let* ([sys (instantiate-at psys param)]
+                                 [analysis (analyze-stability-general sys fp *continuation-step-size*)]
+                                 [stability (car analysis)]
+                                 [eigenvalues (cdr analysis)]
+                                 [final-entry (list param fp stability eigenvalues)])
+                                (reverse (cons final-entry results)))
                           ;; Record current point with stability analysis
                           (let* ([sys (instantiate-at psys param)]
                                  [analysis (analyze-stability-general sys fp *continuation-step-size*)]
                                  [stability (car analysis)]
                                  [eigenvalues (cdr analysis)]
                                  [entry (list param fp stability eigenvalues)]
-                                 ;; Predictor step along tangent
-                                 [predicted (arclength-predict fp param tangent (* sign current-step))]
-                                 [pred-fp (car predicted)]
-                                 [pred-param (cdr predicted)]
-                                 ;; Corrector with retry logic
+                                 ;; Corrector with retry logic (predicts internally from fp/param)
                                  [correct-result (arclength-correct-with-retry
-                                                  psys pred-fp pred-param tangent
+                                                  psys fp param tangent
                                                   (* sign current-step) current-step)])
                                 (if (not correct-result)
                                     ;; Correction failed even after retries - return what we have
@@ -560,21 +562,24 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
                                                           oriented-tangent
                                                           (cons entry results)))))))))))))
 
-(define (arclength-correct-with-retry psys pred-fp pred-param tangent ds current-step)
+(define (arclength-correct-with-retry psys orig-fp orig-param tangent ds current-step)
   (doc 'type '(-> ParamODE Vec Number (Pair Vec Number) Number Number
                   (Option (List Vec Number Nat Number))))
   (doc 'description "Attempt arclength correction with retry on failure")
+  (doc 'param 'orig-fp "original successful fixed point (NOT the predicted point)")
+  (doc 'param 'orig-param "original successful parameter value")
   (doc 'returns "(fp param iterations used-step) or #f if all retries fail")
   (let retry-loop ([step current-step]
                    [attempts 0])
        (if (or (>= attempts 5) (< step *adaptive-min-step*))
            #f  ; Give up after 5 attempts or step too small
-           (let* ([scaled-ds (* (/ step current-step) ds)]  ; Scale ds proportionally
-                  [predicted (arclength-predict pred-fp pred-param tangent scaled-ds)]
+           ;; Predict from ORIGINAL point with current step size
+           (let* ([scaled-ds (* (/ step current-step) ds)]
+                  [predicted (arclength-predict orig-fp orig-param tangent scaled-ds)]
                   [result (arclength-correct psys (car predicted) (cdr predicted) tangent scaled-ds)])
                  (if result
                      (list (car result) (cadr result) (caddr result) step)
-                     ;; Retry with smaller step
+                     ;; Retry with smaller step from original point
                      (retry-loop (* step *adaptive-shrink-factor*) (+ attempts 1)))))))
 
 (define (continue-fixed-point-adaptive psys param0 fp0 param-end base-step)
@@ -605,10 +610,8 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
                        [stability (car analysis)]
                        [eigenvalues (cdr analysis)]
                        [entry (list param fp stability eigenvalues)]
-                       ;; Predict next fixed point
-                       [next-param (+ param (* direction current-step))]
-                       ;; Correct with retry logic
-                       [next-result (find-fixed-point-with-retry psys next-param fp current-step)])
+                       ;; Correct with retry logic (computes target param internally)
+                       [next-result (find-fixed-point-with-retry psys param direction fp current-step)])
                       (if (not next-result)
                           ;; Continuation failed - return what we have
                           (reverse (cons entry results))
@@ -634,22 +637,25 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
                                       (if (should-expand? new-good-steps factors) 0 new-good-steps)
                                       (cons entry results)))))))))
 
-(define (find-fixed-point-with-retry psys param fp-guess current-step)
-  (doc 'type '(-> ParamODE Number Vec Number (Option (List Vec Nat Number))))
-  (doc 'description "Find fixed point with retry on failure")
+(define (find-fixed-point-with-retry psys orig-param direction fp-guess current-step)
+  (doc 'type '(-> ParamODE Number Number Vec Number (Option (List Vec Nat Number))))
+  (doc 'description "Find fixed point with retry on failure, shrinking step toward original param")
+  (doc 'param 'orig-param "original parameter value to step from")
+  (doc 'param 'direction "direction of parameter change (+1 or -1)")
   (doc 'returns "(fp iterations used-step) or #f if all retries fail")
   (let retry-loop ([step current-step]
                    [attempts 0])
        (if (or (>= attempts 5) (< step *adaptive-min-step*))
            #f
-           (let* ([sys (instantiate-at psys param)]
+           (let* ([target-param (+ orig-param (* direction step))]
+                  [sys (instantiate-at psys target-param)]
                   [result (find-fixed-point-robust-with-iters sys fp-guess
                                                               *continuation-tolerance*
                                                               *continuation-step-size*
                                                               *continuation-max-newton*)])
                  (if result
                      (list (car result) (cadr result) step)
-                     ;; Retry with smaller step - move param closer to previous
+                     ;; Retry with smaller step (target param closer to orig-param)
                      (retry-loop (* step *adaptive-shrink-factor*) (+ attempts 1)))))))
 
 (define (find-fixed-point-robust-with-iters sys initial-guess tolerance step-size max-iter)
