@@ -249,5 +249,5 @@ Values:
                 (get-value-span expr))
           (collect-spans (get-spanned-value expr)))]
    [(pair? expr)
-    (apply append (map collect-spans expr))]
+    (append-map collect-spans expr)]
    [else '()]))

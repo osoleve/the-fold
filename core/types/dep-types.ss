@@ -1192,10 +1192,9 @@
    [(eq? (car t) 'Π)
     (let* ([bindings (cadr t)]
            [body (caddr t)]
-           [domain-vars (apply append
-                               (map (lambda (b)
+           [domain-vars (append-map (lambda (b)
                                             (dep-free-tvars-with bound (binding-type b)))
-                                    bindings))]
+                                    bindings)]
            [bound-vars (map binding-var bindings)]
            [new-bound (append bound-vars bound)]
            [body-vars (dep-free-tvars-with new-bound body)])
@@ -1218,7 +1217,7 @@
     (let ([new-bound (cons (cadr t) bound)])
          (dep-free-tvars-with new-bound (caddr t)))]
    [else
-    (apply append (map (lambda (sub) (dep-free-tvars-with bound sub)) (cdr t)))]))
+    (append-map (lambda (sub) (dep-free-tvars-with bound sub)) (cdr t))]))
 
 ;;; ====
 ;;; Substitution with Dependent Types (Capture-Avoiding)
@@ -1284,7 +1283,7 @@
               (dep-free-vars-with new-bound body)))]
    
    [else
-    (apply append (map (lambda (sub) (dep-free-vars-with bound sub)) (cdr t)))]))
+    (append-map (lambda (sub) (dep-free-vars-with bound sub)) (cdr t))]))
 
 ;;; dep-free-vars-in-bindings-and-body : (List Symbol) × (List Binding) × Type → (List Symbol)
 ;;; Helper for Pi types: each binding's var is bound in subsequent bindings and body.
@@ -1412,7 +1411,7 @@
              [(memq bvar replacement-fv)
               (let* ([all-vars (append replacement-fv
                                        (dep-free-vars body)
-                                       (apply append (map (lambda (b) (dep-free-vars (binding-type b))) rest)))]
+                                       (append-map (lambda (b) (dep-free-vars (binding-type b))) rest))]
                      [fresh (fresh-var bvar all-vars)]
                      ;; Rename bvar to fresh in rest of bindings and body
                      [renamed-rest (map (lambda (rb)

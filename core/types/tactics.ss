@@ -244,7 +244,7 @@
                          (if (ormap tactic-failure? results)
                              (tactic-failure `(subgoal-failed ,(filter tactic-failure? results)))
                              ;; Collect all new subgoals
-                             (let* ([all-subgoals (apply append (map tactic-subgoals results))]
+                             (let* ([all-subgoals (append-map tactic-subgoals results)]
                                     [builders (map tactic-builder results)]
                                     ;; Build combined proof
                                     [combined-builder

@@ -226,6 +226,15 @@ flatten:
 (test "flatten empty" '() (flatten '()))
 (test "flatten single" '(a b c) (flatten '((a b c))))
 
+;;; append-map tests
+(display "
+append-map:
+")
+(test "append-map basic" '(1 1 2 2 3 3) (append-map (lambda (x) (list x x)) '(1 2 3)))
+(test "append-map empty" '() (append-map (lambda (x) (list x x)) '()))
+(test "append-map varying" '(0 0 1 0 1 2) (append-map iota '(1 2 3)))
+(test "append-map identity" '(a b c) (append-map list '(a b c)))
+
 ;;; partition tests
 (display "
 partition:

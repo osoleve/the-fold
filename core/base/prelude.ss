@@ -288,6 +288,12 @@
   (doc 'export #t)
   (fold-right append '() lst-of-lists))
 
+(define (append-map f lst)
+  (doc 'type (-> (-> α (List β)) (List α) (List β)))
+  (doc 'description "Map f over lst and concatenate the results. Transparent replacement for (apply append (map f lst)).")
+  (doc 'export #t)
+  (fold-right (lambda (x acc) (append (f x) acc)) '() lst))
+
 (define (partition pred lst)
   (doc 'type (-> (-> α Bool) (List α) (List (List α) (List α))))
   (doc 'description "Partition list into two lists: those satisfying predicate, and those that don't.")

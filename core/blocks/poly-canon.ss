@@ -138,12 +138,11 @@
   (doc 'description "Multiply two polynomials.")
   (doc 'export #t)
   (poly-simplify
-   (apply append
-          (map (lambda (t1)
+   (append-map (lambda (t1)
                  (map (lambda (t2)
                         (term-mul t1 t2))
                       p2))
-               p1))))
+               p1)))
 
 (define (term-mul t1 t2)
   (doc 'type (-> Term Term Term))

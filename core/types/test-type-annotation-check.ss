@@ -116,7 +116,7 @@
     (if (is-type-var? type) (list type) '())]
    [(not (pair? type)) '()]
    [else
-    (apply append (map collect-type-vars type))]))
+    (append-map collect-type-vars type)]))
 
 ;;; make-type-var-env : (List Symbol) -> KindEnv
 (define (make-type-var-env vars)

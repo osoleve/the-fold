@@ -368,7 +368,7 @@
   (doc 'type (-> TEnv Type Type))
   (doc 'description "Generalize a type by quantifying over free type variables not in env.")
   (doc 'export #t)
-  (let* ([env-vars (apply append (map (lambda (p) (free-tvars (cdr p))) env))]
+  (let* ([env-vars (append-map (lambda (p) (free-tvars (cdr p))) env)]
          [type-vars (free-tvars type)]
          [gen-vars (unique (filter (lambda (v) (not (memq v env-vars))) type-vars))])
         (if (null? gen-vars)
@@ -1063,15 +1063,14 @@
   (doc 'type (-> ClassDB TEnv))
   (doc 'description "Build a type environment from a class database.")
   (doc 'export #t)
-  (apply append
-         (map (lambda (class-entry)
+  (append-map (lambda (class-entry)
                       (let* ([name (car class-entry)]
                              [tc (cdr class-entry)]
                              [methods (typeclass-methods tc)])
                             (map (lambda (m)
                                          (cons (car m) (cdr m)))
                                  methods)))
-              class-db)))
+              class-db))
 
 (define (get-standard-class-tenv)
   (doc 'type (-> TEnv))

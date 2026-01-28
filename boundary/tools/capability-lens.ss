@@ -23,10 +23,7 @@
 (define (set-diff xs ys)
   (filter (lambda (x) (not (member x ys))) xs))
 
-(define (append-map f xs)
-  (if (null? xs)
-      '()
-      (apply append (map f xs))))
+;;; append-map provided by prelude
 
 (define (sort-strings xs)
   (list-sort string<? xs))

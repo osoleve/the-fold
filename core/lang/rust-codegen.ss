@@ -1125,7 +1125,7 @@
               (list (cadr args))  ; Second arg is the divisor
               '())
           ;; Recursively collect from all arguments
-          (apply append (map ir-collect-divisors args))))]
+          (append-map ir-collect-divisors args)))]
    [(eq? (car ir) 'R-If)
     (append (ir-collect-divisors (cadr ir))    ; condition
             (ir-collect-divisors (caddr ir))   ; then
@@ -1133,7 +1133,7 @@
    [(eq? (car ir) 'R-Let)
     (ir-collect-divisors (caddr ir))]          ; value expression
    [(eq? (car ir) 'R-Block)
-    (apply append (map ir-collect-divisors (cdr ir)))]
+    (append-map ir-collect-divisors (cdr ir))]
    ;; Lambda/Closure/Letrec: DO NOT recurse into nested function bodies
    ;; Guards for inner scopes would need inner scope params, which we don't have.
    ;; This is a known limitation: nested functions need their own guard generation.

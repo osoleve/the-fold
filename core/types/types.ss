@@ -351,7 +351,7 @@
     (let ([new-bound (cons (cadr t) bound)])
          (free-tvars-with new-bound (caddr t)))]
    [else
-    (apply append (map (lambda (sub) (free-tvars-with bound sub)) (cdr t)))]))
+    (append-map (lambda (sub) (free-tvars-with bound sub)) (cdr t))]))
 
 (doc 'section 'type-substitution)
 

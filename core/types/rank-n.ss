@@ -280,7 +280,7 @@
   (doc 'type (-> Subst (List Symbol)))
   (doc 'description "Collect all free type variables from the range of a substitution.")
   (doc 'export #t)
-  (apply append (map (lambda (p) (type-free-vars (cdr p))) s)))
+  (append-map (lambda (p) (type-free-vars (cdr p))) s))
 
 (define (type-free-vars type)
   (doc 'type (-> Type (List Symbol)))
@@ -298,7 +298,7 @@
           [body (caddr type)])
          (filter (lambda (v) (not (eq? v var))) (type-free-vars body)))]
    [else
-    (apply append (map type-free-vars (cdr type)))]))
+    (append-map type-free-vars (cdr type))]))
 
 (define fresh-rename-counter 0)
 
@@ -737,10 +737,9 @@
   (doc 'description "Generalize a type over free type variables not bound in the context. Context is an alist of (var . type) bindings. This implements let-generalization: variables that are free in the type but not free in the context are universally quantified.")
   (doc 'export #t)
   (let* ([type-fvs (type-free-vars type)]
-         [ctx-fvs (apply append
-                         (map (lambda (binding)
+         [ctx-fvs (append-map (lambda (binding)
                                       (type-free-vars (cdr binding)))
-                              ctx))]
+                              ctx)]
          [gen-vars (filter (lambda (v) (not (memq v ctx-fvs)))
                            (unique type-fvs))])
         (if (null? gen-vars)

@@ -666,9 +666,7 @@
 
 ;;; filter-map provided by prelude
 
-;;; append-map : (α → (List β)) × (List α) → (List β)
-(define (append-map f lst)
-  (apply append (map f lst)))
+;;; append-map provided by prelude
 
 ;;; all : (α → Boolean) × (List α) → Boolean
 (define (all pred lst)

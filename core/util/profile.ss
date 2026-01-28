@@ -210,7 +210,7 @@
   (let ([self (cons (node-name node) (node-fuel-consumed node))]
         [children (node-children node)])
        (cons self
-             (apply append (map flatten-tree children)))))
+             (append-map flatten-tree children))))
 
 ;;; aggregate-by-name : List of (name . fuel) → Alist of (name . (total-fuel . count))
 (define (aggregate-by-name calls)
@@ -303,9 +303,8 @@
          [children (node-children node)])
         (if (null? children)
             (list (reverse current))
-            (apply append
-                   (map (lambda (c) (collect-paths c current))
-                        children)))))
+            (append-map (lambda (c) (collect-paths c current))
+                        children))))
 
 (define (path-fuel path)
   (fold-left (lambda (acc step) (+ acc (cdr step)))

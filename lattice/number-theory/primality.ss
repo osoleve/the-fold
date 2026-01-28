@@ -293,9 +293,9 @@
              [e (cdar pf)]
              [rest (generate-divisors (cdr pf))]
              [powers (prime-powers p e)])
-        (flatmap (lambda (pw)
-                   (map (lambda (d) (* pw d)) rest))
-                 powers))))
+        (append-map (lambda (pw)
+                       (map (lambda (d) (* pw d)) rest))
+                   powers))))
 
 ;;; prime-powers : Int × Int → (List Int)
 ;;; Generate p^0, p^1, ..., p^e
@@ -305,9 +305,7 @@
         (reverse result)
         (loop (+ i 1) (* pw p) (cons pw result)))))
 
-;;; flatmap : (a → (List b)) × (List a) → (List b)
-(define (flatmap f lst)
-  (apply append (map f lst)))
+;;; flatmap → append-map (from prelude)
 
 (doc 'section 'number-theoretic-functions)
 

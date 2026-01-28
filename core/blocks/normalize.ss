@@ -141,7 +141,7 @@
            [body (caddr expr)])
           (free-vars-with-env body (norm-env-extend env f)))]
    [else
-    (apply append (map (lambda (e) (free-vars-with-env e env)) expr))]))
+    (append-map (lambda (e) (free-vars-with-env e env)) expr)]))
 
 (doc 'section 'algebraic-normalization)
 
@@ -214,12 +214,11 @@
   (doc 'type (-> Symbol (List Any) (List Any)))
   (doc 'description "Flatten nested applications of an associative operator.")
   (doc 'export #t)
-  (apply append
-         (map (lambda (arg)
+  (append-map (lambda (arg)
                 (if (and (pair? arg) (eq? (car arg) op))
                     (flatten-associative op (cdr arg))
                     (list arg)))
-              args)))
+              args))
 
 (doc 'section 'parallel-binding-canonicalization)
 

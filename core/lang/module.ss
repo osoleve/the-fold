@@ -541,7 +541,7 @@ Dependencies:
   (let ([direct (module-deps name)])
        (if (null? direct)
            '()
-           (unique (append direct (apply append (map all-deps direct)))))))
+           (unique (append direct (append-map all-deps direct))))))
 
 ;;; module-stats : Unit → Void
 ;;; Display loading statistics.
@@ -893,7 +893,7 @@ Dependencies:
   (let ([direct (module-dependents name)])
     (if (null? direct)
         '()
-        (unique (append direct (apply append (map all-dependents direct)))))))
+        (unique (append direct (append-map all-dependents direct))))))
 
 (doc topo-sort-reload 'type (-> (List Symbol) (List Symbol)))
 (doc topo-sort-reload 'description "Topologically sort modules for reload: dependencies before dependents.")
