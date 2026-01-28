@@ -3,6 +3,7 @@
 (load "lattice/fp/numeric/transcendental.ss")
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")
+(load "lattice/data/sort.ss")
 
 
 
@@ -47,7 +48,7 @@
 (define (sample-quantile samples p)
   (if (null? samples)
       0
-      (let* ([sorted (list-sort < samples)]
+      (let* ([sorted (sort-by < samples)]
              [n (length sorted)]
              [idx (* p (- n 1))]
              [lo (inexact->exact (floor idx))]
@@ -545,26 +546,3 @@
       lst
       (list-tail-safe (cdr lst) (- n 1))))
 
-(define (list-sort less? lst)
-  (letrec ([merge
-            (lambda (xs ys)
-                    (cond
-                     [(null? xs) ys]
-                     [(null? ys) xs]
-                     [(less? (car xs) (car ys))
-                      (cons (car xs) (merge (cdr xs) ys))]
-                     [else
-                      (cons (car ys) (merge xs (cdr ys)))]))]
-           [split
-            (lambda (lst)
-                    (let loop ([slow lst] [fast lst] [acc '()])
-                         (if (or (null? fast) (null? (cdr fast)))
-                             (cons (reverse acc) slow)
-                             (loop (cdr slow) (cddr fast) (cons (car slow) acc)))))]
-           [sort
-            (lambda (lst)
-                    (if (or (null? lst) (null? (cdr lst)))
-                        lst
-                        (let ([halves (split lst)])
-                             (merge (sort (car halves)) (sort (cdr halves))))))])
-          (sort lst)))

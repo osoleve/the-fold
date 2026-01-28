@@ -11,6 +11,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/egraph/egraph.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'egraph/cost)
 (doc 'description "Cost models for e-graph extraction")
@@ -376,7 +377,7 @@
            (set! results (cons (list root best-cost best-node) results)))))
      (uf-roots uf))
     ;; Sort by cost
-    (list-sort (lambda (a b) (< (cadr a) (cadr b))) results)))
+    (sort-by (lambda (a b) (< (cadr a) (cadr b))) results)))
 
 ;;; ============================================================
 ;;; Debugging

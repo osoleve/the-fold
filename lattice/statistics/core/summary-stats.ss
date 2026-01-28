@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'summary-stats)
 (doc 'description "Descriptive Statistics — Basic statistical summary functions")
@@ -56,7 +57,7 @@
 ;;; median : (List Num) → Num
 ;;; Compute median (middle value or average of two middle values).
 (define (median xs)
-  (let* ([sorted (list-sort < xs)]
+  (let* ([sorted (sort-by < xs)]
          [n (length sorted)]
          [mid (quotient n 2)])
         (if (odd? n)
@@ -71,7 +72,7 @@
 (define (quantile xs p)
   (if (or (< p 0) (> p 1))
       (error 'quantile "p must be in [0, 1]" p)
-      (let* ([sorted (list-sort < xs)]
+      (let* ([sorted (sort-by < xs)]
              [n (length sorted)]
              [index (* p (- n 1))]
              [lo (inexact->exact (floor index))]
@@ -110,7 +111,7 @@
       (when (or (< p 0) (> p 1))
         (error 'quantiles "all probabilities must be in [0, 1]" p)))
     ps)
-  (let ([sorted-vec (list->vector (list-sort < xs))])
+  (let ([sorted-vec (list->vector (sort-by < xs))])
     (map (lambda (p) (quantile-from-sorted sorted-vec p)) ps)))
 
 ;;; iqr : (List Num) → Num

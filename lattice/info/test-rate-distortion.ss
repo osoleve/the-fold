@@ -4,6 +4,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/info/rate-distortion.ss")
+(load "lattice/data/sort.ss")
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)
@@ -186,7 +187,7 @@
 (test "lloyd-max 4 levels" 4 (length lm4))
 
 ;; Levels should be sorted
-(define lm4-sorted (list-sort < lm4))
+(define lm4-sorted (sort-by < lm4))
 (test "lloyd-max sorted" lm4-sorted lm4)
 
 ;; Quantize using trained levels

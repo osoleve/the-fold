@@ -1,4 +1,5 @@
 (load "lattice/info/entropy.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'rate-distortion)
 (doc 'description "Rate-distortion theory: compression vs fidelity tradeoff")
@@ -204,7 +205,7 @@
   (doc 'description "Train Lloyd-Max quantizer on samples")
   (if (or (null? samples) (<= n-levels 0))
       '()
-      (let* ([sorted (list-sort < samples)]
+      (let* ([sorted (sort-by < samples)]
              [min-val (car sorted)]
              [max-val (car (reverse sorted))]
              [init-levels (uniform-init-levels min-val max-val n-levels)])

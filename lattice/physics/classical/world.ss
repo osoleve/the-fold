@@ -7,6 +7,7 @@
 (load "lattice/physics/classical/raycasting.ss")
 (load "lattice/physics/classical/constraints.ss")
 (load "lattice/physics/classical/constraint-solver.ss")
+(load "lattice/data/sort.ss")
 
 
 (doc 'module 'world)
@@ -568,7 +569,7 @@
                              (set! hits (cons (cons e hit) hits)))))
          entities)
         ;; Sort by distance
-        (list-sort (lambda (a b)
+        (sort-by (lambda (a b)
                            (< (hit-info-distance (cdr a))
                               (hit-info-distance (cdr b))))
                    hits)))

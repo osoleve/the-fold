@@ -1,5 +1,6 @@
 (load "core/base/prelude.ss")
 (load "lattice/geometry/geometry.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'bvh)
 (doc 'description "Bounding Volume Hierarchy for spatial acceleration")
@@ -121,7 +122,7 @@
              [centroids (map triangle-centroid triangles)]
              ;; Sort triangles by centroid along chosen axis
              [sorted-tris (map car
-                               (list-sort
+                               (sort-by
                                 (lambda (a b)
                                         (< (get-axis-coord (cadr a) axis)
                                            (get-axis-coord (cadr b) axis)))

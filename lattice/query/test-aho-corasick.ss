@@ -3,6 +3,7 @@
 ;;; Comprehensive tests for multi-pattern string matching.
 
 (load "lattice/query/aho-corasick.ss")
+(load "lattice/data/sort.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -10,12 +11,12 @@
 (define (test name expected actual)
   (if (and (list? expected) (list? actual) (not (null? expected)) (pair? (car expected)))
       ;; Sort lists of pairs for order-independent comparison
-      (let ([expected-sorted (list-sort (lambda (a b)
+      (let ([expected-sorted (sort-by (lambda (a b)
                                                 (or (< (car a) (car b))
                                                     (and (= (car a) (car b))
                                                          (string<? (cdr a) (cdr b)))))
                                         expected)]
-            [actual-sorted (list-sort (lambda (a b)
+            [actual-sorted (sort-by (lambda (a b)
                                               (or (< (car a) (car b))
                                                   (and (= (car a) (car b))
                                                        (string<? (cdr a) (cdr b)))))

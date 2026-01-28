@@ -1,8 +1,9 @@
 ;;; lattice/data/graph-algorithms.ss — Graph Algorithms
 ;;; @module graph-algorithms
-;;; @requires prelude
+;;; @requires prelude sort
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'graph-algorithms)
 (doc 'description "Graph algorithms for analyzing directed graphs formed by block references")
@@ -552,7 +553,7 @@
          [with-degrees (map (lambda (h)
                                     (cons h (total-degree fs h)))
                             all-hashes)]
-         [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b)))
+         [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b)))
                             with-degrees)])
         (take-up-to sorted n)))
 

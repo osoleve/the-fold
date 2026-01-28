@@ -1,6 +1,7 @@
 (load "core/base/prelude.ss")
 (load "core/autodiff/comp-graph.ss")
 (load "core/autodiff/reverse-diff.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'profiling)
 (doc 'description "Performance Profiling for Autodiff - utilities for profiling and debugging autodiff performance")
@@ -340,7 +341,7 @@
                                      (loop (+ i 1) (cons us acc)))))]
          [total (apply + times)]
          [avg (/ total iterations)]
-         [sorted (list-sort < times)]
+         [sorted (sort-by < times)]
          [min-t (car sorted)]
          [max-t (car (reverse sorted))]
          [median (list-ref sorted (quotient iterations 2))])

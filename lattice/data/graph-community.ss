@@ -1,8 +1,9 @@
 ;;; lattice/data/graph-community.ss — Community Detection
 ;;; @module graph-community
-;;; @requires prelude
+;;; @requires prelude sort
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'graph-community)
 (doc 'description "Community detection and minimum spanning tree algorithms")
@@ -136,7 +137,7 @@
         (hashtable-set! groups lbl (cons i existing))))
     ;; Collect all groups, sorted by label for deterministic output
     (let* ([keys (hashtable-keys groups)]
-           [sorted-keys (list-sort < (vector->list keys))])
+           [sorted-keys (sort-by < (vector->list keys))])
       (map (lambda (k) (reverse (hashtable-ref groups k '()))) sorted-keys))))
 
 ;;; num-communities : Vector → Nat
@@ -308,7 +309,7 @@
 (doc kruskal-mst 'note "Complexity: O(m log m) for sorting, O(m α(n)) for union-find")
 (define (kruskal-mst edges n)
   (let* (;; Sort edges by weight (ascending)
-         [sorted-edges (list-sort (lambda (a b) (< (caddr a) (caddr b)))
+         [sorted-edges (sort-by (lambda (a b) (< (caddr a) (caddr b)))
                                   edges)]
          ;; Union-find data structures
          [parent (make-vector n 0)]
@@ -653,7 +654,7 @@
         (hashtable-set! groups lbl (cons i existing))))
     ;; Compute Betti numbers for each community, preserving original labels
     (let* ([keys (hashtable-keys groups)]
-           [sorted-keys (list-sort < (vector->list keys))])
+           [sorted-keys (sort-by < (vector->list keys))])
       (map (lambda (lbl)
              (let* ([nodes (reverse (hashtable-ref groups lbl '()))]
                     [size (length nodes)]

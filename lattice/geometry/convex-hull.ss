@@ -1,9 +1,10 @@
 ;;; lattice/geometry/convex-hull.ss --- 2D convex hull algorithms
 ;;; @module convex-hull
-;;; @requires prelude geometry/mesh-gen
+;;; @requires prelude geometry/mesh-gen sort
 
 (load "core/base/prelude.ss")
 (load "lattice/geometry/mesh-gen.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'convex-hull)
 (doc 'description "Convex hull algorithms: Graham scan, Quickhull, and utilities")
@@ -82,7 +83,7 @@
                                      (= (point2-y p) (point2-y origin)))))
                          points)]
          ;; Sort by polar angle
-         [sorted (list-sort
+         [sorted (sort-by
                   (lambda (a b)
                     (let ([angle-a (polar-angle origin a)]
                           [angle-b (polar-angle origin b)])
@@ -389,9 +390,9 @@
   (if (or (null? hull-a) (null? hull-b))
       '()
       ;; For two convex polygons in CCW order, merge their edge directions
-      (let* ([edges-a (list-sort (lambda (x y) (< (cdr x) (cdr y)))
+      (let* ([edges-a (sort-by (lambda (x y) (< (cdr x) (cdr y)))
                                  (polygon-edges hull-a))]
-             [edges-b (list-sort (lambda (x y) (< (cdr x) (cdr y)))
+             [edges-b (sort-by (lambda (x y) (< (cdr x) (cdr y)))
                                  (polygon-edges hull-b))]
              [merged (merge-edges-ccw edges-a edges-b)]
              ;; Start from sum of bottom-left vertices

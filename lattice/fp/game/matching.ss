@@ -1,11 +1,12 @@
 ;;; lattice/fp/game/matching.ss — Stable Matching
 ;;; @module matching
-;;; @requires prelude lp ilp coop-games
+;;; @requires prelude lp ilp coop-games sort
 
 (load "core/base/prelude.ss")
 (load "lattice/optimization/lp.ss")
 (load "lattice/optimization/ilp.ss")
 (load "lattice/fp/game/coop-games.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'matching)
 (doc 'description "Stable matching, assignment games, and optimal matching. Includes the Gale-Shapley deferred acceptance algorithm, bipartite assignment games with connections to cooperative game theory, and optimal assignment via linear programming")
@@ -645,7 +646,7 @@
 ;;; sort-numbers : List → List
 ;;; Sort a list of numbers in ascending order.
 (define (sort-numbers lst)
-  (list-sort < lst))
+  (sort-by < lst))
 
 ;;; remove-duplicates-numbers : List → List
 ;;; Remove duplicate numbers from sorted list.

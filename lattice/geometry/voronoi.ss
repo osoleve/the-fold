@@ -1,10 +1,11 @@
 ;;; lattice/geometry/voronoi.ss --- Voronoi diagrams via Delaunay duality
 ;;; @module voronoi
-;;; @requires prelude geometry/mesh-gen geometry/convex-hull
+;;; @requires prelude geometry/mesh-gen geometry/convex-hull sort
 
 (load "core/base/prelude.ss")
 (load "lattice/geometry/mesh-gen.ss")
 (load "lattice/geometry/convex-hull.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'voronoi)
 (doc 'description "Voronoi diagram computation via Delaunay duality")
@@ -159,7 +160,7 @@
 (define (order-cell-vertices site vertices)
   (if (< (length vertices) 2)
       vertices
-      (list-sort
+      (sort-by
        (lambda (a b)
          (< (angle-from-site site a)
             (angle-from-site site b)))
@@ -171,7 +172,7 @@
   ;; Sort triangle indices directly by angle of their circumcenters
   ;; This avoids the co-circular issue where points-equal? finds wrong index
   (let ([sorted-indices
-         (list-sort
+         (sort-by
           (lambda (ti1 ti2)
             (< (angle-from-site site (vector-ref circumcenters ti1))
                (angle-from-site site (vector-ref circumcenters ti2))))

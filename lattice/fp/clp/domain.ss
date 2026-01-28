@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'domain)
 (doc 'description "Finite Domain Representation")
@@ -33,7 +34,7 @@
   (doc 'note "Values need not be sorted or unique")
   (if (null? vals)
       '()
-      (let ([sorted (list-sort < (list-uniq vals))])
+      (let ([sorted (sort-by < (list-uniq vals))])
            (intervals-from-sorted sorted))))
 
 (define (intervals-from-sorted sorted)
@@ -184,7 +185,7 @@
   (doc 'description "Merge and normalize a list of intervals")
   (if (null? intervals)
       '()
-      (let ([sorted (list-sort interval<? intervals)])
+      (let ([sorted (sort-by interval<? intervals)])
            (let loop ([rest (cdr sorted)]
                       [current (car sorted)]
                       [acc '()])

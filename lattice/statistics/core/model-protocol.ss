@@ -7,10 +7,12 @@
 ;;;
 ;;; @requires lattice/fp/protocol.ss
 ;;; @requires lattice/statistics/core/result-types.ss
+;;; @requires lattice/data/sort.ss
 
 (load "core/base/prelude.ss")
 (load "lattice/fp/protocol.ss")
 (load "lattice/statistics/core/result-types.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'model-protocol)
 (doc 'description "Unified protocol interface for statistical models")
@@ -361,7 +363,7 @@
   (doc 'type '(-> (List Model) (List (Pair Model Num))))
   (doc 'description "Compare models by AIC, return sorted by delta-AIC from best")
   (let* ([aics (map (lambda (m) (cons m (model-aic m))) models)]
-         [sorted (list-sort (lambda (a b) (< (cdr a) (cdr b))) aics)]
+         [sorted (sort-by (lambda (a b) (< (cdr a) (cdr b))) aics)]
          [min-aic (cdr (car sorted))])
     (map (lambda (pair)
            (cons (car pair) (- (cdr pair) min-aic)))
@@ -374,7 +376,7 @@
   (doc 'type '(-> (List Model) (List (Pair Model Num))))
   (doc 'description "Compare models by BIC, return sorted by delta-BIC from best")
   (let* ([bics (map (lambda (m) (cons m (model-bic m))) models)]
-         [sorted (list-sort (lambda (a b) (< (cdr a) (cdr b))) bics)]
+         [sorted (sort-by (lambda (a b) (< (cdr a) (cdr b))) bics)]
          [min-bic (cdr (car sorted))])
     (map (lambda (pair)
            (cons (car pair) (- (cdr pair) min-bic)))

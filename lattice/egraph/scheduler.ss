@@ -14,6 +14,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/egraph/saturation.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'egraph/scheduler)
 (doc 'description "Rule scheduling strategies for equality saturation")
@@ -225,7 +226,7 @@
       (map make-rule-stats rules))
     ;; select: sort by priority, return all roots
     (lambda (state eg)
-      (let* ([sorted (list-sort (lambda (a b)
+      (let* ([sorted (sort-by (lambda (a b)
                                   (> (stats-priority a) (stats-priority b)))
                                 state)]
              [rules (map stats-rule sorted)])

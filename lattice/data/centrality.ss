@@ -1,8 +1,9 @@
 ;;; lattice/data/centrality.ss — Graph Centrality Measures
 ;;; @module centrality
-;;; @requires prelude
+;;; @requires prelude sort
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'centrality)
 (doc 'description "Graph centrality measures: eigenvector, Katz, closeness, and betweenness centrality")
@@ -385,7 +386,7 @@
                          acc
                          (loop (+ i 1)
                                (cons (cons i (vector-ref scores i)) acc))))])
-        (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)))
+        (sort-by (lambda (a b) (> (cdr a) (cdr b))) pairs)))
 
 (doc top-k-central 'type '(-> Vec Nat (List (Pair Nat Num))))
 (doc top-k-central 'description "Return top k nodes by centrality")

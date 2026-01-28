@@ -1,4 +1,5 @@
 (load "lattice/info/entropy.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'coding)
 (doc 'description "Coding theory functions: Huffman, arithmetic, LZ78, RLE, and channel coding")
@@ -69,22 +70,8 @@
 (define (sort-by-prob nodes)
   (doc 'type '(-> (List Node) (List Node)))
   (doc 'description "Sort nodes by probability (ascending)")
-  (list-sort (lambda (a b) (< (huffman-prob a) (huffman-prob b))) nodes))
+  (sort-by (lambda (a b) (< (huffman-prob a) (huffman-prob b))) nodes))
 
-(define (list-sort less? lst)
-  (doc 'type '(-> (-> α α Boolean) (List α) (List α)))
-  (doc 'description "Simple insertion sort for small alphabets")
-  (if (null? lst)
-      '()
-      (insert-sorted less? (car lst) (list-sort less? (cdr lst)))))
-
-(define (insert-sorted less? x sorted)
-  (doc 'type '(-> (-> α α Boolean) α (List α) (List α)))
-  (if (null? sorted)
-      (list x)
-      (if (less? x (car sorted))
-          (cons x sorted)
-          (cons (car sorted) (insert-sorted less? x (cdr sorted))))))
 
 (define (huffman-codes tree)
   (doc 'export #t)

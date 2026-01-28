@@ -1,6 +1,7 @@
 (load "lattice/fp/sat/cnf.ss")
 (load "lattice/fp/sat/assignment.ss")
 (load "lattice/fp/sat/watches.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'solver)
 (doc 'description "CDCL SAT solver - Conflict-Driven Clause Learning")
@@ -223,7 +224,7 @@
   (let ([levels (map (lambda (lit)
                              (assignment-level a (lit-var lit)))
                      clause)])
-       (let ([sorted (list-sort > levels)])
+       (let ([sorted (sort-by > levels)])
             (if (or (null? sorted) (null? (cdr sorted)))
                 0
                 (cadr sorted)))))

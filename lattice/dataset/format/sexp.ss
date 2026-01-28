@@ -1,9 +1,10 @@
 ;;; lattice/dataset/format/sexp.ss — Canonical S-expression Format
 ;;; @module sexp
-;;; @requires prelude sample
+;;; @requires prelude sample sort
 
 (load "core/base/prelude.ss")
 (load "lattice/dataset/sample.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'sexp)
 (doc 'description "Canonical S-expression format for samples. This is the native storage format, content-addressed via the CAS.")
@@ -38,7 +39,7 @@
 ;;; sort-alist : Alist → Alist
 ;;; Sort by key for canonical ordering
 (define (sort-alist al)
-  (list-sort (lambda (a b)
+  (sort-by (lambda (a b)
               (string<? (symbol->string (car a))
                         (symbol->string (car b))))
             al))

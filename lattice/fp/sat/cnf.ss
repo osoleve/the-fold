@@ -1,4 +1,5 @@
 (load "lattice/fp/sat/clause.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'cnf)
 (doc 'description "CNF formula representation - conjunction of clauses")
@@ -74,7 +75,7 @@
   (doc 'export #t)
   (doc 'type '(-> CNF (List VarId)))
   (doc 'description "Get sorted list of all variable ids in CNF")
-  (list-sort < (list-unique
+  (sort-by < (list-unique
                 (apply append
                        (map clause-vars (cnf-clauses cnf))))))
 

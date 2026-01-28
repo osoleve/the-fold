@@ -1,6 +1,8 @@
 ;;; lattice/linalg/sparse.ss — Sparse Matrix Operations
 ;;; @module sparse
-;;; @requires prelude vec matrix
+;;; @requires prelude vec matrix sort
+
+(load "lattice/data/sort.ss")
 
 (doc 'module 'sparse
      'description "Sparse Matrix Operations
@@ -626,7 +628,7 @@ Dependencies:
                                                                   (cons (list (car key) (cdr key) v)
                                                                         result)))))))]
                            ;; Sort by (row, col) for consistent output
-                           [sorted (list-sort (lambda (a b)
+                           [sorted (sort-by (lambda (a b)
                                                       (or (< (car a) (car b))
                                                           (and (= (car a) (car b))
                                                                (< (cadr a) (cadr b)))))
@@ -733,7 +735,7 @@ Dependencies:
                                                                                    result))))))])
                                                    (row-loop (+ i 1) (append row-triplets triplets)))))))]
                   ;; Sort triplets by (row, col)
-                  [sorted (list-sort (lambda (a b)
+                  [sorted (sort-by (lambda (a b)
                                              (or (< (car a) (car b))
                                                  (and (= (car a) (car b))
                                                       (< (cadr a) (cadr b)))))

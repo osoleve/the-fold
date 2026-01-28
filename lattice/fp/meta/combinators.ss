@@ -1,8 +1,9 @@
 ;;; lattice/fp/meta/combinators.ss — FP Combinators
 ;;; @module combinators
-;;; @requires prelude
+;;; @requires prelude sort
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'combinators)
 (doc 'description "Practical FP combinators — Higher-order function utilities and combinators for functional programming patterns without requiring full type class machinery. Features: function composition (compose, pipe), currying and partial application, common combinators (id, const, flip, on), tuple operations, function lifting and application, logical combinators, Maybe/Option operations, Either/Result operations.")
@@ -408,10 +409,6 @@
                         (loop (cdr xs) current-key (cons (car xs) current-group) groups)
                         (loop (cdr xs) k (list (car xs)) (cons (reverse current-group) groups))))))))
 
-(define (sort-by key xs)
-  (doc 'type '(-> (-> a b) (List a) (List a)))
-  (doc 'description "Sort by key function (stable)")
-  (list-sort (lambda (a b) (< (key a) (key b))) xs))
 
 (define (dedup-consecutive xs)
   (doc 'type '(-> (List a) (List a)))

@@ -3,6 +3,7 @@
 (load "lattice/linalg/vec2.ss")
 (load "user/creations/ascii-video.ss")
 (load "lattice/physics/classical/world.ss")
+(load "lattice/data/sort.ss")
 
 
 (doc 'module 'ascii-renderer)
@@ -228,7 +229,7 @@
               (do ([y (max 0 min-y) (+ y 1)])
                   ((> y (min (- h 1) max-y)))
                   (let* ([intersections (polygon-scanline-intersections screen-verts y)]
-                         [sorted (list-sort < intersections)])
+                         [sorted (sort-by < intersections)])
                         (fill-between-pairs! frame sorted y char config))))))
 
 (doc 'section 'aabb)

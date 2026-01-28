@@ -1,4 +1,5 @@
 (load "lattice/fp/sat/literal.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'clause)
 (doc 'description "SAT clause representation - a disjunction of literals")
@@ -24,7 +25,7 @@
 (define (clause-normalize lits)
   (doc 'type '(-> (List Literal) Clause))
   (doc 'description "Normalize clause: remove duplicates, sort, detect tautology")
-  (let* ([sorted (list-sort < lits)]
+  (let* ([sorted (sort-by < lits)]
          [deduped (clause-dedup sorted)])
         ;; Check for tautology (x and ~x in same clause)
         (if (clause-tautology? deduped)

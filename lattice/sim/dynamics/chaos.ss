@@ -2,6 +2,7 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/sim/dynamics/ode-system.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'chaos)
 (doc 'description "Chaos detection and analysis: Lyapunov exponents, fractal dimension, strange attractors, Poincaré sections")
@@ -409,7 +410,7 @@
   (doc 'type '(-> (List Number) Number))
   (doc 'description "Compute Kaplan-Yorke (Lyapunov) dimension from exponents")
   (doc 'note "Sorted exponents λ₁ ≥ λ₂ ≥ ... → D_KY = j + Σᵢ₌₁ʲλᵢ/|λⱼ₊₁| where j is largest index with Σλᵢ ≥ 0")
-  (let* ([sorted (list-sort > lyap-exponents)]
+  (let* ([sorted (sort-by > lyap-exponents)]
          [n (length sorted)])
         (let loop ([j 0] [sum 0.0])
              (if (>= j n)

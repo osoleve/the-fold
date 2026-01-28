@@ -1,6 +1,8 @@
 ;;; lattice/linalg/graph-laplacian.ss — Laplacian Matrices
 ;;; @module graph-laplacian
-;;; @requires prelude matrix matrix-eigen graph-matrix
+;;; @requires prelude matrix matrix-eigen graph-matrix sort
+
+(load "lattice/data/sort.ss")
 
 (doc 'module 'graph-laplacian)
 (doc 'description "Laplacian matrices for spectral graph theory and analysis")
@@ -559,7 +561,7 @@
                       acc
                       (loop (+ i 1) (cons (cons (abs (vector-ref v i)) i) acc))))]
          ;; Sort by value
-         [sorted (list-sort (lambda (a b) (< (car a) (car b))) pairs)]
+         [sorted (sort-by (lambda (a b) (< (car a) (car b))) pairs)]
          ;; Take first k indices
          [k-actual (min k n)])
     (let loop ([remaining sorted] [count 0] [result '()])

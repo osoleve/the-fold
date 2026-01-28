@@ -1,10 +1,11 @@
 ;;; lattice/dataset/distractor.ss — Plausible Wrong Answer Generation
 ;;; @module distractor
-;;; @requires prelude random parameter
+;;; @requires prelude random parameter sort
 
 (load "core/base/prelude.ss")
 (load "lattice/random/prng.ss")
 (load "lattice/dataset/parameter.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'distractor)
 (doc 'description "Strategies for generating plausible wrong answers (distractors) for multiple choice problems. Distractors should be wrong but reasonable - common mistakes, off-by-one errors, sign flips, etc.")
@@ -293,7 +294,7 @@
          [distractor-strs (generate-unique-formatted-distractors
                            correct correct-str strategies 3 rng formatter)]
          [all-strs (cons correct-str distractor-strs)]
-         [sorted (list-sort string<? all-strs)]
+         [sorted (sort-by string<? all-strs)]
          [labels '(A B C D)]
          [options (map cons labels sorted)]
          [correct-label (find-label-for-string options correct-str)])

@@ -1,5 +1,6 @@
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'fsm)
 (doc 'description "Finite State Machine Library — A pure functional implementation of finite state machines supporting deterministic (DFA), non-deterministic (NFA), and epsilon-NFA automata.")
@@ -322,7 +323,7 @@
                                          (symbol->string s)
                                          (string-append acc "," (symbol->string s))))
                              ""
-                             (list-sort symbol<? states))
+                             (sort-by symbol<? states))
                   "}")))
 
 ;;; symbol<? : Symbol × Symbol → Boolean

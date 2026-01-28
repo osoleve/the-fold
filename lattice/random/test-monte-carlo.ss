@@ -5,6 +5,7 @@
 
 (load "core/test-framework.ss")
 (load "lattice/random/monte-carlo.ss")
+(load "lattice/data/sort.ss")
 
 (display "
 ====
@@ -511,20 +512,20 @@
             (define-test take-all
               (assert-equal '(1 2 3) (take 5 '(1 2 3))))
             
-            (define-test list-sort-empty
-              (assert-equal '() (list-sort < '())))
+            (define-test sort-by-empty
+              (assert-equal '() (sort-by < '())))
             
-            (define-test list-sort-single
-              (assert-equal '(5) (list-sort < '(5))))
+            (define-test sort-by-single
+              (assert-equal '(5) (sort-by < '(5))))
             
-            (define-test list-sort-ascending
-              (assert-equal '(1 1 2 3 4 5 9) (list-sort < '(3 1 4 1 5 9 2))))
+            (define-test sort-by-ascending
+              (assert-equal '(1 1 2 3 4 5 9) (sort-by < '(3 1 4 1 5 9 2))))
             
-            (define-test list-sort-descending
-              (assert-equal '(9 5 4 3 2 1 1) (list-sort > '(3 1 4 1 5 9 2))))
+            (define-test sort-by-descending
+              (assert-equal '(9 5 4 3 2 1 1) (sort-by > '(3 1 4 1 5 9 2))))
             
-            (define-test list-sort-already-sorted
-              (assert-equal '(1 2 3 4 5) (list-sort < '(1 2 3 4 5))))
+            (define-test sort-by-already-sorted
+              (assert-equal '(1 2 3 4 5) (sort-by < '(1 2 3 4 5))))
             )
 
 ;;; ====

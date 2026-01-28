@@ -1,5 +1,6 @@
 (load "core/base/prelude.ss")
 (load "lattice/algebra/field.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'multivariate)
 (doc 'description "Multivariate polynomial algebra")
@@ -29,7 +30,7 @@
 
 ;;; sort-by-var : (List (Symbol × Nat)) → (List (Symbol × Nat))
 (define (sort-by-var pairs)
-  (list-sort (lambda (a b) (symbol<? (car a) (car b))) pairs))
+  (sort-by (lambda (a b) (symbol<? (car a) (car b))) pairs))
 
 ;;; symbol<? : Symbol × Symbol → Boolean
 (define (symbol<? a b)
@@ -313,7 +314,7 @@
          ;; Remove zero coefficients
          [nonzero (filter (lambda (t) (not (eq-fn (car t) zero))) combined)]
          ;; Sort by monomial (descending = largest first)
-         [sorted (list-sort
+         [sorted (sort-by
                   (lambda (t1 t2) (> (ordering (cdr t1) (cdr t2)) 0))
                   nonzero)])
     (if (null? sorted)
