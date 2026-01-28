@@ -794,6 +794,19 @@
                                 (scan (+ i 1))))
                           ;; Simple char like #\) or #\(
                           (loop (+ char-pos 1) d in-str)))))]
+             ;; Nested datum comment #; - skip its target datum entirely
+             [(and (char=? c #\#) next-c (char=? next-c #\;))
+              (let-values ([(new-col new-str inner-depth)
+                            (skip-datum-with-depth line (+ col 2) in-str)])
+                (if (= inner-depth 0)
+                    ;; Inner datum complete on this line, continue
+                    (loop new-col d new-str)
+                    ;; Inner datum spans lines - return with encoded state
+                    ;; We need to finish inner datum, then continue with our depth
+                    ;; Encode: negative offset from -2000 to signal nested #;
+                    ;; -2000 + inner-depth = state, and we save our d separately
+                    ;; Actually, simpler: just return our current depth, caller handles
+                    (values new-col new-str d)))]
              ;; Pipe-quoted symbol |...| - skip to closing pipe
              [(char=? c #\|)
               (let scan-pipe ([i (+ col 1)])
