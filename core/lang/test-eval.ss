@@ -1,440 +1,551 @@
 ;;; Test harness for core/lang/eval.ss — The Evaluator
+;;; Standardized to use test-framework.ss
 
+(load "core/testing/test-framework.ss")
 (load "core/blocks/block.ss")
 (load "core/lang/prim.ss")
 (load "core/lang/eval.ss")
 
-(define (test name expected actual)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (if (equal? expected actual)
-      (display "✓")
-      (begin
-       (display "✗
-    expected: ")
-       (display expected)
-       (display "
-    got: ")
-       (display actual)))
-  (newline))
+;;; ============================================================================
+;;; Eval-specific assertion helpers
+;;; These integrate with the test framework's failure counting while
+;;; understanding the evaluator's result types: (ok value fuel) | (error msg) | (suspended ...)
+;;; ============================================================================
 
-(define (test-ok name expected result)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (if (and (pair? result)
-           (eq? (car result) 'ok)
-           (equal? expected (cadr result)))
-      (display "✓")
-      (begin
-       (display "✗
-    expected: (ok ")
-       (display expected)
-       (display ")
-    got: ")
-       (display result)))
-  (newline))
+(define (assert-eval-ok expected result)
+  (doc 'description "Assert that result is (ok expected ...). Integrates with test framework.")
+  (unless (and (pair? result)
+               (eq? (car result) 'ok)
+               (equal? expected (cadr result)))
+    (inc-failed!)
+    (display "    ✗ ")
+    (display (ctx-name))
+    (newline)
+    (display "      Expected: (ok ")
+    (write expected)
+    (display " ...)")
+    (newline)
+    (display "      Got:      ")
+    (write result)
+    (newline)))
 
-(define (test-error name result)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (if (and (pair? result) (eq? (car result) 'error))
-      (display "✓")
-      (begin
-       (display "✗
-    expected error, got: ")
-       (display result)))
-  (newline))
+(define (assert-eval-error result)
+  (doc 'description "Assert that result is (error ...). Integrates with test framework.")
+  (unless (and (pair? result) (eq? (car result) 'error))
+    (inc-failed!)
+    (display "    ✗ ")
+    (display (ctx-name))
+    (newline)
+    (display "      Expected error, got: ")
+    (write result)
+    (newline)))
 
-(define (test-suspended name result)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (if (and (pair? result) (eq? (car result) 'suspended))
-      (display "✓")
-      (begin
-       (display "✗
-    expected suspended, got: ")
-       (display result)))
-  (newline))
+(define (assert-eval-suspended result)
+  (doc 'description "Assert that result is (suspended ...). Integrates with test framework.")
+  (unless (and (pair? result) (eq? (car result) 'suspended))
+    (inc-failed!)
+    (display "    ✗ ")
+    (display (ctx-name))
+    (newline)
+    (display "      Expected suspended, got: ")
+    (write result)
+    (newline)))
 
-(define (test-section name)
-  (newline)
-  (display name)
-  (newline))
+(define (assert-fuel-remaining expected result)
+  (doc 'description "Assert remaining fuel in an (ok value fuel) result.")
+  (unless (and (pair? result)
+               (eq? (car result) 'ok)
+               (= expected (caddr result)))
+    (inc-failed!)
+    (display "    ✗ ")
+    (display (ctx-name))
+    (newline)
+    (display "      Expected remaining fuel: ")
+    (write expected)
+    (newline)
+    (display "      Got result: ")
+    (write result)
+    (newline)))
 
-;;; ====
-;;; Literals and Quote
-;;; ====
-(test-section "Literals and Quote")
+;;; ============================================================================
+;;; Tests
+;;; ============================================================================
 
-(test-ok "number" 42 (run '42 100))
-(test-ok "string" "hello" (run '"hello" 100))
-(test-ok "boolean true" #t (run '#t 100))
-(test-ok "boolean false" #f (run '#f 100))
-(test-ok "quoted symbol" 'foo (run ''foo 100))
-(test-ok "quoted list" '(1 2 3) (run ''(1 2 3) 100))
+(test-group literals-and-quote
+  (define-test "number"
+    (assert-eval-ok 42 (run '42 100)))
 
-;;; ====
-;;; Lambda and Application
-;;; ====
-(test-section "Lambda and Application")
+  (define-test "string"
+    (assert-eval-ok "hello" (run '"hello" 100)))
 
-;; Identity function
-(define id-result (run '(fn (x) x) 100))
-(test "identity is closure" #t (and (eq? (car id-result) 'ok)
-                                    (closure? (cadr id-result))))
+  (define-test "boolean true"
+    (assert-eval-ok #t (run '#t 100)))
 
-;; Application
-(test-ok "apply identity" 42 (run '((fn (x) x) 42) 100))
-(test-ok "apply const" 1 (run '((fn (x) ((fn (y) x) 2)) 1) 100))
+  (define-test "boolean false"
+    (assert-eval-ok #f (run '#f 100)))
 
-;; Multi-argument
-(test-ok "multi-arg" 3 (run '((fn (x y) (prim 'add x y)) 1 2) 100))
+  (define-test "quoted symbol"
+    (assert-eval-ok 'foo (run ''foo 100)))
 
-;;; ====
-;;; Let Bindings
-;;; ====
-(test-section "Let Bindings")
+  (define-test "quoted list"
+    (assert-eval-ok '(1 2 3) (run ''(1 2 3) 100))))
 
-(test-ok "simple let" 42 (run '(let ((x 42)) x) 100))
-(test-ok "let with computation" 10
-         (run '(let ((x 3) (y 7)) (prim 'add x y)) 100))
-(test-ok "nested let" 6
-         (run '(let ((x 1))
-                (let ((y 2))
-                     (let ((z 3))
-                          (prim 'add x (prim 'add y z)))))
-              100))
-(test-ok "let shadowing" 2
-         (run '(let ((x 1))
-                (let ((x 2))
-                     x))
-              100))
+(test-group lambda-and-application
+  (define-test "identity is closure"
+    (let ([result (run '(fn (x) x) 100)])
+      (assert-true (and (eq? (car result) 'ok)
+                        (closure? (cadr result))))))
 
-;;; ====
-;;; Fix (Recursion)
-;;; ====
-(test-section "Fix (Recursion)")
+  (define-test "apply identity"
+    (assert-eval-ok 42 (run '((fn (x) x) 42) 100)))
 
-;; Factorial
-(test-ok "factorial 0" 1
-         (run '(let ((fact (fix fact (fn (n)
-                                         (if (prim 'zero? n)
-                                             1
-                                             (prim 'mul n (fact (prim 'sub n 1))))))))
-                (fact 0))
-              100))
+  (define-test "apply const"
+    (assert-eval-ok 1 (run '((fn (x) ((fn (y) x) 2)) 1) 100)))
 
-(test-ok "factorial 5" 120
-         (run '(let ((fact (fix fact (fn (n)
-                                         (if (prim 'zero? n)
-                                             1
-                                             (prim 'mul n (fact (prim 'sub n 1))))))))
-                (fact 5))
-              500))
+  (define-test "multi-arg"
+    (assert-eval-ok 3 (run '((fn (x y) (prim 'add x y)) 1 2) 100))))
 
-;; Fibonacci (costs more fuel)
-(test-ok "fibonacci 6" 8
-         (run '(let ((fib (fix fib (fn (n)
-                                       (if (prim 'lt? n 2)
-                                           n
-                                           (prim 'add (fib (prim 'sub n 1))
-                                                 (fib (prim 'sub n 2))))))))
-                (fib 6))
-              1000))
+(test-group let-bindings
+  (define-test "simple let"
+    (assert-eval-ok 42 (run '(let ((x 42)) x) 100)))
 
-;;; ====
-;;; If Conditional
-;;; ====
-(test-section "If Conditional")
+  (define-test "let with computation"
+    (assert-eval-ok 10 (run '(let ((x 3) (y 7)) (prim 'add x y)) 100)))
 
-(test-ok "if true" 1 (run '(if #t 1 2) 100))
-(test-ok "if false" 2 (run '(if #f 1 2) 100))
-(test-ok "if computed" 'yes
-         (run '(if (prim 'lt? 1 2) 'yes 'no) 100))
-(test-ok "nested if" 3
-         (run '(if (prim 'gt? 5 10)
+  (define-test "nested let"
+    (assert-eval-ok 6
+      (run '(let ((x 1))
+              (let ((y 2))
+                (let ((z 3))
+                  (prim 'add x (prim 'add y z)))))
+           100)))
+
+  (define-test "let shadowing"
+    (assert-eval-ok 2
+      (run '(let ((x 1))
+              (let ((x 2))
+                x))
+           100))))
+
+(test-group fix-recursion
+  (define-test "factorial 0"
+    (assert-eval-ok 1
+      (run '(let ((fact (fix fact (fn (n)
+                                    (if (prim 'zero? n)
+                                        1
+                                        (prim 'mul n (fact (prim 'sub n 1))))))))
+              (fact 0))
+           100)))
+
+  (define-test "factorial 5"
+    (assert-eval-ok 120
+      (run '(let ((fact (fix fact (fn (n)
+                                    (if (prim 'zero? n)
+                                        1
+                                        (prim 'mul n (fact (prim 'sub n 1))))))))
+              (fact 5))
+           500)))
+
+  (define-test "fibonacci 6"
+    (assert-eval-ok 8
+      (run '(let ((fib (fix fib (fn (n)
+                                  (if (prim 'lt? n 2)
+                                      n
+                                      (prim 'add (fib (prim 'sub n 1))
+                                            (fib (prim 'sub n 2))))))))
+              (fib 6))
+           1000))))
+
+(test-group if-conditional
+  (define-test "if true"
+    (assert-eval-ok 1 (run '(if #t 1 2) 100)))
+
+  (define-test "if false"
+    (assert-eval-ok 2 (run '(if #f 1 2) 100)))
+
+  (define-test "if computed"
+    (assert-eval-ok 'yes (run '(if (prim 'lt? 1 2) 'yes 'no) 100)))
+
+  (define-test "nested if"
+    (assert-eval-ok 3
+      (run '(if (prim 'gt? 5 10)
                 1
                 (if (prim 'gt? 5 3)
                     3
                     2))
-              100))
+           100))))
 
-;;; ====
-;;; Primitives
-;;; ====
-(test-section "Primitives")
+(test-group primitives
+  (define-test "add"
+    (assert-eval-ok 5 (run '(prim 'add 2 3) 100)))
 
-(test-ok "add" 5 (run '(prim 'add 2 3) 100))
-(test-ok "sub" 7 (run '(prim 'sub 10 3) 100))
-(test-ok "mul" 12 (run '(prim 'mul 3 4) 100))
-(test-ok "div" 3 (run '(prim 'div 10 3) 100))
-(test-ok "neg" -5 (run '(prim 'neg 5) 100))
-(test-ok "eq? true" #t (run '(prim 'eq? 1 1) 100))
-(test-ok "eq? false" #f (run '(prim 'eq? 1 2) 100))
-(test-ok "lt?" #t (run '(prim 'lt? 1 2) 100))
-(test-ok "not" #t (run '(prim 'not #f) 100))
+  (define-test "sub"
+    (assert-eval-ok 7 (run '(prim 'sub 10 3) 100)))
 
-;; List primitives
-(test-ok "cons" '(1 . 2) (run '(prim 'cons 1 2) 100))
-(test-ok "car" 1 (run '(prim 'car (prim 'cons 1 2)) 100))
-(test-ok "cdr" 2 (run '(prim 'cdr (prim 'cons 1 2)) 100))
-(test-ok "null?" #t (run '(prim 'null? '()) 100))
-(test-ok "list" '(1 2 3) (run '(prim 'list 1 2 3) 100))
+  (define-test "mul"
+    (assert-eval-ok 12 (run '(prim 'mul 3 4) 100)))
 
-;;; ====
-;;; Fuel and Suspension
-;;; ====
-(test-section "Fuel and Suspension")
+  (define-test "div"
+    (assert-eval-ok 3 (run '(prim 'div 10 3) 100)))
 
-;; With enough fuel, complete
-(test-ok "enough fuel" 42 (run '((fn (x) x) 42) 10))
+  (define-test "neg"
+    (assert-eval-ok -5 (run '(prim 'neg 5) 100)))
 
-;; With zero fuel, suspend immediately
-(test-suspended "zero fuel" (run '((fn (x) x) 42) 0))
+  (define-test "eq? true"
+    (assert-eval-ok #t (run '(prim 'eq? 1 1) 100)))
 
-;; Run factorial with limited fuel — should suspend
-(define limited-result
-  (run '(let ((fact (fix fact (fn (n)
-                                  (if (prim 'zero? n)
-                                      1
-                                      (prim 'mul n (fact (prim 'sub n 1))))))))
-         (fact 10))
-       50))
-(test-suspended "limited fuel suspends" limited-result)
+  (define-test "eq? false"
+    (assert-eval-ok #f (run '(prim 'eq? 1 2) 100)))
 
-;;; ====
-;;; Blocks and Case
-;;; ====
-(test-section "Blocks and Case")
+  (define-test "lt?"
+    (assert-eval-ok #t (run '(prim 'lt? 1 2) 100)))
 
-;; Create a simple block
-(define test-block
-  (run '(prim 'make-block 'Just "hello" (prim 'vec-empty)) 100))
-(test "make-block ok" 'ok (car test-block))
+  (define-test "not"
+    (assert-eval-ok #t (run '(prim 'not #f) 100)))
 
-;; Case on a block (with no refs, pattern has no vars)
-(test-ok "case match" "found it"
-         (run '(let ((b (prim 'make-block 'Just "payload" (prim 'vec-empty))))
-                (case b
-                      ((Nothing) "nothing")
-                      ((Just) "found it")))
-              100))
+  (define-test "cons"
+    (assert-eval-ok '(1 . 2) (run '(prim 'cons 1 2) 100)))
 
-;;; ====
-;;; Error Cases
-;;; ====
-(test-section "Error Cases")
+  (define-test "car"
+    (assert-eval-ok 1 (run '(prim 'car (prim 'cons 1 2)) 100)))
 
-(test-error "unbound variable" (run 'undefined 100))
-(test-error "apply non-function" (run '(42 1 2) 100))
-(test-error "arity mismatch" (run '((fn (x y) x) 1) 100))
-;; div by zero returns an error *value*, not an evaluation error
-(test-ok "div by zero" '(error div-by-zero) (run '(prim 'div 1 0) 100))
+  (define-test "cdr"
+    (assert-eval-ok 2 (run '(prim 'cdr (prim 'cons 1 2)) 100)))
 
-;;; ====
-;;; Complex Expressions
-;;; ====
-(test-section "Complex Expressions")
+  (define-test "null?"
+    (assert-eval-ok #t (run '(prim 'null? '()) 100)))
 
-;; Map over a list
-(test-ok "map double" '(2 4 6)
-         (run '(let ((map (fix map (fn (f xs)
-                                       (if (prim 'null? xs)
-                                           '()
-                                           (prim 'cons (f (prim 'car xs))
-                                                 (map f (prim 'cdr xs))))))))
-                (map (fn (x) (prim 'mul x 2)) '(1 2 3)))
-              500))
+  (define-test "list"
+    (assert-eval-ok '(1 2 3) (run '(prim 'list 1 2 3) 100))))
 
-;; Fold (reduce)
-(test-ok "fold sum" 10
-         (run '(let ((fold (fix fold (fn (f acc xs)
-                                         (if (prim 'null? xs)
-                                             acc
-                                             (fold f (f acc (prim 'car xs)) (prim 'cdr xs)))))))
-                (fold (fn (a b) (prim 'add a b)) 0 '(1 2 3 4)))
-              500))
+(test-group fuel-and-suspension
+  (define-test "enough fuel"
+    (assert-eval-ok 42 (run '((fn (x) x) 42) 10)))
 
-;; Compose
-(test-ok "compose" 7
-         (run '(let ((compose (fn (f g) (fn (x) (f (g x))))))
-                (let ((add1 (fn (x) (prim 'add x 1))))
-                     (let ((double (fn (x) (prim 'mul x 2))))
-                          ((compose add1 double) 3))))
-              100))
+  (define-test "zero fuel"
+    (assert-eval-suspended (run '((fn (x) x) 42) 0)))
 
-;;; ====
-;;; Prelude
-;;; ====
-(test-section "Prelude")
+  (define-test "limited fuel suspends"
+    (assert-eval-suspended
+      (run '(let ((fact (fix fact (fn (n)
+                                    (if (prim 'zero? n)
+                                        1
+                                        (prim 'mul n (fact (prim 'sub n 1))))))))
+              (fact 10))
+           50))))
 
-;; Basic combinators
-(test-ok "prelude id" 42 (run-prelude '(call id 42) 100))
-(test-ok "prelude const" 1 (run-prelude '(call (call const 1) 2) 100))
-(test-ok "prelude compose" 7
-         (run-prelude '(let ((add1 (fn (x) (prim 'add x 1)))
-                             (double (fn (x) (prim 'mul x 2))))
-                        (((compose add1) double) 3))
-                      200))
-(test-ok "prelude flip" 2
-         (run-prelude '(let ((sub (fn (a) (fn (b) (prim 'sub a b)))))
-                        (((flip sub) 3) 5))
-                      200))
+(test-group blocks-and-case
+  (define-test "make-block ok"
+    (let ([result (run '(prim 'make-block 'Just "hello" (prim 'vec-empty)) 100)])
+      (assert-equal 'ok (car result))))
 
-;; Pair operations
-(test-ok "prelude fst" 1 (run-prelude '(fst '(1 2)) 100))
-(test-ok "prelude snd" 2 (run-prelude '(snd '(1 2)) 100))
-(test-ok "prelude pair" '(3 4) (run-prelude '((pair 3) 4) 200))
+  (define-test "case match"
+    (assert-eval-ok "found it"
+      (run '(let ((b (prim 'make-block 'Just "payload" (prim 'vec-empty))))
+              (case b
+                ((Nothing) "nothing")
+                ((Just) "found it")))
+           100))))
 
-;; Boolean combinators
-(test-ok "prelude bool-not" #f (run-prelude '(bool-not #t) 100))
-(test-ok "prelude bool-and" #t (run-prelude '((bool-and #t) #t) 200))
-(test-ok "prelude bool-or" #t (run-prelude '((bool-or #f) #t) 200))
+(test-group error-cases
+  (define-test "unbound variable"
+    (assert-eval-error (run 'undefined 100)))
 
-;; List operations
-(test-ok "prelude map" '(2 4 6)
-         (run-prelude '(map (fn (x) (prim 'mul x 2)) '(1 2 3)) 500))
-(test-ok "prelude filter" '(2 4)
-         (run-prelude '(filter (fn (x) (prim 'eq? 0 (prim 'mod x 2))) '(1 2 3 4 5)) 500))
-(test-ok "prelude foldl" 10
-         (run-prelude '(foldl (fn (acc x) (prim 'add acc x)) 0 '(1 2 3 4)) 500))
-(test-ok "prelude foldr" '(1 2 3)
-         (run-prelude '(foldr (fn (x acc) (prim 'cons x acc)) '() '(1 2 3)) 500))
-(test-ok "prelude scanl" '(0 1 3 6 10)
-         (run-prelude '(scanl (fn (acc x) (prim 'add acc x)) 0 '(1 2 3 4)) 500))
-(test-ok "prelude scanl empty" '(0)
-         (run-prelude '(scanl (fn (acc x) (prim 'add acc x)) 0 '()) 500))
-(test-ok "prelude scanr" '(10 9 7 4 0)
-         (run-prelude '(scanr (fn (x acc) (prim 'add x acc)) 0 '(1 2 3 4)) 500))
-(test-ok "prelude scanr empty" '(0)
-         (run-prelude '(scanr (fn (x acc) (prim 'add x acc)) 0 '()) 500))
-(test-ok "prelude take" '(1 2 3)
-         (run-prelude '(take 3 '(1 2 3 4 5)) 300))
-(test-ok "prelude drop" '(4 5)
-         (run-prelude '(drop 3 '(1 2 3 4 5)) 300))
-(test-ok "prelude zip" '((1 4) (2 5) (3 6))
-         (run-prelude '(zip '(1 2 3) '(4 5 6)) 500))
-(test-ok "prelude range" '(1 2 3 4)
-         (run-prelude '(range 1 5) 300))
-(test-ok "prelude sum" 15
-         (run-prelude '(sum '(1 2 3 4 5)) 300))
-(test-ok "prelude product" 120
-         (run-prelude '(product '(1 2 3 4 5)) 300))
-(test-ok "prelude flatten" '(1 2 3 4 5 6)
-         (run-prelude '(flatten '((1 2) (3 4) (5 6))) 500))
-(test-ok "prelude flatten empty" '()
-         (run-prelude '(flatten '()) 300))
-(test-ok "prelude flatMap" '(1 1 2 2 3 3)
-         (run-prelude '((flatMap (fn (x) (prim 'list x x))) '(1 2 3)) 800))
-(test-ok "prelude any true" #t
-         (run-prelude '(any (fn (x) (prim 'eq? x 3)) '(1 2 3 4)) 500))
-(test-ok "prelude any false" #f
-         (run-prelude '(any (fn (x) (prim 'eq? x 5)) '(1 2 3 4)) 500))
-(test-ok "prelude all true" #t
-         (run-prelude '(all (fn (x) (prim 'positive? x)) '(1 2 3 4)) 500))
-(test-ok "prelude all false" #f
-         (run-prelude '(all (fn (x) (prim 'positive? x)) '(1 -2 3 4)) 500))
-(test-ok "prelude elem true" #t
-         (run-prelude '(elem 3 '(1 2 3 4)) 500))
-(test-ok "prelude elem false" #f
-         (run-prelude '(elem 5 '(1 2 3 4)) 500))
-(test-ok "prelude replicate" '(x x x x x)
-         (run-prelude '(replicate 5 'x) 500))
-(test-ok "prelude takeWhile" '(1 2 3)
-         (run-prelude '(takeWhile (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 800))
-(test-ok "prelude dropWhile" '(4 5 6)
-         (run-prelude '(dropWhile (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 800))
-(test-ok "prelude span" '((1 2 3) (4 5 6))
-         (run-prelude '(span (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 1000))
-(test-ok "prelude break" '((1 2 3) (4 5 6))
-         (run-prelude '((break (fn (x) (prim 'ge? x 4))) '(1 2 3 4 5 6)) 1000))
-(test-ok "prelude partition" '((2 4 6) (1 3 5))
-         (run-prelude '(partition (fn (x) (prim 'eq? 0 (prim 'mod x 2))) '(1 2 3 4 5 6)) 1500))
-(test-ok "prelude zipWith" '(5 7 9)
-         (run-prelude '(zipWith (fn (x y) (prim 'add x y)) '(1 2 3) '(4 5 6)) 800))
-(test-ok "prelude unzip" '((1 2 3) (4 5 6))
-         (run-prelude '(unzip '((1 4) (2 5) (3 6))) 800))
-(test-ok "prelude intersperse" '(a x b x c)
-         (run-prelude '(intersperse 'x '(a b c)) 800))
-(test-ok "prelude group" '((1 1) (2 2 2) (3) (4 4))
-         (run-prelude '(group '(1 1 2 2 2 3 4 4)) 1500))
-(test-ok "prelude nub" '(1 2 3 4)
-         (run-prelude '(nub '(1 2 2 3 1 4 3)) 1500))
-(test-ok "prelude find some" '(some . 3)
-         (run-prelude '(find (fn (x) (prim 'eq? 0 (prim 'mod x 3))) '(1 2 3 4)) 800))
-(test-ok "prelude find none" 'none
-         (run-prelude '(find (fn (x) (prim 'eq? 0 (prim 'mod x 7))) '(1 2 3 4)) 800))
-(test-ok "prelude splitAt" '((1 2 3) (4 5 6))
-         (run-prelude '(splitAt 3 '(1 2 3 4 5 6)) 800))
+  (define-test "apply non-function"
+    (assert-eval-error (run '(42 1 2) 100)))
 
-;; Combining prelude functions
-(test-ok "sum of squares" 55
-         (run-prelude '(sum (map (fn (x) (prim 'mul x x)) (range 1 6))) 1000))
+  (define-test "arity mismatch"
+    (assert-eval-error (run '((fn (x y) x) 1) 100)))
 
-;;; ====
-;;; Environment API
-;;; ====
-(test-section "Environment API")
+  (define-test "div by zero returns error value"
+    (assert-eval-ok '(error div-by-zero) (run '(prim 'div 1 0) 100))))
 
-(define custom-env (env-extend empty-env 'x 100))
-(test-ok "custom env" 100 (eval-with-env 'x custom-env 10))
-(test-ok "custom env computation" 105
-         (eval-with-env '(prim 'add x 5) custom-env 100))
+(test-group complex-expressions
+  (define-test "map double"
+    (assert-eval-ok '(2 4 6)
+      (run '(let ((map (fix map (fn (f xs)
+                                  (if (prim 'null? xs)
+                                      '()
+                                      (prim 'cons (f (prim 'car xs))
+                                            (map f (prim 'cdr xs))))))))
+              (map (fn (x) (prim 'mul x 2)) '(1 2 3)))
+           500)))
 
-;;; ====
-;;; Fuel Semantics
-;;; ====
-(test-section "Fuel Semantics")
+  (define-test "fold sum"
+    (assert-eval-ok 10
+      (run '(let ((fold (fix fold (fn (f acc xs)
+                                    (if (prim 'null? xs)
+                                        acc
+                                        (fold f (f acc (prim 'car xs)) (prim 'cdr xs)))))))
+              (fold (fn (a b) (prim 'add a b)) 0 '(1 2 3 4)))
+           500)))
 
-;; Each eval call consumes 1 fuel.
-(define literal-result (eval-expr 42 empty-env 1))
-(test "literal consumes 1 fuel" 0 (caddr literal-result))
-(test-suspended "literal suspends with 0 fuel" (eval-expr 42 empty-env 0))
+  (define-test "compose"
+    (assert-eval-ok 7
+      (run '(let ((compose (fn (f g) (fn (x) (f (g x))))))
+              (let ((add1 (fn (x) (prim 'add x 1))))
+                (let ((double (fn (x) (prim 'mul x 2))))
+                  ((compose add1 double) 3))))
+           100))))
 
-;; Primitive itself costs 0 fuel; only argument evaluation costs fuel.
-(define vec-result (eval-expr '(prim 'vec-empty) empty-env 1))
-(test-ok "prim with no args succeeds" (vector) vec-result)
-(test "prim with no args remaining fuel" 0 (caddr vec-result))
-(test-suspended "prim with no args suspends with 0 fuel"
-                (eval-expr '(prim 'vec-empty) empty-env 0))
+(test-group prelude
+  (define-test "prelude id"
+    (assert-eval-ok 42 (run-prelude '(call id 42) 100)))
 
-(define add-result (eval-expr '(prim 'add 2 3) empty-env 3))
-(test-ok "prim add succeeds with exact fuel" 5 add-result)
-(test "prim add remaining fuel" 0 (caddr add-result))
-(test-suspended "prim add suspends when fuel short"
-                (eval-expr '(prim 'add 2 3) empty-env 2))
+  (define-test "prelude const"
+    (assert-eval-ok 1 (run-prelude '(call (call const 1) 2) 100)))
 
-;; Deterministic suspension point for same expr + same fuel.
-(define suspend-a (eval-expr '(prim 'add 2 3) empty-env 2))
-(define suspend-b (eval-expr '(prim 'add 2 3) empty-env 2))
-(test "deterministic suspension" suspend-a suspend-b)
+  (define-test "prelude compose"
+    (assert-eval-ok 7
+      (run-prelude '(let ((add1 (fn (x) (prim 'add x 1)))
+                          (double (fn (x) (prim 'mul x 2))))
+                      (((compose add1) double) 3))
+                   200)))
 
-;;; ====
-;;; Doc Special Form
-;;; ====
-(test-section "Doc Special Form")
+  (define-test "prelude flip"
+    (assert-eval-ok 2
+      (run-prelude '(let ((sub (fn (a) (fn (b) (prim 'sub a b)))))
+                      (((flip sub) 3) 5))
+                   200)))
 
-;; Doc returns void (represented as unspecified value in Chez)
-(define doc-result (eval-expr '(doc 'todo "test") empty-env 10))
-(test "doc returns ok" 'ok (car doc-result))
-(test "doc consumes 1 fuel" 9 (caddr doc-result))
+  (define-test "prelude fst"
+    (assert-eval-ok 1 (run-prelude '(fst '(1 2)) 100)))
 
-;; Doc does not evaluate its arguments
-(define doc-noop-result (eval-expr '(doc 'note (error "should not run")) empty-env 10))
-(test "doc doesn't evaluate args" 'ok (car doc-noop-result))
+  (define-test "prelude snd"
+    (assert-eval-ok 2 (run-prelude '(snd '(1 2)) 100)))
 
-;; Doc in sequence (via pseq, since core doesn't have begin)
-(test-ok "doc in pseq sequence" 42
-         (eval-expr '(pseq (doc 'type Int) 42) empty-env 20))
+  (define-test "prelude pair"
+    (assert-eval-ok '(3 4) (run-prelude '((pair 3) 4) 200)))
 
-;; Multiple docs in sequence
-(test-ok "multiple docs in pseq" 100
-         (eval-expr '(pseq (doc 'a) (pseq (doc 'b) 100)) empty-env 30))
+  (define-test "prelude bool-not"
+    (assert-eval-ok #f (run-prelude '(bool-not #t) 100)))
 
-(newline)
-(display "✓ All evaluator tests complete.
-")
+  (define-test "prelude bool-and"
+    (assert-eval-ok #t (run-prelude '((bool-and #t) #t) 200)))
+
+  (define-test "prelude bool-or"
+    (assert-eval-ok #t (run-prelude '((bool-or #f) #t) 200)))
+
+  (define-test "prelude map"
+    (assert-eval-ok '(2 4 6)
+      (run-prelude '(map (fn (x) (prim 'mul x 2)) '(1 2 3)) 500)))
+
+  (define-test "prelude filter"
+    (assert-eval-ok '(2 4)
+      (run-prelude '(filter (fn (x) (prim 'eq? 0 (prim 'mod x 2))) '(1 2 3 4 5)) 500)))
+
+  (define-test "prelude foldl"
+    (assert-eval-ok 10
+      (run-prelude '(foldl (fn (acc x) (prim 'add acc x)) 0 '(1 2 3 4)) 500)))
+
+  (define-test "prelude foldr"
+    (assert-eval-ok '(1 2 3)
+      (run-prelude '(foldr (fn (x acc) (prim 'cons x acc)) '() '(1 2 3)) 500)))
+
+  (define-test "prelude scanl"
+    (assert-eval-ok '(0 1 3 6 10)
+      (run-prelude '(scanl (fn (acc x) (prim 'add acc x)) 0 '(1 2 3 4)) 500)))
+
+  (define-test "prelude scanl empty"
+    (assert-eval-ok '(0)
+      (run-prelude '(scanl (fn (acc x) (prim 'add acc x)) 0 '()) 500)))
+
+  (define-test "prelude scanr"
+    (assert-eval-ok '(10 9 7 4 0)
+      (run-prelude '(scanr (fn (x acc) (prim 'add x acc)) 0 '(1 2 3 4)) 500)))
+
+  (define-test "prelude scanr empty"
+    (assert-eval-ok '(0)
+      (run-prelude '(scanr (fn (x acc) (prim 'add x acc)) 0 '()) 500)))
+
+  (define-test "prelude take"
+    (assert-eval-ok '(1 2 3)
+      (run-prelude '(take 3 '(1 2 3 4 5)) 300)))
+
+  (define-test "prelude drop"
+    (assert-eval-ok '(4 5)
+      (run-prelude '(drop 3 '(1 2 3 4 5)) 300)))
+
+  (define-test "prelude zip"
+    (assert-eval-ok '((1 4) (2 5) (3 6))
+      (run-prelude '(zip '(1 2 3) '(4 5 6)) 500)))
+
+  (define-test "prelude range"
+    (assert-eval-ok '(1 2 3 4)
+      (run-prelude '(range 1 5) 300)))
+
+  (define-test "prelude sum"
+    (assert-eval-ok 15
+      (run-prelude '(sum '(1 2 3 4 5)) 300)))
+
+  (define-test "prelude product"
+    (assert-eval-ok 120
+      (run-prelude '(product '(1 2 3 4 5)) 300)))
+
+  (define-test "prelude flatten"
+    (assert-eval-ok '(1 2 3 4 5 6)
+      (run-prelude '(flatten '((1 2) (3 4) (5 6))) 500)))
+
+  (define-test "prelude flatten empty"
+    (assert-eval-ok '()
+      (run-prelude '(flatten '()) 300)))
+
+  (define-test "prelude flatMap"
+    (assert-eval-ok '(1 1 2 2 3 3)
+      (run-prelude '((flatMap (fn (x) (prim 'list x x))) '(1 2 3)) 800)))
+
+  (define-test "prelude any true"
+    (assert-eval-ok #t
+      (run-prelude '(any (fn (x) (prim 'eq? x 3)) '(1 2 3 4)) 500)))
+
+  (define-test "prelude any false"
+    (assert-eval-ok #f
+      (run-prelude '(any (fn (x) (prim 'eq? x 5)) '(1 2 3 4)) 500)))
+
+  (define-test "prelude all true"
+    (assert-eval-ok #t
+      (run-prelude '(all (fn (x) (prim 'positive? x)) '(1 2 3 4)) 500)))
+
+  (define-test "prelude all false"
+    (assert-eval-ok #f
+      (run-prelude '(all (fn (x) (prim 'positive? x)) '(1 -2 3 4)) 500)))
+
+  (define-test "prelude elem true"
+    (assert-eval-ok #t
+      (run-prelude '(elem 3 '(1 2 3 4)) 500)))
+
+  (define-test "prelude elem false"
+    (assert-eval-ok #f
+      (run-prelude '(elem 5 '(1 2 3 4)) 500)))
+
+  (define-test "prelude replicate"
+    (assert-eval-ok '(x x x x x)
+      (run-prelude '(replicate 5 'x) 500)))
+
+  (define-test "prelude takeWhile"
+    (assert-eval-ok '(1 2 3)
+      (run-prelude '(takeWhile (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 800)))
+
+  (define-test "prelude dropWhile"
+    (assert-eval-ok '(4 5 6)
+      (run-prelude '(dropWhile (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 800)))
+
+  (define-test "prelude span"
+    (assert-eval-ok '((1 2 3) (4 5 6))
+      (run-prelude '(span (fn (x) (prim 'lt? x 4)) '(1 2 3 4 5 6)) 1000)))
+
+  (define-test "prelude break"
+    (assert-eval-ok '((1 2 3) (4 5 6))
+      (run-prelude '((break (fn (x) (prim 'ge? x 4))) '(1 2 3 4 5 6)) 1000)))
+
+  (define-test "prelude partition"
+    (assert-eval-ok '((2 4 6) (1 3 5))
+      (run-prelude '(partition (fn (x) (prim 'eq? 0 (prim 'mod x 2))) '(1 2 3 4 5 6)) 1500)))
+
+  (define-test "prelude zipWith"
+    (assert-eval-ok '(5 7 9)
+      (run-prelude '(zipWith (fn (x y) (prim 'add x y)) '(1 2 3) '(4 5 6)) 800)))
+
+  (define-test "prelude unzip"
+    (assert-eval-ok '((1 2 3) (4 5 6))
+      (run-prelude '(unzip '((1 4) (2 5) (3 6))) 800)))
+
+  (define-test "prelude intersperse"
+    (assert-eval-ok '(a x b x c)
+      (run-prelude '(intersperse 'x '(a b c)) 800)))
+
+  (define-test "prelude group"
+    (assert-eval-ok '((1 1) (2 2 2) (3) (4 4))
+      (run-prelude '(group '(1 1 2 2 2 3 4 4)) 1500)))
+
+  (define-test "prelude nub"
+    (assert-eval-ok '(1 2 3 4)
+      (run-prelude '(nub '(1 2 2 3 1 4 3)) 1500)))
+
+  (define-test "prelude find some"
+    (assert-eval-ok '(some . 3)
+      (run-prelude '(find (fn (x) (prim 'eq? 0 (prim 'mod x 3))) '(1 2 3 4)) 800)))
+
+  (define-test "prelude find none"
+    (assert-eval-ok 'none
+      (run-prelude '(find (fn (x) (prim 'eq? 0 (prim 'mod x 7))) '(1 2 3 4)) 800)))
+
+  (define-test "prelude splitAt"
+    (assert-eval-ok '((1 2 3) (4 5 6))
+      (run-prelude '(splitAt 3 '(1 2 3 4 5 6)) 800)))
+
+  (define-test "sum of squares"
+    (assert-eval-ok 55
+      (run-prelude '(sum (map (fn (x) (prim 'mul x x)) (range 1 6))) 1000))))
+
+(test-group environment-api
+  (define-test "custom env"
+    (let ([custom-env (env-extend empty-env 'x 100)])
+      (assert-eval-ok 100 (eval-with-env 'x custom-env 10))))
+
+  (define-test "custom env computation"
+    (let ([custom-env (env-extend empty-env 'x 100)])
+      (assert-eval-ok 105
+        (eval-with-env '(prim 'add x 5) custom-env 100)))))
+
+(test-group fuel-semantics
+  (define-test "literal consumes 1 fuel"
+    (let ([result (eval-expr 42 empty-env 1)])
+      (assert-fuel-remaining 0 result)))
+
+  (define-test "literal suspends with 0 fuel"
+    (assert-eval-suspended (eval-expr 42 empty-env 0)))
+
+  (define-test "prim with no args succeeds"
+    (let ([result (eval-expr '(prim 'vec-empty) empty-env 1)])
+      (assert-eval-ok (vector) result)))
+
+  (define-test "prim with no args remaining fuel"
+    (let ([result (eval-expr '(prim 'vec-empty) empty-env 1)])
+      (assert-fuel-remaining 0 result)))
+
+  (define-test "prim with no args suspends with 0 fuel"
+    (assert-eval-suspended (eval-expr '(prim 'vec-empty) empty-env 0)))
+
+  (define-test "prim add succeeds with exact fuel"
+    (let ([result (eval-expr '(prim 'add 2 3) empty-env 3)])
+      (assert-eval-ok 5 result)))
+
+  (define-test "prim add remaining fuel"
+    (let ([result (eval-expr '(prim 'add 2 3) empty-env 3)])
+      (assert-fuel-remaining 0 result)))
+
+  (define-test "prim add suspends when fuel short"
+    (assert-eval-suspended (eval-expr '(prim 'add 2 3) empty-env 2)))
+
+  (define-test "deterministic suspension"
+    (let ([suspend-a (eval-expr '(prim 'add 2 3) empty-env 2)]
+          [suspend-b (eval-expr '(prim 'add 2 3) empty-env 2)])
+      (assert-equal suspend-a suspend-b))))
+
+(test-group doc-special-form
+  (define-test "doc returns ok"
+    (let ([result (eval-expr '(doc 'todo "test") empty-env 10)])
+      (assert-equal 'ok (car result))))
+
+  (define-test "doc consumes 1 fuel"
+    (let ([result (eval-expr '(doc 'todo "test") empty-env 10)])
+      (assert-equal 9 (caddr result))))
+
+  (define-test "doc doesn't evaluate args"
+    (let ([result (eval-expr '(doc 'note (error "should not run")) empty-env 10)])
+      (assert-equal 'ok (car result))))
+
+  (define-test "doc in pseq sequence"
+    (assert-eval-ok 42
+      (eval-expr '(pseq (doc 'type Int) 42) empty-env 20)))
+
+  (define-test "multiple docs in pseq"
+    (assert-eval-ok 100
+      (eval-expr '(pseq (doc 'a) (pseq (doc 'b) 100)) empty-env 30))))
+
+;;; ============================================================================
+;;; Run all tests
+;;; ============================================================================
+
+(run-all-tests-and-exit)

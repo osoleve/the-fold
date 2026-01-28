@@ -1,275 +1,195 @@
 ;;; fabric/stitches/test-compile.ss — Tests for the unified compilation pipeline
-;;;
-;;; Tests the compile.ss pipeline integration.
+;;; Standardized to use test-framework.ss
 
+(load "core/testing/test-framework.ss")
 (load "core/lang/compile.ss")
 
-(display "
-")
-(display "╔══════════════════════════════════════════════════════════════════╗
-")
-(display "║                Unified Compile Pipeline Tests                     ║
-")
-(display "╚══════════════════════════════════════════════════════════════════╝
-")
-(display "
-")
+;;; ============================================================================
+;;; Tests
+;;; ============================================================================
 
-;;; ====
-;;; Test Helpers
-;;; ====
+(test-group result-type
+  (define-test "result-ok creates ok"
+    (let ([ok (result-ok 42)])
+      (assert-true (result-ok? ok))))
 
-(define *test-pass* 0)
-(define *test-fail* 0)
+  (define-test "result-ok value"
+    (let ([ok (result-ok 42)])
+      (assert-equal 42 (result-value ok))))
 
-(define (test name expected actual)
-  (display "  ")
-  (display name)
-  (display ": ")
-  (if (equal? expected actual)
-      (begin
-       (set! *test-pass* (+ *test-pass* 1))
-       (display "✓
-"))
-      (begin
-       (set! *test-fail* (+ *test-fail* 1))
-       (display "✗
-")
-       (display "    expected: ") (display expected) (newline)
-       (display "    actual:   ") (display actual) (newline))))
+  (define-test "result-error creates error"
+    (let ([err (result-error 'test 'some-error 'details)])
+      (assert-true (result-error? err))))
 
-(define (test-ok name result)
-  (test name #t (result-ok? result)))
+  (define-test "result-error phase"
+    (let ([err (result-error 'test 'some-error 'details)])
+      (assert-equal 'test (result-phase err))))
 
-(define (test-error name result)
-  (test name #t (result-error? result)))
+  (define-test "result-error type"
+    (let ([err (result-error 'test 'some-error 'details)])
+      (assert-equal 'some-error (result-error-type err))))
 
-(define (test-value name expected result)
-  (if (result-ok? result)
-      (test name expected (result-value result))
-      (test name expected result)))
+  (define-test "result-suspended creates suspended"
+    (let ([susp (result-suspended 'expr '())])
+      (assert-true (result-suspended? susp)))))
 
-;;; ====
-;;; Result Type Tests
-;;; ====
+(test-group result-threading
+  (define-test "bind ok -> ok"
+    (let* ([r1 (result-ok 10)]
+           [r2 (result-bind r1 (lambda (x) (result-ok (* x 2))))])
+      (assert-equal 20 (result-value r2))))
 
-(display "Result Type
-")
-(display "───────────
-")
+  (define-test "bind error -> error"
+    (let* ([r1 (result-error 'test 'fail)]
+           [r2 (result-bind r1 (lambda (x) (result-ok (* x 2))))])
+      (assert-true (result-error? r2))))
 
-(let ([ok (result-ok 42)])
-     (test "result-ok creates ok" #t (result-ok? ok))
-     (test "result-ok value" 42 (result-value ok)))
+  (define-test "map ok"
+    (let* ([r1 (result-ok 5)]
+           [r2 (result-map r1 (lambda (x) (+ x 1)))])
+      (assert-equal 6 (result-value r2)))))
 
-(let ([err (result-error 'test 'some-error 'details)])
-     (test "result-error creates error" #t (result-error? err))
-     (test "result-error phase" 'test (result-phase err))
-     (test "result-error type" 'some-error (result-error-type err)))
+(test-group parse-phase
+  (define-test "parse simple number ok"
+    (assert-true (result-ok? (compile "42" 'to 'parse))))
 
-(let ([susp (result-suspended 'expr '())])
-     (test "result-suspended creates suspended" #t (result-suspended? susp)))
+  (define-test "parse number value"
+    (assert-equal 42 (result-value (compile "42" 'to 'parse))))
 
-(display "
-")
+  (define-test "parse symbol ok"
+    (assert-true (result-ok? (compile "x" 'to 'parse))))
 
-;;; ====
-;;; Result Threading Tests
-;;; ====
+  (define-test "parse symbol value"
+    (assert-equal 'x (result-value (compile "x" 'to 'parse))))
 
-(display "Result Threading
-")
-(display "────────────────
-")
+  (define-test "parse list ok"
+    (assert-true (result-ok? (compile "(+ 1 2)" 'to 'parse))))
 
-(let* ([r1 (result-ok 10)]
-       [r2 (result-bind r1 (lambda (x) (result-ok (* x 2))))])
-      (test "bind ok -> ok" 20 (result-value r2)))
+  (define-test "parse list value"
+    (assert-equal '(+ 1 2) (result-value (compile "(+ 1 2)" 'to 'parse))))
 
-(let* ([r1 (result-error 'test 'fail)]
-       [r2 (result-bind r1 (lambda (x) (result-ok (* x 2))))])
-      (test "bind error -> error" #t (result-error? r2)))
+  (define-test "parse lambda ok"
+    (assert-true (result-ok? (compile "(fn (x) x)" 'to 'parse)))))
 
-(let* ([r1 (result-ok 5)]
-       [r2 (result-map r1 (lambda (x) (+ x 1)))])
-      (test "map ok" 6 (result-value r2)))
+(test-group type-inference
+  (define-test "infer number is ok"
+    (let ([r (compile "42" 'to 'infer)])
+      (assert-true (result-ok? r))))
 
-(display "
-")
+  (define-test "number has Int type"
+    (let ([r (compile "42" 'to 'infer)])
+      (assert-equal 'Int (result-value r))))
 
-;;; ====
-;;; Parse Phase Tests
-;;; ====
+  (define-test "infer bool is ok"
+    (let ([r (compile "#t" 'to 'infer)])
+      (assert-true (result-ok? r))))
 
-(display "Parse Phase
-")
-(display "───────────
-")
+  (define-test "bool has Bool type"
+    (let ([r (compile "#t" 'to 'infer)])
+      (assert-equal 'Bool (result-value r))))
 
-(test-ok "parse simple number" (compile "42" 'to 'parse))
-(test-value "parse number value" 42 (compile "42" 'to 'parse))
+  (define-test "infer string is ok"
+    (let ([r (compile "\"hello\"" 'to 'infer)])
+      (assert-true (result-ok? r))))
 
-(test-ok "parse symbol" (compile "x" 'to 'parse))
-(test-value "parse symbol value" 'x (compile "x" 'to 'parse))
+  (define-test "string has String type"
+    (let ([r (compile "\"hello\"" 'to 'infer)])
+      (assert-equal 'String (result-value r)))))
 
-(test-ok "parse list" (compile "(+ 1 2)" 'to 'parse))
-(test-value "parse list value" '(+ 1 2) (compile "(+ 1 2)" 'to 'parse))
+(test-group evaluation
+  (define-test "eval number"
+    (assert-equal 42 (result-value (compile "42" 'to 'eval))))
 
-(test-ok "parse lambda" (compile "(fn (x) x)" 'to 'parse))
+  (define-test "eval string"
+    (assert-equal "hello" (result-value (compile "\"hello\"" 'to 'eval))))
 
-(display "
-")
+  (define-test "eval bool true"
+    (assert-equal #t (result-value (compile "#t" 'to 'eval))))
 
-;;; ====
-;;; Type Inference Tests
-;;; ====
+  (define-test "eval bool false"
+    (assert-equal #f (result-value (compile "#f" 'to 'eval))))
 
-(display "Type Inference
-")
-(display "──────────────
-")
+  (define-test "eval add is ok"
+    (let ([r (compile "(prim 'add 1 2)" 'to 'eval)])
+      (assert-true (result-ok? r))))
 
-(let ([r (compile "42" 'to 'infer)])
-     (test "infer number is ok" #t (result-ok? r))
-     (test "number has Int type" 'Int (result-value r)))
+  (define-test "eval add value"
+    (let ([r (compile "(prim 'add 1 2)" 'to 'eval)])
+      (assert-equal 3 (result-value r))))
 
-(let ([r (compile "#t" 'to 'infer)])
-     (test "infer bool is ok" #t (result-ok? r))
-     (test "bool has Bool type" 'Bool (result-value r)))
+  (define-test "eval mul is ok"
+    (let ([r (compile "(prim 'mul 3 4)" 'to 'eval)])
+      (assert-true (result-ok? r))))
 
-(let ([r (compile "\"hello\"" 'to 'infer)])
-     (test "infer string is ok" #t (result-ok? r))
-     (test "string has String type" 'String (result-value r)))
+  (define-test "eval mul value"
+    (let ([r (compile "(prim 'mul 3 4)" 'to 'eval)])
+      (assert-equal 12 (result-value r)))))
 
-(display "
-")
+(test-group lambda-and-application
+  (define-test "identity application is ok"
+    (let ([r (compile "((fn (x) x) 42)" 'to 'eval)])
+      (assert-true (result-ok? r))))
 
-;;; ====
-;;; Evaluation Tests
-;;; ====
+  (define-test "identity returns arg"
+    (let ([r (compile "((fn (x) x) 42)" 'to 'eval)])
+      (assert-equal 42 (result-value r))))
 
-(display "Evaluation
-")
-(display "──────────
-")
+  (define-test "K combinator is ok"
+    (let ([r (compile "(((fn (x) (fn (y) x)) 1) 2)" 'to 'eval)])
+      (assert-true (result-ok? r))))
 
-(test-value "eval number" 42 (compile "42" 'to 'eval))
-(test-value "eval string" "hello" (compile "\"hello\"" 'to 'eval))
-(test-value "eval bool true" #t (compile "#t" 'to 'eval))
-(test-value "eval bool false" #f (compile "#f" 'to 'eval))
+  (define-test "K returns first"
+    (let ([r (compile "(((fn (x) (fn (y) x)) 1) 2)" 'to 'eval)])
+      (assert-equal 1 (result-value r)))))
 
-;; Arithmetic via prim (primitives are named add, mul, not +, *)
-(let ([r (compile "(prim 'add 1 2)" 'to 'eval)])
-     (test "eval add is ok" #t (result-ok? r))
-     (test "eval add value" 3 (result-value r)))
+(test-group let-bindings
+  (define-test "let binding is ok"
+    (let ([r (compile "(let ((x 10)) x)" 'to 'eval)])
+      (assert-true (result-ok? r))))
 
-(let ([r (compile "(prim 'mul 3 4)" 'to 'eval)])
-     (test "eval mul is ok" #t (result-ok? r))
-     (test "eval mul value" 12 (result-value r)))
+  (define-test "let binding value"
+    (let ([r (compile "(let ((x 10)) x)" 'to 'eval)])
+      (assert-equal 10 (result-value r))))
 
-(display "
-")
+  (define-test "nested let is ok"
+    (let ([r (compile "(let ((x 10)) (let ((y 20)) (prim 'add x y)))" 'to 'eval)])
+      (assert-true (result-ok? r))))
 
-;;; ====
-;;; Lambda and Application Tests
-;;; ====
+  (define-test "nested let value"
+    (let ([r (compile "(let ((x 10)) (let ((y 20)) (prim 'add x y)))" 'to 'eval)])
+      (assert-equal 30 (result-value r)))))
 
-(display "Lambda and Application
-")
-(display "──────────────────────
-")
+(test-group convenience-functions
+  (define-test "typeof number"
+    (assert-equal 'Int (typeof "42")))
 
-;; Identity function - use implicit application (f arg) not (call f arg)
-;; Type inference uses implicit application, eval supports both
-(let ([r (compile "((fn (x) x) 42)" 'to 'eval)])
-     (test "identity application is ok" #t (result-ok? r))
-     (test "identity returns arg" 42 (result-value r)))
+  (define-test "typeof string"
+    (assert-equal 'String (typeof "\"hi\"")))
 
-;; K combinator (returns first arg)
-(let ([r (compile "(((fn (x) (fn (y) x)) 1) 2)" 'to 'eval)])
-     (test "K combinator is ok" #t (result-ok? r))
-     (test "K returns first" 1 (result-value r)))
+  (define-test "typeof bool"
+    (assert-equal 'Bool (typeof "#t")))
 
-(display "
-")
+  (define-test "eval-string number"
+    (assert-equal 42 (eval-string "42")))
 
-;;; ====
-;;; Let Binding Tests
-;;; ====
+  (define-test "eval-string with prim"
+    (assert-equal 7 (eval-string "(prim 'add 3 4)"))))
 
-(display "Let Bindings
-")
-(display "────────────
-")
+(test-group error-handling
+  (define-test "unbound var is error"
+    (let ([r (compile "undefined-var" 'to 'infer)])
+      (assert-true (result-error? r))))
 
-(let ([r (compile "(let ((x 10)) x)" 'to 'eval)])
-     (test "let binding is ok" #t (result-ok? r))
-     (test "let binding value" 10 (result-value r)))
+  (define-test "unbound var phase"
+    (let ([r (compile "undefined-var" 'to 'infer)])
+      (assert-equal 'infer (result-phase r))))
 
-(let ([r (compile "(let ((x 10)) (let ((y 20)) (prim 'add x y)))" 'to 'eval)])
-     (test "nested let is ok" #t (result-ok? r))
-     (test "nested let value" 30 (result-value r)))
+  (define-test "empty input is error"
+    (let ([r (compile "" 'to 'parse)])
+      (assert-true (result-error? r)))))
 
-(display "
-")
+;;; ============================================================================
+;;; Run all tests
+;;; ============================================================================
 
-;;; ====
-;;; Convenience Functions
-;;; ====
-
-(display "Convenience Functions
-")
-(display "─────────────────────
-")
-
-(test "typeof number" 'Int (typeof "42"))
-(test "typeof string" 'String (typeof "\"hi\""))
-(test "typeof bool" 'Bool (typeof "#t"))
-
-(test "eval-string number" 42 (eval-string "42"))
-(test "eval-string with prim" 7 (eval-string "(prim 'add 3 4)"))
-
-(display "
-")
-
-;;; ====
-;;; Error Handling Tests
-;;; ====
-
-(display "Error Handling
-")
-(display "──────────────
-")
-
-;; Unbound variable
-(let ([r (compile "undefined-var" 'to 'infer)])
-     (test "unbound var is error" #t (result-error? r))
-     (test "unbound var phase" 'infer (result-phase r)))
-
-;; Empty input
-(let ([r (compile "" 'to 'parse)])
-     (test "empty input is error" #t (result-error? r)))
-
-(display "
-")
-
-;;; ====
-;;; Summary
-;;; ====
-
-(display "────────────────────────────────────────────────────────
-")
-(display (format "  Total: ~a tests
-" (+ *test-pass* *test-fail*)))
-(display (format "  Passed: ~a
-" *test-pass*))
-(display (format "  Failed: ~a
-" *test-fail*))
-(display "────────────────────────────────────────────────────────
-")
-
-(if (= *test-fail* 0)
-    (display "✓ All compile pipeline tests passed!
-")
-    (display "✗ Some tests failed.
-"))
+(run-all-tests-and-exit)
