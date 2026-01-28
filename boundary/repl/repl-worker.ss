@@ -411,7 +411,9 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
                          (when (file-exists? err-path)
                                (delete-file err-path))
                          (guard (e [else
-                                    (write-error err-path (format-condition e))
+                                    (let ([msg (format-condition e)])
+                                      (write-error err-path msg)
+                                      (write-response resp-path (string-append "Error: " msg)))
                                     ;; Record error in history
                                     (history-record-if-enabled! session-id expr-str e 'error #f)])
                                 (let-values ([(result def-name eval-result)

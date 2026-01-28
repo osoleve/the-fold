@@ -22,11 +22,11 @@
       (assert-equal 20 (await f2))
       (assert-equal 30 (await f3))))
 
-  (define-test "await captures errors"
-    (let* ([f (spawn (lambda () (error 'test "boom")))]
-           [result (await f)])
-      (assert-true (and (pair? result)
-                        (eq? (car result) 'error)))))
+  (define-test "await raises on task failure"
+    (assert-error
+      (lambda ()
+        (let ([f (spawn (lambda () (error 'test "boom")))])
+          (await f)))))
 
   (define-test "parallel-invoke runs multiple thunks"
     (let ([results (parallel-invoke

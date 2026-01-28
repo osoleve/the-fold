@@ -41,6 +41,12 @@
   (let loop ([backoff 1])
     (cond
       [(task-done? task)
+       (when (task-failed? task)
+         (let ([p (task-promise task)])
+           (error 'await
+                  (if (and (pair? (cdr p)) (eq? (cadr p) 'task-failed))
+                      (format "Task failed: ~a" (caddr p))
+                      (format "Task failed: ~a" (cdr p))))))
        (task-result task)]
       [else
        ;; Try to help by running other tasks
