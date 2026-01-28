@@ -586,6 +586,15 @@ Grammar-driven code construction for building S-expressions without tracking par
 - Core functions are total (enforced via **fuel** parameter)
 - Evaluation strategy is **call-by-value**
 
+### The Lattice Is Transparent
+
+- Lattice code must be **decomposable to Fold primitives** (cons, car, cdr, arithmetic, comparisons, eq?, pair?, null?)
+- **Never replace lattice implementations with opaque Scheme built-ins** (e.g., don't replace a local `list-sort` with Chez's built-in) — even if the built-in is faster
+- Rationale: fuel instrumentation, Rust codegen, and BSL containment all require the compiler to see through every operation
+- Fuel semantics are **physics**, not optimization hints — they're the planned containment mechanism for Fold-native models
+- Boundary code is exempt: it's already outside the fuel model and can freely use Scheme built-ins
+- See `fold-zxum` for the epic tracking Scheme primitive surface area reduction
+
 ### The Boundary Is Fallen
 
 - `boundary/` handles all IO
