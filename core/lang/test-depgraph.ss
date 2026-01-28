@@ -1,76 +1,71 @@
 ;;; core/lang/test-depgraph.ss — Tests for depgraph.ss
-;;;
-;;; Dependencies:
-;;;   - depgraph.ss
+;;; Standardized to use test-framework.ss
 
+(load "core/testing/test-framework.ss")
 (load "core/lang/depgraph.ss")
 
-(define tests-passed 0)
-(define tests-failed 0)
+;;; ============================================================================
+;;; Tests
+;;; ============================================================================
 
-(define (test name expected actual)
-  (if (equal? expected actual)
-      (begin
-       (set! tests-passed (+ tests-passed 1))
-       (display "  ✓ ") (display name) (newline))
-      (begin
-       (set! tests-failed (+ tests-failed 1))
-       (display "  ✗ ") (display name)
-       (display " — expected ") (write expected)
-       (display ", got ") (write actual)
-       (newline))))
-
-(display "\nTesting depgraph.ss\n")
-(display "====\n\n")
-
-;;; Build the graph first
-(display "Building graph...\n")
+;; Build the graph first
 (depgraph-refresh!)
-(display "\n")
 
-;;; Test path-basename
-(display "path-basename:\n")
-(test "simple path" "prelude.ss" (path-basename "core/base/prelude.ss"))
-(test "no slash" "file.ss" (path-basename "file.ss"))
-(test "deep path" "deep.ss" (path-basename "a/b/c/d/deep.ss"))
+(test-group path-basename
+  (define-test "simple path"
+    (assert-equal "prelude.ss" (path-basename "core/base/prelude.ss")))
 
-;;; Test graph building
-(display "\ngraph building:\n")
-(test "graph not empty" #t (> (hashtable-size *depgraph*) 0))
-(test "reverse graph not empty" #t (> (hashtable-size *depgraph-reverse*) 0))
-(test "initialized flag" #t *depgraph-initialized*)
+  (define-test "no slash"
+    (assert-equal "file.ss" (path-basename "file.ss")))
 
-;;; Test queries
-(display "\nquery functions:\n")
-(let ([prelude-deps (depgraph-deps "core/base/prelude.ss")])
-     (test "prelude has no deps" '() prelude-deps))
+  (define-test "deep path"
+    (assert-equal "deep.ss" (path-basename "a/b/c/d/deep.ss"))))
 
-(let ([prelude-dependents (depgraph-dependents "core/base/prelude.ss")])
-     (test "prelude has dependents" #t (> (length prelude-dependents) 0)))
+(test-group graph-building
+  (define-test "graph not empty"
+    (assert-true (> (hashtable-size *depgraph*) 0)))
 
-;;; Test cycle detection (should be empty for clean codebase)
-(display "\ncycle detection:\n")
-(test "no cycles" '() *depgraph-cycles*)
+  (define-test "reverse graph not empty"
+    (assert-true (> (hashtable-size *depgraph-reverse*) 0)))
 
-;;; Test cycle-edges helper
-(display "\ncycle-edges:\n")
-(test "empty cycle" '() (cycle-edges '()))
-(test "two-node cycle" '(("a" . "b") ("b" . "a")) (cycle-edges '("a" "b")))
-(test "three-node cycle" '(("a" . "b") ("b" . "c") ("c" . "a")) (cycle-edges '("a" "b" "c")))
+  (define-test "initialized flag"
+    (assert-true *depgraph-initialized*)))
 
-;;; Test transitive dependencies
-(display "\ntransitive queries:\n")
-(let ([all-deps (depgraph-all-deps "core/types/infer.ss")])
-     (test "infer.ss has transitive deps" #t (> (length all-deps) 0))
-     (test "prelude in transitive deps" #t
-           (not (not (member "core/base/prelude.ss" all-deps)))))
+(test-group query-functions
+  ;; Note: prelude now loads string.ss, so it has deps
+  (define-test "prelude deps include string.ss"
+    (let ([prelude-deps (depgraph-deps "core/base/prelude.ss")])
+      (assert-true (if (member "core/base/string/string.ss" prelude-deps) #t #f))))
 
-;;; Summary
-(newline)
-(display "====\n")
-(display "Tests passed: ") (display tests-passed) (newline)
-(display "Tests failed: ") (display tests-failed) (newline)
-(newline)
+  (define-test "prelude has dependents"
+    (let ([prelude-dependents (depgraph-dependents "core/base/prelude.ss")])
+      (assert-true (> (length prelude-dependents) 0)))))
 
-(when (> tests-failed 0)
-      (error 'test-depgraph "Some tests failed"))
+(test-group cycle-detection
+  (define-test "no cycles"
+    (assert-equal '() *depgraph-cycles*)))
+
+(test-group cycle-edges
+  (define-test "empty cycle"
+    (assert-equal '() (cycle-edges '())))
+
+  (define-test "two-node cycle"
+    (assert-equal '(("a" . "b") ("b" . "a")) (cycle-edges '("a" "b"))))
+
+  (define-test "three-node cycle"
+    (assert-equal '(("a" . "b") ("b" . "c") ("c" . "a")) (cycle-edges '("a" "b" "c")))))
+
+(test-group transitive-queries
+  (define-test "infer.ss has transitive deps"
+    (let ([all-deps (depgraph-all-deps "core/types/infer.ss")])
+      (assert-true (> (length all-deps) 0))))
+
+  (define-test "prelude in transitive deps"
+    (let ([all-deps (depgraph-all-deps "core/types/infer.ss")])
+      (assert-true (not (not (member "core/base/prelude.ss" all-deps)))))))
+
+;;; ============================================================================
+;;; Run all tests
+;;; ============================================================================
+
+(run-all-tests-and-exit)
