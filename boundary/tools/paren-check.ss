@@ -619,7 +619,7 @@
 ;;;   >0 = inside datum, tracking paren depth
 (define (skip-datum-with-depth line start-col in-string)
   (let ([len (string-length line)])
-    ;; Skip leading whitespace
+    ;; Skip leading whitespace and comments
     (let skip-ws ([col start-col])
       (cond
         [(>= col len)
@@ -628,6 +628,34 @@
          (values col in-string -1)]  ; -1 = waiting for datum start
         [(char-whitespace? (string-ref line col))
          (skip-ws (+ col 1))]
+        ;; Line comment - rest of line is comment, datum on next line
+        [(char=? (string-ref line col) #\;)
+         (values len in-string -1)]
+        ;; Block comment #|...|# - skip it and continue looking
+        [(and (char=? (string-ref line col) #\#)
+              (< (+ col 1) len)
+              (char=? (string-ref line (+ col 1)) #\|))
+         ;; Skip the block comment (may span lines, but we only handle same-line for now)
+         (let skip-block ([i (+ col 2)] [depth 1])
+           (cond
+             [(>= i len)
+              ;; Block comment continues to next line - datum waiting
+              (values i in-string -1)]
+             [(and (< (+ i 1) len)
+                   (char=? (string-ref line i) #\|)
+                   (char=? (string-ref line (+ i 1)) #\#))
+              (if (= depth 1)
+                  ;; Block comment closed, continue skip-ws
+                  (skip-ws (+ i 2))
+                  ;; Nested block comment closed
+                  (skip-block (+ i 2) (- depth 1)))]
+             [(and (< (+ i 1) len)
+                   (char=? (string-ref line i) #\#)
+                   (char=? (string-ref line (+ i 1)) #\|))
+              ;; Nested block comment
+              (skip-block (+ i 2) (+ depth 1))]
+             [else
+              (skip-block (+ i 1) depth)]))]
         [else
          ;; Found start of datum
          (let ([c (string-ref line col)])
