@@ -1952,13 +1952,22 @@ At transcritical: returns 2 branches that exchange stability.")
        (list 'spatial-hash p-min dp fp-scale table)))
 
 (define (spatial-hash-cell hash param fp)
+  ;; Use all dimensions of fp for proper multi-dimensional collision detection
   (let* ([p-min (cadr hash)]
          [dp (caddr hash)]
          [fp-scale (cadddr hash)]
          [p-idx (inexact->exact (floor (/ (- param p-min) dp)))]
-         [fp-val (if (vector? fp) (vector-ref fp 0) fp)]
-         [fp-idx (inexact->exact (floor (/ fp-val fp-scale)))])
-        (cons p-idx fp-idx)))
+         [fp-indices (if (vector? fp)
+                         ;; Create list of indices for each dimension
+                         (let loop ([i 0] [acc '()])
+                              (if (>= i (vector-length fp))
+                                  (reverse acc)
+                                  (loop (+ i 1)
+                                        (cons (inexact->exact (floor (/ (vector-ref fp i) fp-scale)))
+                                              acc))))
+                         ;; Scalar case
+                         (list (inexact->exact (floor (/ fp fp-scale)))))])
+        (cons p-idx fp-indices)))
 
 (define (spatial-hash-register! hash param fp branch-id)
   (let* ([table (car (cddddr hash))]
@@ -2002,9 +2011,12 @@ At transcritical: returns 2 branches that exchange stability.")
         (let ([upper (switch-branch-adaptive psys bif-param bif-fp 'upper)])
              (when (and upper (car upper))
                    (let* ([new-fp (car upper)]
-                          [new-param (cdr upper)])
-                         (when (and (>= new-param p-min) (<= new-param p-max)
-                                    (not (spatial-hash-lookup spatial-hash new-param new-fp)))
+                          [new-param (cdr upper)]
+                          ;; Check for collision, but ignore if it's the parent branch
+                          ;; (parent is registered nearby since we're at a bifurcation)
+                          [existing (spatial-hash-lookup spatial-hash new-param new-fp)]
+                          [collision-ok (or (not existing) (eq? existing parent-id))])
+                         (when (and (>= new-param p-min) (<= new-param p-max) collision-ok)
                                (let ([new-id (string->symbol (format "branch-~a" next-id))])
                                     (set! results (cons (make-work-item new-id new-param new-fp
                                                                         (if (> new-param bif-param) 'forward 'backward))
@@ -2015,9 +2027,11 @@ At transcritical: returns 2 branches that exchange stability.")
         (let ([lower (switch-branch-adaptive psys bif-param bif-fp 'lower)])
              (when (and lower (car lower))
                    (let* ([new-fp (car lower)]
-                          [new-param (cdr lower)])
-                         (when (and (>= new-param p-min) (<= new-param p-max)
-                                    (not (spatial-hash-lookup spatial-hash new-param new-fp)))
+                          [new-param (cdr lower)]
+                          ;; Check for collision, but ignore if it's the parent branch
+                          [existing (spatial-hash-lookup spatial-hash new-param new-fp)]
+                          [collision-ok (or (not existing) (eq? existing parent-id))])
+                         (when (and (>= new-param p-min) (<= new-param p-max) collision-ok)
                                (let ([new-id (string->symbol (format "branch-~a" next-id))])
                                     (set! results (cons (make-work-item new-id new-param new-fp
                                                                         (if (> new-param bif-param) 'forward 'backward))
