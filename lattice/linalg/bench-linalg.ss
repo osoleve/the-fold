@@ -253,6 +253,9 @@
 (printf "\n=== Sparse-Dense Conversion ===\n\n")
 
 (define coo100 (sparse-coo-from-triplets 100 100 sparse-triplets-100))
+(define csr100 (coo->csr coo100))
+(define coo500 (sparse-coo-from-triplets 500 500 sparse-triplets-500))
+(define csr500 (coo->csr coo500))
 
 (define sparse-convert-results
   (benchmark-compare
@@ -263,17 +266,48 @@
 (benchmark-report sparse-convert-results)
 
 ;;; ====
+;;; Sparse Matrix-Vector Multiplication (SpMV)
+;;; NOTE: SpMV is the critical sparse operation for iterative solvers.
+;;; ====
+
+(printf "\n=== Sparse Matrix-Vector Multiplication ===\n\n")
+
+(define sparse-v100 (make-random-vector 100))
+(define sparse-v500 (make-random-vector 500))
+
+(define spmv-results
+  (benchmark-compare
+   `(("CSR 100x100 * vec (5% dense)" .
+      ,(lambda () (sparse-csr-vec-mul csr100 sparse-v100)))
+     ("CSR 500x500 * vec (1% dense)" .
+      ,(lambda () (sparse-csr-vec-mul csr500 sparse-v500)))
+     ("Dense 100x100 * vec (baseline)" .
+      ,(lambda () (matrix-vec-mul m100 v100))))
+   500))
+
+(benchmark-report spmv-results)
+
+;;; ====
 ;;; Scaling Analysis
 ;;; ====
+
+;; Helper to find benchmark result by name (robust to reordering)
+(define (find-result name results)
+  (let loop ([rs results])
+    (if (null? rs)
+        #f
+        (if (string=? name (benchmark-result-name (car rs)))
+            (car rs)
+            (loop (cdr rs))))))
 
 (printf "\n=== Scaling Analysis ===\n\n")
 (printf "Matrix multiplication complexity: O(n^3)\n")
 (printf "Expected ratio for 2x size increase: approx 8x\n\n")
 
-(let* ([m10-mean (benchmark-result-mean-ns (car matmul-results))]
-       [m25-mean (benchmark-result-mean-ns (cadr matmul-results))]
-       [m50-mean (benchmark-result-mean-ns (caddr matmul-results))]
-       [m100-mean (benchmark-result-mean-ns (cadddr matmul-results))])
+(let* ([m10-mean (benchmark-result-mean-ns (find-result "10x10 * 10x10" matmul-results))]
+       [m25-mean (benchmark-result-mean-ns (find-result "25x25 * 25x25" matmul-results))]
+       [m50-mean (benchmark-result-mean-ns (find-result "50x50 * 50x50" matmul-results))]
+       [m100-mean (benchmark-result-mean-ns (find-result "100x100 * 100x100" matmul-results))])
   (printf "Size    | Time         | Ratio (vs prev)\n")
   (printf "--------|--------------|----------------\n")
   (printf "10x10   | ~a       | baseline\n" (format-time-ns m10-mean))
