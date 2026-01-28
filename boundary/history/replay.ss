@@ -173,21 +173,4 @@
   (doc 'export #t)
   (set! *history-divergence-handler* handler))
 
-(doc 'section 'utilities)
-
-(define (list-sort less? lst)
-  (doc 'type (-> (-> a a Boolean) (List a) (List a)))
-  (doc 'description "Sort a list using insertion sort")
-  (let loop ([remaining lst] [sorted '()])
-    (if (null? remaining)
-        sorted
-        (loop (cdr remaining)
-              (insert-sorted less? (car remaining) sorted)))))
-
-(define (insert-sorted less? x sorted)
-  (doc 'type (-> (-> a a Boolean) a (List a) (List a)))
-  (doc 'description "Insert element into sorted list")
-  (cond
-    [(null? sorted) (list x)]
-    [(less? x (car sorted)) (cons x sorted)]
-    [else (cons (car sorted) (insert-sorted less? x (cdr sorted)))]))
+;; Note: list-sort is a Chez Scheme built-in (O(n log n) merge sort)

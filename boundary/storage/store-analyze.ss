@@ -151,18 +151,7 @@
                     (fn k (hashtable-ref ht k #f)))
             keys)))
 
-(define (list-sort less? lst)
-  (doc 'type (-> (-> α α Boolean) (List α) (List α)))
-  (doc 'description "Sort a list using the given comparison function")
-  (if (or (null? lst) (null? (cdr lst)))
-      lst
-      (let* ([pivot (car lst)]
-             [rest (cdr lst)]
-             [smaller (filter (lambda (x) (less? x pivot)) rest)]
-             [greater (filter (lambda (x) (not (less? x pivot))) rest)])
-            (append (list-sort less? smaller)
-                    (list pivot)
-                    (list-sort less? greater)))))
+;; Note: list-sort is a Chez Scheme built-in (O(n log n) merge sort)
 
 (doc 'section 'size-distribution-analysis)
 
