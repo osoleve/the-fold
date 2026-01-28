@@ -336,6 +336,26 @@
           ;; Should detect Hopf bifurcation
           (assert-true (>= (length hopf-bifs) 1))))
 
+  (define-test "detect-fold-from-param-reversal detects reversal"
+    ;; Simulate arc-length data with parameter reversal at a fold
+    (let* ([prev-prev (list -0.2 (vector 0.1) 'stable (list (make-complex -0.3 0)))]
+           [prev (list -0.05 (vector 0.05) 'stable (list (make-complex -0.05 0)))]  ; Near fold
+           [curr (list -0.1 (vector 0.15) 'stable (list (make-complex 0.1 0)))]     ; Reversed
+           [prev-eigs (cadddr prev)]
+           [result (detect-fold-from-param-reversal prev-prev prev curr prev-eigs)])
+          ;; Should detect saddle-node from parameter reversal + near-zero eigenvalue
+          (assert-equal result 'saddle-node)))
+
+  (define-test "detect-fold-from-param-reversal ignores non-reversal"
+    ;; No reversal - parameter keeps increasing
+    (let* ([prev-prev (list 0.1 (vector 0.1) 'stable (list (make-complex -0.3 0)))]
+           [prev (list 0.2 (vector 0.15) 'stable (list (make-complex -0.2 0)))]
+           [curr (list 0.3 (vector 0.2) 'stable (list (make-complex -0.1 0)))]
+           [prev-eigs (cadddr prev)]
+           [result (detect-fold-from-param-reversal prev-prev prev curr prev-eigs)])
+          ;; No reversal, should return #f
+          (assert-false result)))
+
   ;;; ============================================================
   ;;; Bifurcation Diagrams
   ;;; ============================================================

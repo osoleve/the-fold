@@ -737,6 +737,32 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
 (doc 'section 'bifurcation-detection)
 (doc 'note "Detect bifurcations by monitoring eigenvalue crossings")
 
+(define (detect-fold-from-param-reversal prev-prev prev curr prev-eigs)
+  (doc 'type '(-> (Option (List Number Vec Symbol (List Complex)))
+                  (List Number Vec Symbol (List Complex))
+                  (List Number Vec Symbol (List Complex))
+                  (List Complex)
+                  (Option Symbol)))
+  (doc 'description "Detect fold (saddle-node) from parameter direction reversal in arc-length data")
+  (doc 'note "At a fold, parameter reaches extremum and direction reverses. Eigenvalue approaches zero.")
+  (if (not prev-prev)
+      #f  ; Need 3 points
+      (let* ([pp-param (car prev-prev)]
+             [p-param (car prev)]
+             [c-param (car curr)]
+             ;; Parameter deltas
+             [dp1 (- p-param pp-param)]
+             [dp2 (- c-param p-param)]
+             ;; Check for direction reversal (sign change in dp)
+             [reversal? (< (* dp1 dp2) 0)]
+             ;; Check if an eigenvalue is near zero
+             [min-eig-mag (if (null? prev-eigs)
+                              1.0
+                              (apply min (map (lambda (e) (abs (complex-real e))) prev-eigs)))])
+            (if (and reversal? (< min-eig-mag 0.1))
+                'saddle-node  ; Fold detected via parameter reversal
+                #f))))
+
 (define (detect-bifurcations continuation-data . opt-psys)
   (doc 'export #t)
   (doc 'type '(-> (List (List Number Vec Symbol (List Complex))) (Option ParamODE)
@@ -745,10 +771,13 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
   (doc 'param 'continuation-data "output from continue-fixed-point or continue-fixed-point-arclength")
   (doc 'param 'opt-psys "optional: parameterized ODE for normal form analysis (improves pitchfork/transcritical distinction)")
   (doc 'returns "list of (bifurcation-type param fixed-point) for each detected bifurcation")
+  (doc 'note "For arc-length continuation, also detects fold points via parameter direction reversal")
   (let ([psys (if (null? opt-psys) #f (car opt-psys))])
        (if (or (null? continuation-data) (null? (cdr continuation-data)))
            '()
-           (let loop ([prev (car continuation-data)]
+           ;; Need 3 points to detect parameter reversal (for fold detection)
+           (let loop ([prev-prev #f]
+                      [prev (car continuation-data)]
                       [rest (cdr continuation-data)]
                       [bifurcations '()])
                 (if (null? rest)
@@ -761,18 +790,29 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
                            [prev-stab (caddr prev)]
                            [curr-stab (caddr curr)]
                            [curr-fp (cadr curr)]
-                           ;; Check for bifurcations
-                           [bif (detect-bifurcation-type prev-eigs curr-eigs
-                                                         prev-stab curr-stab)])
-                          ;; Refine pitchfork/transcritical using normal form if psys provided
-                          (let ([refined-bif
-                                 (if (and psys bif (eq? bif 'pitchfork-or-transcritical))
-                                     (let ([sys (instantiate-at psys curr-param)])
-                                          (classify-codim1-bifurcation sys curr-fp *normal-form-h*))
-                                     bif)])
-                               (loop curr (cdr rest)
+                           ;; Check for fold (parameter reversal) first - very specific
+                           ;; (requires reversal + near-zero eigenvalue)
+                           [fold-bif (detect-fold-from-param-reversal
+                                      prev-prev prev curr prev-eigs)]
+                           ;; Check for eigenvalue-based bifurcations if no fold detected
+                           [bif (if fold-bif
+                                    #f  ; Skip eigenvalue detection if fold found
+                                    (detect-bifurcation-type prev-eigs curr-eigs
+                                                             prev-stab curr-stab))])
+                          ;; Use whichever detection found something
+                          (let* ([effective-bif (or fold-bif bif)]
+                                 ;; Refine pitchfork/transcritical using normal form if psys provided
+                                 [refined-bif
+                                  (if (and psys effective-bif (eq? effective-bif 'pitchfork-or-transcritical))
+                                      (let ([sys (instantiate-at psys curr-param)])
+                                           (classify-codim1-bifurcation sys curr-fp *normal-form-h*))
+                                      effective-bif)]
+                                 ;; For fold, report prev (the extremum), not curr
+                                 [bif-param (if fold-bif prev-param curr-param)]
+                                 [bif-fp (if fold-bif (cadr prev) curr-fp)])
+                               (loop prev curr (cdr rest)
                                      (if refined-bif
-                                         (cons (list refined-bif curr-param curr-fp) bifurcations)
+                                         (cons (list refined-bif bif-param bif-fp) bifurcations)
                                          bifurcations)))))))))
 
 (define (detect-bifurcation-type prev-eigs curr-eigs prev-stab curr-stab)
@@ -1027,10 +1067,9 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
                            ;; Transcritical: g'' ≠ 0
                            [(> (abs gpp) *normal-form-tolerance*)
                             'transcritical]
-                           ;; Saddle-node (fold): both derivatives small suggests simple fold
-                           [(and (< (abs gpp) *normal-form-tolerance*)
-                                 (< (abs gppp) *normal-form-tolerance*))
-                            'saddle-node]
+                           ;; Both derivatives small: degenerate or higher-order bifurcation
+                           ;; Note: Can't reliably distinguish saddle-node from transcritical
+                           ;; without checking parameter derivative df/dp at the fixed point.
                            [else 'unknown]))))])))
 
 ;;; ============================================================
