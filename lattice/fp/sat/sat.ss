@@ -207,22 +207,20 @@
   (let ([var (lambda (n c) (+ (* n num-colors) c 1))])
        (append
         ;; Each node has exactly one color
-        (apply append
-               (map (lambda (node)
+        (append-map (lambda (node)
                             (exactly-one
                              (map (lambda (c) (var node c))
                                   (range 0 num-colors))))
-                    (range 0 num-nodes)))
+                    (range 0 num-nodes))
         ;; Adjacent nodes have different colors
-        (apply append
-               (map (lambda (edge)
+        (append-map (lambda (edge)
                             (let ([u (car edge)]
                                   [v (cdr edge)])
                                  (map (lambda (c)
                                               (list (neg (var u c))
                                                     (neg (var v c))))
                                       (range 0 num-colors))))
-                    edges)))))
+                    edges))))
 
 (define (n-queens-sat n)
   (doc 'export #t)
@@ -232,21 +230,19 @@
   (let ([var (lambda (r c) (+ (* r n) c 1))])
        (append
         ;; Each row has exactly one queen
-        (apply append
-               (map (lambda (r)
+        (append-map (lambda (r)
                             (exactly-one (map (lambda (c) (var r c)) (range 0 n))))
-                    (range 0 n)))
+                    (range 0 n))
         ;; Each column has at most one queen
-        (apply append
-               (map (lambda (c)
+        (append-map (lambda (c)
                             (at-most-one (map (lambda (r) (var r c)) (range 0 n))))
-                    (range 0 n)))
+                    (range 0 n))
         ;; Diagonals have at most one queen
         (queens-diagonal-constraints-sat n var))))
 
 (define (queens-diagonal-constraints-sat n var)
   (doc 'type '(-> Nat (-> Nat Nat Literal) (List (List Literal))))
-  (apply append
+  (flatten
          (append
           ;; Down-right diagonals
           (map (lambda (d)

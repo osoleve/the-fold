@@ -380,7 +380,7 @@ This is the multiplication of the List monad")
      'concat
      list-list
      functor-list
-     (lambda (xss) (apply append xss)))))
+     (lambda (xss) (flatten xss)))))
 
 (doc nat-pure-list 'type 'NatTransform)
 (doc nat-pure-list 'description "NatTransform from Identity to List.

@@ -190,11 +190,10 @@
 
 (define-test "quadtree many points"
   ;; Grid of 100 points
-  (let* ([points (apply append
-                        (map (lambda (x)
+  (let* ([points (append-map (lambda (x)
                                (map (lambda (y) (list x y))
                                     (iota 10)))
-                             (iota 10)))]
+                             (iota 10))]
          [tree (quadtree-build-auto points)])
     (assert-equal 100 (quadtree-size tree))
     ;; Each point should find itself as nearest

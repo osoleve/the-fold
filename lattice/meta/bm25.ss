@@ -71,10 +71,9 @@
                                        #f))
                            words)]
              ;; Also split hyphenated tokens into parts
-             [split-tokens (apply append
-                                  (map (lambda (sym)
+             [split-tokens (append-map (lambda (sym)
                                                (split-hyphenated sym))
-                                       base-tokens))])
+                                       base-tokens)])
             (remove-duplicates (append base-tokens split-tokens)))))
 
 ;;; split-hyphenated : Symbol -> (List Symbol)

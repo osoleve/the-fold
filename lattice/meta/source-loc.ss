@@ -146,8 +146,7 @@
 (define (find-scheme-files-loc dir)
   (guard (e [else '()])
          (let ([entries (directory-list dir)])
-              (apply append
-                     (map (lambda (entry)
+              (append-map (lambda (entry)
                                   (let ([path (string-append dir "/" entry)])
                                        (cond
                                         ;; Skip hidden directories
@@ -162,7 +161,7 @@
                                               (not (string-prefix? "test-" entry)))
                                          (list path)]
                                         [else '()])))
-                          entries)))))
+                          entries))))
 
 ;;; file-directory-loc? : String -> Boolean
 (define (file-directory-loc? path)

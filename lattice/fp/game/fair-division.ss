@@ -188,7 +188,7 @@
 ;;; For cake cutting, a division is Pareto optimal iff no interval is wasted.
 (define (pareto-optimal? c div)
   ;; Simple check: all of [0,1] is allocated
-  (let* ([intervals (apply append (division->list div))]
+  (let* ([intervals (flatten (division->list div))]
          [total-length (fold-left + 0 (map (lambda (i) (- (cdr i) (car i))) intervals))])
     (>= total-length (- 1 1e-10))))
 

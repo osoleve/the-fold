@@ -150,10 +150,9 @@
                                         (get-vertex-id v2) (get-vertex-id v0))))
       triangles)
     ;; Third pass: subdivide using shared midpoints
-    (apply append
-      (map (lambda (tri)
-             (subdivide-triangle-with-midpoints-by-id tri edge-midpoints get-vertex-id))
-           triangles))))
+    (append-map (lambda (tri)
+                  (subdivide-triangle-with-midpoints-by-id tri edge-midpoints get-vertex-id))
+                triangles)))
 
 ;;; vec3-edge-key : Vec3 × Vec3 → (List Number Number Number Number Number Number)
 ;;; Create a canonical edge key from two vertices.

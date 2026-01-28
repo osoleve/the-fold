@@ -34,7 +34,7 @@
                       (cons (round (/ (point2-x p) tolerance))
                             (round (/ (point2-y p) tolerance))))]
          ;; Collect all unique points
-         [all-points (apply append (map tri2-points triangles))]
+         [all-points (append-map tri2-points triangles)]
          ;; Build node list and index map using hashtable (O(1) lookup)
          [node-map (make-hashtable equal-hash equal?)]
          [nodes-vec (make-vector (length all-points) #f)]  ; Upper bound

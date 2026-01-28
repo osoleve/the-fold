@@ -286,7 +286,7 @@
 ;;;   (define drawable-ops ...)
 ;;;   (define game-object-ops (compose-bundles 'game-object-ops movable-ops drawable-ops))
 (define (compose-bundles name . bundles)
-  (let* ([all-slots (apply append (map bundle-slots bundles))]
+  (let* ([all-slots (append-map bundle-slots bundles)]
          [unique-slots (dedupe-slots all-slots)])
     (let ([composed (make-protocol-bundle name unique-slots)])
       (register-bundle! composed)

@@ -149,11 +149,10 @@
 
 (define-test "kdtree stress test nearest"
   ;; Grid of points, verify nearest is correct for random queries
-  (let* ([points (apply append
-                        (map (lambda (x)
+  (let* ([points (append-map (lambda (x)
                                (map (lambda (y) (list x y))
                                     (iota 10)))
-                             (iota 10)))]
+                             (iota 10))]
          [tree (kdtree-build points)])
     ;; Query at each grid point should return itself
     (for-each (lambda (p)
@@ -223,11 +222,10 @@
 
 (define-test "kdtree-delete stress"
   ;; Build grid, delete half, verify queries still work
-  (let* ([points (apply append
-                        (map (lambda (x)
+  (let* ([points (append-map (lambda (x)
                                (map (lambda (y) (list x y))
                                     (iota 10)))
-                             (iota 10)))]
+                             (iota 10))]
          [tree (kdtree-build points)]
          ;; Delete all even-indexed points
          [even-points (filter (lambda (p) (even? (+ (car p) (cadr p)))) points)]

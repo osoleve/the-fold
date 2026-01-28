@@ -76,8 +76,7 @@
   (doc 'type '(-> CNF (List VarId)))
   (doc 'description "Get sorted list of all variable ids in CNF")
   (sort-by < (list-unique
-                (apply append
-                       (map clause-vars (cnf-clauses cnf))))))
+                (append-map clause-vars (cnf-clauses cnf)))))
 
 (define (cnf-unit-clauses cnf)
   (doc 'export #t)

@@ -244,11 +244,10 @@
         [n2 (game-num-strategies game 1)])
        (filter (lambda (profile)
                        (is-pure-nash? game (car profile) (cdr profile)))
-               (apply append
-                      (map (lambda (i)
+               (append-map (lambda (i)
                                    (map (lambda (j) (cons i j))
                                         (iota n2)))
-                           (iota n1))))))
+                           (iota n1)))))
 
 (doc 'section 'mixed-strategies)
 (doc 'note "A mixed strategy is a probability distribution over pure strategies.")

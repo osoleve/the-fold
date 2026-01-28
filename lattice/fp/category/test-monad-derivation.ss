@@ -226,7 +226,7 @@
 ;; Hand-coded list monad operations
 (define (list-return x) (list x))
 (define (list-fmap f xs) (map f xs))
-(define (list-join xss) (apply append xss))
+(define (list-join xss) (flatten xss))
 (define (list-bind xs f) (list-join (list-fmap f xs)))
 
 ;; Get derived operations

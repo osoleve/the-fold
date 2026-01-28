@@ -351,9 +351,9 @@
             (find-u-candidates (pow-base expr) var-sym)
             (find-u-candidates (pow-exp expr) var-sym))]
    [(sum? expr)
-    (apply append (map (lambda (t) (find-u-candidates t var-sym)) (sum-terms expr)))]
+    (append-map (lambda (t) (find-u-candidates t var-sym)) (sum-terms expr))]
    [(product? expr)
-    (apply append (map (lambda (f) (find-u-candidates f var-sym)) (product-factors expr)))]
+    (append-map (lambda (f) (find-u-candidates f var-sym)) (product-factors expr))]
    [else '()]))
 
 ;;; substitute-u : (List Expr) × Expr × Symbol → Expr | #f

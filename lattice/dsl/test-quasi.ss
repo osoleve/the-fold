@@ -34,7 +34,7 @@
            (eval-expanded (caddr expr)))]
 
     [(and (pair? expr) (eq? (car expr) 'append))
-     (apply append (map eval-expanded (cdr expr)))]
+     (append-map eval-expanded (cdr expr))]
 
     [(and (pair? expr) (eq? (car expr) 'list->vector))
      (list->vector (eval-expanded (cadr expr)))]

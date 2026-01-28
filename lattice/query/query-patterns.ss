@@ -194,10 +194,9 @@
            
            ;; For each existing environment, match the pattern
            (let ([new-envs
-                  (apply append
-                         (map (lambda (env)
+                  (append-map (lambda (env)
                                       (match-pattern fs pattern env))
-                              envs))])
+                              envs)])
                 
                 ;; Continue with remaining patterns
                 (join-pattern-list fs rest-patterns new-envs)))))

@@ -166,7 +166,7 @@
 ;;; Get all candidates mentioned in any ballot.
 (define (approval-profile-candidates profile)
   (doc 'export #t)
-  (list->set (apply append profile)))
+  (list->set (flatten profile)))
 
 ;;; approval-count : Candidate × ApprovalProfile → Nat
 ;;; Count how many voters approve of a candidate.

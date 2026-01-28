@@ -751,9 +751,8 @@
       s))
    ;; fold: s -> List c
    (lambda (s)
-     (apply append
-            (map (p-traversal-fold-fn inner)
-                 ((p-traversal-fold-fn outer) s))))))
+     (append-map (p-traversal-fold-fn inner)
+                 ((p-traversal-fold-fn outer) s)))))
 
 ;;; ====
 ;;; Common Profunctor Traversals
@@ -851,9 +850,8 @@
   (doc 'export #t)
   (make-p-fold
    (lambda (s)
-     (apply append
-            (map (p-fold-fn inner)
-                 ((p-fold-fn outer) s))))))
+     (append-map (p-fold-fn inner)
+                 ((p-fold-fn outer) s)))))
 
 ;;; ====
 ;;; Common Profunctor Folds

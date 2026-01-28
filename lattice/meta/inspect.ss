@@ -103,12 +103,11 @@
                           (cdr (or (assq 'exports data) '(exports . ())))
                           '())])
         ;; Flatten export groups
-        (apply append
-               (map (lambda (group)
+        (append-map (lambda (group)
                             (if (and (pair? group) (list? group))
                                 (cdr group)  ; Skip module name
                                 '()))
-                    (if (list? exports-raw) exports-raw '())))))
+                    (if (list? exports-raw) exports-raw '()))))
 
 ;;; lattice-all-exports : -> (List (skill . (exports ...)))
 ;;; Get all exports grouped by skill

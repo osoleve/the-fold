@@ -422,7 +422,7 @@
             
             ;; Test with list monad (non-determinism)
             (define-test do-monad-list-test
-              (let* ([list-bind (lambda (m f) (apply append (map f m)))]
+              (let* ([list-bind (lambda (m f) (append-map f m))]
                      [result (do-monad list-bind
                                        [x <- '(1 2)]
                                        [y <- '(10 20)]

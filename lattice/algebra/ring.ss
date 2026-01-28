@@ -403,12 +403,11 @@
   (doc 'export #t)
   (let* ([r (ideal-ring i1)]
          [elems (unique-with-equal
-                 (apply append
-                        (map (lambda (a)
+                 (append-map (lambda (a)
                                      (map (lambda (b)
                                                   (ring-add r a b))
                                           (ideal-elements i2)))
-                             (ideal-elements i1)))
+                             (ideal-elements i1))
                  (ring-equal-fn r))])
         (make-ideal r elems)))
 
@@ -419,20 +418,18 @@
   (doc 'export #t)
   (let* ([r (ideal-ring i1)]
          [eq-fn (ring-equal-fn r)]
-         [initial-products (apply append
-                                  (map (lambda (a)
+         [initial-products (append-map (lambda (a)
                                                (map (lambda (b)
                                                             (ring-mul r a b))
                                                     (ideal-elements i2)))
-                                       (ideal-elements i1)))]
+                                       (ideal-elements i1))]
          [seeds (unique-with-equal initial-products eq-fn)])
         (let loop ([elems seeds])
-             (let* ([new-sums (apply append
-                                     (map (lambda (a)
+             (let* ([new-sums (append-map (lambda (a)
                                                   (map (lambda (b)
                                                                (ring-add r a b))
                                                        elems))
-                                          elems))]
+                                          elems)]
                     [next-elems (unique-with-equal (append elems new-sums) eq-fn)])
                    (if (= (length next-elems) (length elems))
                        (make-ideal r next-elems)
@@ -481,12 +478,11 @@
                           (if (member-equal x i-elems eq-fn)
                               (loop (cdr candidates))  ; Skip elements already in ideal
                               ; Check if <I ∪ {x}> contains 1
-                              (let ([generated (apply append
-                                                      (map (lambda (i)
+                              (let ([generated (append-map (lambda (i)
                                                                    (map (lambda (s)
                                                                                 (ring-add r i (ring-mul r s x)))
                                                                         r-elems))
-                                                           i-elems))])
+                                                           i-elems)])
                                    (if (member-equal (ring-one r) generated eq-fn)
                                        (loop (cdr candidates))
                                        #f))))))))) ; Found proper ideal containing I

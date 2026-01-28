@@ -317,11 +317,10 @@ Inverse decomposes to one or two equalities depending on side.")
   (doc 'type '(-> Goal (List Symbol)))
   (doc 'description "Collect metavariable names from decomposed goal.")
   (let ([eqs (decompose-goal g)])
-       (apply append
-              (map (lambda (eq)
+       (append-map (lambda (eq)
                            (append (pattern-vars (eq-goal-lhs eq))
                                    (pattern-vars (eq-goal-rhs eq))))
-                   eqs))))
+                   eqs)))
 
 (define (goal-vars-unique g)
   (doc 'type '(-> Goal (List Symbol)))

@@ -92,7 +92,7 @@
   (doc 'export #t)
   (doc 'type '(-> (List (List Number)) Number))
   (doc 'description "Joint entropy H(X,Y) from joint probability matrix")
-  (let ([flat (apply append joint-probs)])
+  (let ([flat (flatten joint-probs)])
        (entropy flat)))
 
 (doc 'section 'conditional-entropy)

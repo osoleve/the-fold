@@ -28,13 +28,12 @@
 ;;; flatten-exports : (List (Symbol | List)) -> (List Symbol)
 ;;; Handle both flat list of symbols and grouped lists
 (define (flatten-exports items)
-  (apply append
-         (map (lambda (item)
+  (append-map (lambda (item)
                 (cond
                   [(symbol? item) (list item)]
                   [(pair? item) (filter symbol? item)]
                   [else '()]))
-              items)))
+              items))
 
 ;;; manifest-exports : SExp -> (List Symbol)
 ;;; Extract exports from manifest sexp (handles both formats and grouped exports)
@@ -130,7 +129,7 @@
   (let ([sexps (read-all-sexps path)])
     (if (not sexps)
         '()
-        (apply append (map extract-defs-from-sexp sexps)))))
+        (append-map extract-defs-from-sexp sexps))))
 
 ;;; extract-defs-from-sexp : SExp -> (List Symbol)
 (define (extract-defs-from-sexp sexp)
@@ -148,7 +147,7 @@
      (let ([second (if (pair? (cdr sexp)) (cadr sexp) #f)])
        (if (symbol? second) (list second) '()))]
     [(eq? (car sexp) 'begin)
-     (apply append (map extract-defs-from-sexp (cdr sexp)))]
+     (append-map extract-defs-from-sexp (cdr sexp))]
     [else '()]))
 
 ;;; ====
@@ -166,13 +165,12 @@
         (let* ([declared (manifest-exports manifest)]
                [modules (manifest-modules manifest)]
                ;; Collect all definitions from source files
-               [defined (apply append
-                              (map (lambda (mod)
+               [defined (append-map (lambda (mod)
                                      (let ([file (string-append skill-dir "/" (cadr mod))])
                                        (if (file-exists? file)
                                            (extract-definitions file)
                                            '())))
-                                   modules))]
+                                   modules)]
                ;; Find mismatches
                [missing-source (filter (lambda (s) (not (member s defined))) declared)]
                [missing-manifest (filter (lambda (s) (not (member s declared))) defined)])
@@ -225,15 +223,14 @@
         '()
         (let* ([declared (manifest-exports manifest)]
                [modules (manifest-modules manifest)])
-          (apply append
-                 (map (lambda (mod)
+          (append-map (lambda (mod)
                         (let* ([file (string-append skill-dir "/" (cadr mod))]
                                [defined (if (file-exists? file)
                                            (extract-definitions file)
                                            '())]
                                [to-annotate (filter (lambda (s) (member s declared)) defined)])
                           (map (lambda (s) (cons file s)) to-annotate)))
-                      modules))))))
+                      modules)))))
 
 ;;; print-export-edits : String -> Void
 ;;; Print the export annotations needed for a skill

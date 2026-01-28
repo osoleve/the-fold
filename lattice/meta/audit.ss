@@ -185,7 +185,7 @@
 
 ;;; collect-all-defines : (List Path) -> (List Symbol)
 (define (collect-all-defines files)
-  (apply append (map extract-defines files)))
+  (append-map extract-defines files))
 
 ;;; public-export? : Symbol -> Bool
 ;;; Heuristic: public exports don't start with % or contain internal markers
@@ -331,7 +331,7 @@
          [manifest-path (string-append skill-path "/manifest.sexp")]
          [declared-deps (parse-manifest-deps manifest-path)]
          [source-files (find-source-files skill-path)]
-         [all-load-deps (apply append (map extract-load-deps source-files))]
+         [all-load-deps (append-map extract-load-deps source-files)]
          ;; Remove self-references and core references
          [external-deps (filter (lambda (d)
                                         (and (not (eq? d skill-name))

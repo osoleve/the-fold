@@ -391,7 +391,7 @@
 (define (intercalate sep xss)
   (doc 'type '(-> (List a) (List (List a)) (List a)))
   (doc 'description "Insert list between lists and flatten")
-  (apply append (intersperse sep xss)))
+  (flatten (intersperse sep xss)))
 
 (define (group-by key xs)
   (doc 'type '(-> (-> a b) (List a) (List (List a))))

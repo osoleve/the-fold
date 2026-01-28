@@ -347,12 +347,11 @@
 (doc layout-from-adjacency 'description "Create layout graph from adjacency list")
 (define (layout-from-adjacency adj-list)
   (let* ([node-ids (map car adj-list)]
-         [edges (apply append
-                       (map (lambda (entry)
+         [edges (append-map (lambda (entry)
                               (let ([from (car entry)]
                                     [tos (cdr entry)])
                                 (map (lambda (to) (cons from to)) tos)))
-                            adj-list))])
+                            adj-list)])
     (make-layout-graph node-ids edges)))
 
 (printf "✓ Graph layout loaded\n")

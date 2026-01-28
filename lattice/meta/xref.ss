@@ -32,8 +32,7 @@
         (if (and (pair? (cdr sexp)) (pair? (cddr sexp)))
             (let ([name-part (cadr sexp)])
               ;; Skip the function name, extract from body
-              (apply append
-                     (map extract-symbols-from-sexp (cddr sexp))))
+              (append-map extract-symbols-from-sexp (cddr sexp)))
             '())]
        ;; Handle let/let*/letrec - skip binding names
        ;; Also handle named let: (let loop ([x 1]) body...)
@@ -48,37 +47,35 @@
                  [body (cdddr sexp)])
              (append
               ;; Extract from binding values
-              (apply append
-                     (map (lambda (b)
+              (append-map (lambda (b)
                             (if (and (pair? b) (pair? (cdr b)))
                                 (extract-symbols-from-sexp (cadr b))
                                 '()))
-                          (if (list? bindings) bindings '())))
+                          (if (list? bindings) bindings '()))
               ;; Extract from body
-              (apply append (map extract-symbols-from-sexp body))))]
+              (append-map extract-symbols-from-sexp body)))]
           ;; Regular let: (let ([var init] ...) body...)
           [(and (pair? (cdr sexp)) (pair? (cadr sexp)))
            (let ([bindings (cadr sexp)]
                  [body (cddr sexp)])
              (append
               ;; Extract from binding values (not names)
-              (apply append
-                     (map (lambda (b)
+              (append-map (lambda (b)
                             (if (and (pair? b) (pair? (cdr b)))
                                 (extract-symbols-from-sexp (cadr b))
                                 '()))
-                          (if (list? bindings) bindings '())))
+                          (if (list? bindings) bindings '()))
               ;; Extract from body
-              (apply append (map extract-symbols-from-sexp body))))]
+              (append-map extract-symbols-from-sexp body)))]
           [else '()])]
        ;; Handle lambda - skip parameter names
        [(lambda)
         (if (pair? (cddr sexp))
-            (apply append (map extract-symbols-from-sexp (cddr sexp)))
+            (append-map extract-symbols-from-sexp (cddr sexp))
             '())]
        ;; Default: recurse into all parts
        [else
-        (apply append (map extract-symbols-from-sexp sexp))])]
+        (append-map extract-symbols-from-sexp sexp)])]
     [else '()]))
 
 ;;; ====
@@ -109,7 +106,7 @@
      (let ([name (get-define-name sexp)])
        (if name
            (let* ([body (cddr sexp)]
-                  [refs (apply append (map extract-symbols-from-sexp body))]
+                  [refs (append-map extract-symbols-from-sexp body)]
                   [unique-refs (remove-duplicates-sym refs)])
              (cons name unique-refs))
            #f))]
@@ -147,8 +144,7 @@
 (define (find-scheme-files-xref dir)
   (guard (e [else '()])
     (let ([entries (directory-list dir)])
-      (apply append
-             (map (lambda (entry)
+      (append-map (lambda (entry)
                     (let ([path (string-append dir "/" entry)])
                       (cond
                         [(and (> (string-length entry) 0)
@@ -160,7 +156,7 @@
                               (not (string-prefix-xref? "test-" entry)))
                          (list path)]
                         [else '()])))
-                  entries)))))
+                  entries))))
 
 (define (file-directory-xref? path)
   (guard (e [else #f])

@@ -698,7 +698,7 @@
             
             (define-test monoid-goals-decomposition
               (let* ([goals (monoid-goals '() 'mappend 'mempty)]
-                     [decomposed (apply append (map decompose-goal goals))])
+                     [decomposed (append-map decompose-goal goals)])
                     ;; Should decompose to 3 eq-goals
                     (assert-equal 3 (length decomposed))
                     (assert-true (if (for-all alg-eq-goal? decomposed) #t #f))))

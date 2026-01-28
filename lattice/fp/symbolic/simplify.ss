@@ -82,12 +82,11 @@
 (define (flatten-sums terms)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Flatten nested sums: (+ a (+ b c)) → (a b c)")
-  (apply append
-         (map (lambda (e)
+  (append-map (lambda (e)
                       (if (sum? e)
                           (flatten-sums (sum-terms e))
                           (list e)))
-              terms)))
+              terms))
 
 (define (collect-like-terms terms)
   (doc 'type '(-> (List Expr) (List Expr)))
@@ -163,12 +162,11 @@
 (define (flatten-products factors)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Flatten nested products")
-  (apply append
-         (map (lambda (e)
+  (append-map (lambda (e)
                       (if (product? e)
                           (flatten-products (product-factors e))
                           (list e)))
-              factors)))
+              factors))
 
 (define (collect-like-bases factors)
   (doc 'type '(-> (List Expr) (List Expr)))

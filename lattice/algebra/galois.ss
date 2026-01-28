@@ -189,10 +189,9 @@
   (if (= n 0)
       '(())
       (let ([rest (all-coeff-combinations elements (- n 1))])
-        (apply append
-               (map (lambda (e)
+        (append-map (lambda (e)
                       (map (lambda (r) (cons e r)) rest))
-                    elements)))))
+                    elements))))
 
 ;;; GF(p^n) element addition
 (define (gf-ext-add a b base-field n modulus)

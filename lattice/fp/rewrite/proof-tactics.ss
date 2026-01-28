@@ -352,7 +352,7 @@ This is Lattice code: pure, total, assumes perfect input.")
                                       (tactic-failure
                                        `(subgoal-failed ,(filter tactic-failure? results)))
                                       ;; Collect all new subgoals
-                                      (let* ([all-subgoals (apply append (map tactic-subgoals results))]
+                                      (let* ([all-subgoals (append-map tactic-subgoals results)]
                                              [builders (map tactic-builder results)]
                                              [combined-builder
                                               (lambda (proofs)
@@ -486,10 +486,9 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Removes duplicates while preserving order (base laws tried first).
 (define (auto-laws)
   (let* ([base *auto-laws-base*]
-         [category-laws (apply append
-                               (map (lambda (cat)
+         [category-laws (append-map (lambda (cat)
                                             (map rule-name (laws-by-category cat)))
-                                    *auto-law-categories*))]
+                                    *auto-law-categories*)]
          [extra *auto-laws-extra*]
          [all (append base category-laws extra)])
         ;; Remove duplicates, keeping first occurrence

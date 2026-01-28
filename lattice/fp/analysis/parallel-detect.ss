@@ -115,9 +115,9 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
         (let* ([params (cadr expr)]
                [body (cddr expr)]
                [new-bound (append (if (list? params) params (list params)) bound)])
-              (apply append (map (lambda (e) (free-vars-env e new-bound)) body)))
+              (append-map (lambda (e) (free-vars-env e new-bound)) body))
         '())]
-   
+
    ;; (let ((var val) ...) body ...)
    [(eq? (car expr) 'let)
     (if (and (pair? (cdr expr)) (pair? (cadr expr)))
@@ -126,8 +126,8 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
                [vars (map car bindings)]
                [vals (map cadr bindings)]
                ;; For regular let: vals are in outer scope, body in extended scope
-               [val-fvs (apply append (map (lambda (v) (free-vars-env v bound)) vals))]
-               [body-fvs (apply append (map (lambda (e) (free-vars-env e (append vars bound))) body))])
+               [val-fvs (append-map (lambda (v) (free-vars-env v bound)) vals)]
+               [body-fvs (append-map (lambda (e) (free-vars-env e (append vars bound))) body)])
               (append val-fvs body-fvs))
         '())]
    
@@ -140,7 +140,7 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
               (let loop ([bs bindings] [cur-bound bound] [acc '()])
                    (if (null? bs)
                        (append acc
-                               (apply append (map (lambda (e) (free-vars-env e cur-bound)) body)))
+                               (append-map (lambda (e) (free-vars-env e cur-bound)) body))
                        (let* ([b (car bs)]
                               [var (car b)]
                               [val (cadr b)])
@@ -158,8 +158,8 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
                [vals (map cadr bindings)]
                ;; For letrec: all vars are in scope for both vals and body
                [new-bound (append vars bound)]
-               [val-fvs (apply append (map (lambda (v) (free-vars-env v new-bound)) vals))]
-               [body-fvs (apply append (map (lambda (e) (free-vars-env e new-bound)) body))])
+               [val-fvs (append-map (lambda (v) (free-vars-env v new-bound)) vals)]
+               [body-fvs (append-map (lambda (e) (free-vars-env e new-bound)) body)])
               (append val-fvs body-fvs))
         '())]
    
@@ -173,7 +173,7 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
    
    ;; General list: union of free vars in all subexpressions
    [else
-    (apply append (map (lambda (e) (free-vars-env e bound)) expr))]))
+    (append-map (lambda (e) (free-vars-env e bound)) expr)]))
 
 (define (unique-symbols lst)
   (doc 'type '(-> (List Symbol) (List Symbol)))

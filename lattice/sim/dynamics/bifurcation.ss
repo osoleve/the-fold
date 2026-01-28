@@ -710,13 +710,12 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
       (let* ([range (car ranges)]
              [rest-grid (generate-nd-grid (cdr ranges) density)]
              [step (/ (- (cdr range) (car range)) (max 1 (- density 1)))])
-            (apply append
-                   (map (lambda (i)
+            (append-map (lambda (i)
                                 (let ([val (+ (car range) (* i step))])
                                      (map (lambda (pt)
                                                   (list->vector (cons val (vector->list pt))))
                                           rest-grid)))
-                        (iota density))))))
+                        (iota density)))))
 
 (define (remove-duplicate-points points tolerance)
   (doc 'type '(-> (List Vec) Number (List Vec)))
@@ -1088,8 +1087,7 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
   (doc 'param 'search-region "(min . max) pairs for each state dimension")
   (doc 'returns "list of (param fixed-point stability) tuples")
   (let ([step (/ (- param-max param-min) (max 1 (- param-steps 1)))])
-       (apply append
-              (map (lambda (i)
+       (append-map (lambda (i)
                            (let* ([param (+ param-min (* i step))]
                                   [sys (instantiate-at psys param)]
                                   [fps (find-all-fixed-points sys search-region
@@ -1100,7 +1098,7 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
                                                      [stability (car analysis)])
                                                     (list param fp stability)))
                                       fps)))
-                   (iota param-steps)))))
+                   (iota param-steps))))
 
 (define (bifurcation-diagram-amplitude psys param-min param-max param-steps
                                        initial-state dt n-transient n-sample)
@@ -1111,8 +1109,7 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
   (doc 'note "For limit cycles, this shows the oscillation amplitude. For chaos, it shows the spread")
   (doc 'returns "list of (param, state-component) pairs for plotting")
   (let ([step (/ (- param-max param-min) (max 1 (- param-steps 1)))])
-       (apply append
-              (map (lambda (i)
+       (append-map (lambda (i)
                            (let* ([param (+ param-min (* i step))]
                                   [sys (instantiate-at psys param)]
                                   ;; Skip transient
@@ -1133,7 +1130,7 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
                                  ;; Return first component of each sample
                                  (map (lambda (s) (cons param (vector-ref s 0)))
                                       samples)))
-                   (iota param-steps)))))
+                   (iota param-steps))))
 
 (define (bifurcation-diagram-poincare psys param-min param-max param-steps
                                       initial-state dt n-transient n-crossings
@@ -1144,8 +1141,7 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
   (doc 'description "Generate bifurcation diagram using Poincare section crossings")
   (doc 'note "Shows period-doubling bifurcations clearly for limit cycles")
   (let ([step (/ (- param-max param-min) (max 1 (- param-steps 1)))])
-       (apply append
-              (map (lambda (i)
+       (append-map (lambda (i)
                            (let* ([param (+ param-min (* i step))]
                                   [sys (instantiate-at psys param)]
                                   [section (poincare-section sys initial-state dt
@@ -1157,7 +1153,7 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
                                  (map (lambda (pt)
                                               (cons param (vector-ref pt coord-idx)))
                                       (take-up-to section n-crossings))))
-                   (iota param-steps)))))
+                   (iota param-steps))))
 
 (define (take-up-to lst n)
   (doc 'type '(-> (List α) Nat (List α)))
@@ -2142,36 +2138,33 @@ At transcritical: returns 2 branches that exchange stability.")
   (doc 'export #t)
   (doc 'type '(-> BifurcationDiagram (List (List Number Vec))))
   (doc 'description "Get all stable points from all branches")
-  (apply append
-         (map (lambda (branch)
+  (append-map (lambda (branch)
                 (filter (lambda (pt) (stability-is-stable? (caddr pt)))
                         (cdr branch)))
-              (diagram-branches diag))))
+              (diagram-branches diag)))
 
 (define (diagram-unstable-points diag)
   (doc 'export #t)
   (doc 'type '(-> BifurcationDiagram (List (List Number Vec))))
   (doc 'description "Get all unstable points from all branches")
-  (apply append
-         (map (lambda (branch)
+  (append-map (lambda (branch)
                 (filter (lambda (pt) (stability-is-unstable? (caddr pt)))
                         (cdr branch)))
-              (diagram-branches diag))))
+              (diagram-branches diag)))
 
 (define (diagram-points-at-param diag p tol)
   (doc 'export #t)
   (doc 'type '(-> BifurcationDiagram Number Number (List (List Symbol Vec Symbol))))
   (doc 'description "Get all fixed points at a given parameter value (within tolerance)")
   (doc 'returns "list of (branch-id fixed-point stability)")
-  (apply append
-         (map (lambda (branch)
+  (append-map (lambda (branch)
                 (let ([id (car branch)]
                       [matches (filter (lambda (pt)
                                         (< (abs (- (car pt) p)) tol))
                                        (cdr branch))])
                      (map (lambda (pt) (list id (cadr pt) (caddr pt)))
                           matches)))
-              (diagram-branches diag))))
+              (diagram-branches diag)))
 
 (define (diagram-summary diag)
   (doc 'export #t)

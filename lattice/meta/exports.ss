@@ -194,8 +194,7 @@
   (define (walk dir)
     (guard (e [else '()])
       (let ([entries (directory-list dir)])
-        (apply append
-               (map (lambda (entry)
+        (append-map (lambda (entry)
                       (let ([path (string-append dir "/" entry)])
                         (cond
                           [(and (> (string-length entry) 3)
@@ -208,7 +207,7 @@
                                 (not (char=? (string-ref entry 0) #\.)))
                            (walk path)]
                           [else '()])))
-                    entries)))))
+                    entries))))
   (if (file-directory? root)
       (walk root)
       (if (file-exists? root) (list root) '())))
@@ -291,13 +290,12 @@
 (define (generate-exports-sexp skill-dir)
   (let ([results (scan-skill-exports skill-dir)])
     (cons 'exports
-          (apply append
-                 (map (lambda (entry)
+          (append-map (lambda (entry)
                         (let ([module (car entry)]
                               [exports (cadr entry)])
                           (cons (string->symbol (format ";; ~a" module))
                                 exports)))
-                      results)))))
+                      results))))
 
 ;;; generate-modules-sexp : String -> SExp
 ;;; Generate the modules section for a manifest
@@ -478,7 +476,7 @@
     (if (not manifest)
         (printf "No manifest found at ~a~n" manifest-path)
         (let* ([source-exports (scan-skill-all-exports skill-dir)]
-               [source-symbols (delete-duplicates (apply append (map cadr source-exports)))]
+               [source-symbols (delete-duplicates (append-map cadr source-exports))]
                [manifest-exports (manifest-exports-list manifest)]
                [in-source-not-manifest (filter (lambda (s) (not (member s manifest-exports))) source-symbols)]
                [in-manifest-not-source (filter (lambda (s) (not (member s source-symbols))) manifest-exports)])
@@ -502,8 +500,7 @@
   (let ([exports-entry (assq 'exports (cddr manifest))])
     (if (not exports-entry)
         '()
-        (apply append
-               (map (lambda (item)
+        (append-map (lambda (item)
                       (cond
                         ;; Top-level symbol (flat exports list)
                         [(symbol? item) (list item)]
@@ -511,7 +508,7 @@
                         [(and (pair? item) (symbol? (car item)))
                          (filter symbol? (cdr item))]
                         [else '()]))
-                    (cdr exports-entry))))))
+                    (cdr exports-entry)))))
 
 ;;; ====
 ;;; Pretty Print Manifest

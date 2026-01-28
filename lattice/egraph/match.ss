@@ -157,12 +157,11 @@
                                (= (enode-arity node) (length arg-patterns))))
                         nodes)])
            ;; For each matching node, try to match children
-           (apply append
-                  (map (lambda (node)
+           (append-map (lambda (node)
                          (ematch-children eg arg-patterns
                                          (vector->list (enode-children node))
                                          subst))
-                       matching-nodes))))]
+                       matching-nodes)))]
 
       ;; Unknown pattern type
       [else '()])))
@@ -179,10 +178,9 @@
              ;; Get all substitutions from matching first pattern
              [first-substs (ematch-pattern eg pattern child-id subst)])
         ;; For each successful first match, try to match rest
-        (apply append
-               (map (lambda (s)
+        (append-map (lambda (s)
                       (ematch-children eg (cdr patterns) (cdr child-ids) s))
-                    first-substs)))))
+                    first-substs))))
 
 ;;; ============================================================
 ;;; High-Level Matching API
@@ -206,11 +204,10 @@
   (doc 'description "Match pattern against all e-classes in e-graph.")
   (doc 'export #t)
   (let ([uf (egraph-uf eg)])
-    (apply append
-           (map (lambda (root)
+    (append-map (lambda (root)
                   (map (lambda (subst) (cons root subst))
                        (ematch eg pattern root)))
-                (uf-roots uf)))))
+                (uf-roots uf))))
 
 ;;; ============================================================
 ;;; Pattern Application (for rewriting)

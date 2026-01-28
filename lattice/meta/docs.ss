@@ -91,9 +91,8 @@
            '()))]
     [(not (list? sexp)) '()]  ; Skip improper lists (dotted pairs)
     [else
-     (apply append
-            (map (lambda (sub) (extract-docs-from-sexp sub line))
-                 sexp))]))
+     (append-map (lambda (sub) (extract-docs-from-sexp sub line))
+                 sexp)]))
 
 ;;; extract-docs-from-file : String -> (List (file line tag content target?))
 ;;; Extract all doc forms from a source file
@@ -121,8 +120,7 @@
   (define (walk dir)
     (guard (e [else '()])
       (let ([entries (directory-list dir)])
-        (apply append
-               (map (lambda (entry)
+        (append-map (lambda (entry)
                       (let ([path (string-append dir "/" entry)])
                         (cond
                           [(and (> (string-length entry) 3)
@@ -134,7 +132,7 @@
                                 (not (char=? (string-ref entry 0) #\.)))
                            (walk path)]
                           [else '()])))
-                    entries)))))
+                    entries))))
   (if (file-directory? root)
       (walk root)
       (if (file-exists? root) (list root) '())))

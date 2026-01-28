@@ -378,10 +378,9 @@
 (define all-triangle-vertices
   (make-fold
    (lambda (tris)
-     (apply append
-            (map (lambda (t)
+     (append-map (lambda (t)
                    (list (triangle3-p1 t) (triangle3-p2 t) (triangle3-p3 t)))
-                 tris)))))
+                 tris))))
 
 ;;; ============================================================
 ;;; Section 12: Convenience Combinators

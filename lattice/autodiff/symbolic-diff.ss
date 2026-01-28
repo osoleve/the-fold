@@ -160,12 +160,11 @@
 ;;; flatten-sums : (List Expr) → (List Expr)
 ;;; Flatten nested sums: (+ a (+ b c)) → (+ a b c)
 (define (flatten-sums terms)
-  (apply append
-         (map (lambda (e)
+  (append-map (lambda (e)
                       (if (sum? e)
                           (flatten-sums (sum-terms e))
                           (list e)))
-              terms)))
+              terms))
 
 ;;; get-numeric : Expr → Number | #f
 (define (get-numeric e)
@@ -238,12 +237,11 @@
 
 ;;; flatten-products : (List Expr) → (List Expr)
 (define (flatten-products factors)
-  (apply append
-         (map (lambda (e)
+  (append-map (lambda (e)
                       (if (product? e)
                           (flatten-products (product-factors e))
                           (list e)))
-              factors)))
+              factors))
 
 ;;; make-product-from-list : (List Expr) → Expr
 (define (make-product-from-list factors)

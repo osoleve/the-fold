@@ -398,14 +398,13 @@ Column j's 'low' (index of lowest 1) gives the pairing.")
                pairs)]
          ; Essential points: (birth, +inf, dimension)
          [essential-points
-          (apply append
-                 (map (lambda (dim-group)
+          (append-map (lambda (dim-group)
                         (let ([dim (car dim-group)]
                               [indices (cdr dim-group)])
                           (map (lambda (i)
                                  (list (vector-ref times i) +inf.0 dim))
                                indices)))
-                      essential))])
+                      essential)])
     (list 'persistence-diagram
           (append finite-points essential-points))))
 

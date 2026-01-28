@@ -84,10 +84,9 @@
   (doc 'export #t)
   (doc 'type '(-> (Vector Vec3) (List (List Number)) (List Triangle3)))
   (doc 'description "Convert face indices to triangles (handles n-gons by fan triangulation)")
-  (apply append
-         (map (lambda (face)
-                      (face->triangles vertices face))
-              faces)))
+  (append-map (lambda (face)
+               (face->triangles vertices face))
+             faces))
 
 (define (face->triangles vertices face)
   (doc 'export #t)

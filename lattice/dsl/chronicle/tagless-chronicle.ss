@@ -250,7 +250,7 @@
 (define (validate-chronicle program start-scene)
   (let* ([scenes (program validation-chronicle-dict)]
          [scene-ids (map car scenes)]
-         [all-targets (apply append (map cdr scenes))])
+         [all-targets (append-map cdr scenes)])
         ;; Check for issues
         (let ([missing-targets (filter (lambda (t) (not (memq t scene-ids)))
                                        all-targets)]

@@ -284,7 +284,7 @@
          [good-tris (filter (lambda (tri) (not (point-in-circumcircle? point tri)))
                             triangles)]
          ;; Collect all edges of bad triangles
-         [all-edges (apply append (map tri2-edges bad-tris))]
+         [all-edges (append-map tri2-edges bad-tris)]
          ;; Find boundary edges (edges that appear exactly once)
          [boundary-edges (filter (lambda (e) (= 1 (count-edge e all-edges)))
                                  all-edges)]
@@ -722,7 +722,7 @@
                        tris-or-tri)])
   (if (null? triangles)
       "Empty mesh\n"
-      (let* ([all-points (apply append (map tri2-points triangles))]
+      (let* ([all-points (append-map tri2-points triangles)]
              [xs (map point2-x all-points)]
              [ys (map point2-y all-points)]
              [x-min (apply min xs)]

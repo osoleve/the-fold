@@ -201,8 +201,7 @@
   (string-append
    "\""
    (list->string
-    (apply append
-           (map (lambda (c)
+    (append-map (lambda (c)
                  (cond
                    [(char=? c #\") '(#\\ #\")]
                    [(char=? c #\\) '(#\\ #\\)]
@@ -210,7 +209,7 @@
                    [(char=? c #\return) '(#\\ #\r)]
                    [(char=? c #\tab) '(#\\ #\t)]
                    [else (list c)]))
-               (string->list s))))
+               (string->list s)))
    "\""))
 
 ;;; join-strings : (List String) × String → String

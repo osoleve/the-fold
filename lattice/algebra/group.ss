@@ -264,11 +264,10 @@
   (doc 'description "Generate all permutations of a list")
   (if (null? lst)
       '(())
-      (apply append
-             (map (lambda (x)
+      (append-map (lambda (x)
                           (map (lambda (p) (cons x p))
                                (permute-list (remove x lst))))
-                  lst))))
+                  lst)))
 (define (remove x lst)
   (doc 'type '(-> Element List List))
   (doc 'description "Remove first occurrence of element from list")
@@ -425,12 +424,11 @@
         [eq? (group-equal-fn g)])
        (let loop ([current (cons e generators)])
             (let* ([new-elements
-                    (apply append
-                           (map (lambda (a)
+                    (append-map (lambda (a)
                                         (append
                                          (map (lambda (b) (op a b)) current)
                                          (list (inv a))))
-                                current))]
+                                current)]
                    [unique
                     (fold-left
                      (lambda (acc x)

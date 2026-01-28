@@ -1005,11 +1005,10 @@
            (let ([state (from-just maybe-state)])
                 (if (or (composite-state? state) (parallel-state? state))
                     (let ([substates (state-substates state)])
-                         (apply append
-                                (map (lambda (sub)
+                         (append-map (lambda (sub)
                                              (cons (state-id sub)
                                                    (get-descendant-ids root (state-id sub))))
-                                     substates)))
+                                     substates))
                     '())))))
 
 ;;; resolve-history-target : State × Symbol × History → Symbol
@@ -1148,16 +1147,14 @@
          (if (null? (state-substates state))
              (cons (list 'error 'empty-composite (state-id state)) errors)
              (append errors
-                     (apply append
-                            (map (lambda (s) (validate-state root s))
-                                 (state-substates state)))))]
+                     (append-map (lambda (s) (validate-state root s))
+                                 (state-substates state))))]
         [(parallel-state? state)
          (if (< (length (state-substates state)) 2)
              (cons (list 'error 'parallel-needs-regions (state-id state)) errors)
              (append errors
-                     (apply append
-                            (map (lambda (s) (validate-state root s))
-                                 (state-substates state)))))]
+                     (append-map (lambda (s) (validate-state root s))
+                                 (state-substates state))))]
         [else errors])))
 
 ;;; validate-transitions : State × State → (List (List Symbol))
@@ -1166,18 +1163,16 @@
   (let ([errors '()])
        (append
         ;; Validate this state's transitions
-        (apply append
-               (map (lambda (t)
+        (append-map (lambda (t)
                             (let ([target (transition-target t)])
                                  (if (and target (nothing? (find-state root target)))
                                      (list (list 'error 'invalid-target target (state-id state)))
                                      '())))
-                    (state-transitions state)))
+                    (state-transitions state))
         ;; Validate substates
         (if (or (composite-state? state) (parallel-state? state))
-            (apply append
-                   (map (lambda (s) (validate-transitions root s))
-                        (state-substates state)))
+            (append-map (lambda (s) (validate-transitions root s))
+                        (state-substates state))
             '()))))
 
 ;;; validate-initial-states : State → (List (List Symbol))
@@ -1190,18 +1185,16 @@
                (if (not has-initial)
                    (list (list 'warning 'no-initial-state (state-id root)))
                    '())
-               (apply append
-                      (map validate-initial-states (state-substates root)))))]
+               (append-map validate-initial-states (state-substates root))))]
         [(parallel-state? root)
-         (apply append
-                (map (lambda (region)
+         (append-map (lambda (region)
                              (let ([has-initial (find-if initial-state? (state-substates region))])
                                   (append
                                    (if (not has-initial)
                                        (list (list 'warning 'no-initial-in-region (state-id region)))
                                        '())
                                    (validate-initial-states region))))
-                     (state-substates root)))]
+                     (state-substates root))]
         [else '()])))
 
 ;;; reachable-states : Statechart → (List Symbol)
@@ -1248,7 +1241,7 @@
 (define (collect-all-state-ids state)
   (cons (state-id state)
         (if (or (composite-state? state) (parallel-state? state))
-            (apply append (map collect-all-state-ids (state-substates state)))
+            (append-map collect-all-state-ids (state-substates state))
             '())))
 
 ;;; ====

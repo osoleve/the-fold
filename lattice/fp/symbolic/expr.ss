@@ -436,8 +436,8 @@
   (cond
    [(num? e) '()]
    [(var? e) (list (var-name e))]
-   [(sum? e) (unique (apply append (map free-vars (sum-terms e))))]
-   [(product? e) (unique (apply append (map free-vars (product-factors e))))]
+   [(sum? e) (unique (append-map free-vars (sum-terms e)))]
+   [(product? e) (unique (append-map free-vars (product-factors e)))]
    [(difference? e)
     (unique (append (free-vars (diff-left e))
                     (if (diff-right e) (free-vars (diff-right e)) '())))]

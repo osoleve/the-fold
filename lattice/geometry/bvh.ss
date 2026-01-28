@@ -75,12 +75,11 @@
   (doc 'description "Compute bounding box containing all triangle vertices")
   (if (null? triangles)
       (aabb (vec3-zero) (vec3-zero))
-      (let ([points (apply append
-                           (map (lambda (tri)
+      (let ([points (append-map (lambda (tri)
                                         (list (triangle3-p1 tri)
                                               (triangle3-p2 tri)
                                               (triangle3-p3 tri)))
-                                triangles))])
+                                triangles)])
            (aabb-from-points points))))
 
 (define (longest-axis bbox)

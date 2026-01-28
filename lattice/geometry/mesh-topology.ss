@@ -230,7 +230,7 @@
                    (cons (car verts) (cadr verts))))
                incident)]
          ;; Collect all link vertices
-         [link-verts (unique-list (apply append (map (lambda (e) (list (car e) (cdr e))) link-edges)))])
+         [link-verts (unique-list (append-map (lambda (e) (list (car e) (cdr e))) link-edges))])
     (list link-verts link-edges)))
 
 ;;; list-member? : α × (List α) → Boolean

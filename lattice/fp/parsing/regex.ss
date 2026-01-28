@@ -270,7 +270,7 @@
               (char #\])
               (lambda (_)
                 ;; Flatten items (ranges expand to lists)
-                (let ([chars (apply append items)])
+                (let ([chars (flatten items)])
                   (parser-pure (regex-class chars negated?)))))))))))))
 
 ;;; Class item: single char or range (a-z)

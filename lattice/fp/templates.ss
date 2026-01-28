@@ -379,8 +379,7 @@
    list
    ;; <*>: [a -> b] -> [a] -> [b]
    (lambda (fs xs)
-           (apply append
-                  (map (lambda (f) (map f xs)) fs)))))
+           (append-map (lambda (f) (map f xs)) fs))))
 
 ;;; applicative-maybe : Applicative for Maybe
 (define applicative-maybe

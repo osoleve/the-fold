@@ -124,12 +124,11 @@
 (define exports-each
   (let ([flatten-exports
          (lambda (exports-raw)
-           (apply append
-                  (map (lambda (group)
+           (append-map (lambda (group)
                          (if (and (pair? group) (list? group))
                              (cdr group)
                              '()))
-                       (if (list? exports-raw) exports-raw '()))))])
+                       (if (list? exports-raw) exports-raw '())))])
     (make-traversal
      ;; traverse: (a -> b) -> manifest -> manifest (read-only, identity)
      (lambda (f manifest) manifest)

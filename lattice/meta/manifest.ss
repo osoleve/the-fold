@@ -145,9 +145,8 @@
 (define (manifest->module-index manifest)
   (let* ([skill-path (manifest-path manifest)]
          [mods (manifest-modules manifest)])
-        (apply append
-               (map (lambda (mod) (parse-module-entry mod skill-path))
-                    mods))))
+        (append-map (lambda (mod) (parse-module-entry mod skill-path))
+                    mods)))
 
 (doc manifest->namespaced-index 'type (-> ManifestData (List (Pair Symbol String))))
 (doc manifest->namespaced-index 'description "Like manifest->module-index but creates namespaced module names. These are always unambiguous: 'linalg/vec, 'diffgeo/charts, etc. Example: For manifest 'linalg with module (vec \"vec.ss\" ...) Returns: ((linalg/vec . \"lattice/linalg/vec.ss\") ...)")

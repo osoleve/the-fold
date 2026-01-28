@@ -365,7 +365,7 @@
                                             (parser-bind (many parse-choice)
                                                          (lambda (choices)
                                                                  ;; Flatten on-enter effects
-                                                                 (let ([all-effects (apply append (map cdr on-enters))])
+                                                                 (let ([all-effects (append-map cdr on-enters)])
                                                                       (parser-pure (list text all-effects choices))))))))))
 
 (define parse-scene

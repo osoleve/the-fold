@@ -197,9 +197,8 @@
   (doc 'description "Get all faces of a simplex, including the simplex itself")
   (doc 'note "Ordered from dimension 0 up to the simplex's dimension")
   (let ([d (simplex-dim s)])
-    (apply append
-           (map (lambda (k) (simplex-faces-of-dim s k))
-                (iota (+ d 1))))))
+    (append-map (lambda (k) (simplex-faces-of-dim s k))
+                (iota (+ d 1)))))
 
 (define (simplex-proper-faces s)
   (doc 'export #t)
@@ -208,9 +207,8 @@
   (let ([d (simplex-dim s)])
     (if (< d 0)
         '()
-        (apply append
-               (map (lambda (k) (simplex-faces-of-dim s k))
-                    (iota d))))))
+        (append-map (lambda (k) (simplex-faces-of-dim s k))
+                    (iota d)))))
 
 ;; iota is provided by prelude (via set.ss)
 

@@ -561,11 +561,10 @@
 (define (permutations lst)
   (if (null? lst)
       '(())
-      (apply append
-             (map (lambda (x)
+      (append-map (lambda (x)
                     (map (lambda (p) (cons x p))
                          (permutations (remove x lst))))
-                  lst))))
+                  lst)))
 
 ;;; ============================================================================
 ;;; Classic Examples

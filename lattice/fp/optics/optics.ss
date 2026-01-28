@@ -407,9 +407,8 @@
       s))
    ;; fold: s → List c
    (lambda (s)
-     (apply append
-            (map (traversal-fold inner)
-                 ((traversal-fold outer) s))))))
+     (append-map (traversal-fold inner)
+                 ((traversal-fold outer) s)))))
 
 ;;; ====
 ;;; Common Traversals
@@ -624,9 +623,8 @@
   (doc 'export #t)
   (make-fold
    (lambda (s)
-     (apply append
-            (map (fold-optic-fn inner)
-                 ((fold-optic-fn outer) s))))))
+     (append-map (fold-optic-fn inner)
+                 ((fold-optic-fn outer) s)))))
 
 ;;; ====
 ;;; Common Folds

@@ -338,10 +338,9 @@
   (doc 'export #t)
   (doc 'type '(-> (List (Pair α Nat)) (List α)))
   (doc 'description "Decode run-length encoded data")
-  (apply append
-         (map (lambda (pair)
+  (append-map (lambda (pair)
                       (replicate (cdr pair) (car pair)))
-              encoded)))
+              encoded))
 
 ;; replicate is provided by prelude (via entropy.ss)
 
@@ -379,7 +378,7 @@
   (doc 'export #t)
   (doc 'type '(-> (List Nat) Nat (List Nat)))
   (doc 'description "Encode by repeating each bit n times")
-  (apply append (map (lambda (b) (replicate n b)) bits)))
+  (append-map (lambda (b) (replicate n b)) bits))
 
 (define (repetition-decode bits n)
   (doc 'export #t)
