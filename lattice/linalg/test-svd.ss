@@ -52,7 +52,7 @@
 (printf "--- Basic SVD ---\n")
 
 ;; Test: SVD of 2x2 identity matrix
-(let* ([a (identity 2)]
+(let* ([a (matrix-identity 2)]
        [result (svd a)])
       (test-false "SVD 2x2 identity succeeds" (is-error? result))
       (when (not (is-error? result))
@@ -273,9 +273,9 @@
                   (test-approx "Error = σ₂" sigma2 err 1e-6))))
 
 ;; Test: Invalid rank returns error
-(let ([result (low-rank-approx (identity 3) -1)])
+(let ([result (low-rank-approx (matrix-identity 3) -1)])
      (test-true "Negative rank errors" (is-error? result)))
-(let ([result (low-rank-approx (identity 3) 5)])
+(let ([result (low-rank-approx (matrix-identity 3) 5)])
      (test-true "Rank > min(m,n) errors" (is-error? result)))
 
 ;;; ====
@@ -285,7 +285,7 @@
 (printf "\n--- Matrix Rank ---\n")
 
 ;; Test: Rank of identity matrix
-(let ([r (matrix-rank (identity 3))])
+(let ([r (matrix-rank (matrix-identity 3))])
      (test "Identity rank" 3 r))
 
 ;; Test: Rank of zero matrix
@@ -319,7 +319,7 @@
        [u (car result)]
        [ut (matrix-transpose u)]
        [utu (matrix-mul ut u)]
-       [i (identity 3)]
+       [i (matrix-identity 3)]
        [diff (matrix-sub utu i)]
        [err (matrix-frobenius-norm diff)])
       (test-true "U is orthogonal (U^TU = I)" (< err 1e-6)))
@@ -330,7 +330,7 @@
        [v (caddr result)]
        [vt (matrix-transpose v)]
        [vtv (matrix-mul vt v)]
-       [i (identity 3)]
+       [i (matrix-identity 3)]
        [diff (matrix-sub vtv i)]
        [err (matrix-frobenius-norm diff)])
       (test-true "V is orthogonal (V^TV = I)" (< err 1e-6)))

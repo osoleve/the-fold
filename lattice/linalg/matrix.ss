@@ -357,9 +357,9 @@
 (define (ones rows cols)
   (make-matrix rows cols 1))
 
-;;; identity : Nat → Matrix Num
+;;; matrix-identity : Nat → Matrix Num
 ;;; n×n identity matrix.
-(define (identity n)
+(define (matrix-identity n)
   (let ([data (make-vector (* n n) 0)])
        (do ([i 0 (+ i 1)])
            ((= i n) (list 'matrix n n data))

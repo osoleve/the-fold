@@ -442,7 +442,7 @@
 ;;; Compute A^k (paths of length exactly k).
 (define (adjacency-power m k)
   (if (= k 0)
-      (identity (matrix-rows m))
+      (matrix-identity (matrix-rows m))
       (let loop ([result m] [remaining (- k 1)])
            (if (= remaining 0)
                result
@@ -453,7 +453,7 @@
 ;;; Entry (i,j) > 0 iff j is reachable from i in at most k steps.
 (define (adjacency-reachability m k)
   (let ([n (matrix-rows m)])
-       (let loop ([step 1] [result (identity n)] [power m])
+       (let loop ([step 1] [result (matrix-identity n)] [power m])
             (if (> step k)
                 result
                 (loop (+ step 1)
@@ -464,7 +464,7 @@
 (doc matrix-power-fast 'description "Compute A^k using repeated squaring (binary exponentiation)")
 (doc matrix-power-fast 'note "Complexity: O(log k) matrix multiplications instead of O(k)")
 (define (matrix-power-fast m k)
-  (cond [(= k 0) (identity (matrix-rows m))]
+  (cond [(= k 0) (matrix-identity (matrix-rows m))]
         [(= k 1) m]
         [(even? k)
          (let ([half (matrix-power-fast m (quotient k 2))])

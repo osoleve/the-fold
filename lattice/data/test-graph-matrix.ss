@@ -269,7 +269,7 @@
        [fast (matrix-power-fast m 8)])
       (test "power-fast: A^8 matches naive" #t (matrix-equal? slow fast))
       (test "power-fast: A^0 is identity" #t
-            (matrix-equal? (matrix-power-fast m 0) (identity 3)))
+            (matrix-equal? (matrix-power-fast m 0) (matrix-identity 3)))
       (test "power-fast: A^1 is A" #t (matrix-equal? (matrix-power-fast m 1) m)))
 
 ;; Transitive closure

@@ -112,7 +112,7 @@ Supports:
 (define (lp-from-inequality c A b type)
   (let* ([m (matrix-rows A)]
          [n (matrix-cols A)]
-         [eye-m (identity m)])
+         [eye-m (matrix-identity m)])
     (case type
       [(le <=)
        ;; Ax + s = b where s >= 0
@@ -250,7 +250,7 @@ Supports:
   (let* ([m (matrix-rows A)]
          [n (matrix-cols A)]
          ;; Add m artificial variables
-         [eye-m (identity m)]
+         [eye-m (matrix-identity m)]
          [A-aug (matrix-hstack A eye-m)]
          ;; Cost: 0 for original, 1 for artificial
          [c-phase1 (vec-append (vec-zeros n) (vec-ones m))]
@@ -454,7 +454,7 @@ Supports:
          ;; For unrestricted y, replace with y+ - y-, both >= 0
          [At-split (matrix-hstack At (matrix-scale -1 At))]
          ;; Add slack variables
-         [eye-n (identity n)]
+         [eye-n (matrix-identity n)]
          [A-dual (matrix-hstack At-split eye-n)]
          ;; Cost: -b for y+, +b for y-, 0 for slack
          [c-dual (vec-append (vec-append (vec-negate b) b) (vec-zeros n))])

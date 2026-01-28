@@ -239,7 +239,7 @@
   ;; Identity constraint matrix (each variable has own constraint)
   (define-test "identity matrix constraints"
     (let* ([c (vec 1 2 3)]
-           [A (identity 3)]
+           [A (matrix-identity 3)]
            [b (vec 1 1 1)]
            [lp (make-lp c A b)]
            [result (lp-solve lp)])

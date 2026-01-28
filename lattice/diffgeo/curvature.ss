@@ -24,17 +24,6 @@
 ;;; Helper: Identity Matrix
 ;;; ============================================================================
 
-;;; Note: prelude.ss defines (identity x) = x, which shadows matrix's identity.
-;;; We define our own identity matrix helper here.
-
-;;; make-identity-matrix : Nat → Matrix
-;;; Create an n×n identity matrix.
-(define (make-identity-matrix n)
-  (let ([data (make-vector (* n n) 0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) (list 'matrix n n data))
-        (vector-set! data (+ (* i n) i) 1))))
-
 (doc 'section 'metric-tensor-representation)
 (doc 'note "A metric tensor is: (metric chart metric-fn)")
 (doc 'note "chart: The coordinate chart")
@@ -100,7 +89,7 @@
   (let ([n (chart-dim chart)])
     (make-metric chart
                  (lambda (coords)
-                   (make-identity-matrix n)))))
+                   (matrix-identity n)))))
 
 ;;; make-polar-metric : Chart → Metric
 ;;; The metric for polar coordinates (r, θ):

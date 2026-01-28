@@ -91,7 +91,7 @@
           (test "LU: 3×3 matrix fails" #t #f)))
 
 ;; Test 3: Identity matrix
-(let* ([i3 (identity 3)]
+(let* ([i3 (matrix-identity 3)]
        [result (matrix-lu i3)])
       (if (pair? result)
           (let ([l (car result)]
@@ -164,7 +164,7 @@
           (let* ([q (car result)]
                  [qt (matrix-transpose q)]
                  [qtq (matrix-mul qt q)]
-                 [i3 (identity 3)])
+                 [i3 (matrix-identity 3)])
                 (test "QR: Q^T Q ≈ I"
                       #t
                       (matrix-approx-equal? qtq i3 1e-8)))
@@ -210,7 +210,7 @@
           (test "Cholesky: 3×3 PD fails" #t #f)))
 
 ;; Test 9: Identity matrix
-(let* ([i3 (identity 3)]
+(let* ([i3 (matrix-identity 3)]
        [result (matrix-cholesky i3)])
       (if (and (pair? result) (not (eq? (car result) 'error)))
           (test "Cholesky: Identity → L = I"

@@ -119,7 +119,7 @@
   (doc 'description "Evaluate polynomial at matrix argument. p(A) = a_n*A^n + ... + a_1*A + a_0*I")
   (let* ([coeffs (poly-coeffs poly)]
          [n (matrix-rows A)]
-         [I (identity n)]
+         [I (matrix-identity n)]
          [deg (- (vector-length coeffs) 1)])
         (if (= deg 0)
             (matrix-scale (vector-ref coeffs 0) I)
@@ -233,7 +233,7 @@ Returns (v . u) pair, 'singular if (λI - A) not invertible, or error for comple
   (let ([li (extract-pole-value lambda-i)])
     (if (and (pair? li) (eq? (car li) 'error))
         li  ; Propagate error
-        (let* ([lambda-I (matrix-scale li (identity n))]
+        (let* ([lambda-I (matrix-scale li (matrix-identity n))]
                [M (matrix-sub lambda-I A)]
                [M-inv (matrix-inverse M)])
           (if (and (pair? M-inv) (eq? (car M-inv) 'error))
@@ -314,7 +314,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
   (doc 'description "Compute characteristic polynomial det(sI - A). Uses Faddeev-LeVerrier method")
   (let* ([n (matrix-rows A)]
          [coeffs (make-vector (+ n 1) 0)]
-         [M (identity n)])
+         [M (matrix-identity n)])
         (vector-set! coeffs 0 1)  ; Leading coefficient
         (let loop ([k 1] [M M])
              (if (> k n)
@@ -324,7 +324,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                         [c-k (/ (- trace-AM) k)]
                         [M-new (if (= k n)
                                    M
-                                   (matrix-add AM (matrix-scale c-k (identity n))))])
+                                   (matrix-add AM (matrix-scale c-k (matrix-identity n))))])
                        (vector-set! coeffs k c-k)
                        (loop (+ k 1) M-new))))))
 
@@ -522,7 +522,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
   (doc 'description "Solve continuous Lyapunov equation: A'X + XA = -Q. Uses direct vectorization method for stability")
   (let* ([n (matrix-rows A)]
          [At (matrix-transpose A)]
-         [I (identity n)]
+         [I (matrix-identity n)]
          ;; Build coefficient matrix: (I ⊗ A') + (A' ⊗ I)
          [kron1 (kronecker-product I At)]
          [kron2 (kronecker-product At I)]

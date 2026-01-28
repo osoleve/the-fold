@@ -225,8 +225,8 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; Perform one QR iteration with Wilkinson shift
 (define (qr-iterate-once a active-size iter max-iter tol full-n)
   (let* ([shift (wilkinson-shift a active-size)]
-         ;; Shift: A - σI (identity must match full matrix size)
-         [a-shifted (matrix-sub a (matrix-scale shift (identity full-n)))]
+         ;; Shift: A - σI (matrix-identity must match full matrix size)
+         [a-shifted (matrix-sub a (matrix-scale shift (matrix-identity full-n)))]
          [qr-result (matrix-qr a-shifted)])
         (if (and (pair? qr-result) (eq? (car qr-result) 'error))
             ;; QR failed - try without shift
@@ -235,7 +235,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
                    [r (cadr qr-result)]
                    ;; A' = RQ + σI
                    [rq (matrix-mul r q)]
-                   [a-new (matrix-add rq (matrix-scale shift (identity full-n)))])
+                   [a-new (matrix-add rq (matrix-scale shift (matrix-identity full-n)))])
                   (qr-algorithm-shifted-loop a-new active-size (+ iter 1) max-iter tol)))))
 
 ;;; detect-complex-2x2-block : Matrix × Nat × Num → Boolean | (real imag)
@@ -367,7 +367,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
                             (car rest2)
                             *eigen-tolerance*)]
                    ;; Shift matrix: A - λI (with small perturbation to avoid singularity)
-                   [shifted (matrix-sub a (matrix-scale lambda-approx (identity n)))])
+                   [shifted (matrix-sub a (matrix-scale lambda-approx (matrix-identity n)))])
                   (inverse-iteration-loop shifted v0 0 max-iter tol)))))
 
 ;;; inverse-iteration-loop : Matrix × Vec × Nat × Nat × Num → Vec | Error
@@ -485,7 +485,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
                  [tol (if (and (pair? rest1) (number? (car rest1)))
                           (car rest1)
                           *eigen-tolerance*)])
-                (symmetric-eigen-loop a (identity n) 0 max-iter tol))])))
+                (symmetric-eigen-loop a (matrix-identity n) 0 max-iter tol))])))
 
 ;;; symmetric-eigen-loop : Matrix × Matrix × Nat × Nat × Num → (Vec . Matrix) | Error
 ;;; Accumulate Q matrices while running QR algorithm

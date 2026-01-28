@@ -170,7 +170,7 @@
      chart
      ;; metric-fn: identity matrix
      (lambda (coords)
-       (make-identity-matrix n))
+       (matrix-identity n))
      ;; deriv-fn: return fresh vector pointing to shared zero matrix
      ;; (fresh vector protects against caller mutation of the vector itself)
      (lambda (coords)

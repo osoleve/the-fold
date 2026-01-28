@@ -303,14 +303,14 @@
 (define (compute-char-poly A n)
   (let ([coeffs (make-vector (+ n 1) 0)])
        (vector-set! coeffs 0 1)  ; Leading coefficient
-       (let loop ([k 1] [M (identity n)])
+       (let loop ([k 1] [M (matrix-identity n)])
             (if (> k n)
                 (make-poly coeffs)
                 (let* ([AM (matrix-mul A M)]
                        [p-k (/ (- (matrix-trace-local AM)) k)]
                        [M-next (if (= k n)
                                    (make-matrix n n 0)
-                                   (matrix-add AM (matrix-scale p-k (identity n))))])
+                                   (matrix-add AM (matrix-scale p-k (matrix-identity n))))])
                       (vector-set! coeffs k p-k)
                       (if (= k n)
                           (make-poly coeffs)
@@ -330,7 +330,7 @@
             ((= i num-len))
             (vector-set! result i (* d-val (vector-ref char-coeffs i))))
         ;; Compute adjugate contributions using Faddeev-LeVerrier
-        (let loop ([k 0] [M (identity n)])
+        (let loop ([k 0] [M (matrix-identity n)])
              (if (> k (- n 1))
                  (make-poly result)
                  (let* ([CB (dot-product-local c-row (matrix-vec-mul-local M b-col))]
@@ -342,7 +342,7 @@
                            (make-poly result)
                            (let* ([AM (matrix-mul A M)]
                                   [p-k (vector-ref char-coeffs (+ k 1))]
-                                  [M-next (matrix-add AM (matrix-scale p-k (identity n)))])
+                                  [M-next (matrix-add AM (matrix-scale p-k (matrix-identity n)))])
                                  (loop (+ k 1) M-next))))))))
 
 ;;; dtf->dss : DTF → DSS

@@ -76,7 +76,7 @@ Empty list = pure LP, all indices = pure ILP")
   (let* ([n (matrix-cols A)]
          [m (matrix-rows A)]
          ;; Add n constraints: x_i <= 1 (as x_i + s_i = 1)
-         [eye-n (identity n)]
+         [eye-n (matrix-identity n)]
          [A-ext (matrix-vstack A eye-n)]
          [b-ext (vec-append b (vec-ones n))]
          ;; Add slack variables for x <= 1 constraints
@@ -497,7 +497,7 @@ Empty list = pure LP, all indices = pure ILP")
     ;; Slack variable
     (matrix-set! A 0 n 1)
     ;; Add binary constraints: x_i <= 1
-    (let* ([eye-n (identity n)]
+    (let* ([eye-n (matrix-identity n)]
            [A-bin (make-matrix n (+ n 1) 0)]
            [b-bin (vec-ones n)])
       ;; Copy identity for x_i <= 1
@@ -591,7 +591,7 @@ Empty list = pure LP, all indices = pure ILP")
              [b-stack (vec-append b-full b-bin)]
              [n-slack n]
              [A-bin-slack (make-matrix m n-slack 0)]
-             [A-bin-slack2 (identity n)]
+             [A-bin-slack2 (matrix-identity n)]
              [A-final (matrix-hstack A-stack
                                       (matrix-vstack A-bin-slack A-bin-slack2))]
              [c-final (vec-append c-full (vec-zeros n))]
@@ -699,14 +699,6 @@ Empty list = pure LP, all indices = pure ILP")
           [(= j c2)]
         (matrix-set! result i (+ c1 j) (matrix-ref m2 i j))))
     result))
-
-;;; identity : Nat -> Matrix
-;;; Create identity matrix.
-(define (identity n)
-  (let ([m (make-matrix n n 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i n) m]
-      (matrix-set! m i i 1))))
 
 ;;; ====
 ;;; Pretty Printing

@@ -87,7 +87,7 @@
       (test-approx "Power iteration: 3x3 eigenvalue" 6.0 lambda-val 1e-5))
 
 ;; Test: identity matrix
-(let* ([a (identity 3)]
+(let* ([a (matrix-identity 3)]
        [result (power-iteration a)]
        [lambda-val (car result)])
       ;; All eigenvalues are 1
@@ -282,7 +282,7 @@
       (test-approx "Spectral radius: diagonal matrix" 5.0 rho 1e-5))
 
 ;; Test: spectral radius - identity
-(let* ([a (identity 3)]
+(let* ([a (matrix-identity 3)]
        [rho (spectral-radius a)])
       (test-approx "Spectral radius: identity" 1.0 rho 1e-6))
 
@@ -294,7 +294,7 @@
       (test-approx "Eigenvalue condition: diagonal" 5.0 kappa 1e-3))
 
 ;; Test: eigenvalue condition - identity is 1
-(let* ([a (identity 3)]
+(let* ([a (matrix-identity 3)]
        [kappa (eigenvalue-condition a)])
       (test-approx "Eigenvalue condition: identity" 1.0 kappa 1e-5))
 

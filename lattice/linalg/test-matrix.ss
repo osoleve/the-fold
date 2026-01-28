@@ -244,7 +244,7 @@
     (assert-equal 5 (trace (matrix-from-lists '((1 2) (3 4))))))
 
   (define-test frobenius-norm-identity
-    (assert-true (< (abs (- (frobenius-norm (identity 2)) (sqrt 2))) 1e-10))))
+    (assert-true (< (abs (- (frobenius-norm (matrix-identity 2)) (sqrt 2))) 1e-10))))
 
 ;;; ============================================================================
 ;;; Special Matrices Tests
@@ -262,7 +262,7 @@
 
   (define-test identity-3x3
     (assert-equal '((1 0 0) (0 1 0) (0 0 1))
-                  (matrix->lists (identity 3))))
+                  (matrix->lists (matrix-identity 3))))
 
   (define-test diagonal-3
     (assert-equal '((1 0 0) (0 2 0) (0 0 3))
@@ -310,13 +310,13 @@
 
   (define-test A-times-I-equals-A
     (let ([m (matrix-from-lists '((1 2 3) (4 5 6) (7 8 9)))]
-          [I (identity 3)])
+          [I (matrix-identity 3)])
       (assert-equal (matrix->lists m)
                     (matrix->lists (matrix-mul m I)))))
 
   (define-test I-times-A-equals-A
     (let ([m (matrix-from-lists '((1 2 3) (4 5 6) (7 8 9)))]
-          [I (identity 3)])
+          [I (matrix-identity 3)])
       (assert-equal (matrix->lists m)
                     (matrix->lists (matrix-mul I m))))))
 

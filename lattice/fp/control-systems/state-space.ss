@@ -152,7 +152,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
   (doc 'type '(-> Matrix (Pair Matrix Matrix)))
   (doc 'description "Compute [6,6] Padé numerator N and denominator D matrices. Returns (N . D) where e^A ≈ D^(-1) * N")
   (let* ([n (matrix-rows A)]
-         [I (identity n)]
+         [I (matrix-identity n)]
          [A2 (matrix-mul A A)]
          [A4 (matrix-mul A2 A2)]
          [A6 (matrix-mul A4 A2)]
@@ -277,7 +277,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
          [B (ss-B sys)]
          [n (ss-order sys)]
          [m (ss-inputs sys)])
-        (let build ([k 0] [A-power (identity n)] [cols '()])
+        (let build ([k 0] [A-power (matrix-identity n)] [cols '()])
              (if (>= k n)
                  (let* ([total-cols (* n m)]
                         [result (make-matrix n total-cols 0)])
@@ -326,7 +326,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
          [C (ss-C sys)]
          [n (ss-order sys)]
          [p (ss-outputs sys)])
-        (let build ([k 0] [A-power (identity n)] [rows '()])
+        (let build ([k 0] [A-power (matrix-identity n)] [rows '()])
              (if (>= k n)
                  (let* ([total-rows (* n p)]
                         [result (make-matrix total-rows n 0)])
@@ -373,7 +373,7 @@ For discrete-time systems:
          [B (ss-B sys)]
          [n (ss-order sys)]
          [Wc (make-matrix n n 0)])
-        (let loop ([k 0] [Ak (identity n)])
+        (let loop ([k 0] [Ak (matrix-identity n)])
              (if (>= k N)
                  Wc
                  (let* ([AkB (matrix-mul Ak B)]
@@ -396,7 +396,7 @@ For discrete-time systems:
          [Wo (make-matrix n n 0)]
          [At (matrix-transpose A)]
          [Ct (matrix-transpose C)])
-        (let loop ([k 0] [Ak (identity n)] [Atk (identity n)])
+        (let loop ([k 0] [Ak (matrix-identity n)] [Atk (matrix-identity n)])
              (if (>= k N)
                  Wo
                  (let* ([CtC (matrix-mul Ct C)]
@@ -483,7 +483,7 @@ Note: Full modal decomposition requires eigenvalue computation, which is complex
   (doc 'description "Create a system with identity C (full state output) and no feedthrough")
   (let* ([n (matrix-rows A)]
          [m (matrix-cols B)]
-         [C (identity n)]
+         [C (matrix-identity n)]
          [D (make-matrix n m 0)])
         (make-ss A B C D)))
 

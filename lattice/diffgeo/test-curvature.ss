@@ -11,13 +11,6 @@
 (define (approx-equal? a b tol)
   (< (abs (- a b)) tol))
 
-;;; Helper to create identity matrix (matching the one in curvature.ss)
-(define (make-identity-matrix n)
-  (let ([data (make-vector (* n n) 0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) (list 'matrix n n data))
-        (vector-set! data (+ (* i n) i) 1))))
-
 (define (matrix-approx-equal? m1 m2 tol)
   (let ([rows (matrix-rows m1)]
         [cols (matrix-cols m1)])
@@ -43,7 +36,7 @@
     (let* ([chart (make-identity-chart 'R3 3)]
            [m (make-euclidean-metric chart)]
            [g (metric-at m (vector 1 2 3))]
-           [expected (make-identity-matrix 3)])
+           [expected (matrix-identity 3)])
       (assert-true (matrix-approx-equal? g expected 1e-10))))
 
   (define-test "Polar metric at r=2"

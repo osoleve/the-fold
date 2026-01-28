@@ -96,7 +96,7 @@
            (test-approx "Inverse 2×2: [1,1]" 0.4 (matrix-ref ainv 1 1) 1e-10)
            ;; Verify A * A^-1 = I
            (let ([ident (matrix-mul a ainv)]
-                 [i2 (identity 2)])
+                 [i2 (matrix-identity 2)])
                 (test "Inverse verification: A * A^-1 ≈ I" #t (matrix-approx-equal? ident i2 1e-10))))
           (test "Inverse 2×2 succeeds" #t #f)))
 
@@ -178,7 +178,7 @@
           
           (printf "\n--- Condition Number ---\n")
 
-          (let ([a (identity 3)])
+          (let ([a (matrix-identity 3)])
                ;; cond(I) = ||I||_F * ||I||_F = sqrt(3) * sqrt(3) = 3
                (test-approx "Condition number of I3" 3.0 (matrix-condition-number a) 1e-10))
 

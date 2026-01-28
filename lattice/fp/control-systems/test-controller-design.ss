@@ -362,7 +362,7 @@
 
 ;; p(A) where p(x) = x^2 + 2x + 1 and A = [[1 0]; [0 1]] = I
 (let* ([poly (poly-from-list '(1 2 1))]
-       [A (identity 2)]
+       [A (matrix-identity 2)]
        [pA (poly-eval-matrix poly A)])
       ;; p(I) = I + 2I + I = 4I
       (test "poly-eval-matrix: shape" '(2 . 2)

@@ -133,7 +133,7 @@
          [n (ss-order sys)])
         (if (= n 0)
             (make-dss A B C D Ts)
-            (let* ([I (identity n)]
+            (let* ([I (matrix-identity n)]
                    [half-Ts (/ Ts 2)]
                    ;; I - A*Ts/2
                    [I-ATs2 (matrix-sub I (matrix-scale half-Ts A))]
@@ -182,7 +182,7 @@
          [n (dss-order dsys)])
         (if (= n 0)
             (make-ss Ad Bd Cd Dd)
-            (let* ([I (identity n)]
+            (let* ([I (matrix-identity n)]
                    ;; A = (2/Ts) * (Ad - I) * (Ad + I)^{-1}
                    [Ad-I (matrix-sub Ad I)]
                    [Ad+I (matrix-add Ad I)]

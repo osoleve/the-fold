@@ -229,7 +229,7 @@
                                          '((1) (0))
                                          '((1 0))
                                          '((0)))]
-                     [I (identity 2)]
+                     [I (matrix-identity 2)]
                      [sys2 (ss-transform sys I I)])
                     ;; Identity transform should preserve system
                     (assert-true (ss? sys2))

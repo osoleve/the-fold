@@ -270,7 +270,7 @@
 (define (lyapunov-stable? sys)
   (let* ([A (ss-A sys)]
          [n (matrix-rows A)]
-         [Q (identity n)]
+         [Q (matrix-identity n)]
          [P (lyapunov-solve-continuous A Q)])
         (if (and (pair? P) (eq? (car P) 'error))
             #f

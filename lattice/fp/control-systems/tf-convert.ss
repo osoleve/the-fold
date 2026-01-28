@@ -84,15 +84,15 @@
        ;; Initialize
        (vector-set! coeffs 0 1)  ; Leading coefficient is 1
        (let loop ([k 1]
-                  [M (identity n)]
-                  [mats (list (identity n))])
+                  [M (matrix-identity n)]
+                  [mats (list (matrix-identity n))])
             (if (> k n)
                 (cons coeffs (reverse mats))
                 (let* ([AM (matrix-mul A M)]
                        [p-k (/ (- (matrix-trace AM)) k)]
                        [M-next (if (= k n)
                                    (make-matrix n n 0)  ; Not used
-                                   (matrix-add AM (matrix-scale p-k (identity n))))])
+                                   (matrix-add AM (matrix-scale p-k (matrix-identity n))))])
                       (vector-set! coeffs k p-k)
                       (if (= k n)
                           (cons coeffs (reverse mats))
