@@ -52,18 +52,19 @@
 (define (extended-gcd a b)
   (doc 'export #t)
   (doc 'type '(-> Int Int (List Int)))
-  (doc 'description "Extended Euclidean algorithm. Returns (gcd a b, x, y) where gcd = ax + by (Bézout's identity)")
-  (if (= b 0)
-      (list a 1 0)
-      (let* ([q (quotient a b)]
-             [r (- a (* q b))]
-             [result (extended-gcd b r)]
-             [gcd (car result)]
-             [x1 (cadr result)]
-             [y1 (caddr result)]
-             [x y1]
-             [y (- x1 (* q y1))])
-            (list gcd x y))))
+  (doc 'description "Extended Euclidean algorithm (iterative). Returns (gcd a b, x, y) where gcd = ax + by (Bézout's identity). Uses iteration to avoid stack growth for large inputs.")
+  ;; Iterative version: maintain (old-r, r) and corresponding (old-s, s), (old-t, t)
+  ;; such that old-r = a*old-s + b*old-t and r = a*s + b*t
+  (let loop ([old-r a] [r b]
+             [old-s 1] [s 0]
+             [old-t 0] [t 1])
+    (if (= r 0)
+        (list old-r old-s old-t)
+        (let* ([q (quotient old-r r)]
+               [new-r (- old-r (* q r))]
+               [new-s (- old-s (* q s))]
+               [new-t (- old-t (* q t))])
+          (loop r new-r s new-s t new-t)))))
 
 ;;; gcd : Int × Int → Int
 ;;; Greatest common divisor using Euclidean algorithm.
