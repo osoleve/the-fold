@@ -196,4 +196,32 @@
            [score (board-bottleneck-score board test-neighbors (coord 2 2))])
       (assert-equal 0 score))))
 
+(test-group "performance"
+
+  ;; Helper to make a large walkable board with a bridge in the middle
+  (define (make-large-board-with-bridge width height bridge-x)
+    "Create a board where two large regions are connected by a single bridge"
+    (let ([board (make-board 'square '())])
+      (let loop ([b board] [x 0] [y 0])
+        (if (>= y height)
+            b
+            (if (>= x width)
+                (loop b 0 (+ y 1))
+                (let* ([is-bridge-col (= x bridge-x)]
+                       [is-middle-row (= y (quotient height 2))]
+                       ;; Only the middle row at bridge-x is walkable in that column
+                       [walkable (or (not is-bridge-col)
+                                     (and is-bridge-col is-middle-row))])
+                  (loop (board-set b (coord x y)
+                                   (make-tile (if walkable 'floor 'wall) '()))
+                        (+ x 1) y)))))))
+
+  ;; Test that Tarjan's algorithm handles larger boards efficiently
+  ;; A 20x20 board has 400 tiles - old algorithm would be very slow
+  (define-test "large board (20x20) bridge detection completes quickly"
+    (let* ([board (make-large-board-with-bridge 20 20 10)]
+           [critical (board-critical-edges board test-neighbors)])
+      ;; Should find bridges at the narrow corridor
+      (assert-true (> (length critical) 0)))))
+
 (run-all-tests)

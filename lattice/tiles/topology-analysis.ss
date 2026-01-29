@@ -165,31 +165,94 @@ Strategic significance: units must path around these obstacles.")
 (doc board-critical-edges 'type '(-> Board (-> Coord (List Coord)) (List (Pair Coord Coord))))
 (doc board-critical-edges 'description "Find critical edges (bridges) whose removal disconnects regions.
 These are strategic chokepoints - controlling them controls map access.
-Returns list of coordinate pairs representing critical passages.")
+Returns list of coordinate pairs representing critical passages.
+Uses Tarjan's bridge-finding algorithm: O(V + E) time complexity.")
 (define (board-critical-edges board neighbor-fn)
-  (let* ([sc (board->simplicial-complex board neighbor-fn)]
-         [base-components (sc-betti sc 0)]
-         [edges (sc-edges sc)])
-    ;; Test each edge: if removing it increases β₀, it's critical
-    (filter-map
-      (lambda (edge)
-        (let* ([vertices (simplex-vertices edge)]
-               [v1 (car vertices)]
-               [v2 (cadr vertices)]
-               [sc-without (sc-remove-edge sc v1 v2)]
-               [new-components (sc-betti sc-without 0)])
-          (if (> new-components base-components)
-              (cons (vertex-id->coord v1) (vertex-id->coord v2))
-              #f)))
-      edges)))
+  (find-bridges-tarjan board neighbor-fn))
 
-(define (sc-remove-edge sc v1 v2)
-  (doc 'description "Create new complex with one edge removed")
-  (let ([target-edge (make-simplex (list v1 v2))])
-    (sc-from-simplices
-      (filter (lambda (s)
-                (not (simplex-equal? s target-edge)))
-              (sc-simplices sc)))))
+(doc 'note "Tarjan's Bridge-Finding Algorithm:
+An edge (u,v) is a bridge iff there is no back edge from v's subtree to u or above.
+We track:
+  - disc[v]: discovery time when v was first visited
+  - low[v]: minimum discovery time reachable from v's subtree
+Edge (u,v) is a bridge when low[v] > disc[u].")
+
+(define (find-bridges-tarjan board neighbor-fn)
+  (doc 'description "Find all bridges using Tarjan's algorithm in O(V+E) time")
+  (let* ([walkable-coords (filter (lambda (c)
+                                    (let ([tile (board-get board c)])
+                                      (and tile (tile-walkable? tile))))
+                                  (board-coords board))]
+         [n (length walkable-coords)]
+         ;; Map coords to indices for array access
+         [coord->idx (make-hashtable coord-hash coord-equal?)]
+         [idx->coord (make-vector n)])
+    ;; Build index mappings
+    (let build-idx ([coords walkable-coords] [i 0])
+      (unless (null? coords)
+        (hashtable-set! coord->idx (car coords) i)
+        (vector-set! idx->coord i (car coords))
+        (build-idx (cdr coords) (+ i 1))))
+
+    ;; Build adjacency list (only walkable neighbors)
+    (let* ([adj (make-vector n '())]
+           [_ (for-each
+                (lambda (c)
+                  (let ([i (hashtable-ref coord->idx c #f)])
+                    (when i
+                      (let ([neighbors (filter-map
+                                         (lambda (nc)
+                                           (hashtable-ref coord->idx nc #f))
+                                         (neighbor-fn c))])
+                        (vector-set! adj i neighbors)))))
+                walkable-coords)]
+           ;; DFS state
+           [disc (make-vector n -1)]      ; discovery time
+           [low (make-vector n -1)]       ; lowest reachable discovery time
+           [parent (make-vector n -1)]    ; parent in DFS tree
+           [time-counter (list 0)]        ; mutable counter (boxed in list)
+           [bridges '()])                 ; result accumulator
+
+      ;; DFS function
+      (letrec ([dfs
+                (lambda (u)
+                  (let ([current-time (car time-counter)])
+                    ;; Set discovery time and low value
+                    (vector-set! disc u current-time)
+                    (vector-set! low u current-time)
+                    (set-car! time-counter (+ current-time 1))
+
+                    ;; Visit all neighbors
+                    (for-each
+                      (lambda (v)
+                        (cond
+                          ;; Not visited yet - tree edge
+                          [(= (vector-ref disc v) -1)
+                           (vector-set! parent v u)
+                           (dfs v)
+                           ;; Update low[u] from child
+                           (vector-set! low u (min (vector-ref low u)
+                                                   (vector-ref low v)))
+                           ;; Check if (u,v) is a bridge
+                           (when (> (vector-ref low v) (vector-ref disc u))
+                             (set! bridges
+                               (cons (cons (vector-ref idx->coord u)
+                                           (vector-ref idx->coord v))
+                                     bridges)))]
+                          ;; Back edge (not to parent)
+                          [(not (= v (vector-ref parent u)))
+                           (vector-set! low u (min (vector-ref low u)
+                                                   (vector-ref disc v)))]))
+                      (vector-ref adj u))))])
+
+        ;; Run DFS from each unvisited vertex (handles disconnected components)
+        (let run-dfs ([i 0])
+          (when (< i n)
+            (when (= (vector-ref disc i) -1)
+              (dfs i))
+            (run-dfs (+ i 1))))
+
+        bridges))))
 
 (doc board-bottleneck-score 'export #t)
 (doc board-bottleneck-score 'type '(-> Board (-> Coord (List Coord)) Coord Number))
