@@ -322,6 +322,37 @@ A tile on a bridge to a 2-node dead-end scores just 2*(n-2).")
                            (coord-equal? (cdr edge) tile-coord))))
                    weighted-bridges)))))
 
+(doc board-bottleneck-scores-all 'export #t)
+(doc board-bottleneck-scores-all 'type '(-> Board (-> Coord (List Coord)) (List (Pair Coord Number))))
+(doc board-bottleneck-scores-all 'description "Compute bottleneck scores for all tiles in one pass.
+Returns alist of (coord . score) for all tiles with non-zero scores.
+O(V+E) total vs O(V × (V+E)) when calling board-bottleneck-score per-tile.
+Useful for heatmap visualization or finding all high-value positions.")
+(define (board-bottleneck-scores-all board neighbor-fn)
+  (let ([weighted-bridges (find-bridges-with-weights board neighbor-fn)]
+        [scores (make-hashtable coord-hash coord-equal?)])
+    ;; Accumulate weights for each bridge endpoint
+    (for-each
+      (lambda (wb)
+        (let* ([edge (weighted-bridge-edge wb)]
+               [c1 (car edge)]
+               [c2 (cdr edge)]
+               [weight (weighted-bridge-weight wb)])
+          ;; Add weight to first endpoint
+          (hashtable-set! scores c1
+            (+ (hashtable-ref scores c1 0) weight))
+          ;; Add weight to second endpoint
+          (hashtable-set! scores c2
+            (+ (hashtable-ref scores c2 0) weight))))
+      weighted-bridges)
+    ;; Convert to sorted alist (highest scores first)
+    (let-values ([(keys vals) (hashtable-entries scores)])
+      (let ([key-list (vector->list keys)]
+            [val-list (vector->list vals)])
+        (list-sort
+          (lambda (a b) (> (cdr a) (cdr b)))
+          (map cons key-list val-list))))))
+
 (doc board-most-critical-bridges 'export #t)
 (doc board-most-critical-bridges 'type
      '(-> Board (-> Coord (List Coord)) Integer (List WeightedBridge)))

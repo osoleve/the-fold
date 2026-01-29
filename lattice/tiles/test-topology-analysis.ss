@@ -264,6 +264,49 @@
       ;; Middle tile participates in 2 bridges, each with weight 6
       (assert-equal 12 score))))
 
+(test-group "bulk bottleneck scoring"
+
+  (define-test "board-bottleneck-scores-all returns all non-zero scores"
+    ;; Line of 5: all tiles except endpoints participate in bridges
+    (let* ([board (make-test-board 7 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1)))]
+           [scores (board-bottleneck-scores-all board test-neighbors)])
+      ;; All 5 tiles participate in at least one bridge
+      (assert-equal 5 (length scores))))
+
+  (define-test "bulk scores match individual calls"
+    ;; Verify bulk version gives same results as per-tile calls
+    (let* ([board (make-test-board 7 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1)))]
+           [bulk-scores (board-bottleneck-scores-all board test-neighbors)]
+           [coords (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1))])
+      (for-each
+        (lambda (c)
+          (let ([individual (board-bottleneck-score board test-neighbors c)]
+                [from-bulk (cdr (or (find (lambda (p) (coord-equal? (car p) c)) bulk-scores)
+                                    (cons c 0)))])
+            (assert-equal individual from-bulk)))
+        coords)))
+
+  (define-test "bulk scores sorted descending"
+    ;; Line of 5: middle tile (coord 3 1) has highest score
+    (let* ([board (make-test-board 7 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1)))]
+           [scores (board-bottleneck-scores-all board test-neighbors)])
+      ;; First entry should have highest score
+      (assert-true (>= (cdar scores) (cdadr scores)))
+      ;; Middle tile should be first (score 12, others have less)
+      (assert-true (coord-equal? (coord 3 1) (caar scores)))))
+
+  (define-test "tiles with no bridges return empty list"
+    ;; Fully connected 3x3 square - no bridges
+    (let* ([board (make-test-board 5 5
+                    (list (coord 1 1) (coord 2 1) (coord 3 1)
+                          (coord 1 2) (coord 2 2) (coord 3 2)
+                          (coord 1 3) (coord 2 3) (coord 3 3)))]
+           [scores (board-bottleneck-scores-all board test-neighbors)])
+      (assert-equal '() scores))))
+
 (test-group "performance"
 
   ;; Helper to make a large walkable board with a bridge in the middle
