@@ -200,16 +200,25 @@
 (define (limbs-multiply-karatsuba a b base)
   (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat) Nat (List Nat)))
-  (doc 'description "Karatsuba O(n^1.585) multiplication using divide-and-conquer.")
+  (doc 'description "Karatsuba O(n^1.585) multiplication using divide-and-conquer.
+Optimized for asymmetric inputs: uses limb-scale when one operand is 1 limb,
+falls back to schoolbook when smaller operand is below threshold.")
   (doc 'complexity "O(n^log2(3)) ≈ O(n^1.585)")
   (let ([na (length a)]
         [nb (length b)])
-    ;; Base case: use schoolbook for small inputs
-    (if (or (<= na *karatsuba-threshold*)
-            (<= nb *karatsuba-threshold*))
-        (limbs-multiply-schoolbook a b base)
-        ;; Recursive case
-        (let* ([m (quotient (max na nb) 2)]
+    ;; Asymmetric optimization: if one operand is single limb, use O(n) scaling
+    (cond
+      [(= na 1)
+       (limb-scale b (car a) base)]
+      [(= nb 1)
+       (limb-scale a (car b) base)]
+      ;; Base case: use schoolbook when smaller operand is below threshold
+      ;; Using min ensures we don't waste Karatsuba overhead on asymmetric inputs
+      [(<= (min na nb) *karatsuba-threshold*)
+       (limbs-multiply-schoolbook a b base)]
+      ;; Recursive case
+      [else
+       (let* ([m (quotient (max na nb) 2)]
                ;; Split a = a1*B^m + a0
                [split-a (limbs-split a m)]
                [a0 (car split-a)]
@@ -229,7 +238,7 @@
           (limbs-add
            (limbs-add z0 (limbs-shift z1 m) base)
            (limbs-shift z2 (* 2 m))
-           base)))))
+           base))])))  ; close let*, else clause, cond, outer let
 
 ;;; ============================================================================
 ;;; Toom-Cook (Toom-3) Multiplication
@@ -336,14 +345,17 @@
 (define (limbs-multiply-toom3 a b base)
   (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat) Nat (List Nat)))
-  (doc 'description "Toom-3 O(n^1.465) multiplication.")
+  (doc 'description "Toom-3 O(n^1.465) multiplication.
+Optimized for asymmetric inputs: delegates to Karatsuba when smaller operand
+is below threshold, which handles single-limb cases with O(n) scaling.")
   (doc 'complexity "O(n^log3(5)) ≈ O(n^1.465)")
   (doc 'note "Uses signed arithmetic for evaluation at t=-1 to handle negative intermediate values correctly.")
   (let ([na (length a)]
         [nb (length b)])
     ;; Use Karatsuba for inputs below threshold
-    (if (or (<= na *toom3-threshold*)
-            (<= nb *toom3-threshold*))
+    ;; Using min ensures we don't waste Toom-3 overhead on asymmetric inputs
+    ;; Karatsuba will further optimize single-limb cases with O(n) scaling
+    (if (<= (min na nb) *toom3-threshold*)
         (limbs-multiply-karatsuba a b base)
         ;; Split into thirds
         (let* ([m (quotient (max na nb) 3)]

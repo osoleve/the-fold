@@ -358,7 +358,32 @@
   (define-test "asymmetric sizes"
     ;; One small, one large
     (assert-equal (* 7 123456789) (fast-multiply 7 123456789))
-    (assert-equal (* 123456789 7) (fast-multiply 123456789 7))))
+    (assert-equal (* 123456789 7) (fast-multiply 123456789 7)))
+
+  (define-test "single-limb asymmetric optimization (fold-zxuh)"
+    ;; Test the optimization that uses limb-scale for single-limb operands
+    ;; This is O(n) instead of recursive Karatsuba/Toom-3
+    (let ([base test-base]
+          [large (integer->limbs (expt 2 256) test-base)]  ; Many limbs
+          [small '(42)])                                     ; Single limb
+      ;; Verify single-limb × multi-limb works correctly both ways
+      (assert-equal (limbs-multiply-karatsuba small large base)
+                    (limb-scale large 42 base))
+      (assert-equal (limbs-multiply-karatsuba large small base)
+                    (limb-scale large 42 base))
+      ;; Verify through hybrid multiplier
+      (assert-equal (* 42 (expt 2 256))
+                    (limbs->integer (limbs-multiply small large base) base))))
+
+  (define-test "asymmetric below-threshold optimization (fold-zxuh)"
+    ;; Even when one operand is large and the other is moderately small
+    ;; (below threshold but multi-limb), we should use schoolbook
+    (let ([base test-base]
+          [large (integer->limbs (expt 2 128) test-base)]
+          [medium (integer->limbs 12345 test-base)])  ; 2-3 limbs, below threshold
+      ;; Should still produce correct result via schoolbook fallback
+      (assert-equal (* (expt 2 128) 12345)
+                    (limbs->integer (limbs-multiply-karatsuba large medium base) base)))))
 
 ;;; ============================================================================
 ;;; Part 10: Property Tests
