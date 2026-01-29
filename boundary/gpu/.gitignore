@@ -1,0 +1,2 @@
+# Built shared library - regenerate with: make
+libfold_gpu.so
