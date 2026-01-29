@@ -250,6 +250,34 @@
                  (car docs)
                  (cdr docs))))
 
+(define (fill-cat docs)
+  (doc 'type (-> (List Doc) Doc))
+  (doc 'description "Concatenate documents, trying to fit as many as possible on each line with no space between them. When a document doesn't fit, inserts a line break before it.")
+  (doc 'export #t)
+  (if (null? docs)
+      empty
+      (fold-left (lambda (acc d) (<> acc (<> (group linebreak) d)))
+                 (car docs)
+                 (cdr docs))))
+
+(define (fill n d)
+  (doc 'type (-> Nat Doc Doc))
+  (doc 'description "Pad document to at least n characters wide by appending spaces. If document already exceeds n, returns unchanged.")
+  (doc 'export #t)
+  (let ([w (doc-width d)])
+    (if (>= w n)
+        d
+        (<> d (text (make-string (- n w) #\space))))))
+
+(define (fill-break n d)
+  (doc 'type (-> Nat Doc Doc))
+  (doc 'description "Pad document to n characters, or insert line break and indent if it exceeds n. Useful for aligning columns that may overflow.")
+  (doc 'export #t)
+  (let ([w (doc-width d)])
+    (if (> w n)
+        (<> d (nest n line))
+        (<> d (text (make-string (- n w) #\space))))))
+
 ;;; punctuate : Doc × (List Doc) → (List Doc)
 (define (punctuate sep docs)
   (if (or (null? docs) (null? (cdr docs)))
