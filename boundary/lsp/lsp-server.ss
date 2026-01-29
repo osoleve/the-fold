@@ -302,6 +302,10 @@
     (lsp-log "Exit notification received")
     (shutdown-transport!)
     (exit (if *server-shutdown-requested* 0 1))]
+   ;; Cancel request - acknowledge but no-op in synchronous server
+   [(string=? method *method-cancel-request*)
+    (let ([cancel-id (json-get params "id")])
+         (lsp-log "Cancel request for id=~a (no-op in sync server)" cancel-id))]
    ;; Reject other notifications before initialized
    [(not *server-initialized*)
     (lsp-log "Ignoring notification before initialized: ~a" method)]

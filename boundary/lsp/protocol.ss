@@ -100,6 +100,7 @@
 (define *method-initialized* "initialized")
 (define *method-shutdown* "shutdown")
 (define *method-exit* "exit")
+(define *method-cancel-request* "$/cancelRequest")
 
 ;;; Document Synchronization
 (define *method-did-open* "textDocument/didOpen")

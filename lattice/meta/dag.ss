@@ -83,11 +83,20 @@
 (doc 'section 'structural-queries)
 
 (doc lattice-roots 'type (-> (List Symbol)))
-(doc lattice-roots 'description "Get tier 0 skills (no dependencies)")
+(doc lattice-roots 'description "Get dependency-free skills (no deps in the DAG)")
 (define (lattice-roots)
   (filter
    (lambda (skill-name)
            (null? (kg-deps skill-name)))
+   (kg-skills)))
+
+(doc lattice-tier-0 'type (-> (List Symbol)))
+(doc lattice-tier-0 'description "Get tier 0 foundational skills")
+(define (lattice-tier-0)
+  (filter
+   (lambda (skill-name)
+           (let ([data (kg-skill-data skill-name)])
+                (and data (eqv? 0 (cdr (or (assq 'tier data) '(tier . -1)))))))
    (kg-skills)))
 
 (doc lattice-leaves 'type (-> (List Symbol)))
@@ -315,7 +324,8 @@
 (meta-printf "  (lattice-uses 'skill)            - Direct dependents\n")
 (meta-printf "  (lattice-uses-transitive 'skill) - Full dep closure\n")
 (meta-printf "  (lattice-path 'from 'to)         - Find path\n")
-(meta-printf "  (lattice-roots)                  - Tier 0 skills\n")
+(meta-printf "  (lattice-roots)                  - Dependency-free skills\n")
+(meta-printf "  (lattice-tier-0)                 - Tier 0 foundational skills\n")
 (meta-printf "  (lattice-leaves)                 - No dependents\n")
 (meta-printf "  (lattice-hubs)                   - Most used skills\n")
 (meta-printf "  (lattice-graph)                  - Print full DAG\n")

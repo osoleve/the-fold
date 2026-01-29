@@ -75,7 +75,7 @@
    ((name "dag.ss")
     (purpose "DAG traversal, dependency paths, tier analysis")
     (exports (lattice-deps lattice-deps-transitive lattice-uses lattice-uses-transitive
-              lattice-path lattice-roots lattice-leaves lattice-hubs lattice-graph ld lu)))
+              lattice-path lattice-roots lattice-tier-0 lattice-leaves lattice-hubs lattice-graph ld lu)))
 
    ((name "analytics.ss")
     (purpose "Statistics, health checks, and coverage analysis")
@@ -127,7 +127,8 @@
     (ld 'skill "Direct dependencies")
     (lu 'skill "Direct dependents")
     (lattice-path 'from 'to "Find dependency path")
-    (lattice-roots "Tier 0 skills (no deps)")
+    (lattice-roots "Dependency-free skills (no deps)")
+    (lattice-tier-0 "Tier 0 foundational skills")
     (lattice-leaves "Skills with no dependents")
     (lattice-hubs "Most-depended-on skills"))
 

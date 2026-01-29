@@ -126,7 +126,8 @@
   (printf "  (lattice-coverage-pretty) - Coverage report\n")
   (printf "  (lattice-hubs)            - Most-used skills\n\n")
   (printf "STRUCTURAL:\n")
-  (printf "  (lattice-roots)           - Tier 0 skills\n")
+  (printf "  (lattice-roots)           - Dependency-free skills\n")
+  (printf "  (lattice-tier-0)          - Tier 0 foundational skills\n")
   (printf "  (lattice-leaves)          - Skills with no dependents\n")
   (printf "  (lattice-tiers)           - Skills grouped by tier\n"))
 

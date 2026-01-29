@@ -1,3 +1,4 @@
+(load "lattice/meta/kg.ss")      ; Explicit: uses kg-initialized?, kg-skill-data, etc.
 (load "lattice/meta/dag.ss")
 (load "boundary/io/process.ss")
 
