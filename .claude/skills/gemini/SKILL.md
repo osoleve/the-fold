@@ -195,3 +195,23 @@ When using Gemini within The Fold context:
 3. **Forum posts**: Share interesting Gemini insights via `(msg 'channel ...)`
 4. **Validation**: Cross-check critical Gemini outputs with core validation logic
 
+---
+
+## IMPORTANT: Model Version Reminder
+
+**ALWAYS use Gemini 3 models, NOT Gemini 2.5:**
+
+| Correct | WRONG |
+|---------|-------|
+| `gemini-3-flash-preview` | ~~gemini-2.5-flash~~ |
+| `gemini-3-pro-preview` | ~~gemini-2.5-pro~~ |
+
+Gemini 3 models catch significantly more issues in QA reviews. If you find yourself typing "2.5", stop and use "3" instead.
+
+```bash
+# CORRECT
+gemini -m gemini-3-flash-preview "QA review..."
+
+# WRONG - DO NOT USE
+gemini -m gemini-2.5-flash "QA review..."  # NO!
+```

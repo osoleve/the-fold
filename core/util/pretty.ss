@@ -24,6 +24,12 @@
 (define (doc-hardline)
   (vector 'doc-hardline))
 
+;;; doc-linebreak : → Doc
+;;; A line break that flattens to empty (not space).
+;;; Unlike doc-union, this is handled specially by group.
+(define (doc-linebreak)
+  (vector 'doc-linebreak))
+
 ;;; doc-nest : Nat × Doc → Doc
 (define (doc-nest n doc)
   (vector 'doc-nest n doc))
@@ -45,7 +51,7 @@
   (and (vector? x)
        (> (vector-length x) 0)
        (if (memq (vector-ref x 0)
-                 '(doc-empty doc-text doc-line doc-hardline
+                 '(doc-empty doc-text doc-line doc-hardline doc-linebreak
                    doc-nest doc-concat doc-group doc-union))
            #t #f)))
 
@@ -57,6 +63,8 @@
 (define (doc-line? d) (eq? (vector-ref d 0) 'doc-line))
 ;;; doc-hardline? : Doc → Bool
 (define (doc-hardline? d) (eq? (vector-ref d 0) 'doc-hardline))
+;;; doc-linebreak? : Doc → Bool
+(define (doc-linebreak? d) (eq? (vector-ref d 0) 'doc-linebreak))
 ;;; doc-nest? : Doc → Bool
 (define (doc-nest? d) (eq? (vector-ref d 0) 'doc-nest))
 ;;; doc-concat? : Doc → Bool
@@ -103,6 +111,7 @@
    [(doc-text? doc) doc]
    [(doc-line? doc) (vector 'doc-text " ")]  ; line becomes space
    [(doc-hardline? doc) doc]  ; hardline never flattens
+   [(doc-linebreak? doc) (doc-empty)]  ; linebreak becomes empty (not space)
    [(doc-nest? doc) (vector 'doc-nest (doc-nest-n doc) (flatten-inner (doc-nest-doc doc)))]
    [(doc-concat? doc) (vector 'doc-concat (flatten-inner (doc-concat-left doc))
                               (flatten-inner (doc-concat-right doc)))]
@@ -148,7 +157,7 @@
 (doc linebreak 'type Doc)
 (doc linebreak 'description "A line break that becomes empty when flattened.")
 (doc linebreak 'export #t)
-(define linebreak (doc-union (text "") (doc-line)))
+(define linebreak (doc-linebreak))
 
 (doc 'section 'combinators)
 
@@ -243,10 +252,12 @@
   (group (vcat docs)))
 
 ;;; fill-sep : (List Doc) → Doc
+;;; Like fill-cat but with space between items when on same line.
 (define (fill-sep docs)
   (if (null? docs)
       empty
-      (fold-left (lambda (acc d) (<> acc (<> softline d)))
+      ;; Group must encompass line AND next doc so fits? checks the actual content
+      (fold-left (lambda (acc d) (<> acc (group (<> line d))))
                  (car docs)
                  (cdr docs))))
 
@@ -256,7 +267,8 @@
   (doc 'export #t)
   (if (null? docs)
       empty
-      (fold-left (lambda (acc d) (<> acc (<> (group linebreak) d)))
+      ;; Group must encompass linebreak AND next doc so fits? checks the actual content
+      (fold-left (lambda (acc d) (<> acc (group (<> linebreak d))))
                  (car docs)
                  (cdr docs))))
 
@@ -388,6 +400,8 @@
              (sdoc-line i (be-ribbon w r i rest))]
             [(doc-hardline? doc)
              (sdoc-line i (be-ribbon w r i rest))]
+            [(doc-linebreak? doc)
+             (sdoc-line i (be-ribbon w r i rest))]
             [(doc-nest? doc)
              (be-ribbon w r k (cons (cons (+ i (doc-nest-n doc)) (doc-nest-doc doc)) rest))]
             [(doc-concat? doc)
@@ -424,6 +438,7 @@
            (fits? (- w (string-length (doc-text-str doc))) rest)]
           [(doc-line? doc) #t]  ; line always fits (we stop here)
           [(doc-hardline? doc) #t]
+          [(doc-linebreak? doc) #t]  ; linebreak also ends the line
           [(doc-nest? doc)
            (fits? w (cons (cons (+ i (doc-nest-n doc)) (doc-nest-doc doc)) rest))]
           [(doc-concat? doc)
