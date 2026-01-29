@@ -21,8 +21,9 @@ Detects bottlenecks, holes in terrain, and critical corridors for strategic path
 (doc board->simplicial-complex 'export #t)
 (doc board->simplicial-complex 'type '(-> Board (-> Coord (List Coord)) SC))
 (doc board->simplicial-complex 'description "Convert walkable terrain to a simplicial complex.
-Vertices = walkable tiles, Edges = adjacent walkable tiles.
-The neighbor-fn determines adjacency (e.g., square-neighbors, hex-neighbors).")
+Vertices = walkable tiles, Edges = adjacent walkable tiles, Faces = filled 2×2 squares.
+The neighbor-fn determines adjacency (e.g., square-neighbors-ortho, hex-neighbors).
+Adding 2-simplices (faces) for filled squares ensures β₁ counts terrain holes, not graph cycles.")
 (define (board->simplicial-complex board neighbor-fn)
   (let* ([walkable-coords (filter (lambda (c)
                                     (let ([tile (board-get board c)])
@@ -34,8 +35,11 @@ The neighbor-fn determines adjacency (e.g., square-neighbors, hex-neighbors).")
          [vertices (map (lambda (c) (make-simplex (list (coord->vertex-id c))))
                         walkable-coords)]
          ;; Create edges (1-simplices) for adjacent walkable pairs
-         [edges (collect-edges walkable-coords walkable-set neighbor-fn)])
-    (sc-from-simplices (append vertices edges))))
+         [edges (collect-edges walkable-coords walkable-set neighbor-fn)]
+         ;; Create faces (2-simplices) for filled 2×2 squares
+         ;; This collapses graph cycles, making β₁ count terrain holes correctly
+         [faces (collect-square-faces walkable-coords walkable-set neighbor-fn)])
+    (sc-from-simplices (append vertices edges faces))))
 
 (define (coords->set coords)
   (doc 'description "Build hashtable set for O(1) membership")
@@ -79,6 +83,53 @@ The neighbor-fn determines adjacency (e.g., square-neighbors, hex-neighbors).")
   (or (< (car v1) (car v2))
       (and (= (car v1) (car v2))
            (< (cadr v1) (cadr v2)))))
+
+(define (collect-square-faces coords walkable-set neighbor-fn)
+  (doc 'description "Collect 2-simplices (triangular faces) for filled 2×2 squares.
+For each coordinate (x,y), check if (x,y), (x+1,y), (x,y+1), (x+1,y+1) are all walkable
+AND mutually adjacent. If so, triangulate the square into 2 triangles.
+This 'fills in' solid walkable regions so β₁ counts terrain holes, not graph cycles.")
+  (let ([faces '()]
+        [seen (make-hashtable equal-hash equal?)])
+    (for-each
+      (lambda (c)
+        (let* ([x (coord-x c)]
+               [y (coord-y c)]
+               ;; The 4 corners of a potential 2×2 square with c at top-left
+               [c00 c]                        ; (x, y)
+               [c10 (coord (+ x 1) y)]        ; (x+1, y)
+               [c01 (coord x (+ y 1))]        ; (x, y+1)
+               [c11 (coord (+ x 1) (+ y 1))]) ; (x+1, y+1)
+          ;; Check if all 4 corners are walkable
+          (when (and (coord-in-set? walkable-set c00)
+                     (coord-in-set? walkable-set c10)
+                     (coord-in-set? walkable-set c01)
+                     (coord-in-set? walkable-set c11))
+            ;; Check if all 4 edges exist (corners are mutually adjacent)
+            ;; For square grid with ortho neighbors: c00-c10, c00-c01, c10-c11, c01-c11
+            (when (and (coords-adjacent? c00 c10 neighbor-fn)
+                       (coords-adjacent? c00 c01 neighbor-fn)
+                       (coords-adjacent? c10 c11 neighbor-fn)
+                       (coords-adjacent? c01 c11 neighbor-fn))
+              ;; Create unique key for this square (use top-left corner)
+              (let ([square-key (list x y)])
+                (unless (hashtable-ref seen square-key #f)
+                  (hashtable-set! seen square-key #t)
+                  ;; Triangulate: split square into 2 triangles along diagonal
+                  ;; Triangle 1: (x,y), (x+1,y), (x+1,y+1)
+                  ;; Triangle 2: (x,y), (x,y+1), (x+1,y+1)
+                  (let ([v00 (coord->vertex-id c00)]
+                        [v10 (coord->vertex-id c10)]
+                        [v01 (coord->vertex-id c01)]
+                        [v11 (coord->vertex-id c11)])
+                    (set! faces (cons (make-simplex (list v00 v10 v11)) faces))
+                    (set! faces (cons (make-simplex (list v00 v01 v11)) faces)))))))))
+      coords)
+    faces))
+
+(define (coords-adjacent? c1 c2 neighbor-fn)
+  (doc 'description "Check if two coordinates are adjacent according to neighbor-fn")
+  (memp (lambda (n) (coord-equal? n c2)) (neighbor-fn c1)))
 
 (doc 'section 'topological-analysis)
 

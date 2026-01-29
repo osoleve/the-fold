@@ -48,12 +48,16 @@
       (assert-equal 2 (length (sc-vertices sc)))
       (assert-equal 1 (length (sc-edges sc)))))
 
-  (define-test "2x2 walkable area produces 4 vertices, 4 edges"
+  ;; A 2x2 walkable area has 4 vertices and 4 grid edges.
+  ;; With triangulation, the diagonal edge is added (5 total 1-simplices).
+  ;; Also 2 triangular faces (2-simplices) to fill the square.
+  (define-test "2x2 walkable area produces 4 vertices, 5 edges (incl diagonal), 2 faces"
     (let* ([board (make-test-board 4 4 (list (coord 1 1) (coord 2 1)
                                               (coord 1 2) (coord 2 2)))]
            [sc (board->simplicial-complex board test-neighbors)])
       (assert-equal 4 (length (sc-vertices sc)))
-      (assert-equal 4 (length (sc-edges sc)))))
+      (assert-equal 5 (length (sc-edges sc)))  ; 4 grid edges + 1 diagonal
+      (assert-equal 2 (length (sc-faces sc)))))  ; 2 triangles
 
   (define-test "diagonal tiles are not adjacent in square grid"
     (let* ([board (make-test-board 3 3 (list (coord 0 0) (coord 2 2)))]
@@ -95,15 +99,15 @@
            [holes (board-terrain-holes board test-neighbors)])
       (assert-equal 1 holes)))
 
-  ;; Note: β₁ counts cycles in the graph, not terrain holes.
-  ;; A 3x3 grid has 4 independent cycles (the "faces" of the grid).
-  (define-test "solid rectangle has β₁ = 4 (four cycles in grid)"
+  ;; With 2-simplices filling solid 2×2 squares, β₁ now correctly
+  ;; counts terrain holes (impassable islands), not graph cycles.
+  (define-test "solid rectangle has β₁ = 0 (no terrain holes)"
     (let* ([board (make-test-board 5 5
                     (list (coord 1 1) (coord 2 1) (coord 3 1)
                           (coord 1 2) (coord 2 2) (coord 3 2)
                           (coord 1 3) (coord 2 3) (coord 3 3)))]
            [holes (board-terrain-holes board test-neighbors)])
-      (assert-equal 4 holes)))
+      (assert-equal 0 holes)))
 
   (define-test "figure-8 has β₁ = 2 (two holes)"
     ;; Two adjacent rings sharing a vertex
