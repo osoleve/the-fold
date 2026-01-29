@@ -225,7 +225,48 @@
                           base))))
        '((12345 . 67890)
          (111111111 . 999999999)
-         (123456789012 . 210987654321))))))
+         (123456789012 . 210987654321)))))
+
+  (define-test "toom3 handles negative evaluation points (fold-zxug)"
+    ;; Test case where p(-1) = a0 - a1 + a2 is negative
+    ;; In base 10: 191 = (1 9 1), p(-1) = 1 - 9 + 1 = -7
+    ;; 292 = (2 9 2), q(-1) = 2 - 9 + 2 = -5
+    ;; r(-1) = 35 (positive, since -7 * -5 = 35)
+    (let ([base 10])
+      (assert-equal (* 191 292)
+                    (limbs->integer
+                     (limbs-multiply-toom3
+                      (integer->limbs 191 base)
+                      (integer->limbs 292 base)
+                      base)
+                     base))))
+
+  (define-test "toom3 with mixed sign evaluation points"
+    ;; One positive, one negative evaluation
+    ;; 121 = (1 2 1), p(-1) = 1 - 2 + 1 = 0
+    ;; 191 = (1 9 1), q(-1) = 1 - 9 + 1 = -7
+    ;; r(-1) = 0
+    (let ([base 10])
+      (assert-equal (* 121 191)
+                    (limbs->integer
+                     (limbs-multiply-toom3
+                      (integer->limbs 121 base)
+                      (integer->limbs 191 base)
+                      base)
+                     base))))
+
+  (define-test "toom3 larger negative evaluation case"
+    ;; Larger numbers that force Toom-3 recursion
+    (let ([base 10])
+      (let ([a 19191919191919]  ; Pattern that gives negative p(-1)
+            [b 29292929292929])
+        (assert-equal (* a b)
+                      (limbs->integer
+                       (limbs-multiply-toom3
+                        (integer->limbs a base)
+                        (integer->limbs b base)
+                        base)
+                       base))))))
 
 ;;; ============================================================================
 ;;; Part 6: Hybrid Multiplier Tests

@@ -261,48 +261,84 @@
          [high (cadr split2)])
     (list low mid high)))
 
-(define (limbs-negate limbs)
-  (doc 'export #t)
-  (doc 'type '(-> (List Int) (List Int)))
-  (doc 'description "Negate all limbs (for signed intermediate values).")
-  (map - limbs))
+;;; Signed number representation for Toom-Cook
+;;; A signed-limbs is (sign . limbs) where sign is 1 or -1 and limbs is unsigned
 
-(define (limbs-add-signed a b base)
-  (doc 'export #t)
-  (doc 'type '(-> (List Int) (List Int) Nat (List Int)))
-  (doc 'description "Add two signed limb lists.")
-  ;; For Toom-Cook we need signed arithmetic
-  ;; Simplified: just add the lists element-wise, handle carries at end
-  (let* ([len (max (length a) (length b))]
-         [a-pad (limbs-pad-to a len)]
-         [b-pad (limbs-pad-to b len)])
-    (let loop ([as a-pad] [bs b-pad] [result '()])
-      (if (null? as)
-          (reverse result)
-          (loop (cdr as) (cdr bs)
-                (cons (+ (car as) (car bs)) result))))))
+(define (make-signed sign limbs)
+  (doc 'type '(-> Int (List Nat) SignedLimbs))
+  (doc 'description "Create a signed limb representation.")
+  (cons sign (limbs-normalize limbs)))
 
-(define (limbs-propagate-carries limbs base)
+(define (signed-sign sl) (car sl))
+(define (signed-limbs sl) (cdr sl))
+
+(define (signed-zero? sl)
+  (doc 'type '(-> SignedLimbs Boolean))
+  (let ([limbs (signed-limbs sl)])
+    (and (= 1 (length limbs)) (= 0 (car limbs)))))
+
+(define (limbs-compare a b)
   (doc 'export #t)
-  (doc 'type '(-> (List Int) Nat (List Nat)))
-  (doc 'description "Propagate carries through signed limb list, normalizing to unsigned.")
-  (let loop ([ls limbs] [carry 0] [result '()])
-    (if (null? ls)
-        (limbs-normalize
-         (reverse (if (not (= carry 0)) (cons carry result) result)))
-        (let* ([val (+ (car ls) carry)]
-               [limb (modulo val base)]
-               [new-carry (quotient val base)]
-               ;; Handle negative modulo
-               [limb (if (< limb 0) (+ limb base) limb)]
-               [new-carry (if (< val 0) (- new-carry 1) new-carry)])
-          (loop (cdr ls) new-carry (cons limb result))))))
+  (doc 'type '(-> (List Nat) (List Nat) Int))
+  (doc 'description "Compare two normalized limb lists. Returns -1, 0, or 1.")
+  (let ([la (length a)]
+        [lb (length b)])
+    (cond
+      [(> la lb) 1]
+      [(< la lb) -1]
+      [else
+       ;; Same length - compare from high to low
+       (let loop ([as (reverse a)] [bs (reverse b)])
+         (cond
+           [(null? as) 0]
+           [(> (car as) (car bs)) 1]
+           [(< (car as) (car bs)) -1]
+           [else (loop (cdr as) (cdr bs))]))])))
+
+(define (signed-add sa sb base)
+  (doc 'export #t)
+  (doc 'type '(-> SignedLimbs SignedLimbs Nat SignedLimbs))
+  (doc 'description "Add two signed limb numbers.")
+  (let ([sign-a (signed-sign sa)]
+        [sign-b (signed-sign sb)]
+        [a (signed-limbs sa)]
+        [b (signed-limbs sb)])
+    (if (= sign-a sign-b)
+        ;; Same sign: add magnitudes, keep sign
+        (make-signed sign-a (limbs-add a b base))
+        ;; Different signs: subtract smaller from larger
+        (let ([cmp (limbs-compare a b)])
+          (cond
+            [(= cmp 0) (make-signed 1 '(0))]  ; Equal magnitudes = zero
+            [(> cmp 0) (make-signed sign-a (limbs-sub a b base))]
+            [else (make-signed sign-b (limbs-sub b a base))])))))
+
+(define (signed-negate sl)
+  (doc 'type '(-> SignedLimbs SignedLimbs))
+  (doc 'description "Negate a signed limb number.")
+  (if (signed-zero? sl)
+      sl
+      (make-signed (- (signed-sign sl)) (signed-limbs sl))))
+
+(define (signed-multiply sa sb base multiply-fn)
+  (doc 'type '(-> SignedLimbs SignedLimbs Nat (-> (List Nat) (List Nat) Nat (List Nat)) SignedLimbs))
+  (doc 'description "Multiply two signed limb numbers using provided multiplication function.")
+  (let ([sign-a (signed-sign sa)]
+        [sign-b (signed-sign sb)]
+        [a (signed-limbs sa)]
+        [b (signed-limbs sb)])
+    (make-signed (* sign-a sign-b) (multiply-fn a b base))))
+
+(define (unsigned->signed limbs)
+  (doc 'type '(-> (List Nat) SignedLimbs))
+  (make-signed 1 limbs))
 
 (define (limbs-multiply-toom3 a b base)
   (doc 'export #t)
   (doc 'type '(-> (List Nat) (List Nat) Nat (List Nat)))
   (doc 'description "Toom-3 O(n^1.465) multiplication.")
   (doc 'complexity "O(n^log3(5)) ≈ O(n^1.465)")
+  (doc 'note "Uses signed arithmetic for evaluation at t=-1 to handle negative intermediate values correctly.")
   (let ([na (length a)]
         [nb (length b)])
     ;; Use Karatsuba for inputs below threshold
@@ -320,27 +356,33 @@
                [b1 (cadr split-b)]
                [b2 (caddr split-b)]
 
+               ;; Convert to signed for evaluation at -1
+               [sa0 (unsigned->signed a0)]
+               [sa1 (unsigned->signed a1)]
+               [sa2 (unsigned->signed a2)]
+               [sb0 (unsigned->signed b0)]
+               [sb1 (unsigned->signed b1)]
+               [sb2 (unsigned->signed b2)]
+
                ;; Evaluate p(t) at t = 0, 1, -1, 2, ∞
                ;; p(0) = a0
                ;; p(1) = a0 + a1 + a2
-               ;; p(-1) = a0 - a1 + a2
+               ;; p(-1) = a0 - a1 + a2  (can be negative!)
                ;; p(2) = a0 + 2*a1 + 4*a2
-               ;; p(∞) = a2 (leading coefficient)
+               ;; p(∞) = a2
 
                [p0 a0]
                [p1 (limbs-add (limbs-add a0 a1 base) a2 base)]
-               [p-1-parts (limbs-add-signed
-                           (limbs-add-signed a0 (limbs-negate a1) base)
-                           a2 base)]
+               ;; p(-1) using signed arithmetic: a0 - a1 + a2
+               [sp-1 (signed-add (signed-add sa0 (signed-negate sa1) base) sa2 base)]
                [p2 (limbs-add (limbs-add a0 (limb-scale a1 2 base) base)
                              (limb-scale a2 4 base) base)]
                [pinf a2]
 
                [q0 b0]
                [q1 (limbs-add (limbs-add b0 b1 base) b2 base)]
-               [q-1-parts (limbs-add-signed
-                           (limbs-add-signed b0 (limbs-negate b1) base)
-                           b2 base)]
+               ;; q(-1) using signed arithmetic: b0 - b1 + b2
+               [sq-1 (signed-add (signed-add sb0 (signed-negate sb1) base) sb2 base)]
                [q2 (limbs-add (limbs-add b0 (limb-scale b1 2 base) base)
                              (limb-scale b2 4 base) base)]
                [qinf b2]
@@ -348,70 +390,72 @@
                ;; Multiply at evaluation points
                [r0 (limbs-multiply-toom3 p0 q0 base)]
                [r1 (limbs-multiply-toom3 p1 q1 base)]
-               ;; For r(-1), handle signed multiplication
-               [r-1-unsigned (limbs-multiply-toom3
-                              (limbs-propagate-carries p-1-parts base)
-                              (limbs-propagate-carries q-1-parts base)
-                              base)]
+               ;; r(-1) = p(-1) * q(-1) with proper sign tracking
+               [sr-1 (signed-multiply sp-1 sq-1 base limbs-multiply-toom3)]
                [r2 (limbs-multiply-toom3 p2 q2 base)]
                [rinf (limbs-multiply-toom3 pinf qinf base)]
 
-               ;; Interpolation to recover coefficients c0..c4
-               ;; r(t) = c4*t^4 + c3*t^3 + c2*t^2 + c1*t + c0
-               ;;
+               ;; Convert unsigned results to signed for interpolation
+               [sr0 (unsigned->signed r0)]
+               [sr1 (unsigned->signed r1)]
+               [sr2 (unsigned->signed r2)]
+               [srinf (unsigned->signed rinf)]
+
+               ;; Interpolation using signed arithmetic
+               ;; Standard Toom-3 interpolation formulas:
                ;; c0 = r(0)
                ;; c4 = r(∞)
-               ;; From the system of equations, solve for c1, c2, c3
-               ;; This involves some divisions by small integers
+               ;; c1 = (r(1) - r(-1)) / 2 - c4
+               ;; c2 = (r(1) + r(-1)) / 2 - c0
+               ;; c3 = (r(2) - c0 - c2 - 4*c4) / 2 - c1  ... simplified
 
+               ;; More stable formulas using the system:
+               ;; r(0) = c0
+               ;; r(1) = c0 + c1 + c2 + c3 + c4
+               ;; r(-1) = c0 - c1 + c2 - c3 + c4
+               ;; r(2) = c0 + 2c1 + 4c2 + 8c3 + 16c4
+               ;; r(∞) = c4
+
+               ;; Solve step by step:
                [c0 r0]
                [c4 rinf]
+               [sc0 sr0]
+               [sc4 srinf]
 
-               ;; Intermediate values for interpolation
-               ;; Using standard Toom-3 interpolation formulas
-               [t1 (limbs-sub r1 r0 base)]         ; r(1) - r(0)
-               [t2 (limbs-sub r-1-unsigned r0 base)] ; r(-1) - r(0), approximate
-               [t3 (limbs-sub r2 r0 base)]         ; r(2) - r(0)
+               ;; r(1) + r(-1) = 2(c0 + c2 + c4)
+               ;; => c2 = (r(1) + r(-1))/2 - c0 - c4
+               [sum-r1-rm1 (signed-add sr1 sr-1 base)]
+               [half-sum (signed-div-small sum-r1-rm1 2 base)]
+               [sc2 (signed-add (signed-add half-sum (signed-negate sc0) base)
+                               (signed-negate sc4) base)]
 
-               ;; Simplified interpolation (exact for Toom-3)
-               ;; c1 = (r(1) - r(-1))/2
-               ;; c2 = r(-1) - r(0) + rinf  (approximate)
-               ;; c3 = (r(2) - 2*r(1) + r(-1) - 6*rinf)/6
+               ;; r(1) - r(-1) = 2(c1 + c3)
+               ;; => c1 + c3 = (r(1) - r(-1))/2
+               [diff-r1-rm1 (signed-add sr1 (signed-negate sr-1) base)]
+               [half-diff (signed-div-small diff-r1-rm1 2 base)]  ; c1 + c3
 
-               ;; For simplicity, use a direct but less efficient interpolation
-               ;; c1 + c2 + c3 = r(1) - r(0) - r(∞)
-               ;; -c1 + c2 - c3 = r(-1) - r(0) - r(∞)
-               ;; 2c1 + 4c2 + 8c3 = r(2) - r(0) - 16*r(∞)
+               ;; r(2) = c0 + 2c1 + 4c2 + 8c3 + 16c4
+               ;; r(2) - c0 - 4c2 - 16c4 = 2c1 + 8c3 = 2(c1 + 4c3)
+               ;; => c1 + 4c3 = (r(2) - c0 - 4c2 - 16c4)/2
+               [sr2-terms (signed-add
+                           (signed-add
+                            (signed-add sr2 (signed-negate sc0) base)
+                            (signed-negate (signed-scale sc2 4 base)) base)
+                           (signed-negate (signed-scale sc4 16 base)) base)]
+               [c1-plus-4c3 (signed-div-small sr2-terms 2 base)]
 
-               ;; Adding first two: 2c2 = r(1) + r(-1) - 2*r(0) - 2*r(∞)
-               [two-c2 (limbs-sub (limbs-sub
-                                   (limbs-add r1 r-1-unsigned base)
-                                   (limb-scale r0 2 base)
-                                   base)
-                                  (limb-scale rinf 2 base)
-                                  base)]
-               ;; c2 = two-c2 / 2
-               [c2 (limbs-div-small two-c2 2 base)]
+               ;; (c1 + 4c3) - (c1 + c3) = 3c3
+               ;; => c3 = ((c1+4c3) - (c1+c3))/3
+               [three-c3 (signed-add c1-plus-4c3 (signed-negate half-diff) base)]
+               [sc3 (signed-div-small three-c3 3 base)]
 
-               ;; Subtracting: 2c1 + 2c3 = r(1) - r(-1)
-               [two-c1-c3 (limbs-sub r1 r-1-unsigned base)]
+               ;; c1 = (c1 + c3) - c3
+               [sc1 (signed-add half-diff (signed-negate sc3) base)]
 
-               ;; From third equation: 2c1 + 4c2 + 8c3 = r(2) - r(0) - 16*rinf
-               [rhs3 (limbs-sub (limbs-sub r2 r0 base)
-                               (limb-scale rinf 16 base)
-                               base)]
-               ;; 2c1 + 8c3 = rhs3 - 4*c2
-               [two-c1-8c3 (limbs-sub rhs3 (limb-scale c2 4 base) base)]
-
-               ;; Solve: 2c1 + 2c3 = two-c1-c3
-               ;;        2c1 + 8c3 = two-c1-8c3
-               ;; Subtracting: 6c3 = two-c1-8c3 - two-c1-c3
-               [six-c3 (limbs-sub two-c1-8c3 two-c1-c3 base)]
-               [c3 (limbs-div-small six-c3 6 base)]
-
-               ;; c1 = (two-c1-c3 - 2*c3) / 2
-               [c1 (limbs-div-small (limbs-sub two-c1-c3 (limb-scale c3 2 base) base)
-                                   2 base)])
+               ;; Extract unsigned coefficients (all should be non-negative for valid input)
+               [c1 (signed-limbs sc1)]
+               [c2 (signed-limbs sc2)]
+               [c3 (signed-limbs sc3)])
 
           ;; Combine: c0 + c1*B^m + c2*B^(2m) + c3*B^(3m) + c4*B^(4m)
           (limbs-add
@@ -421,6 +465,16 @@
              (limbs-shift c2 (* 2 m)) base)
             (limbs-shift c3 (* 3 m)) base)
            (limbs-shift c4 (* 4 m)) base)))))
+
+(define (signed-scale sl n base)
+  (doc 'type '(-> SignedLimbs Nat Nat SignedLimbs))
+  (doc 'description "Scale a signed limb number by positive integer n.")
+  (make-signed (signed-sign sl) (limb-scale (signed-limbs sl) n base)))
+
+(define (signed-div-small sl d base)
+  (doc 'type '(-> SignedLimbs Nat Nat SignedLimbs))
+  (doc 'description "Divide signed limb number by small positive integer. Assumes exact division.")
+  (make-signed (signed-sign sl) (limbs-div-small (signed-limbs sl) d base)))
 
 (define (limbs-div-small limbs d base)
   (doc 'export #t)
