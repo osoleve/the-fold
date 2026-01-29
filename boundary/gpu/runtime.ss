@@ -259,6 +259,8 @@
 
 ;;; gpu-compile : String → gpu-module
 ;;; Compile CUDA C source string to a loaded module via NVRTC.
+;;; Uses two-pass buffer sizing: if PTX exceeds initial buffer, retries with
+;;; the required size returned by the bridge.
 (define (gpu-compile source)
   (doc 'type (-> String gpu-module))
   (doc 'description "Compile CUDA C source to GPU module via NVRTC")
@@ -267,54 +269,61 @@
   ;; NVRTC expects null-terminated source, so append \0
   (let* ([src-bv (string->utf8 (string-append source "\x0;"))]
          [src-len (- (bytevector-length src-bv) 1)]  ;; don't count the null
-         ;; Generous buffers for PTX and compile log
-         [ptx-cap (max (* src-len 64) (* 1024 1024))]  ;; at least 1MB
-         [ptx-buf (make-bytevector ptx-cap 0)]
          [log-cap (* 64 1024)]  ;; 64KB for compile log
          [log-buf (make-bytevector log-cap 0)])
-    ;; Allocate length out-pointers (unsigned-64)
-    (call-with-gpu-alloc 8
-      (lambda (ptx-len-ptr)
-        (foreign-set! 'unsigned-64 ptx-len-ptr 0 ptx-cap)
+    ;; Internal compile function that can be retried with different PTX buffer size
+    (define (do-compile ptx-cap)
+      (let ([ptx-buf (make-bytevector ptx-cap 0)])
         (call-with-gpu-alloc 8
-          (lambda (log-len-ptr)
-            (foreign-set! 'unsigned-64 log-len-ptr 0 log-cap)
-            (let ([r (gpu-ffi-compile src-bv src-len
-                                      ptx-buf ptx-len-ptr
-                                      log-buf log-len-ptr)])
-              (unless (= r 0)
-                ;; Extract compile log for the error message
-                (let* ([actual-log-len (foreign-ref 'unsigned-64 log-len-ptr 0)]
-                       [truncated? (> actual-log-len log-cap)]
-                       [log-str (if (> actual-log-len 0)
-                                    (let* ([len (min actual-log-len (- log-cap 1))]
-                                           ;; Find actual string length (null-terminated)
-                                           [str-end (let loop ([i 0])
-                                                      (if (or (>= i len)
-                                                              (= (bytevector-u8-ref log-buf i) 0))
-                                                          i
-                                                          (loop (+ i 1))))]
-                                           [result (make-bytevector str-end)])
-                                      (bytevector-copy! log-buf 0 result 0 str-end)
-                                      (utf8->string result))
-                                    "")]
-                       [truncation-msg (if truncated?
-                                           (format "\n[... log truncated, ~a bytes total]"
-                                                   actual-log-len)
-                                           "")])
-                  (error 'gpu-compile
-                         (format "NVRTC compilation failed (code ~a):\n~a~a"
-                                 r log-str truncation-msg))))
-              ;; Load the PTX as a module
-              (let ([ptx-len (foreign-ref 'unsigned-64 ptx-len-ptr 0)])
-                ;; Ensure null-termination for cuModuleLoadData
-                (when (< ptx-len ptx-cap)
-                  (bytevector-u8-set! ptx-buf ptx-len 0))
-                (let-values ([(r2 mod-ptr) (call-with-gpu-ptr-out
-                                            (lambda (out)
-                                              (gpu-ffi-module-load out ptx-buf)))])
-                  (gpu-check! 'gpu-compile r2)
-                  (make-gpu-module mod-ptr))))))))))
+          (lambda (ptx-len-ptr)
+            (foreign-set! 'unsigned-64 ptx-len-ptr 0 ptx-cap)
+            (call-with-gpu-alloc 8
+              (lambda (log-len-ptr)
+                (foreign-set! 'unsigned-64 log-len-ptr 0 log-cap)
+                (let ([r (gpu-ffi-compile src-bv src-len
+                                          ptx-buf ptx-len-ptr
+                                          log-buf log-len-ptr)])
+                  (cond
+                    ;; Success
+                    [(= r 0)
+                     (let ([ptx-len (foreign-ref 'unsigned-64 ptx-len-ptr 0)])
+                       ;; Ensure null-termination for cuModuleLoadData
+                       (when (< ptx-len ptx-cap)
+                         (bytevector-u8-set! ptx-buf ptx-len 0))
+                       (let-values ([(r2 mod-ptr) (call-with-gpu-ptr-out
+                                                    (lambda (out)
+                                                      (gpu-ffi-module-load out ptx-buf)))])
+                         (gpu-check! 'gpu-compile r2)
+                         (make-gpu-module mod-ptr)))]
+                    ;; PTX buffer overflow (-2) - retry with required size
+                    [(= r -2)
+                     (let ([required-size (foreign-ref 'unsigned-64 ptx-len-ptr 0)])
+                       ;; Add 1 for null terminator safety
+                       (do-compile (+ required-size 1)))]
+                    ;; Other error (compilation failure, etc.)
+                    [else
+                     (let* ([actual-log-len (foreign-ref 'unsigned-64 log-len-ptr 0)]
+                            [truncated? (> actual-log-len log-cap)]
+                            [log-str (if (> actual-log-len 0)
+                                         (let* ([len (min actual-log-len (- log-cap 1))]
+                                                [str-end (let loop ([i 0])
+                                                           (if (or (>= i len)
+                                                                   (= (bytevector-u8-ref log-buf i) 0))
+                                                               i
+                                                               (loop (+ i 1))))]
+                                                [result (make-bytevector str-end)])
+                                           (bytevector-copy! log-buf 0 result 0 str-end)
+                                           (utf8->string result))
+                                         "")]
+                            [truncation-msg (if truncated?
+                                                (format "\n[... log truncated, ~a bytes total]"
+                                                        actual-log-len)
+                                                "")])
+                       (error 'gpu-compile
+                              (format "NVRTC compilation failed (code ~a):\n~a~a"
+                                      r log-str truncation-msg)))]))))))))
+    ;; Start with generous initial buffer (at least 1MB, or 64x source size)
+    (do-compile (max (* src-len 64) (* 1024 1024)))))
 
 ;;; gpu-unload-module! : gpu-module → void
 ;;; Unload a compiled GPU module. Prevents double-unload.
