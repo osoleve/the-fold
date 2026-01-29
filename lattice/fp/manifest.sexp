@@ -43,6 +43,12 @@ Key design principles:
    ;;
    ;; Source-annotated exports from fp root modules are minimal.
    ;; See lattice/fp/*/manifest.sexp for detailed exports.
+   ;;
+   ;; Core Result type operations (from core/base/prelude.ss):
+   ;; These are fundamental error-handling primitives exported here
+   ;; for discoverability via lattice search.
+   (prelude ok? error? result-map result-bind result-sequence
+            unwrap-ok unwrap-error)
    )
 
 
