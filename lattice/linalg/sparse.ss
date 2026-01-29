@@ -67,6 +67,13 @@ Dependencies:
 
 ;;; sparse-coo-from-triplets : Nat × Nat × (List (Nat × Nat × Num)) → SparseCOO
 ;;; Create from list of (row col value) triplets.
+;;;
+;;; NOTE: Duplicate entries (same row,col) are stored as-is, NOT summed.
+;;; This differs from scipy which sums duplicates on conversion.
+;;; - sparse-coo-ref returns the FIRST matching entry
+;;; - coo->csr conversion does NOT consolidate duplicates
+;;; If you need duplicate summing, pre-process triplets or use sparse-coo-add-impl
+;;; which uses a hash accumulator that naturally sums duplicate coordinates.
 (define (sparse-coo-from-triplets rows cols triplets)
   (let* ([n (length triplets)]
          [row-idx (make-vector n 0)]
@@ -82,6 +89,7 @@ Dependencies:
 
 ;;; sparse-coo-ref : SparseCOO × Nat × Nat → Num
 ;;; Get element at (i, j). O(nnz) - use CSR/CSC for frequent access.
+;;; NOTE: If duplicates exist at (i,j), returns the FIRST entry found.
 (define (sparse-coo-ref m i j)
   (let ([row-idx (sparse-coo-row-indices m)]
         [col-idx (sparse-coo-col-indices m)]
