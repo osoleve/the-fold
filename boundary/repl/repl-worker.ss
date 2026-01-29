@@ -217,39 +217,50 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
                                     last-def-expr))))))))
 
 (define (scheme-eval-and-capture session-id str)
-  "Evaluate expressions and capture both stdout and return value.
+  "Evaluate expressions and capture both stdout and stderr.
    For definitions, returns the content-address of the definition expression.
    Returns (values output-string defined-name result) for history recording."
-  (let ([output-port (open-output-string)])
+  (let ([output-port (open-output-string)]
+        [error-port (open-output-string)])
        (let-values ([(result def-name def-expr)
                      (parameterize ([current-output-port output-port]
+                                    [current-error-port error-port]
                                     [*current-session-id* session-id])
                                    (scheme-eval-string str))])
-                   (let ([output (get-output-string output-port)])
-                        (values
-                         (cond
-                          ;; Definition: return content-address of the definition expression
-                          [def-expr
-                            (let ([addr (content-address def-expr)])
-                                 (if (> (string-length output) 0)
-                                     (string-append output "\n" addr)
-                                     addr))]
-                          ;; Only output, no meaningful return value
-                          [(and (eq? result (void)) (> (string-length output) 0))
-                           output]
-                          ;; Both output and result
-                          [(> (string-length output) 0)
-                           (string-append output
-                                          (if (eq? result (void))
-                                              ""
-                                              (string-append "\n=> " (format "~a" result))))]
-                          ;; Only result, no output
-                          [(not (eq? result (void)))
-                           (format "~a" result)]
-                          ;; Nothing
-                          [else ""])
-                         def-name
-                         result)))))
+                   (let* ([stdout-str (get-output-string output-port)]
+                          [stderr-str (get-output-string error-port)]
+                          ;; Combine stdout and stderr; prefix stderr with "stderr: " if both present
+                          [output (cond
+                                   [(and (> (string-length stdout-str) 0)
+                                         (> (string-length stderr-str) 0))
+                                    (string-append stdout-str "\nstderr: " stderr-str)]
+                                   [(> (string-length stderr-str) 0)
+                                    (string-append "stderr: " stderr-str)]
+                                   [else stdout-str])])
+                         (values
+                          (cond
+                           ;; Definition: return content-address of the definition expression
+                           [def-expr
+                             (let ([addr (content-address def-expr)])
+                                  (if (> (string-length output) 0)
+                                      (string-append output "\n" addr)
+                                      addr))]
+                           ;; Only output, no meaningful return value
+                           [(and (eq? result (void)) (> (string-length output) 0))
+                            output]
+                           ;; Both output and result
+                           [(> (string-length output) 0)
+                            (string-append output
+                                           (if (eq? result (void))
+                                               ""
+                                               (string-append "\n=> " (format "~a" result))))]
+                           ;; Only result, no output
+                           [(not (eq? result (void)))
+                            (format "~a" result)]
+                           ;; Nothing
+                           [else ""])
+                          def-name
+                          result)))))
 
 ;;; ====
 ;;; History Recording

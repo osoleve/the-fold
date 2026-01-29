@@ -11,8 +11,13 @@
 
 #include <cuda.h>
 #include <nvrtc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+/* Internal bridge error codes (negative to avoid collision with CUDA codes) */
+#define FOLD_GPU_ERR_INVALID_PARAM  -1
+#define FOLD_GPU_ERR_BUFFER_OVERFLOW -2
 
 /* ====================================================================
  * Initialization & Device Info
@@ -115,7 +120,7 @@ int fold_gpu_compile(const char *src, unsigned long long src_len,
                      char *out_ptx, unsigned long long *out_ptx_len,
                      char *out_log, unsigned long long *out_log_len) {
     if (!src || !out_ptx || !out_ptx_len || !out_log || !out_log_len)
-        return -1;
+        return FOLD_GPU_ERR_INVALID_PARAM;
 
     nvrtcProgram prog;
     nvrtcResult rc;
@@ -130,12 +135,26 @@ int fold_gpu_compile(const char *src, unsigned long long src_len,
     /* Always retrieve the compile log */
     size_t log_size = 0;
     nvrtcGetProgramLogSize(prog, &log_size);
-    if (log_size > 0 && log_size <= *out_log_len) {
+    unsigned long long provided_log_cap = *out_log_len;
+
+    if (log_size > 0 && log_size <= provided_log_cap) {
+        /* Log fits — get it all */
         nvrtcGetProgramLog(prog, out_log);
         *out_log_len = (unsigned long long)log_size;
-    } else if (log_size > *out_log_len) {
-        /* Log too large for buffer — truncate */
-        *out_log_len = 0;
+    } else if (log_size > provided_log_cap && provided_log_cap > 0) {
+        /* Log too large — get what fits, return full size for two-pass retry.
+         * Caller can detect truncation: returned size > provided capacity.
+         * Note: nvrtcGetProgramLog writes log_size bytes, so we use a temp buffer. */
+        char *temp = (char *)malloc(log_size);
+        if (temp) {
+            nvrtcGetProgramLog(prog, temp);
+            memcpy(out_log, temp, provided_log_cap - 1);
+            out_log[provided_log_cap - 1] = '\0';  /* Ensure null-termination */
+            free(temp);
+        } else {
+            out_log[0] = '\0';  /* malloc failed — no log */
+        }
+        *out_log_len = (unsigned long long)log_size;  /* Return required size */
     } else {
         *out_log_len = 0;
     }
@@ -154,10 +173,10 @@ int fold_gpu_compile(const char *src, unsigned long long src_len,
     }
 
     if (ptx_size > *out_ptx_len) {
-        /* PTX too large for buffer */
+        /* PTX too large for buffer — return required size for retry */
         *out_ptx_len = (unsigned long long)ptx_size;
         nvrtcDestroyProgram(&prog);
-        return -2; /* buffer overflow sentinel */
+        return FOLD_GPU_ERR_BUFFER_OVERFLOW;
     }
 
     rc = nvrtcGetPTX(prog, out_ptx);
@@ -235,6 +254,15 @@ int fold_gpu_launch(void *func,
  * ==================================================================== */
 
 const char *fold_gpu_error_string(int error) {
+    /* Handle internal bridge error codes first */
+    switch (error) {
+        case FOLD_GPU_ERR_INVALID_PARAM:
+            return "bridge: invalid parameter (NULL pointer)";
+        case FOLD_GPU_ERR_BUFFER_OVERFLOW:
+            return "bridge: buffer overflow (increase buffer size and retry)";
+    }
+
+    /* Fall through to CUDA error lookup */
     const char *str = NULL;
     CUresult r = cuGetErrorString((CUresult)error, &str);
     if (r != CUDA_SUCCESS || str == NULL) return "unknown error";

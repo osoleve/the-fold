@@ -858,6 +858,7 @@
 
 ;;; extract-symbol-at : String × Int → String | #f
 ;;; Extract a symbol starting at the given position.
+;;; Handles both regular symbols and pipe-quoted symbols like |foo bar|.
 (define (extract-symbol-at content start)
   (let ([len (string-length content)])
        (if (>= start len)
@@ -868,8 +869,18 @@
                  [(>= i len) #f]
                  [(char-whitespace? (string-ref content i))
                   (skip-ws (+ i 1))]
+                 ;; Pipe-quoted symbol
+                 [(char=? (string-ref content i) #\|)
+                  (let find-close ([j (+ i 1)] [escape? #f])
+                    (cond
+                      [(>= j len) #f]  ;; Unclosed pipe - invalid
+                      [escape? (find-close (+ j 1) #f)]
+                      [(char=? (string-ref content j) #\\) (find-close (+ j 1) #t)]
+                      [(char=? (string-ref content j) #\|)
+                       (substring content i (+ j 1))]  ;; Include both pipes
+                      [else (find-close (+ j 1) #f)]))]
+                 ;; Regular symbol
                  [(symbol-start-char? (string-ref content i))
-                  ;; Found start of symbol
                   (let find-end ([j (+ i 1)])
                        (if (or (>= j len)
                                (not (symbol-char? (string-ref content j))))
@@ -878,8 +889,10 @@
                  [else #f])))))
 
 ;;; symbol-start-char? : Char → Boolean
+;;; Note: | is valid for pipe-quoted symbols like |foo bar|
 (define (symbol-start-char? c)
   (or (char-alphabetic? c)
+      (char=? c #\|)  ;; pipe-quoted symbols
       (memv c '(#\- #\_ #\? #\! #\* #\+ #\/ #\< #\> #\= #\:))))
 
 ;;; ====

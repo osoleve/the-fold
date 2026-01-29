@@ -285,15 +285,26 @@
               (unless (= r 0)
                 ;; Extract compile log for the error message
                 (let* ([actual-log-len (foreign-ref 'unsigned-64 log-len-ptr 0)]
+                       [truncated? (> actual-log-len log-cap)]
                        [log-str (if (> actual-log-len 0)
-                                    (let* ([len (min actual-log-len log-cap)]
-                                           [result (make-bytevector len)])
-                                      (bytevector-copy! log-buf 0 result 0 len)
+                                    (let* ([len (min actual-log-len (- log-cap 1))]
+                                           ;; Find actual string length (null-terminated)
+                                           [str-end (let loop ([i 0])
+                                                      (if (or (>= i len)
+                                                              (= (bytevector-u8-ref log-buf i) 0))
+                                                          i
+                                                          (loop (+ i 1))))]
+                                           [result (make-bytevector str-end)])
+                                      (bytevector-copy! log-buf 0 result 0 str-end)
                                       (utf8->string result))
-                                    "")])
+                                    "")]
+                       [truncation-msg (if truncated?
+                                           (format "\n[... log truncated, ~a bytes total]"
+                                                   actual-log-len)
+                                           "")])
                   (error 'gpu-compile
-                         (format "NVRTC compilation failed (code ~a):\n~a"
-                                 r log-str))))
+                         (format "NVRTC compilation failed (code ~a):\n~a~a"
+                                 r log-str truncation-msg))))
               ;; Load the PTX as a module
               (let ([ptx-len (foreign-ref 'unsigned-64 ptx-len-ptr 0)])
                 ;; Ensure null-termination for cuModuleLoadData
