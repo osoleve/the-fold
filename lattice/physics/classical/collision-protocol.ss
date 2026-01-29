@@ -99,6 +99,7 @@
 
 (doc 'col-effective-mass 'type 'Body × Body × Vec2 × Vec2 → Number)
 (doc "Calculate effective mass for impulse calculation including rotation.")
+(doc "Returns +inf.0 for static-static collisions (infinite effective mass).")
 (define (col-effective-mass body-a body-b contact normal)
   (let* ([inv-m-a (col-inv-mass body-a)]
          [inv-m-b (col-inv-mass body-b)]
@@ -107,10 +108,15 @@
          [r-a (vec2-sub contact (col-pos body-a))]
          [r-b (vec2-sub contact (col-pos body-b))]
          [rn-a (vec2-cross r-a normal)]
-         [rn-b (vec2-cross r-b normal)])
-    (+ inv-m-a inv-m-b
-       (* rn-a rn-a inv-i-a)
-       (* rn-b rn-b inv-i-b))))
+         [rn-b (vec2-cross r-b normal)]
+         [raw-eff-mass (+ inv-m-a inv-m-b
+                          (* rn-a rn-a inv-i-a)
+                          (* rn-b rn-b inv-i-b))])
+    ;; Return +inf.0 for static-static collisions to avoid division by zero
+    ;; Semantically: infinite effective mass means no impulse can move them
+    (if (< raw-eff-mass 1e-10)
+        +inf.0
+        raw-eff-mass)))
 
 (doc 'section 'print)
 

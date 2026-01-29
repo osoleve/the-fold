@@ -160,7 +160,18 @@
            [normal (vec2 1 0)]
            [eff-mass (col-effective-mass b1 b2 contact normal)])
       ;; No rotation, so just 1/m1 + 1/m2 = 0.5 + 0.25 = 0.75
-      (assert-equal 0.75 eff-mass))))
+      (assert-equal 0.75 eff-mass)))
+
+  (define-test "col-effective-mass returns +inf.0 for static-static collision"
+    ;; Two static bodies have zero inverse mass/inertia -> infinite effective mass
+    (let* ([b1 (make-static-body (vec2 0 0))]
+           [b2 (make-static-body (vec2 4 0))]
+           [contact (vec2 2 0)]
+           [normal (vec2 1 0)]
+           [eff-mass (col-effective-mass b1 b2 contact normal)])
+      ;; Should return +inf.0, not 0 (which would cause division by zero)
+      (assert-true (infinite? eff-mass))
+      (assert-true (positive? eff-mass)))))
 
 ;;; ====
 ;;; Run Tests
