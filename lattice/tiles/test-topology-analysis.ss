@@ -196,6 +196,74 @@
            [score (board-bottleneck-score board test-neighbors (coord 2 2))])
       (assert-equal 0 score))))
 
+(test-group "weighted bridges"
+
+  (define-test "weighted bridges include component sizes"
+    ;; Line of 5 tiles: 1-2-3-4-5
+    ;; Bridge 2-3 splits into {1,2} and {3,4,5} = sizes 2 and 3
+    ;; Bridge 3-4 splits into {1,2,3} and {4,5} = sizes 3 and 2
+    (let* ([board (make-test-board 7 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1)))]
+           [weighted (board-critical-edges-weighted board test-neighbors)])
+      ;; Should have 4 bridges in a line of 5
+      (assert-equal 4 (length weighted))
+      ;; Each bridge should have component sizes that sum to 5
+      (assert-true (for-all (lambda (wb)
+                              (= 5 (+ (weighted-bridge-size1 wb)
+                                      (weighted-bridge-size2 wb))))
+                            weighted))))
+
+  (define-test "bridge weight is product of component sizes"
+    ;; Barbell: two 4-tile squares connected by single tile
+    ;; Bridge connects 4 tiles to 5 tiles (4 + bridge + 4 = 9 total, but bridge is 1)
+    ;; Actually: left square (4) + bridge (1) + right square (4) = 9 tiles
+    ;; The bridge edges (left-to-bridge, bridge-to-right) each split:
+    ;;   - left-to-bridge: 4 vs 5 (weight = 20)
+    ;;   - bridge-to-right: 5 vs 4 (weight = 20)
+    (let* ([board (make-test-board 7 4
+                    (list ;; Left square
+                          (coord 1 1) (coord 2 1)
+                          (coord 1 2) (coord 2 2)
+                          ;; Bridge
+                          (coord 3 1)
+                          ;; Right square
+                          (coord 4 1) (coord 5 1)
+                          (coord 4 2) (coord 5 2)))]
+           [weighted (board-critical-edges-weighted board test-neighbors)])
+      ;; Should have 2 critical bridges
+      (assert-equal 2 (length weighted))
+      ;; Each should have weight = 4 * 5 = 20
+      (assert-true (for-all (lambda (wb)
+                              (= 20 (weighted-bridge-weight wb)))
+                            weighted))))
+
+  (define-test "most-critical-bridges returns top k sorted by weight"
+    ;; Line of 7 tiles: bridges have varying weights
+    ;; Middle bridge (3-4) has highest weight: 3 * 4 = 12
+    ;; Edge bridges (1-2, 6-7) have lowest: 1 * 6 = 6
+    (let* ([board (make-test-board 9 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1)
+                          (coord 5 1) (coord 6 1) (coord 7 1)))]
+           [top3 (board-most-critical-bridges board test-neighbors 3)])
+      ;; Should return 3 bridges
+      (assert-equal 3 (length top3))
+      ;; First should have highest weight
+      (assert-true (>= (weighted-bridge-weight (car top3))
+                       (weighted-bridge-weight (cadr top3))))
+      (assert-true (>= (weighted-bridge-weight (cadr top3))
+                       (weighted-bridge-weight (caddr top3))))))
+
+  (define-test "bottleneck score sums weights for multi-bridge tiles"
+    ;; Line of 5: middle tile (coord 3 1) participates in 2 bridges
+    ;; Bridge 2-3: sizes 2, 3, weight 6
+    ;; Bridge 3-4: sizes 3, 2, weight 6
+    ;; Total score for tile 3 = 6 + 6 = 12
+    (let* ([board (make-test-board 7 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1)))]
+           [score (board-bottleneck-score board test-neighbors (coord 3 1))])
+      ;; Middle tile participates in 2 bridges, each with weight 6
+      (assert-equal 12 score))))
+
 (test-group "performance"
 
   ;; Helper to make a large walkable board with a bridge in the middle

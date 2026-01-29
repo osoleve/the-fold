@@ -168,17 +168,49 @@ These are strategic chokepoints - controlling them controls map access.
 Returns list of coordinate pairs representing critical passages.
 Uses Tarjan's bridge-finding algorithm: O(V + E) time complexity.")
 (define (board-critical-edges board neighbor-fn)
-  (find-bridges-tarjan board neighbor-fn))
+  (map weighted-bridge-edge (find-bridges-with-weights board neighbor-fn)))
 
-(doc 'note "Tarjan's Bridge-Finding Algorithm:
+(doc board-critical-edges-weighted 'export #t)
+(doc board-critical-edges-weighted 'type
+     '(-> Board (-> Coord (List Coord)) (List WeightedBridge)))
+(doc board-critical-edges-weighted 'description
+     "Find critical edges with strategic weights based on region sizes.
+Returns list of weighted bridges: ((coord1 . coord2) size1 size2 weight)
+where size1/size2 are the component sizes and weight = size1 * size2.
+Higher weight = more strategically important bridge.")
+(define (board-critical-edges-weighted board neighbor-fn)
+  (find-bridges-with-weights board neighbor-fn))
+
+(doc weighted-bridge-edge 'type '(-> WeightedBridge (Pair Coord Coord)))
+(doc weighted-bridge-edge 'description "Extract edge from weighted bridge")
+(define (weighted-bridge-edge wb) (car wb))
+
+(doc weighted-bridge-size1 'type '(-> WeightedBridge Integer))
+(doc weighted-bridge-size1 'description "Size of first component (subtree side)")
+(define (weighted-bridge-size1 wb) (cadr wb))
+
+(doc weighted-bridge-size2 'type '(-> WeightedBridge Integer))
+(doc weighted-bridge-size2 'description "Size of second component (rest of graph)")
+(define (weighted-bridge-size2 wb) (caddr wb))
+
+(doc weighted-bridge-weight 'type '(-> WeightedBridge Integer))
+(doc weighted-bridge-weight 'description "Strategic weight = size1 * size2")
+(define (weighted-bridge-weight wb) (cadddr wb))
+
+(doc 'note "Tarjan's Bridge-Finding Algorithm (enhanced with component sizes):
 An edge (u,v) is a bridge iff there is no back edge from v's subtree to u or above.
 We track:
   - disc[v]: discovery time when v was first visited
   - low[v]: minimum discovery time reachable from v's subtree
-Edge (u,v) is a bridge when low[v] > disc[u].")
+  - subtree[v]: number of nodes in v's DFS subtree
+Edge (u,v) is a bridge when low[v] > disc[u].
+When found, v's subtree has subtree[v] nodes, the other side has n - subtree[v] nodes.")
 
-(define (find-bridges-tarjan board neighbor-fn)
-  (doc 'description "Find all bridges using Tarjan's algorithm in O(V+E) time")
+(define (find-bridges-with-weights board neighbor-fn)
+  (doc 'description "Find all bridges with component sizes using Tarjan's algorithm.
+Returns list of weighted bridges: ((coord1 . coord2) size1 size2 weight)
+where size1 is the subtree size, size2 is remaining nodes, weight = size1 * size2.
+O(V+E) time complexity.")
   (let* ([walkable-coords (filter (lambda (c)
                                     (let ([tile (board-get board c)])
                                       (and tile (tile-walkable? tile))))
@@ -187,85 +219,128 @@ Edge (u,v) is a bridge when low[v] > disc[u].")
          ;; Map coords to indices for array access
          [coord->idx (make-hashtable coord-hash coord-equal?)]
          [idx->coord (make-vector n)])
-    ;; Build index mappings
-    (let build-idx ([coords walkable-coords] [i 0])
-      (unless (null? coords)
-        (hashtable-set! coord->idx (car coords) i)
-        (vector-set! idx->coord i (car coords))
-        (build-idx (cdr coords) (+ i 1))))
+    ;; Handle empty/single-node graphs
+    (if (< n 2)
+        '()
+        (begin
+          ;; Build index mappings
+          (let build-idx ([coords walkable-coords] [i 0])
+            (unless (null? coords)
+              (hashtable-set! coord->idx (car coords) i)
+              (vector-set! idx->coord i (car coords))
+              (build-idx (cdr coords) (+ i 1))))
 
-    ;; Build adjacency list (only walkable neighbors)
-    (let* ([adj (make-vector n '())]
-           [_ (for-each
-                (lambda (c)
-                  (let ([i (hashtable-ref coord->idx c #f)])
-                    (when i
-                      (let ([neighbors (filter-map
-                                         (lambda (nc)
-                                           (hashtable-ref coord->idx nc #f))
-                                         (neighbor-fn c))])
-                        (vector-set! adj i neighbors)))))
-                walkable-coords)]
-           ;; DFS state
-           [disc (make-vector n -1)]      ; discovery time
-           [low (make-vector n -1)]       ; lowest reachable discovery time
-           [parent (make-vector n -1)]    ; parent in DFS tree
-           [time-counter (list 0)]        ; mutable counter (boxed in list)
-           [bridges '()])                 ; result accumulator
+          ;; Build adjacency list (only walkable neighbors)
+          (let* ([adj (make-vector n '())]
+                 [_ (for-each
+                      (lambda (c)
+                        (let ([i (hashtable-ref coord->idx c #f)])
+                          (when i
+                            (let ([neighbors (filter-map
+                                               (lambda (nc)
+                                                 (hashtable-ref coord->idx nc #f))
+                                               (neighbor-fn c))])
+                              (vector-set! adj i neighbors)))))
+                      walkable-coords)]
+                 ;; DFS state
+                 [disc (make-vector n -1)]      ; discovery time
+                 [low (make-vector n -1)]       ; lowest reachable discovery time
+                 [parent (make-vector n -1)]    ; parent in DFS tree
+                 [subtree (make-vector n 1)]    ; subtree size (starts at 1 for self)
+                 [time-counter (list 0)]        ; mutable counter (boxed in list)
+                 [bridges '()])                 ; result accumulator
 
-      ;; DFS function
-      (letrec ([dfs
-                (lambda (u)
-                  (let ([current-time (car time-counter)])
-                    ;; Set discovery time and low value
-                    (vector-set! disc u current-time)
-                    (vector-set! low u current-time)
-                    (set-car! time-counter (+ current-time 1))
+            ;; DFS function - returns subtree size
+            (letrec ([dfs
+                      (lambda (u)
+                        (let ([current-time (car time-counter)])
+                          ;; Set discovery time and low value
+                          (vector-set! disc u current-time)
+                          (vector-set! low u current-time)
+                          (set-car! time-counter (+ current-time 1))
 
-                    ;; Visit all neighbors
-                    (for-each
-                      (lambda (v)
-                        (cond
-                          ;; Not visited yet - tree edge
-                          [(= (vector-ref disc v) -1)
-                           (vector-set! parent v u)
-                           (dfs v)
-                           ;; Update low[u] from child
-                           (vector-set! low u (min (vector-ref low u)
-                                                   (vector-ref low v)))
-                           ;; Check if (u,v) is a bridge
-                           (when (> (vector-ref low v) (vector-ref disc u))
-                             (set! bridges
-                               (cons (cons (vector-ref idx->coord u)
-                                           (vector-ref idx->coord v))
-                                     bridges)))]
-                          ;; Back edge (not to parent)
-                          [(not (= v (vector-ref parent u)))
-                           (vector-set! low u (min (vector-ref low u)
-                                                   (vector-ref disc v)))]))
-                      (vector-ref adj u))))])
+                          ;; Visit all neighbors
+                          (for-each
+                            (lambda (v)
+                              (cond
+                                ;; Not visited yet - tree edge
+                                [(= (vector-ref disc v) -1)
+                                 (vector-set! parent v u)
+                                 (dfs v)
+                                 ;; Accumulate subtree size
+                                 (vector-set! subtree u
+                                   (+ (vector-ref subtree u)
+                                      (vector-ref subtree v)))
+                                 ;; Update low[u] from child
+                                 (vector-set! low u (min (vector-ref low u)
+                                                         (vector-ref low v)))
+                                 ;; Check if (u,v) is a bridge
+                                 (when (> (vector-ref low v) (vector-ref disc u))
+                                   (let* ([size1 (vector-ref subtree v)]
+                                          [size2 (- n size1)]
+                                          [weight (* size1 size2)])
+                                     (set! bridges
+                                       (cons (list (cons (vector-ref idx->coord u)
+                                                         (vector-ref idx->coord v))
+                                                   size1
+                                                   size2
+                                                   weight)
+                                             bridges))))]
+                                ;; Back edge (not to parent)
+                                [(not (= v (vector-ref parent u)))
+                                 (vector-set! low u (min (vector-ref low u)
+                                                         (vector-ref disc v)))]))
+                            (vector-ref adj u))))])
 
-        ;; Run DFS from each unvisited vertex (handles disconnected components)
-        (let run-dfs ([i 0])
-          (when (< i n)
-            (when (= (vector-ref disc i) -1)
-              (dfs i))
-            (run-dfs (+ i 1))))
+              ;; Run DFS from each unvisited vertex (handles disconnected components)
+              (let run-dfs ([i 0])
+                (when (< i n)
+                  (when (= (vector-ref disc i) -1)
+                    (dfs i))
+                  (run-dfs (+ i 1))))
 
-        bridges))))
+              bridges))))))
 
 (doc board-bottleneck-score 'export #t)
 (doc board-bottleneck-score 'type '(-> Board (-> Coord (List Coord)) Coord Number))
 (doc board-bottleneck-score 'description "Compute bottleneck score for a tile.
-Higher score = more critical position. Score is based on how many critical
-edges the tile participates in, weighted by the sizes of regions it connects.")
+Higher score = more critical position. Score is the sum of strategic weights
+of all critical edges the tile participates in, where weight = size1 * size2
+(product of the two component sizes the bridge connects).
+A tile on a bridge connecting two 50-node regions scores 2500.
+A tile on a bridge to a 2-node dead-end scores just 2*(n-2).")
 (define (board-bottleneck-score board neighbor-fn tile-coord)
-  (let ([critical (board-critical-edges board neighbor-fn)])
-    ;; Count how many critical edges involve this tile
-    (length (filter (lambda (edge)
-                      (or (coord-equal? (car edge) tile-coord)
-                          (coord-equal? (cdr edge) tile-coord)))
-                    critical))))
+  (let ([weighted-bridges (find-bridges-with-weights board neighbor-fn)])
+    ;; Sum weights of all bridges involving this tile
+    (fold-left
+      +
+      0
+      (map weighted-bridge-weight
+           (filter (lambda (wb)
+                     (let ([edge (weighted-bridge-edge wb)])
+                       (or (coord-equal? (car edge) tile-coord)
+                           (coord-equal? (cdr edge) tile-coord))))
+                   weighted-bridges)))))
+
+(doc board-most-critical-bridges 'export #t)
+(doc board-most-critical-bridges 'type
+     '(-> Board (-> Coord (List Coord)) Integer (List WeightedBridge)))
+(doc board-most-critical-bridges 'description
+     "Return the k most strategically important bridges, sorted by weight descending.
+Useful for identifying the most valuable chokepoints to control.")
+(define (board-most-critical-bridges board neighbor-fn k)
+  (let* ([bridges (find-bridges-with-weights board neighbor-fn)]
+         [sorted (list-sort (lambda (a b)
+                              (> (weighted-bridge-weight a)
+                                 (weighted-bridge-weight b)))
+                            bridges)])
+    (take-up-to k sorted)))
+
+(define (take-up-to n lst)
+  (doc 'description "Take up to n elements from list (handles short lists)")
+  (if (or (<= n 0) (null? lst))
+      '()
+      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 (doc 'section 'strategic-analysis)
 
@@ -275,7 +350,7 @@ edges the tile participates in, weighted by the sizes of regions it connects.")
 (define (board-topology-summary board neighbor-fn)
   (let* ([sc (board->simplicial-complex board neighbor-fn)]
          [betti (sc-betti-numbers sc)]
-         [critical (board-critical-edges board neighbor-fn)]
+         [weighted (find-bridges-with-weights board neighbor-fn)]
          [total-tiles (length (board-coords board))]
          [walkable (length (filter (lambda (c)
                                      (let ([t (board-get board c)])
@@ -289,15 +364,25 @@ edges the tile participates in, weighted by the sizes of regions it connects.")
     (printf "Connected regions:  ~a (β₀)~n" (if (null? betti) 0 (car betti)))
     (printf "Terrain holes:      ~a (β₁)~n" (if (< (length betti) 2) 0 (cadr betti)))
     (printf "~n--- Strategic Analysis ---~n")
-    (printf "Critical edges:     ~a~n" (length critical))
-    (when (and (not (null? critical)) (<= (length critical) 10))
-      (printf "Chokepoints:~n")
-      (for-each
-        (lambda (edge)
-          (printf "  (~a,~a) ↔ (~a,~a)~n"
-                  (coord-x (car edge)) (coord-y (car edge))
-                  (coord-x (cdr edge)) (coord-y (cdr edge))))
-        critical))
+    (printf "Critical edges:     ~a~n" (length weighted))
+    (when (not (null? weighted))
+      (let ([sorted (list-sort (lambda (a b)
+                                 (> (weighted-bridge-weight a)
+                                    (weighted-bridge-weight b)))
+                               weighted)]
+            [max-show 10])
+        (printf "~nTop chokepoints (by strategic weight):~n")
+        (for-each
+          (lambda (wb)
+            (let ([edge (weighted-bridge-edge wb)]
+                  [s1 (weighted-bridge-size1 wb)]
+                  [s2 (weighted-bridge-size2 wb)]
+                  [w (weighted-bridge-weight wb)])
+              (printf "  (~a,~a) ↔ (~a,~a)  [~a × ~a = ~a]~n"
+                      (coord-x (car edge)) (coord-y (car edge))
+                      (coord-x (cdr edge)) (coord-y (cdr edge))
+                      s1 s2 w)))
+          (take-up-to max-show sorted))))
     (printf "===============================~n")))
 
 (doc board-is-connected? 'export #t)
