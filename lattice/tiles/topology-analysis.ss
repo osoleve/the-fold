@@ -1,0 +1,199 @@
+(load "lattice/tiles/core.ss")
+(load "lattice/topology/simplicial-complex.ss")
+(load "lattice/topology/homology.ss")
+
+(doc 'module 'tiles/topology-analysis)
+(doc 'description "Topological analysis of game boards using simplicial homology.
+Detects bottlenecks, holes in terrain, and critical corridors for strategic pathfinding.")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'tier 2)
+(doc 'dependencies '(tiles/core topology/simplicial-complex topology/homology))
+
+(doc 'note "Key concepts:
+  β₀ (Betti-0) = number of connected walkable regions
+  β₁ (Betti-1) = number of holes (impassable islands surrounded by walkable terrain)
+  Critical edge = edge whose removal increases β₀ (disconnects regions)
+  Bottleneck = narrow corridor (few edges connecting large regions)")
+
+(doc 'section 'board-to-complex)
+
+(doc board->simplicial-complex 'export #t)
+(doc board->simplicial-complex 'type '(-> Board (-> Coord (List Coord)) SC))
+(doc board->simplicial-complex 'description "Convert walkable terrain to a simplicial complex.
+Vertices = walkable tiles, Edges = adjacent walkable tiles.
+The neighbor-fn determines adjacency (e.g., square-neighbors, hex-neighbors).")
+(define (board->simplicial-complex board neighbor-fn)
+  (let* ([walkable-coords (filter (lambda (c)
+                                    (let ([tile (board-get board c)])
+                                      (and tile (tile-walkable? tile))))
+                                  (board-coords board))]
+         ;; Build index for O(1) membership check
+         [walkable-set (coords->set walkable-coords)]
+         ;; Create vertices (0-simplices)
+         [vertices (map (lambda (c) (make-simplex (list (coord->vertex-id c))))
+                        walkable-coords)]
+         ;; Create edges (1-simplices) for adjacent walkable pairs
+         [edges (collect-edges walkable-coords walkable-set neighbor-fn)])
+    (sc-from-simplices (append vertices edges))))
+
+(define (coords->set coords)
+  (doc 'description "Build hashtable set for O(1) membership")
+  (let ([ht (make-hashtable coord-hash coord-equal?)])
+    (for-each (lambda (c) (hashtable-set! ht c #t)) coords)
+    ht))
+
+(define (coord-in-set? set c)
+  (hashtable-ref set c #f))
+
+(define (coord->vertex-id c)
+  (doc 'description "Convert coordinate to unique vertex identifier for simplicial complex")
+  ;; Use a list as vertex ID (works with generic<? comparison in simplicial-complex)
+  (list (coord-x c) (coord-y c)))
+
+(define (vertex-id->coord v)
+  (doc 'description "Convert vertex ID back to coordinate")
+  (coord (car v) (cadr v)))
+
+(define (collect-edges coords walkable-set neighbor-fn)
+  (doc 'description "Collect all edges between adjacent walkable tiles")
+  (let ([edges '()]
+        [seen (make-hashtable equal-hash equal?)])
+    (for-each
+      (lambda (c)
+        (let ([v1 (coord->vertex-id c)])
+          (for-each
+            (lambda (n)
+              (when (coord-in-set? walkable-set n)
+                (let* ([v2 (coord->vertex-id n)]
+                       [edge-key (if (vertex<? v1 v2) (cons v1 v2) (cons v2 v1))])
+                  (unless (hashtable-ref seen edge-key #f)
+                    (hashtable-set! seen edge-key #t)
+                    (set! edges (cons (make-simplex (list v1 v2)) edges))))))
+            (neighbor-fn c))))
+      coords)
+    edges))
+
+(define (vertex<? v1 v2)
+  (doc 'description "Ordering on vertex IDs for canonical edge representation")
+  (or (< (car v1) (car v2))
+      (and (= (car v1) (car v2))
+           (< (cadr v1) (cadr v2)))))
+
+(doc 'section 'topological-analysis)
+
+(doc board-betti-numbers 'export #t)
+(doc board-betti-numbers 'type '(-> Board (-> Coord (List Coord)) (List Integer)))
+(doc board-betti-numbers 'description "Compute Betti numbers of walkable terrain.
+Returns (β₀ β₁) where:
+  β₀ = number of connected walkable regions
+  β₁ = number of holes (impassable islands completely surrounded by walkable terrain)")
+(define (board-betti-numbers board neighbor-fn)
+  (let ([sc (board->simplicial-complex board neighbor-fn)])
+    (sc-betti-numbers sc)))
+
+(doc board-connected-regions 'export #t)
+(doc board-connected-regions 'type '(-> Board (-> Coord (List Coord)) Integer))
+(doc board-connected-regions 'description "Count connected walkable regions (β₀)")
+(define (board-connected-regions board neighbor-fn)
+  (let ([sc (board->simplicial-complex board neighbor-fn)])
+    (sc-betti sc 0)))
+
+(doc board-terrain-holes 'export #t)
+(doc board-terrain-holes 'type '(-> Board (-> Coord (List Coord)) Integer))
+(doc board-terrain-holes 'description "Count holes in terrain (β₁).
+A hole is an impassable island completely surrounded by walkable terrain.
+Strategic significance: units must path around these obstacles.")
+(define (board-terrain-holes board neighbor-fn)
+  (let ([sc (board->simplicial-complex board neighbor-fn)])
+    (sc-betti sc 1)))
+
+(doc 'section 'bottleneck-detection)
+
+(doc board-critical-edges 'export #t)
+(doc board-critical-edges 'type '(-> Board (-> Coord (List Coord)) (List (Pair Coord Coord))))
+(doc board-critical-edges 'description "Find critical edges (bridges) whose removal disconnects regions.
+These are strategic chokepoints - controlling them controls map access.
+Returns list of coordinate pairs representing critical passages.")
+(define (board-critical-edges board neighbor-fn)
+  (let* ([sc (board->simplicial-complex board neighbor-fn)]
+         [base-components (sc-betti sc 0)]
+         [edges (sc-edges sc)])
+    ;; Test each edge: if removing it increases β₀, it's critical
+    (filter-map
+      (lambda (edge)
+        (let* ([vertices (simplex-vertices edge)]
+               [v1 (car vertices)]
+               [v2 (cadr vertices)]
+               [sc-without (sc-remove-edge sc v1 v2)]
+               [new-components (sc-betti sc-without 0)])
+          (if (> new-components base-components)
+              (cons (vertex-id->coord v1) (vertex-id->coord v2))
+              #f)))
+      edges)))
+
+(define (sc-remove-edge sc v1 v2)
+  (doc 'description "Create new complex with one edge removed")
+  (let ([target-edge (make-simplex (list v1 v2))])
+    (sc-from-simplices
+      (filter (lambda (s)
+                (not (simplex-equal? s target-edge)))
+              (sc-simplices sc)))))
+
+(doc board-bottleneck-score 'export #t)
+(doc board-bottleneck-score 'type '(-> Board (-> Coord (List Coord)) Coord Number))
+(doc board-bottleneck-score 'description "Compute bottleneck score for a tile.
+Higher score = more critical position. Score is based on how many critical
+edges the tile participates in, weighted by the sizes of regions it connects.")
+(define (board-bottleneck-score board neighbor-fn tile-coord)
+  (let ([critical (board-critical-edges board neighbor-fn)])
+    ;; Count how many critical edges involve this tile
+    (length (filter (lambda (edge)
+                      (or (coord-equal? (car edge) tile-coord)
+                          (coord-equal? (cdr edge) tile-coord)))
+                    critical))))
+
+(doc 'section 'strategic-analysis)
+
+(doc board-topology-summary 'export #t)
+(doc board-topology-summary 'type '(-> Board (-> Coord (List Coord)) Void))
+(doc board-topology-summary 'description "Print strategic topology summary of a board")
+(define (board-topology-summary board neighbor-fn)
+  (let* ([sc (board->simplicial-complex board neighbor-fn)]
+         [betti (sc-betti-numbers sc)]
+         [critical (board-critical-edges board neighbor-fn)]
+         [total-tiles (length (board-coords board))]
+         [walkable (length (filter (lambda (c)
+                                     (let ([t (board-get board c)])
+                                       (and t (tile-walkable? t))))
+                                   (board-coords board)))])
+    (printf "~n=== Board Topology Summary ===~n")
+    (printf "Total tiles:        ~a~n" total-tiles)
+    (printf "Walkable tiles:     ~a~n" walkable)
+    (printf "Walkable ratio:     ~a%~n" (round (* 100 (/ walkable total-tiles))))
+    (printf "~n--- Homology ---~n")
+    (printf "Connected regions:  ~a (β₀)~n" (if (null? betti) 0 (car betti)))
+    (printf "Terrain holes:      ~a (β₁)~n" (if (< (length betti) 2) 0 (cadr betti)))
+    (printf "~n--- Strategic Analysis ---~n")
+    (printf "Critical edges:     ~a~n" (length critical))
+    (when (and (not (null? critical)) (<= (length critical) 10))
+      (printf "Chokepoints:~n")
+      (for-each
+        (lambda (edge)
+          (printf "  (~a,~a) ↔ (~a,~a)~n"
+                  (coord-x (car edge)) (coord-y (car edge))
+                  (coord-x (cdr edge)) (coord-y (cdr edge))))
+        critical))
+    (printf "===============================~n")))
+
+(doc board-is-connected? 'export #t)
+(doc board-is-connected? 'type '(-> Board (-> Coord (List Coord)) Boolean))
+(doc board-is-connected? 'description "Check if all walkable terrain is connected (β₀ = 1)")
+(define (board-is-connected? board neighbor-fn)
+  (= (board-connected-regions board neighbor-fn) 1))
+
+(doc board-has-chokepoints? 'export #t)
+(doc board-has-chokepoints? 'type '(-> Board (-> Coord (List Coord)) Boolean))
+(doc board-has-chokepoints? 'description "Check if board has any critical edges (strategic chokepoints)")
+(define (board-has-chokepoints? board neighbor-fn)
+  (not (null? (board-critical-edges board neighbor-fn))))

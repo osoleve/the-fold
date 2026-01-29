@@ -6,8 +6,8 @@
   (path "lattice/tiles")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n) for board operations, O(n log n) for pathfinding, O(r^2) for FOV")
-  (deps (data))
+  (fuel-bound "O(n) for board operations, O(n log n) for pathfinding, O(r^2) for FOV, O(n^3) for topology")
+  (deps (data topology))
 
   (description
    "Board game development SDK supporting square, hexagonal, and triangular
@@ -36,7 +36,12 @@
    (turns make-turn-state turn-current-unit turn-spend-action turn-next-unit
           turn-end-turn calculate-initiative-order game-execute-action)
    (render render-board render-board-with-overlay display-board
-           display-board-with-path display-board-with-fov))
+           display-board-with-path display-board-with-fov)
+   (topology-analysis board->simplicial-complex board-betti-numbers
+                      board-connected-regions board-terrain-holes
+                      board-critical-edges board-bottleneck-score
+                      board-topology-summary board-is-connected?
+                      board-has-chokepoints?))
 
   (modules
    (core "core.ss" "Core board and tile abstractions")
@@ -48,4 +53,5 @@
    (units "units.ss" "Unit placement and game state management")
    (turns "turns.ss" "Turn-based game mechanics and initiative")
    (render "render.ss" "ASCII board rendering with overlays")
-   (boardcraft "boardcraft.ss" "Interactive help and documentation")))
+   (boardcraft "boardcraft.ss" "Interactive help and documentation")
+   (topology-analysis "topology-analysis.ss" "Topological analysis using simplicial homology")))
