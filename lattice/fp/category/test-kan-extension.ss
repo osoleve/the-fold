@@ -43,6 +43,50 @@
                       (ran-apply mapped-separate identity))))))
 
 ;;; ============================================================
+;;; Ran Lifting Tests
+;;; ============================================================
+
+(test-group "Ran Lifting"
+
+  (define-test "ran-lift errors with helpful message"
+    ;; ran-lift is deprecated and should error
+    (assert-error (lambda () (ran-lift functor-list functor-maybe (just 42)))))
+
+  (define-test "ran-lift-identity works for identity case"
+    ;; For K = Id, ran-lift-identity is valid (though codensity-lift is preferred)
+    (let* ([ran (ran-lift-identity functor-id functor-maybe (just 42))])
+      (assert-true (ran? ran))
+      ;; When applied with identity, returns the original value
+      (assert-equal (just 42) (ran-apply ran identity))))
+
+  (define-test "ran-lift-with-transform allows proper lifting"
+    ;; Example: lifting with a transform that uses F's fmap
+    ;; If we have F = Maybe with fmap, and K has some action,
+    ;; we can define how to transform F a given (a -> K b) -> F b
+    ;;
+    ;; Trivial transform for testing: just returns the original (like identity case)
+    (let* ([trivial-transform (lambda (k fa) fa)]
+           [ran (ran-lift-with-transform trivial-transform
+                                          functor-list
+                                          functor-maybe
+                                          (just 42))])
+      (assert-true (ran? ran))
+      (assert-equal (just 42) (ran-apply ran identity))))
+
+  (define-test "ran-lift-with-transform can apply actual transformations"
+    ;; A more realistic transform: F = List, and we use list-fmap
+    ;; Given k : a -> b, transform = (lambda (k fa) (map k fa))
+    (let* ([transform (lambda (k fa) (map k fa))]
+           [ran (ran-lift-with-transform transform
+                                          functor-id  ; K = Id
+                                          functor-list
+                                          '(1 2 3))])
+      ;; Apply with doubling function
+      (assert-equal '(2 4 6) (ran-apply ran (lambda (x) (* x 2))))
+      ;; Apply with identity
+      (assert-equal '(1 2 3) (ran-apply ran identity)))))
+
+;;; ============================================================
 ;;; Left Kan Extension Tests
 ;;; ============================================================
 

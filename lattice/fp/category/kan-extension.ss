@@ -119,29 +119,78 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; This means any natural transformation G . K => F factors uniquely
 ;;; through Ran_K F.
 
-;;; ran-lift : F a -> Ran K F (K a)
-;;; Lift an F-value into Ran at type K a.
+;;; ====
+;;; Ran Lifting (Requires Additional Structure)
+;;; ====
 ;;;
-;;; WARNING: This implementation is ONLY correct when K = Id (the Codensity case).
-;;; For general K, ran-lift requires additional structure (an adjunction or
-;;; F being a K-algebra) to properly transform F a into F b given k : K a -> K b.
+;;; Lifting F a into Ran K F (K a) is NOT generally possible!
 ;;;
-;;; The general form would need:
-;;;   ran-lift : (forall b. (a -> K b) -> F a -> F b) -> F a -> Ran K F (K a)
+;;; The type: (Ran K F) (K a) = forall b. (K a -> K b) -> F b
+;;; Given fa : F a and k : K a -> K b, we need to produce F b.
+;;; Without knowing how F relates to K, this is impossible.
 ;;;
-;;; But when K = Id:
-;;;   k : a -> b, and we can use F's fmap or just return fa when k = id
-;;;   For Codensity, use codensity-lift instead which takes m-bind explicitly.
+;;; Three valid approaches:
 ;;;
-;;; Keeping for API compatibility but marking as limited.
-(define (ran-lift k-functor f-functor fa)
+;;; 1. K = Id (Codensity case):
+;;;    Codensity M a = forall r. (a -> M r) -> M r
+;;;    Given ma : M a and k : a -> M r, we can use m-bind: ma >>= k
+;;;    Use: codensity-lift (below)
+;;;
+;;; 2. With F's fmap over K's action (when K has a right adjoint):
+;;;    If we have transform : (a -> K b) -> F a -> F b
+;;;    Then ran-lift-with-transform transform fa works
+;;;    Use: ran-lift-with-transform
+;;;
+;;; 3. Trivial embedding (K a = a, immediate application):
+;;;    Only valid when you'll immediately apply with identity
+;;;    DEPRECATED - use codensity-lift instead
+;;;    Use: ran-lift-identity
+
+;;; ran-lift-with-transform : ((a -> K b) -> F a -> F b) -> Functor -> Functor -> F a -> Ran K F a
+;;; Lift an F-value into Ran given a transformation function.
+;;;
+;;; The transform function captures how F can be mapped given a K-morphism.
+;;; This is typically derived from an adjunction K ⊣ R where:
+;;;   transform k fa = fmap-F (counit . fmap-K k) fa
+;;;
+;;; Example: If K is a comonad with extract : K a -> a, then:
+;;;   transform = (lambda (k fa) (fmap-F (compose extract k) fa))
+(define (ran-lift-with-transform transform k-functor f-functor fa)
   (make-ran k-functor
             f-functor
             (lambda (k)
-              ;; NOTE: This ignores k, which is only valid when K = Id
-              ;; and we're immediately applying with the identity continuation.
-              ;; For proper lifting, use codensity-lift which uses m-bind.
+              (transform k fa))))
+
+;;; ran-lift-identity : Functor -> Functor -> F a -> Ran K F a
+;;; DEPRECATED: Only use for K = Id case. Prefer codensity-lift.
+;;;
+;;; This creates a Ran value that ignores the K-morphism argument,
+;;; which is only valid when K is the identity functor (or when
+;;; you immediately apply with identity continuation).
+;;;
+;;; For the common case of Codensity (K = Id, F = M a monad),
+;;; use codensity-lift which correctly handles the bind operation.
+(define (ran-lift-identity k-functor f-functor fa)
+  (make-ran k-functor
+            f-functor
+            (lambda (k)
+              ;; WARNING: Ignores k. Only valid for K = Id.
               fa)))
+
+;;; ran-lift : F a -> Ran K F (K a)
+;;; DEPRECATED: This function has incorrect semantics for K ≠ Id.
+;;;
+;;; For Codensity (the common case), use codensity-lift instead.
+;;; For general Kan extensions, use ran-lift-with-transform.
+;;;
+;;; This function is preserved for backward compatibility but will
+;;; raise an error to prevent silent type violations.
+(define (ran-lift k-functor f-functor fa)
+  (error 'ran-lift
+         "ran-lift is deprecated due to incorrect semantics for K ≠ Id. \
+Use codensity-lift for the Codensity monad (K = Id), or \
+ran-lift-with-transform if you have the required transformation function. \
+For a quick fix, use ran-lift-identity (understanding it only works for K = Id)."))
 
 (doc 'section 'left-kan-extension)
 (doc 'description "Left Kan Extension: Lan_K F
@@ -601,7 +650,9 @@ Codensity reassociates to right-associative (O(n)).")
 ;;;
 ;;; Right Kan Extension:
 ;;;   make-ran, ran?, ran-k, ran-f, ran-computation, ran-apply
-;;;   ran-fmap, functor-ran, ran-lift
+;;;   ran-fmap, functor-ran
+;;;   ran-lift-with-transform, ran-lift-identity
+;;;   ran-lift [DEPRECATED - errors, use codensity-lift or ran-lift-identity]
 ;;;
 ;;; Left Kan Extension:
 ;;;   make-lan, lan?, lan-k, lan-f, lan-morphism, lan-value
