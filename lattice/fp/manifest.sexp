@@ -168,10 +168,11 @@ Key design principles:
        "sketch.ss")))    ; Program sketching with holes
 
     ((subdir "category")
-     (description "Category theory foundations: adjunctions, natural transformations, Kan extensions")
+     (description "Category theory foundations: adjunctions, natural transformations, Kan extensions, abstract interpretation")
      (files (
        "natural-transform.ss"    ; Natural transformations with composition
        "adjunction.ss"           ; Adjunctions with triangle identities
+       "abstract-interp.ss"      ; Abstract interpretation via Galois connections
        "free-algebra.ss"         ; Free algebras and Free ⊣ Forgetful
        "monad-derivation.ss"     ; Monads from adjunctions
        "kan-extension.ss"        ; Left and right Kan extensions
