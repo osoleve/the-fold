@@ -1,5 +1,6 @@
 (load "lattice/meta/kg.ss")      ; Explicit: uses kg-initialized?, kg-skill-data, etc.
 (load "lattice/meta/dag.ss")
+(load "lattice/meta/exports.ss") ; For scan-skill-exports
 (load "boundary/io/process.ss")
 
 (doc 'module 'inspect)
@@ -136,6 +137,66 @@
                                 (cdr group))
                                (printf "\n")))
                  (if (list? exports-raw) exports-raw '()))))))
+
+;;; ====
+;;; Export Verification
+;;; ====
+
+;;; lattice-verify-exports : Symbol -> Alist
+;;; Compare manifest exports with actual code exports.
+;;; Returns: ((manifest-only . (sym ...)) (code-only . (sym ...)) (match . Bool))
+(define (lattice-verify-exports skill-name)
+  (let ([data (kg-skill-data skill-name)])
+       (if (not data)
+           (begin
+             (printf "Skill not found: ~a\n" skill-name)
+             '())
+           (let* ([path (cdr (or (assq 'path data) '(path . "")))]
+                  [manifest-exports (lattice-skill-exports skill-name)]
+                  [scanned (scan-skill-exports path)]
+                  [code-exports (append-map cadr scanned)]
+                  [manifest-set (list->set-ex manifest-exports)]
+                  [code-set (list->set-ex code-exports)]
+                  [manifest-only (filter (lambda (x) (not (memq x code-set))) manifest-set)]
+                  [code-only (filter (lambda (x) (not (memq x manifest-set))) code-set)])
+                 `((manifest-only . ,manifest-only)
+                   (code-only . ,code-only)
+                   (match . ,(and (null? manifest-only) (null? code-only))))))))
+
+;;; list->set-ex : (List a) -> (List a)
+;;; Remove duplicates (for export comparison)
+(define (list->set-ex lst)
+  (let loop ([lst lst] [seen '()] [acc '()])
+    (if (null? lst)
+        (reverse acc)
+        (if (memq (car lst) seen)
+            (loop (cdr lst) seen acc)
+            (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))))))
+
+;;; lattice-verify-exports-pretty : Symbol -> void
+;;; Pretty-print export verification for a skill
+(define (lattice-verify-exports-pretty skill-name)
+  (let ([result (lattice-verify-exports skill-name)])
+       (when (pair? result)
+             (let ([manifest-only (cdr (assq 'manifest-only result))]
+                   [code-only (cdr (assq 'code-only result))]
+                   [match? (cdr (assq 'match result))])
+                  (printf "Export verification for ~a\n" skill-name)
+                  (printf "~a\n\n" (make-string 40 #\-))
+                  (if match?
+                      (printf "✓ Manifest and code exports match\n")
+                      (begin
+                        (unless (null? manifest-only)
+                                (printf "⚠ In manifest but not in code:\n")
+                                (for-each (lambda (s) (printf "  - ~a\n" s)) manifest-only))
+                        (unless (null? code-only)
+                                (printf "⚠ In code but not in manifest:\n")
+                                (for-each (lambda (s) (printf "  - ~a\n" s)) code-only))))))))
+
+;;; lv : Symbol -> void
+;;; Quick export verification (follows li, le, lm pattern)
+(define (lv skill-name)
+  (lattice-verify-exports-pretty skill-name))
 
 ;;; ====
 ;;; Module Listing
@@ -517,5 +578,7 @@
 (meta-printf "  (lattice-tests 'skill)        - List test files\n")
 (meta-printf "  (lattice-tests-run 'skill)    - Run skill tests\n")
 (meta-printf "  (lattice-tests-summary)       - Test coverage overview\n")
+(meta-printf "  (lattice-verify-exports 'skill) - Compare manifest vs code\n")
 (meta-printf "  (li 'skill), (le 'skill)      - Quick inspection\n")
 (meta-printf "  (lt 'skill), (ltr 'skill)     - Quick test listing/running\n")
+(meta-printf "  (lv 'skill)                   - Quick export verification\n")

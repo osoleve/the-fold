@@ -82,9 +82,10 @@
     (exports (lattice-stats lattice-health lattice-coverage ls lh)))
 
    ((name "inspect.ss")
-    (purpose "Skill introspection, descriptions, and test discovery")
+    (purpose "Skill introspection, descriptions, test discovery, and export verification")
     (exports (lattice-describe lattice-info lattice-summary li le lm
-              lattice-tests lattice-tests-run lattice-tests-summary lt ltr)))
+              lattice-tests lattice-tests-run lattice-tests-summary lt ltr
+              lattice-verify-exports lv)))
 
    ((name "docstrings.ss")
     (purpose "Extract docstrings from source files for search indexing")
@@ -138,6 +139,10 @@
     (lattice-tests 'skill "Get test file paths as list")
     (lattice-tests-run 'skill "Run tests, return structured result")
     (lattice-tests-summary "Test coverage overview for all skills"))
+
+   (section "Verification"
+    (lv 'skill "Verify manifest exports match code")
+    (lattice-verify-exports 'skill "Compare manifest vs code exports, return alist"))
 
    (section "Analytics"
     (ls "Lattice statistics")
