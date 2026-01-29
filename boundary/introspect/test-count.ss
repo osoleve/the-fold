@@ -4,12 +4,12 @@
 (doc 'description "Test counting utility for lattice skills")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'note "Scans test files for (define-test ...) to count tests per skill")
+(doc 'note "Scans test files for (define-test ...) and legacy (test ...) forms")
 
 (doc 'section 'file-scanning)
 
 (define (count-tests-in-file filepath)
-  (doc 'description "Count (define-test ...) occurrences in a Scheme file")
+  (doc 'description "Count test occurrences in a Scheme file (new and legacy styles)")
   (doc 'param 'filepath "Path to .ss file to scan")
   (doc 'returns "Integer count of tests")
   (doc 'export #t)
@@ -23,18 +23,27 @@
                 (cond
                   [(eof-object? expr) count]
                   [(not expr) count]  ; Read error, return what we have
-                  [(and (pair? expr) (eq? (car expr) 'define-test))
-                   (loop (+ count 1))]
-                  [(and (pair? expr) (eq? (car expr) 'test-group))
-                   ;; test-group contains multiple define-test forms
-                   (loop (+ count (count-tests-in-expr expr)))]
-                  [else (loop count)]))))))))
+                  ;; Recursively count all test forms in each top-level expression
+                  [else (loop (+ count (count-tests-in-expr expr)))]))))))))
+
+;; Legacy test form names (each call = 1 test)
+(define *legacy-test-forms*
+  '(test test-approx test-vec test-mat
+    test-true test-false test-error test-near test-assert
+    test-eq test-equal test-eqv))
 
 (define (count-tests-in-expr expr)
-  (doc 'description "Count define-test forms within an expression (e.g., test-group)")
+  (doc 'description "Recursively count test forms within an expression")
   (cond
     [(not (pair? expr)) 0]
+    ;; New-style: (define-test "name" body...) - count as 1, don't recurse
     [(eq? (car expr) 'define-test) 1]
+    ;; test-group contains define-test forms - recurse but don't count the group itself
+    [(eq? (car expr) 'test-group)
+     (fold-left + 0 (map count-tests-in-expr (cddr expr)))]  ; skip name
+    ;; Legacy test forms - count as 1 each
+    [(memq (car expr) *legacy-test-forms*) 1]
+    ;; Recurse into other forms (let, let*, begin, when, etc.)
     [else
      (fold-left + 0 (map count-tests-in-expr (cdr expr)))]))
 
