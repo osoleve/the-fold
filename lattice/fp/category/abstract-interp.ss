@@ -548,6 +548,29 @@
                      (abstract-eval-sign (car args) env)
                      (map (lambda (e) (abstract-eval-sign e env)) (cdr args)))))]
 
+    [(and (pair? expr) (eq? (car expr) '/))
+     (let ([args (cdr expr)])
+       (cond
+         [(null? args) sign-top]  ; (/) is invalid
+         [(null? (cdr args))      ; Unary: (/ x) = 1/x
+          (let ([a (abstract-eval-sign (car args) env)])
+            (if (eq? a sign-zero)
+                sign-bottom  ; Division by zero = unreachable
+                a))]         ; sign(1/x) = sign(x) for x ≠ 0
+         [else
+          (fold-left sign-div
+                    (abstract-eval-sign (car args) env)
+                    (map (lambda (e) (abstract-eval-sign e env)) (cdr args)))]))]
+
+    [(and (pair? expr) (eq? (car expr) 'sqr))
+     ;; sqr always produces non-negative: sign-pos or sign-zero
+     (let ([a (abstract-eval-sign (cadr expr) env)])
+       (case a
+         [(sign-bottom) sign-bottom]
+         [(sign-zero) sign-zero]
+         [(sign-neg sign-pos) sign-pos]  ; x² > 0 for x ≠ 0
+         [else sign-top]))]  ; sign-top → could be zero or positive
+
     ;; Default: top
     [else sign-top]))
 
@@ -562,8 +585,7 @@
 
     ;; Variables
     [(symbol? expr)
-     (let ([v (env-lookup env expr)])
-       (if (interval-bottom? v) v v))]
+     (env-lookup env expr)]
 
     ;; Arithmetic
     [(and (pair? expr) (eq? (car expr) '+))
@@ -588,14 +610,22 @@
 
     [(and (pair? expr) (eq? (car expr) '/))
      (let ([args (cdr expr)])
-       (if (< (length args) 2)
-           (entire-interval)
-           (let ([num (abstract-eval-interval (car args) env)]
-                 [den (abstract-eval-interval (cadr args) env)])
-             (let ([result (interval-div num den)])
-               (if (error? result)
-                   (entire-interval)  ; Division by zero → top
-                   result)))))]
+       (cond
+         [(null? args) (entire-interval)]  ; (/) is invalid
+         [(null? (cdr args))               ; Unary: (/ x) = 1/x
+          (let* ([x (abstract-eval-interval (car args) env)]
+                 [result (interval-recip x)])
+            (if (error? result)
+                (entire-interval)  ; Division by zero → top
+                result))]
+         [else                             ; Binary+: x / y / z ...
+          (let ([num (abstract-eval-interval (car args) env)])
+            (fold-left (lambda (acc e)
+                         (let ([den (abstract-eval-interval e env)])
+                           (let ([result (interval-div acc den)])
+                             (if (error? result) (entire-interval) result))))
+                       num
+                       (cdr args)))]))]
 
     [(and (pair? expr) (eq? (car expr) 'sqr))
      (interval-sqr (abstract-eval-interval (cadr expr) env))]

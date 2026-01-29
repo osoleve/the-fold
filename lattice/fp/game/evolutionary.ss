@@ -100,16 +100,20 @@
 (doc 'note "A population state is a probability distribution over strategies.")
 (doc 'note "x = (x₁, x₂, ..., xₙ) where xᵢ ≥ 0 and Σxᵢ = 1.")
 
-;;; make-population : (List Number) → Population
+;;; make-population : (List Number) → Population | (error 'empty-population)
 ;;; Create a population state. Automatically normalizes to sum to 1.
+;;; Returns error if weights list is empty.
 (define (make-population weights)
   (doc 'export #t)
   (doc 'type '(-> (List Number) Population))
-  (let* ([total (apply + weights)]
-         [normalized (if (= total 0)
-                         (make-list (length weights) (/ 1.0 (length weights)))
-                         (map (lambda (w) (/ w total)) weights))])
-    (list 'population (list->vector normalized))))
+  (if (null? weights)
+      (list 'error 'empty-population)
+      (let* ([n (length weights)]
+             [total (apply + weights)]
+             [normalized (if (= total 0)
+                             (make-list n (/ 1.0 n))
+                             (map (lambda (w) (/ w total)) weights))])
+        (list 'population (list->vector normalized)))))
 
 (define (population? x)
   (and (pair? x) (eq? (car x) 'population)))
@@ -178,8 +182,13 @@
 (define (average-fitness game pop)
   (doc 'export #t)
   (doc 'type '(-> SymmetricGame Population Number))
-  (let* ([n (sg-num-strategies game)]
-         [fitnesses (all-fitnesses game pop)])
+  (average-fitness-from-list (all-fitnesses game pop) pop))
+
+;;; average-fitness-from-list : (List Number) × Population → Number
+;;; Compute average fitness from pre-computed fitness list (avoids redundant computation).
+(define (average-fitness-from-list fitnesses pop)
+  (doc 'export #t)
+  (let ([n (length fitnesses)])
     (let loop ([i 0] [sum 0])
       (if (>= i n)
           sum
@@ -203,7 +212,7 @@
   (doc 'type '(-> SymmetricGame Population (List Number)))
   (let* ([n (sg-num-strategies game)]
          [fitnesses (all-fitnesses game pop)]
-         [avg-fit (average-fitness game pop)])
+         [avg-fit (average-fitness-from-list fitnesses pop)])  ; Use pre-computed fitnesses
     (map (lambda (i)
            (let ([xi (pop-freq pop i)]
                  [fi (list-ref fitnesses i)])
@@ -234,19 +243,20 @@
         (let ([next (replicator-step game current dt)])
           (loop next (- remaining 1) (cons next acc))))))
 
-;;; replicator-converge : SymmetricGame × Population × Number × Number × Nat → Population
+;;; replicator-converge : SymmetricGame × Population × Number × Number × Nat → (ok Population Nat) | (error 'max-iter Population Nat)
 ;;; Run replicator dynamics until convergence or max iterations.
 ;;; Converged when max derivative < tolerance.
+;;; Returns (ok population iterations) on convergence, (error 'max-iter population iterations) if max iterations reached.
 (define (replicator-converge game pop dt tolerance max-iter)
   (doc 'export #t)
-  (doc 'type '(-> SymmetricGame Population Number Number Nat Population))
+  (doc 'type '(-> SymmetricGame Population Number Number Nat Result))
   (let loop ([current pop] [iter 0])
     (if (>= iter max-iter)
-        current
+        (list 'error 'max-iter current iter)  ; Did not converge
         (let* ([derivs (replicator-derivative game current)]
                [max-deriv (apply max (map abs derivs))])
           (if (< max-deriv tolerance)
-              current
+              (list 'ok current iter)  ; Converged
               (loop (replicator-step game current dt) (+ iter 1)))))))
 
 ;;; ============================================================================
@@ -374,13 +384,16 @@
     (andmap (lambda (f) (< (abs (- f avg)) tolerance))
             fitnesses)))
 
-;;; hawk-dove-mixed-ess : Number × Number → Number
+;;; hawk-dove-mixed-ess : Number × Number → Number | (error 'zero-cost)
 ;;; For Hawk-Dove with value V and cost C, the mixed ESS has p(Hawk) = V/C.
+;;; Requires C > 0 (if fighting has no cost, Hawks always dominate).
 (define (hawk-dove-mixed-ess V C)
   (doc 'export #t)
   (doc 'type '(-> Number Number Number))
   (doc 'description "Proportion of Hawks at mixed ESS")
-  (/ V C))
+  (if (= C 0)
+      (list 'error 'zero-cost)  ; No mixed ESS when fighting is costless
+      (/ V C)))
 
 ;;; ============================================================================
 ;;; Section 9: Payoff Matrix Operations
