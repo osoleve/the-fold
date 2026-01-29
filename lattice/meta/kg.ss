@@ -126,6 +126,7 @@
 (define *kg-deps* '())          ; (relation-block ...)
 (define *kg-index-root* #f)     ; Root block hash
 (define *kg-skill-data* '())    ; ((name . manifest-data) ...) - for quick lookup
+(define *kg-loaded* #f)         ; Explicit flag for initialization state
 
 ;;; kg-reset! : -> void
 ;;; Reset the knowledge graph state
@@ -135,7 +136,8 @@
   (set! *kg-exports* '())
   (set! *kg-deps* '())
   (set! *kg-index-root* #f)
-  (set! *kg-skill-data* '()))
+  (set! *kg-skill-data* '())
+  (set! *kg-loaded* #f))
 
 ;;; ====
 ;;; Graph Building
@@ -257,6 +259,7 @@
                                 (string->utf8 (format "~a" (length *kg-skills*)))
                                 (list->vector skill-hashes))])
              (set! *kg-index-root* (hash-block root))
+             (set! *kg-loaded* #t)
              (printf "Knowledge graph built: ~a skills, ~a modules, ~a exports, ~a deps\n"
                      (length *kg-skills*)
                      (length *kg-modules*)
@@ -270,9 +273,11 @@
   (map car *kg-skills*))
 
 ;;; kg-initialized? : -> Boolean
-;;; Check if the knowledge graph has been built
+;;; Check if the knowledge graph has been built.
+;;; Uses explicit flag rather than checking *kg-skills* to correctly
+;;; handle the edge case of a truly empty lattice (0 skills).
 (define (kg-initialized?)
-  (not (null? *kg-skills*)))
+  *kg-loaded*)
 
 ;;; kg-ensure! : -> Hash | #f
 ;;; Build knowledge graph only if not already initialized.
