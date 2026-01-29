@@ -234,16 +234,20 @@
 
 ;;; compute-exp-jacobian : Metric × Vec × Vec × Nat × Num × Nat → Matrix
 ;;; Compute the Jacobian matrix of exp_p with respect to v.
+;;; The epsilon is scaled per-component by max(1, |v_j|) for numerical stability
+;;; across different velocity magnitudes.
 (define (compute-exp-jacobian metric p v n-steps eps n)
   (let ([J (make-matrix n n 0)]
         [v-plus (vec-copy v)]
         [v-minus (vec-copy v)])
     (do ([j 0 (+ j 1)])
         ((= j n) J)
-      (let ([vj (vector-ref v j)])
+      (let* ([vj (vector-ref v j)]
+             ;; Scale epsilon by component magnitude for numerical stability
+             [eps-j (* eps (max 1.0 (abs vj)))])
         ;; Perturb v[j]
-        (vector-set! v-plus j (+ vj eps))
-        (vector-set! v-minus j (- vj eps))
+        (vector-set! v-plus j (+ vj eps-j))
+        (vector-set! v-minus j (- vj eps-j))
         (let* ([q-plus (exp-map metric p v-plus n-steps)]
                [q-minus (exp-map metric p v-minus n-steps)])
           ;; J[i][j] = d(exp_i)/d(v_j)
@@ -251,7 +255,7 @@
               ((= i n))
             (matrix-set! J i j
               (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
-                 (* 2 eps)))))
+                 (* 2 eps-j)))))
         ;; Reset
         (vector-set! v-plus j vj)
         (vector-set! v-minus j vj)))))
