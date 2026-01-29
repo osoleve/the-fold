@@ -19,6 +19,16 @@
 (define *gpu-context* #f)
 
 ;;; ====
+;;; Guardians for Automatic Cleanup
+;;; ====
+
+;;; Guardian for gpu-handle objects (device memory)
+(define *gpu-handle-guardian* (make-guardian))
+
+;;; Guardian for gpu-module objects (compiled modules)
+(define *gpu-module-guardian* (make-guardian))
+
+;;; ====
 ;;; Initialization
 ;;; ====
 
@@ -97,28 +107,33 @@
 ;;; Memory Management
 ;;; ====
 
-;;; gpu-handle: tagged record for device memory
-;;; (gpu-handle device-ptr size freed?)
+;;; gpu-handle: mutable record for device memory with guardian-based cleanup
+;;; Fields: dptr (device pointer), size, freed? (mutable flag)
+(define-record-type gpu-handle-rec
+  (fields dptr size (mutable freed?))
+  (nongenerative gpu-handle-rec-uid))
+
+;;; make-gpu-handle : DevicePtr × Size → gpu-handle
+;;; Create a handle and register it with the guardian for automatic cleanup.
 (define (make-gpu-handle dptr size)
-  (list 'gpu-handle dptr size #f))
+  (let ([h (make-gpu-handle-rec dptr size #f)])
+    (*gpu-handle-guardian* h)
+    h))
 
 (define (gpu-handle? x)
-  (and (pair? x) (eq? (car x) 'gpu-handle)))
+  (gpu-handle-rec? x))
 
 (define (gpu-handle-dptr h)
-  (if (gpu-handle? h) (cadr h)
-      (error 'gpu-handle-dptr "not a gpu-handle" h)))
+  (gpu-handle-rec-dptr h))
 
 (define (gpu-handle-size h)
-  (if (gpu-handle? h) (caddr h)
-      (error 'gpu-handle-size "not a gpu-handle" h)))
+  (gpu-handle-rec-size h))
 
 (define (gpu-handle-freed? h)
-  (if (gpu-handle? h) (cadddr h)
-      (error 'gpu-handle-freed? "not a gpu-handle" h)))
+  (gpu-handle-rec-freed? h))
 
 (define (gpu-handle-mark-freed! h)
-  (set-car! (cdddr h) #t))
+  (gpu-handle-rec-freed?-set! h #t))
 
 ;;; gpu-alloc : Size → gpu-handle
 ;;; Allocate device memory. Returns a gpu-handle.
@@ -196,27 +211,51 @@
 ;;; Kernel Compilation
 ;;; ====
 
-;;; gpu-module record: (gpu-module ptr)
+;;; gpu-module: mutable record for compiled GPU modules with guardian-based cleanup
+;;; Fields: ptr (module handle), unloaded? (mutable flag)
+(define-record-type gpu-module-rec
+  (fields ptr (mutable unloaded?))
+  (nongenerative gpu-module-rec-uid))
+
+;;; make-gpu-module : ModulePtr → gpu-module
+;;; Create a module handle and register it with the guardian for automatic cleanup.
 (define (make-gpu-module ptr)
-  (list 'gpu-module ptr))
+  (let ([m (make-gpu-module-rec ptr #f)])
+    (*gpu-module-guardian* m)
+    m))
 
 (define (gpu-module? x)
-  (and (pair? x) (eq? (car x) 'gpu-module)))
+  (gpu-module-rec? x))
 
 (define (gpu-module-ptr m)
-  (if (gpu-module? m) (cadr m)
-      (error 'gpu-module-ptr "not a gpu-module" m)))
+  (gpu-module-rec-ptr m))
 
-;;; gpu-function record: (gpu-function ptr)
-(define (make-gpu-function ptr)
-  (list 'gpu-function ptr))
+(define (gpu-module-unloaded? m)
+  (gpu-module-rec-unloaded? m))
+
+(define (gpu-module-mark-unloaded! m)
+  (gpu-module-rec-unloaded?-set! m #t))
+
+;;; gpu-function: record for kernel functions
+;;; IMPORTANT: Holds reference to parent module to prevent use-after-unload.
+;;; The module reference keeps the module alive as long as the function is reachable.
+(define-record-type gpu-function-rec
+  (fields ptr module)
+  (nongenerative gpu-function-rec-uid))
+
+;;; make-gpu-function : FunctionPtr × gpu-module → gpu-function
+;;; Create a function handle that tracks its parent module.
+(define (make-gpu-function ptr parent-module)
+  (make-gpu-function-rec ptr parent-module))
 
 (define (gpu-function? x)
-  (and (pair? x) (eq? (car x) 'gpu-function)))
+  (gpu-function-rec? x))
 
 (define (gpu-function-ptr f)
-  (if (gpu-function? f) (cadr f)
-      (error 'gpu-function-ptr "not a gpu-function" f)))
+  (gpu-function-rec-ptr f))
+
+(define (gpu-function-module f)
+  (gpu-function-rec-module f))
 
 ;;; gpu-compile : String → gpu-module
 ;;; Compile CUDA C source string to a loaded module via NVRTC.
@@ -267,27 +306,34 @@
                   (make-gpu-module mod-ptr))))))))))
 
 ;;; gpu-unload-module! : gpu-module → void
-;;; Unload a compiled GPU module.
+;;; Unload a compiled GPU module. Prevents double-unload.
 (define (gpu-unload-module! module)
   (doc 'type (-> gpu-module void))
   (unless (gpu-module? module)
     (error 'gpu-unload-module! "not a gpu-module" module))
+  (when (gpu-module-unloaded? module)
+    (error 'gpu-unload-module! "module already unloaded"))
   (gpu-check! 'gpu-unload-module!
-              (gpu-ffi-module-unload (gpu-module-ptr module))))
+              (gpu-ffi-module-unload (gpu-module-ptr module)))
+  (gpu-module-mark-unloaded! module))
 
 ;;; gpu-get-function : gpu-module × String → gpu-function
 ;;; Get a kernel function handle from a compiled module.
+;;; The returned function holds a reference to the module, preventing use-after-unload.
 (define (gpu-get-function module name)
   (doc 'type (-> gpu-module String gpu-function))
   (unless (gpu-module? module)
     (error 'gpu-get-function "not a gpu-module" module))
+  (when (gpu-module-unloaded? module)
+    (error 'gpu-get-function "module has been unloaded"))
   (let ([name-bv (string->utf8 (string-append name "\x0;"))])
     (let-values ([(r fn-ptr) (call-with-gpu-ptr-out
                               (lambda (out)
                                 (gpu-ffi-get-function out (gpu-module-ptr module)
                                                       name-bv)))])
       (gpu-check! 'gpu-get-function r)
-      (make-gpu-function fn-ptr))))
+      ;; Pass module reference to prevent GC of module while function is alive
+      (make-gpu-function fn-ptr module))))
 
 ;;; ====
 ;;; Parameter Packing
@@ -359,6 +405,9 @@
     (error 'gpu-launch! "not a gpu-function" func))
   (unless (gpu-available?)
     (error 'gpu-launch! "GPU not initialized"))
+  ;; Check that the parent module is still valid
+  (when (gpu-module-unloaded? (gpu-function-module func))
+    (error 'gpu-launch! "function's parent module has been unloaded"))
   (let-values ([(gx gy gz) (normalize-grid-spec grid)]
                [(bx by bz) (normalize-grid-spec block)])
     (let* ([params-bv (pack-gpu-params params)]
@@ -368,6 +417,61 @@
                                   gx gy gz bx by bz
                                   0  ;; shared memory = 0 for Phase 0
                                   params-bv num-params)))))
+
+;;; ====
+;;; Guardian-Based Cleanup
+;;; ====
+
+;;; gpu-cleanup-handles! : → Nat
+;;; Free device memory for GC'd gpu-handle objects.
+;;; Returns number of handles freed.
+(define (gpu-cleanup-handles!)
+  (doc 'type (-> Nat))
+  (doc 'description "Free device memory for garbage-collected handles")
+  (let loop ([count 0])
+    (let ([dead (*gpu-handle-guardian*)])
+      (if dead
+          (begin
+            ;; Only free if not already freed manually
+            (unless (gpu-handle-freed? dead)
+              (gpu-ffi-mem-free (gpu-handle-dptr dead))
+              (gpu-handle-mark-freed! dead))
+            (loop (+ count 1)))
+          count))))
+
+;;; gpu-cleanup-modules! : → Nat
+;;; Unload GC'd gpu-module objects.
+;;; Returns number of modules freed.
+(define (gpu-cleanup-modules!)
+  (doc 'type (-> Nat))
+  (doc 'description "Unload garbage-collected GPU modules")
+  (let loop ([count 0])
+    (let ([dead (*gpu-module-guardian*)])
+      (if dead
+          (begin
+            ;; Only unload if not already unloaded manually
+            (unless (gpu-module-unloaded? dead)
+              (gpu-ffi-module-unload (gpu-module-ptr dead))
+              (gpu-module-mark-unloaded! dead))
+            (loop (+ count 1)))
+          count))))
+
+;;; gpu-cleanup! : → (values Nat Nat)
+;;; Clean up all GC'd GPU resources.
+;;; Returns (values handles-freed modules-freed).
+(define (gpu-cleanup!)
+  (doc 'type (-> (values Nat Nat)))
+  (doc 'description "Clean up all garbage-collected GPU resources")
+  (values (gpu-cleanup-handles!)
+          (gpu-cleanup-modules!)))
+
+;;; gpu-force-cleanup! : → (values Nat Nat)
+;;; Force GC and then clean up GPU resources.
+(define (gpu-force-cleanup!)
+  (doc 'type (-> (values Nat Nat)))
+  (doc 'description "Force garbage collection then clean up GPU resources")
+  (collect)
+  (gpu-cleanup!))
 
 ;;; ====
 ;;; Load Message
@@ -380,6 +484,7 @@
   (display "  (gpu-device-info)        - Get device info\n")
   (display "  (gpu-compile src)        - Compile CUDA C source\n")
   (display "  (gpu-launch! fn g b ps)  - Launch kernel\n")
-  (display "  (gpu-shutdown!)          - Clean up\n"))
+  (display "  (gpu-cleanup!)           - Clean up GC'd resources\n")
+  (display "  (gpu-shutdown!)          - Shut down GPU\n"))
 
 (define *gpu-runtime-loaded* #t)
