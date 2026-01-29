@@ -24,7 +24,9 @@
              committee-selection fair-division cake-cutting envy-free
              proportional adjusted-winner power-indices banzhaf
              mechanism-design auction vickrey vcg incentive-compatibility
-             dsic revelation-principle double-auction pivot-mechanism))
+             dsic revelation-principle double-auction pivot-mechanism
+             evolutionary replicator-dynamics ess evolutionarily-stable-strategy
+             population-dynamics hawk-dove invasion-dynamics))
 
   (aliases (game games game-theory))
 
@@ -94,7 +96,19 @@
    k-double-auction double-auction-trades double-auction-volume
    double-auction-buyer-surplus double-auction-seller-surplus double-auction-total-surplus
    make-direct-mechanism
-   is-budget-balanced? is-weakly-budget-balanced?)
+   is-budget-balanced? is-weakly-budget-balanced?
+
+   ;; evolutionary.ss — Evolutionary Game Theory
+   make-symmetric-game symmetric-game? sg-payoff sg-num-strategies sg-strategy-name
+   make-population population? pop-freq pop-size pop->list
+   uniform-population pure-population
+   strategy-fitness all-fitnesses average-fitness
+   replicator-derivative replicator-step replicator-trajectory replicator-converge
+   is-ess? find-all-ess is-nash-equilibrium? find-pure-nash
+   can-invade? invasion-fitness invasion-gradient
+   is-interior-equilibrium? hawk-dove-mixed-ess
+   hawk-dove-game stag-hunt-symmetric pd-symmetric rps-game
+   analyze-game)
 
   (modules
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")
@@ -104,4 +118,5 @@
    (voting-games "voting-games.ss" "Bridge: voting rules to simple games, power indices")
    (multi-winner "multi-winner.ss" "STV, approval voting, PAV, Monroe, Chamberlin-Courant")
    (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")
-   (mechanism "mechanism.ss" "Auctions, VCG, incentive compatibility, double auctions")))
+   (mechanism "mechanism.ss" "Auctions, VCG, incentive compatibility, double auctions")
+   (evolutionary "evolutionary.ss" "Replicator dynamics, ESS, population games, invasion analysis")))
