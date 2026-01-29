@@ -126,6 +126,44 @@
            [holes (board-terrain-holes board test-neighbors)])
       (assert-equal 2 holes))))
 
+(test-group "batch topology analysis"
+
+  (define-test "board-topology-analysis returns all metrics"
+    ;; Line of 5 tiles - has bridges but no holes
+    (let* ([board (make-test-board 7 3
+                    (list (coord 1 1) (coord 2 1) (coord 3 1) (coord 4 1) (coord 5 1)))]
+           [analysis (board-topology-analysis board test-neighbors)])
+      ;; Check all expected keys are present (assq returns pair or #f)
+      (assert-true (pair? (assq 'betti-numbers analysis)))
+      (assert-true (pair? (assq 'connected-regions analysis)))
+      (assert-true (pair? (assq 'terrain-holes analysis)))
+      (assert-true (pair? (assq 'critical-edges analysis)))
+      (assert-true (pair? (assq 'bottleneck-scores analysis)))
+      (assert-true (pair? (assq 'walkable-count analysis)))
+      (assert-true (pair? (assq 'is-connected analysis)))))
+
+  (define-test "batch analysis matches individual function calls"
+    ;; Ring with a hole
+    (let* ([board (make-test-board 5 5
+                    (list (coord 1 1) (coord 2 1) (coord 3 1)
+                          (coord 1 2)             (coord 3 2)
+                          (coord 1 3) (coord 2 3) (coord 3 3)))]
+           [analysis (board-topology-analysis board test-neighbors)]
+           ;; Individual calls for comparison
+           [regions (board-connected-regions board test-neighbors)]
+           [holes (board-terrain-holes board test-neighbors)])
+      ;; Batch results should match individual calls
+      (assert-equal regions (cdr (assq 'connected-regions analysis)))
+      (assert-equal holes (cdr (assq 'terrain-holes analysis)))
+      (assert-equal 8 (cdr (assq 'walkable-count analysis)))
+      (assert-equal #t (cdr (assq 'is-connected analysis)))))
+
+  (define-test "batch analysis detects disconnected board"
+    (let* ([board (make-test-board 5 5 (list (coord 0 0) (coord 4 4)))]
+           [analysis (board-topology-analysis board test-neighbors)])
+      (assert-equal 2 (cdr (assq 'connected-regions analysis)))
+      (assert-equal #f (cdr (assq 'is-connected analysis))))))
+
 (test-group "critical edges"
 
   (define-test "line of tiles has critical edges (all are bridges)"

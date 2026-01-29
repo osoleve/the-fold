@@ -39,9 +39,10 @@
            display-board-with-path display-board-with-fov)
    (topology-analysis board->simplicial-complex board-betti-numbers
                       board-connected-regions board-terrain-holes
-                      board-critical-edges board-bottleneck-score
-                      board-bottleneck-scores-all board-topology-summary
-                      board-is-connected? board-has-chokepoints?))
+                      board-topology-analysis board-critical-edges
+                      board-bottleneck-score board-bottleneck-scores-all
+                      board-topology-summary board-is-connected?
+                      board-has-chokepoints?))
 
   (modules
    (core "core.ss" "Core board and tile abstractions")

@@ -159,6 +159,40 @@ Strategic significance: units must path around these obstacles.")
   (let ([sc (board->simplicial-complex board neighbor-fn)])
     (sc-betti sc 1)))
 
+(doc board-topology-analysis 'export #t)
+(doc board-topology-analysis 'type
+     '(-> Board (-> Coord (List Coord)) TopologyAnalysis))
+(doc board-topology-analysis 'description "Compute all topology metrics in one pass.
+Returns an alist with keys:
+  'betti-numbers  - (β₀ β₁) list
+  'connected-regions - β₀ (integer)
+  'terrain-holes - β₁ (integer)
+  'critical-edges - list of weighted bridges
+  'bottleneck-scores - sorted alist of (coord . score)
+  'walkable-count - number of walkable tiles
+  'is-connected - boolean
+
+More efficient than calling individual functions when multiple metrics needed,
+as the simplicial complex and bridge analysis are computed only once.")
+(define (board-topology-analysis board neighbor-fn)
+  (let* ([sc (board->simplicial-complex board neighbor-fn)]
+         [betti (sc-betti-numbers sc)]
+         [beta0 (if (null? betti) 0 (car betti))]
+         [beta1 (if (< (length betti) 2) 0 (cadr betti))]
+         [weighted-bridges (find-bridges-with-weights board neighbor-fn)]
+         [bottleneck-scores (board-bottleneck-scores-all board neighbor-fn)]
+         [walkable-count (length (filter (lambda (c)
+                                           (let ([t (board-get board c)])
+                                             (and t (tile-walkable? t))))
+                                         (board-coords board)))])
+    `((betti-numbers . ,betti)
+      (connected-regions . ,beta0)
+      (terrain-holes . ,beta1)
+      (critical-edges . ,weighted-bridges)
+      (bottleneck-scores . ,bottleneck-scores)
+      (walkable-count . ,walkable-count)
+      (is-connected . ,(= beta0 1)))))
+
 (doc 'section 'bottleneck-detection)
 
 (doc board-critical-edges 'export #t)
