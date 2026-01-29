@@ -40,12 +40,19 @@
     [(eq? (car expr) 'define-test) 1]
     ;; test-group contains define-test forms - recurse but don't count the group itself
     [(eq? (car expr) 'test-group)
-     (fold-left + 0 (map count-tests-in-expr (cddr expr)))]  ; skip name
+     (count-in-list (cddr expr))]  ; skip name
     ;; Legacy test forms - count as 1 each
     [(memq (car expr) *legacy-test-forms*) 1]
     ;; Recurse into other forms (let, let*, begin, when, etc.)
-    [else
-     (fold-left + 0 (map count-tests-in-expr (cdr expr)))]))
+    [else (count-in-list (cdr expr))]))
+
+(define (count-in-list lst)
+  (doc 'description "Count tests in a list, handling improper lists safely")
+  (let loop ([ls lst] [sum 0])
+    (cond
+      [(null? ls) sum]
+      [(pair? ls) (loop (cdr ls) (+ sum (count-tests-in-expr (car ls))))]
+      [else (+ sum (count-tests-in-expr ls))])))
 
 (doc 'section 'directory-scanning)
 
@@ -82,8 +89,8 @@
   (let* ([base "lattice/"]
          [skills (guard (e [else '()])
                    (filter (lambda (d)
-                             (and (not (string=? d "."))
-                                  (not (string=? d ".."))
+                             (and (> (string-length d) 0)
+                                  (not (char=? (string-ref d 0) #\.))  ; Skip hidden dirs
                                   (file-directory? (string-append base d))))
                            (directory-list base)))])
     (map (lambda (skill)
