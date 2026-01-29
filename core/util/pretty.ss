@@ -360,11 +360,19 @@
 (define (sdoc-line-rest sd) (vector-ref sd 2))
 
 ;;; best : Nat × Nat × Doc → SDoc
+;;; Layout with default ribbon width.
 (define (best w k doc)
-  (be w k (list (cons 0 doc))))
+  (best-ribbon w *default-ribbon* k doc))
 
-;;; be : Nat × Nat × (List (Nat × Doc)) → SDoc
-(define (be w k stack)
+;;; best-ribbon : Nat × Nat × Nat × Doc → SDoc
+;;; Layout with explicit ribbon width.
+(define (best-ribbon w r k doc)
+  (be-ribbon w r k (list (cons 0 doc))))
+
+;;; be-ribbon : Nat × Nat × Nat × (List (Nat × Doc)) → SDoc
+;;; Core layout with ribbon width support.
+;;; w = page width, r = ribbon width, k = current column, stack = (indent . doc) pairs
+(define (be-ribbon w r k stack)
   (if (null? stack)
       (sdoc-empty)
       (let ([i (car (car stack))]
@@ -372,28 +380,33 @@
             [rest (cdr stack)])
            (cond
             [(doc-empty? doc)
-             (be w k rest)]
+             (be-ribbon w r k rest)]
             [(doc-text? doc)
              (let ([s (doc-text-str doc)])
-                  (sdoc-text s (be w (+ k (string-length s)) rest)))]
+                  (sdoc-text s (be-ribbon w r (+ k (string-length s)) rest)))]
             [(doc-line? doc)
-             (sdoc-line i (be w i rest))]
+             (sdoc-line i (be-ribbon w r i rest))]
             [(doc-hardline? doc)
-             (sdoc-line i (be w i rest))]
+             (sdoc-line i (be-ribbon w r i rest))]
             [(doc-nest? doc)
-             (be w k (cons (cons (+ i (doc-nest-n doc)) (doc-nest-doc doc)) rest))]
+             (be-ribbon w r k (cons (cons (+ i (doc-nest-n doc)) (doc-nest-doc doc)) rest))]
             [(doc-concat? doc)
-             (be w k (cons (cons i (doc-concat-left doc))
+             (be-ribbon w r k (cons (cons i (doc-concat-left doc))
                            (cons (cons i (doc-concat-right doc)) rest)))]
             [(doc-group? doc)
-             (let ([flattened (doc-group-flat doc)])  ; use pre-computed flattened version
-                  (if (fits? (- w k) (list (cons i flattened)))
-                      (be w k (cons (cons i flattened) rest))
-                      (be w k (cons (cons i (doc-group-doc doc)) rest))))]
+             (let* ([flattened (doc-group-flat doc)]
+                    ;; Check both page and ribbon constraints
+                    [page-remaining (- w k)]
+                    [ribbon-remaining (- (+ i r) k)])  ; chars left in ribbon from current column
+               (if (fits? (min page-remaining ribbon-remaining) (list (cons i flattened)))
+                   (be-ribbon w r k (cons (cons i flattened) rest))
+                   (be-ribbon w r k (cons (cons i (doc-group-doc doc)) rest))))]
             [(doc-union? doc)
-             (if (fits? (- w k) (list (cons i (doc-union-left doc))))
-                 (be w k (cons (cons i (doc-union-left doc)) rest))
-                 (be w k (cons (cons i (doc-union-right doc)) rest)))]
+             (let ([page-remaining (- w k)]
+                   [ribbon-remaining (- (+ i r) k)])
+               (if (fits? (min page-remaining ribbon-remaining) (list (cons i (doc-union-left doc))))
+                   (be-ribbon w r k (cons (cons i (doc-union-left doc)) rest))
+                   (be-ribbon w r k (cons (cons i (doc-union-right doc)) rest))))]
             [else (sdoc-empty)]))))
 
 ;;; fits? : Nat × (List (Nat × Doc)) → Boolean
@@ -461,6 +474,12 @@
   (doc 'export #t)
   (sdoc->string (best width 0 d)))
 
+(define (pretty-ribbon width ribbon d)
+  (doc 'type (-> Nat Nat Doc String))
+  (doc 'description "Render a document with explicit page width and ribbon width. Ribbon width limits characters per line excluding indentation, improving readability for nested code.")
+  (doc 'export #t)
+  (sdoc->string (best-ribbon width ribbon 0 d)))
+
 (define (pretty-print width d)
   (doc 'type (-> Nat Doc Void))
   (doc 'description "Print a document to stdout with the given page width.")
@@ -474,6 +493,11 @@
 (doc *default-width* 'description "Default page width for pretty printing.")
 (doc *default-width* 'export #t)
 (define *default-width* 80)
+
+(doc *default-ribbon* 'type Nat)
+(doc *default-ribbon* 'description "Default ribbon width (max characters per line excluding indentation). When equal to page width, ribbon has no effect.")
+(doc *default-ribbon* 'export #t)
+(define *default-ribbon* 60)
 
 (define (pp d)
   (doc 'type (-> Doc String))
