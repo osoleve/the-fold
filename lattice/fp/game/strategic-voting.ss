@@ -10,6 +10,7 @@
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 (doc 'note "Key concepts: (1) A voting game models each voter as a strategic player choosing a ballot; (2) Best response: the ballot that gives a voter their most-preferred winner given others' ballots; (3) Nash equilibrium: no voter can improve by unilateral deviation; (4) Price of anarchy: ratio of truthful welfare to worst equilibrium welfare")
+(doc 'note "IMPORTANT: All voting-rule functions must be deterministic and return a SINGLE candidate (not a set of tied winners). Tie-breaking must be handled within the voting rule.")
 
 ;;; ============================================================================
 ;;; Utility Functions
@@ -105,30 +106,47 @@
   (doc 'type '(-> PreferenceProfile VotingRule Nat (Result PreferenceProfile Symbol)))
   (doc 'description "Find Nash equilibrium using iterated best response. Starts from truthful profile, lets each voter optimize in round-robin order until convergence or cycle detection")
   (doc 'note "WARNING: O(N! * V * fuel) complexity. Only practical for small instances (≤6 candidates)")
-  (let* ([n (length true-profile)]
-         [visited (make-hashtable equal-hash equal?)])
-    ;; Start from truthful profile
-    (let loop ([current true-profile]
-               [remaining-fuel fuel])
-      (cond
-        [(<= remaining-fuel 0)
-         (list 'err 'fuel-exhausted)]
-        [(hashtable-ref visited current #f)
-         (list 'err 'cycle)]
-        [else
-         (hashtable-set! visited current #t)
-         (if (is-strategic-equilibrium? current true-profile voting-rule)
-             (list 'ok current)
-             ;; Find a voter who can improve and make them switch
-             (let improve-loop ([i 0])
+  (if (null? true-profile)
+      (list 'ok '())
+      (let* ([n (length true-profile)]
+             [candidates (profile-candidates true-profile)]
+             [all-ballots (permutations candidates)]  ; Compute once, reuse
+             [visited (make-hashtable equal-hash equal?)])
+        ;; Start from truthful profile
+        (let loop ([current true-profile]
+                   [remaining-fuel fuel])
+          (cond
+            [(<= remaining-fuel 0)
+             (list 'err 'fuel-exhausted)]
+            [(hashtable-ref visited current #f)
+             (list 'err 'cycle)]
+            [else
+             (hashtable-set! visited current #t)
+             ;; Combined equilibrium check and improvement finding (single pass)
+             (let find-improving-voter ([i 0])
                (if (>= i n)
-                   ;; No one can improve - but we checked already, shouldn't happen
+                   ;; No voter can improve -> this is an equilibrium
                    (list 'ok current)
-                   (if (best-response-improves? i current voting-rule (list-ref true-profile i))
-                       (let* ([best-ballot (car (find-best-responses i current voting-rule (list-ref true-profile i)))]
-                              [new-profile (list-set current i best-ballot)])
-                         (loop new-profile (- remaining-fuel 1)))
-                       (improve-loop (+ i 1))))))]))))
+                   ;; Check if voter i can improve
+                   (let* ([true-ranking (list-ref true-profile i)]
+                          [current-winner (voting-rule current)]
+                          [current-utility (voter-utility current-winner true-ranking)]
+                          ;; Find best response ballot and its utility
+                          [ballot-utilities
+                           (map (lambda (ballot)
+                                  (let* ([new-profile (list-set current i ballot)]
+                                         [winner (voting-rule new-profile)])
+                                    (cons ballot (voter-utility winner true-ranking))))
+                                all-ballots)]
+                          [max-utility (apply max (map cdr ballot-utilities))])
+                     (if (> max-utility current-utility)
+                         ;; Found improvement - apply it and continue
+                         (let* ([best-ballot (car (car (filter (lambda (bu) (= (cdr bu) max-utility))
+                                                               ballot-utilities)))]
+                                [new-profile (list-set current i best-ballot)])
+                           (loop new-profile (- remaining-fuel 1)))
+                         ;; No improvement for voter i, check next
+                         (find-improving-voter (+ i 1))))))])))))
 
 ;;; all-strategic-equilibria : PreferenceProfile (Profile -> Candidate) -> (List PreferenceProfile)
 ;;; Find all Nash equilibria by exhaustive search.
