@@ -26,7 +26,9 @@
              mechanism-design auction vickrey vcg incentive-compatibility
              dsic revelation-principle double-auction pivot-mechanism
              evolutionary replicator-dynamics ess evolutionarily-stable-strategy
-             population-dynamics hawk-dove invasion-dynamics))
+             population-dynamics hawk-dove invasion-dynamics
+             strategic-voting best-response price-of-anarchy price-of-stability
+             gibbard-satterthwaite strategy-proof manipulation))
 
   (aliases (game games game-theory))
 
@@ -59,6 +61,14 @@
    copeland-score copeland-winner
    schulze-strengths schulze-winner schulze-ranking
    manipulation-possible? condorcet-cycle-example
+
+   ;; strategic-voting.ss — Strategic Voting Equilibrium
+   social-welfare find-best-responses best-response-improves?
+   is-strategic-equilibrium? find-strategic-equilibrium all-strategic-equilibria
+   price-of-anarchy price-of-stability
+   count-manipulable-profiles strategy-proofness-ratio compare-strategy-proofness
+   find-manipulation-example gibbard-satterthwaite-demo
+   strategic-example-1 strategic-example-cycle
 
    ;; voting-games.ss — Voting-Games Bridge
    profile->majority-game profile->weighted-voting-game
@@ -115,6 +125,7 @@
    (coop-games "coop-games.ss" "Coalitional games, Shapley value, core, bargaining")
    (matching "matching.ss" "Two-sided matching, Gale-Shapley, assignment games")
    (voting "voting.ss" "Social choice: plurality, Borda, Condorcet, Schulze")
+   (strategic-voting "strategic-voting.ss" "Strategic voting equilibrium, price of anarchy, Gibbard-Satterthwaite")
    (voting-games "voting-games.ss" "Bridge: voting rules to simple games, power indices")
    (multi-winner "multi-winner.ss" "STV, approval voting, PAV, Monroe, Chamberlin-Courant")
    (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")
