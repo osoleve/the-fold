@@ -465,14 +465,22 @@
 
 ;;; bit-ref : Int × Int → Int
 ;;; Get bit i of n (0-indexed from LSB). Returns 0 or 1.
+;;; Uses bitwise operations for O(1) performance vs O(log i) for expt.
 (define (bit-ref n i)
-  (if (odd? (quotient n (expt 2 i))) 1 0))
+  (bitwise-and (bitwise-arithmetic-shift-right n i) 1))
 
 ;;; ec-cswap : Int × JacobianPoint × JacobianPoint → (Values JacobianPoint JacobianPoint)
 ;;; Conditional swap: if bit=1, swap R0 and R1; else keep as-is.
-;;; This is NOT truly constant-time at the Scheme interpreter level,
-;;; but ensures the algorithm follows constant-time pattern.
-;;; For production use, this would need assembly-level implementation.
+;;;
+;;; CAVEAT: This uses a branch (if), which is NOT constant-time at the
+;;; interpreter/CPU level. True constant-time cswap requires:
+;;;   mask = -bit  (all 1s if bit=1, all 0s if bit=0)
+;;;   diff = R0 XOR R1
+;;;   R0' = R0 XOR (diff AND mask)
+;;;   R1' = R1 XOR (diff AND mask)
+;;; This needs machine-word-level operations, typically in assembly or C.
+;;; The current implementation is correct for the *algorithm*, not for
+;;; side-channel resistance in hostile environments.
 (define (ec-cswap bit R0 R1)
   (if (= bit 1)
       (values R1 R0)
@@ -492,12 +500,21 @@
 ;;;   4. Conditional swap R0, R1 based on bit
 ;;;
 ;;; Invariant: R1 - R0 = P throughout the computation.
+;;;
+;;; Note on "constant-time": This implementation follows the constant-time
+;;; *algorithm* (same operations for all scalar bit patterns), but Scheme
+;;; interpreter-level timing may still vary. For production cryptography,
+;;; assembly-level implementations are required for true constant-time
+;;; guarantees. This implementation is suitable for:
+;;; - Educational/reference use
+;;; - Applications where timing attacks are not in the threat model
+;;; - Prototype development before native implementation
 (define (ec-mul-montgomery curve k P)
   (doc 'export #t)
   (doc 'type '(-> Curve Int Point Point))
-  (doc 'description "Constant-time scalar multiplication using Montgomery Ladder")
-  (doc 'note "Resistant to timing side-channel attacks")
-  (doc 'complexity "O(log k) point operations, always same count regardless of k's bits")
+  (doc 'description "Scalar multiplication using Montgomery Ladder (constant-time algorithm)")
+  (doc 'note "Follows constant-time algorithm pattern; see source for caveats on interpreter-level timing")
+  (doc 'complexity "O(log n) point operations where n is the curve order")
   (cond
     [(= k 0) ec-infinity]
     [(ec-infinity? P) ec-infinity]
@@ -505,32 +522,41 @@
      ;; k < 0: compute |k| * (-P)
      (ec-mul-montgomery curve (- k) (ec-negate curve P))]
     [else
-     ;; Montgomery Ladder in Jacobian coordinates
-     (let ([jP (ec-to-jacobian P)]
-           [nbits (bit-length k)])
-       (ec-from-jacobian
-        curve
-        (let loop ([i (- nbits 1)]   ; Start from MSB
-                   [R0 ec-jacobian-infinity]
-                   [R1 jP])
-          (if (< i 0)
-              R0
-              (let* ([bi (bit-ref k i)])
-                ;; Conditional swap before operations
-                (let-values ([(R0* R1*) (ec-cswap bi R0 R1)])
-                  ;; Always do both operations
-                  (let ([R1** (ec-jacobian-add curve R0* R1*)]
-                        [R0** (ec-jacobian-double curve R0*)])
-                    ;; Conditional swap after operations
-                    (let-values ([(R0*** R1***) (ec-cswap bi R0** R1**)])
-                      (loop (- i 1) R0*** R1***)))))))))]))
+     ;; Reduce scalar modulo curve order to minimize iterations
+     ;; k*P = (k mod n)*P for any k, where n is the curve order
+     (let* ([n (ec-n curve)]
+            [k-reduced (if (>= k n) (modulo k n) k)])
+       (if (= k-reduced 0)
+           ec-infinity  ; k was a multiple of n
+           ;; Montgomery Ladder in Jacobian coordinates
+           (let ([jP (ec-to-jacobian P)]
+                 [nbits (bit-length k-reduced)])
+             (ec-from-jacobian
+              curve
+              (let loop ([i (- nbits 1)]   ; Start from MSB
+                         [R0 ec-jacobian-infinity]
+                         [R1 jP])
+                (if (< i 0)
+                    R0
+                    (let* ([bi (bit-ref k-reduced i)])
+                      ;; Conditional swap before operations
+                      (let-values ([(R0* R1*) (ec-cswap bi R0 R1)])
+                        ;; Always do both operations
+                        (let ([R1** (ec-jacobian-add curve R0* R1*)]
+                              [R0** (ec-jacobian-double curve R0*)])
+                          ;; Conditional swap after operations
+                          (let-values ([(R0*** R1***) (ec-cswap bi R0** R1**)])
+                            (loop (- i 1) R0*** R1***)))))))))))]))
 
 ;;; ec-mul-secure : Curve × Int × Point → Point
 ;;; Alias for ec-mul-montgomery for explicit security-conscious code.
+;;; "Secure" here means resistant to timing attacks at the algorithm level;
+;;; see ec-mul-montgomery documentation for interpreter-level caveats.
 (define (ec-mul-secure curve k P)
   (doc 'export #t)
   (doc 'type '(-> Curve Int Point Point))
-  (doc 'description "Secure scalar multiplication (alias for Montgomery Ladder)")
+  (doc 'description "Scalar multiplication using constant-time algorithm (see caveats)")
+  (doc 'note "Algorithm-level timing resistance; see ec-mul-montgomery for full caveats")
   (ec-mul-montgomery curve k P))
 
 ;;; ============================================================================
