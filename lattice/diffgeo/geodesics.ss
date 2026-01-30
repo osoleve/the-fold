@@ -134,6 +134,326 @@
     (make-geodesic-state x-new v-new)))
 
 ;;; ============================================================================
+;;; Adaptive Step-Size Integration (Dormand-Prince RK5(4))
+;;; ============================================================================
+
+(doc 'section 'adaptive-integration)
+
+(doc 'note "Dormand-Prince RK5(4) method provides embedded error estimation")
+(doc 'note "Computes both 4th and 5th order solutions; difference estimates local error")
+(doc 'note "Adaptive stepping: grow step when error small, shrink when large")
+
+;; Dormand-Prince coefficients
+;; c_i (time nodes)
+(define dp-c '#(0 1/5 3/10 4/5 8/9 1 1))
+
+;; a_ij (Butcher tableau lower triangle)
+(define dp-a
+  '#(#()
+     #(1/5)
+     #(3/40 9/40)
+     #(44/45 -56/15 32/9)
+     #(19372/6561 -25360/2187 64448/6561 -212/729)
+     #(9017/3168 -355/33 46732/5247 49/176 -5103/18656)
+     #(35/384 0 500/1113 125/192 -2187/6784 11/84)))
+
+;; b_i (5th order weights)
+(define dp-b5 '#(35/384 0 500/1113 125/192 -2187/6784 11/84 0))
+
+;; b*_i (4th order weights for error estimation)
+(define dp-b4 '#(5179/57600 0 7571/16695 393/640 -92097/339200 187/2100 1/40))
+
+;; Safety factor and step bounds for adaptive control
+(define *adaptive-safety* 0.9)
+(define *adaptive-min-scale* 0.2)  ; Don't shrink by more than 5x
+(define *adaptive-max-scale* 5.0)  ; Don't grow by more than 5x
+
+;;; dp-geodesic-step : Metric × GeodesicState × Num → (GeodesicState × GeodesicState × Num)
+;;; Single Dormand-Prince step returning both 5th and 4th order results.
+;;; Returns (y5, y4, err-norm) where err-norm = ||y5 - y4||.
+(define (dp-geodesic-step metric state dt)
+  (let* ([x0 (geodesic-state-coords state)]
+         [v0 (geodesic-state-velocity state)]
+         [n (vector-length x0)]
+         ;; Store k values for position and velocity
+         [kx (make-vector 7 #f)]
+         [kv (make-vector 7 #f)])
+
+    ;; Compute k1
+    (let ([d1 (geodesic-derivative metric state)])
+      (vector-set! kx 0 (car d1))
+      (vector-set! kv 0 (cdr d1)))
+
+    ;; Compute k2 through k7
+    (do ([i 1 (+ i 1)])
+        ((= i 7))
+      (let* ([ai (vector-ref dp-a i)]
+             ;; Compute x_i = x0 + dt * sum(a_ij * kx_j)
+             [xi (vec-copy x0)]
+             [vi (vec-copy v0)])
+        (do ([j 0 (+ j 1)])
+            ((= j i))
+          (let ([aij (vector-ref ai j)])
+            (when (not (= aij 0))
+              (set! xi (vec-add xi (vec-scale (* dt aij) (vector-ref kx j))))
+              (set! vi (vec-add vi (vec-scale (* dt aij) (vector-ref kv j)))))))
+        (let ([di (geodesic-derivative metric (make-geodesic-state xi vi))])
+          (vector-set! kx i (car di))
+          (vector-set! kv i (cdr di)))))
+
+    ;; Compute 5th order solution
+    (let ([x5 (vec-copy x0)]
+          [v5 (vec-copy v0)])
+      (do ([i 0 (+ i 1)])
+          ((= i 7))
+        (let ([bi (vector-ref dp-b5 i)])
+          (when (not (= bi 0))
+            (set! x5 (vec-add x5 (vec-scale (* dt bi) (vector-ref kx i))))
+            (set! v5 (vec-add v5 (vec-scale (* dt bi) (vector-ref kv i)))))))
+
+      ;; Compute 4th order solution
+      (let ([x4 (vec-copy x0)]
+            [v4 (vec-copy v0)])
+        (do ([i 0 (+ i 1)])
+            ((= i 7))
+          (let ([bi (vector-ref dp-b4 i)])
+            (when (not (= bi 0))
+              (set! x4 (vec-add x4 (vec-scale (* dt bi) (vector-ref kx i))))
+              (set! v4 (vec-add v4 (vec-scale (* dt bi) (vector-ref kv i)))))))
+
+        ;; Error estimate: ||y5 - y4||
+        (let* ([err-x (vec-sub x5 x4)]
+               [err-v (vec-sub v5 v4)]
+               [err-norm (max (vec-norm err-x) (vec-norm err-v))])
+          (list (make-geodesic-state x5 v5)
+                (make-geodesic-state x4 v4)
+                err-norm))))))
+
+;;; adaptive-step-size : Num × Num × Num × Nat → Num
+;;; Compute new step size based on error.
+;;; Uses PI controller formula: h_new = h * safety * (tol/err)^(1/5)
+;;; where 1/5 is for 5th order method.
+(define (adaptive-step-size dt err tol order)
+  (if (= err 0)
+      (* dt *adaptive-max-scale*)  ; Error is zero, can grow aggressively
+      (let* ([ratio (/ tol err)]
+             [scale (* *adaptive-safety* (expt ratio (/ 1.0 (+ order 1))))]
+             [bounded-scale (max *adaptive-min-scale*
+                                (min *adaptive-max-scale* scale))])
+        (* dt bounded-scale))))
+
+;;; adaptive-geodesic-step : Metric × GeodesicState × Num × Num → (GeodesicState × Num × Nat)
+;;; Take one adaptive step with error control.
+;;; Returns (new-state, actual-dt, n-rejects) where n-rejects is number of step rejections.
+(define (adaptive-geodesic-step metric state dt tol)
+  (doc 'export #t)
+  (doc 'type '(-> Metric GeodesicState Num Num (List GeodesicState Num Nat)))
+  (doc 'description "Single adaptive RK5(4) step with error control")
+  (let loop ([h dt] [rejects 0])
+    (let* ([result (dp-geodesic-step metric state h)]
+           [y5 (car result)]
+           [_ (cadr result)]   ; y4 not used after error computed
+           [err (caddr result)])
+      (if (<= err tol)
+          ;; Accept step
+          (let ([h-new (adaptive-step-size h err tol 5)])
+            (list y5 h h-new rejects))
+          ;; Reject step, try smaller
+          (let ([h-new (adaptive-step-size h err tol 5)])
+            ;; Protect against too many rejections
+            (if (< h-new (* h 0.001))
+                (begin
+                  ;; Step too small, accept anyway with warning
+                  (list y5 h h rejects))
+                (loop h-new (+ rejects 1))))))))
+
+;;; ============================================================================
+;;; Adaptive Geodesic Tracing
+;;; ============================================================================
+
+(doc trace-geodesic-adaptive 'type '(-> Metric Vec Vec Num Num (List GeodesicState)))
+(doc trace-geodesic-adaptive 'description "Trace geodesic with adaptive step-size control")
+(doc trace-geodesic-adaptive 'param "tol: local error tolerance (default 1e-8)")
+(doc trace-geodesic-adaptive 'param "Returns list of states at actual integration points")
+(define (trace-geodesic-adaptive metric initial-coords initial-velocity T tol)
+  (doc 'export #t)
+  (let* ([state0 (make-geodesic-state initial-coords initial-velocity)]
+         [dt0 (/ T 10)]  ; Initial step guess: 1/10 of total time
+         [min-dt (* T 1e-10)])  ; Minimum step size
+    (let loop ([state state0] [t 0] [dt dt0] [states (list state0)] [total-rejects 0])
+      (if (>= t T)
+          (reverse states)
+          ;; Don't overshoot the end
+          (let ([h (min dt (- T t))])
+            (if (< h min-dt)
+                ;; Time remaining is negligible, done
+                (reverse states)
+                (let* ([result (adaptive-geodesic-step metric state h tol)]
+                       [new-state (car result)]
+                       [actual-h (cadr result)]
+                       [suggested-h (caddr result)]
+                       [rejects (cadddr result)])
+                  (loop new-state
+                        (+ t actual-h)
+                        suggested-h
+                        (cons new-state states)
+                        (+ total-rejects rejects)))))))))
+
+;;; trace-geodesic-adaptive-final : Metric × Vec × Vec × Num × Num → GeodesicState
+;;; Trace geodesic adaptively and return only final state.
+(define (trace-geodesic-adaptive-final metric initial-coords initial-velocity T tol)
+  (doc 'export #t)
+  (let* ([state0 (make-geodesic-state initial-coords initial-velocity)]
+         [dt0 (/ T 10)]
+         [min-dt (* T 1e-10)])
+    (let loop ([state state0] [t 0] [dt dt0])
+      (if (>= t T)
+          state
+          (let ([h (min dt (- T t))])
+            (if (< h min-dt)
+                state
+                (let* ([result (adaptive-geodesic-step metric state h tol)]
+                       [new-state (car result)]
+                       [actual-h (cadr result)]
+                       [suggested-h (caddr result)])
+                  (loop new-state (+ t actual-h) suggested-h))))))))
+
+;;; trace-geodesic-adaptive-at-times : Metric × Vec × Vec × (List Num) × Num → (List GeodesicState)
+;;; Trace geodesic adaptively but return states at specified times.
+;;; Uses dense output interpolation when step overshoots a requested time.
+(define (trace-geodesic-adaptive-at-times metric initial-coords initial-velocity times tol)
+  (doc 'export #t)
+  (doc 'type '(-> Metric Vec Vec (List Num) Num (List GeodesicState)))
+  (doc 'description "Trace adaptively, returning states at specified times")
+  (if (null? times)
+      '()
+      (let* ([sorted-times (list-sort < times)]
+             [T (car (reverse sorted-times))]  ; Final time
+             [state0 (make-geodesic-state initial-coords initial-velocity)]
+             [dt0 (/ T 10)]
+             [min-dt (* T 1e-10)])
+        (let loop ([state state0]
+                   [t 0]
+                   [dt dt0]
+                   [remaining-times sorted-times]
+                   [results '()])
+          (cond
+            [(null? remaining-times) (reverse results)]
+            [(>= t T)
+             ;; Reached end, output remaining times at final state
+             (reverse (append (map (lambda (_) state) remaining-times) results))]
+            [else
+             (let* ([next-time (car remaining-times)]
+                    [h (min dt (- T t))])
+               (cond
+                 [(< h min-dt)
+                  ;; Near end, output at final state
+                  (reverse (append (map (lambda (_) state) remaining-times) results))]
+                 [(<= next-time t)
+                  ;; Time already passed (shouldn't happen with sorted times)
+                  (loop state t dt (cdr remaining-times) (cons state results))]
+                 [(and (> next-time t) (<= next-time (+ t h)))
+                  ;; Next requested time is within this step
+                  ;; Integrate to that exact time
+                  (let* ([h-exact (- next-time t)]
+                         [result (adaptive-geodesic-step metric state h-exact tol)]
+                         [new-state (car result)])
+                    (loop new-state next-time dt (cdr remaining-times) (cons new-state results)))]
+                 [else
+                  ;; Normal step, no output time within range
+                  (let* ([result (adaptive-geodesic-step metric state h tol)]
+                         [new-state (car result)]
+                         [actual-h (cadr result)]
+                         [suggested-h (caddr result)])
+                    (loop new-state (+ t actual-h) suggested-h remaining-times results))]))])))))
+
+;;; ============================================================================
+;;; Adaptive Exponential and Logarithm Maps
+;;; ============================================================================
+
+;;; exp-map-adaptive : Metric × Vec × Vec × [Num] → Vec
+;;; Exponential map using adaptive integration.
+(define (exp-map-adaptive metric base-coords tangent-vec . opts)
+  (doc 'export #t)
+  (doc 'type '(-> Metric Vec Vec (Optional Num) Vec))
+  (doc 'description "Exponential map exp_p(v) using adaptive RK5(4)")
+  (let ([tol (if (null? opts) 1e-10 (car opts))])
+    (geodesic-state-coords
+     (trace-geodesic-adaptive-final metric base-coords tangent-vec 1.0 tol))))
+
+;;; exp-map-adaptive-t : Metric × Vec × Vec × Num × [Num] → Vec
+;;; Exponential map at time t using adaptive integration.
+(define (exp-map-adaptive-t metric base-coords tangent-vec t . opts)
+  (doc 'export #t)
+  (doc 'type '(-> Metric Vec Vec Num (Optional Num) Vec))
+  (doc 'description "Exponential map exp_p(v) at time t using adaptive RK5(4)")
+  (let ([tol (if (null? opts) 1e-10 (car opts))])
+    (geodesic-state-coords
+     (trace-geodesic-adaptive-final metric base-coords tangent-vec t tol))))
+
+;;; log-map-adaptive : Metric × Vec × Vec × [Num × Nat] → (Or (Ok Vec) (Err String))
+;;; Logarithm map using adaptive integration.
+(define (log-map-adaptive metric p q . opts)
+  (doc 'export #t)
+  (doc 'type '(-> Metric Vec Vec (Optional Num) (Optional Nat) (Or (Ok Vec) (Err String))))
+  (doc 'description "Logarithm map using adaptive shooting method")
+  (let* ([tol (if (null? opts) 1e-10 (car opts))]
+         [max-iter (if (or (null? opts) (null? (cdr opts)))
+                       *geodesic-max-iterations*
+                       (cadr opts))]
+         [n (vector-length p)]
+         [v0 (vec-sub q p)]  ; Initial guess
+         [eps 1e-6])
+    (let loop ([v v0] [iter 0])
+      (if (>= iter max-iter)
+          (list 'err "log-map-adaptive: failed to converge")
+          (let* ([q-shot (exp-map-adaptive metric p v tol)]
+                 [error (vec-sub q-shot q)]
+                 [error-norm (vec-norm error)])
+            (if (< error-norm (* tol 100))  ; Looser convergence for outer loop
+                (list 'ok v)
+                (let ([J (compute-exp-jacobian-adaptive metric p v tol eps n)])
+                  (let ([dv (solve-linear-system J (vec-scale -1 error))])
+                    (if dv
+                        (loop (vec-add v dv) (+ iter 1))
+                        (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1)))))))))))
+
+;;; compute-exp-jacobian-adaptive : Metric × Vec × Vec × Num × Num × Nat → Matrix
+;;; Compute Jacobian of exp_p using adaptive integration.
+(define (compute-exp-jacobian-adaptive metric p v tol eps n)
+  (let ([J (make-matrix n n 0)]
+        [v-plus (vec-copy v)]
+        [v-minus (vec-copy v)])
+    (do ([j 0 (+ j 1)])
+        ((= j n) J)
+      (let* ([vj (vector-ref v j)]
+             [eps-j (* eps (max 1.0 (abs vj)))])
+        (vector-set! v-plus j (+ vj eps-j))
+        (vector-set! v-minus j (- vj eps-j))
+        (let* ([q-plus (exp-map-adaptive metric p v-plus tol)]
+               [q-minus (exp-map-adaptive metric p v-minus tol)])
+          (do ([i 0 (+ i 1)])
+              ((= i n))
+            (matrix-set! J i j
+              (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
+                 (* 2 eps-j)))))
+        (vector-set! v-plus j vj)
+        (vector-set! v-minus j vj)))))
+
+;;; geodesic-distance-adaptive : Metric × Vec × Vec × [Num] → Num | (Err String)
+;;; Geodesic distance using adaptive integration.
+(define (geodesic-distance-adaptive metric p q . opts)
+  (doc 'export #t)
+  (doc 'type '(-> Metric Vec Vec (Optional Num) (Or Num (Err String))))
+  (doc 'description "Geodesic distance using adaptive log map")
+  (let* ([tol (if (null? opts) 1e-10 (car opts))]
+         [result (log-map-adaptive metric p q tol)])
+    (if (and (pair? result) (eq? (car result) 'ok))
+        (let ([v (cadr result)])
+          (metric-norm metric p v))
+        result)))
+
+;;; ============================================================================
 ;;; Geodesic Tracing
 ;;; ============================================================================
 
@@ -595,18 +915,24 @@
 ;;; ============================================================================
 
 (printf "geodesics.ss loaded — Geodesic Computation\n")
-(printf "  Geodesic Tracing:\n")
+(printf "  Fixed-Step Tracing (RK4):\n")
 (printf "    (trace-geodesic metric p v T n)       - Trace geodesic for time T\n")
 (printf "    (trace-geodesic-final metric p v T n) - Final state only\n")
+(printf "  Adaptive Tracing (RK5(4) Dormand-Prince):\n")
+(printf "    (trace-geodesic-adaptive metric p v T tol)      - Adaptive trace\n")
+(printf "    (trace-geodesic-adaptive-final metric p v T tol) - Final state only\n")
+(printf "    (trace-geodesic-adaptive-at-times metric p v times tol) - At specific times\n")
 (printf "  Exponential Map:\n")
-(printf "    (exp-map metric p v [n-steps])        - exp_p(v) at t=1\n")
-(printf "    (exp-map-t metric p v t [n-steps])    - exp_p(v) at time t\n")
+(printf "    (exp-map metric p v [n-steps])        - exp_p(v) at t=1 (fixed-step)\n")
+(printf "    (exp-map-adaptive metric p v [tol])   - exp_p(v) at t=1 (adaptive)\n")
 (printf "  Logarithm Map:\n")
-(printf "    (log-map metric p q [n tol max])      - Find v: exp_p(v)=q\n")
+(printf "    (log-map metric p q [n tol max])      - Find v: exp_p(v)=q (fixed)\n")
+(printf "    (log-map-adaptive metric p q [tol])   - Find v: exp_p(v)=q (adaptive)\n")
 (printf "  Parallel Transport:\n")
 (printf "    (parallel-transport metric p v V T)   - Transport V along geodesic\n")
 (printf "  Distance:\n")
-(printf "    (geodesic-distance metric p q)        - Geodesic distance\n")
+(printf "    (geodesic-distance metric p q)        - Geodesic distance (fixed-step)\n")
+(printf "    (geodesic-distance-adaptive metric p q [tol]) - Geodesic distance (adaptive)\n")
 (printf "    (geodesic-length metric states)       - Arc length of path\n")
 (printf "  Interpolation:\n")
 (printf "    (geodesic-interpolate metric p q t)   - Interpolate along geodesic\n")

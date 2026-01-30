@@ -428,6 +428,101 @@
       (assert-true (approx-equal? (vector-ref q1 0) (vector-ref q2 0) 0.01)))))
 
 ;;; ============================================================================
+;;; Adaptive Integration Tests
+;;; ============================================================================
+
+(test-group "adaptive-integration"
+  ;; Use Euclidean metric for easy verification
+  (define euclidean-chart (make-identity-chart 'euclidean-2d 2))
+  (define euclidean-metric (make-euclidean-metric euclidean-chart))
+
+  (define-test "adaptive trace matches fixed-step in flat space"
+    ;; Adaptive and fixed-step should give same result in flat space
+    (let* ([p (vector 0.0 0.0)]
+           [v (vector 1.0 0.5)]
+           [fixed-result (exp-map euclidean-metric p v 100)]
+           [adaptive-result (exp-map-adaptive euclidean-metric p v 1e-10)])
+      (assert-true (vec-approx-equal? fixed-result adaptive-result *test-tolerance*))))
+
+  (define-test "adaptive produces fewer steps when tolerance allows"
+    ;; With loose tolerance, adaptive should use fewer steps
+    (let* ([p (vector 0.0 0.0)]
+           [v (vector 1.0 0.0)]
+           [tight-states (trace-geodesic-adaptive euclidean-metric p v 1.0 1e-12)]
+           [loose-states (trace-geodesic-adaptive euclidean-metric p v 1.0 1e-4)])
+      ;; Loose tolerance should produce fewer intermediate states
+      (assert-true (<= (length loose-states) (length tight-states)))))
+
+  (define-test "adaptive exp-log roundtrip"
+    (let* ([p (vector 0.0 0.0)]
+           [v (vector 0.7 0.3)]
+           [q (exp-map-adaptive euclidean-metric p v 1e-10)]
+           [result (log-map-adaptive euclidean-metric p q 1e-10)])
+      (assert-true (and (pair? result) (eq? (car result) 'ok)))
+      (let ([v-recovered (cadr result)])
+        (assert-true (vec-approx-equal? v-recovered v *test-tolerance*)))))
+
+  (define-test "adaptive distance matches fixed-step"
+    (let* ([p (vector 0.0 0.0)]
+           [q (vector 3.0 4.0)]
+           [fixed-dist (geodesic-distance euclidean-metric p q 100)]
+           [adaptive-dist (geodesic-distance-adaptive euclidean-metric p q 1e-10)])
+      (assert-true (approx-equal? fixed-dist adaptive-dist *test-tolerance*))
+      (assert-true (approx-equal? adaptive-dist 5.0 *test-tolerance*))))
+
+  (define-test "adaptive at-times returns correct number of states"
+    (let* ([p (vector 0.0 0.0)]
+           [v (vector 1.0 0.0)]
+           [times '(0.25 0.5 0.75 1.0)]
+           [states (trace-geodesic-adaptive-at-times euclidean-metric p v times 1e-8)])
+      (assert-equal (length times) (length states))))
+
+  (define-test "adaptive at-times gives correct positions"
+    (let* ([p (vector 0.0 0.0)]
+           [v (vector 1.0 0.0)]
+           [times '(0.5 1.0)]
+           [states (trace-geodesic-adaptive-at-times euclidean-metric p v times 1e-8)]
+           [state-at-0.5 (car states)]
+           [state-at-1.0 (cadr states)])
+      ;; At t=0.5, should be at (0.5, 0)
+      (assert-true (vec-approx-equal? (geodesic-state-coords state-at-0.5)
+                                      (vector 0.5 0.0)
+                                      *test-tolerance*))
+      ;; At t=1.0, should be at (1.0, 0)
+      (assert-true (vec-approx-equal? (geodesic-state-coords state-at-1.0)
+                                      (vector 1.0 0.0)
+                                      *test-tolerance*)))))
+
+(test-group "adaptive-on-sphere"
+  ;; Test adaptive methods on curved space
+  (define sphere-chart (make-sphere-chart))
+  (define s2-metric (make-s2-metric sphere-chart))
+  (define pi 3.141592653589793)
+
+  (define-test "adaptive meridian geodesic"
+    ;; Adaptive integration along meridian
+    (let* ([p (vector (/ pi 4) 0.0)]    ; θ=45°, φ=0
+           [v (vector 1.0 0.0)]          ; Pure θ velocity
+           [fixed-endpoint (exp-map s2-metric p v 200)]
+           [adaptive-endpoint (exp-map-adaptive s2-metric p v 1e-10)])
+      ;; Should match fixed-step result
+      (assert-true (vec-approx-equal? fixed-endpoint adaptive-endpoint 0.001))))
+
+  (define-test "adaptive equatorial geodesic"
+    (let* ([p (vector (/ pi 2) 0.0)]    ; Equator
+           [v (vector 0.0 1.0)]          ; Along equator
+           [fixed-endpoint (exp-map s2-metric p v 200)]
+           [adaptive-endpoint (exp-map-adaptive s2-metric p v 1e-10)])
+      (assert-true (vec-approx-equal? fixed-endpoint adaptive-endpoint 0.001))))
+
+  (define-test "adaptive distance on sphere"
+    (let* ([p (vector (/ pi 2) 0.0)]
+           [q (vector (/ pi 2) (/ pi 3))]
+           [dist (geodesic-distance-adaptive s2-metric p q 1e-8)])
+      ;; Should be approximately π/3
+      (assert-true (approx-equal? dist (/ pi 3) 0.01)))))
+
+;;; ============================================================================
 ;;; Run Tests
 ;;; ============================================================================
 
