@@ -28,7 +28,9 @@
              evolutionary replicator-dynamics ess evolutionarily-stable-strategy
              population-dynamics hawk-dove invasion-dynamics
              strategic-voting best-response price-of-anarchy price-of-stability
-             gibbard-satterthwaite strategy-proof manipulation))
+             gibbard-satterthwaite strategy-proof manipulation
+             mcdm multi-criteria decision-making pareto-frontier weighted-borda
+             sensitivity-analysis robustness))
 
   (aliases (game games game-theory))
 
@@ -118,7 +120,18 @@
    can-invade? invasion-fitness invasion-gradient
    is-interior-equilibrium? hawk-dove-mixed-ess
    hawk-dove-game stag-hunt-symmetric pd-symmetric rps-game
-   analyze-game)
+   analyze-game
+
+   ;; mcdm.ss — Multi-Criteria Decision Making
+   make-decision-problem decision-problem? dp-alternatives dp-criteria dp-score
+   criterion-ranking dp->profile dp->weighted-profile
+   mcdm-borda mcdm-schulze mcdm-copeland mcdm-condorcet mcdm-ranking
+   weighted-borda-scores weighted-borda-winner
+   dominates? pareto-frontier pareto-dominated is-pareto-optimal?
+   sensitivity-to-criterion robustness-profile min-robustness
+   has-condorcet-cycle? cycle-participants
+   method-agreement unanimous-winner? mcdm-summary
+   sorting-algorithm-example tech-choice-example)
 
   (modules
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")
@@ -130,4 +143,5 @@
    (multi-winner "multi-winner.ss" "STV, approval voting, PAV, Monroe, Chamberlin-Courant")
    (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")
    (mechanism "mechanism.ss" "Auctions, VCG, incentive compatibility, double auctions")
-   (evolutionary "evolutionary.ss" "Replicator dynamics, ESS, population games, invasion analysis")))
+   (evolutionary "evolutionary.ss" "Replicator dynamics, ESS, population games, invasion analysis")
+   (mcdm "mcdm.ss" "Multi-criteria decision making via voting aggregation")))
