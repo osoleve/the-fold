@@ -178,7 +178,36 @@
       (let ([profile (robustness-profile dp '(1 1))])
         (assert-equal 2 (length profile))
         (assert-true (pair? (car profile)))
-        (assert-true (symbol? (caar profile)))))))
+        (assert-true (symbol? (caar profile))))))
+
+  (define-test "sensitivity checks both directions"
+    ;; a wins when x has high weight, b wins when y has high weight
+    ;; With equal weights, should be sensitive to changes in either direction
+    (let ([dp (make-decision-problem
+               '(a b)
+               '(x y)
+               '((a x 10) (a y 1)
+                 (b x 1) (b y 10)))])
+      (let ([sens (sensitivity-to-criterion dp 'x '(2 1))])
+        ;; Should find a breaking point (not max-delta)
+        (assert-true (< sens 10.0))))))
+
+(test-group "mcdm-validation"
+  (define-test "rejects duplicate alternatives"
+    (assert-error
+     (lambda ()
+       (make-decision-problem
+        '(a b a)  ; duplicate 'a
+        '(x y)
+        '((a x 10) (b x 5))))))
+
+  (define-test "rejects duplicate criteria"
+    (assert-error
+     (lambda ()
+       (make-decision-problem
+        '(a b)
+        '(x x)  ; duplicate 'x
+        '((a x 10) (b x 5)))))))
 
 (test-group "mcdm-agreement"
   (define-test "unanimous winner when all agree"

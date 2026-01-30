@@ -27,6 +27,11 @@
   (doc 'type '(-> (List Alternative) (List Criterion) (List (Triple Alternative Criterion Real)) DecisionProblem))
   (doc 'description "Create a multi-criteria decision problem. Alternatives are the options to rank. Criteria are the evaluation dimensions. Scores maps (alternative, criterion) pairs to numeric values. Higher scores are better by default")
   (doc 'note "Scores list format: ((alt1 crit1 val1) (alt1 crit2 val2) ...). Missing scores default to 0")
+  ;; Validate: no duplicate alternatives (voting.ss requires unique candidates)
+  (when (not (= (length alternatives) (length (list->set alternatives))))
+    (error 'make-decision-problem "Alternatives must be unique"))
+  (when (not (= (length criteria) (length (list->set criteria))))
+    (error 'make-decision-problem "Criteria must be unique"))
   (list 'decision-problem alternatives criteria scores))
 
 (define (decision-problem? x)
@@ -247,12 +252,11 @@
 
 ;;; sensitivity-to-criterion : DecisionProblem × Criterion × (List Real) → Real
 ;;; How much can this criterion's weight change before the winner changes?
-;;; Returns the margin as a fraction of current weight.
-;;; Positive = weight can increase, negative = weight can decrease.
+;;; Returns the smallest absolute margin (either direction).
 (define (sensitivity-to-criterion dp criterion base-weights)
   (doc 'export #t)
   (doc 'type '(-> DecisionProblem Criterion (List Real) Real))
-  (doc 'description "Compute sensitivity of winner to criterion weight. Returns fractional margin before winner changes. Larger absolute value = more robust")
+  (doc 'description "Compute sensitivity of winner to criterion weight. Returns smallest delta (in either direction) before winner changes. Larger value = more robust")
   (let* ([criteria (dp-criteria dp)]
          [idx (criterion-index criterion criteria)]
          [current-weight (list-ref base-weights idx)]
@@ -261,16 +265,22 @@
          [max-delta 10.0])
     (if (not idx)
         (error 'sensitivity-to-criterion "Unknown criterion" criterion)
-        ;; Binary search for critical weight change
-        (let search ([delta step] [direction 1])
-          (if (> (abs delta) max-delta)
-              (* direction max-delta)  ; Very robust
-              (let* ([new-weights (list-update base-weights idx
-                                               (max 0.001 (+ current-weight (* direction delta))))]
-                     [new-winner (weighted-borda-winner dp new-weights)])
-                (if (not (eq? new-winner current-winner))
-                    (* direction delta)  ; Found the breaking point
-                    (search (* delta 2) direction))))))))
+        ;; Search in both directions, return smaller absolute delta
+        (let ([find-break
+               (lambda (direction)
+                 (let search ([delta step])
+                   (if (> delta max-delta)
+                       max-delta  ; Very robust in this direction
+                       (let* ([new-weight (+ current-weight (* direction delta))]
+                              [clamped-weight (max 0.001 new-weight)]
+                              [new-weights (list-update base-weights idx clamped-weight)]
+                              [new-winner (weighted-borda-winner dp new-weights)])
+                         (if (not (eq? new-winner current-winner))
+                             delta  ; Found breaking point
+                             (search (* delta 2)))))))])
+          (let ([up-delta (find-break 1)]
+                [down-delta (find-break -1)])
+            (min up-delta down-delta))))))
 
 (define (criterion-index c criteria)
   (let loop ([cs criteria] [i 0])
