@@ -302,12 +302,17 @@
              (pretty-write-sexp val port (+ indent 1)))
            (pretty-write-sexp val port (+ indent 1))))
      (display ")" port)]
-    ;; List of items
+    ;; List of items (handle improper lists / dotted pairs)
     [else
      (display "(" port)
      (let loop ([items sexp] [first? #t])
        (cond
          [(null? items) (display ")" port)]
+         [(not (pair? items))
+          ;; Improper list tail (dotted pair)
+          (display " . " port)
+          (write items port)
+          (display ")" port)]
          [else
           (unless first?
             (if (and (pair? (car items)) (symbol? (caar items)))
@@ -426,23 +431,26 @@
         [(>= i (- len 5)) #f]  ; Need room for "N test"
         [(and (char=? (string-ref str i) #\-)
               (< (+ i 2) len))
-         ;; Found dash, look for number
-         (let num-loop ([j (+ i 1)])
-           (cond
-             [(>= j len) #f]
-             [(char-numeric? (string-ref str j))
-              ;; Found start of number
-              (let end-loop ([k j])
-                (cond
-                  [(>= k len) (string->number (substring str j k))]
-                  [(char-numeric? (string-ref str k)) (end-loop (+ k 1))]
-                  [(and (< (+ k 5) len)
-                        (or (string-prefix? " test" (substring str k len))
-                            (string-prefix? " tests" (substring str k len))))
-                   (string->number (substring str j k))]
-                  [else #f]))]
-             [(char-whitespace? (string-ref str j)) (num-loop (+ j 1))]
-             [else #f]))]
+         ;; Found dash, look for number - but continue searching if pattern fails
+         (let ([result
+                (let num-loop ([j (+ i 1)])
+                  (cond
+                    [(>= j len) #f]
+                    [(char-numeric? (string-ref str j))
+                     ;; Found start of number
+                     (let end-loop ([k j])
+                       (cond
+                         [(>= k len) (string->number (substring str j k))]
+                         [(char-numeric? (string-ref str k)) (end-loop (+ k 1))]
+                         [(and (< (+ k 5) len)
+                               (or (string-prefix? " test" (substring str k len))
+                                   (string-prefix? " tests" (substring str k len))))
+                          (string->number (substring str j k))]
+                         [else #f]))]
+                    [(char-whitespace? (string-ref str j)) (num-loop (+ j 1))]
+                    [else #f]))])
+           ;; If this dash didn't match, continue searching for next dash
+           (or result (loop (+ i 1))))]
         [else (loop (+ i 1))]))))
 
 (doc 'section 'repl-interface)
