@@ -501,6 +501,10 @@
 ;;;
 ;;; Invariant: R1 - R0 = P throughout the computation.
 ;;;
+;;; TIMING FIX: Loop always iterates bit-length(n) times where n is the
+;;; curve order, not bit-length(k). This prevents MSB timing leaks that
+;;; would reveal information about the scalar's bit length.
+;;;
 ;;; Note on "constant-time": This implementation follows the constant-time
 ;;; *algorithm* (same operations for all scalar bit patterns), but Scheme
 ;;; interpreter-level timing may still vary. For production cryptography,
@@ -529,11 +533,13 @@
        (if (= k-reduced 0)
            ec-infinity  ; k was a multiple of n
            ;; Montgomery Ladder in Jacobian coordinates
+           ;; CRITICAL: Always iterate bit-length(n) times, not bit-length(k)
+           ;; This prevents timing leaks that reveal the scalar's MSB position
            (let ([jP (ec-to-jacobian P)]
-                 [nbits (bit-length k-reduced)])
+                 [nbits (bit-length n)])  ; Fixed iteration count based on curve order
              (ec-from-jacobian
               curve
-              (let loop ([i (- nbits 1)]   ; Start from MSB
+              (let loop ([i (- nbits 1)]   ; Start from MSB of curve order
                          [R0 ec-jacobian-infinity]
                          [R1 jP])
                 (if (< i 0)
