@@ -168,10 +168,15 @@
 (define *adaptive-min-scale* 0.2)  ; Don't shrink by more than 5x
 (define *adaptive-max-scale* 5.0)  ; Don't grow by more than 5x
 
-;;; dp-geodesic-step : Metric × GeodesicState × Num → (GeodesicState × GeodesicState × Num)
+;;; dp-geodesic-step : Metric × GeodesicState × Num × [k1-cache] → (GeodesicState × GeodesicState × Num × k7)
 ;;; Single Dormand-Prince step returning both 5th and 4th order results.
-;;; Returns (y5, y4, err-norm) where err-norm = ||y5 - y4||.
-(define (dp-geodesic-step metric state dt)
+;;; Returns (y5, y4, err-norm, k7) where:
+;;;   - err-norm = ||y5 - y4||
+;;;   - k7 = derivative at (x5, v5), which can be reused as k1 of next step (FSAL)
+;;;
+;;; FSAL optimization: If k1-cache is provided as (kx1 . kv1), use it instead of
+;;; recomputing the derivative. This saves one derivative evaluation per step.
+(define (dp-geodesic-step metric state dt . k1-cache)
   (let* ([x0 (geodesic-state-coords state)]
          [v0 (geodesic-state-velocity state)]
          [n (vector-length x0)]
@@ -179,10 +184,14 @@
          [kx (make-vector 7 #f)]
          [kv (make-vector 7 #f)])
 
-    ;; Compute k1
-    (let ([d1 (geodesic-derivative metric state)])
-      (vector-set! kx 0 (car d1))
-      (vector-set! kv 0 (cdr d1)))
+    ;; FSAL: Use cached k1 if provided, otherwise compute fresh
+    (if (and (not (null? k1-cache)) (car k1-cache))
+        (let ([cached (car k1-cache)])
+          (vector-set! kx 0 (car cached))
+          (vector-set! kv 0 (cdr cached)))
+        (let ([d1 (geodesic-derivative metric state)])
+          (vector-set! kx 0 (car d1))
+          (vector-set! kv 0 (cdr d1))))
 
     ;; Compute k2 through k7
     (do ([i 1 (+ i 1)])
@@ -224,10 +233,14 @@
         ;; Error estimate: ||y5 - y4||
         (let* ([err-x (vec-sub x5 x4)]
                [err-v (vec-sub v5 v4)]
-               [err-norm (max (vec-norm err-x) (vec-norm err-v))])
+               [err-norm (max (vec-norm err-x) (vec-norm err-v))]
+               ;; FSAL: k7 becomes k1 of next step
+               ;; k7 is the derivative at (x5, v5), which is where we ended up
+               [k7 (cons (vector-ref kx 6) (vector-ref kv 6))])
           (list (make-geodesic-state x5 v5)
                 (make-geodesic-state x4 v4)
-                err-norm))))))
+                err-norm
+                k7))))))
 
 ;;; adaptive-step-size : Num × Num × Num × Nat → Num
 ;;; Compute new step size based on error.
@@ -243,30 +256,39 @@
                                 (min *adaptive-max-scale* scale))])
         (* dt bounded-scale))))
 
-;;; adaptive-geodesic-step : Metric × GeodesicState × Num × Num → (GeodesicState × Num × Nat)
+;;; adaptive-geodesic-step : Metric × GeodesicState × Num × Num × [k1-cache] → (GeodesicState × Num × Num × Nat × k7)
 ;;; Take one adaptive step with error control.
-;;; Returns (new-state, actual-dt, n-rejects) where n-rejects is number of step rejections.
-(define (adaptive-geodesic-step metric state dt tol)
+;;; Returns (new-state, actual-dt, suggested-dt, n-rejects, k7-cache) where:
+;;;   - n-rejects is number of step rejections
+;;;   - k7-cache can be passed as k1-cache to the next step (FSAL optimization)
+;;;
+;;; FSAL optimization: When a step is accepted, k7 from the step equals k1 of
+;;; the next step. This saves one derivative evaluation per accepted step.
+;;; When a step is rejected, k1 must be recomputed (k1-cache becomes invalid).
+(define (adaptive-geodesic-step metric state dt tol . k1-cache-opt)
   (doc 'export #t)
-  (doc 'type '(-> Metric GeodesicState Num Num (List GeodesicState Num Nat)))
-  (doc 'description "Single adaptive RK5(4) step with error control")
-  (let loop ([h dt] [rejects 0])
-    (let* ([result (dp-geodesic-step metric state h)]
+  (doc 'type '(-> Metric GeodesicState Num Num (Optional (Pair Vec Vec)) (List GeodesicState Num Num Nat (Pair Vec Vec))))
+  (doc 'description "Single adaptive RK5(4) step with error control and FSAL optimization")
+  (let loop ([h dt] [rejects 0] [k1-cache (if (null? k1-cache-opt) #f (car k1-cache-opt))])
+    (let* ([result (dp-geodesic-step metric state h k1-cache)]
            [y5 (car result)]
-           [_ (cadr result)]   ; y4 not used after error computed
-           [err (caddr result)])
+           [_ (cadr result)]    ; y4 not used after error computed
+           [err (caddr result)]
+           [k7 (cadddr result)])
       (if (<= err tol)
-          ;; Accept step
+          ;; Accept step - k7 becomes k1 of next step
           (let ([h-new (adaptive-step-size h err tol 5)])
-            (list y5 h h-new rejects))
+            (list y5 h h-new rejects k7))
           ;; Reject step, try smaller
+          ;; Note: k1-cache is invalidated because we're retrying at same point with smaller step
+          ;; but the derivative at the starting point is the same, so we can keep k1-cache
           (let ([h-new (adaptive-step-size h err tol 5)])
             ;; Protect against too many rejections
             (if (< h-new (* h 0.001))
                 (begin
                   ;; Step too small, accept anyway with warning
-                  (list y5 h h rejects))
-                (loop h-new (+ rejects 1))))))))
+                  (list y5 h h rejects k7))
+                (loop h-new (+ rejects 1) k1-cache)))))))
 
 ;;; ============================================================================
 ;;; Adaptive Geodesic Tracing
@@ -276,12 +298,14 @@
 (doc trace-geodesic-adaptive 'description "Trace geodesic with adaptive step-size control")
 (doc trace-geodesic-adaptive 'param "tol: local error tolerance (default 1e-8)")
 (doc trace-geodesic-adaptive 'param "Returns list of states at actual integration points")
+(doc trace-geodesic-adaptive 'note "Uses FSAL optimization to reuse derivative between steps")
 (define (trace-geodesic-adaptive metric initial-coords initial-velocity T tol)
   (doc 'export #t)
   (let* ([state0 (make-geodesic-state initial-coords initial-velocity)]
          [dt0 (/ T 10)]  ; Initial step guess: 1/10 of total time
          [min-dt (* T 1e-10)])  ; Minimum step size
-    (let loop ([state state0] [t 0] [dt dt0] [states (list state0)] [total-rejects 0])
+    ;; k1-cache starts as #f (compute fresh on first step)
+    (let loop ([state state0] [t 0] [dt dt0] [states (list state0)] [total-rejects 0] [k1-cache #f])
       (if (>= t T)
           (reverse states)
           ;; Don't overshoot the end
@@ -289,39 +313,47 @@
             (if (< h min-dt)
                 ;; Time remaining is negligible, done
                 (reverse states)
-                (let* ([result (adaptive-geodesic-step metric state h tol)]
+                ;; FSAL: pass k1-cache from previous step's k7
+                (let* ([result (adaptive-geodesic-step metric state h tol k1-cache)]
                        [new-state (car result)]
                        [actual-h (cadr result)]
                        [suggested-h (caddr result)]
-                       [rejects (cadddr result)])
+                       [rejects (cadddr result)]
+                       [k7 (car (cddddr result))])  ; k7 becomes next step's k1
                   (loop new-state
                         (+ t actual-h)
                         suggested-h
                         (cons new-state states)
-                        (+ total-rejects rejects)))))))))
+                        (+ total-rejects rejects)
+                        k7))))))))
 
 ;;; trace-geodesic-adaptive-final : Metric × Vec × Vec × Num × Num → GeodesicState
 ;;; Trace geodesic adaptively and return only final state.
+;;; Uses FSAL optimization to reuse derivative between steps.
 (define (trace-geodesic-adaptive-final metric initial-coords initial-velocity T tol)
   (doc 'export #t)
   (let* ([state0 (make-geodesic-state initial-coords initial-velocity)]
          [dt0 (/ T 10)]
          [min-dt (* T 1e-10)])
-    (let loop ([state state0] [t 0] [dt dt0])
+    ;; k1-cache starts as #f (compute fresh on first step)
+    (let loop ([state state0] [t 0] [dt dt0] [k1-cache #f])
       (if (>= t T)
           state
           (let ([h (min dt (- T t))])
             (if (< h min-dt)
                 state
-                (let* ([result (adaptive-geodesic-step metric state h tol)]
+                ;; FSAL: pass k1-cache from previous step's k7
+                (let* ([result (adaptive-geodesic-step metric state h tol k1-cache)]
                        [new-state (car result)]
                        [actual-h (cadr result)]
-                       [suggested-h (caddr result)])
-                  (loop new-state (+ t actual-h) suggested-h))))))))
+                       [suggested-h (caddr result)]
+                       [k7 (car (cddddr result))])
+                  (loop new-state (+ t actual-h) suggested-h k7))))))))
 
 ;;; trace-geodesic-adaptive-at-times : Metric × Vec × Vec × (List Num) × Num → (List GeodesicState)
 ;;; Trace geodesic adaptively but return states at specified times.
 ;;; Uses dense output interpolation when step overshoots a requested time.
+;;; Uses FSAL optimization to reuse derivative between steps.
 (define (trace-geodesic-adaptive-at-times metric initial-coords initial-velocity times tol)
   (doc 'export #t)
   (doc 'type '(-> Metric Vec Vec (List Num) Num (List GeodesicState)))
@@ -333,11 +365,13 @@
              [state0 (make-geodesic-state initial-coords initial-velocity)]
              [dt0 (/ T 10)]
              [min-dt (* T 1e-10)])
+        ;; k1-cache starts as #f (compute fresh on first step)
         (let loop ([state state0]
                    [t 0]
                    [dt dt0]
                    [remaining-times sorted-times]
-                   [results '()])
+                   [results '()]
+                   [k1-cache #f])
           (cond
             [(null? remaining-times) (reverse results)]
             [(>= t T)
@@ -352,21 +386,25 @@
                   (reverse (append (map (lambda (_) state) remaining-times) results))]
                  [(<= next-time t)
                   ;; Time already passed (shouldn't happen with sorted times)
-                  (loop state t dt (cdr remaining-times) (cons state results))]
+                  (loop state t dt (cdr remaining-times) (cons state results) k1-cache)]
                  [(and (> next-time t) (<= next-time (+ t h)))
                   ;; Next requested time is within this step
                   ;; Integrate to that exact time
+                  ;; Note: k1-cache is valid here since we're continuing from same point
                   (let* ([h-exact (- next-time t)]
-                         [result (adaptive-geodesic-step metric state h-exact tol)]
-                         [new-state (car result)])
-                    (loop new-state next-time dt (cdr remaining-times) (cons new-state results)))]
+                         [result (adaptive-geodesic-step metric state h-exact tol k1-cache)]
+                         [new-state (car result)]
+                         [k7 (car (cddddr result))])
+                    (loop new-state next-time dt (cdr remaining-times) (cons new-state results) k7))]
                  [else
                   ;; Normal step, no output time within range
-                  (let* ([result (adaptive-geodesic-step metric state h tol)]
+                  ;; FSAL: pass k1-cache from previous step's k7
+                  (let* ([result (adaptive-geodesic-step metric state h tol k1-cache)]
                          [new-state (car result)]
                          [actual-h (cadr result)]
-                         [suggested-h (caddr result)])
-                    (loop new-state (+ t actual-h) suggested-h remaining-times results))]))])))))
+                         [suggested-h (caddr result)]
+                         [k7 (car (cddddr result))])
+                    (loop new-state (+ t actual-h) suggested-h remaining-times results k7))]))])))))
 
 ;;; ============================================================================
 ;;; Adaptive Exponential and Logarithm Maps
