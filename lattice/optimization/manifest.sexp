@@ -1,7 +1,7 @@
 ;;; lattice/optimization/manifest.sexp — Optimization Skill Manifest
 
 (skill optimization
-  (version "0.5.0")
+  (version "0.6.0")
   (tier 1)
   (path "lattice/optimization")
   (purity total)
@@ -17,8 +17,9 @@
     via branch-and-bound with Gomory cutting planes, interval-based
     global optimization with guaranteed enclosure of the global minimum,
     monotonicity-enhanced optimization using interval gradients for
-    automatic pruning, and constraint contractors for constrained interval
-    optimization.")
+    automatic pruning, constraint contractors for constrained interval
+    optimization, and interval Newton method for guaranteed root finding
+    with existence proofs.")
 
   (keywords (optimization gradient-descent sgd adam newton lbfgs
              minimize convergence line-search numerical
@@ -26,7 +27,8 @@
              integer-programming ilp branch-and-bound knapsack set-cover
              global-optimization interval-branch-and-bound verified-optimization
              constraint-propagation contractors constrained-optimization
-             monotonicity-pruning interval-gradient))
+             monotonicity-pruning interval-gradient
+             root-finding interval-newton bisection krawczyk existence-proof))
   (aliases (optim opt minimize))
 
   (exports
@@ -46,7 +48,16 @@
                       make-bound-contractor make-equality-contractor
                       make-linear-le-contractor make-linear-ge-contractor make-linear-eq-contractor
                       make-sphere-contractor make-box-constraints
-                      contract-all contract-fixpoint))
+                      contract-all contract-fixpoint)
+   (interval-newton interval-newton-step interval-newton-step-rigorous
+                    interval-newton-root interval-find-all-roots
+                    interval-bisection-root
+                    interval-contains-unique-root? interval-contains-no-root?
+                    krawczyk-step
+                    find-root find-all-roots-simple
+                    make-root-result root-result? root-result-roots
+                    root-result-iterations root-result-reason root-result-count
+                    root-result-unique-roots))
 
   (modules
    (line-search "line-search.ss" "Armijo, Wolfe line search strategies")
@@ -58,4 +69,5 @@
    (lp "lp.ss" "Linear programming via two-phase simplex method")
    (ilp "ilp.ss" "Integer linear programming via branch-and-bound")
    (interval-global "interval-global.ss" "Interval branch-and-bound global optimization with monotonicity pruning")
-   (interval-contract "interval-contract.ss" "Constraint contractors for interval optimization")))
+   (interval-contract "interval-contract.ss" "Constraint contractors for interval optimization")
+   (interval-newton "interval-newton.ss" "Interval Newton method for guaranteed root finding with existence proofs")))
