@@ -110,7 +110,7 @@
          (apply append
                 (map (lambda (c w)
                        (let ([ranking (criterion-ranking dp c)]
-                             [votes (max 1 (round w))])
+                             [votes (max 1 (exact (round w)))])
                          (make-list votes ranking)))
                      criteria weights))))))
 
