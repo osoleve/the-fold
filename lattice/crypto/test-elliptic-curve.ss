@@ -100,6 +100,66 @@
       (assert-true (ec-equal? result-jac result-aff))))
 
   ;; -------------------------------------------------------------------------
+  ;; Montgomery Ladder (constant-time scalar multiplication)
+  ;; -------------------------------------------------------------------------
+
+  (define-test "montgomery ladder basic"
+    ;; 0 * G = infinity
+    (assert-true (ec-infinity? (ec-mul-montgomery test-curve 0 test-G)))
+    ;; 1 * G = G
+    (assert-true (ec-equal? test-G (ec-mul-montgomery test-curve 1 test-G)))
+    ;; 2 * G matches doubling
+    (let ([2G-montgomery (ec-mul-montgomery test-curve 2 test-G)]
+          [2G-double (ec-double test-curve test-G)])
+      (assert-true (ec-equal? 2G-montgomery 2G-double))))
+
+  (define-test "montgomery vs double-and-add"
+    ;; Montgomery and double-and-add should produce identical results
+    (let ([k1 17]
+          [k2 99]
+          [k3 12345])
+      ;; Various scalar values
+      (assert-true (ec-equal? (ec-mul test-curve k1 test-G)
+                              (ec-mul-montgomery test-curve k1 test-G)))
+      (assert-true (ec-equal? (ec-mul test-curve k2 test-G)
+                              (ec-mul-montgomery test-curve k2 test-G)))
+      (assert-true (ec-equal? (ec-mul test-curve k3 test-G)
+                              (ec-mul-montgomery test-curve k3 test-G)))))
+
+  (define-test "montgomery negative scalar"
+    ;; (-k)*G = -(k*G)
+    (let ([neg5-G (ec-mul-montgomery test-curve -5 test-G)]
+          [5G-neg (ec-negate test-curve (ec-mul-montgomery test-curve 5 test-G))])
+      (assert-true (ec-equal? neg5-G 5G-neg))))
+
+  (define-test "montgomery with infinity"
+    ;; k * O = O for any k
+    (assert-true (ec-infinity? (ec-mul-montgomery test-curve 42 ec-infinity))))
+
+  (define-test "ec-mul-secure alias"
+    ;; ec-mul-secure should be an alias for ec-mul-montgomery
+    (let ([result-montgomery (ec-mul-montgomery test-curve 73 test-G)]
+          [result-secure (ec-mul-secure test-curve 73 test-G)])
+      (assert-true (ec-equal? result-montgomery result-secure))))
+
+  (define-test "montgomery on secp256k1"
+    ;; Test Montgomery on a real curve
+    (let* ([G (ec-G secp256k1)]
+           [k 12345678901234567890]
+           [result-daa (ec-mul secp256k1 k G)]
+           [result-mont (ec-mul-montgomery secp256k1 k G)])
+      (assert-true (ec-on-curve? secp256k1 result-mont))
+      (assert-true (ec-equal? result-daa result-mont))))
+
+  (define-test "montgomery pubkey consistency"
+    ;; ec-pubkey now uses Montgomery internally - verify consistency
+    (let* ([privkey 42]
+           [pubkey (ec-pubkey test-curve privkey)]
+           [pubkey-daa (ec-mul test-curve privkey (ec-G test-curve))])
+      ;; Both should give same result
+      (assert-true (ec-equal? pubkey pubkey-daa))))
+
+  ;; -------------------------------------------------------------------------
   ;; Point compression
   ;; -------------------------------------------------------------------------
 

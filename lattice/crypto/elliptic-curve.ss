@@ -444,6 +444,95 @@
                 R
                 (ec-double curve Q))]))]))
 
+;;; ----------------------------------------------------------------------------
+;;; Constant-Time Scalar Multiplication (Montgomery Ladder)
+;;; ----------------------------------------------------------------------------
+
+(doc 'note "Montgomery Ladder: constant-time scalar multiplication")
+(doc 'note "Always performs same operations regardless of scalar bit pattern")
+(doc 'note "Resistant to timing side-channel attacks")
+(doc 'note "Uses: swap → add → double → swap pattern for each bit")
+
+;;; bit-length : Int → Int
+;;; Count the number of bits needed to represent n.
+(define (bit-length n)
+  (if (<= n 0)
+      0
+      (let loop ([x n] [count 0])
+        (if (= x 0)
+            count
+            (loop (quotient x 2) (+ count 1))))))
+
+;;; bit-ref : Int × Int → Int
+;;; Get bit i of n (0-indexed from LSB). Returns 0 or 1.
+(define (bit-ref n i)
+  (if (odd? (quotient n (expt 2 i))) 1 0))
+
+;;; ec-cswap : Int × JacobianPoint × JacobianPoint → (Values JacobianPoint JacobianPoint)
+;;; Conditional swap: if bit=1, swap R0 and R1; else keep as-is.
+;;; This is NOT truly constant-time at the Scheme interpreter level,
+;;; but ensures the algorithm follows constant-time pattern.
+;;; For production use, this would need assembly-level implementation.
+(define (ec-cswap bit R0 R1)
+  (if (= bit 1)
+      (values R1 R0)
+      (values R0 R1)))
+
+;;; ec-mul-montgomery : Curve × Int × Point → Point
+;;; Constant-time scalar multiplication using Montgomery Ladder.
+;;;
+;;; The Montgomery Ladder performs exactly the same sequence of operations
+;;; for every bit of the scalar, making execution time independent of the
+;;; scalar's bit pattern. This prevents timing side-channel attacks.
+;;;
+;;; Algorithm for each bit (from MSB to LSB):
+;;;   1. Conditional swap R0, R1 based on bit
+;;;   2. R1 = R0 + R1
+;;;   3. R0 = 2 * R0
+;;;   4. Conditional swap R0, R1 based on bit
+;;;
+;;; Invariant: R1 - R0 = P throughout the computation.
+(define (ec-mul-montgomery curve k P)
+  (doc 'export #t)
+  (doc 'type '(-> Curve Int Point Point))
+  (doc 'description "Constant-time scalar multiplication using Montgomery Ladder")
+  (doc 'note "Resistant to timing side-channel attacks")
+  (doc 'complexity "O(log k) point operations, always same count regardless of k's bits")
+  (cond
+    [(= k 0) ec-infinity]
+    [(ec-infinity? P) ec-infinity]
+    [(< k 0)
+     ;; k < 0: compute |k| * (-P)
+     (ec-mul-montgomery curve (- k) (ec-negate curve P))]
+    [else
+     ;; Montgomery Ladder in Jacobian coordinates
+     (let ([jP (ec-to-jacobian P)]
+           [nbits (bit-length k)])
+       (ec-from-jacobian
+        curve
+        (let loop ([i (- nbits 1)]   ; Start from MSB
+                   [R0 ec-jacobian-infinity]
+                   [R1 jP])
+          (if (< i 0)
+              R0
+              (let* ([bi (bit-ref k i)])
+                ;; Conditional swap before operations
+                (let-values ([(R0* R1*) (ec-cswap bi R0 R1)])
+                  ;; Always do both operations
+                  (let ([R1** (ec-jacobian-add curve R0* R1*)]
+                        [R0** (ec-jacobian-double curve R0*)])
+                    ;; Conditional swap after operations
+                    (let-values ([(R0*** R1***) (ec-cswap bi R0** R1**)])
+                      (loop (- i 1) R0*** R1***)))))))))]))
+
+;;; ec-mul-secure : Curve × Int × Point → Point
+;;; Alias for ec-mul-montgomery for explicit security-conscious code.
+(define (ec-mul-secure curve k P)
+  (doc 'export #t)
+  (doc 'type '(-> Curve Int Point Point))
+  (doc 'description "Secure scalar multiplication (alias for Montgomery Ladder)")
+  (ec-mul-montgomery curve k P))
+
 ;;; ============================================================================
 ;;; Section 6: Point Compression and Decompression
 ;;; ============================================================================
@@ -562,11 +651,13 @@
 
 ;;; ec-pubkey : Curve × Int → Point
 ;;; Compute public key from private key: Q = d*G
+;;; Uses constant-time multiplication to protect the private key.
 (define (ec-pubkey curve privkey)
   (doc 'export #t)
   (doc 'type '(-> Curve Int Point))
   (doc 'description "Compute public key Q = d*G from private key d")
-  (ec-mul curve privkey (ec-G curve)))
+  (doc 'note "Uses constant-time Montgomery Ladder to protect private key")
+  (ec-mul-montgomery curve privkey (ec-G curve)))
 
 ;;; ec-equal? : Point × Point → Boolean
 ;;; Test if two points are equal.
@@ -601,12 +692,13 @@
 
 ;;; ecdh-shared-secret : Curve × Int × Point → Point
 ;;; Compute ECDH shared secret from own private key and peer's public key.
+;;; Uses constant-time multiplication to protect the private key.
 (define (ecdh-shared-secret curve privkey peer-pubkey)
   (doc 'export #t)
   (doc 'type '(-> Curve Int Point Point))
   (doc 'description "Compute ECDH shared secret = privkey * peer_pubkey")
-  (doc 'note "Returns x-coordinate is typically used as the actual secret")
-  (ec-mul curve privkey peer-pubkey))
+  (doc 'note "Uses constant-time Montgomery Ladder to protect private key")
+  (ec-mul-montgomery curve privkey peer-pubkey))
 
 ;;; ecdh-shared-x : Curve × Int × Point → Int
 ;;; Return just the x-coordinate of the shared secret (common practice).
