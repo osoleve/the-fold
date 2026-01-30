@@ -385,11 +385,19 @@
 
 ;;; ec-mul : Curve × Int × Point → Point
 ;;; Scalar multiplication using double-and-add in Jacobian coordinates.
+;;;
+;;; WARNING: This implementation is NOT constant-time. The execution time
+;;; depends on the bit pattern of scalar k, making it vulnerable to timing
+;;; side-channel attacks. Do NOT use with secret scalars in production
+;;; cryptographic applications. For secure implementations, use Montgomery
+;;; Ladder or fixed-window methods with constant-time lookups.
+;;; See BBS issue fold-zxup for constant-time implementation tracking.
 (define (ec-mul curve k P)
   (doc 'export #t)
   (doc 'type '(-> Curve Int Point Point))
   (doc 'description "Scalar multiplication k*P using double-and-add")
   (doc 'complexity "O(log k) point operations")
+  (doc 'note "WARNING: Not constant-time - vulnerable to timing attacks with secret scalars")
   (cond
     [(= k 0) ec-infinity]
     [(ec-infinity? P) ec-infinity]

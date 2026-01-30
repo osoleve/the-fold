@@ -231,13 +231,14 @@
 
 ;;; adaptive-step-size : Num × Num × Num × Nat → Num
 ;;; Compute new step size based on error.
-;;; Uses PI controller formula: h_new = h * safety * (tol/err)^(1/5)
-;;; where 1/5 is for 5th order method.
+;;; Uses PI controller formula: h_new = h * safety * (tol/err)^(1/p)
+;;; where p is the order of the error estimate (5 for RK5(4)).
 (define (adaptive-step-size dt err tol order)
   (if (= err 0)
       (* dt *adaptive-max-scale*)  ; Error is zero, can grow aggressively
       (let* ([ratio (/ tol err)]
-             [scale (* *adaptive-safety* (expt ratio (/ 1.0 (+ order 1))))]
+             ;; Standard scaling: err ~ h^p, so h_new/h = (tol/err)^(1/p)
+             [scale (* *adaptive-safety* (expt ratio (/ 1.0 order)))]
              [bounded-scale (max *adaptive-min-scale*
                                 (min *adaptive-max-scale* scale))])
         (* dt bounded-scale))))
