@@ -282,6 +282,69 @@
            [aff-3G (ec-add test-curve test-G 2G)])
       (assert-true (ec-equal? aff-3G (ec-from-jacobian test-curve jac-3G)))))
 
+  ;; -------------------------------------------------------------------------
+  ;; Boundary scalar tests (fold-zxuu)
+  ;; Tests for scalars at and around the curve order n
+  ;; These verify correct handling of edge cases in scalar multiplication
+  ;; -------------------------------------------------------------------------
+
+  (define-test "scalar n gives infinity"
+    ;; n*G = O (by definition of curve order)
+    (let ([n (ec-n test-curve)])
+      (assert-true (ec-infinity? (ec-mul test-curve n test-G)))
+      (assert-true (ec-infinity? (ec-mul-montgomery test-curve n test-G)))))
+
+  (define-test "scalar n-1 gives negation of G"
+    ;; (n-1)*G = -G since n*G = O, so (n-1)*G + G = O → (n-1)*G = -G
+    (let* ([n (ec-n test-curve)]
+           [neg-G (ec-negate test-curve test-G)]
+           [result-daa (ec-mul test-curve (- n 1) test-G)]
+           [result-mont (ec-mul-montgomery test-curve (- n 1) test-G)])
+      (assert-true (ec-equal? neg-G result-daa))
+      (assert-true (ec-equal? neg-G result-mont))))
+
+  (define-test "scalar n+1 wraps to G"
+    ;; (n+1)*G = G since n*G = O, so (n+1)*G = n*G + G = O + G = G
+    (let* ([n (ec-n test-curve)]
+           [result-daa (ec-mul test-curve (+ n 1) test-G)]
+           [result-mont (ec-mul-montgomery test-curve (+ n 1) test-G)])
+      (assert-true (ec-equal? test-G result-daa))
+      (assert-true (ec-equal? test-G result-mont))))
+
+  (define-test "scalar 2n gives infinity"
+    ;; 2n*G = 2*(n*G) = 2*O = O
+    (let ([n (ec-n test-curve)])
+      (assert-true (ec-infinity? (ec-mul test-curve (* 2 n) test-G)))
+      (assert-true (ec-infinity? (ec-mul-montgomery test-curve (* 2 n) test-G)))))
+
+  (define-test "scalar n-2 gives -(2G)"
+    ;; (n-2)*G = -2G
+    (let* ([n (ec-n test-curve)]
+           [neg-2G (ec-negate test-curve (ec-mul test-curve 2 test-G))]
+           [result (ec-mul-montgomery test-curve (- n 2) test-G)])
+      (assert-true (ec-equal? neg-2G result))))
+
+  (define-test "secp256k1 boundary scalars"
+    ;; Test boundary scalars on a real cryptographic curve
+    (let* ([n (ec-n secp256k1)]
+           [G (ec-G secp256k1)]
+           [neg-G (ec-negate secp256k1 G)])
+      ;; n*G = O
+      (assert-true (ec-infinity? (ec-mul-montgomery secp256k1 n G)))
+      ;; (n-1)*G = -G
+      (assert-true (ec-equal? neg-G (ec-mul-montgomery secp256k1 (- n 1) G)))
+      ;; (n+1)*G = G
+      (assert-true (ec-equal? G (ec-mul-montgomery secp256k1 (+ n 1) G)))))
+
+  (define-test "scalar reduction modulo n"
+    ;; Verify that large scalars are correctly reduced mod n
+    ;; k*G = (k mod n)*G for any k
+    (let* ([n (ec-n test-curve)]
+           [k 12345]
+           [k-large (+ k (* 7 n))])  ; k + 7n ≡ k (mod n)
+      (assert-true (ec-equal? (ec-mul-montgomery test-curve k test-G)
+                              (ec-mul-montgomery test-curve k-large test-G)))))
+
 ) ; end test-group
 
 (run-all-tests)
