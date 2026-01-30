@@ -352,7 +352,7 @@
 
 ;;; trace-geodesic-adaptive-at-times : Metric × Vec × Vec × (List Num) × Num → (List GeodesicState)
 ;;; Trace geodesic adaptively but return states at specified times.
-;;; Uses dense output interpolation when step overshoots a requested time.
+;;; When a requested time falls within the current step, integrates to that exact time.
 ;;; Uses FSAL optimization to reuse derivative between steps.
 (define (trace-geodesic-adaptive-at-times metric initial-coords initial-velocity times tol)
   (doc 'export #t)
