@@ -1,106 +1,59 @@
 ((title . "Pipeline Framework")
- (version . "0.1.0")
- (status . "alpha")
-
- (description . "Composable pipeline framework for multi-stage agent workflows.
-Pipelines are pure S-expressions composed via Arrow-style operators.
-Effects are interpreted by the boundary layer.")
-
- (modules
+(version . "0.1.0")
+(status . "alpha")
+(description . "Composable pipeline framework for multi-stage agent workflows.\nPipelines are pure S-expressions composed via Arrow-style operators.\nEffects are interpreted by the boundary layer.")
+(modules 
   ((stage.ss . "Core stage algebra - StageResult, composition operators")
-   (effects.ss . "Effect definitions - LLM, shell, Fold, HTTP, etc.")
-   (context.ss . "Pipeline context and state records")
-   (council.ss . "Multi-model deliberation primitives")
-   (council-voting.ss . "Ranked-choice voting integration for councils")
-   (dsl.ss . "User-facing pipeline DSL")))
-
- (shell-modules
+  (effects.ss . "Effect definitions - LLM, shell, Fold, HTTP, etc.")
+  (context.ss . "Pipeline context and state records")
+  (council.ss . "Multi-model deliberation primitives")
+  (council-voting.ss . "Ranked-choice voting integration for councils")
+  (dsl.ss . "User-facing pipeline DSL")))
+(shell-modules 
   ((interpreter.ss . "Effect interpreter - executes pipelines with real IO")))
-
- (key-concepts
+(key-concepts 
   ((Stage . "ctx -> input -> StageResult output")
-   (StageResult . "ok | err | retry | skip | halt | await")
-   (>>> . "Sequential composition")
-   (&&& . "Parallel fanout")
-   (||| . "Choice routing")
-   (Effect . "Staged IO operation for interpreter")
-   (Council . "Multi-model deliberation pattern")))
-
- (quick-start
-  "
-;; Load the DSL
-(load \"lattice/pipeline/dsl.ss\")
-
-;; Define a simple pipeline
-(define my-pipeline
-  (define-pipeline* 'example
-    (config (cons 'model 'sonnet))
-    (chain
-      (log \"Starting\")
-      (ask-llm 'sonnet \"Process: ${input}\")
-      (log \"Done\"))))
-
-;; Run it
-(run-pipeline my-pipeline \"Hello world\")
-  ")
-
- (composition-examples
+  (StageResult . "ok | err | retry | skip | halt | await") (">>>" . "Sequential composition") ("&&&" . "Parallel fanout") ("|||" . "Choice routing")
+  (Effect . "Staged IO operation for interpreter")
+  (Council . "Multi-model deliberation pattern")))
+(quick-start "\n;; Load the DSL\n(load \"lattice/pipeline/dsl.ss\")\n\n;; Define a simple pipeline\n(define my-pipeline\n  (define-pipeline* 'example\n    (config (cons 'model 'sonnet))\n    (chain\n      (log \"Starting\")\n      (ask-llm 'sonnet \"Process: ${input}\")\n      (log \"Done\"))))\n\n;; Run it\n(run-pipeline my-pipeline \"Hello world\")\n  ")
+(composition-examples 
   ((sequential . "(>>> stage1 stage2 stage3)")
-   (parallel . "(&&& score-safety score-depth)")
-   (conditional . "(stage-if pred? then-stage else-stage)")
-   (error-handling . "(stage-catch handler risky-stage)")
-   (mapping . "(map-stage (ask-llm 'haiku \"Summarize: ${input}\"))")))
-
- (council-patterns
+  (parallel . "(&&& score-safety score-depth)")
+  (conditional . "(stage-if pred? then-stage else-stage)")
+  (error-handling . "(stage-catch handler risky-stage)")
+  (mapping . "(map-stage (ask-llm 'haiku \"Summarize: ${input}\"))")))
+(council-patterns 
   ((sequential . "(council-sequential '(opus gemini-3) 3 'opus)")
-   (parallel . "(council-parallel '(sonnet gemini-3 kimi) 'opus)")
-   (debate . "(council-debate 'opus 'gemini-3 'sonnet)")
-   (vote . "(council-vote '(opus sonnet haiku) options)")
-   (consensus . "(council-consensus '(opus gemini-3) 5)")
-   ;; Ranked voting patterns (from council-voting.ss)
-   (ranked-schulze . "(council-schulze '(opus sonnet gemini-3) proposals)")
-   (ranked-borda . "(council-borda voters proposals)")
-   (ranked-condorcet . "(council-condorcet voters proposals)")
-   (deliberation . "(deliberate (code-review-deliberation reviewers verdicts))")))
-
- (effect-types
+  (parallel . "(council-parallel '(sonnet gemini-3 kimi) 'opus)")
+  (debate . "(council-debate 'opus 'gemini-3 'sonnet)")
+  (vote . "(council-vote '(opus sonnet haiku) options)")
+  (consensus . "(council-consensus '(opus gemini-3) 5)")
+  (ranked-schulze . "(council-schulze '(opus sonnet gemini-3) proposals)")
+  (ranked-borda . "(council-borda voters proposals)")
+  (ranked-condorcet . "(council-condorcet voters proposals)")
+  (deliberation . "(deliberate (code-review-deliberation reviewers verdicts))")))
+(effect-types 
   ((llm . "Call language models")
-   (fold . "Execute Fold expressions")
-   (shell . "Run shell commands")
-   (store . "Content-addressed storage")
-   (log . "Pipeline logging")
-   (checkpoint . "Save/restore state")
-   (http . "HTTP requests")
-   (await . "Wait for external signals")
-   (bbs . "Issue tracker (BBS) integration")
-   (git . "Git operations")
-   (pipeline . "Invoke sub-pipelines")))
-
- (fsm-example
-  "
-(define my-fsm
-  (fsm-pipeline
-   (list
-    (list 'start start-stage (cons 'ok 'process))
-    (list 'process process-stage
-          (cons 'ok 'done)
-          (cons 'error 'start))
-    (list 'done done-stage (cons 'ok 'accept)))
-   'start
-   '(accept)))
-  ")
-
- (concrete-pipelines
+  (fold . "Execute Fold expressions")
+  (shell . "Run shell commands")
+  (store . "Content-addressed storage")
+  (log . "Pipeline logging")
+  (checkpoint . "Save/restore state")
+  (http . "HTTP requests")
+  (await . "Wait for external signals")
+  (bbs . "Issue tracker (BBS) integration")
+  (git . "Git operations")
+  (pipeline . "Invoke sub-pipelines")))
+(fsm-example "\n(define my-fsm\n  (fsm-pipeline\n   (list\n    (list 'start start-stage (cons 'ok 'process))\n    (list 'process process-stage\n          (cons 'ok 'done)\n          (cons 'error 'start))\n    (list 'done done-stage (cons 'ok 'accept)))\n   'start\n   '(accept)))\n  ")
+(concrete-pipelines 
   ((arxiv.ss . "ArXiv paper ingestion - fetch/filter/summarize/post")
-   (feature-dev.ss . "Feature development FSM - plan/dev/QA/test/dogfood/ship")
-   (tech-debt.ss . "Tech debt review - periodic code health checks")
-   (council.ss . "General council wrapper for deliberation")))
-
- (testing . "scheme --script core/pipeline/tests/test-stage.ss")
-
- (dependencies
-  ((internal . ("prelude.ss" "fp/combinators.ss"))
-   (shell . ("boundary/fs.ss" "boundary/repl-daemon.ss"))))
-
- (tier . shepherd)
- (authority . "May be modified by Shepherd tier and above"))
+  (feature-dev.ss . "Feature development FSM - plan/dev/QA/test/dogfood/ship")
+  (tech-debt.ss . "Tech debt review - periodic code health checks")
+  (council.ss . "General council wrapper for deliberation")))
+(testing . "scheme --script core/pipeline/tests/test-stage.ss")
+(dependencies 
+  ((internal "prelude.ss" "fp/combinators.ss")
+  (shell "boundary/fs.ss" "boundary/repl-daemon.ss")))
+(tier . shepherd)
+(authority . "May be modified by Shepherd tier and above"))
