@@ -353,17 +353,15 @@
       [(>= t t-end) (reverse results)]
       [(>= steps max-steps) (reverse results)]
       [else
-       (let* ([dt-clamped (min dt (- t-end t))]
-              [result (adaptive-euler-step f u t dt-clamped tol safety)]
-              [u-new (car result)]
-              [dt-new (cadr result)]
-              [error (caddr result)])
-         (if (< error tol)
-             ;; Accept step
-             (loop (+ t dt-clamped) u-new dt-new (+ steps 1)
-                   (cons (cons (+ t dt-clamped) (vector-copy u-new)) results))
-             ;; Reject step, try again with smaller dt
-             (loop t u (/ dt 2) steps results)))])))
+       (let ([dt-clamped (min dt (- t-end t))])
+         (let-values ([(u-new dt-new error)
+                       (adaptive-euler-step f u t dt-clamped tol safety)])
+           (if (< error tol)
+               ;; Accept step
+               (loop (+ t dt-clamped) u-new dt-new (+ steps 1)
+                     (cons (cons (+ t dt-clamped) (vector-copy u-new)) results))
+               ;; Reject step, try again with smaller dt
+               (loop t u (/ dt 2) steps results))))])))
 
 ;;; ============================================================
 ;;; Section 9: Sparse Matrix Utilities

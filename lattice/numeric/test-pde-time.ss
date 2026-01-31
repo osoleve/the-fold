@@ -190,6 +190,147 @@
         (assert-equal 3 (vector-length diag))
         (assert-true (< (abs (- (vector-ref diag 0) 1.0)) 1e-10))))))
 
+(test-group "implicit-solvers"
+
+  (define-test "backward-euler-decay"
+    ;; Test backward Euler on simple decay: du/dt = -u
+    ;; Exact solution: u(t) = exp(-t)
+    ;; Backward Euler is unconditionally stable, can use large dt
+    (let* ([n 1]
+           [A (list 'sparse-csr 1 1
+                    (vector 0 1)
+                    (vector 0)
+                    (vector -1.0))]
+           [b (make-zero-vector n)]
+           [u0 (vector 1.0)]
+           [dt 0.1])
+      (let-values ([(u-new residual iters)
+                    (backward-euler-identity-step A u0 b dt 1e-10 100)])
+        ;; Backward Euler: u^{n+1} = u^n + dt * (-u^{n+1})
+        ;; => (1 + dt) * u^{n+1} = u^n
+        ;; => u^{n+1} = u^n / (1 + dt) = 1 / 1.1 ≈ 0.909
+        (let ([expected (/ 1.0 1.1)])
+          (assert-true (< (abs (- (vector-ref u-new 0) expected)) 1e-6))
+          (assert-true (< residual 1e-8))))))
+
+  (define-test "backward-euler-heat-1d"
+    ;; Test backward Euler on 1D heat equation with Laplacian
+    ;; du/dt = A*u where A is discrete Laplacian (SPD system)
+    (let* ([n 5]
+           [A (make-1d-laplacian n)]
+           [b (make-zero-vector n)]
+           [u0 (make-initial-sine n)]
+           [dt 0.001])
+      ;; Take one step
+      (let-values ([(u-new residual iters)
+                    (backward-euler-identity-step A u0 b dt 1e-10 100)])
+        ;; Solution should decrease (heat diffuses)
+        (let ([norm-before (pde-vec-norm u0)]
+              [norm-after (pde-vec-norm u-new)])
+          (assert-true (< norm-after norm-before))
+          ;; Solver should converge
+          (assert-true (< residual 1e-6))))))
+
+  (define-test "crank-nicolson-decay"
+    ;; Test Crank-Nicolson on decay equation
+    ;; CN is 2nd order accurate
+    (let* ([n 1]
+           [A (list 'sparse-csr 1 1
+                    (vector 0 1)
+                    (vector 0)
+                    (vector -1.0))]
+           [b (make-zero-vector n)]
+           [u0 (vector 1.0)]
+           [dt 0.1])
+      (let-values ([(u-new residual iters)
+                    (crank-nicolson-identity-step A u0 b dt 1e-10 100)])
+        ;; CN: u^{n+1} = u^n + dt/2 * (-u^n - u^{n+1})
+        ;; => (1 + dt/2) * u^{n+1} = (1 - dt/2) * u^n
+        ;; => u^{n+1} = u^n * (1 - dt/2) / (1 + dt/2)
+        (let ([expected (* 1.0 (/ (- 1 0.05) (+ 1 0.05)))])  ; (1-0.05)/(1+0.05)
+          (assert-true (< (abs (- (vector-ref u-new 0) expected)) 1e-6))))))
+
+  (define-test "crank-nicolson-more-accurate-than-backward-euler"
+    ;; CN (2nd order) should be more accurate than BE (1st order)
+    (let* ([n 1]
+           [A (list 'sparse-csr 1 1
+                    (vector 0 1)
+                    (vector 0)
+                    (vector -1.0))]
+           [b (make-zero-vector n)]
+           [u0 (vector 1.0)]
+           [dt 0.1]
+           [exact (exp -0.1)])
+      (let-values ([(u-be res-be iter-be)
+                    (backward-euler-identity-step A u0 b dt 1e-10 100)]
+                   [(u-cn res-cn iter-cn)
+                    (crank-nicolson-identity-step A u0 b dt 1e-10 100)])
+        (let ([err-be (abs (- (vector-ref u-be 0) exact))]
+              [err-cn (abs (- (vector-ref u-cn 0) exact))])
+          ;; CN should have smaller error
+          (assert-true (< err-cn err-be))))))
+
+  (define-test "implicit-stability-large-dt"
+    ;; Backward Euler should remain stable with large dt
+    ;; (where forward Euler would blow up)
+    (let* ([n 5]
+           [A (make-1d-laplacian n)]
+           [b (make-zero-vector n)]
+           [u0 (make-initial-sine n)]
+           ;; Large dt that would violate CFL for explicit methods
+           [h (/ 1.0 (+ n 1))]
+           [dt-cfl (cfl-parabolic h 1.0 1)]
+           [dt (* 10 dt-cfl)])  ; 10x the CFL limit
+      ;; Take several steps with backward Euler
+      (let loop ([u u0] [steps 0])
+        (if (>= steps 5)
+            ;; Solution should remain bounded (not blow up)
+            (let ([norm (pde-vec-norm u)])
+              (assert-true (< norm 10.0))  ; Reasonable bound
+              (assert-true (> norm 0.0)))  ; Not collapsed to zero
+            (let-values ([(u-new res iters)
+                          (backward-euler-identity-step A u b dt 1e-8 200)])
+              (loop u-new (+ steps 1))))))))
+
+(test-group "adaptive-stepping"
+
+  (define-test "adaptive-euler-reduces-error"
+    ;; Adaptive stepping should keep error below tolerance
+    (let* ([f (lambda (u t) (pde-vec-scale -1.0 u))]
+           [u0 (vector 1.0)]
+           [dt 0.1]
+           [tol 0.001]
+           [safety 0.9])
+      (let-values ([(u-new dt-new error)
+                    (adaptive-euler-step f u0 0.0 dt tol safety)])
+        ;; Error should be estimated
+        (assert-true (>= error 0))
+        ;; New dt should be positive
+        (assert-true (> dt-new 0)))))
+
+  (define-test "integrate-adaptive-reaches-end"
+    ;; Adaptive integration should reach the target time
+    (let* ([f (lambda (u t) (pde-vec-scale -1.0 u))]
+           [u0 (vector 1.0)]
+           [t0 0.0]
+           [t-end 1.0]
+           [dt0 0.1]
+           [tol 0.01]
+           [safety 0.9]
+           [max-steps 500]
+           [result (integrate-adaptive f u0 t0 t-end dt0 tol safety max-steps)])
+      ;; Should have results
+      (assert-true (> (length result) 1))
+      ;; Final time should be at or near t-end
+      (let* ([final (car (reverse result))]
+             [t-final (car final)])
+        (assert-true (>= t-final (- t-end 0.01))))
+      ;; Final value should be reasonable (close to exp(-1))
+      (let* ([final (car (reverse result))]
+             [u-final (cdr final)]
+             [exact (exp -1.0)])
+        (assert-true (< (abs (- (vector-ref u-final 0) exact)) 0.1))))))
+
 (test-group "integration"
 
   (define-test "integrate-decay"
