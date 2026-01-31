@@ -5,6 +5,7 @@
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/geometry/geometry.ss")
+(load "lattice/data/heap.ss")
 
 (doc 'module 'mesh-gen)
 (doc 'description "Mesh generation: Delaunay triangulation, quality metrics, and refinement")
@@ -293,6 +294,28 @@
                           (make-tri2 (edge-p1 e) (edge-p2 e) point))
                         boundary-edges)])
     (append good-tris new-tris)))
+
+(doc delaunay-insert-point-diff 'type '(-> (List Triangle2) Point2 (Values (List Triangle2) (List Triangle2) (List Triangle2))))
+(doc delaunay-insert-point-diff 'description
+     "Insert point into triangulation, returning diff information.
+      Returns (values new-triangles removed-triangles added-triangles).
+      Used by priority-queue-based refinement to efficiently track changes.")
+(define (delaunay-insert-point-diff triangles point)
+  ;; Find all triangles whose circumcircle contains the point
+  (let* ([bad-tris (filter (lambda (tri) (point-in-circumcircle? point tri))
+                           triangles)]
+         [good-tris (filter (lambda (tri) (not (point-in-circumcircle? point tri)))
+                            triangles)]
+         ;; Collect all edges of bad triangles
+         [all-edges (append-map tri2-edges bad-tris)]
+         ;; Find boundary edges (edges that appear exactly once)
+         [boundary-edges (filter (lambda (e) (= 1 (count-edge e all-edges)))
+                                 all-edges)]
+         ;; Create new triangles by connecting boundary edges to point
+         [new-tris (map (lambda (e)
+                          (make-tri2 (edge-p1 e) (edge-p2 e) point))
+                        boundary-edges)])
+    (values (append good-tris new-tris) bad-tris new-tris)))
 
 ;;; ============================================================
 ;;; Section: Adjacency Building
@@ -826,6 +849,18 @@
   (or (> (tri2-area tri) max-area)
       (custom-pred tri)))
 
+;;; Priority queue comparator: max-heap by area
+;;; Entries are (area . triangle) pairs
+(define (area-entry-cmp a b)
+  (> (car a) (car b)))
+
+;;; Pop from heap with custom comparator (returns values: new-heap, popped-entry)
+(define (heap-pop-by cmp heap)
+  (if (heap-empty? heap)
+      (error 'heap-pop-by "Cannot pop from empty heap")
+      (values (heap-delete-top-by cmp heap)
+              (heap-value heap))))
+
 (doc adaptive-refine-mesh 'export #t)
 (doc adaptive-refine-mesh 'type '(-> (Or (List Triangle2) Triangulation) Number Nat (-> Triangle2 Boolean) Triangulation))
 (doc adaptive-refine-mesh 'description
@@ -833,37 +868,60 @@
       - max-area: triangles larger than this are refined
       - max-iterations: refinement budget
       - should-refine?: custom predicate for additional refinement criteria
-      Inserts circumcenters of triangles needing refinement.")
+      Inserts circumcenters of triangles needing refinement.
+      Uses priority queue for O(log N) per iteration instead of O(N) filtering.")
 (define (adaptive-refine-mesh tris-or-tri max-area max-iterations should-refine?)
   (let* ([triangles (if (triangulation? tris-or-tri)
                         (triangulation-triangles tris-or-tri)
                         tris-or-tri)]
+         ;; Validity set: tracks which triangles are still in the mesh
+         ;; (lazy deletion - triangles removed by Bowyer-Watson are marked invalid)
+         [valid (make-eq-hashtable)]
+         ;; Mark all initial triangles as valid
+         [_ (for-each (lambda (t) (hashtable-set! valid t #t)) triangles)]
+         ;; Build initial max-heap of bad triangles ordered by area
+         [initial-bad (filter (lambda (t) (tri2-should-refine? t max-area should-refine?)) triangles)]
+         [initial-heap (list->heap-by area-entry-cmp
+                                      (map (lambda (t) (cons (tri2-area t) t)) initial-bad))]
+         ;; Main refinement loop using priority queue
          [final-tris
-          (let loop ([tris triangles] [iter 0] [skipped '()])
-            ;; skipped: triangles with degenerate circumcenters (avoid infinite loop)
-            (if (>= iter max-iterations)
-                tris
-                (let* ([skip-set (make-eq-hashtable)]
-                       [_ (for-each (lambda (t) (hashtable-set! skip-set t #t)) skipped)]
-                       [bad-tris (filter (lambda (t)
-                                           (and (tri2-should-refine? t max-area should-refine?)
-                                                (not (hashtable-ref skip-set t #f))))
-                                         tris)])
-                  (if (null? bad-tris)
-                      tris
-                      ;; Refine largest triangle first (linear scan, not sort)
-                      (let* ([worst (fold-left
-                                      (lambda (best tri)
-                                        (if (> (tri2-area tri) (tri2-area best))
-                                            tri
-                                            best))
-                                      (car bad-tris)
-                                      (cdr bad-tris))]
-                             [cc (tri2-circumcenter worst)])
+          (let loop ([tris triangles] [h initial-heap] [iter 0] [skipped-set (make-eq-hashtable)])
+            (cond
+              ;; Budget exhausted
+              [(>= iter max-iterations) tris]
+              ;; No more bad triangles
+              [(heap-empty? h) tris]
+              [else
+               ;; Pop largest bad triangle from heap (using custom comparator)
+               (let-values ([(h2 entry) (heap-pop-by area-entry-cmp h)])
+                 (let ([worst (cdr entry)])
+                   (cond
+                     ;; Triangle was removed by earlier iteration (lazy deletion)
+                     [(not (hashtable-ref valid worst #f))
+                      (loop tris h2 iter skipped-set)]
+                     ;; Triangle was marked as degenerate (skip to avoid busy loop)
+                     [(hashtable-ref skipped-set worst #f)
+                      (loop tris h2 iter skipped-set)]
+                     [else
+                      (let ([cc (tri2-circumcenter worst)])
                         (if cc
-                            (loop (delaunay-insert-point tris cc) (+ iter 1) skipped)
-                            ;; Skip degenerate triangle - add to skip set to avoid busy loop
-                            (loop tris (+ iter 1) (cons worst skipped))))))))]
+                            ;; Insert circumcenter and track changes
+                            (let-values ([(new-tris removed added) (delaunay-insert-point-diff tris cc)])
+                              ;; Mark removed triangles as invalid
+                              (for-each (lambda (t) (hashtable-set! valid t #f)) removed)
+                              ;; Mark added triangles as valid
+                              (for-each (lambda (t) (hashtable-set! valid t #t)) added)
+                              ;; Add bad new triangles to heap (only check new triangles!)
+                              (let* ([new-bad (filter (lambda (t) (tri2-should-refine? t max-area should-refine?)) added)]
+                                     [h3 (fold-left
+                                          (lambda (hp t) (heap-insert-by area-entry-cmp (cons (tri2-area t) t) hp))
+                                          h2
+                                          new-bad)])
+                                (loop new-tris h3 (+ iter 1) skipped-set)))
+                            ;; Degenerate circumcenter - mark triangle to skip
+                            (begin
+                              (hashtable-set! skipped-set worst #t)
+                              (loop tris h2 (+ iter 1) skipped-set))))])))]))]
          [adjacency (build-adjacency final-tris)]
          [boundary (find-boundary-edges final-tris adjacency)]
          [all-pts (let ([ht (make-hashtable equal-hash equal?)])
