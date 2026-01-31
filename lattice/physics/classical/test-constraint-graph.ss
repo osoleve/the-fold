@@ -215,6 +215,73 @@
       (assert-equal 1 (cdr (assq 'islands stats)))
       (assert-equal 2 (cdr (assq 'colors stats))))))
 
+(test-group "topology-analysis"
+
+  (define-test "chain has no cycles (B₁ = 0)"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'd)]
+           [graph (make-constraint-graph (list c1 c2 c3))]
+           [topo (cg-topology-analysis graph)])
+      (assert-equal 4 (cdr (assq 'vertices topo)))
+      (assert-equal 3 (cdr (assq 'edges topo)))
+      (assert-equal 1 (cdr (assq 'betti-0 topo)))   ; 1 connected component
+      (assert-equal 0 (cdr (assq 'betti-1 topo)))   ; No cycles
+      (assert-false (cdr (assq 'has-cycles topo)))))
+
+  (define-test "triangle has one cycle (B₁ = 1)"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'a)]
+           [graph (make-constraint-graph (list c1 c2 c3))]
+           [topo (cg-topology-analysis graph)])
+      (assert-equal 3 (cdr (assq 'vertices topo)))
+      (assert-equal 3 (cdr (assq 'edges topo)))
+      (assert-equal 1 (cdr (assq 'betti-0 topo)))   ; 1 connected component
+      (assert-equal 1 (cdr (assq 'betti-1 topo)))   ; 1 cycle
+      (assert-true (cdr (assq 'has-cycles topo)))))
+
+  (define-test "two disconnected triangles have B₀=2, B₁=2"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'a)]
+           [c4 (mock-constraint 'c4 'd 'e)]
+           [c5 (mock-constraint 'c5 'e 'f)]
+           [c6 (mock-constraint 'c6 'f 'd)]
+           [graph (make-constraint-graph (list c1 c2 c3 c4 c5 c6))]
+           [topo (cg-topology-analysis graph)])
+      (assert-equal 6 (cdr (assq 'vertices topo)))
+      (assert-equal 6 (cdr (assq 'edges topo)))
+      (assert-equal 2 (cdr (assq 'betti-0 topo)))   ; 2 connected components
+      (assert-equal 2 (cdr (assq 'betti-1 topo))))) ; 2 cycles
+
+  (define-test "cg-cycle-count returns correct count"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'a)]
+           [graph (make-constraint-graph (list c1 c2 c3))])
+      (assert-equal 1 (cg-cycle-count graph))))
+
+  (define-test "cycle analysis identifies cycle-breaking constraints"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'a)]
+           [graph (make-constraint-graph (list c1 c2 c3))]
+           [analysis (cg-cycle-analysis graph)])
+      (assert-equal 1 (cdr (assq 'cycle-count analysis)))
+      (assert-true (cdr (assq 'has-cycles analysis)))
+      ;; All 3 constraints participate in the cycle
+      (assert-equal 3 (length (cdr (assq 'cycle-constraints analysis))))))
+
+  (define-test "simplicial complex conversion"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [graph (make-constraint-graph (list c1 c2))]
+           [sc (cg->simplicial-complex graph)])
+      (assert-true (sc? sc))
+      (assert-equal 3 (sc-count-dim sc 0))   ; 3 vertices
+      (assert-equal 2 (sc-count-dim sc 1))))) ; 2 edges
+
 ;;; ============================================================
 ;;; Run Tests
 ;;; ============================================================

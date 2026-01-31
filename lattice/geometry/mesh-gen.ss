@@ -847,10 +847,14 @@
                                         tris)])
                   (if (null? bad-tris)
                       tris
-                      ;; Refine largest triangle first
-                      (let* ([worst (car (sort (lambda (a b)
-                                                 (> (tri2-area a) (tri2-area b)))
-                                               bad-tris))]
+                      ;; Refine largest triangle first (linear scan, not sort)
+                      (let* ([worst (fold-left
+                                      (lambda (best tri)
+                                        (if (> (tri2-area tri) (tri2-area best))
+                                            tri
+                                            best))
+                                      (car bad-tris)
+                                      (cdr bad-tris))]
                              [cc (tri2-circumcenter worst)])
                         (if cc
                             (loop (delaunay-insert-point tris cc) (+ iter 1))

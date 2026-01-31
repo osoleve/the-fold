@@ -489,4 +489,129 @@ Constraints with the same color can be solved in parallel.")
     (printf "  Colors needed:   ~a\n" (cdr (assq 'colors stats)))
     (printf "  Max parallel:    ~a constraints\n" (cdr (assq 'max-parallel stats)))))
 
+;;; ============================================================
+;;; Section 7: Topology Analysis (Cycle Detection)
+;;; ============================================================
+
+(doc 'section 'topology)
+(doc 'description "Topological analysis using homology to detect cycles and redundancy.
+B₁ > 0 indicates cyclic constraints (potential over-constraint or solver instability).")
+
+;; Load topology module for homology computation
+(load "lattice/topology/simplicial-complex.ss")
+(load "lattice/topology/homology.ss")
+
+(doc 'cg->simplicial-complex 'type '(-> ConstraintGraph SimplicialComplex))
+(doc 'cg->simplicial-complex 'description
+     "Convert constraint graph to simplicial complex for homology analysis.
+      Entities become vertices, constraints become edges.")
+(define (cg->simplicial-complex graph)
+  ;; Build vertex list from entity IDs (need numeric indices)
+  (let* ([entities (cg-entities graph)]
+         [entity->idx (make-hashtable equal-hash equal?)]
+         [_ (let loop ([es entities] [i 0])
+              (unless (null? es)
+                (hashtable-set! entity->idx (car es) i)
+                (loop (cdr es) (+ i 1))))]
+         ;; Start with vertices
+         [vertices (map (lambda (e) (vertex (hashtable-ref entity->idx e 0))) entities)]
+         ;; Build edges from constraints (binary constraints only)
+         [edges (filter-map
+                 (lambda (c)
+                   (let ([a (constraint-entity-a c)]
+                         [b (constraint-entity-b c)])
+                     (if b  ; Binary constraint (not world-anchored)
+                         (let ([ia (hashtable-ref entity->idx a #f)]
+                               [ib (hashtable-ref entity->idx b #f)])
+                           (if (and ia ib)
+                               (edge ia ib)
+                               #f))
+                         #f)))
+                 (cg-constraints graph))])
+    ;; Build simplicial complex from vertices and edges
+    (fold-left sc-add-simplex
+               (fold-left sc-add-simplex sc-empty vertices)
+               edges)))
+
+(doc 'cg-cycle-count 'type '(-> ConstraintGraph Nat))
+(doc 'cg-cycle-count 'description
+     "Count independent cycles in constraint graph (first Betti number B₁).
+      B₁ = 0 means tree-like (good), B₁ > 0 means cycles exist (may indicate issues).")
+(define (cg-cycle-count graph)
+  (let ([sc (cg->simplicial-complex graph)])
+    (sc-betti sc 1)))
+
+(doc 'cg-topology-analysis 'type '(-> ConstraintGraph Alist))
+(doc 'cg-topology-analysis 'description
+     "Full topological analysis: Betti numbers, Euler characteristic, cycle detection.")
+(define (cg-topology-analysis graph)
+  (let* ([sc (cg->simplicial-complex graph)]
+         [betti (sc-betti-numbers sc)]
+         [euler (sc-euler sc)]
+         [b0 (if (pair? betti) (car betti) 0)]
+         [b1 (if (and (pair? betti) (pair? (cdr betti))) (cadr betti) 0)])
+    `((vertices . ,(sc-count-dim sc 0))
+      (edges . ,(sc-count-dim sc 1))
+      (betti-0 . ,b0)              ; Connected components
+      (betti-1 . ,b1)              ; Independent cycles
+      (euler . ,euler)
+      (has-cycles . ,(> b1 0))
+      (over-constrained . ,(> b1 0)))))  ; Cycles suggest redundant constraints
+
+(doc 'cg-cycle-analysis 'type '(-> ConstraintGraph Alist))
+(doc 'cg-cycle-analysis 'description
+     "Analyze constraint cycles and suggest which constraints may be redundant.
+      Returns cycle count and list of constraints participating in cycles.")
+(define (cg-cycle-analysis graph)
+  (let* ([topo (cg-topology-analysis graph)]
+         [b1 (cdr (assq 'betti-1 topo))]
+         [constraints (cg-constraints graph)]
+         ;; Find constraints that participate in cycles by checking if
+         ;; removing them would reduce cycle count
+         [cycle-constraints
+          (if (> b1 0)
+              (filter
+               (lambda (c)
+                 (let* ([reduced-constraints (filter (lambda (x)
+                                                       (not (equal? (constraint-id x)
+                                                                    (constraint-id c))))
+                                                     constraints)]
+                        [reduced-graph (make-constraint-graph reduced-constraints)]
+                        [reduced-b1 (cg-cycle-count reduced-graph)])
+                   (< reduced-b1 b1)))
+               constraints)
+              '())])
+    `((cycle-count . ,b1)
+      (has-cycles . ,(> b1 0))
+      (cycle-constraints . ,cycle-constraints)
+      (suggestions . ,(if (> b1 0)
+                          (format "Found ~a independent cycle(s). Consider removing ~a redundant constraint(s) from: ~a"
+                                  b1
+                                  (length cycle-constraints)
+                                  (map constraint-id cycle-constraints))
+                          "No cycles detected - constraint system is tree-like.")))))
+
+(doc 'cg-print-topology 'type '(-> ConstraintGraph Void))
+(doc 'cg-print-topology 'description "Print topological analysis of constraint graph")
+(define (cg-print-topology graph)
+  (let ([topo (cg-topology-analysis graph)])
+    (printf "Constraint Graph Topology:\n")
+    (printf "  Vertices (entities): ~a\n" (cdr (assq 'vertices topo)))
+    (printf "  Edges (constraints): ~a\n" (cdr (assq 'edges topo)))
+    (printf "  Connected components (B₀): ~a\n" (cdr (assq 'betti-0 topo)))
+    (printf "  Independent cycles (B₁): ~a\n" (cdr (assq 'betti-1 topo)))
+    (printf "  Euler characteristic: ~a\n" (cdr (assq 'euler topo)))
+    (if (cdr (assq 'has-cycles topo))
+        (printf "  ⚠ Cycles detected - system may be over-constrained\n")
+        (printf "  ✓ No cycles - tree-like constraint structure\n"))))
+
+;; Helper: filter-map (like filter but also transforms)
+(define (filter-map f lst)
+  (let loop ([lst lst] [acc '()])
+    (if (null? lst)
+        (reverse acc)
+        (let ([result (f (car lst))])
+          (loop (cdr lst)
+                (if result (cons result acc) acc))))))
+
 (printf "constraint-graph.ss loaded\n")
