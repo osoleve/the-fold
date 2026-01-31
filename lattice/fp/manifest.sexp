@@ -201,9 +201,10 @@ Key design principles:
     ((subdir "")
      (description "Core FP infrastructure at lattice/fp root")
      (files (
-       "protocol.ss"        ; Open protocol system for extensible dispatch
-       "protocol-bundle.ss" ; Protocol bundles for reduced boilerplate
-       "templates.ss")))    ; Lens infrastructure
+       "protocol.ss"           ; Open protocol system for extensible dispatch
+       "protocol-bundle.ss"    ; Protocol bundles for reduced boilerplate
+       "protocol-introspect.ss" ; Protocol introspection and visualization
+       "templates.ss")))       ; Lens infrastructure
   ))
 
   ;;; ====
