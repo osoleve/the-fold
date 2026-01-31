@@ -540,3 +540,230 @@
     (if (eq? (car result) 'Err)
         (error 'contract-violation (blame->string (cadr result)))
         (cadr result))))
+
+(doc 'section 'chaperone-contracts)
+
+;;; Chaperone-style contracts for higher-order elements in collections.
+;;; Unlike flat contracts that check immediately, chaperones wrap the
+;;; collection and apply element contracts lazily when elements are accessed.
+
+(define (chaperone-list? x)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if value is a chaperoned list.")
+  (doc 'export #t)
+  (and (pair? x)
+       (eq? (car x) 'chaperone-list)))
+
+(define (make-chaperone-list underlying elem-contract location)
+  (doc 'type (-> List Contract Symbol ChaperoneList))
+  (doc 'description "Create a chaperoned list that applies elem-contract on access.")
+  (doc 'export #f)
+  `(chaperone-list ,underlying ,elem-contract ,location))
+
+(define (chaperone-list-underlying cl)
+  (if (chaperone-list? cl) (cadr cl) cl))
+
+(define (chaperone-list-contract cl)
+  (if (chaperone-list? cl) (caddr cl) any/c))
+
+(define (chaperone-list-location cl)
+  (if (chaperone-list? cl) (cadddr cl) 'unknown))
+
+(define (chaperone-car cl)
+  (doc 'type (-> ChaperoneList Any))
+  (doc 'description "Get first element of chaperoned list, applying element contract.")
+  (doc 'export #t)
+  (if (chaperone-list? cl)
+      (let* ([underlying (chaperone-list-underlying cl)]
+             [elem-contract (chaperone-list-contract cl)]
+             [location (chaperone-list-location cl)]
+             [elem (car underlying)])
+        (apply-contract elem-contract elem location))
+      (car cl)))
+
+(define (chaperone-cdr cl)
+  (doc 'type (-> ChaperoneList ChaperoneList))
+  (doc 'description "Get rest of chaperoned list, preserving chaperone.")
+  (doc 'export #t)
+  (if (chaperone-list? cl)
+      (let* ([underlying (chaperone-list-underlying cl)]
+             [rest (cdr underlying)])
+        (if (null? rest)
+            '()
+            (make-chaperone-list rest
+                                 (chaperone-list-contract cl)
+                                 (chaperone-list-location cl))))
+      (cdr cl)))
+
+(define (chaperone-list-ref cl n)
+  (doc 'type (-> ChaperoneList Nat Any))
+  (doc 'description "Get nth element of chaperoned list, applying element contract.")
+  (doc 'export #t)
+  (if (chaperone-list? cl)
+      (let* ([underlying (chaperone-list-underlying cl)]
+             [elem-contract (chaperone-list-contract cl)]
+             [location (chaperone-list-location cl)]
+             [elem (list-ref underlying n)])
+        (apply-contract elem-contract elem location))
+      (list-ref cl n)))
+
+(define (chaperone-list->list cl)
+  (doc 'type (-> ChaperoneList List))
+  (doc 'description "Convert chaperoned list to regular list, checking all elements.")
+  (doc 'export #t)
+  (if (chaperone-list? cl)
+      (let ([underlying (chaperone-list-underlying cl)]
+            [elem-contract (chaperone-list-contract cl)]
+            [location (chaperone-list-location cl)])
+        (map (lambda (elem) (apply-contract elem-contract elem location))
+             underlying))
+      cl))
+
+(define (chaperone-list-length cl)
+  (doc 'type (-> ChaperoneList Nat))
+  (doc 'description "Get length of chaperoned list.")
+  (doc 'export #t)
+  (length (if (chaperone-list? cl)
+              (chaperone-list-underlying cl)
+              cl)))
+
+(define (chaperone-list-null? cl)
+  (doc 'type (-> ChaperoneList Boolean))
+  (doc 'description "Check if chaperoned list is empty.")
+  (doc 'export #t)
+  (null? (if (chaperone-list? cl)
+             (chaperone-list-underlying cl)
+             cl)))
+
+;;; Chaperone vectors
+
+(define (chaperone-vector? x)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if value is a chaperoned vector.")
+  (doc 'export #t)
+  (and (pair? x)
+       (eq? (car x) 'chaperone-vector)))
+
+(define (make-chaperone-vector underlying elem-contract location)
+  (doc 'type (-> Vector Contract Symbol ChaperoneVector))
+  (doc 'description "Create a chaperoned vector that applies elem-contract on access.")
+  (doc 'export #f)
+  `(chaperone-vector ,underlying ,elem-contract ,location))
+
+(define (chaperone-vector-underlying cv)
+  (if (chaperone-vector? cv) (cadr cv) cv))
+
+(define (chaperone-vector-contract cv)
+  (if (chaperone-vector? cv) (caddr cv) any/c))
+
+(define (chaperone-vector-location cv)
+  (if (chaperone-vector? cv) (cadddr cv) 'unknown))
+
+(define (chaperone-vector-ref cv n)
+  (doc 'type (-> ChaperoneVector Nat Any))
+  (doc 'description "Get nth element of chaperoned vector, applying element contract.")
+  (doc 'export #t)
+  (if (chaperone-vector? cv)
+      (let* ([underlying (chaperone-vector-underlying cv)]
+             [elem-contract (chaperone-vector-contract cv)]
+             [location (chaperone-vector-location cv)]
+             [elem (vector-ref underlying n)])
+        (apply-contract elem-contract elem location))
+      (vector-ref cv n)))
+
+(define (chaperone-vector-length cv)
+  (doc 'type (-> ChaperoneVector Nat))
+  (doc 'description "Get length of chaperoned vector.")
+  (doc 'export #t)
+  (vector-length (if (chaperone-vector? cv)
+                     (chaperone-vector-underlying cv)
+                     cv)))
+
+(define (chaperone-vector->list cv)
+  (doc 'type (-> ChaperoneVector List))
+  (doc 'description "Convert chaperoned vector to list, checking all elements.")
+  (doc 'export #t)
+  (if (chaperone-vector? cv)
+      (let ([underlying (chaperone-vector-underlying cv)]
+            [elem-contract (chaperone-vector-contract cv)]
+            [location (chaperone-vector-location cv)]
+            [len (vector-length (chaperone-vector-underlying cv))])
+        (let loop ([i 0] [acc '()])
+          (if (>= i len)
+              (reverse acc)
+              (loop (+ i 1)
+                    (cons (apply-contract elem-contract
+                                         (vector-ref underlying i)
+                                         location)
+                          acc)))))
+      (vector->list cv)))
+
+;;; Smart listof/vectorof that auto-detect when chaperones are needed
+
+(define (needs-chaperone? elem-contract)
+  (doc 'type (-> Contract Boolean))
+  (doc 'description "Check if element contract requires chaperone wrapping.")
+  (doc 'export #f)
+  (or (function-contract? elem-contract)
+      (dependent-contract? elem-contract)
+      ;; Also check for nested listof/vectorof with HO contracts
+      (and (pair? elem-contract)
+           (memq (car elem-contract) '(chaperone-listof chaperone-vectorof)))))
+
+(define (listof/c elem-contract)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Smart list contract: uses chaperone for HO contracts, flat otherwise.")
+  (doc 'export #t)
+  (if (needs-chaperone? elem-contract)
+      `(chaperone-listof ,elem-contract)
+      (listof elem-contract)))
+
+(define (vectorof/c elem-contract)
+  (doc 'type (-> Contract Contract))
+  (doc 'description "Smart vector contract: uses chaperone for HO contracts, flat otherwise.")
+  (doc 'export #t)
+  (if (needs-chaperone? elem-contract)
+      `(chaperone-vectorof ,elem-contract)
+      (vectorof elem-contract)))
+
+;;; Extend contract-wrap to handle chaperone contracts
+
+(define (chaperone-listof-contract? c)
+  (and (pair? c) (eq? (car c) 'chaperone-listof)))
+
+(define (chaperone-vectorof-contract? c)
+  (and (pair? c) (eq? (car c) 'chaperone-vectorof)))
+
+(define (contract-wrap-chaperone contract value location)
+  (doc 'type (-> Contract Any Symbol (Result Any Blame)))
+  (doc 'description "Extended contract-wrap that handles chaperone contracts.")
+  (doc 'export #t)
+  (cond
+   ;; Chaperone listof
+   [(chaperone-listof-contract? contract)
+    (let ([elem-contract (cadr contract)])
+      (if (list? value)
+          `(Ok ,(make-chaperone-list value elem-contract location))
+          `(Err ,(make-blame 'callee location
+                             "Expected a list for listof contract"
+                             value))))]
+   ;; Chaperone vectorof
+   [(chaperone-vectorof-contract? contract)
+    (let ([elem-contract (cadr contract)])
+      (if (vector? value)
+          `(Ok ,(make-chaperone-vector value elem-contract location))
+          `(Err ,(make-blame 'callee location
+                             "Expected a vector for vectorof contract"
+                             value))))]
+   ;; Fall through to standard contract-wrap
+   [else
+    (contract-wrap contract value location)]))
+
+(define (apply-contract/c contract value location)
+  (doc 'type (-> Contract Any Symbol Any))
+  (doc 'description "Apply contract with chaperone support, raise error on violation.")
+  (doc 'export #t)
+  (let ([result (contract-wrap-chaperone contract value location)])
+    (if (eq? (car result) 'Err)
+        (error 'contract-violation (blame->string (cadr result)))
+        (cadr result))))

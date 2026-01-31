@@ -312,6 +312,102 @@
     #f))
 (test "apply-contract raises on failure" #t (test-apply-contract-failure))
 
+;;; ====
+;;; Chaperone Contracts
+;;; ====
+(test-section "Chaperone List Contracts")
+
+;; Test chaperone list creation
+(define fn-list-contract (listof/c (->c (list nat/c) nat/c)))
+(test "listof/c detects HO contract needs chaperone" #t (chaperone-listof-contract? fn-list-contract))
+
+;; Test that flat element contracts don't create chaperones
+(define flat-list-contract (listof/c nat/c))
+(test "listof/c uses flat for flat elements" #t (flat-contract? flat-list-contract))
+
+;; Create a chaperoned list of functions
+(define fn-list (list (lambda (x) (+ x 1))
+                      (lambda (x) (* x 2))))
+(define chaperoned-fn-list
+  (apply-contract/c fn-list-contract fn-list 'fn-list))
+
+(test "apply-contract/c creates chaperone list" #t (chaperone-list? chaperoned-fn-list))
+
+;; Test chaperone list operations
+(test "chaperone-list-length" 2 (chaperone-list-length chaperoned-fn-list))
+(test "chaperone-list-null? on non-empty" #f (chaperone-list-null? chaperoned-fn-list))
+
+;; Test element access - elements should be wrapped with contracts
+(define first-fn (chaperone-car chaperoned-fn-list))
+(test "chaperone-car returns procedure" #t (procedure? first-fn))
+(test "chaperoned function works" 6 (first-fn 5))
+
+;; Test cdr
+(define rest-list (chaperone-cdr chaperoned-fn-list))
+(test "chaperone-cdr returns chaperone list" #t (chaperone-list? rest-list))
+(test "chaperone-cdr length" 1 (chaperone-list-length rest-list))
+
+;; Test list-ref
+(define second-fn (chaperone-list-ref chaperoned-fn-list 1))
+(test "chaperone-list-ref returns procedure" #t (procedure? second-fn))
+(test "chaperoned function from list-ref" 10 (second-fn 5))
+
+;; Test that element contract is enforced
+(define (test-chaperone-element-contract-violation)
+  (guard (e [else #t])
+    ((chaperone-car chaperoned-fn-list) -1)  ; violates nat/c domain
+    #f))
+(test "chaperone enforces element contract domain" #t (test-chaperone-element-contract-violation))
+
+(test-section "Chaperone Vector Contracts")
+
+;; Test chaperone vector creation
+(define fn-vec-contract (vectorof/c (->c (list nat/c) nat/c)))
+(test "vectorof/c detects HO contract" #t (chaperone-vectorof-contract? fn-vec-contract))
+
+;; Test flat element contracts
+(define flat-vec-contract (vectorof/c nat/c))
+(test "vectorof/c uses flat for flat elements" #t (flat-contract? flat-vec-contract))
+
+;; Create a chaperoned vector of functions
+(define fn-vec (vector (lambda (x) (+ x 10))
+                       (lambda (x) (- x 1))))
+(define chaperoned-fn-vec
+  (apply-contract/c fn-vec-contract fn-vec 'fn-vec))
+
+(test "apply-contract/c creates chaperone vector" #t (chaperone-vector? chaperoned-fn-vec))
+(test "chaperone-vector-length" 2 (chaperone-vector-length chaperoned-fn-vec))
+
+;; Test element access
+(define vec-first-fn (chaperone-vector-ref chaperoned-fn-vec 0))
+(test "chaperone-vector-ref returns procedure" #t (procedure? vec-first-fn))
+(test "chaperoned vector fn works" 15 (vec-first-fn 5))
+
+;; Test that element contract is enforced
+(define (test-chaperone-vec-element-violation)
+  (guard (e [else #t])
+    ((chaperone-vector-ref chaperoned-fn-vec 0) "not a nat")
+    #f))
+(test "chaperone vector enforces element contract" #t (test-chaperone-vec-element-violation))
+
+(test-section "Chaperone List to Regular List Conversion")
+
+;; Test converting chaperone list back to regular list
+(define simple-fn-list (list (lambda (x) x)))
+(define simple-chaperoned (apply-contract/c fn-list-contract simple-fn-list 'test))
+(define converted-list (chaperone-list->list simple-chaperoned))
+
+(test "chaperone-list->list returns list" #t (list? converted-list))
+(test "converted list length" 1 (length converted-list))
+(test "converted list element is procedure" #t (procedure? (car converted-list)))
+
+(test-section "Nested Chaperone Contracts")
+
+;; Test listof with nested HO contracts: list of (list of functions)
+;; This is more complex - inner lists should also be chaperoned
+(define nested-contract (listof/c (listof/c (->c (list nat/c) nat/c))))
+(test "nested listof detects HO" #t (chaperone-listof-contract? nested-contract))
+
 (newline)
 (display "All tests completed!")
 (newline)
