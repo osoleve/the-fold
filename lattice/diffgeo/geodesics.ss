@@ -452,30 +452,49 @@
             (if (< error-norm (* tol 100))  ; Looser convergence for outer loop
                 (list 'ok v)
                 (let ([J (compute-exp-jacobian-adaptive metric p v tol eps n)])
-                  (let ([dv (solve-linear-system J (vec-scale -1 error))])
-                    (if dv
-                        (loop (vec-add v dv) (+ iter 1))
-                        (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1)))))))))))
+                  (if (not J)
+                      ;; Jacobian computation failed (geodesic diverged), try gradient descent
+                      (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))
+                      (let ([dv (solve-linear-system J (vec-scale -1 error))])
+                        (if dv
+                            (loop (vec-add v dv) (+ iter 1))
+                            (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))))))))))))
 
-;;; compute-exp-jacobian-adaptive : Metric × Vec × Vec × Num × Num × Nat → Matrix
+;;; vec-finite? : Vec → Boolean
+;;; Check if all elements of a vector are finite (not NaN or Inf).
+(define (vec-finite? v)
+  (let ([n (vector-length v)])
+    (let loop ([i 0])
+      (if (>= i n)
+          #t
+          (let ([x (vector-ref v i)])
+            (and (not (nan? x)) (not (infinite? x))
+                 (loop (+ i 1))))))))
+
+;;; compute-exp-jacobian-adaptive : Metric × Vec × Vec × Num × Num × Nat → Matrix | #f
 ;;; Compute Jacobian of exp_p using adaptive integration.
+;;; Returns #f if exp-map produces non-finite results (geodesic diverged).
 (define (compute-exp-jacobian-adaptive metric p v tol eps n)
   (let ([J (make-matrix n n 0)]
         [v-plus (vec-copy v)]
-        [v-minus (vec-copy v)])
+        [v-minus (vec-copy v)]
+        [failed #f])
     (do ([j 0 (+ j 1)])
-        ((= j n) J)
+        ((or failed (= j n)) (if failed #f J))
       (let* ([vj (vector-ref v j)]
              [eps-j (* eps (max 1.0 (abs vj)))])
         (vector-set! v-plus j (+ vj eps-j))
         (vector-set! v-minus j (- vj eps-j))
         (let* ([q-plus (exp-map-adaptive metric p v-plus tol)]
                [q-minus (exp-map-adaptive metric p v-minus tol)])
-          (do ([i 0 (+ i 1)])
-              ((= i n))
-            (matrix-set! J i j
-              (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
-                 (* 2 eps-j)))))
+          ;; Check for non-finite results (geodesic diverged)
+          (if (or (not (vec-finite? q-plus)) (not (vec-finite? q-minus)))
+              (set! failed #t)
+              (do ([i 0 (+ i 1)])
+                  ((= i n))
+                (matrix-set! J i j
+                  (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
+                     (* 2 eps-j))))))
         (vector-set! v-plus j vj)
         (vector-set! v-minus j vj)))))
 
@@ -584,23 +603,28 @@
                 (list 'ok v)
                 ;; Compute numerical Jacobian d(exp_p)/dv
                 (let ([J (compute-exp-jacobian metric p v n-steps eps n)])
-                  ;; Solve J * dv = -error for dv
-                  (let ([dv (solve-linear-system J (vec-scale -1 error))])
-                    (if dv
-                        (loop (vec-add v dv) (+ iter 1))
-                        ;; Jacobian singular, try gradient descent step
-                        (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1)))))))))))
+                  (if (not J)
+                      ;; Jacobian computation failed (geodesic diverged), try gradient descent
+                      (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))
+                      ;; Solve J * dv = -error for dv
+                      (let ([dv (solve-linear-system J (vec-scale -1 error))])
+                        (if dv
+                            (loop (vec-add v dv) (+ iter 1))
+                            ;; Jacobian singular, try gradient descent step
+                            (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))))))))))))
 
-;;; compute-exp-jacobian : Metric × Vec × Vec × Nat × Num × Nat → Matrix
+;;; compute-exp-jacobian : Metric × Vec × Vec × Nat × Num × Nat → Matrix | #f
 ;;; Compute the Jacobian matrix of exp_p with respect to v.
 ;;; The epsilon is scaled per-component by max(1, |v_j|) for numerical stability
 ;;; across different velocity magnitudes.
+;;; Returns #f if exp-map produces non-finite results (geodesic diverged).
 (define (compute-exp-jacobian metric p v n-steps eps n)
   (let ([J (make-matrix n n 0)]
         [v-plus (vec-copy v)]
-        [v-minus (vec-copy v)])
+        [v-minus (vec-copy v)]
+        [failed #f])
     (do ([j 0 (+ j 1)])
-        ((= j n) J)
+        ((or failed (= j n)) (if failed #f J))
       (let* ([vj (vector-ref v j)]
              ;; Scale epsilon by component magnitude for numerical stability
              [eps-j (* eps (max 1.0 (abs vj)))])
@@ -609,12 +633,15 @@
         (vector-set! v-minus j (- vj eps-j))
         (let* ([q-plus (exp-map metric p v-plus n-steps)]
                [q-minus (exp-map metric p v-minus n-steps)])
-          ;; J[i][j] = d(exp_i)/d(v_j)
-          (do ([i 0 (+ i 1)])
-              ((= i n))
-            (matrix-set! J i j
-              (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
-                 (* 2 eps-j)))))
+          ;; Check for non-finite results (geodesic diverged)
+          (if (or (not (vec-finite? q-plus)) (not (vec-finite? q-minus)))
+              (set! failed #t)
+              ;; J[i][j] = d(exp_i)/d(v_j)
+              (do ([i 0 (+ i 1)])
+                  ((= i n))
+                (matrix-set! J i j
+                  (/ (- (vector-ref q-plus i) (vector-ref q-minus i))
+                     (* 2 eps-j))))))
         ;; Reset
         (vector-set! v-plus j vj)
         (vector-set! v-minus j vj)))))
