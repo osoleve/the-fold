@@ -83,7 +83,7 @@
 
   (define-test "rigorous step contracts interval containing root"
     (let* ([X (interval 1 2)]
-           [result (interval-newton-step-rigorous f-sqrt2 f-sqrt2-deriv-iv X)])
+           [result (interval-newton-step-rigorous f-sqrt2-iv f-sqrt2-deriv-iv X)])
       (assert-true (pair? (memq (car result) '(contracted unique))))))
 
   (define-test "rigorous step uses directed rounding"
@@ -91,7 +91,7 @@
     ;; due to outward rounding, but still contract
     (let* ([X (interval 1.4 1.45)]
            [standard-result (interval-newton-step f-sqrt2 f-sqrt2-deriv-iv X)]
-           [rigorous-result (interval-newton-step-rigorous f-sqrt2 f-sqrt2-deriv-iv X)])
+           [rigorous-result (interval-newton-step-rigorous f-sqrt2-iv f-sqrt2-deriv-iv X)])
       ;; Both should succeed
       (assert-true (pair? (memq (car standard-result) '(contracted unique))))
       (assert-true (pair? (memq (car rigorous-result) '(contracted unique))))
@@ -103,7 +103,7 @@
 
   (define-test "rigorous step proves unique root in tight interval"
     (let* ([X (interval 1.4 1.45)]
-           [result (interval-newton-step-rigorous f-sqrt2 f-sqrt2-deriv-iv X)])
+           [result (interval-newton-step-rigorous f-sqrt2-iv f-sqrt2-deriv-iv X)])
       ;; √2 ≈ 1.414 is in this interval, should prove unique
       (assert-true (eq? (car result) 'unique))))
 )
@@ -116,7 +116,7 @@
 
   (define-test "finds √2 in [1, 2]"
     (let* ([X (interval 1 2)]
-           [result (interval-newton-root f-sqrt2 f-sqrt2-deriv-iv X 1e-10 100)])
+           [result (interval-newton-root f-sqrt2-iv f-sqrt2-deriv-iv X 1e-10 100)])
       (assert-true (eq? (car result) 'found))
       (let ([root-iv (cadr result)])
         ;; Check root is near √2 ≈ 1.41421356
@@ -124,7 +124,7 @@
 
   (define-test "finds root of linear function"
     (let* ([X (interval 0 5)]
-           [result (interval-newton-root f-linear f-linear-deriv-iv X 1e-10 100)])
+           [result (interval-newton-root f-linear-iv f-linear-deriv-iv X 1e-10 100)])
       (assert-true (eq? (car result) 'found))
       (let ([root-iv (cadr result)])
         ;; Root should be at x = 2
@@ -132,7 +132,7 @@
 
   (define-test "converges in few iterations for well-behaved function"
     (let* ([X (interval 1 2)]
-           [result (interval-newton-root f-sqrt2 f-sqrt2-deriv-iv X 1e-10 100)]
+           [result (interval-newton-root f-sqrt2-iv f-sqrt2-deriv-iv X 1e-10 100)]
            [iter (cadddr result)])
       ;; Interval Newton has quadratic convergence
       (assert-true (< iter 20))))
@@ -146,21 +146,21 @@
 
   (define-test "finds both roots of x² - 2"
     (let* ([X (interval -2 2)]
-           [result (interval-find-all-roots f-sqrt2 f-sqrt2-iv f-sqrt2-deriv-iv X 1e-8 1000)]
+           [result (interval-find-all-roots f-sqrt2-iv f-sqrt2-deriv-iv X 1e-8 1000)]
            [roots (root-result-roots result)])
       ;; Should find 2 roots: -√2 and +√2
       (assert-true (= (length roots) 2))))
 
   (define-test "finds all three roots of x³ - x"
     (let* ([X (interval -2 2)]
-           [result (interval-find-all-roots f-cubic f-cubic-iv f-cubic-deriv-iv X 1e-8 2000)]
+           [result (interval-find-all-roots f-cubic-iv f-cubic-deriv-iv X 1e-8 2000)]
            [roots (root-result-roots result)])
       ;; Should find 3 roots: -1, 0, 1
       (assert-true (>= (length roots) 3))))
 
   (define-test "roots cover expected values"
     (let* ([X (interval -2 2)]
-           [result (interval-find-all-roots f-cubic f-cubic-iv f-cubic-deriv-iv X 1e-6 2000)]
+           [result (interval-find-all-roots f-cubic-iv f-cubic-deriv-iv X 1e-6 2000)]
            [root-ivs (map car (root-result-roots result))]
            [root-mids (map interval-mid root-ivs)])
       ;; Check that we found intervals covering -1, 0, and 1
@@ -175,7 +175,7 @@
 
   (define-test "finds no roots when none exist"
     (let* ([X (interval -10 10)]
-           [result (interval-find-all-roots f-no-roots f-no-roots-iv f-no-roots-deriv-iv X 1e-8 1000)]
+           [result (interval-find-all-roots f-no-roots-iv f-no-roots-deriv-iv X 1e-8 1000)]
            [roots (root-result-roots result)])
       ;; x² + 1 has no real roots
       (assert-true (= (length roots) 0))))
@@ -272,12 +272,12 @@
 
   (define-test "handles very narrow initial interval"
     (let* ([X (interval 1.414 1.415)]
-           [result (interval-newton-root f-sqrt2 f-sqrt2-deriv-iv X 1e-12 100)])
+           [result (interval-newton-root f-sqrt2-iv f-sqrt2-deriv-iv X 1e-12 100)])
       (assert-true (eq? (car result) 'found))))
 
   (define-test "handles wide initial interval"
     (let* ([X (interval -100 100)]
-           [result (interval-find-all-roots f-sqrt2 f-sqrt2-iv f-sqrt2-deriv-iv X 1e-6 5000)]
+           [result (interval-find-all-roots f-sqrt2-iv f-sqrt2-deriv-iv X 1e-6 5000)]
            [roots (root-result-roots result)])
       (assert-true (= (length roots) 2))))
 )
@@ -327,7 +327,7 @@
 
   (define-test "finds roots in narrow dip that sampling could miss"
     (let* ([X (interval 0 1)]
-           [result (interval-find-all-roots f-narrow-dip f-narrow-dip-iv f-narrow-dip-deriv-iv X 1e-8 1000)]
+           [result (interval-find-all-roots f-narrow-dip-iv f-narrow-dip-deriv-iv X 1e-8 1000)]
            [roots (root-result-roots result)])
       ;; Must find 2 roots near 0.468 and 0.532
       (assert-true (= (length roots) 2))
@@ -340,7 +340,7 @@
 
   (define-test "finds roots even in very narrow dip"
     (let* ([X (interval 0.4 0.6)]  ; Focus on region around dip
-           [result (interval-find-all-roots f-tiny-dip f-tiny-dip-iv f-tiny-dip-deriv-iv X 1e-10 2000)]
+           [result (interval-find-all-roots f-tiny-dip-iv f-tiny-dip-deriv-iv X 1e-10 2000)]
            [roots (root-result-roots result)])
       ;; Must find 2 roots
       (assert-true (= (length roots) 2))))

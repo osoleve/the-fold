@@ -127,22 +127,32 @@ Key insight: Division by an interval containing 0 produces extended intervals
                  [else
                   (cons 'no-improvement X)]))))])))
 
-;;; interval-newton-step-rigorous : (Real → Real) × (Interval → Interval) × Interval → NewtonStepResult
+;;; interval-newton-step-rigorous : (Interval → Interval) × (Interval → Interval) × Interval → NewtonStepResult
 ;;; Interval Newton step using rigorous arithmetic for formal correctness.
-(define (interval-newton-step-rigorous f f-deriv-iv X)
+;;; Uses interval extension f-iv for midpoint evaluation to eliminate rounding errors.
+;;;
+;;; The Newton step N(X) = m - f(m)/F'(X) is computed as:
+;;;   m = midpoint of X
+;;;   f(m) ≈ f-iv(singleton(m))  -- guaranteed to contain true f(m)
+;;;   F'(X) = f-deriv-iv(X)      -- guaranteed to contain all derivatives
+;;;
+;;; All arithmetic uses directed rounding for rigorous enclosure.
+(define (interval-newton-step-rigorous f-iv f-deriv-iv X)
   (doc 'export #t)
+  (doc 'type '(-> (-> Interval Interval) (-> Interval Interval) Interval NewtonStepResult))
   (let* ([m (interval-mid X)]
-         [fm (f m)]
+         [m-iv (interval-singleton m)]
+         ;; Use interval extension for f(m) - eliminates rounding errors
+         [fm-iv (f-iv m-iv)]
          [F-prime-X (f-deriv-iv X)])
     (cond
       [(interval-contains-zero? F-prime-X)
        (cons 'division-by-zero X)]
       [else
-       (let* ([fm-iv (interval-singleton fm)]
-              [quotient (interval-div-rigorous fm-iv F-prime-X)])
+       (let ([quotient (interval-div-rigorous fm-iv F-prime-X)])
          (if (error? quotient)
              (cons 'division-by-zero X)
-             (let* ([newton-iv (interval-sub-rigorous (interval-singleton m) quotient)]
+             (let* ([newton-iv (interval-sub-rigorous m-iv quotient)]
                     [intersection (interval-intersection newton-iv X)])
                (cond
                  [(error? intersection) (cons 'no-root #f)]
@@ -157,18 +167,18 @@ Key insight: Division by an interval containing 0 produces extended intervals
 
 (doc 'section 'iterative-newton)
 
-;;; interval-newton-root : (Real → Real) × (Interval → Interval) × Interval × Real × Nat → NewtonResult
+;;; interval-newton-root : (Interval → Interval) × (Interval → Interval) × Interval × Real × Nat → NewtonResult
 ;;; Find a root in interval using interval Newton iteration.
-;;;   f: the function
+;;;   f-iv: interval extension of function
 ;;;   f-deriv-iv: interval extension of derivative
 ;;;   X0: initial interval (must contain a root)
 ;;;   tol: width tolerance for convergence
 ;;;   max-iter: maximum iterations
 ;;;
 ;;; Returns: ('found interval status iter) or ('failed reason iter)
-(define (interval-newton-root f f-deriv-iv X0 tol max-iter)
+(define (interval-newton-root f-iv f-deriv-iv X0 tol max-iter)
   (doc 'export #t)
-  (doc 'type '(-> (-> Real Real) (-> Interval Interval) Interval Real Nat NewtonResult))
+  (doc 'type '(-> (-> Interval Interval) (-> Interval Interval) Interval Real Nat NewtonResult))
   (let loop ([X X0] [iter 0] [status 'possible])
     (cond
       ;; Max iterations
@@ -179,7 +189,7 @@ Key insight: Division by an interval containing 0 produces extended intervals
        (list 'found X status iter)]
       [else
        ;; Use rigorous step for guaranteed enclosure with directed rounding
-       (let ([step-result (interval-newton-step-rigorous f f-deriv-iv X)])
+       (let ([step-result (interval-newton-step-rigorous f-iv f-deriv-iv X)])
          (case (car step-result)
            [(no-root)
             (list 'failed 'no-root iter)]
@@ -194,11 +204,11 @@ Key insight: Division by an interval containing 0 produces extended intervals
                    [left (car pair)]
                    [right (cdr pair)]
                    ;; Try left half
-                   [left-result (interval-newton-root f f-deriv-iv left tol (- max-iter iter))])
+                   [left-result (interval-newton-root f-iv f-deriv-iv left tol (- max-iter iter))])
               (if (eq? (car left-result) 'found)
                   left-result
                   ;; Try right half
-                  (interval-newton-root f f-deriv-iv right tol (- max-iter iter))))]
+                  (interval-newton-root f-iv f-deriv-iv right tol (- max-iter iter))))]
            [else
             (list 'failed 'unknown-error iter)]))])))
 
@@ -208,10 +218,9 @@ Key insight: Division by an interval containing 0 produces extended intervals
 
 (doc 'section 'all-roots)
 
-;;; interval-find-all-roots : (Real → Real) × (Interval → Interval) × (Interval → Interval) × Interval × Real × Nat → RootResult
+;;; interval-find-all-roots : (Interval → Interval) × (Interval → Interval) × Interval × Real × Nat → RootResult
 ;;; Find ALL roots in an interval using branch-and-bound with interval Newton.
-;;;   f: the function (point evaluation)
-;;;   f-iv: interval extension of function (for rigorous root exclusion)
+;;;   f-iv: interval extension of function
 ;;;   f-deriv-iv: interval extension of derivative
 ;;;   X0: search interval
 ;;;   tol: width tolerance
@@ -220,9 +229,12 @@ Key insight: Division by an interval containing 0 produces extended intervals
 ;;; Uses work queue with interval Newton to systematically find all roots.
 ;;; Root exclusion uses rigorous interval arithmetic: if f-iv(X) does not
 ;;; contain zero, there provably cannot be roots in X.
-(define (interval-find-all-roots f f-iv f-deriv-iv X0 tol max-iter)
+;;;
+;;; All operations use interval extensions for formal mathematical guarantees.
+;;; Point evaluation f(m) is computed as f-iv(singleton(m)).
+(define (interval-find-all-roots f-iv f-deriv-iv X0 tol max-iter)
   (doc 'export #t)
-  (doc 'type '(-> (-> Real Real) (-> Interval Interval) (-> Interval Interval) Interval Real Nat RootResult))
+  (doc 'type '(-> (-> Interval Interval) (-> Interval Interval) Interval Real Nat RootResult))
   (let loop ([work-list (list X0)]
              [roots '()]
              [iter 0])
@@ -243,7 +255,7 @@ Key insight: Division by an interval containing 0 produces extended intervals
              ;; No root possible in this interval (proven by interval arithmetic)
              (loop rest roots (+ iter 1))
              ;; Might contain root - apply rigorous Newton step
-             (let ([step-result (interval-newton-step-rigorous f f-deriv-iv X)])
+             (let ([step-result (interval-newton-step-rigorous f-iv f-deriv-iv X)])
                (case (car step-result)
                  [(no-root)
                   ;; Proven: no root here
@@ -439,25 +451,26 @@ See Hansen-Sengupta algorithm.")
 
 (doc 'section 'convenience)
 
-;;; find-root : (Real → Real) × (Interval → Interval) × Real × Real → Interval | 'no-root
+;;; find-root : (Interval → Interval) × (Interval → Interval) × Real × Real → Interval | 'no-root
 ;;; Simple interface: find a root of f in [lo, hi].
-(define (find-root f f-deriv-iv lo hi)
+;;;   f-iv: interval extension of function
+;;;   f-deriv-iv: interval extension of derivative
+(define (find-root f-iv f-deriv-iv lo hi)
   (doc 'export #t)
   (let* ([X (interval lo hi)]
-         [result (interval-newton-root f f-deriv-iv X 1e-10 1000)])
+         [result (interval-newton-root f-iv f-deriv-iv X 1e-10 1000)])
     (if (eq? (car result) 'found)
         (cadr result)
         'no-root)))
 
-;;; find-all-roots-simple : (Real → Real) × (Interval → Interval) × (Interval → Interval) × Real × Real → (List Interval)
+;;; find-all-roots-simple : (Interval → Interval) × (Interval → Interval) × Real × Real → (List Interval)
 ;;; Simple interface: find all roots of f in [lo, hi].
-;;;   f: point function
 ;;;   f-iv: interval extension of f
 ;;;   f-deriv-iv: interval extension of derivative
-(define (find-all-roots-simple f f-iv f-deriv-iv lo hi)
+(define (find-all-roots-simple f-iv f-deriv-iv lo hi)
   (doc 'export #t)
   (let* ([X (interval lo hi)]
-         [result (interval-find-all-roots f f-iv f-deriv-iv X 1e-10 10000)])
+         [result (interval-find-all-roots f-iv f-deriv-iv X 1e-10 10000)])
     (map car (root-result-roots result))))
 
 ;;; ============================================================================
@@ -471,24 +484,22 @@ See Hansen-Sengupta algorithm.")
 ;;; Roots are at x = -1, 0, 1
 (define (polynomial-root-example)
   (doc 'export #t)
-  (let ([f (lambda (x) (- (* x x x) x))]
-        [f-iv (lambda (X)
+  (let ([f-iv (lambda (X)
                 ;; x³ - x using interval arithmetic
                 (interval-sub (interval-pow X 3) X))]
         [f-deriv-iv (lambda (X)
                       ;; d/dx(x³ - x) = 3x² - 1
                       (interval-sub (interval-scale (interval-sqr X) 3)
                                     (interval-singleton 1)))])
-    (interval-find-all-roots f f-iv f-deriv-iv (interval -2 2) 1e-10 1000)))
+    (interval-find-all-roots f-iv f-deriv-iv (interval -2 2) 1e-10 1000)))
 
 ;;; sin-root-example : Unit → RootResult
 ;;; Example: Find roots of sin(x) in [0, 10]
 ;;; Roots at x = 0, π, 2π, 3π
 (define (sin-root-example)
   (doc 'export #t)
-  (let ([f sin]
-        [f-iv interval-sin]
+  (let ([f-iv interval-sin]
         [f-deriv-iv interval-cos])
-    (interval-find-all-roots f f-iv f-deriv-iv (interval 0 10) 1e-10 1000)))
+    (interval-find-all-roots f-iv f-deriv-iv (interval 0 10) 1e-10 1000)))
 
-(display "Interval Newton loaded. Use (find-root f f-deriv-iv lo hi) or (interval-find-all-roots ...).\n")
+(display "Interval Newton loaded. Use (find-root f-iv f-deriv-iv lo hi) or (interval-find-all-roots ...).\n")
