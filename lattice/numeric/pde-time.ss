@@ -34,6 +34,9 @@
 
 (doc 'section 'overview)
 
+;;; Module-level constants
+(define *pde-epsilon* 1e-30)  ; Minimum denominator to prevent division by zero
+
 ;;; ============================================================
 ;;; Section 2: Vector Operations
 ;;; ============================================================
@@ -127,7 +130,7 @@
       (let ([m-i (vector-ref M-diag i)]
             [r-i (vector-ref rhs i)]
             [u-i (vector-ref u i)])
-        (vector-set! result i (+ u-i (/ (* dt r-i) (max m-i 1e-30))))))))
+        (vector-set! result i (+ u-i (/ (* dt r-i) (max m-i *pde-epsilon*))))))))
 
 ;;; ============================================================
 ;;; Section 4: Backward Euler (Implicit)
@@ -147,6 +150,7 @@
 
 (doc backward-euler-linear-step 'type '(-> SparseCSR SparseCSR Vector Vector Number Number Number (Values Vector Number Nat)))
 (doc backward-euler-linear-step 'description "Backward Euler for M*du/dt = A*u + b (returns solution, residual, iterations)")
+(doc backward-euler-linear-step 'note "Uses CG solver - requires (M - dt*A) to be symmetric positive definite (e.g., pure diffusion). Will fail or diverge for non-SPD systems like advection-diffusion.")
 (define (backward-euler-linear-step M A u b dt tol max-iter)
   ;; Solve: (M - dt*A) u^{n+1} = M*u^n + dt*b
   ;; Build LHS: M - dt*A
@@ -187,6 +191,7 @@
 
 (doc crank-nicolson-step 'type '(-> SparseCSR SparseCSR Vector Vector Number Number Number (Values Vector Number Nat)))
 (doc crank-nicolson-step 'description "Crank-Nicolson for M*du/dt = A*u + b")
+(doc crank-nicolson-step 'note "Uses CG solver - requires (M - dt/2*A) to be symmetric positive definite (e.g., pure diffusion). Will fail or diverge for non-SPD systems.")
 (define (crank-nicolson-step M A u b dt tol max-iter)
   ;; Solve: (M - dt/2*A) u^{n+1} = (M + dt/2*A) u^n + dt*b
   (let* ([half-dt (/ dt 2)]
@@ -284,6 +289,7 @@
 
 (doc estimate-mesh-spacing 'type '(-> Vector Number))
 (doc estimate-mesh-spacing 'description "Estimate characteristic mesh spacing from node coordinates")
+(doc estimate-mesh-spacing 'note "Assumes nodes are sorted in linear 1D order (adjacent indices = spatial neighbors). For 2D/3D unstructured meshes, use proper spatial queries instead.")
 (define (estimate-mesh-spacing nodes)
   ;; Use minimum distance between adjacent nodes as estimate
   ;; For regular grids, this gives h directly
@@ -408,7 +414,7 @@
       [else
        (let* ([Ap (sparse-csr-vec-mul A p)]
               [pAp (pde-vec-dot p Ap)])
-         (if (< (abs pAp) 1e-30)
+         (if (< (abs pAp) *pde-epsilon*)
              (list x r-norm iter)
              (let* ([alpha (/ rr pAp)]
                     [x-new (pde-vec-madd x alpha p)]
