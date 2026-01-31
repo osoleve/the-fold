@@ -76,6 +76,39 @@
 )
 
 ;;; ============================================================================
+;;; Rigorous Newton Step Tests (fold-zxuz verification)
+;;; ============================================================================
+
+(test-group "interval-newton-step-rigorous"
+
+  (define-test "rigorous step contracts interval containing root"
+    (let* ([X (interval 1 2)]
+           [result (interval-newton-step-rigorous f-sqrt2 f-sqrt2-deriv-iv X)])
+      (assert-true (pair? (memq (car result) '(contracted unique))))))
+
+  (define-test "rigorous step uses directed rounding"
+    ;; The rigorous version should produce slightly wider intervals
+    ;; due to outward rounding, but still contract
+    (let* ([X (interval 1.4 1.45)]
+           [standard-result (interval-newton-step f-sqrt2 f-sqrt2-deriv-iv X)]
+           [rigorous-result (interval-newton-step-rigorous f-sqrt2 f-sqrt2-deriv-iv X)])
+      ;; Both should succeed
+      (assert-true (pair? (memq (car standard-result) '(contracted unique))))
+      (assert-true (pair? (memq (car rigorous-result) '(contracted unique))))
+      ;; Rigorous interval should be >= standard (outward rounding)
+      (let ([std-iv (cdr standard-result)]
+            [rig-iv (cdr rigorous-result)])
+        (assert-true (<= (interval-lo rig-iv) (interval-lo std-iv)))
+        (assert-true (>= (interval-hi rig-iv) (interval-hi std-iv))))))
+
+  (define-test "rigorous step proves unique root in tight interval"
+    (let* ([X (interval 1.4 1.45)]
+           [result (interval-newton-step-rigorous f-sqrt2 f-sqrt2-deriv-iv X)])
+      ;; √2 ≈ 1.414 is in this interval, should prove unique
+      (assert-true (eq? (car result) 'unique))))
+)
+
+;;; ============================================================================
 ;;; Iterative Root Finding Tests
 ;;; ============================================================================
 

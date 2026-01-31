@@ -178,7 +178,8 @@ Key insight: Division by an interval containing 0 produces extended intervals
       [(< (interval-width X) tol)
        (list 'found X status iter)]
       [else
-       (let ([step-result (interval-newton-step f f-deriv-iv X)])
+       ;; Use rigorous step for guaranteed enclosure with directed rounding
+       (let ([step-result (interval-newton-step-rigorous f f-deriv-iv X)])
          (case (car step-result)
            [(no-root)
             (list 'failed 'no-root iter)]
@@ -241,8 +242,8 @@ Key insight: Division by an interval containing 0 produces extended intervals
          (if (not (interval-contains-zero? (f-iv X)))
              ;; No root possible in this interval (proven by interval arithmetic)
              (loop rest roots (+ iter 1))
-             ;; Might contain root - apply Newton
-             (let ([step-result (interval-newton-step f f-deriv-iv X)])
+             ;; Might contain root - apply rigorous Newton step
+             (let ([step-result (interval-newton-step-rigorous f f-deriv-iv X)])
                (case (car step-result)
                  [(no-root)
                   ;; Proven: no root here
