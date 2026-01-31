@@ -207,18 +207,21 @@ Key insight: Division by an interval containing 0 produces extended intervals
 
 (doc 'section 'all-roots)
 
-;;; interval-find-all-roots : (Real → Real) × (Interval → Interval) × Interval × Real × Nat → RootResult
+;;; interval-find-all-roots : (Real → Real) × (Interval → Interval) × (Interval → Interval) × Interval × Real × Nat → RootResult
 ;;; Find ALL roots in an interval using branch-and-bound with interval Newton.
-;;;   f: the function
+;;;   f: the function (point evaluation)
+;;;   f-iv: interval extension of function (for rigorous root exclusion)
 ;;;   f-deriv-iv: interval extension of derivative
 ;;;   X0: search interval
 ;;;   tol: width tolerance
 ;;;   max-iter: maximum total iterations
 ;;;
 ;;; Uses work queue with interval Newton to systematically find all roots.
-(define (interval-find-all-roots f f-deriv-iv X0 tol max-iter)
+;;; Root exclusion uses rigorous interval arithmetic: if f-iv(X) does not
+;;; contain zero, there provably cannot be roots in X.
+(define (interval-find-all-roots f f-iv f-deriv-iv X0 tol max-iter)
   (doc 'export #t)
-  (doc 'type '(-> (-> Real Real) (-> Interval Interval) Interval Real Nat RootResult))
+  (doc 'type '(-> (-> Real Real) (-> Interval Interval) (-> Interval Interval) Interval Real Nat RootResult))
   (let loop ([work-list (list X0)]
              [roots '()]
              [iter 0])
@@ -234,9 +237,9 @@ Key insight: Division by an interval containing 0 produces extended intervals
       [else
        (let* ([X (car work-list)]
               [rest (cdr work-list)])
-         ;; First check if f(X) contains 0 - if not, no roots here
-         (if (not (interval-might-contain-root? f X))
-             ;; No root possible in this interval
+         ;; Rigorous check: if f-iv(X) doesn't contain 0, provably no roots
+         (if (not (interval-contains-zero? (f-iv X)))
+             ;; No root possible in this interval (proven by interval arithmetic)
              (loop rest roots (+ iter 1))
              ;; Might contain root - apply Newton
              (let ([step-result (interval-newton-step f f-deriv-iv X)])
@@ -273,9 +276,15 @@ Key insight: Division by an interval containing 0 produces extended intervals
                   (loop rest roots (+ iter 1))]))))])))
 
 ;;; interval-might-contain-root? : (Real → Real) × Interval → Boolean
-;;; Quick check: evaluate f at endpoints and midpoint.
-;;; If all same sign, probably no root (but not proven).
-;;; Returns #t if a root might exist.
+;;; DEPRECATED: Use interval-contains-zero? with interval extension instead.
+;;;
+;;; This heuristic evaluates f at endpoints and midpoint. If all same sign,
+;;; it assumes no root exists. This is UNSOUND: a function can be positive
+;;; at all sample points while having roots between them (e.g., (x-0.5)²-0.001
+;;; on [0,1] with unfortunate midpoint).
+;;;
+;;; For rigorous root finding, use: (interval-contains-zero? (f-iv X))
+;;; where f-iv is the interval extension of f.
 (define (interval-might-contain-root? f X)
   (let* ([lo (interval-lo X)]
          [hi (interval-hi X)]
@@ -439,12 +448,15 @@ See Hansen-Sengupta algorithm.")
         (cadr result)
         'no-root)))
 
-;;; find-all-roots-simple : (Real → Real) × (Interval → Interval) × Real × Real → (List Interval)
+;;; find-all-roots-simple : (Real → Real) × (Interval → Interval) × (Interval → Interval) × Real × Real → (List Interval)
 ;;; Simple interface: find all roots of f in [lo, hi].
-(define (find-all-roots-simple f f-deriv-iv lo hi)
+;;;   f: point function
+;;;   f-iv: interval extension of f
+;;;   f-deriv-iv: interval extension of derivative
+(define (find-all-roots-simple f f-iv f-deriv-iv lo hi)
   (doc 'export #t)
   (let* ([X (interval lo hi)]
-         [result (interval-find-all-roots f f-deriv-iv X 1e-10 10000)])
+         [result (interval-find-all-roots f f-iv f-deriv-iv X 1e-10 10000)])
     (map car (root-result-roots result))))
 
 ;;; ============================================================================
@@ -459,11 +471,14 @@ See Hansen-Sengupta algorithm.")
 (define (polynomial-root-example)
   (doc 'export #t)
   (let ([f (lambda (x) (- (* x x x) x))]
+        [f-iv (lambda (X)
+                ;; x³ - x using interval arithmetic
+                (interval-sub (interval-pow X 3) X))]
         [f-deriv-iv (lambda (X)
                       ;; d/dx(x³ - x) = 3x² - 1
                       (interval-sub (interval-scale (interval-sqr X) 3)
                                     (interval-singleton 1)))])
-    (interval-find-all-roots f f-deriv-iv (interval -2 2) 1e-10 1000)))
+    (interval-find-all-roots f f-iv f-deriv-iv (interval -2 2) 1e-10 1000)))
 
 ;;; sin-root-example : Unit → RootResult
 ;;; Example: Find roots of sin(x) in [0, 10]
@@ -471,7 +486,8 @@ See Hansen-Sengupta algorithm.")
 (define (sin-root-example)
   (doc 'export #t)
   (let ([f sin]
+        [f-iv interval-sin]
         [f-deriv-iv interval-cos])
-    (interval-find-all-roots f f-deriv-iv (interval 0 10) 1e-10 1000)))
+    (interval-find-all-roots f f-iv f-deriv-iv (interval 0 10) 1e-10 1000)))
 
 (display "Interval Newton loaded. Use (find-root f f-deriv-iv lo hi) or (interval-find-all-roots ...).\n")

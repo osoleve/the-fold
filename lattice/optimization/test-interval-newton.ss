@@ -10,12 +10,18 @@
 
 ;;; Simple polynomial: f(x) = x² - 2 (roots at ±√2)
 (define (f-sqrt2 x) (- (* x x) 2))
+(define (f-sqrt2-iv X)
+  ;; x² - 2 using interval arithmetic
+  (interval-sub (interval-sqr X) (interval-singleton 2)))
 (define (f-sqrt2-deriv-iv X)
   ;; d/dx(x² - 2) = 2x
   (interval-scale X 2))
 
 ;;; Cubic: f(x) = x³ - x = x(x-1)(x+1) (roots at -1, 0, 1)
 (define (f-cubic x) (- (* x x x) x))
+(define (f-cubic-iv X)
+  ;; x³ - x using interval arithmetic
+  (interval-sub (interval-pow X 3) X))
 (define (f-cubic-deriv-iv X)
   ;; d/dx(x³ - x) = 3x² - 1
   (interval-sub (interval-scale (interval-sqr X) 3)
@@ -23,11 +29,17 @@
 
 ;;; Quadratic with no real roots: f(x) = x² + 1
 (define (f-no-roots x) (+ (* x x) 1))
+(define (f-no-roots-iv X)
+  ;; x² + 1 using interval arithmetic
+  (interval-add (interval-sqr X) (interval-singleton 1)))
 (define (f-no-roots-deriv-iv X)
   (interval-scale X 2))
 
 ;;; Linear: f(x) = 2x - 4 (root at x = 2)
 (define (f-linear x) (- (* 2 x) 4))
+(define (f-linear-iv X)
+  ;; 2x - 4 using interval arithmetic
+  (interval-sub (interval-scale X 2) (interval-singleton 4)))
 (define (f-linear-deriv-iv X)
   (interval-singleton 2))
 
@@ -101,21 +113,21 @@
 
   (define-test "finds both roots of x² - 2"
     (let* ([X (interval -2 2)]
-           [result (interval-find-all-roots f-sqrt2 f-sqrt2-deriv-iv X 1e-8 1000)]
+           [result (interval-find-all-roots f-sqrt2 f-sqrt2-iv f-sqrt2-deriv-iv X 1e-8 1000)]
            [roots (root-result-roots result)])
       ;; Should find 2 roots: -√2 and +√2
       (assert-true (= (length roots) 2))))
 
   (define-test "finds all three roots of x³ - x"
     (let* ([X (interval -2 2)]
-           [result (interval-find-all-roots f-cubic f-cubic-deriv-iv X 1e-8 2000)]
+           [result (interval-find-all-roots f-cubic f-cubic-iv f-cubic-deriv-iv X 1e-8 2000)]
            [roots (root-result-roots result)])
       ;; Should find 3 roots: -1, 0, 1
       (assert-true (>= (length roots) 3))))
 
   (define-test "roots cover expected values"
     (let* ([X (interval -2 2)]
-           [result (interval-find-all-roots f-cubic f-cubic-deriv-iv X 1e-6 2000)]
+           [result (interval-find-all-roots f-cubic f-cubic-iv f-cubic-deriv-iv X 1e-6 2000)]
            [root-ivs (map car (root-result-roots result))]
            [root-mids (map interval-mid root-ivs)])
       ;; Check that we found intervals covering -1, 0, and 1
@@ -130,7 +142,7 @@
 
   (define-test "finds no roots when none exist"
     (let* ([X (interval -10 10)]
-           [result (interval-find-all-roots f-no-roots f-no-roots-deriv-iv X 1e-8 1000)]
+           [result (interval-find-all-roots f-no-roots f-no-roots-iv f-no-roots-deriv-iv X 1e-8 1000)]
            [roots (root-result-roots result)])
       ;; x² + 1 has no real roots
       (assert-true (= (length roots) 0))))
@@ -232,8 +244,72 @@
 
   (define-test "handles wide initial interval"
     (let* ([X (interval -100 100)]
-           [result (interval-find-all-roots f-sqrt2 f-sqrt2-deriv-iv X 1e-6 5000)]
+           [result (interval-find-all-roots f-sqrt2 f-sqrt2-iv f-sqrt2-deriv-iv X 1e-6 5000)]
            [roots (root-result-roots result)])
+      (assert-true (= (length roots) 2))))
+)
+
+;;; ============================================================================
+;;; Rigorous Root Finding Tests (fold-zxux fix verification)
+;;; ============================================================================
+
+;;; These tests verify that interval-based root exclusion works correctly.
+;;; The old heuristic (point sampling at lo/mid/hi) could miss roots when
+;;; the function dipped below zero between sample points.
+
+;;; f(x) = (x - 0.5)² - 0.001 has roots near 0.5 ± √0.001 ≈ 0.468, 0.532
+;;; Point sampling at 0, 0.5, 1 gives:
+;;;   f(0) = 0.25 - 0.001 = 0.249 > 0
+;;;   f(0.5) = 0 - 0.001 = -0.001 < 0  (but only if mid = exactly 0.5)
+;;;   f(1) = 0.25 - 0.001 = 0.249 > 0
+;;; The old heuristic could miss these roots depending on sampling.
+
+(define (f-narrow-dip x)
+  (- (* (- x 0.5) (- x 0.5)) 0.001))
+
+(define (f-narrow-dip-iv X)
+  ;; (x - 0.5)² - 0.001 using interval arithmetic
+  (let ([x-minus-half (interval-sub X (interval-singleton 0.5))])
+    (interval-sub (interval-sqr x-minus-half)
+                  (interval-singleton 0.001))))
+
+(define (f-narrow-dip-deriv-iv X)
+  ;; d/dx[(x - 0.5)² - 0.001] = 2(x - 0.5)
+  (interval-scale (interval-sub X (interval-singleton 0.5)) 2))
+
+;;; Even more extreme: roots very close to each other
+;;; f(x) = (x - 0.5)² - 1e-8 has roots at 0.5 ± 1e-4
+(define (f-tiny-dip x)
+  (- (* (- x 0.5) (- x 0.5)) 1e-8))
+
+(define (f-tiny-dip-iv X)
+  (let ([x-minus-half (interval-sub X (interval-singleton 0.5))])
+    (interval-sub (interval-sqr x-minus-half)
+                  (interval-singleton 1e-8))))
+
+(define (f-tiny-dip-deriv-iv X)
+  (interval-scale (interval-sub X (interval-singleton 0.5)) 2))
+
+(test-group "rigorous-root-exclusion"
+
+  (define-test "finds roots in narrow dip that sampling could miss"
+    (let* ([X (interval 0 1)]
+           [result (interval-find-all-roots f-narrow-dip f-narrow-dip-iv f-narrow-dip-deriv-iv X 1e-8 1000)]
+           [roots (root-result-roots result)])
+      ;; Must find 2 roots near 0.468 and 0.532
+      (assert-true (= (length roots) 2))
+      (let* ([root-mids (map (lambda (r) (interval-mid (car r))) roots)]
+             [sorted (list-sort < root-mids)])
+        ;; First root near 0.468
+        (assert-true (< (abs (- (car sorted) 0.4684)) 0.01))
+        ;; Second root near 0.532
+        (assert-true (< (abs (- (cadr sorted) 0.5316)) 0.01)))))
+
+  (define-test "finds roots even in very narrow dip"
+    (let* ([X (interval 0.4 0.6)]  ; Focus on region around dip
+           [result (interval-find-all-roots f-tiny-dip f-tiny-dip-iv f-tiny-dip-deriv-iv X 1e-10 2000)]
+           [roots (root-result-roots result)])
+      ;; Must find 2 roots
       (assert-true (= (length roots) 2))))
 )
 
