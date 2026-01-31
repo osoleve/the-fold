@@ -262,7 +262,7 @@
            [graph (make-constraint-graph (list c1 c2 c3))])
       (assert-equal 1 (cg-cycle-count graph))))
 
-  (define-test "cycle analysis identifies cycle-breaking constraints"
+  (define-test "cycle analysis identifies cycle-participating constraints"
     (let* ([c1 (mock-constraint 'c1 'a 'b)]
            [c2 (mock-constraint 'c2 'b 'c)]
            [c3 (mock-constraint 'c3 'c 'a)]
@@ -271,7 +271,42 @@
       (assert-equal 1 (cdr (assq 'cycle-count analysis)))
       (assert-true (cdr (assq 'has-cycles analysis)))
       ;; All 3 constraints participate in the cycle
-      (assert-equal 3 (length (cdr (assq 'cycle-constraints analysis))))))
+      (assert-equal 3 (length (cdr (assq 'cycle-constraints analysis))))
+      ;; No bridges in a triangle
+      (assert-equal 0 (length (cdr (assq 'bridge-constraints analysis))))))
+
+  (define-test "bridge finding: chain has all bridges"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'd)]
+           [graph (make-constraint-graph (list c1 c2 c3))]
+           [bridges (cg-find-bridges graph)])
+      ;; All edges in a chain are bridges
+      (assert-equal 3 (length bridges))))
+
+  (define-test "bridge finding: triangle has no bridges"
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'a)]
+           [graph (make-constraint-graph (list c1 c2 c3))]
+           [bridges (cg-find-bridges graph)])
+      ;; No bridges in a triangle (all edges part of cycle)
+      (assert-equal 0 (length bridges))))
+
+  (define-test "bridge finding: mixed graph"
+    ;; Graph: a--b--c--d with c--a (triangle abc, plus tail d)
+    ;; Bridge: c--d (removing it disconnects d)
+    ;; Non-bridges: a--b, b--c, c--a (all in triangle)
+    (let* ([c1 (mock-constraint 'c1 'a 'b)]
+           [c2 (mock-constraint 'c2 'b 'c)]
+           [c3 (mock-constraint 'c3 'c 'a)]
+           [c4 (mock-constraint 'c4 'c 'd)]
+           [graph (make-constraint-graph (list c1 c2 c3 c4))]
+           [bridges (cg-find-bridges graph)]
+           [bridge-ids (map constraint-id bridges)])
+      ;; Only c4 (c--d) is a bridge
+      (assert-equal 1 (length bridges))
+      (assert-true (and (member 'c4 bridge-ids) #t))))
 
   (define-test "simplicial complex conversion"
     (let* ([c1 (mock-constraint 'c1 'a 'b)]

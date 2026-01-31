@@ -558,37 +558,113 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
       (has-cycles . ,(> b1 0))
       (over-constrained . ,(> b1 0)))))  ; Cycles suggest redundant constraints
 
+(doc 'cg-find-bridges 'type '(-> ConstraintGraph (List Constraint)))
+(doc 'cg-find-bridges 'description
+     "Find bridge constraints using Tarjan's algorithm in O(V+E).
+      A bridge is an edge whose removal disconnects the graph.
+      Non-bridge constraints participate in cycles.")
+(define (cg-find-bridges graph)
+  ;; Tarjan's bridge-finding algorithm
+  ;; Bridge: edge (u,v) where low[v] > disc[u]
+  (let* ([entities (cg-entities graph)]
+         [n (length entities)]
+         [entity->idx (make-hashtable equal-hash equal?)]
+         [_ (let loop ([es entities] [i 0])
+              (unless (null? es)
+                (hashtable-set! entity->idx (car es) i)
+                (loop (cdr es) (+ i 1))))]
+         [disc (make-vector n -1)]      ; Discovery time
+         [low (make-vector n -1)]       ; Lowest reachable discovery time
+         [parent (make-vector n -1)]    ; Parent in DFS tree
+         [time-counter (list 0)]        ; Mutable counter (boxed)
+         [bridges '()]                  ; Accumulator for bridge constraints
+         ;; Build edge list with constraint references
+         [constraint-edges
+          (filter-map
+           (lambda (c)
+             (let ([a (constraint-entity-a c)]
+                   [b (constraint-entity-b c)])
+               (if b  ; Binary constraint
+                   (let ([ia (hashtable-ref entity->idx a #f)]
+                         [ib (hashtable-ref entity->idx b #f)])
+                     (if (and ia ib)
+                         (list ia ib c)
+                         #f))
+                   #f)))
+           (cg-constraints graph))]
+         ;; Build adjacency with constraint info
+         [adj (make-vector n '())])
+    ;; Populate adjacency (each edge stored in both directions)
+    (for-each
+     (lambda (edge)
+       (let ([u (car edge)] [v (cadr edge)] [c (caddr edge)])
+         (vector-set! adj u (cons (list v c) (vector-ref adj u)))
+         (vector-set! adj v (cons (list u c) (vector-ref adj v)))))
+     constraint-edges)
+
+    ;; DFS to find bridges (using letrec for recursive definition)
+    (letrec ([dfs
+              (lambda (u)
+                (let ([time (car time-counter)])
+                  (set-car! time-counter (+ time 1))
+                  (vector-set! disc u time)
+                  (vector-set! low u time)
+                  ;; Visit neighbors
+                  (for-each
+                   (lambda (neighbor-info)
+                     (let ([v (car neighbor-info)]
+                           [c (cadr neighbor-info)])
+                       (cond
+                        ;; Not visited: recurse
+                        [(= (vector-ref disc v) -1)
+                         (vector-set! parent v u)
+                         (dfs v)
+                         ;; Update low value
+                         (vector-set! low u (min (vector-ref low u) (vector-ref low v)))
+                         ;; Check bridge condition: low[v] > disc[u]
+                         (when (> (vector-ref low v) (vector-ref disc u))
+                           (set! bridges (cons c bridges)))]
+                        ;; Back edge (not to parent): update low
+                        [(not (= v (vector-ref parent u)))
+                         (vector-set! low u (min (vector-ref low u) (vector-ref disc v)))])))
+                   (vector-ref adj u))))])
+      ;; Run DFS from each unvisited vertex (handles disconnected components)
+      (let loop ([i 0])
+        (when (< i n)
+          (when (= (vector-ref disc i) -1)
+            (dfs i))
+          (loop (+ i 1)))))
+
+    bridges))
+
 (doc 'cg-cycle-analysis 'type '(-> ConstraintGraph Alist))
 (doc 'cg-cycle-analysis 'description
-     "Analyze constraint cycles and suggest which constraints may be redundant.
-      Returns cycle count and list of constraints participating in cycles.
-      WARNING: O(E × HomologyCost) - rebuilds graph and recomputes homology for each
-      constraint to test if removal reduces cycle count. Use for debugging only,
-      not in hot paths. For large graphs, use cg-cycle-count for quick B₁ check.")
+     "Analyze constraint cycles and identify which constraints participate in cycles.
+      Uses Tarjan's bridge-finding algorithm in O(V+E) - much faster than naive approach.
+      A constraint participates in a cycle iff it's NOT a bridge (removing it doesn't disconnect).")
 (define (cg-cycle-analysis graph)
   (let* ([topo (cg-topology-analysis graph)]
          [b1 (cdr (assq 'betti-1 topo))]
          [constraints (cg-constraints graph)]
-         ;; Find constraints that participate in cycles by checking if
-         ;; removing them would reduce cycle count
+         ;; Find bridges in O(V+E)
+         [bridges (cg-find-bridges graph)]
+         [bridge-ids (make-hashtable equal-hash equal?)]
+         [_ (for-each (lambda (c) (hashtable-set! bridge-ids (constraint-id c) #t)) bridges)]
+         ;; Non-bridge binary constraints participate in cycles
          [cycle-constraints
           (if (> b1 0)
               (filter
                (lambda (c)
-                 (let* ([reduced-constraints (filter (lambda (x)
-                                                       (not (equal? (constraint-id x)
-                                                                    (constraint-id c))))
-                                                     constraints)]
-                        [reduced-graph (make-constraint-graph reduced-constraints)]
-                        [reduced-b1 (cg-cycle-count reduced-graph)])
-                   (< reduced-b1 b1)))
+                 (and (constraint-entity-b c)  ; Binary constraint
+                      (not (hashtable-ref bridge-ids (constraint-id c) #f))))
                constraints)
               '())])
     `((cycle-count . ,b1)
       (has-cycles . ,(> b1 0))
       (cycle-constraints . ,cycle-constraints)
+      (bridge-constraints . ,bridges)
       (suggestions . ,(if (> b1 0)
-                          (format "Found ~a independent cycle(s). Consider removing ~a redundant constraint(s) from: ~a"
+                          (format "Found ~a independent cycle(s). ~a constraint(s) participate in cycles: ~a"
                                   b1
                                   (length cycle-constraints)
                                   (map constraint-id cycle-constraints))
