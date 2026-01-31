@@ -2,17 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-The Fold is an experimental, content-addressable, homoiconic toolbox for agentic AI, written in Chez Scheme.
+A substrate for AI systems that need verifiable computation, automatic memoization, and complexity-sorted training data.
 
-The Fold is an ever-growing, dynamic *skill tree for AI* with guaranteed totality and strategic Rust acceleration.
-
-The Fold is an infinite data generator with curriculums that are natively complexity-sorted.
-
-The Fold is a substrate for identifying failure modes in continual learning research.
-
----
-
-**Welcome to The Fold.**
+Built in Chez Scheme around a content-addressed store where semantically equivalent code shares identity. The skill lattice provides agents with verified, fuel-bounded capabilities—linear algebra, optimization, physics simulation, symbolic math, and more.
 
 ---
 
@@ -25,7 +17,17 @@ Everything in The Fold is identified by its cryptographic hash. This single deci
 - **Verification is inherent.** If you have the hash, you can verify the content.
 - **Composition is natural.** References are hashes. Dependencies are immutable.
 
-The Fold achieves this through **alpha-normalization**: before hashing, expressions are converted to use de Bruijn indices, erasing variable names entirely. `(lambda (x) (+ x 1))` and `(lambda (y) (+ y 1))` hash identically because they *are* identical.
+The Fold achieves this through **semantic normalization**—a multi-phase pipeline that detects equivalences beyond syntactic identity:
+
+| Phase | Equivalence | Example |
+|-------|-------------|---------|
+| η-reduction | Function wrapper elimination | `(lambda (x) (f x))` → `f` |
+| Polynomial canonicalization | Arithmetic equivalence | `(+ x x)` ≡ `(* 2 x)` |
+| Algebraic canonicalization | Commutative/associative | `(+ b a)` → `(+ a b)` |
+| Identity elimination | Neutral elements | `(+ x 0)` → `x` |
+| α-normalization | Variable renaming | `(lambda (x) x)` → `(lambda (dv 0))` |
+
+The result: `(lambda (x) (+ x 1))` and `(lambda (y) (+ 1 y))` hash identically because they *are* identical.
 
 ---
 
@@ -52,21 +54,21 @@ Code is blocks. Data is blocks. Documentation is blocks. The entire system is a 
 The Fold separates concerns into three layers with a strict purity boundary:
 
 ```
-+----+
-|   user/      Applications             |
-+----+
-|   boundary/     IO, validation           |  <- Impure
-+====+
-|   lattice/   Verified skill DAG       |  <- Pure
-+----+
-|   core/      Language kernel          |  <- Pure
-+----+
+┌───────────────────────────────────────┐
+│  user/       Applications             │
+├───────────────────────────────────────┤
+│  boundary/   IO, validation           │  ← Impure
+╞═══════════════════════════════════════╡
+│  lattice/    Verified skill DAG       │  ← Pure
+├───────────────────────────────────────┤
+│  core/       Language kernel          │  ← Pure
+└───────────────────────────────────────┘
 ```
 
 | Layer | Directory | Purity | Role |
 |----|----|----|----|
 | Core | `core/` | Pure | Minimal, axiomatic language kernel |
-| Lattice | `lattice/` | Pure | Verified library DAG (~3,300 exports) |
+| Lattice | `lattice/` | Pure | Verified library DAG (36 skills, ~3,500 exports) |
 | Boundary | `boundary/` | Impure | IO boundary, validation, capabilities |
 | User | `user/` | Mixed | Applications and experiments |
 
@@ -111,7 +113,7 @@ Speed optimizations happen underneath; semantics stay stable above. The content-
 # Run the test suite
 scheme --script test-all.ss
 
-# Explore the lattice (~3,300 exports)
+# Explore the lattice (36 skills)
 ./fold "(lattice-init!)"                # Initialize search index
 ./fold 'lf "matrix"'                    # Full-text search
 ./fold "(li 'linalg)"                   # Inspect a skill
@@ -134,11 +136,11 @@ scheme --script test-all.ss
 
 ## The Lattice
 
-The lattice is The Fold's standard library (~205k lines, ~3,300 exports), organized as a dependency DAG with tiers:
+The lattice is The Fold's standard library (~284k lines, 36 skills), organized as a dependency DAG with tiers:
 
 **Tier 0 (Foundational):** `linalg`, `data`, `algebra`, `random`—no lattice dependencies.
 
-**Tier 1 (Intermediate):** `numeric`, `geometry`, `diffgeo`, `autodiff`, `fp`, `query`, `info`, `topology`, `crypto`, `optimization`, `dsl`—build on tier 0.
+**Tier 1 (Intermediate):** `numeric`, `geometry`, `diffgeo`, `autodiff`, `fp`, `query`, `info`, `topology`, `crypto`, `optimization`, `statistics`, `dsl`, `egraph`, `dataset`—build on tier 0.
 
 **Tier 2+ (Advanced):** `physics/diff`, `physics/diff3d`, `physics/classical`, `tiles`, `sim`, `automata`, `pipeline`—multiple dependencies.
 
@@ -183,9 +185,12 @@ See [CLAUDE.md](./CLAUDE.md) for development guidelines.
 - [docs/technical-overview.md](./docs/technical-overview.md) — 2-page technical overview (start here)
 - [docs/technical-report.md](./docs/technical-report.md) — Comprehensive technical report (academic style)
 - [docs/language-reference.md](./docs/language-reference.md) — Type system, parallel evaluation, rank-N polymorphism
+- [docs/normalization-v2.md](./docs/normalization-v2.md) — Semantic normalization pipeline specification
+- [docs/physics-guide.md](./docs/physics-guide.md) — Differentiable physics simulation guide
+- [docs/diffgeo-guide.md](./docs/diffgeo-guide.md) — Differential geometry and manifold computation
+- [docs/examples/](./docs/examples/) — Worked examples by domain
 - [CLAUDE.md](./CLAUDE.md) — Operational guide for working with The Fold
 - [lattice/meta/](./lattice/meta/) — Skill navigation and search
-- [TAXONOMY.sexp](./TAXONOMY.sexp) — Machine-readable module taxonomy
 
 ---
 
