@@ -15,7 +15,8 @@
     world with spatial hashing, materials, and ASCII rendering.")
 
   (keywords (physics simulation rigid-body 2d collision particles
-             constraints world spatial-hash ascii-render))
+             constraints world spatial-hash ascii-render graph-coloring
+             constraint-islands scc parallel-solving))
   (aliases (physics-2d classical-physics))
 
   (exports
@@ -29,6 +30,7 @@
    (collision-response "collision-response.ss" "Impulse-based collision resolution with friction")
    (constraints "constraints.ss" "Constraint data structures for joints")
    (constraint-solver "constraint-solver.ss" "Iterative constraint solver with Baumgarte stabilization")
+   (constraint-graph "constraint-graph.ss" "Graph analysis: islands, SCCs, coloring for parallel solving")
    (world "world.ss" "Physics world: entities, simulation stepping, queries")
    (particles "particles.ss" "Particle systems with emitters and force fields")
    (raycasting "raycasting.ss" "2D raycasting against shapes")
