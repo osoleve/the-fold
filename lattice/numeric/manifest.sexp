@@ -1,5 +1,5 @@
 (skill numeric
-  (version "0.7.1")
+  (version "0.8.0")
   (tier 0)
   (path "lattice/numeric")
   (purity total)
@@ -9,14 +9,16 @@
 
   (description
    "Numerical computing, signal processing, interpolation, interval, affine arithmetic,
-    and finite element methods. Provides complex number arithmetic, discrete Fourier
-    transform (radix-2 FFT), digital filters (FIR, IIR, Butterworth, Chebyshev),
-    convolution and correlation, wavelet transforms (Haar, Daubechies), spectral
-    analysis (STFT, spectrogram), interpolation (linear, polynomial, spline, Hermite),
-    Bezier curves, curve fitting (least squares, polynomial), Chebyshev approximation,
-    rigorous interval arithmetic for verified numerical computation, affine arithmetic
-    for tighter bounds via correlation tracking, and finite element method (FEM) for
-    solving elliptic PDEs on triangular meshes using P1 linear elements.")
+    finite element methods, and PDE time stepping. Provides complex number arithmetic,
+    discrete Fourier transform (radix-2 FFT), digital filters (FIR, IIR, Butterworth,
+    Chebyshev), convolution and correlation, wavelet transforms (Haar, Daubechies),
+    spectral analysis (STFT, spectrogram), interpolation (linear, polynomial, spline,
+    Hermite), Bezier curves, curve fitting (least squares, polynomial), Chebyshev
+    approximation, rigorous interval arithmetic for verified numerical computation,
+    affine arithmetic for tighter bounds via correlation tracking, finite element
+    method (FEM) for solving elliptic PDEs on triangular meshes, and time stepping
+    schemes (Forward/Backward Euler, Crank-Nicolson, Method of Lines) for time-dependent
+    PDEs with CFL stability analysis and adaptive stepping.")
 
   (keywords (numerics signal-processing fft dft complex-numbers digital-filters
              wavelets convolution spectral-analysis iir fir butterworth
@@ -24,8 +26,10 @@
              interval-arithmetic affine-arithmetic verified-computation bounds
              correlation-tracking dependency-problem noise-symbols
              finite-element-method fem pde poisson laplace triangular-mesh
-             p1-elements sparse-solver conjugate-gradient))
-  (aliases (signal dsp interp interval affine fem))
+             p1-elements sparse-solver conjugate-gradient
+             time-stepping forward-euler backward-euler crank-nicolson
+             method-of-lines rk4 cfl-condition parabolic hyperbolic adaptive))
+  (aliases (signal dsp interp interval affine fem pde-time))
 
   (exports
    (complex
@@ -213,7 +217,27 @@
     ;; Solver
     sparse-cg fem-solve-poisson fem-solve-poisson-full
     ;; Post-processing
-    fem-solution-at fem-render-solution fem-l2-error))
+    fem-solution-at fem-render-solution fem-l2-error)
+
+   (pde-time
+    ;; Vector operations
+    pde-vec-add pde-vec-sub pde-vec-scale pde-vec-madd pde-vec-dot pde-vec-norm
+    ;; Forward Euler (explicit)
+    forward-euler-step forward-euler-matrix-step forward-euler-mass-step
+    ;; Backward Euler (implicit)
+    backward-euler-linear-step backward-euler-identity-step
+    ;; Crank-Nicolson (implicit, 2nd order)
+    crank-nicolson-step crank-nicolson-identity-step
+    ;; Method of Lines
+    mol-rhs mol-euler-step mol-rk4-step
+    ;; Stability analysis
+    cfl-parabolic cfl-hyperbolic estimate-mesh-spacing
+    ;; Adaptive time stepping
+    adaptive-euler-step integrate-adaptive
+    ;; Sparse utilities
+    sparse-csr-identity sparse-cg-solve sparse-csr-diagonal-vec
+    ;; Factory and driver
+    make-time-stepper integrate-pde))
 
   (modules
    (complex "complex.ss"
@@ -268,4 +292,12 @@
      P1 (linear) elements with sparse matrix assembly and conjugate gradient solver.
      Solves Poisson equation -∇²u = f with Dirichlet boundary conditions u = g.
      Includes mesh generation for unit square and disk domains, ASCII solution
-     visualization, and L² error computation for convergence studies.")))
+     visualization, and L² error computation for convergence studies.")
+   (pde-time "pde-time.ss"
+    "Time stepping schemes for time-dependent PDEs: du/dt = L(u). Forward Euler
+     (explicit, conditionally stable), Backward Euler (implicit, A-stable), and
+     Crank-Nicolson (implicit, 2nd order, A-stable). Method of Lines connects
+     spatial discretization to ODE solvers (Euler, RK4). CFL stability conditions
+     for parabolic (heat) and hyperbolic (wave) equations. Adaptive time stepping
+     with Richardson extrapolation error control. Conjugate gradient solver for
+     implicit methods.")))
