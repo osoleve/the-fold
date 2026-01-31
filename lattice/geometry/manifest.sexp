@@ -13,6 +13,7 @@
     rays, planes, triangles, spheres, AABBs, OBBs, transforms, distance queries,
     intersection tests, BVH and octree acceleration structures, mesh SDF computation,
     marching cubes isosurface extraction, Delaunay triangulation with refinement,
+    Laplacian mesh smoothing, adaptive refinement, boundary-constrained meshing,
     Voronoi diagrams (via Delaunay duality) with Lloyd relaxation,
     topological validation via Betti numbers, and 2D convex hull algorithms
     (Graham scan, Quickhull) with Minkowski operations.")
@@ -21,6 +22,7 @@
              marching-cubes rendering ray-tracing spatial-data-structures
              topology homology betti-numbers manifold validation
              delaunay triangulation mesh-generation refinement voronoi lloyd-relaxation
+             laplacian-smoothing adaptive-refinement boundary-constrained polygon-mesh
              convex-hull graham-scan quickhull minkowski collision-detection
              optics lenses traversals prisms functional-access))
   (aliases (geom 3d-geometry spatial))
@@ -111,6 +113,13 @@
     ;; Quality metrics
     tri2-edge-lengths tri2-aspect-ratio tri2-angles tri2-min-angle tri2-max-angle
     mesh-quality-report refine-mesh
+    ;; Laplacian smoothing
+    smooth-mesh
+    ;; Adaptive refinement
+    adaptive-refine-mesh refine-mesh-uniform
+    ;; Boundary-constrained meshing
+    point-in-polygon? triangulate-polygon triangulate-polygon-adaptive
+    ;; Utilities
     triangles-to-3d random-points-in-rect render-mesh-2d)
 
    (mesh-topology
@@ -203,8 +212,10 @@
    (mesh-gen "mesh-gen.ss"
     "2D mesh generation with Delaunay triangulation (Bowyer-Watson), O(√n) point location
      via walking algorithm, barycentric interpolation, quality metrics (aspect ratio, angles),
-     and Ruppert refinement. BREAKING: delaunay-triangulate now returns a triangulation record
-     with adjacency; use triangulation-triangles to extract the triangle list.")
+     Ruppert refinement, Laplacian smoothing, adaptive area-based refinement, and
+     boundary-constrained meshing (mesh inside polygon). BREAKING: delaunay-triangulate
+     now returns a triangulation record with adjacency; use triangulation-triangles to
+     extract the triangle list.")
    (mesh-topology "mesh-topology.ss"
     "Topological analysis of triangle meshes via homology. Computes Betti numbers,
      validates manifold properties, detects non-manifold edges, and verifies mesh

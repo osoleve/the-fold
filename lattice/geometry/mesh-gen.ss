@@ -671,6 +671,376 @@
     (make-triangulation all-pts final-tris adjacency boundary)))
 
 ;;; ============================================================
+;;; Section: Laplacian Smoothing
+;;; ============================================================
+
+(doc 'section 'smoothing)
+
+(doc build-vertex-neighbors 'type '(-> (List Triangle2) Hashtable))
+(doc build-vertex-neighbors 'description
+     "Build vertex adjacency: hash mapping each vertex to list of neighbor vertices")
+(define (build-vertex-neighbors triangles)
+  (let ([neighbors (make-hashtable equal-hash equal?)])
+    (for-each
+     (lambda (tri)
+       (let* ([p1 (tri2-p1 tri)]
+              [p2 (tri2-p2 tri)]
+              [p3 (tri2-p3 tri)]
+              [k1 (list (point2-x p1) (point2-y p1))]
+              [k2 (list (point2-x p2) (point2-y p2))]
+              [k3 (list (point2-x p3) (point2-y p3))])
+         ;; Add bidirectional edges
+         (hashtable-update! neighbors k1 (lambda (v) (cons p2 (cons p3 v))) '())
+         (hashtable-update! neighbors k2 (lambda (v) (cons p1 (cons p3 v))) '())
+         (hashtable-update! neighbors k3 (lambda (v) (cons p1 (cons p2 v))) '())))
+     triangles)
+    neighbors))
+
+(doc find-boundary-vertices 'type '(-> (List Triangle2) Hashtable (List Point2)))
+(doc find-boundary-vertices 'description "Find vertices on the mesh boundary")
+(define (find-boundary-vertices triangles adjacency)
+  ;; A vertex is on the boundary if any of its edges is a boundary edge
+  (let ([boundary-verts (make-hashtable equal-hash equal?)]
+        [edge-counts (make-hashtable equal-hash equal?)])
+    ;; Count occurrences of each edge
+    (for-each
+     (lambda (tri)
+       (let* ([p1 (tri2-p1 tri)]
+              [p2 (tri2-p2 tri)]
+              [p3 (tri2-p3 tri)])
+         (for-each
+          (lambda (edge)
+            (hashtable-update! edge-counts edge (lambda (n) (+ n 1)) 0))
+          (list (canonical-edge-key p1 p2)
+                (canonical-edge-key p2 p3)
+                (canonical-edge-key p3 p1)))))
+     triangles)
+    ;; Find edges that appear only once (boundary edges)
+    (let-values ([(keys vals) (hashtable-entries edge-counts)])
+      (do ([i 0 (+ i 1)])
+          ((>= i (vector-length keys)))
+        (when (= 1 (vector-ref vals i))
+          (let* ([key (vector-ref keys i)]
+                 [x1 (list-ref key 0)] [y1 (list-ref key 1)]
+                 [x2 (list-ref key 2)] [y2 (list-ref key 3)])
+            (hashtable-set! boundary-verts (list x1 y1) (make-point2 x1 y1))
+            (hashtable-set! boundary-verts (list x2 y2) (make-point2 x2 y2))))))
+    (let-values ([(_ vals) (hashtable-entries boundary-verts)])
+      (vector->list vals))))
+
+(doc laplacian-smooth-step 'type '(-> (List Triangle2) Number (List Point2) (List Triangle2)))
+(doc laplacian-smooth-step 'description
+     "One iteration of Laplacian smoothing. Moves interior vertices toward neighbor centroid.")
+(define (laplacian-smooth-step triangles weight boundary-pts)
+  (let* ([vertex-neighbors (build-vertex-neighbors triangles)]
+         [boundary-set (make-hashtable equal-hash equal?)]
+         [new-positions (make-hashtable equal-hash equal?)])
+    ;; Mark boundary vertices
+    (for-each
+     (lambda (p)
+       (hashtable-set! boundary-set (list (point2-x p) (point2-y p)) #t))
+     boundary-pts)
+    ;; Calculate new positions for interior vertices
+    (let-values ([(keys _) (hashtable-entries vertex-neighbors)])
+      (do ([i 0 (+ i 1)])
+          ((>= i (vector-length keys)))
+        (let* ([key (vector-ref keys i)]
+               [x (car key)] [y (cadr key)]
+               [p (make-point2 x y)])
+          (if (hashtable-ref boundary-set key #f)
+              ;; Boundary vertex: don't move
+              (hashtable-set! new-positions key p)
+              ;; Interior vertex: move toward centroid of neighbors
+              (let* ([nbrs (hashtable-ref vertex-neighbors key '())]
+                     ;; Remove duplicates
+                     [unique-nbrs
+                      (let ([seen (make-hashtable equal-hash equal?)])
+                        (filter (lambda (n)
+                                  (let ([nk (list (point2-x n) (point2-y n))])
+                                    (if (hashtable-ref seen nk #f)
+                                        #f
+                                        (begin (hashtable-set! seen nk #t) #t))))
+                                nbrs))]
+                     [n (length unique-nbrs)])
+                (if (zero? n)
+                    (hashtable-set! new-positions key p)
+                    (let* ([cx (/ (apply + (map point2-x unique-nbrs)) n)]
+                           [cy (/ (apply + (map point2-y unique-nbrs)) n)]
+                           ;; Weighted blend: new = old + weight * (centroid - old)
+                           [new-x (+ x (* weight (- cx x)))]
+                           [new-y (+ y (* weight (- cy y)))])
+                      (hashtable-set! new-positions key (make-point2 new-x new-y)))))))))
+    ;; Rebuild triangles with new vertex positions
+    (map (lambda (tri)
+           (let* ([p1 (tri2-p1 tri)]
+                  [p2 (tri2-p2 tri)]
+                  [p3 (tri2-p3 tri)]
+                  [k1 (list (point2-x p1) (point2-y p1))]
+                  [k2 (list (point2-x p2) (point2-y p2))]
+                  [k3 (list (point2-x p3) (point2-y p3))])
+             (make-tri2 (hashtable-ref new-positions k1 p1)
+                        (hashtable-ref new-positions k2 p2)
+                        (hashtable-ref new-positions k3 p3))))
+         triangles)))
+
+(doc smooth-mesh 'export #t)
+(doc smooth-mesh 'type '(-> (Or (List Triangle2) Triangulation) Nat Number Triangulation))
+(doc smooth-mesh 'description
+     "Apply Laplacian smoothing to improve mesh quality.
+      - iterations: number of smoothing passes
+      - weight: smoothing strength (0.0-1.0, typical 0.3-0.5)
+      Boundary vertices are held fixed.")
+(define (smooth-mesh tris-or-tri iterations weight)
+  (let* ([triangles (if (triangulation? tris-or-tri)
+                        (triangulation-triangles tris-or-tri)
+                        tris-or-tri)]
+         [adjacency (build-adjacency triangles)]
+         [boundary-pts (find-boundary-vertices triangles adjacency)]
+         ;; Run smoothing iterations
+         [smoothed
+          (let loop ([tris triangles] [iter 0])
+            (if (>= iter iterations)
+                tris
+                (loop (laplacian-smooth-step tris weight boundary-pts) (+ iter 1))))]
+         ;; Rebuild triangulation structure
+         [new-adjacency (build-adjacency smoothed)]
+         [new-boundary (find-boundary-edges smoothed new-adjacency)]
+         [all-pts (let ([ht (make-hashtable equal-hash equal?)])
+                    (for-each (lambda (tri)
+                                (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
+                                (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
+                                (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                              smoothed)
+                    (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+    (make-triangulation all-pts smoothed new-adjacency new-boundary)))
+
+;;; ============================================================
+;;; Section: Adaptive Refinement
+;;; ============================================================
+
+(doc 'section 'adaptive)
+
+(doc tri2-should-refine? 'type '(-> Triangle2 Number (-> Triangle2 Boolean) Boolean))
+(doc tri2-should-refine? 'description "Check if triangle should be refined based on area or custom criterion")
+(define (tri2-should-refine? tri max-area custom-pred)
+  (or (> (tri2-area tri) max-area)
+      (custom-pred tri)))
+
+(doc adaptive-refine-mesh 'export #t)
+(doc adaptive-refine-mesh 'type '(-> (Or (List Triangle2) Triangulation) Number Nat (-> Triangle2 Boolean) Triangulation))
+(doc adaptive-refine-mesh 'description
+     "Adaptively refine mesh based on area threshold and custom predicate.
+      - max-area: triangles larger than this are refined
+      - max-iterations: refinement budget
+      - should-refine?: custom predicate for additional refinement criteria
+      Inserts circumcenters of triangles needing refinement.")
+(define (adaptive-refine-mesh tris-or-tri max-area max-iterations should-refine?)
+  (let* ([triangles (if (triangulation? tris-or-tri)
+                        (triangulation-triangles tris-or-tri)
+                        tris-or-tri)]
+         [final-tris
+          (let loop ([tris triangles] [iter 0])
+            (if (>= iter max-iterations)
+                tris
+                (let ([bad-tris (filter (lambda (t)
+                                          (tri2-should-refine? t max-area should-refine?))
+                                        tris)])
+                  (if (null? bad-tris)
+                      tris
+                      ;; Refine largest triangle first
+                      (let* ([worst (car (sort (lambda (a b)
+                                                 (> (tri2-area a) (tri2-area b)))
+                                               bad-tris))]
+                             [cc (tri2-circumcenter worst)])
+                        (if cc
+                            (loop (delaunay-insert-point tris cc) (+ iter 1))
+                            ;; Skip degenerate triangle
+                            (loop tris (+ iter 1))))))))]
+         [adjacency (build-adjacency final-tris)]
+         [boundary (find-boundary-edges final-tris adjacency)]
+         [all-pts (let ([ht (make-hashtable equal-hash equal?)])
+                    (for-each (lambda (tri)
+                                (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
+                                (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
+                                (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                              final-tris)
+                    (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+    (make-triangulation all-pts final-tris adjacency boundary)))
+
+(doc refine-mesh-uniform 'export #t)
+(doc refine-mesh-uniform 'type '(-> (Or (List Triangle2) Triangulation) Number Nat Triangulation))
+(doc refine-mesh-uniform 'description
+     "Uniformly refine mesh until all triangles are below max-area threshold.
+      Simpler interface to adaptive-refine-mesh with no custom predicate.")
+(define (refine-mesh-uniform tris-or-tri max-area max-iterations)
+  (adaptive-refine-mesh tris-or-tri max-area max-iterations (lambda (_) #f)))
+
+;;; ============================================================
+;;; Section: Boundary-Constrained Meshing
+;;; ============================================================
+
+(doc 'section 'boundary-constrained)
+
+(doc point-in-polygon? 'export #t)
+(doc point-in-polygon? 'type '(-> Point2 (List Point2) Boolean))
+(doc point-in-polygon? 'description
+     "Test if point is inside polygon using ray-casting algorithm.
+      Polygon should be a list of vertices in order (CCW or CW).")
+(define (point-in-polygon? p polygon)
+  (let ([x (point2-x p)]
+        [y (point2-y p)]
+        [n (length polygon)])
+    (let loop ([i 0] [inside? #f])
+      (if (>= i n)
+          inside?
+          (let* ([j (modulo (+ i 1) n)]
+                 [pi (list-ref polygon i)]
+                 [pj (list-ref polygon j)]
+                 [xi (point2-x pi)] [yi (point2-y pi)]
+                 [xj (point2-x pj)] [yj (point2-y pj)]
+                 ;; Ray casting: check if horizontal ray from p crosses edge i->j
+                 [crosses? (and (not (eq? (> yi y) (> yj y)))
+                               (< x (+ xi (/ (* (- xj xi) (- y yi))
+                                             (- yj yi)))))])
+            (loop (+ i 1) (if crosses? (not inside?) inside?)))))))
+
+(doc polygon-centroid 'type '(-> (List Point2) Point2))
+(doc polygon-centroid 'description "Compute centroid of polygon")
+(define (polygon-centroid polygon)
+  (let ([n (length polygon)])
+    (if (zero? n)
+        (make-point2 0 0)
+        (make-point2 (/ (apply + (map point2-x polygon)) n)
+                     (/ (apply + (map point2-y polygon)) n)))))
+
+(doc polygon-area 'type '(-> (List Point2) Number))
+(doc polygon-area 'description "Compute signed area of polygon (positive if CCW)")
+(define (polygon-area polygon)
+  (let ([n (length polygon)])
+    (if (< n 3)
+        0
+        (* 0.5
+           (let loop ([i 0] [sum 0])
+             (if (>= i n)
+                 sum
+                 (let* ([j (modulo (+ i 1) n)]
+                        [pi (list-ref polygon i)]
+                        [pj (list-ref polygon j)])
+                   (loop (+ i 1)
+                         (+ sum
+                            (- (* (point2-x pi) (point2-y pj))
+                               (* (point2-x pj) (point2-y pi))))))))))))
+
+(doc generate-interior-points 'type '(-> (List Point2) Number (List Point2)))
+(doc generate-interior-points 'description
+     "Generate Poisson-like distributed points inside polygon with target spacing")
+(define (generate-interior-points polygon spacing)
+  (let* ([xs (map point2-x polygon)]
+         [ys (map point2-y polygon)]
+         [x-min (apply min xs)]
+         [x-max (apply max xs)]
+         [y-min (apply min ys)]
+         [y-max (apply max ys)]
+         [pts '()])
+    ;; Generate grid of candidate points
+    (let x-loop ([x (+ x-min (/ spacing 2))] [result '()])
+      (if (> x x-max)
+          result
+          (x-loop (+ x spacing)
+                  (let y-loop ([y (+ y-min (/ spacing 2))] [inner result])
+                    (if (> y y-max)
+                        inner
+                        (y-loop (+ y spacing)
+                               (let ([p (make-point2 x y)])
+                                 (if (point-in-polygon? p polygon)
+                                     (cons p inner)
+                                     inner))))))))))
+
+(doc triangulate-polygon 'export #t)
+(doc triangulate-polygon 'type '(-> (List Point2) Number Triangulation))
+(doc triangulate-polygon 'description
+     "Generate constrained Delaunay triangulation inside a polygon boundary.
+      - polygon: list of boundary vertices in order
+      - spacing: approximate interior point spacing
+      Returns triangulation covering polygon interior only.")
+(define (triangulate-polygon polygon spacing)
+  (if (< (length polygon) 3)
+      (make-triangulation (list->vector polygon) '() (make-eq-hashtable) '())
+      (let* ([interior-pts (generate-interior-points polygon spacing)]
+             [all-pts (append polygon interior-pts)]
+             [full-tri (delaunay-triangulate all-pts)]
+             [all-tris (triangulation-triangles full-tri)]
+             ;; Filter to triangles whose centroid is inside polygon
+             [inside-tris
+              (filter (lambda (tri)
+                        (let* ([p1 (tri2-p1 tri)]
+                               [p2 (tri2-p2 tri)]
+                               [p3 (tri2-p3 tri)]
+                               [cx (/ (+ (point2-x p1) (point2-x p2) (point2-x p3)) 3)]
+                               [cy (/ (+ (point2-y p1) (point2-y p2) (point2-y p3)) 3)]
+                               [centroid (make-point2 cx cy)])
+                          (point-in-polygon? centroid polygon)))
+                      all-tris)]
+             [adjacency (build-adjacency inside-tris)]
+             [boundary (find-boundary-edges inside-tris adjacency)]
+             [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
+                        (for-each (lambda (tri)
+                                    (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
+                                    (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
+                                    (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                  inside-tris)
+                        (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+        (make-triangulation pts-vec inside-tris adjacency boundary))))
+
+(doc triangulate-polygon-adaptive 'export #t)
+(doc triangulate-polygon-adaptive 'type '(-> (List Point2) Number Number Nat Triangulation))
+(doc triangulate-polygon-adaptive 'description
+     "Generate mesh inside polygon with adaptive refinement.
+      - polygon: list of boundary vertices
+      - initial-spacing: starting interior point spacing
+      - max-area: target maximum triangle area
+      - max-iters: refinement budget")
+(define (triangulate-polygon-adaptive polygon initial-spacing max-area max-iters)
+  (let* ([initial-mesh (triangulate-polygon polygon initial-spacing)]
+         [tris (triangulation-triangles initial-mesh)])
+    (if (null? tris)
+        initial-mesh
+        ;; Refine while keeping triangles inside polygon
+        (let loop ([current-tris tris] [iter 0])
+          (if (>= iter max-iters)
+              (let* ([adjacency (build-adjacency current-tris)]
+                     [boundary (find-boundary-edges current-tris adjacency)]
+                     [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
+                                (for-each (lambda (tri)
+                                            (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
+                                            (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
+                                            (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                          current-tris)
+                                (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+                (make-triangulation pts-vec current-tris adjacency boundary))
+              (let ([large-tris (filter (lambda (t) (> (tri2-area t) max-area)) current-tris)])
+                (if (null? large-tris)
+                    ;; All triangles are small enough
+                    (loop current-tris max-iters)
+                    ;; Refine the largest triangle
+                    (let* ([worst (car (sort (lambda (a b) (> (tri2-area a) (tri2-area b))) large-tris))]
+                           [cc (tri2-circumcenter worst)])
+                      (if (and cc (point-in-polygon? cc polygon))
+                          ;; Insert circumcenter and re-filter
+                          (let* ([new-tris (delaunay-insert-point current-tris cc)]
+                                 [filtered (filter (lambda (tri)
+                                                     (let* ([p1 (tri2-p1 tri)]
+                                                            [p2 (tri2-p2 tri)]
+                                                            [p3 (tri2-p3 tri)]
+                                                            [cx (/ (+ (point2-x p1) (point2-x p2) (point2-x p3)) 3)]
+                                                            [cy (/ (+ (point2-y p1) (point2-y p2) (point2-y p3)) 3)])
+                                                       (point-in-polygon? (make-point2 cx cy) polygon)))
+                                                   new-tris)])
+                            (loop filtered (+ iter 1)))
+                          ;; Circumcenter outside polygon, skip this triangle
+                          (loop current-tris (+ iter 1)))))))))))
+
+;;; ============================================================
 ;;; Section: Mesh to 3D Conversion
 ;;; ============================================================
 
@@ -784,12 +1154,16 @@
                           result))))))))
 
 (printf "mesh-gen.ss loaded~n")
-(printf "  (delaunay-triangulate points)     - Bowyer-Watson triangulation → triangulation~n")
+(printf "  (delaunay-triangulate points)     - Bowyer-Watson triangulation~n")
 (printf "  (triangulation-triangles tri)     - Extract triangle list~n")
 (printf "  (locate-point tri pt [hint])      - Find containing triangle O(√n)~n")
 (printf "  (interpolate-at tri pt vals)      - Barycentric interpolation~n")
 (printf "  (tri2-aspect-ratio tri)           - Quality metric~n")
 (printf "  (mesh-quality-report tris)        - Print statistics~n")
 (printf "  (refine-mesh tris angle iters)    - Ruppert refinement~n")
+(printf "  (smooth-mesh tris iters weight)   - Laplacian smoothing~n")
+(printf "  (adaptive-refine-mesh ...)        - Area-based refinement~n")
+(printf "  (triangulate-polygon poly space)  - Mesh inside polygon~n")
+(printf "  (point-in-polygon? pt poly)       - Point containment test~n")
 (printf "  (triangles-to-3d tris height-fn)  - Convert to 3D~n")
 (printf "  (render-mesh-2d tris w h)         - ASCII visualization~n")
