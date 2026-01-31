@@ -25,7 +25,7 @@ Usage:
   (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) OptResult))
   (doc 'description "Minimize a function starting from x0")
-  (doc 'param 'method "Optional: 'sgd, 'momentum, 'adam, 'rmsprop, 'adagrad, 'lbfgs, 'newton, 'newton-cg")
+  (doc 'param 'method "Optional: 'sgd, 'momentum, 'adam, 'adamw, 'muon, 'rmsprop, 'adagrad, 'lbfgs, 'newton, 'newton-cg")
   (doc 'param 'criteria "Optional: ConvergenceCriteria (or use defaults)")
   (doc 'note "Examples:
   (minimize f x0)                    ; L-BFGS with defaults
@@ -56,6 +56,10 @@ Usage:
                (nesterov f x0 0.01 0.9 criteria)]
               [(adamw)
                (adamw f x0 0.001 0.01 criteria)]
+              [(muon)
+               ;; Note: For matrix-shaped parameters with Newton-Schulz orthogonalization,
+               ;; use muon-matrix directly (different signature: takes Matrix, not List)
+               (muon f x0 0.02 criteria)]
               ;; Second-order methods
               [(newton)
                (newton-method f x0 criteria)]
@@ -191,6 +195,7 @@ First-order (gradient only):
   - nesterov        : Nesterov accelerated gradient
   - adam            : Adaptive moment estimation
   - adamw           : Adam with decoupled weight decay
+  - muon            : Momentum orthogonalized update (normalized momentum)
   - rmsprop         : RMSprop adaptive learning rate
   - adagrad         : Adagrad adaptive learning rate
 

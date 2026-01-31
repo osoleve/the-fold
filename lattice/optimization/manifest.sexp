@@ -21,7 +21,7 @@
     optimization, and interval Newton method for guaranteed root finding
     with existence proofs.")
 
-  (keywords (optimization gradient-descent sgd adam newton lbfgs
+  (keywords (optimization gradient-descent sgd adam muon newton lbfgs
              minimize convergence line-search numerical
              linear-programming simplex dual sensitivity
              integer-programming ilp branch-and-bound knapsack set-cover
@@ -34,7 +34,7 @@
   (exports
    (line-search armijo-backtrack wolfe-line-search)
    (convergence converged? make-convergence-criteria)
-   (first-order gradient-descent sgd momentum adam rmsprop adagrad)
+   (first-order gradient-descent sgd momentum adam muon muon-full muon-matrix muon-matrix-full newton-schulz rmsprop adagrad)
    (newton newton-method newton-cg)
    (lbfgs lbfgs minimize)
    (lp make-lp lp-solve lp-dual lp-shadow-prices lp-reduced-costs)
@@ -62,7 +62,7 @@
   (modules
    (line-search "line-search.ss" "Armijo, Wolfe line search strategies")
    (convergence "convergence.ss" "Convergence criteria and stopping conditions")
-   (first-order "first-order.ss" "SGD, Momentum, Adam, RMSprop optimizers")
+   (first-order "first-order.ss" "SGD, Momentum, Adam, Muon, RMSprop optimizers")
    (newton "newton.ss" "Newton's method with Hessian")
    (lbfgs "lbfgs.ss" "Limited-memory BFGS quasi-Newton")
    (optimize "optimize.ss" "Main API - combines all optimizers")

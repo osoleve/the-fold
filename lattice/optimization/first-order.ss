@@ -2,6 +2,7 @@
 (load "core/autodiff/reverse-diff.ss")
 (load "lattice/optimization/convergence.ss")
 (load "lattice/optimization/line-search.ss")
+(load "lattice/linalg/matrix.ss")
 
 (doc 'module 'first-order)
 (doc 'description "First-order optimization algorithms using gradient information")
@@ -14,6 +15,10 @@ Algorithms:
   - SGD (Stochastic Gradient Descent)
   - Momentum
   - Adam
+  - Muon (Momentum Orthogonalized Update)
+    - muon/muon-full: vector parameters (normalization)
+    - muon-matrix/muon-matrix-full: matrix parameters (Newton-Schulz orthogonalization)
+    - newton-schulz: standalone orthogonalization utility
   - RMSprop
   - Adagrad
   - Nesterov Accelerated Gradient
@@ -305,6 +310,172 @@ Algorithms:
                              [grad-new (gradient f x-new)]
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
                             (loop x-new v-new new-state)))))))
+
+(doc 'section 'muon)
+
+;;; ====
+;;; Newton-Schulz Orthogonalization
+;;; ====
+
+(define (newton-schulz-step m)
+  (doc 'type '(-> Matrix Matrix))
+  (doc 'description "Single Newton-Schulz iteration: M @ (1.5*I - 0.5*M^T@M)")
+  (doc 'note "Converges when spectral norm of M < sqrt(3)")
+  (let* ([rows (matrix-rows m)]
+         [cols (matrix-cols m)]
+         [mt (matrix-transpose m)]
+         [mtm (matrix-mul mt m)]              ; M^T @ M (cols x cols)
+         [i (matrix-identity cols)]
+         [scaled-i (matrix-scale 1.5 i)]      ; 1.5 * I
+         [scaled-mtm (matrix-scale 0.5 mtm)]  ; 0.5 * M^T @ M
+         [bracket (matrix-sub scaled-i scaled-mtm)])  ; (1.5*I - 0.5*M^T@M)
+        (matrix-mul m bracket)))
+
+(define (newton-schulz m num-iters)
+  (doc 'export #t)
+  (doc 'type '(-> Matrix Nat Matrix))
+  (doc 'description "Newton-Schulz iteration for matrix orthogonalization")
+  (doc 'param 'm "Matrix to orthogonalize")
+  (doc 'param 'num-iters "Number of iterations (typically 5)")
+  (doc 'returns "Orthogonalized matrix approximating M @ (M^T M)^{-1/2}")
+  (doc 'note "For convergence, pre-scale M so spectral norm < sqrt(3).
+This implementation uses Frobenius norm as a conservative bound.")
+  ;; Pre-scale to ensure convergence: ||M||_F / sqrt(min(rows,cols)) approximates spectral norm
+  (let* ([rows (matrix-rows m)]
+         [cols (matrix-cols m)]
+         [frob (frobenius-norm m)]
+         ;; Scale factor: ensure spectral norm estimate < 1.5 (safe margin below sqrt(3))
+         [scale-factor (if (< frob 1e-12)
+                           1.0
+                           (/ 1.0 (max frob 1.0)))]
+         [m-scaled (matrix-scale scale-factor m)])
+        ;; Iterate
+        (let loop ([x m-scaled] [i 0])
+             (if (>= i num-iters)
+                 x
+                 (loop (newton-schulz-step x) (+ i 1))))))
+
+;;; ====
+;;; Muon for Vectors
+;;; ====
+
+(define (muon f x0 lr criteria)
+  (doc 'export #t)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number ConvergenceCriteria OptResult))
+  (doc 'description "Muon optimizer for vector parameters")
+  (doc 'param 'f "Objective function")
+  (doc 'param 'x0 "Initial point (flat list of numbers)")
+  (doc 'param 'lr "Learning rate (typically 0.02)")
+  (doc 'param 'criteria "Convergence criteria")
+  (doc 'note "For vectors, orthogonalization is normalization: m/||m||.
+For matrix parameters, use muon-matrix instead.")
+  (muon-full f x0 lr 0.95 criteria))
+
+(define (muon-full f x0 lr beta criteria)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number Number ConvergenceCriteria OptResult))
+  (doc 'description "Muon optimizer for vectors with all hyperparameters")
+  (doc 'param 'f "Objective function")
+  (doc 'param 'x0 "Initial point")
+  (doc 'param 'lr "Learning rate")
+  (doc 'param 'beta "Momentum coefficient (typically 0.95)")
+  (doc 'param 'criteria "Convergence criteria")
+  (let* ([n (length x0)]
+         [init-m (make-list n 0)]   ; Momentum buffer
+         [init-grad (gradient f x0)]
+         [init-f (apply f x0)]
+         [init-state (initial-convergence-state init-f init-grad)])
+        (let loop ([x x0]
+                   [m init-m]
+                   [state init-state])
+             (let ([reason (converged? criteria state)])
+                  (if reason
+                      (make-opt-result x (cs-f-val state) (gradient f x)
+                                       (cs-iter state) reason)
+                      (let* ([grad (gradient f x)]
+                             ;; Update momentum: m = beta*m + grad
+                             [m-new (map (lambda (mi gi) (+ (* beta mi) gi)) m grad)]
+                             ;; Orthogonalize momentum (normalize for vectors)
+                             [m-norm (vec-norm m-new)]
+                             [m-orth (if (< m-norm 1e-12)
+                                         m-new  ; Avoid division by zero
+                                         (map (lambda (mi) (/ mi m-norm)) m-new))]
+                             ;; Update parameters with orthogonalized momentum
+                             [x-new (map (lambda (xi mi) (- xi (* lr mi))) x m-orth)]
+                             [f-new (apply f x-new)]
+                             [grad-new (gradient f x-new)]
+                             [new-state (update-convergence-state state f-new grad-new x x-new)])
+                            (loop x-new m-new new-state)))))))
+
+;;; ====
+;;; Muon for Matrices (shape-aware with Newton-Schulz)
+;;; ====
+
+(define (muon-matrix f m0 lr criteria)
+  (doc 'export #t)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) Matrix Number ConvergenceCriteria MatrixOptResult))
+  (doc 'description "Muon optimizer for matrix-shaped parameters using Newton-Schulz orthogonalization")
+  (doc 'param 'f "Objective function taking flat list of traced values")
+  (doc 'param 'm0 "Initial matrix (defines the shape for Newton-Schulz)")
+  (doc 'param 'lr "Learning rate (typically 0.02)")
+  (doc 'param 'criteria "Convergence criteria")
+  (doc 'note "Uses 5 Newton-Schulz iterations to orthogonalize momentum.
+The objective f receives a flat list of traced values (row-major order).
+Newton-Schulz uses the matrix shape from m0 for orthogonalization.")
+  (muon-matrix-full f m0 lr 0.95 5 criteria))
+
+(define (muon-matrix-full f m0 lr beta ns-iters criteria)
+  (doc 'export #t)
+  (doc 'type '(-> (-> (List TracedValue) TracedValue) Matrix Number Number Nat ConvergenceCriteria MatrixOptResult))
+  (doc 'description "Muon optimizer for matrices with all hyperparameters")
+  (doc 'param 'f "Objective function taking flat list of traced values")
+  (doc 'param 'm0 "Initial matrix (defines shape)")
+  (doc 'param 'lr "Learning rate")
+  (doc 'param 'beta "Momentum coefficient (typically 0.95)")
+  (doc 'param 'ns-iters "Newton-Schulz iterations (typically 5)")
+  (doc 'param 'criteria "Convergence criteria")
+  (let* ([rows (matrix-rows m0)]
+         [cols (matrix-cols m0)]
+         [x0 (vector->list (matrix-data m0))]  ; Flatten to list
+         [n (length x0)]
+         [init-m (make-list n 0)]   ; Momentum buffer (flat)
+         [init-grad (gradient f x0)]
+         [init-f (apply f x0)]
+         [init-state (initial-convergence-state init-f init-grad)])
+        (let loop ([x x0]
+                   [m init-m]
+                   [state init-state])
+             (let ([reason (converged? criteria state)])
+                  (if reason
+                      ;; Return matrix result - reshape x back to matrix
+                      (let ([result-matrix (matrix-from-vec rows cols (list->vector x))])
+                           (list 'matrix-opt-result result-matrix (cs-f-val state)
+                                 (gradient f x) (cs-iter state) reason))
+                      (let* ([grad (gradient f x)]
+                             ;; Update momentum: m = beta*m + grad (flat)
+                             [m-new (map (lambda (mi gi) (+ (* beta mi) gi)) m grad)]
+                             ;; Reshape momentum to matrix for Newton-Schulz
+                             [m-matrix (matrix-from-vec rows cols (list->vector m-new))]
+                             ;; Orthogonalize via Newton-Schulz
+                             [m-orth-matrix (newton-schulz m-matrix ns-iters)]
+                             ;; Flatten back to list
+                             [m-orth (vector->list (matrix-data m-orth-matrix))]
+                             ;; Update parameters with orthogonalized momentum
+                             [x-new (map (lambda (xi mi) (- xi (* lr mi))) x m-orth)]
+                             [f-new (apply f x-new)]
+                             [grad-new (gradient f x-new)]
+                             [new-state (update-convergence-state state f-new grad-new x x-new)])
+                            (loop x-new m-new new-state)))))))
+
+;;; matrix-opt-result? : Any → Boolean
+(define (matrix-opt-result? x)
+  (and (pair? x) (eq? (car x) 'matrix-opt-result)))
+
+;;; Accessors for matrix optimization results
+(define (mor-matrix r) (cadr r))
+(define (mor-f r) (caddr r))
+(define (mor-grad r) (cadddr r))
+(define (mor-iterations r) (car (cddddr r)))
+(define (mor-reason r) (cadr (cddddr r)))
 
 (doc 'section 'adamw)
 

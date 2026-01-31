@@ -152,7 +152,100 @@
               (let* ([cc (make-convergence-criteria 1e-3 1e-6 1e-6 1000)]
                      [result (adagrad sphere-2d '(2.0 2.0) 1.0 cc)]
                      [x-opt (opt-x result)])
-                    (list-approximately-equal? x-opt '(0.0 0.0) 0.5))))
+                    (list-approximately-equal? x-opt '(0.0 0.0) 0.5)))
+
+            (define-test "muon finds minimum of sphere"
+              (let* ([cc (make-convergence-criteria 1e-3 1e-6 1e-6 500)]
+                     [result (muon sphere-2d '(5.0 5.0) 0.1 cc)]
+                     [x-opt (opt-x result)])
+                    (list-approximately-equal? x-opt '(0.0 0.0) 0.2)))
+
+            (define-test "muon with momentum finds minimum"
+              (let* ([cc (make-convergence-criteria 1e-3 1e-6 1e-6 500)]
+                     [result (muon-full sphere-2d '(3.0 4.0) 0.1 0.9 cc)]
+                     [x-opt (opt-x result)])
+                    (list-approximately-equal? x-opt '(0.0 0.0) 0.2)))
+
+            (define-test "muon handles near-zero gradients gracefully"
+              ;; Start very close to minimum where gradients are tiny
+              (let* ([cc (make-convergence-criteria 1e-6 1e-8 1e-8 10)]
+                     [result (muon sphere-2d '(1e-10 1e-10) 0.01 cc)]
+                     [x-opt (opt-x result)])
+                    ;; Should converge without crashing (division by zero)
+                    (opt-result? result))))
+
+;;; ====
+;;; Muon Matrix Tests
+;;; ====
+
+;;; Simple matrix objective: minimize sum of x_i^2 (Frobenius norm squared)
+;;; Takes flat list of traced values, minimum at zero
+(define (matrix-frob-sq-flat . args)
+  (fold-left traced-add (traced-sq (car args))
+             (map traced-sq (cdr args))))
+
+;;; Matrix objective: minimize sum of (x_i - target_i)^2
+;;; Takes flat list of traced values
+(define (make-matrix-target-objective-flat target-list)
+  (lambda args
+    (let loop ([xs args] [ts target-list] [sum #f])
+         (if (null? xs)
+             sum
+             (let ([diff-sq (traced-sq (traced-sub (car xs) (car ts)))])
+                  (loop (cdr xs) (cdr ts)
+                        (if sum (traced-add sum diff-sq) diff-sq)))))))
+
+(test-group "Newton-Schulz Orthogonalization"
+            (define-test "newton-schulz preserves approximate dimensions"
+              (let* ([m (matrix-from-lists '((1.0 0.0) (0.0 1.0) (0.0 0.0)))]  ; 3x2
+                     [m-orth (newton-schulz m 5)])
+                    (and (= (matrix-rows m-orth) 3)
+                         (= (matrix-cols m-orth) 2))))
+
+            (define-test "newton-schulz orthogonalizes columns"
+              ;; For a well-conditioned matrix, M^T @ M should be close to I after orthogonalization
+              (let* ([m (matrix-from-lists '((0.5 0.1) (0.1 0.5)))]
+                     [m-orth (newton-schulz m 10)]
+                     [mt (matrix-transpose m-orth)]
+                     [mtm (matrix-mul mt m-orth)]
+                     [i2 (matrix-identity 2)])
+                    ;; Should be approximately identity
+                    (matrix-approx-equal? mtm i2 0.1)))
+
+            (define-test "newton-schulz handles large-norm matrices via pre-scaling"
+              ;; Large norm matrix (||M||_F > 2) - pre-scaling must trigger for convergence
+              (let* ([m (matrix-from-lists '((10.0 5.0) (5.0 10.0)))]  ; ||M||_F ≈ 15.8
+                     [m-orth (newton-schulz m 10)]
+                     [mt (matrix-transpose m-orth)]
+                     [mtm (matrix-mul mt m-orth)])
+                    ;; Should not explode - result should be finite and roughly orthogonal
+                    (and (< (frobenius-norm m-orth) 100)  ; Didn't explode
+                         (matrix? mtm)))))
+
+(test-group "Muon Matrix Optimizer"
+            (define-test "muon-matrix reduces objective"
+              (let* ([m0 (matrix-from-lists '((1.0 2.0) (3.0 4.0)))]
+                     [cc (make-convergence-criteria 1e-2 1e-4 1e-4 50)]
+                     [result (muon-matrix matrix-frob-sq-flat m0 0.1 cc)]
+                     [m-opt (mor-matrix result)]
+                     [f-final (mor-f result)]
+                     ;; Compute initial value (sum of squares)
+                     [f-init (+ 1.0 4.0 9.0 16.0)])
+                    ;; Final value should be less than initial
+                    (< f-final f-init)))
+
+            (define-test "muon-matrix moves toward target"
+              (let* ([target (matrix-from-lists '((1.0 0.0) (0.0 1.0)))]
+                     [target-flat '(1.0 0.0 0.0 1.0)]
+                     [m0 (matrix-from-lists '((5.0 5.0) (5.0 5.0)))]
+                     [obj (make-matrix-target-objective-flat target-flat)]
+                     [cc (make-convergence-criteria 1e-2 1e-4 1e-4 100)]
+                     [result (muon-matrix obj m0 0.05 cc)]
+                     [m-opt (mor-matrix result)]
+                     ;; Check that we moved closer to target
+                     [init-dist (frobenius-norm (matrix-sub m0 target))]
+                     [final-dist (frobenius-norm (matrix-sub m-opt target))])
+                    (< final-dist init-dist))))
 
 ;;; ====
 ;;; Newton Method Tests
@@ -266,6 +359,12 @@
             (define-test "minimize with 'adam works"
               (let* ([cc (make-convergence-criteria 1e-3 1e-5 1e-5 500)]
                      [result (minimize sphere-2d '(3.0 3.0) 'adam cc)]
+                     [x-opt (opt-x result)])
+                    (list-approximately-equal? x-opt '(0.0 0.0) 0.2)))
+
+            (define-test "minimize with 'muon works"
+              (let* ([cc (make-convergence-criteria 1e-3 1e-5 1e-5 500)]
+                     [result (minimize sphere-2d '(3.0 3.0) 'muon cc)]
                      [x-opt (opt-x result)])
                     (list-approximately-equal? x-opt '(0.0 0.0) 0.2)))
             
