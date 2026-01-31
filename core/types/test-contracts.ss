@@ -408,6 +408,28 @@
 (define nested-contract (listof/c (listof/c (->c (list nat/c) nat/c))))
 (test "nested listof detects HO" #t (chaperone-listof-contract? nested-contract))
 
+(test-section "Chaperone Contracts in Function Contracts")
+
+;; Test that chaperone contracts can be used in function domains/ranges
+;; Note: Our chaperones are wrapper data structures, not runtime impersonators.
+;; Functions receiving chaperoned values must use chaperone-car/cdr/ref.
+(define fn-taking-fn-list-contract
+  (->c (list (listof/c (->c (list nat/c) nat/c))) nat/c))
+
+;; Function that knows to use chaperone accessors
+(define apply-first-fn-chaperone-aware
+  (lambda (fn-list)
+    (if (chaperone-list-null? fn-list)
+        0
+        ((chaperone-car fn-list) 5))))
+
+(define wrapped-apply-first
+  (let ([result (contract-wrap fn-taking-fn-list-contract apply-first-fn-chaperone-aware 'test)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "chaperone in function domain wraps" #t (procedure? wrapped-apply-first))
+(test "chaperone in function domain works" 6 (wrapped-apply-first (list (lambda (x) (+ x 1)))))
+
 (newline)
 (display "All tests completed!")
 (newline)

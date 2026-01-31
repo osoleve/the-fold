@@ -440,6 +440,19 @@
 
 (doc 'section 'higher-order-wrapping)
 
+;;; Forward declarations for chaperone contract predicates
+;;; (full definitions are in the chaperone-contracts section below)
+(define (chaperone-listof-contract? c)
+  (and (pair? c) (eq? (car c) 'chaperone-listof)))
+
+(define (chaperone-vectorof-contract? c)
+  (and (pair? c) (eq? (car c) 'chaperone-vectorof)))
+
+;;; Note: make-chaperone-list and make-chaperone-vector are defined later
+;;; but contract-wrap needs them. We use a thunk pattern to delay evaluation.
+(define *make-chaperone-list* #f)
+(define *make-chaperone-vector* #f)
+
 (define (contract-wrap contract value location)
   (doc 'type (-> Contract Any Symbol (Result Any Blame)))
   (doc 'description "Wrap a value with a contract - flat contracts check immediately, function contracts wrap.")
@@ -460,6 +473,21 @@
     `(Err ,(make-blame 'callee location
                        "Dependent contract wrapping not yet implemented"
                        value))]
+   ;; Chaperone contracts
+   [(chaperone-listof-contract? contract)
+    (let ([elem-contract (cadr contract)])
+      (if (list? value)
+          `(Ok ,(*make-chaperone-list* value elem-contract location))
+          `(Err ,(make-blame 'callee location
+                             "Expected a list for listof contract"
+                             value))))]
+   [(chaperone-vectorof-contract? contract)
+    (let ([elem-contract (cadr contract)])
+      (if (vector? value)
+          `(Ok ,(*make-chaperone-vector* value elem-contract location))
+          `(Err ,(make-blame 'callee location
+                             "Expected a vector for vectorof contract"
+                             value))))]
    [else
     `(Err ,(make-blame 'callee location
                        "Unknown contract type"
@@ -527,6 +555,21 @@
     `(Err ,(make-blame blame-party location
                        "Dependent contract wrapping not yet implemented"
                        value))]
+   ;; Chaperone contracts - delegate to chaperone wrapper
+   [(chaperone-listof-contract? contract)
+    (let ([elem-contract (cadr contract)])
+      (if (list? value)
+          `(Ok ,(make-chaperone-list value elem-contract location))
+          `(Err ,(make-blame blame-party location
+                             "Expected a list for listof contract"
+                             value))))]
+   [(chaperone-vectorof-contract? contract)
+    (let ([elem-contract (cadr contract)])
+      (if (vector? value)
+          `(Ok ,(make-chaperone-vector value elem-contract location))
+          `(Err ,(make-blame blame-party location
+                             "Expected a vector for vectorof contract"
+                             value))))]
    [else
     `(Err ,(make-blame blame-party location
                        "Unknown contract type"
@@ -559,6 +602,9 @@
   (doc 'description "Create a chaperoned list that applies elem-contract on access.")
   (doc 'export #f)
   `(chaperone-list ,underlying ,elem-contract ,location))
+
+;; Wire up forward reference
+(set! *make-chaperone-list* make-chaperone-list)
 
 (define (chaperone-list-underlying cl)
   (if (chaperone-list? cl) (cadr cl) cl))
@@ -649,6 +695,9 @@
   (doc 'description "Create a chaperoned vector that applies elem-contract on access.")
   (doc 'export #f)
   `(chaperone-vector ,underlying ,elem-contract ,location))
+
+;; Wire up forward reference
+(set! *make-chaperone-vector* make-chaperone-vector)
 
 (define (chaperone-vector-underlying cv)
   (if (chaperone-vector? cv) (cadr cv) cv))
