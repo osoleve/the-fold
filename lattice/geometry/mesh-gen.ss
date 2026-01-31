@@ -39,7 +39,7 @@
     (do ([i 0 (+ i 1)])
         ((>= i n))
       (let ([p (vector-ref points i)])
-        (hashtable-set! point-index (list (point2-x p) (point2-y p)) i)))
+        (hashtable-set! point-index (vertex-key p) i)))
     (vector 'triangulation points triangles adjacency boundary (length triangles) point-index)))
 
 (doc triangulation? 'export #t)
@@ -99,6 +99,13 @@
 
 (define (point2-x p) (vector-ref p 0))
 (define (point2-y p) (vector-ref p 1))
+
+(doc vertex-key 'type '(-> Point2 (Cons Number Number)))
+(doc vertex-key 'description
+     "Create a hashable key for a vertex. Uses cons pair instead of list
+      to reduce allocation (1 cell vs 2). For use with equal-hash hashtables.")
+(define (vertex-key p)
+  (cons (point2-x p) (point2-y p)))
 
 (doc make-tri2 'type '(-> Point2 Point2 Point2 Triangle2))
 (doc make-tri2 'description "Create a 2D triangle from three points (CCW order)")
@@ -546,9 +553,7 @@
                [p3 (tri2-p3 tri)]
                ;; O(1) point index lookup via hash
                [find-idx (lambda (p)
-                           (hashtable-ref point-index
-                                         (list (point2-x p) (point2-y p))
-                                         #f))]
+                           (hashtable-ref point-index (vertex-key p) #f))]
                [i1 (find-idx p1)]
                [i2 (find-idx p2)]
                [i3 (find-idx p3)])
@@ -686,9 +691,9 @@
          ;; Collect all unique points from triangles
          [all-pts (let ([ht (make-hashtable equal-hash equal?)])
                     (for-each (lambda (tri)
-                                (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
-                                (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
-                                (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
+                                (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
+                                (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
                               final-tris)
                     (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
     (make-triangulation all-pts final-tris adjacency boundary)))
@@ -709,9 +714,9 @@
        (let* ([p1 (tri2-p1 tri)]
               [p2 (tri2-p2 tri)]
               [p3 (tri2-p3 tri)]
-              [k1 (list (point2-x p1) (point2-y p1))]
-              [k2 (list (point2-x p2) (point2-y p2))]
-              [k3 (list (point2-x p3) (point2-y p3))])
+              [k1 (vertex-key p1)]
+              [k2 (vertex-key p2)]
+              [k3 (vertex-key p3)])
          ;; Add bidirectional edges
          (hashtable-update! neighbors k1 (lambda (v) (cons p2 (cons p3 v))) '())
          (hashtable-update! neighbors k2 (lambda (v) (cons p1 (cons p3 v))) '())
@@ -745,9 +750,11 @@
         (when (= 1 (vector-ref vals i))
           (let* ([key (vector-ref keys i)]
                  [x1 (list-ref key 0)] [y1 (list-ref key 1)]
-                 [x2 (list-ref key 2)] [y2 (list-ref key 3)])
-            (hashtable-set! boundary-verts (list x1 y1) (make-point2 x1 y1))
-            (hashtable-set! boundary-verts (list x2 y2) (make-point2 x2 y2))))))
+                 [x2 (list-ref key 2)] [y2 (list-ref key 3)]
+                 [p1 (make-point2 x1 y1)]
+                 [p2 (make-point2 x2 y2)])
+            (hashtable-set! boundary-verts (vertex-key p1) p1)
+            (hashtable-set! boundary-verts (vertex-key p2) p2)))))
     (let-values ([(_ vals) (hashtable-entries boundary-verts)])
       (vector->list vals))))
 
@@ -761,14 +768,14 @@
     ;; Mark boundary vertices
     (for-each
      (lambda (p)
-       (hashtable-set! boundary-set (list (point2-x p) (point2-y p)) #t))
+       (hashtable-set! boundary-set (vertex-key p) #t))
      boundary-pts)
     ;; Calculate new positions for interior vertices
     (let-values ([(keys _) (hashtable-entries vertex-neighbors)])
       (do ([i 0 (+ i 1)])
           ((>= i (vector-length keys)))
         (let* ([key (vector-ref keys i)]
-               [x (car key)] [y (cadr key)]
+               [x (car key)] [y (cdr key)]  ; vertex-key is a cons pair
                [p (make-point2 x y)])
           (if (hashtable-ref boundary-set key #f)
               ;; Boundary vertex: don't move
@@ -779,7 +786,7 @@
                      [unique-nbrs
                       (let ([seen (make-hashtable equal-hash equal?)])
                         (filter (lambda (n)
-                                  (let ([nk (list (point2-x n) (point2-y n))])
+                                  (let ([nk (vertex-key n)])
                                     (if (hashtable-ref seen nk #f)
                                         #f
                                         (begin (hashtable-set! seen nk #t) #t))))
@@ -798,9 +805,9 @@
            (let* ([p1 (tri2-p1 tri)]
                   [p2 (tri2-p2 tri)]
                   [p3 (tri2-p3 tri)]
-                  [k1 (list (point2-x p1) (point2-y p1))]
-                  [k2 (list (point2-x p2) (point2-y p2))]
-                  [k3 (list (point2-x p3) (point2-y p3))])
+                  [k1 (vertex-key p1)]
+                  [k2 (vertex-key p2)]
+                  [k3 (vertex-key p3)])
              (make-tri2 (hashtable-ref new-positions k1 p1)
                         (hashtable-ref new-positions k2 p2)
                         (hashtable-ref new-positions k3 p3))))
@@ -830,9 +837,9 @@
          [new-boundary (find-boundary-edges smoothed new-adjacency)]
          [all-pts (let ([ht (make-hashtable equal-hash equal?)])
                     (for-each (lambda (tri)
-                                (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
-                                (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
-                                (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
+                                (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
+                                (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
                               smoothed)
                     (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
     (make-triangulation all-pts smoothed new-adjacency new-boundary)))
@@ -926,9 +933,9 @@
          [boundary (find-boundary-edges final-tris adjacency)]
          [all-pts (let ([ht (make-hashtable equal-hash equal?)])
                     (for-each (lambda (tri)
-                                (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
-                                (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
-                                (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
+                                (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
+                                (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
                               final-tris)
                     (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
     (make-triangulation all-pts final-tris adjacency boundary)))
@@ -1051,9 +1058,9 @@
              [boundary (find-boundary-edges inside-tris adjacency)]
              [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
                         (for-each (lambda (tri)
-                                    (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
-                                    (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
-                                    (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                    (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
+                                    (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
+                                    (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
                                   inside-tris)
                         (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
         (make-triangulation pts-vec inside-tris adjacency boundary))))
@@ -1078,9 +1085,9 @@
                      [boundary (find-boundary-edges current-tris adjacency)]
                      [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
                                 (for-each (lambda (tri)
-                                            (hashtable-set! ht (list (point2-x (tri2-p1 tri)) (point2-y (tri2-p1 tri))) (tri2-p1 tri))
-                                            (hashtable-set! ht (list (point2-x (tri2-p2 tri)) (point2-y (tri2-p2 tri))) (tri2-p2 tri))
-                                            (hashtable-set! ht (list (point2-x (tri2-p3 tri)) (point2-y (tri2-p3 tri))) (tri2-p3 tri)))
+                                            (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
+                                            (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
+                                            (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
                                           current-tris)
                                 (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
                 (make-triangulation pts-vec current-tris adjacency boundary))
