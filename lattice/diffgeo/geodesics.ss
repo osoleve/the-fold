@@ -446,19 +446,25 @@
     (let loop ([v v0] [iter 0])
       (if (>= iter max-iter)
           (list 'err "log-map-adaptive: failed to converge")
-          (let* ([q-shot (exp-map-adaptive metric p v tol)]
-                 [error (vec-sub q-shot q)]
-                 [error-norm (vec-norm error)])
-            (if (< error-norm (* tol 100))  ; Looser convergence for outer loop
-                (list 'ok v)
-                (let ([J (compute-exp-jacobian-adaptive metric p v tol eps n)])
-                  (if (not J)
-                      ;; Jacobian computation failed (geodesic diverged), try gradient descent
-                      (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))
-                      (let ([dv (solve-linear-system J (vec-scale -1 error))])
-                        (if dv
-                            (loop (vec-add v dv) (+ iter 1))
-                            (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))))))))))))
+          (let ([q-shot (exp-map-adaptive metric p v tol)])
+            ;; Check for geodesic divergence BEFORE computing error
+            ;; (If q-shot is NaN/Inf, error would be NaN, making gradient descent useless)
+            (if (not (vec-finite? q-shot))
+                ;; Geodesic diverged - shrink velocity to find valid range
+                (loop (vec-scale 0.5 v) (+ iter 1))
+                (let* ([error (vec-sub q-shot q)]
+                       [error-norm (vec-norm error)])
+                  (if (< error-norm (* tol 100))  ; Looser convergence for outer loop
+                      (list 'ok v)
+                      (let ([J (compute-exp-jacobian-adaptive metric p v tol eps n)])
+                        (if (not J)
+                            ;; Jacobian computation failed, shrink velocity
+                            (loop (vec-scale 0.5 v) (+ iter 1))
+                            (let ([dv (solve-linear-system J (vec-scale -1 error))])
+                              (if dv
+                                  (loop (vec-add v dv) (+ iter 1))
+                                  ;; Linear solve failed, try gradient descent
+                                  (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))))))))))))))
 
 ;;; vec-finite? : Vec → Boolean
 ;;; Check if all elements of a vector are finite (not NaN or Inf).
@@ -596,22 +602,27 @@
     (let loop ([v v0] [iter 0])
       (if (>= iter max-iter)
           (list 'err "log-map: failed to converge")
-          (let* ([q-shot (exp-map metric p v n-steps)]
-                 [error (vec-sub q-shot q)]
-                 [error-norm (vec-norm error)])
-            (if (< error-norm tol)
-                (list 'ok v)
-                ;; Compute numerical Jacobian d(exp_p)/dv
-                (let ([J (compute-exp-jacobian metric p v n-steps eps n)])
-                  (if (not J)
-                      ;; Jacobian computation failed (geodesic diverged), try gradient descent
-                      (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))
-                      ;; Solve J * dv = -error for dv
-                      (let ([dv (solve-linear-system J (vec-scale -1 error))])
-                        (if dv
-                            (loop (vec-add v dv) (+ iter 1))
-                            ;; Jacobian singular, try gradient descent step
-                            (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))))))))))))
+          (let ([q-shot (exp-map metric p v n-steps)])
+            ;; Check for geodesic divergence BEFORE computing error
+            ;; (If q-shot is NaN/Inf, error would be NaN, making gradient descent useless)
+            (if (not (vec-finite? q-shot))
+                ;; Geodesic diverged - shrink velocity to find valid range
+                (loop (vec-scale 0.5 v) (+ iter 1))
+                (let* ([error (vec-sub q-shot q)]
+                       [error-norm (vec-norm error)])
+                  (if (< error-norm tol)
+                      (list 'ok v)
+                      ;; Compute numerical Jacobian d(exp_p)/dv
+                      (let ([J (compute-exp-jacobian metric p v n-steps eps n)])
+                        (if (not J)
+                            ;; Jacobian computation failed, shrink velocity
+                            (loop (vec-scale 0.5 v) (+ iter 1))
+                            ;; Solve J * dv = -error for dv
+                            (let ([dv (solve-linear-system J (vec-scale -1 error))])
+                              (if dv
+                                  (loop (vec-add v dv) (+ iter 1))
+                                  ;; Jacobian singular, try gradient descent step
+                                  (loop (vec-sub v (vec-scale 0.1 error)) (+ iter 1))))))))))))))
 
 ;;; compute-exp-jacobian : Metric × Vec × Vec × Nat × Num × Nat → Matrix | #f
 ;;; Compute the Jacobian matrix of exp_p with respect to v.
