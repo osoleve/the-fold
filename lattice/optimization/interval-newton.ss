@@ -84,15 +84,20 @@ Key insight: Division by an interval containing 0 produces extended intervals
 (doc 'section 'newton-operator)
 
 ;;; interval-newton-step : (Real → Real) × (Interval → Interval) × Interval → NewtonStepResult
-;;; Compute one interval Newton step.
+;;; Compute one interval Newton step (APPROXIMATE - not rigorous).
+;;;
+;;; WARNING: This function uses standard floating-point arithmetic and point
+;;; evaluation for f(m). Results are heuristic, NOT mathematically guaranteed.
+;;; For formal proofs of root existence/uniqueness, use interval-newton-step-rigorous.
+;;;
 ;;;   f: the function (point evaluation)
 ;;;   f-deriv-iv: interval extension of derivative
 ;;;   X: current interval
 ;;;
 ;;; Returns one of:
 ;;;   ('contracted . new-interval)  - Newton produced a tighter interval
-;;;   ('unique . new-interval)      - N(X) ⊂ X proves unique root
-;;;   ('no-root . #f)               - N(X) ∩ X = ∅ proves no root
+;;;   ('unique . new-interval)      - N(X) ⊂ X suggests unique root (not proven)
+;;;   ('no-root . #f)               - N(X) ∩ X = ∅ suggests no root (not proven)
 ;;;   ('division-by-zero . X)       - F'(X) contains 0, need to bisect
 ;;;   ('no-improvement . X)         - No contraction achieved
 (define (interval-newton-step f f-deriv-iv X)
@@ -365,22 +370,23 @@ Key insight: Division by an interval containing 0 produces extended intervals
 
 (doc 'section 'existence-tests)
 
-;;; interval-contains-unique-root? : (Real → Real) × (Interval → Interval) × Interval → Boolean
+;;; interval-contains-unique-root? : (Interval → Interval) × (Interval → Interval) × Interval → Boolean
 ;;; Test if interval is guaranteed to contain exactly one root.
-;;; Uses the interval Newton containment test: N(X) ⊂ X implies unique root.
-(define (interval-contains-unique-root? f f-deriv-iv X)
+;;; Uses the rigorous interval Newton containment test: N(X) ⊂ X implies unique root.
+;;; All arithmetic uses directed rounding for formal mathematical guarantees.
+(define (interval-contains-unique-root? f-iv f-deriv-iv X)
   (doc 'export #t)
-  (doc 'type '(-> (-> Real Real) (-> Interval Interval) Interval Boolean))
-  (let ([step-result (interval-newton-step f f-deriv-iv X)])
+  (doc 'type '(-> (-> Interval Interval) (-> Interval Interval) Interval Boolean))
+  (let ([step-result (interval-newton-step-rigorous f-iv f-deriv-iv X)])
     (eq? (car step-result) 'unique)))
 
-;;; interval-contains-no-root? : (Real → Real) × (Interval → Interval) × Interval → Boolean
+;;; interval-contains-no-root? : (Interval → Interval) × (Interval → Interval) × Interval → Boolean
 ;;; Test if interval is guaranteed to contain no roots.
-;;; True if N(X) ∩ X = ∅.
-(define (interval-contains-no-root? f f-deriv-iv X)
+;;; True if N(X) ∩ X = ∅, using rigorous directed-rounding arithmetic.
+(define (interval-contains-no-root? f-iv f-deriv-iv X)
   (doc 'export #t)
-  (doc 'type '(-> (-> Real Real) (-> Interval Interval) Interval Boolean))
-  (let ([step-result (interval-newton-step f f-deriv-iv X)])
+  (doc 'type '(-> (-> Interval Interval) (-> Interval Interval) Interval Boolean))
+  (let ([step-result (interval-newton-step-rigorous f-iv f-deriv-iv X)])
     (eq? (car step-result) 'no-root)))
 
 ;;; ============================================================================
@@ -397,8 +403,13 @@ For 1D: K(X) = m - f(m)/f'(m) + (1 - F'(X)/f'(m))*(X - m)
 If K(X) ⊂ X, there's a unique root in X.")
 
 ;;; krawczyk-step : (Real → Real) × (Real → Real) × (Interval → Interval) × Interval → KrawczykResult
-;;; Compute one Krawczyk step.
-;;;   f: the function
+;;; Compute one Krawczyk step (APPROXIMATE - not rigorous).
+;;;
+;;; WARNING: This function uses point evaluation for f(m) and f'(m), and standard
+;;; floating-point arithmetic. Results are heuristic, not formally guaranteed.
+;;; A rigorous version would require interval extensions for f and directed rounding.
+;;;
+;;;   f: the function (point evaluation)
 ;;;   f-deriv: point derivative
 ;;;   f-deriv-iv: interval derivative
 ;;;   X: current interval

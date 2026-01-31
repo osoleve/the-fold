@@ -216,14 +216,12 @@
   (define-test "proves unique root exists"
     ;; For √2 in [1.4, 1.5], Newton should prove uniqueness
     (let* ([X (interval 1.4 1.45)])
-      (assert-true (interval-contains-unique-root? f-sqrt2 f-sqrt2-deriv-iv X))))
+      (assert-true (interval-contains-unique-root? f-sqrt2-iv f-sqrt2-deriv-iv X))))
 
-  (define-test "detects no root in interval"
-    ;; For x² - 2 in [3, 4], no root exists
+  (define-test "proves no root in interval"
+    ;; For x² - 2 in [3, 4], no root exists (function is positive throughout)
     (let* ([X (interval 3 4)])
-      ;; This should prove no root or return inconclusive
-      ;; The function is positive throughout, but Newton needs to prove it
-      #t))
+      (assert-true (interval-contains-no-root? f-sqrt2-iv f-sqrt2-deriv-iv X))))
 )
 
 ;;; ============================================================================
