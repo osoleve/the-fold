@@ -561,7 +561,10 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
 (doc 'cg-cycle-analysis 'type '(-> ConstraintGraph Alist))
 (doc 'cg-cycle-analysis 'description
      "Analyze constraint cycles and suggest which constraints may be redundant.
-      Returns cycle count and list of constraints participating in cycles.")
+      Returns cycle count and list of constraints participating in cycles.
+      WARNING: O(E × HomologyCost) - rebuilds graph and recomputes homology for each
+      constraint to test if removal reduces cycle count. Use for debugging only,
+      not in hot paths. For large graphs, use cg-cycle-count for quick B₁ check.")
 (define (cg-cycle-analysis graph)
   (let* ([topo (cg-topology-analysis graph)]
          [b1 (cdr (assq 'betti-1 topo))]

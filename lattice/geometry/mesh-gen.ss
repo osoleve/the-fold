@@ -839,12 +839,16 @@
                         (triangulation-triangles tris-or-tri)
                         tris-or-tri)]
          [final-tris
-          (let loop ([tris triangles] [iter 0])
+          (let loop ([tris triangles] [iter 0] [skipped '()])
+            ;; skipped: triangles with degenerate circumcenters (avoid infinite loop)
             (if (>= iter max-iterations)
                 tris
-                (let ([bad-tris (filter (lambda (t)
-                                          (tri2-should-refine? t max-area should-refine?))
-                                        tris)])
+                (let* ([skip-set (make-eq-hashtable)]
+                       [_ (for-each (lambda (t) (hashtable-set! skip-set t #t)) skipped)]
+                       [bad-tris (filter (lambda (t)
+                                           (and (tri2-should-refine? t max-area should-refine?)
+                                                (not (hashtable-ref skip-set t #f))))
+                                         tris)])
                   (if (null? bad-tris)
                       tris
                       ;; Refine largest triangle first (linear scan, not sort)
@@ -857,9 +861,9 @@
                                       (cdr bad-tris))]
                              [cc (tri2-circumcenter worst)])
                         (if cc
-                            (loop (delaunay-insert-point tris cc) (+ iter 1))
-                            ;; Skip degenerate triangle
-                            (loop tris (+ iter 1))))))))]
+                            (loop (delaunay-insert-point tris cc) (+ iter 1) skipped)
+                            ;; Skip degenerate triangle - add to skip set to avoid busy loop
+                            (loop tris (+ iter 1) (cons worst skipped))))))))]
          [adjacency (build-adjacency final-tris)]
          [boundary (find-boundary-edges final-tris adjacency)]
          [all-pts (let ([ht (make-hashtable equal-hash equal?)])
