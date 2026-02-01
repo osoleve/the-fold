@@ -6,6 +6,12 @@
 (doc 'purity 'partial)
 (doc 'dependencies '(boundary/provenance/traced-optics))
 
+;;; THREAD SAFETY WARNING:
+;;; This module uses global mutable state without synchronization primitives.
+;;; Concurrent access from multiple threads will corrupt the dependency graph.
+;;; This design is intentional for single-threaded shell use. Do NOT share
+;;; reactive state across threads. See README.sexp limitations section.
+
 (doc 'section 'access-tracking)
 
 (doc *tracking-accesses?* 'type 'Boolean)
