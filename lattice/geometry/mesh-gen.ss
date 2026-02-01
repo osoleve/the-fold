@@ -1032,10 +1032,17 @@
 (doc triangulate-polygon 'export #t)
 (doc triangulate-polygon 'type '(-> (List Point2) Number Triangulation))
 (doc triangulate-polygon 'description
-     "Generate constrained Delaunay triangulation inside a polygon boundary.
+     "Generate Delaunay triangulation inside a polygon boundary.
       - polygon: list of boundary vertices in order
       - spacing: approximate interior point spacing
-      Returns triangulation covering polygon interior only.")
+      Returns triangulation covering polygon interior only.
+
+      LIMITATION: Uses centroid-based filtering rather than true constrained
+      Delaunay triangulation. For concave polygons with low point density,
+      triangles may incorrectly cross boundary edges. Workarounds:
+        1. Use smaller spacing values to increase interior point density
+        2. For complex concave shapes, subdivide into convex regions first
+      See fold-zxuf for planned true constrained Delaunay implementation.")
 (define (triangulate-polygon polygon spacing)
   (if (< (length polygon) 3)
       (make-triangulation (list->vector polygon) '() (make-eq-hashtable) '())
@@ -1072,7 +1079,8 @@
       - polygon: list of boundary vertices
       - initial-spacing: starting interior point spacing
       - max-area: target maximum triangle area
-      - max-iters: refinement budget")
+      - max-iters: refinement budget
+      Inherits centroid-filtering limitation from triangulate-polygon (see that function's docs).")
 (define (triangulate-polygon-adaptive polygon initial-spacing max-area max-iters)
   (let* ([initial-mesh (triangulate-polygon polygon initial-spacing)]
          [tris (triangulation-triangles initial-mesh)])
