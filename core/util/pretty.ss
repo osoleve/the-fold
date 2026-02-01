@@ -483,6 +483,65 @@
                      acc))]
         [else (apply string-append (reverse acc))])))
 
+;;; --- HTML Rendering ---
+
+;;; html-escape : String → String
+;;; Escape HTML special characters (< > & " ').
+(define (html-escape str)
+  (let loop ([chars (string->list str)] [acc '()])
+    (if (null? chars)
+        (apply string-append (reverse acc))
+        (let ([c (car chars)])
+          (loop (cdr chars)
+                (cons (cond
+                       [(char=? c #\<) "&lt;"]
+                       [(char=? c #\>) "&gt;"]
+                       [(char=? c #\&) "&amp;"]
+                       [(char=? c #\") "&quot;"]
+                       [(char=? c #\') "&#39;"]
+                       [else (string c)])
+                      acc))))))
+
+(define (sdoc->html sd)
+  (doc 'type (-> SDoc String))
+  (doc 'description "Convert a simple doc to HTML. Wraps output in <pre> for whitespace preservation.")
+  (doc 'export #t)
+  (let loop ([sd sd] [acc '()])
+    (cond
+     [(sdoc-empty? sd)
+      (string-append "<pre>" (apply string-append (reverse acc)) "</pre>")]
+     [(sdoc-text? sd)
+      (loop (sdoc-text-rest sd)
+            (cons (html-escape (sdoc-text-str sd)) acc))]
+     [(sdoc-line? sd)
+      (loop (sdoc-line-rest sd)
+            (cons (string-append "\n" (make-string (sdoc-line-n sd) #\space))
+                  acc))]
+     [else
+      (string-append "<pre>" (apply string-append (reverse acc)) "</pre>")])))
+
+;;; --- Markdown Rendering ---
+
+(define (sdoc->markdown sd)
+  (doc 'type (-> SDoc String))
+  (doc 'description "Convert a simple doc to Markdown. Uses fenced code block for whitespace preservation.")
+  (doc 'export #t)
+  (let loop ([sd sd] [acc '()])
+    (cond
+     [(sdoc-empty? sd)
+      (string-append "```\n" (apply string-append (reverse acc)) "\n```")]
+     [(sdoc-text? sd)
+      (loop (sdoc-text-rest sd)
+            (cons (sdoc-text-str sd) acc))]
+     [(sdoc-line? sd)
+      (loop (sdoc-line-rest sd)
+            (cons (string-append "\n" (make-string (sdoc-line-n sd) #\space))
+                  acc))]
+     [else
+      (string-append "```\n" (apply string-append (reverse acc)) "\n```")])))
+
+;;; --- Plain Text Rendering (default) ---
+
 (define (pretty width d)
   (doc 'type (-> Nat Doc String))
   (doc 'description "Render a document to a string with the given page width.")
@@ -494,6 +553,18 @@
   (doc 'description "Render a document with explicit page width and ribbon width. Ribbon width limits characters per line excluding indentation, improving readability for nested code.")
   (doc 'export #t)
   (sdoc->string (best-ribbon width ribbon 0 d)))
+
+(define (pretty-html width d)
+  (doc 'type (-> Nat Doc String))
+  (doc 'description "Render a document to HTML with the given page width. Output is wrapped in <pre> for whitespace preservation.")
+  (doc 'export #t)
+  (sdoc->html (best width 0 d)))
+
+(define (pretty-markdown width d)
+  (doc 'type (-> Nat Doc String))
+  (doc 'description "Render a document to Markdown with the given page width. Output is wrapped in a fenced code block.")
+  (doc 'export #t)
+  (sdoc->markdown (best width 0 d)))
 
 (define (pretty-print width d)
   (doc 'type (-> Nat Doc Void))
@@ -563,7 +634,9 @@
 ;;;   enclose, parens, brackets, braces, angles, quotes, double-quotes
 ;;;
 ;;; Rendering:
-;;;   pretty, pretty-print, pp, pprint
+;;;   sdoc->string, sdoc->html, sdoc->markdown
+;;;   pretty, pretty-html, pretty-markdown, pretty-ribbon
+;;;   pretty-print, pp, pprint
 ;;;
 ;;; S-expression:
 ;;;   sexp->doc, pretty-sexp
