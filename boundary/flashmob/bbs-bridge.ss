@@ -68,7 +68,7 @@
 
 (doc 'section 'batch-operations)
 
-(doc flashmob-to-bbs 'type '(-> . args (List String)))
+(doc flashmob-to-bbs 'type '(-> &rest (List String)))
 (doc flashmob-to-bbs 'description "Create BBS issues from triage results")
 (doc flashmob-to-bbs 'param "'count - Maximum number of issues to create (default: 10)")
 (doc flashmob-to-bbs 'param "'severity - Only create for this severity or higher")

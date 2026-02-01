@@ -23,7 +23,7 @@
 
 (doc 'section 'strategy-dispatcher)
 
-(doc flashmob-triage-run 'type '(-> (List Symbol) (List Alist) . args Alist))
+(doc flashmob-triage-run 'type '(-> (List Symbol) (List Alist) &rest Alist))
 (doc flashmob-triage-run 'description "Run triage with specified or default strategy")
 (doc flashmob-triage-run 'param "'strategy - 'simple | 'game | 'game/sav | 'game/cc (default: *flashmob-default-strategy*)")
 (doc flashmob-triage-run 'param "'k - Number of findings to select (default: 10)")
@@ -57,7 +57,7 @@
 
 (doc 'section 'ab-comparison)
 
-(doc flashmob-triage-compare 'type '(-> (List Symbol) (List Alist) . args Alist))
+(doc flashmob-triage-compare 'type '(-> (List Symbol) (List Alist) &rest Alist))
 (doc flashmob-triage-compare 'description "Run BOTH strategies and compare results")
 (doc flashmob-triage-compare 'param "'k - Number of findings to select (default: 10)")
 (doc flashmob-triage-compare 'returns "Alist with keys: simple, game, comparison (rank-correlation, top-k-overlap, consensus-diff, runtime-ratio)")

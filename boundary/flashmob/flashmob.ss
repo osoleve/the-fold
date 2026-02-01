@@ -86,7 +86,7 @@
 
 (doc 'section 'finding-management)
 
-(doc flashmob-add-finding 'type '(-> . args Bytevector))
+(doc flashmob-add-finding 'type '(-> &rest Bytevector))
 (doc flashmob-add-finding 'description "Add a finding to the current session")
 (doc flashmob-add-finding 'param "'file - File path (required)")
 (doc flashmob-add-finding 'param "'line - Line number (required)")
@@ -169,7 +169,7 @@
 
 (doc 'section 'triage-operations)
 
-(doc flashmob-triage 'type '(-> . args Alist))
+(doc flashmob-triage 'type '(-> &rest Alist))
 (doc flashmob-triage 'description "Run triage on current session")
 (doc flashmob-triage 'param "'strategy - 'simple | 'game (default: auto-recommended)")
 (doc flashmob-triage 'param "'k - Number of findings to select (default: 10)")
