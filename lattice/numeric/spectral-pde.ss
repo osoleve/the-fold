@@ -12,6 +12,7 @@
 (doc 'description "Spectral methods for PDEs: Fourier spectral (periodic), Chebyshev spectral (non-periodic), pseudospectral collocation")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
+(doc 'see-also '(finite-diff fem pde-time dft))
 
 ;;; ============================================================
 ;;; Section 1: Fourier Spectral Differentiation
