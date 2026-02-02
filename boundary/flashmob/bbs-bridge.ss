@@ -78,10 +78,10 @@
 (define (flashmob-to-bbs . args)
   (unless *flashmob-session-triage*
     (error 'flashmob-to-bbs "No triage results. Run (flashmob-triage) first"))
-  (let* ([count (bbs-bridge-get-keyword args 'count 10)]
-         [severity-filter (bbs-bridge-get-keyword args 'severity #f)]
-         [category-filter (bbs-bridge-get-keyword args 'category #f)]
-         [dry-run (bbs-bridge-get-keyword args 'dry-run #f)]
+  (let* ([count (fm-get-keyword args 'count 10)]
+         [severity-filter (fm-get-keyword args 'severity #f)]
+         [category-filter (fm-get-keyword args 'category #f)]
+         [dry-run (fm-get-keyword args 'dry-run #f)]
          ;; Get ranked findings (selected by triage)
          [selected (cdr (assq 'selected *flashmob-session-triage*))]
          ;; Apply filters
@@ -143,27 +143,21 @@
       '()
       (cons (car lst) (bbs-bridge-take (- n 1) (cdr lst)))))
 
-(doc bbs-bridge-get-keyword 'type '(-> (List Any) Symbol Any Any))
-(define (bbs-bridge-get-keyword args key default)
-  (let loop ([lst args])
-    (cond
-     [(null? lst) default]
-     [(null? (cdr lst)) default]
-     [(eq? (car lst) key) (cadr lst)]
-     [else (loop (cdr lst))])))
-
 (doc 'section 'traceability)
 
 (doc flashmob-issues-for-finding 'type '(-> Alist (List String)))
-(doc flashmob-issues-for-finding 'description "Find BBS issues created from a finding. Searches by title match.")
+(doc flashmob-issues-for-finding 'description "Find BBS issues created from a finding. Searches by title match within flashmob-labeled issues only.")
+(doc flashmob-issues-for-finding 'note "Optimized to search only issues with 'flashmob label instead of all issues")
 (define (flashmob-issues-for-finding finding)
   (let ([title (cdr (assq 'title finding))])
+    ;; Only search issues with 'flashmob label (created by flashmob-to-bbs)
+    ;; This reduces O(N) from all issues to just flashmob-created issues
     (filter
      (lambda (id)
        (let ([data (bbs-fetch-issue-data id)])
          (and data
               (string=? (cdr (assq 'title data)) title))))
-     (bbs-all-ids))))
+     (bbs-by-label 'flashmob))))
 
 (doc flashmob-link-finding-to-issue 'type '(-> Alist String Void))
 (doc flashmob-link-finding-to-issue 'description "Add a comment to an issue linking back to the finding")

@@ -1,3 +1,4 @@
+(load "boundary/flashmob/util.ss")
 (load "boundary/flashmob/triage.ss")
 (load "boundary/flashmob/history.ss")
 
@@ -355,35 +356,6 @@
 (doc flashmob-format-ratio 'type '(-> Real String))
 (define (flashmob-format-ratio n)
   (format "~,2fx" n))
-
-(doc fm-get-keyword 'type '(-> (List Any) Symbol Any Any))
-(define (fm-get-keyword args key default)
-  (let loop ([lst args])
-    (cond
-     [(null? lst) default]
-     [(null? (cdr lst)) default]
-     [(eq? (car lst) key) (cadr lst)]
-     [else (loop (cdr lst))])))
-
-(doc fm-truncate 'type '(-> String Int String))
-(define (fm-truncate str max-len)
-  (if (<= (string-length str) max-len)
-      str
-      (string-append (substring str 0 (- max-len 3)) "...")))
-
-(doc fm-pad-right 'type '(-> String Int String))
-(define (fm-pad-right str width)
-  (let ([len (string-length str)])
-    (if (>= len width)
-        str
-        (string-append str (make-string (- width len) #\space)))))
-
-(doc fm-pad-left 'type '(-> String Int String))
-(define (fm-pad-left str width)
-  (let ([len (string-length str)])
-    (if (>= len width)
-        str
-        (string-append (make-string (- width len) #\space) str))))
 
 (doc 'section 'print-help)
 

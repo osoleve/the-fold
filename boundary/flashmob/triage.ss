@@ -1,3 +1,4 @@
+(load "boundary/flashmob/util.ss")
 (load "boundary/flashmob/triage-simple.ss")
 (load "boundary/flashmob/triage-game.ss")
 
@@ -33,8 +34,8 @@
 (doc flashmob-triage-run 'note "- game/sav: SAV + Schulze. Filters noisy/over-approving agents.")
 (doc flashmob-triage-run 'note "- game/cc: CC + Schulze. Maximizes coverage (diverse perspectives)")
 (define (flashmob-triage-run agent-ids findings . args)
-  (let* ([strategy (triage-get-keyword-arg args 'strategy *flashmob-default-strategy*)]
-         [k (triage-get-keyword-arg args 'k *flashmob-default-k*)])
+  (let* ([strategy (fm-get-keyword args 'strategy *flashmob-default-strategy*)]
+         [k (fm-get-keyword args 'k *flashmob-default-k*)])
     (case strategy
       [(simple)   (simple-triage agent-ids findings k)]
       [(game)     (game-triage agent-ids findings k)]
@@ -45,16 +46,6 @@
               "Unknown strategy: ~a (expected 'simple, 'game, 'game/sav, or 'game/cc)"
               strategy)])))
 
-;;; triage-get-keyword-arg : (List Any) Symbol Any -> Any
-;;; Extract keyword argument from argument list.
-(define (triage-get-keyword-arg args key default)
-  (let loop ([lst args])
-    (cond
-     [(null? lst) default]
-     [(null? (cdr lst)) default]
-     [(eq? (car lst) key) (cadr lst)]
-     [else (loop (cdr lst))])))
-
 (doc 'section 'ab-comparison)
 
 (doc flashmob-triage-compare 'type '(-> (List Symbol) (List Alist) &rest Alist))
@@ -62,7 +53,7 @@
 (doc flashmob-triage-compare 'param "'k - Number of findings to select (default: 10)")
 (doc flashmob-triage-compare 'returns "Alist with keys: simple, game, comparison (rank-correlation, top-k-overlap, consensus-diff, runtime-ratio)")
 (define (flashmob-triage-compare agent-ids findings . args)
-  (let* ([k (triage-get-keyword-arg args 'k *flashmob-default-k*)]
+  (let* ([k (fm-get-keyword args 'k *flashmob-default-k*)]
          ;; Time both strategies
          [start-simple (current-time-ns)]
          [simple-result (simple-triage agent-ids findings k)]

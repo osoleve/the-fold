@@ -1,4 +1,5 @@
 (load "boundary/io/process.ss")
+(load "boundary/io/json.ss")
 (load "boundary/flashmob/flashmob.ss")
 
 ;;; Module: flashmob/llm-review
@@ -44,6 +45,7 @@ If no issues found, output exactly: NO_ISSUES_FOUND")
 
 (define *llm-review-timeout* 120000)  ; 2 minutes
 (define *llm-review-temperature* 0.3)
+(define *llm-server-port* 30000)      ; llama-server port (configurable)
 
 ;;;; ============================================================
 ;;;; Backend Detection
@@ -53,7 +55,8 @@ If no issues found, output exactly: NO_ISSUES_FOUND")
 ;;; Check if llama-server is running by calling curl on its health endpoint.
 (define (llm-review-check-llama)
   (let ([result (shell-capture-result
-                 "curl -s -o /dev/null -w '%{http_code}' http://localhost:30000/health 2>/dev/null")])
+                 (format "curl -s -o /dev/null -w '%{http_code}' http://localhost:~a/health 2>/dev/null"
+                         *llm-server-port*))])
     (and (process-ok? result)
          (string=? (string-trim (process-stdout result)) "200"))))
 
@@ -83,8 +86,8 @@ If no issues found, output exactly: NO_ISSUES_FOUND")
          [_ (call-with-output-file temp-file
               (lambda (port) (put-string port payload))
               '(replace))]
-         [cmd (format "curl -s -X POST http://localhost:30000/v1/chat/completions -H 'Content-Type: application/json' -d @~a"
-                      temp-file)]
+         [cmd (format "curl -s -X POST http://localhost:~a/v1/chat/completions -H 'Content-Type: application/json' -d @~a"
+                      *llm-server-port* temp-file)]
          [result (shell-capture-result cmd)])
     (if (process-ok? result)
         (llm-review-extract-nemotron-response (process-stdout result))
@@ -110,19 +113,29 @@ If no issues found, output exactly: NO_ISSUES_FOUND")
 ;;; Nemotron in reasoning mode puts chain-of-thought in "reasoning_content"
 ;;; and final answer in "content". We try content first, fall back to reasoning.
 (define (llm-review-extract-nemotron-response json-str)
-  ;; Try "content" first
-  (let ([content (llm-extract-json-field json-str "\"content\":")])
-    (if (and content (> (string-length content) 0))
-        content
-        ;; Fall back to reasoning_content if content is empty
-        (let ([reasoning (llm-extract-json-field json-str "\"reasoning_content\":")])
-          (if reasoning
-              ;; Try to extract structured output from reasoning
-              (llm-extract-findings-from-reasoning reasoning)
-              json-str)))))
+  ;; Use proper JSON parser for robustness
+  (let ([parsed (parse-json-string json-str)])
+    (if (not parsed)
+        ;; Fall back to raw string if parse fails
+        json-str
+        ;; Navigate: choices[0].message.content or reasoning_content
+        (let* ([choices (cdr (or (assq 'choices parsed) '(_ . ())))]
+               [first-choice (and (pair? choices) (car choices))]
+               [message (and first-choice (cdr (or (assq 'message first-choice) '(_ . #f))))]
+               [content (and message (cdr (or (assq 'content message) '(_ . ""))))]
+               [reasoning (and message (cdr (or (assq 'reasoning_content message) '(_ . #f))))])
+          (cond
+            ;; Prefer content if non-empty
+            [(and content (string? content) (> (string-length content) 0))
+             content]
+            ;; Fall back to reasoning_content
+            [(and reasoning (string? reasoning))
+             (llm-extract-findings-from-reasoning reasoning)]
+            ;; Last resort: return raw JSON
+            [else json-str])))))
 
 ;;; llm-extract-json-field : String String -> (U String Boolean)
-;;; Extract a JSON string field value.
+;;; Extract a JSON string field value. (Legacy fallback, prefer parse-json-string)
 (define (llm-extract-json-field json-str field-key)
   (let ([field-start (llm-string-search json-str field-key)])
     (if field-start
