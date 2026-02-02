@@ -106,7 +106,19 @@
            [x0 '(2 2)]
            [result (sa-minimize sphere x0 lower upper rng)]
            [sol (cdr result)])
-          (assert-true (< (meta-f sol) 0.5)))))
+          (assert-true (< (meta-f sol) 0.5))))
+
+  (define-test "SA handles zero temperature (greedy mode)"
+    ;; With temp=0, SA should only accept improvements
+    (let* ([rng (make-pcg 42 1)]
+           [lower '(-5 -5)]
+           [upper '(5 5)]
+           [x0 '(1 1)]
+           [zero-cooling (lambda (k) 0)]  ; Always zero temperature
+           [result (simulated-annealing sphere x0 lower upper zero-cooling 100 rng)]
+           [sol (cdr result)])
+          ;; Should complete without error and find something reasonable
+          (assert-true (meta-result? sol)))))
 
 ;;; ============================================================================
 ;;; Genetic Algorithm Tests
@@ -201,7 +213,13 @@
            [upper '(5 5)]
            [result (de-minimize sphere lower upper rng)]
            [sol (cdr result)])
-          (assert-true (< (meta-f sol) 0.01)))))
+          (assert-true (< (meta-f sol) 0.01))))
+
+  (define-test "DE rejects pop-size < 4"
+    ;; DE mutation requires 4 distinct indices
+    (assert-error
+      (lambda ()
+        (differential-evolution sphere '(-5 -5) '(5 5) 3 10 0.8 0.9 (make-pcg 42 1))))))
 
 ;;; ============================================================================
 ;;; Multi-objective Tests
