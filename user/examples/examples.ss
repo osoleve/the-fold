@@ -13,6 +13,16 @@ Each example includes commented code, expected output, and variations.")
 
 (define *examples* (make-eq-hashtable))
 
+;; Helper for hashtable iteration (not in prelude)
+(define (hashtable->alist ht)
+  (let-values ([(keys vals) (hashtable-entries ht)])
+    (let loop ([i 0] [result '()])
+      (if (>= i (vector-length keys))
+          result
+          (loop (+ i 1) (cons (cons (vector-ref keys i)
+                                     (vector-ref vals i))
+                              result))))))
+
 (define (register-example! name category code description expected)
   "Register an example in the gallery."
   (hashtable-set! *examples* name
@@ -57,7 +67,7 @@ Each example includes commented code, expected output, and variations.")
                       (cdr (assq 'description (cdr e)))))
             cat-examples)
            (printf "~n"))))
-     '(getting-started recursion higher-order data-structures content-addressing))))
+     '(getting-started recursion higher-order data-structures content-addressing dsl-building))))
 
 (define (example-code name)
   "Get just the code for an example (for copying)."
@@ -199,6 +209,92 @@ Each example includes commented code, expected output, and variations.")
        (equal? data retrieved)))
   "Store data, get hash, fetch by hash"
   "#t")
+
+;;; ============================================================
+;;; DSL Building (mini-languages and interpreters)
+;;; ============================================================
+
+(register-example! 'arithmetic-interpreter 'dsl-building
+  '(letrec ([eval-expr
+             (lambda (expr env)
+               (cond
+                 [(number? expr) expr]
+                 [(symbol? expr) (cdr (assq expr env))]
+                 [(eq? (car expr) '+)
+                  (+ (eval-expr (cadr expr) env)
+                     (eval-expr (caddr expr) env))]
+                 [(eq? (car expr) '*)
+                  (* (eval-expr (cadr expr) env)
+                     (eval-expr (caddr expr) env))]
+                 [(eq? (car expr) 'let)
+                  (let* ([binding (cadr expr)]
+                         [var (car binding)]
+                         [val (eval-expr (cadr binding) env)]
+                         [new-env (cons (cons var val) env)])
+                    (eval-expr (caddr expr) new-env))]))])
+     (eval-expr '(let (x 10) (+ x (* x 2))) '()))
+  "Mini interpreter for arithmetic with let bindings"
+  "30")
+
+(register-example! 'pattern-matcher 'dsl-building
+  '(letrec ([match
+             (lambda (pattern data)
+               (cond
+                 [(eq? pattern '_) #t]              ; wildcard
+                 [(symbol? pattern) #t]             ; variable (always matches)
+                 [(and (null? pattern) (null? data)) #t]
+                 [(or (null? pattern) (null? data)) #f]
+                 [(and (pair? pattern) (pair? data))
+                  (and (match (car pattern) (car data))
+                       (match (cdr pattern) (cdr data)))]
+                 [else (equal? pattern data)]))])
+     (list (match '(a _ c) '(a b c))      ; wildcard match
+           (match '(1 2 3) '(1 2 3))      ; exact match
+           (match '(x y) '(hello world))  ; variable match
+           (match '(a b) '(a b c))))      ; length mismatch
+  "Simple pattern matcher with wildcards"
+  "(#t #t #t #f)")
+
+(register-example! 'state-machine 'dsl-building
+  '(letrec ([make-machine
+             (lambda (transitions initial)
+               (lambda (inputs)
+                 (let loop ([state initial] [inputs inputs])
+                   (if (null? inputs)
+                       state
+                       (let* ([input (car inputs)]
+                              [key (cons state input)]
+                              [next (cdr (assoc key transitions))])
+                         (loop next (cdr inputs)))))))])
+     ;; Traffic light: green -> yellow -> red -> green
+     (let ([light (make-machine
+                    '(((green . tick) . yellow)
+                      ((yellow . tick) . red)
+                      ((red . tick) . green))
+                    'green)])
+       (list (light '())
+             (light '(tick))
+             (light '(tick tick))
+             (light '(tick tick tick)))))
+  "State machine DSL for traffic light"
+  "(green yellow red green)")
+
+(register-example! 'query-dsl 'dsl-building
+  '(let* ([data '((name . alice) (age . 30) (city . boston))]
+          [select (lambda (keys record)
+                    (filter (lambda (pair) (memq (car pair) keys))
+                            record))]
+          [where (lambda (pred records)
+                   (filter pred records))]
+          [records '(((name . alice) (age . 30))
+                     ((name . bob) (age . 25))
+                     ((name . carol) (age . 35)))])
+     ;; SELECT name FROM records WHERE age > 28
+     (map (lambda (r) (cdr (assq 'name r)))
+          (where (lambda (r) (> (cdr (assq 'age r)) 28))
+                 records)))
+  "Simple query DSL combinators"
+  "(alice carol)")
 
 ;;; ============================================================
 ;;; REPL Interface
