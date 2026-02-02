@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "core/lang/module.ss")  ; Needed for 'require' in CAS examples
 
 (doc 'module 'examples)
 (doc 'description "Curated gallery of idiomatic Fold examples.

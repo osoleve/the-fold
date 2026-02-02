@@ -5,12 +5,10 @@
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
 
-;;; ============================================================
-;;; Expression Extraction
-;;; ============================================================
+(doc 'section 'expression-extraction)
 
-;;; extract-exprs-from-file : String → (List S-expr)
-;;; Read all top-level S-expressions from a file.
+(doc extract-exprs-from-file 'type (-> String (List Sexpr)))
+(doc extract-exprs-from-file 'description "Read all top-level S-expressions from a file")
 (define (extract-exprs-from-file path)
   (guard (ex [else '()])
     (call-with-input-file path
@@ -21,15 +19,14 @@
                 (reverse exprs)
                 (loop (cons expr exprs)))))))))
 
-;;; list? : any → Bool
-;;; Check if something is a proper list.
+(doc proper-list? 'type (-> Any Bool))
+(doc proper-list? 'description "Check if something is a proper list")
 (define (proper-list? x)
   (or (null? x)
       (and (pair? x) (proper-list? (cdr x)))))
 
-;;; extract-subexprs : S-expr → (List S-expr)
-;;; Extract all subexpressions from an expression (for deeper analysis).
-;;; Handles dotted pairs and improper lists safely.
+(doc extract-subexprs 'type (-> Sexpr (List Sexpr)))
+(doc extract-subexprs 'description "Extract all subexpressions from an expression for deeper analysis. Handles dotted pairs and improper lists safely.")
 (define (extract-subexprs expr)
   (cond
     [(not (pair? expr)) (list expr)]
@@ -39,13 +36,10 @@
      (cons expr
            (apply append (map extract-subexprs expr)))]))
 
-;;; ============================================================
-;;; Hashing at Multiple Levels
-;;; ============================================================
+(doc 'section 'hashing)
 
-;;; hash-expr-all-levels : S-expr → (List (Version . Hash))
-;;; Hash an expression at all three normalization levels.
-;;; Returns alist: ((v0 . hash0) (v1 . hash1) (v2 . hash2))
+(doc hash-expr-all-levels 'type (-> Sexpr (Maybe Alist)))
+(doc hash-expr-all-levels 'description "Hash an expression at all three normalization levels. Returns alist: ((v0 . hash0) (v1 . hash1) (v2 . hash2)) or #f if normalization fails.")
 (define (hash-expr-all-levels expr)
   (guard (ex [else #f])  ; Skip expressions that fail to normalize
     (list
@@ -53,14 +47,10 @@
       (cons 'v1 (hash-sexpr-algebraic 'benchmark expr))
       (cons 'v2 (hash-sexpr-v2 'benchmark expr)))))
 
-;;; ============================================================
-;;; Unique Hash Counting
-;;; ============================================================
+(doc 'section 'counting)
 
-;;; count-unique-hashes : (List S-expr) → Alist
-;;; Count unique hashes at each normalization level.
-;;; Returns ((v0-unique . N) (v1-unique . N) (v2-unique . N)
-;;;          (v0-v1-reduction . N) (v1-v2-reduction . N) (total . N))
+(doc count-unique-hashes 'type (-> (List Sexpr) Alist))
+(doc count-unique-hashes 'description "Count unique hashes at each normalization level. Returns statistics including reduction percentages between levels.")
 (define (count-unique-hashes exprs)
   (let ([v0-set (make-hashtable equal-hash equal?)]
         [v1-set (make-hashtable equal-hash equal?)]
@@ -102,20 +92,18 @@
                                     (exact->inexact (* 100 (/ (- v0-count v2-count) v0-count)))
                                     0.0))))))
 
-;;; ============================================================
-;;; File and Directory Benchmarks
-;;; ============================================================
+(doc 'section 'file-benchmarks)
 
-;;; norm-benchmark-file : String → Alist
-;;; Benchmark a single file.
+(doc norm-benchmark-file 'type (-> String Alist))
+(doc norm-benchmark-file 'description "Benchmark normalization equivalences in a single file")
 (define (norm-benchmark-file path)
   (let* ([exprs (extract-exprs-from-file path)]
          [all-subexprs (apply append (map extract-subexprs exprs))]
          [results (count-unique-hashes all-subexprs)])
     (cons `(file . ,path) results)))
 
-;;; norm-benchmark-files : (List String) → Alist
-;;; Benchmark multiple files, aggregating results.
+(doc norm-benchmark-files 'type (-> (List String) Alist))
+(doc norm-benchmark-files 'description "Benchmark multiple files, aggregating results")
 (define (norm-benchmark-files paths)
   (let ([all-exprs '()])
     (for-each
@@ -127,12 +115,10 @@
     (let ([results (count-unique-hashes all-exprs)])
       (cons `(files . ,(length paths)) results))))
 
-;;; ============================================================
-;;; Directory Scanning
-;;; ============================================================
+(doc 'section 'directory-scanning)
 
-;;; find-scheme-files : String → (List String)
-;;; Find all .ss files in a directory (non-recursive).
+(doc find-scheme-files 'type (-> String (List String)))
+(doc find-scheme-files 'description "Find all .ss files in a directory (non-recursive)")
 (define (find-scheme-files dir)
   (guard (ex [else '()])
     (let ([entries (directory-list dir)])
@@ -140,8 +126,8 @@
         (lambda (f) (string-suffix? ".ss" f))
         (map (lambda (f) (string-append dir "/" f)) entries)))))
 
-;;; find-scheme-files-recursive : String → (List String)
-;;; Find all .ss files recursively.
+(doc find-scheme-files-recursive 'type (-> String (List String)))
+(doc find-scheme-files-recursive 'description "Find all .ss files recursively in a directory tree")
 (define (find-scheme-files-recursive dir)
   (guard (ex [else '()])
     (let ([entries (directory-list dir)])
@@ -156,43 +142,43 @@
                    [else '()])))
              entries)))))
 
-;;; string-suffix? : String × String → Bool
+(doc string-suffix? 'type (-> String String Bool))
+(doc string-suffix? 'description "Check if a string ends with the given suffix")
 (define (string-suffix? suffix str)
   (let ([slen (string-length suffix)]
         [len (string-length str)])
     (and (>= len slen)
          (string=? suffix (substring str (- len slen) len)))))
 
-;;; string-prefix? : String × String → Bool
+(doc string-prefix? 'type (-> String String Bool))
+(doc string-prefix? 'description "Check if a string starts with the given prefix")
 (define (string-prefix? prefix str)
   (let ([plen (string-length prefix)]
         [len (string-length str)])
     (and (>= len plen)
          (string=? prefix (substring str 0 plen)))))
 
-;;; norm-benchmark-directory : String → Alist
-;;; Benchmark all .ss files in a directory.
+(doc norm-benchmark-directory 'type (-> String Alist))
+(doc norm-benchmark-directory 'description "Benchmark all .ss files in a directory recursively")
 (define (norm-benchmark-directory dir)
   (let* ([files (find-scheme-files-recursive dir)]
          [results (norm-benchmark-files files)])
     (cons `(directory . ,dir) results)))
 
-;;; ============================================================
-;;; Lattice-Wide Benchmark
-;;; ============================================================
+(doc 'section 'lattice-benchmarks)
 
-;;; norm-benchmark-lattice : → Alist
-;;; Benchmark the entire lattice directory.
+(doc norm-benchmark-lattice 'type (-> Alist))
+(doc norm-benchmark-lattice 'description "Benchmark the entire lattice directory")
 (define (norm-benchmark-lattice)
   (norm-benchmark-directory "lattice"))
 
-;;; norm-benchmark-core : → Alist
-;;; Benchmark the core directory.
+(doc norm-benchmark-core 'type (-> Alist))
+(doc norm-benchmark-core 'description "Benchmark the core directory")
 (define (norm-benchmark-core)
   (norm-benchmark-directory "core"))
 
-;;; norm-benchmark-all : → Alist
-;;; Benchmark both core and lattice.
+(doc norm-benchmark-all 'type (-> Alist))
+(doc norm-benchmark-all 'description "Benchmark both core and lattice directories")
 (define (norm-benchmark-all)
   (let* ([core-files (find-scheme-files-recursive "core")]
          [lattice-files (find-scheme-files-recursive "lattice")]
@@ -200,12 +186,10 @@
          [results (norm-benchmark-files all-files)])
     (cons `(scope . "core+lattice") results)))
 
-;;; ============================================================
-;;; Pretty Printing
-;;; ============================================================
+(doc 'section 'output)
 
-;;; print-benchmark-results : Alist → void
-;;; Pretty-print benchmark results.
+(doc print-benchmark-results 'type (-> Alist Void))
+(doc print-benchmark-results 'description "Pretty-print benchmark results with formatted tables")
 (define (print-benchmark-results results)
   (newline)
   (display "═══════════════════════════════════════════════════════════\n")
@@ -257,8 +241,8 @@
   (display "═══════════════════════════════════════════════════════════\n")
   (newline))
 
-;;; run-benchmark : [String] → void
-;;; Run benchmark and print results. Optional path argument.
+(doc run-benchmark 'type (-> (Optional String) Void))
+(doc run-benchmark 'description "Run benchmark and print results. Optional path argument specifies file or directory to benchmark.")
 (define run-benchmark
   (case-lambda
     [() (print-benchmark-results (norm-benchmark-all))]

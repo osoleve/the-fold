@@ -48,7 +48,44 @@
                      [idx (bm25-add-doc idx 'linalg '(vector matrix algebra) 'data)]
                      [results (bm25-search-string idx "vector algebra" 5)])
                     (assert-true (> (length results) 0))))
-            
+
+            ;; Coverage boost tests (from f2d66418 fix)
+            (define-test test-bm25-coverage-single-term
+              "Single-term query: no coverage penalty"
+              (let* ([idx (bm25-create)]
+                     [idx (bm25-add-doc idx 'doc1 '(alpha beta gamma) 'data)])
+                    ;; Single term should get a score (no penalty)
+                    (assert-true (> (bm25-score idx 'doc1 '(alpha)) 0))))
+
+            (define-test test-bm25-coverage-full-match
+              "Multi-term query with full match: no penalty"
+              (let* ([idx (bm25-create)]
+                     [idx (bm25-add-doc idx 'doc1 '(alpha beta gamma) 'data)]
+                     [full-score (bm25-score idx 'doc1 '(alpha beta))])
+                    ;; Full match should have positive score
+                    (assert-true (> full-score 0))))
+
+            (define-test test-bm25-coverage-partial-match
+              "Multi-term query with partial match: penalized"
+              (let* ([idx (bm25-create)]
+                     [idx (bm25-add-doc idx 'doc1 '(alpha gamma) 'data)]  ; missing beta
+                     [idx (bm25-add-doc idx 'doc2 '(alpha beta) 'data)]   ; has both
+                     [partial-score (bm25-score idx 'doc1 '(alpha beta))]
+                     [full-score (bm25-score idx 'doc2 '(alpha beta))])
+                    ;; Partial match should score lower than full match
+                    (assert-true (> full-score partial-score))))
+
+            (define-test test-bm25-coverage-ranking
+              "Coverage boost improves ranking of complete matches"
+              (let* ([idx (bm25-create)]
+                     ;; doc1: has 'matrix' twice but not 'vector'
+                     [idx (bm25-add-doc idx 'doc1 '(matrix matrix algebra ops) 'data1)]
+                     ;; doc2: has both terms once
+                     [idx (bm25-add-doc idx 'doc2 '(matrix vector linear) 'data2)]
+                     [results (bm25-search idx '(matrix vector) 10)])
+                    ;; doc2 should rank higher despite doc1 having more 'matrix' occurrences
+                    (assert-equal 'doc2 (caar results))))
+
             )
 
 ;;; ====
