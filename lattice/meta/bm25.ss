@@ -229,7 +229,7 @@
             (* idf (/ numerator denominator)))))
 
 (doc bm25-score 'type (-> Index DocId (List Symbol) Number))
-(doc bm25-score 'description "Compute BM25 score for a document given query terms")
+(doc bm25-score 'description "Compute BM25 score for a document given query terms. Includes term coverage boost for multi-word queries.")
 (define (bm25-score idx doc-id query-terms)
   (let* ([dl (bm25-doc-lengths idx)]
          [dl-entry (assq doc-id dl)]
@@ -237,11 +237,21 @@
          [avgdl (bm25-avg-doc-length idx)])
         (if (= doc-length 0)
             0
-            (fold-left
-             (lambda (score term)
-                     (+ score (bm25-term-score idx doc-id term doc-length avgdl)))
-             0
-             query-terms))))
+            (let* ([term-scores (map (lambda (term)
+                                            (bm25-term-score idx doc-id term doc-length avgdl))
+                                     query-terms)]
+                   [base-score (fold-left + 0 term-scores)]
+                   ;; Count how many query terms matched (score > 0)
+                   [matched-terms (length (filter (lambda (s) (> s 0)) term-scores))]
+                   [total-terms (length query-terms)]
+                   ;; Coverage factor: heavily penalize partial matches in multi-term queries
+                   ;; Single term: no adjustment. Multi-term: score × (matched/total)^2
+                   ;; This means matching 1/2 terms = 25% of score, 2/2 = 100%
+                   [coverage-ratio (if (<= total-terms 1)
+                                       1.0
+                                       (/ matched-terms total-terms))]
+                   [coverage-boost (* coverage-ratio coverage-ratio)])
+                  (* base-score coverage-boost)))))
 
 (doc 'section 'search)
 
@@ -311,10 +321,14 @@
                  (append name-tokens name-tokens name-tokens))  ; 3x weight
             ;; Description tokens
             (tokenize description)
-            ;; Keywords (already symbols)
-            (if (list? keywords) keywords '())
-            ;; Aliases (already symbols)
-            (if (list? aliases) aliases '())))))
+            ;; Keywords (tokenize each to split hyphenated terms)
+            (if (list? keywords)
+                (append-map (lambda (kw) (tokenize (symbol->string kw))) keywords)
+                '())
+            ;; Aliases (tokenize each)
+            (if (list? aliases)
+                (append-map (lambda (a) (tokenize (symbol->string a))) aliases)
+                '())))))
 
 (doc module->terms 'type (-> ModuleData (List Symbol)))
 (doc module->terms 'description "Extract searchable terms from module data")
