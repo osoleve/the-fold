@@ -15,7 +15,7 @@
     (before "505 lines")
     (after "123 lines")
     (reduction "76%")))))
-(modules 
+(modules
   ((vec-common.ss "Macro infrastructure for generating vector operations")
   (vec.ss "Generic n-dimensional vector operations - 56 tests")
   (vec2.ss "2D graphics/physics vectors - 52 tests")
@@ -25,6 +25,7 @@
   (matrix-decomp.ss "LU, QR, Cholesky decompositions - 40 tests")
   (matrix-solvers.ss "Linear equation solvers, Levinson-Durbin - 48 tests")
   (matrix-eigen.ss "Eigenvalue/eigenvector computation - 34 tests")
+  (integer-matrix.ss "Smith/Hermite normal forms, Diophantine solvers - 25 tests")
   (sparse.ss "Sparse matrix formats (COO, CSR, CSC) - 127 tests")
   (iterative-solvers.ss "CG, GMRES iterative methods")
   (iteration.ss "Iteration macros for vectors/matrices")
@@ -70,4 +71,4 @@
  (sparse-coo "(sparse-coo rows cols row-idx col-idx values)")
  (sparse-csr "(sparse-csr rows cols row-ptrs col-idx values)")
  (sparse-csc "(sparse-csc rows cols col-ptrs row-idx values)"))
-(total-tests 790))
+(total-tests 815))
