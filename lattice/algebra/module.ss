@@ -192,30 +192,34 @@
 ;;; submodule-generators : Submodule → (List E)
 (define (submodule-generators s) (doc 'export #t) (list-ref s 2))
 
-;;; is-in-submodule? : Submodule × E → Boolean
+;;; is-in-submodule? : Submodule × E → Boolean | #f
 ;;; Test if element is in the submodule (for finite modules).
 ;;; Uses linear combination check over all ring elements.
+;;; Returns #f if the ring is infinite (cannot enumerate coefficients).
 (define (is-in-submodule? sub elem)
   (doc 'export #t)
-  (doc 'type '(-> Submodule E Boolean))
-  (doc 'description "Test if element is in submodule span")
+  (doc 'type '(-> Submodule E (Or Boolean False)))
+  (doc 'description "Test if element is in submodule span (returns #f for infinite rings)")
   (let* ([parent (submodule-parent sub)]
          [ring (module-ring parent)]
          [gens (submodule-generators sub)]
          [eq-fn (module-equal-fn parent)]
          [r-elems (ring-elements ring)])
-    (if (null? gens)
-        ;; Zero submodule: only zero is in it
-        (eq-fn elem (module-zero parent))
-        ;; Try all linear combinations (for finite rings)
-        (let check-combos ([scalars (make-list (length gens) r-elems)])
-          (or (null? scalars)
-              (let try-coeffs ([coeffs (cartesian-first scalars)])
-                (if (not coeffs)
-                    #f
-                    (let ([combo (module-linear-combination parent coeffs gens)])
-                      (or (eq-fn combo elem)
-                          (try-coeffs (cartesian-next scalars coeffs)))))))))))
+    ;; Guard: cannot check membership for infinite rings
+    (if (not r-elems)
+        #f
+        (if (null? gens)
+            ;; Zero submodule: only zero is in it
+            (eq-fn elem (module-zero parent))
+            ;; Try all linear combinations (for finite rings)
+            (let check-combos ([scalars (make-list (length gens) r-elems)])
+              (or (null? scalars)
+                  (let try-coeffs ([coeffs (cartesian-first scalars)])
+                    (if (not coeffs)
+                        #f
+                        (let ([combo (module-linear-combination parent coeffs gens)])
+                          (or (eq-fn combo elem)
+                              (try-coeffs (cartesian-next scalars coeffs))))))))))))
 
 ;;; ============================================================================
 ;;; Module Homomorphisms
@@ -385,25 +389,27 @@
 ;;; For finite modules, we represent tensor product elements as lists of
 ;;; (coefficient . (m . n)) pairs, simplified using the tensor relations.
 
-;;; make-tensor-product : Module × Module → Module
+;;; make-tensor-product : Module × Module → Module | #f
 ;;; Construct tensor product M ⊗_R N.
+;;; Returns #f if either module is infinite (cannot enumerate tensor basis).
 (define (make-tensor-product mod1 mod2)
   (doc 'export #t)
-  (doc 'type '(-> Module Module Module))
-  (doc 'description "Construct tensor product M ⊗ N")
-  (let* ([ring (module-ring mod1)]  ; Both modules should be over same ring
-         [m1-elems (module-elements mod1)]
-         [m2-elems (module-elements mod2)]
-         [r-elems (ring-elements ring)]
-         [r-add (ring-add-op ring)]
-         [r-mul (ring-mul-op ring)]
-         [r-zero (ring-zero ring)]
-         [r-one (ring-one ring)]
-         [r-eq (ring-equal-fn ring)]
-         ;; Pure tensors: all pairs (m, n)
-         [pure-tensors (if (and m1-elems m2-elems)
-                           (cartesian-product m1-elems m2-elems)
-                           '())]
+  (doc 'type '(-> Module Module (Or Module False)))
+  (doc 'description "Construct tensor product M ⊗ N (returns #f for infinite modules)")
+  (let* ([m1-elems (module-elements mod1)]
+         [m2-elems (module-elements mod2)])
+    ;; Guard: cannot construct tensor product of infinite modules
+    (if (not (and m1-elems m2-elems))
+        #f
+        (let* ([ring (module-ring mod1)]  ; Both modules should be over same ring
+               [r-elems (ring-elements ring)]
+               [r-add (ring-add-op ring)]
+               [r-mul (ring-mul-op ring)]
+               [r-zero (ring-zero ring)]
+               [r-one (ring-one ring)]
+               [r-eq (ring-equal-fn ring)]
+               ;; Pure tensors: all pairs (m, n)
+               [pure-tensors (cartesian-product m1-elems m2-elems)]
          ;; Tensor elements are linear combinations of pure tensors
          ;; Represented as association lists: ((m . n) . coeff) ...
          [tensor-add (lambda (t1 t2)
@@ -421,19 +427,19 @@
                          r-add r-zero r-eq))]
          [tensor-eq (lambda (t1 t2)
                       (tensor-equal? t1 t2 r-eq r-zero))])
-    ;; Generate all tensor elements (for small finite modules)
-    (let ([all-tensors
-           (if (null? pure-tensors)
-               (list tensor-zero)
-               (generate-tensor-elements pure-tensors r-elems r-add r-zero r-eq))])
-      (make-module
-       ring
-       all-tensors
-       tensor-add
-       tensor-zero
-       tensor-neg
-       tensor-smul
-       tensor-eq))))
+      ;; Generate all tensor elements (for small finite modules)
+      (let ([all-tensors
+             (if (null? pure-tensors)
+                 (list tensor-zero)
+                 (generate-tensor-elements pure-tensors r-elems r-add r-zero r-eq))])
+        (make-module
+         ring
+         all-tensors
+         tensor-add
+         tensor-zero
+         tensor-neg
+         tensor-smul
+         tensor-eq))))))
 
 ;;; tensor : Module × E × F → TensorElement
 ;;; Create pure tensor m ⊗ n.
