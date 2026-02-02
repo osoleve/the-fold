@@ -226,7 +226,21 @@
            [obj '((1 1) (2 2) (3 3))]  ; (1,1) dominates others
            [front (pareto-nondominated pop obj)])
           (assert-equal 1 (length front))
-          (assert-equal '(1) (car (car front))))))
+          (assert-equal '(1) (car (car front)))))
+
+  (define-test "nsga2-crowding-distance computes distances"
+    ;; Front format: list of (solution objectives)
+    ;; Three points on a 2D Pareto front
+    (let* ([front '(((1 0) (0 4))    ; solution (1,0), objectives (0, 4)
+                    ((2 1) (2 2))    ; solution (2,1), objectives (2, 2) - middle
+                    ((3 2) (4 0)))]  ; solution (3,2), objectives (4, 0)
+           [dists (nsga2-crowding-distance front)])
+          ;; Boundary points should have infinite distance
+          (assert-equal +inf.0 (car dists))
+          (assert-equal +inf.0 (caddr dists))
+          ;; Middle point should have finite positive distance
+          (assert-true (> (cadr dists) 0))
+          (assert-true (< (cadr dists) +inf.0)))))
 
 ;;; ============================================================================
 ;;; Unified Interface Tests

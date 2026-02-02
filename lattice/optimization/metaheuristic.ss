@@ -355,7 +355,7 @@ For continuous optimization, uses real-valued encoding with:
                  (let offspring-loop ([rng rng]
                                       [offspring '()]
                                       [pairs 0])
-                      (if (>= pairs (/ pop-size 2))
+                      (if (>= pairs (quotient pop-size 2))
                           ;; Evaluate new generation
                           (let* ([new-pop (list->vector offspring)]
                                  [new-fit (ga-evaluate-population f new-pop)]
@@ -621,9 +621,11 @@ A solution x dominates y if:
                  (if (>= obj-idx m)
                      dists
                      ;; Sort by this objective
+                     ;; Each element is ((solution objectives) distance)
+                     ;; To get objectives: (cadr (car elem)) = (cadr (car ((sol objs) dist))) = objs
                      (let* ([sorted (list-sort (lambda (a b)
-                                                       (< (list-ref (cadr a) obj-idx)
-                                                          (list-ref (cadr b) obj-idx)))
+                                                       (< (list-ref (cadr (car a)) obj-idx)
+                                                          (list-ref (cadr (car b)) obj-idx)))
                                                (map (lambda (pt d) (list pt d))
                                                     front dists))]
                             [obj-min (list-ref (cadr (car (car sorted))) obj-idx)]
