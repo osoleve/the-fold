@@ -288,6 +288,22 @@
       (= (ext-degree split) 2))))
 
 ;;; ====
+;;; Minimal Polynomial Verification Tests
+;;; ====
+
+(test-group "Minimal Polynomial"
+
+  (define-test "verify-minimal-poly returns true for √2"
+    (let* ([Q-sqrt2 (make-Q-sqrt 2)]
+           [sqrt2 (ext-generator Q-sqrt2)])
+      (verify-minimal-poly Q-sqrt2 sqrt2)))
+
+  (define-test "verify-minimal-poly returns true for i"
+    (let* ([Q-i (make-Q-i)]
+           [i (ext-generator Q-i)])
+      (verify-minimal-poly Q-i i))))
+
+;;; ====
 ;;; Run All Tests
 ;;; ====
 

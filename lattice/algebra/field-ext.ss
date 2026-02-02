@@ -57,13 +57,33 @@
   (list-ref e 4))
 
 ;;; Normalize coefficients to length n
+;;; INVARIANT: Input coeffs should already be reduced mod min-poly.
+;;; This function only pads with zeros or verifies length.
+;;; If len > n, this is a logic error (caller should have reduced first).
 (define (alg-ext-normalize coeffs n F)
   (let* ([zero (field-zero F)]
          [len (length coeffs)])
     (cond
       [(< len n) (append coeffs (make-list (- n len) zero))]
-      [(> len n) (take n coeffs)]
+      [(> len n)
+       ;; Caller should have reduced mod min-poly before calling.
+       ;; Truncate trailing zeros only, otherwise error.
+       (let ([trimmed (trim-trailing-zeros coeffs F)])
+         (if (<= (length trimmed) n)
+             (alg-ext-normalize trimmed n F)
+             (error 'alg-ext-normalize
+                    "coeffs exceed degree, should be reduced first")))]
       [else coeffs])))
+
+;;; trim-trailing-zeros : (List Coeff) × Field → (List Coeff)
+(define (trim-trailing-zeros coeffs F)
+  (let ([eq-fn (field-equal-fn F)]
+        [zero (field-zero F)])
+    (let loop ([cs (reverse coeffs)])
+      (cond
+        [(null? cs) (list zero)]
+        [(eq-fn (car cs) zero) (loop (cdr cs))]
+        [else (reverse cs)]))))
 
 ;;; ====
 ;;; Section: Algebraic Extension Field Construction
@@ -150,7 +170,10 @@
          [cb (alg-ext-coeffs b)]
          [eq-fn (field-equal-fn F)])
     (and (= (length ca) (length cb))
-         (andmap eq-fn ca cb))))
+         (let loop ([as ca] [bs cb])
+           (or (null? as)
+               (and (eq-fn (car as) (car bs))
+                    (loop (cdr as) (cdr bs))))))))
 
 ;;; ====
 ;;; Section: Extension Field Utilities
