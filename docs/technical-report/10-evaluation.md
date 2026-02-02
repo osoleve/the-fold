@@ -132,4 +132,38 @@ dot  : (∀ (n) (→ (Vec n Num) (→ (Vec n Num) Num)))
 3. Verify `autodiff`'s fuel bounds
 4. `autodiff` is now verified
 
+### 10.5 Search Quality
+
+The lattice search uses BM25 with term coverage boosting for multi-word queries. We evaluated precision on representative queries:
+
+**Precision@10 for Sample Queries**:
+
+| Query | Expected | Found in Top 10 | Notes |
+|-------|----------|-----------------|-------|
+| "identity matrix" | identity-matrix | ✓ | Exact match |
+| "random float" | random-float | ✓ | Exact match |
+| "merge sort" | data skill | ✓ | Skill keyword match |
+| "graph shortest path" | data skill, dijkstra-path | ✓ | Multi-term coverage boost |
+| "matrix vector" | linalg skill | ✓ | Both terms in description |
+
+**Term Coverage Boost Effect**:
+
+Multi-word queries use a `(matched/total)²` penalty for partial matches:
+
+| Query | Result Type | Terms Matched | Score Multiplier |
+|-------|-------------|---------------|------------------|
+| "merge sort" | data skill | 2/2 | 1.0x (full match) |
+| "merge sort" | dict-merge | 1/2 | 0.25x (partial) |
+| "merge sort" | oquery-sort-by | 1/2 | 0.25x (partial) |
+
+This ensures results matching all query terms rank significantly higher than partial matches.
+
+**Limitations**:
+
+1. **Single-character tokens dropped**: Function names like `vec+` don't match "vec add" because `+` is filtered by tokenization
+2. **No phrase matching**: "merge sort" matches terms independently, not as a phrase
+3. **No typo tolerance**: Queries must match indexed terms exactly
+
+For a ~3,300 export index, these limitations are acceptable. Prefix search (`lfp`) and substring search (`lfs`) provide alternatives when exact BM25 matching fails.
+
 ---
