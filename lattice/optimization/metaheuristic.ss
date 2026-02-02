@@ -173,8 +173,10 @@ Cooling schedule determines how T decreases over iterations.")
                         [rand-val (car accept-result)]
                         [rng3 (cdr accept-result)]
                         ;; Accept if better, or with probability exp(-delta/T)
+                        ;; When temp <= 0, only accept improvements (greedy)
                         [accept? (or (<= delta 0)
-                                     (< rand-val (exp (- (/ delta temp)))))])
+                                     (and (> temp 0)
+                                          (< rand-val (exp (- (/ delta temp))))))])
                        (let ([new-x (if accept? x-new x)]
                              [new-fx (if accept? fx-new fx)]
                              [new-best-x (if (< fx-new best-f) x-new best-x)]
@@ -725,11 +727,14 @@ Simple and effective for continuous optimization:
   (doc 'param 'f "Objective function to minimize")
   (doc 'param 'lower "Lower bounds")
   (doc 'param 'upper "Upper bounds")
-  (doc 'param 'pop-size "Population size (typically 10*dimension)")
+  (doc 'param 'pop-size "Population size (must be >= 4, typically 10*dimension)")
   (doc 'param 'max-gen "Maximum generations")
   (doc 'param 'f-param "Mutation scale factor F (typically 0.5-1.0)")
   (doc 'param 'cr "Crossover probability (typically 0.7-0.9)")
   (doc 'param 'rng "Random number generator")
+  ;; DE mutation requires 4 distinct indices (target + 3 donors)
+  (when (< pop-size 4)
+        (error 'differential-evolution "pop-size must be >= 4" pop-size))
   (let* ([n (length lower)]
          [pop-result (ga-initialize-population rng n pop-size lower upper)]
          [rng1 (car pop-result)]
