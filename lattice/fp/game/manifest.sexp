@@ -11,10 +11,11 @@
   (deps (linalg optimization))
 
   (description
-   "Comprehensive game theory library covering non-cooperative games,
-    cooperative (coalitional) games, two-sided matching, social choice/voting theory,
-    multi-winner elections, fair division, and mechanism design. Implements Nash equilibrium,
-    Shapley value, Gale-Shapley stable matching, Schulze voting, STV, PAV, VCG mechanism,
+   "Comprehensive game theory library covering strategic (normal form) games,
+    sequential (extensive form) games, cooperative (coalitional) games, two-sided matching,
+    social choice/voting theory, multi-winner elections, fair division, and mechanism design.
+    Implements Nash equilibrium, backward induction, subgame perfect equilibrium, Shapley value,
+    Gale-Shapley stable matching, Schulze voting, STV, PAV, VCG mechanism,
     first-price/second-price auctions, double auctions, and incentive compatibility analysis.")
 
   (keywords (game-theory nash-equilibrium shapley-value cooperative-games
@@ -30,13 +31,30 @@
              strategic-voting best-response price-of-anarchy price-of-stability
              gibbard-satterthwaite strategy-proof manipulation
              mcdm multi-criteria decision-making pareto-frontier weighted-borda
-             sensitivity-analysis robustness))
+             sensitivity-analysis robustness
+             extensive-form game-tree backward-induction subgame-perfect-equilibrium
+             sequential-game information-set perfect-information imperfect-information
+             ultimatum centipede entry-deterrence stackelberg signaling))
 
   (aliases (game games game-theory))
 
   (exports
    ;; normal-form.ss — Strategic Form Games
    make-game game-payoff find-pure-nash
+
+   ;; extensive-form.ss — Extensive Form Games
+   make-terminal terminal? terminal-payoffs terminal-payoff
+   make-decision decision? decision-player decision-actions decision-children decision-child
+   make-chance chance? chance-outcomes chance-probs chance-children
+   make-extensive-game extensive-game? game-num-players game-root game-info-sets
+   tree-depth tree-size terminal-nodes
+   backward-induction solve-spe spe-result? spe-payoffs spe-strategy
+   expected-utility
+   make-info-set info-set? info-set-player info-set-label info-set-nodes
+   add-info-set perfect-information?
+   ultimatum-game make-centipede-game centipede-4 entry-deterrence
+   stackelberg-simple signaling-simple
+   print-tree
 
    ;; coop-games.ss — Cooperative Games
    coalition-empty coalition-singleton coalition-member?
@@ -135,6 +153,7 @@
 
   (modules
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")
+   (extensive-form "extensive-form.ss" "Game trees, backward induction, subgame perfect equilibrium")
    (coop-games "coop-games.ss" "Coalitional games, Shapley value, core, bargaining")
    (matching "matching.ss" "Two-sided matching, Gale-Shapley, assignment games")
    (voting "voting.ss" "Social choice: plurality, Borda, Condorcet, Schulze")
