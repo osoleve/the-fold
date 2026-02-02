@@ -82,13 +82,16 @@ If no issues found, output exactly: NO_ISSUES_FOUND")
 ;;; Call local llama-server with Nemotron for code review.
 (define (llm-review-call-nemotron code-content)
   (let* ([payload (llm-review-build-nemotron-payload code-content)]
-         [temp-file "/tmp/llm-review-payload.json"]
+         ;; Use gensym to avoid race conditions with concurrent invocations
+         [temp-file (format "/tmp/llm-review-payload-~a.json" (gensym "llm"))]
          [_ (call-with-output-file temp-file
               (lambda (port) (put-string port payload))
               '(replace))]
          [cmd (format "curl -s -X POST http://localhost:~a/v1/chat/completions -H 'Content-Type: application/json' -d @~a"
                       *llm-server-port* temp-file)]
-         [result (shell-capture-result cmd)])
+         [result (shell-capture-result cmd)]
+         ;; Clean up temp file
+         [_ (when (file-exists? temp-file) (delete-file temp-file))])
     (if (process-ok? result)
         (llm-review-extract-nemotron-response (process-stdout result))
         (error 'llm-review-call-nemotron
@@ -175,12 +178,15 @@ If no issues found, output exactly: NO_ISSUES_FOUND")
   (let* ([prompt (string-append *llm-review-system-prompt*
                                 "\n\n---\n\nReview this Scheme code:\n\n"
                                 code-content)]
-         [temp-file "/tmp/llm-review-prompt.txt"]
+         ;; Use gensym to avoid race conditions with concurrent invocations
+         [temp-file (format "/tmp/llm-review-prompt-~a.txt" (gensym "llm"))]
          [_ (call-with-output-file temp-file
               (lambda (port) (put-string port prompt))
               '(replace))]
          [cmd (format "cat '~a' | gemini -m gemini-3-flash-preview" temp-file)]
-         [result (shell-capture-result cmd)])
+         [result (shell-capture-result cmd)]
+         ;; Clean up temp file
+         [_ (when (file-exists? temp-file) (delete-file temp-file))])
     (if (process-ok? result)
         (process-stdout result)
         (error 'llm-review-call-gemini
