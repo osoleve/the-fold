@@ -45,10 +45,11 @@
         (box #f)))     ; lock (mutex simulation via CAS)
 
 (define (injection-queue-lock! q)
-  "Acquire lock using spinlock with CAS."
+  "Acquire lock using spinlock with CAS and yield on contention."
   (let ([lock-box (caddr q)])
     (let spin ()
       (unless (box-cas! lock-box #f #t)
+        (thread-yield)  ; Don't burn CPU on contention
         (spin)))))
 
 (define (injection-queue-unlock! q)
