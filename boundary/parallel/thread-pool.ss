@@ -1,7 +1,3 @@
-;;; boundary/parallel/thread-pool.ss
-;;; @module thread-pool
-;;; @requires prelude task chase-lev-deque
-
 (load "core/base/prelude.ss")
 (load "lattice/data/chase-lev-deque.ss")
 (load "boundary/parallel/task.ss")

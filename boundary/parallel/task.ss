@@ -1,7 +1,3 @@
-;;; boundary/parallel/task.ss
-;;; @module task
-;;; @requires prelude
-
 (load "core/base/prelude.ss")
 
 (doc 'module 'task)

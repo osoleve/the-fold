@@ -1,7 +1,3 @@
-;;; boundary/parallel/scheduler.ss
-;;; @module scheduler
-;;; @requires thread-pool task
-
 (load "core/base/prelude.ss")
 (load "boundary/parallel/thread-pool.ss")
 

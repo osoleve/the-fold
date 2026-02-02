@@ -1,7 +1,3 @@
-;;; boundary/ui/sprite-designer.ss — Interactive sprite designer
-;;; @module sprite-designer
-;;; @requires halfblock
-
 (load "boundary/ui/halfblock.ss")
 
 (doc 'module 'sprite-designer)

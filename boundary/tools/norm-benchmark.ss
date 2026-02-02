@@ -1,16 +1,9 @@
-;;; boundary/tools/norm-benchmark.ss — Normalization Equivalence Benchmarks
-;;; @module norm-benchmark
-;;;
-;;; Measures how often different normalization levels detect equivalences.
-;;; Compares v0x00 (α-only), v0x01 (algebraic), and v0x02 (full) hashing.
-;;;
-;;; Usage:
-;;;   (load "boundary/tools/norm-benchmark.ss")
-;;;   (norm-benchmark-file "lattice/linalg/vec.ss")
-;;;   (norm-benchmark-directory "lattice/linalg")
-;;;   (norm-benchmark-lattice)  ; Full lattice scan
-
 (load "core/blocks/cas.ss")
+
+(doc 'module 'norm-benchmark)
+(doc 'description "Normalization equivalence benchmarks. Measures how often different normalization levels detect equivalences across v0x00 (α-only), v0x01 (algebraic), and v0x02 (full) hashing.")
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Expression Extraction

@@ -1,7 +1,3 @@
-;;; boundary/ui/halfblock.ss — Half-block terminal pixel rendering
-;;; @module halfblock
-;;; @requires color
-
 (load "boundary/ui/color.ss")
 
 (doc 'module 'halfblock)
