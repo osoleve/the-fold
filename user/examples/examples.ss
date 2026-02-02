@@ -149,9 +149,9 @@ Each example includes commented code, expected output, and variations.")
   "15")
 
 (register-example! 'compose-functions 'higher-order
-  '(let ([add1 (lambda (x) (+ x 1))]
-         [double (lambda (x) (* x 2))]
-         [composed (lambda (x) (add1 (double x)))])
+  '(let* ([add1 (lambda (x) (+ x 1))]
+          [double (lambda (x) (* x 2))]
+          [composed (lambda (x) (add1 (double x)))])
      (map composed '(1 2 3 4 5)))
   "Function composition: add1 after double"
   "(3 5 7 9 11)")
