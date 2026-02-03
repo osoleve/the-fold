@@ -316,7 +316,39 @@
 
   (define-test "fast-square large numbers"
     (assert-equal (* 12345 12345) (fast-square 12345))
-    (assert-equal (* 999999 999999) (fast-square 999999))))
+    (assert-equal (* 999999 999999) (fast-square 999999)))
+
+  (define-test "limbs-square-schoolbook matches multiplication (fold-zxui)"
+    ;; Verify optimized schoolbook squaring produces same result as multiplication
+    (let ([base 100])
+         (for-each
+          (lambda (n)
+                  (let* ([limbs (integer->limbs n base)]
+                         [sq-opt (limbs->integer (limbs-square-schoolbook limbs base) base)]
+                         [sq-mul (limbs->integer (limbs-multiply-schoolbook limbs limbs base) base)])
+                        (assert-equal sq-mul sq-opt
+                                      (format "schoolbook squaring failed for ~a" n))))
+          '(0 1 7 42 123 9999 12345 999999))))
+
+  (define-test "limbs-square matches multiplication for various sizes (fold-zxui)"
+    ;; Verify Karatsuba-style squaring matches general multiplication
+    (let ([base 100])
+         (for-each
+          (lambda (n)
+                  (let* ([limbs (integer->limbs n base)]
+                         [sq-opt (limbs->integer (limbs-square limbs base) base)]
+                         [sq-mul (limbs->integer (limbs-multiply limbs limbs base) base)])
+                        (assert-equal sq-mul sq-opt
+                                      (format "karatsuba squaring failed for ~a" n))))
+          '(0 1 7 42 123 9999 12345 999999 123456789))))
+
+  (define-test "fast-square matches fast-multiply (fold-zxui)"
+    ;; Verify the top-level API produces correct results
+    (for-each
+     (lambda (n)
+             (assert-equal (fast-multiply n n) (fast-square n)
+                           (format "fast-square failed for ~a" n)))
+     '(0 1 2 10 99 100 1000 12345 999999 123456789))))
 
 ;;; ============================================================================
 ;;; Part 8: Division Helper Tests
