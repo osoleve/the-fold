@@ -356,6 +356,30 @@
           ;; No reversal, should return #f
           (assert-false result)))
 
+  (define-test "detect-fold-from-param-reversal rejects complex eigenvalues (fold-zxsg)"
+    ;; Parameter reversal but eigenvalues are complex (Hopf-like)
+    ;; Old code would detect this as saddle-node; new code should reject
+    (let* ([prev-prev (list -0.2 (vector 0.1 0.1) 'stable-spiral
+                            (list (make-complex -0.1 1.5) (make-complex -0.1 -1.5)))]
+           [prev (list -0.05 (vector 0.05 0.05) 'degenerate
+                       (list (make-complex 0.01 1.5) (make-complex 0.01 -1.5)))]  ; Near axis but complex
+           [curr (list -0.1 (vector 0.15 0.15) 'unstable-spiral
+                       (list (make-complex 0.1 1.5) (make-complex 0.1 -1.5)))]
+           [prev-eigs (cadddr prev)]
+           [result (detect-fold-from-param-reversal prev-prev prev curr prev-eigs)])
+          ;; Complex eigenvalues should NOT be detected as saddle-node
+          (assert-false result)))
+
+  (define-test "detect-fold-from-param-reversal requires sign change across fold"
+    ;; Parameter reversal and eigenvalue near zero, but no sign change
+    (let* ([prev-prev (list -0.2 (vector 0.1) 'stable (list (make-complex -0.3 0)))]
+           [prev (list -0.05 (vector 0.05) 'stable (list (make-complex 0.02 0)))]  ; Near zero
+           [curr (list -0.1 (vector 0.15) 'stable (list (make-complex -0.1 0)))]   ; Still negative
+           [prev-eigs (cadddr prev)]
+           [result (detect-fold-from-param-reversal prev-prev prev curr prev-eigs)])
+          ;; No sign change across fold, should return #f
+          (assert-false result)))
+
   ;;; ============================================================
   ;;; Bifurcation Diagrams
   ;;; ============================================================

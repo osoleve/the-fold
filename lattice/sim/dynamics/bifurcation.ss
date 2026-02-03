@@ -736,6 +736,10 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
 (doc 'section 'bifurcation-detection)
 (doc 'note "Detect bifurcations by monitoring eigenvalue crossings")
 
+;; Configuration for fold detection sensitivity
+(define *fold-eigenvalue-tolerance* 0.05)  ; Tighter than previous 0.1
+(define *fold-imaginary-tolerance* 1e-4)   ; Eigenvalue must be essentially real
+
 (define (detect-fold-from-param-reversal prev-prev prev curr prev-eigs)
   (doc 'type '(-> (Option (List Number Vec Symbol (List Complex)))
                   (List Number Vec Symbol (List Complex))
@@ -743,7 +747,8 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
                   (List Complex)
                   (Option Symbol)))
   (doc 'description "Detect fold (saddle-node) from parameter direction reversal in arc-length data")
-  (doc 'note "At a fold, parameter reaches extremum and direction reverses. Eigenvalue approaches zero.")
+  (doc 'note "At a fold, parameter reaches extremum and direction reverses.
+A REAL eigenvalue crosses zero (distinguishes from Hopf where complex pair crosses).")
   (if (not prev-prev)
       #f  ; Need 3 points
       (let* ([pp-param (car prev-prev)]
@@ -754,13 +759,49 @@ or when Newton has difficulty (iteration count). Expands steps in stable regions
              [dp2 (- c-param p-param)]
              ;; Check for direction reversal (sign change in dp)
              [reversal? (< (* dp1 dp2) 0)]
-             ;; Check if an eigenvalue is near zero
-             [min-eig-mag (if (null? prev-eigs)
-                              1.0
-                              (apply min (map (lambda (e) (abs (complex-real e))) prev-eigs)))])
-            (if (and reversal? (< min-eig-mag 0.1))
-                'saddle-node  ; Fold detected via parameter reversal
+             ;; Get eigenvalues from all three points
+             [pp-eigs (cadddr prev-prev)]
+             [curr-eigs (cadddr curr)]
+             ;; Check for a REAL eigenvalue crossing zero
+             ;; (must have small imaginary part AND sign change in real part)
+             [has-real-zero-crossing
+              (fold-has-real-eigenvalue-zero-crossing pp-eigs prev-eigs curr-eigs)])
+            (if (and reversal? has-real-zero-crossing)
+                'saddle-node  ; Fold detected via parameter reversal + real eigenvalue crossing
                 #f))))
+
+(define (fold-has-real-eigenvalue-zero-crossing pp-eigs prev-eigs curr-eigs)
+  (doc 'type '(-> (List Complex) (List Complex) (List Complex) Boolean))
+  (doc 'description "Check if a real eigenvalue crosses zero across the fold point")
+  (doc 'note "For a true saddle-node: eigenvalue is real (small imaginary part),
+passes through near-zero at the fold, and changes sign across it.")
+  (if (or (null? pp-eigs) (null? prev-eigs) (null? curr-eigs))
+      #f
+      ;; Find an eigenvalue that:
+      ;; 1. Is essentially real (imaginary part small) at all three points
+      ;; 2. Has small magnitude at the middle point (near the fold)
+      ;; 3. Changes sign from pp to curr
+      (let ([n (length prev-eigs)])
+           (any (lambda (i)
+                        (let* ([pp-e (list-ref pp-eigs i)]
+                               [p-e (list-ref prev-eigs i)]
+                               [c-e (list-ref curr-eigs i)]
+                               [pp-re (complex-real pp-e)]
+                               [pp-im (complex-imag pp-e)]
+                               [p-re (complex-real p-e)]
+                               [p-im (complex-imag p-e)]
+                               [c-re (complex-real c-e)]
+                               [c-im (complex-imag c-e)]
+                               ;; All three must be essentially real
+                               [all-real? (and (< (abs pp-im) *fold-imaginary-tolerance*)
+                                               (< (abs p-im) *fold-imaginary-tolerance*)
+                                               (< (abs c-im) *fold-imaginary-tolerance*))]
+                               ;; Middle point (fold) should have small real part
+                               [near-zero? (<= (abs p-re) *fold-eigenvalue-tolerance*)]
+                               ;; Sign change from before to after fold
+                               [sign-change? (< (* pp-re c-re) 0)])
+                              (and all-real? near-zero? sign-change?)))
+                (iota n)))))
 
 (define (detect-bifurcations continuation-data . opt-psys)
   (doc 'export #t)
