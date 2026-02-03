@@ -1069,6 +1069,14 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
                   (* 2 h h h))])
         (list gpp gppp)))
 
+(define (compute-projected-parameter-derivative psys param fp left-vec h)
+  (doc 'type '(-> ParamODE Number Vec Vec Number Number))
+  (doc 'description "Compute wᵀ(∂f/∂p)|_{x*} - parameter derivative projected onto center manifold")
+  (doc 'note "At saddle-node: this is non-zero (fold is transverse).
+At transcritical: this is zero (fixed point tracks parameter).")
+  (let ([jac-p (compute-parameter-jacobian psys param fp h)])
+       (vec-dot left-vec jac-p)))
+
 (define (classify-codim1-bifurcation-nd psys param fp h)
   (doc 'export #t)
   (doc 'type '(-> ParamODE Number Vec Number Symbol))
@@ -1078,7 +1086,8 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
   (doc 'param 'fp "fixed point (equilibrium) at bifurcation")
   (doc 'param 'h "step size for numerical differentiation")
   (doc 'returns "'pitchfork, 'transcritical, 'saddle-node, or 'unknown")
-  (doc 'note "Uses center manifold reduction via SVD to handle arbitrary dimensions")
+  (doc 'note "Uses center manifold reduction via SVD to handle arbitrary dimensions.
+Distinguishes saddle-node by checking wᵀ(∂f/∂p) (transversality condition).")
   (let* ([sys (instantiate-at psys param)]
          [n (ode-dimension sys)])
         (cond
@@ -1098,18 +1107,27 @@ Uses left/right critical eigenvectors to compute directional derivatives.")
                            [norm-left (cadr normalized)]
                            [derivs (compute-nd-directional-derivatives sys fp norm-right norm-left h)]
                            [gpp (car derivs)]
-                           [gppp (cadr derivs)])
+                           [gppp (cadr derivs)]
+                           ;; Compute parameter derivative for saddle-node detection
+                           [param-deriv (compute-projected-parameter-derivative
+                                         psys param fp norm-left h)])
                           (cond
                            ;; Pitchfork: g'' ≈ 0, g''' ≠ 0
+                           ;; Symmetric system where quadratic term vanishes
                            [(and (< (abs gpp) *normal-form-tolerance*)
                                  (> (abs gppp) *normal-form-tolerance*))
                             'pitchfork]
-                           ;; Transcritical: g'' ≠ 0
-                           [(> (abs gpp) *normal-form-tolerance*)
+                           ;; Saddle-node: wᵀ(∂f/∂p) ≠ 0 (fold is transverse)
+                           ;; Fixed point is created/destroyed as parameter changes
+                           ;; Note: saddle-node can have g'' ≠ 0 (e.g., r + x²)
+                           [(> (abs param-deriv) *normal-form-tolerance*)
+                            'saddle-node]
+                           ;; Transcritical: g'' ≠ 0 AND wᵀ(∂f/∂p) ≈ 0
+                           ;; Fixed point persists but exchanges stability
+                           [(and (> (abs gpp) *normal-form-tolerance*)
+                                 (< (abs param-deriv) *normal-form-tolerance*))
                             'transcritical]
-                           ;; Both derivatives small: degenerate or higher-order bifurcation
-                           ;; Note: Can't reliably distinguish saddle-node from transcritical
-                           ;; without checking parameter derivative df/dp at the fixed point.
+                           ;; All conditions fail: degenerate or higher codimension
                            [else 'unknown]))))])))
 
 ;;; ============================================================
@@ -1890,6 +1908,21 @@ At transcritical: returns 2 branches that exchange stability.")
                     (let ([x (if (vector? state) (vector-ref state 0) state)])
                          (vector (+ r (* x x)))))
             1))))
+
+(define (saddle-node-2d-param)
+  (doc 'export #t)
+  (doc 'type '(-> ParamODE))
+  (doc 'description "2D saddle-node: dx/dt = r + x^2, dy/dt = -y")
+  (doc 'note "Decoupled y-direction is always stable. Used for testing n>1 classification.")
+  (make-parameterized-ode
+   (lambda (r)
+           (make-autonomous-ode
+            (lambda (state)
+                    (let ([x (vector-ref state 0)]
+                          [y (vector-ref state 1)])
+                         (vector (+ r (* x x))    ; Saddle-node in x
+                                 (- y))))         ; Stable y
+            2))))
 
 (define (transcritical-normal-form-param)
   (doc 'export #t)

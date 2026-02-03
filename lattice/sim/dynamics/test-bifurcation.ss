@@ -301,6 +301,34 @@
           ;; g'''(0) = d³f/dx³ = -6
           (assert-true (< (abs (+ (cadr derivs) 6)) 1.0))))
 
+  (define-test "classify-codim1-bifurcation-nd identifies 2D saddle-node (fold-zxsh)"
+    ;; Test 2D system: dx/dt = r + x², dy/dt = -y
+    ;; At r=0, x=0, y=0: Jacobian has eigenvalue 0 (x direction) and -1 (y direction)
+    ;; This is a saddle-node in the x direction
+    (let* ([psys (saddle-node-2d-param)]
+           [bif-type (classify-codim1-bifurcation-nd psys 0.0 (vector 0.0 0.0) 1e-4)])
+          ;; Should identify as saddle-node (transverse fold)
+          (assert-equal 'saddle-node bif-type)))
+
+  (define-test "compute-projected-parameter-derivative is non-zero at saddle-node"
+    ;; For saddle-node r + x², at r=0 x=0: df/dp = 1 (the coefficient of r)
+    ;; The left eigenvector w = (1,0) for the x-direction
+    ;; So wᵀ(df/dp) = 1 ≠ 0
+    (let* ([psys (saddle-node-2d-param)]
+           [sys (instantiate-at psys 0.0)]
+           [jac (compute-jacobian sys (vector 0.0 0.0) 1e-6)]
+           [eigenpair (compute-critical-eigenvectors-svd jac)])
+          (if eigenpair
+              (let* ([left-vec (cadr eigenpair)]
+                     [normalized (normalize-eigenvector-pair (car eigenpair) left-vec)]
+                     [norm-left (cadr normalized)]
+                     [param-deriv (compute-projected-parameter-derivative
+                                   psys 0.0 (vector 0.0 0.0) norm-left 1e-4)])
+                    ;; Should be approximately 1.0 (or -1.0 depending on eigenvector sign)
+                    (assert-true (> (abs param-deriv) 0.5)))
+              ;; If no eigenpair found, the test is invalid
+              (assert-true #f))))
+
   ;;; ============================================================
   ;;; Bifurcation Detection
   ;;; ============================================================
