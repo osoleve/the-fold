@@ -246,6 +246,32 @@
 (define (count-edge edge edges)
   (length (filter (lambda (e) (edges-equal? edge e)) edges)))
 
+;;; Hash-based boundary edge extraction: O(n) instead of O(n²)
+;;; Uses toggle semantics: first occurrence adds, second removes
+(doc edge-key 'type '(-> Edge (List Number Number Number Number)))
+(doc edge-key 'description
+     "Create a canonical hash key for an edge. Points are ordered so (a,b) and (b,a) produce the same key.")
+(define (edge-key edge)
+  (canonical-edge-key (edge-p1 edge) (edge-p2 edge)))
+
+(doc find-boundary-edges-hash 'type '(-> (List Edge) (List Edge)))
+(doc find-boundary-edges-hash 'description
+     "Find edges appearing exactly once using hash-based toggle.
+      O(n) vs O(n²) for filter+count approach.")
+(define (find-boundary-edges-hash edges)
+  (let ([edge-map (make-hashtable equal-hash equal?)])
+    ;; Toggle: add on first occurrence, remove on second
+    (for-each
+     (lambda (e)
+       (let ([key (edge-key e)])
+         (if (hashtable-contains? edge-map key)
+             (hashtable-delete! edge-map key)
+             (hashtable-set! edge-map key e))))
+     edges)
+    ;; Remaining entries appeared exactly once
+    (let-values ([(_ vals) (hashtable-entries edge-map)])
+      (vector->list vals))))
+
 ;;; ============================================================
 ;;; Section: Bowyer-Watson Delaunay Triangulation
 ;;; ============================================================
@@ -293,9 +319,8 @@
                             triangles)]
          ;; Collect all edges of bad triangles
          [all-edges (append-map tri2-edges bad-tris)]
-         ;; Find boundary edges (edges that appear exactly once)
-         [boundary-edges (filter (lambda (e) (= 1 (count-edge e all-edges)))
-                                 all-edges)]
+         ;; Find boundary edges using O(n) hash-based toggle
+         [boundary-edges (find-boundary-edges-hash all-edges)]
          ;; Create new triangles by connecting boundary edges to point
          [new-tris (map (lambda (e)
                           (make-tri2 (edge-p1 e) (edge-p2 e) point))
@@ -315,9 +340,8 @@
                             triangles)]
          ;; Collect all edges of bad triangles
          [all-edges (append-map tri2-edges bad-tris)]
-         ;; Find boundary edges (edges that appear exactly once)
-         [boundary-edges (filter (lambda (e) (= 1 (count-edge e all-edges)))
-                                 all-edges)]
+         ;; Find boundary edges using O(n) hash-based toggle
+         [boundary-edges (find-boundary-edges-hash all-edges)]
          ;; Create new triangles by connecting boundary edges to point
          [new-tris (map (lambda (e)
                           (make-tri2 (edge-p1 e) (edge-p2 e) point))
