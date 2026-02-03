@@ -428,7 +428,24 @@
                       (make-point2 3 5))]
            [mesh (triangulate-polygon tri 2.0)]
            [tris (triangulation-triangles mesh)])
-      (assert-true (> (length tris) 0)))))
+      (assert-true (> (length tris) 0))))
+
+  (define-test "triangulate-polygon respects concave boundary constraints"
+    ;; L-shaped polygon - tests that triangles don't cross the concave edge
+    (let* ([l-shape (list (make-point2 0 0)
+                          (make-point2 4 0)
+                          (make-point2 4 2)
+                          (make-point2 2 2)
+                          (make-point2 2 4)
+                          (make-point2 0 4))]
+           [mesh (triangulate-polygon l-shape 0.8)]
+           [tris (triangulation-triangles mesh)]
+           [constraint-edges (polygon-to-constraint-edges l-shape)])
+      ;; No triangle should cross any boundary edge
+      (assert-true
+       (for-all (lambda (tri)
+                  (not (triangle-crosses-any-constraint? tri constraint-edges)))
+                tris)))))
 
 ;;; ============================================================
 ;;; Adaptive Refinement Tests

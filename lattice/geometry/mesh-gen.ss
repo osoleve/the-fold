@@ -241,7 +241,7 @@
           (make-edge p3 p1))))
 
 (define (edge-in-list? edge edges)
-  (any (lambda (e) (edges-equal? edge e)) edges))
+  (exists (lambda (e) (edges-equal? edge e)) edges))
 
 (define (count-edge edge edges)
   (length (filter (lambda (e) (edges-equal? edge e)) edges)))
@@ -271,6 +271,53 @@
     ;; Remaining entries appeared exactly once
     (let-values ([(_ vals) (hashtable-entries edge-map)])
       (vector->list vals))))
+
+;;; ============================================================
+;;; Section: Segment Intersection (for Constrained Delaunay)
+;;; ============================================================
+
+(doc 'section 'segment-intersection)
+
+(doc segments-properly-intersect? 'export #t)
+(doc segments-properly-intersect? 'type '(-> Point2 Point2 Point2 Point2 Boolean))
+(doc segments-properly-intersect? 'description
+     "Test if segments (a,b) and (c,d) properly intersect (cross in interior).
+      Returns #f if segments share an endpoint, are collinear, or don't cross.
+      Uses orient2d for robust geometric predicate.")
+(define (segments-properly-intersect? a b c d)
+  ;; Segments properly intersect iff:
+  ;; 1. c and d are on opposite sides of line(a,b), AND
+  ;; 2. a and b are on opposite sides of line(c,d)
+  ;; "Opposite sides" means orientations have opposite signs (both nonzero)
+  (let ([o1 (orient2d a b c)]
+        [o2 (orient2d a b d)]
+        [o3 (orient2d c d a)]
+        [o4 (orient2d c d b)])
+    ;; Both pairs must have opposite signs (strictly)
+    (and (< (* o1 o2) 0)
+         (< (* o3 o4) 0))))
+
+(doc edge-properly-intersects-edge? 'type '(-> Edge Edge Boolean))
+(doc edge-properly-intersects-edge? 'description
+     "Test if two edges properly intersect (cross in interior, not at endpoints)")
+(define (edge-properly-intersects-edge? e1 e2)
+  (segments-properly-intersect? (edge-p1 e1) (edge-p2 e1)
+                                 (edge-p1 e2) (edge-p2 e2)))
+
+(doc triangle-crosses-edge? 'type '(-> Triangle2 Edge Boolean))
+(doc triangle-crosses-edge? 'description
+     "Test if any edge of triangle properly crosses the given edge")
+(define (triangle-crosses-edge? tri constraint-edge)
+  (exists (lambda (tri-edge)
+         (edge-properly-intersects-edge? tri-edge constraint-edge))
+       (tri2-edges tri)))
+
+(doc triangle-crosses-any-constraint? 'type '(-> Triangle2 (List Edge) Boolean))
+(doc triangle-crosses-any-constraint? 'description
+     "Test if triangle crosses any constraint edge")
+(define (triangle-crosses-any-constraint? tri constraint-edges)
+  (exists (lambda (ce) (triangle-crosses-edge? tri ce))
+       constraint-edges))
 
 ;;; ============================================================
 ;;; Section: Bowyer-Watson Delaunay Triangulation
@@ -1053,20 +1100,31 @@
                                      (cons p inner)
                                      inner))))))))))
 
+(doc polygon-to-constraint-edges 'type '(-> (List Point2) (List Edge)))
+(doc polygon-to-constraint-edges 'description
+     "Convert polygon vertices to list of boundary constraint edges")
+(define (polygon-to-constraint-edges polygon)
+  (let ([n (length polygon)])
+    (if (< n 2)
+        '()
+        (let loop ([i 0] [edges '()])
+          (if (>= i n)
+              edges
+              (let* ([p1 (list-ref polygon i)]
+                     [p2 (list-ref polygon (modulo (+ i 1) n))])
+                (loop (+ i 1) (cons (make-edge p1 p2) edges))))))))
+
 (doc triangulate-polygon 'export #t)
 (doc triangulate-polygon 'type '(-> (List Point2) Number Triangulation))
 (doc triangulate-polygon 'description
-     "Generate Delaunay triangulation inside a polygon boundary.
+     "Generate constrained Delaunay triangulation inside a polygon boundary.
       - polygon: list of boundary vertices in order
       - spacing: approximate interior point spacing
       Returns triangulation covering polygon interior only.
 
-      LIMITATION: Uses centroid-based filtering rather than true constrained
-      Delaunay triangulation. For concave polygons with low point density,
-      triangles may incorrectly cross boundary edges. Workarounds:
-        1. Use smaller spacing values to increase interior point density
-        2. For complex concave shapes, subdivide into convex regions first
-      See fold-zxuf for planned true constrained Delaunay implementation.")
+      Uses constraint-aware filtering: triangles that cross boundary edges
+      are removed before centroid-based interior filtering. This correctly
+      handles concave polygons.")
 (define (triangulate-polygon polygon spacing)
   (if (< (length polygon) 3)
       (make-triangulation (list->vector polygon) '() (make-eq-hashtable) '())
@@ -1074,7 +1132,14 @@
              [all-pts (append polygon interior-pts)]
              [full-tri (delaunay-triangulate all-pts)]
              [all-tris (triangulation-triangles full-tri)]
-             ;; Filter to triangles whose centroid is inside polygon
+             ;; Build constraint edges from polygon boundary
+             [constraint-edges (polygon-to-constraint-edges polygon)]
+             ;; Step 1: Remove triangles that cross any constraint edge
+             [non-crossing-tris
+              (filter (lambda (tri)
+                        (not (triangle-crosses-any-constraint? tri constraint-edges)))
+                      all-tris)]
+             ;; Step 2: Filter to triangles whose centroid is inside polygon
              [inside-tris
               (filter (lambda (tri)
                         (let* ([p1 (tri2-p1 tri)]
@@ -1084,7 +1149,7 @@
                                [cy (/ (+ (point2-y p1) (point2-y p2) (point2-y p3)) 3)]
                                [centroid (make-point2 cx cy)])
                           (point-in-polygon? centroid polygon)))
-                      all-tris)]
+                      non-crossing-tris)]
              [adjacency (build-adjacency inside-tris)]
              [boundary (find-boundary-edges inside-tris adjacency)]
              [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
@@ -1104,10 +1169,11 @@
       - initial-spacing: starting interior point spacing
       - max-area: target maximum triangle area
       - max-iters: refinement budget
-      Inherits centroid-filtering limitation from triangulate-polygon (see that function's docs).")
+      Uses constraint-aware filtering (no triangles cross boundary edges).")
 (define (triangulate-polygon-adaptive polygon initial-spacing max-area max-iters)
   (let* ([initial-mesh (triangulate-polygon polygon initial-spacing)]
-         [tris (triangulation-triangles initial-mesh)])
+         [tris (triangulation-triangles initial-mesh)]
+         [constraint-edges (polygon-to-constraint-edges polygon)])
     (if (null? tris)
         initial-mesh
         ;; Refine while keeping triangles inside polygon
@@ -1131,16 +1197,18 @@
                     (let* ([worst (car (sort (lambda (a b) (> (tri2-area a) (tri2-area b))) large-tris))]
                            [cc (tri2-circumcenter worst)])
                       (if (and cc (point-in-polygon? cc polygon))
-                          ;; Insert circumcenter and re-filter
+                          ;; Insert circumcenter and re-filter (constraint + centroid checks)
                           (let* ([new-tris (delaunay-insert-point current-tris cc)]
-                                 [filtered (filter (lambda (tri)
-                                                     (let* ([p1 (tri2-p1 tri)]
-                                                            [p2 (tri2-p2 tri)]
-                                                            [p3 (tri2-p3 tri)]
-                                                            [cx (/ (+ (point2-x p1) (point2-x p2) (point2-x p3)) 3)]
-                                                            [cy (/ (+ (point2-y p1) (point2-y p2) (point2-y p3)) 3)])
-                                                       (point-in-polygon? (make-point2 cx cy) polygon)))
-                                                   new-tris)])
+                                 [filtered
+                                  (filter (lambda (tri)
+                                            (and (not (triangle-crosses-any-constraint? tri constraint-edges))
+                                                 (let* ([p1 (tri2-p1 tri)]
+                                                        [p2 (tri2-p2 tri)]
+                                                        [p3 (tri2-p3 tri)]
+                                                        [cx (/ (+ (point2-x p1) (point2-x p2) (point2-x p3)) 3)]
+                                                        [cy (/ (+ (point2-y p1) (point2-y p2) (point2-y p3)) 3)])
+                                                   (point-in-polygon? (make-point2 cx cy) polygon))))
+                                          new-tris)])
                             (loop filtered (+ iter 1)))
                           ;; Circumcenter outside polygon, skip this triangle
                           (loop current-tris (+ iter 1)))))))))))
