@@ -1,20 +1,11 @@
-;;; lattice/linalg/matrix.ss — Matrix Operations
-;;; @module matrix
-;;; @requires prelude vec
-;;;
-;;; Core matrix operations for linear algebra.
-;;;
-;;; Matrices are represented as (matrix rows cols data) where data is a
-;;; flat vector in row-major order for cache efficiency.
-;;;
-;;; This is Core code: pure, total, assumes reasonable input.
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
+
+(doc 'module 'matrix)
+(doc 'description "Core matrix operations for linear algebra")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Matrices are represented as (matrix rows cols data) where data is a flat vector in row-major order for cache efficiency")
 
 ;;; ====
 ;;; Matrix Representation

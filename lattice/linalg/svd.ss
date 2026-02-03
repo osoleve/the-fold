@@ -1,24 +1,9 @@
-;;; lattice/linalg/svd.ss --- Singular Value Decomposition
-;;; @module svd
-;;; @requires prelude vec matrix matrix-decomp matrix-eigen
-;;;
-;;; Implements SVD and related operations:
-;;;   - svd : full singular value decomposition A = UΣV^T
-;;;   - svd-thin : economy/thin SVD for rectangular matrices
-;;;   - pseudoinverse : Moore-Penrose pseudoinverse
-;;;   - low-rank-approx : optimal low-rank matrix approximation
-;;;   - matrix-rank : numerical rank estimation
-;;;
-;;; This is Core code: pure (except where noted), total, assumes reasonable input.
-;;;
-;;; Dependencies (must be loaded by client in correct order):
-;;;   - prelude.ss
-;;;   - vec.ss
-;;;   - matrix.ss
-;;;   - matrix-decomp.ss
-;;;   - matrix-eigen.ss
-;;;
-;;; Do NOT load dependencies here to avoid redefinition issues.
+(doc 'module 'svd)
+(doc 'description "Singular Value Decomposition and related operations")
+(doc 'layer 'lattice)
+(doc 'purity 'total)
+(doc 'note "Implements: svd (full A = UΣV^T), svd-thin (economy), pseudoinverse (Moore-Penrose), low-rank-approx, matrix-rank")
+(doc 'note "Dependencies must be loaded by client: prelude, vec, matrix, matrix-decomp, matrix-eigen")
 
 ;;; ====
 ;;; Constants
