@@ -408,6 +408,28 @@
           ;; No sign change across fold, should return #f
           (assert-false result)))
 
+  (define-test "end-to-end: arc-length continuation detects saddle-node (Gemini QA suggestion)"
+    ;; Integration test: run actual continuation on saddle-node normal form
+    ;; dx/dt = r + x². At r=-1, stable fixed point at x=-1.
+    ;; As r increases toward 0, the fold occurs and parameter reverses in arc-length.
+    (let* ([psys (saddle-node-normal-form-param)]
+           ;; Start at r=-1 with the stable fixed point x = -sqrt(1) = -1
+           [fp0 (vector -1.0)]
+           ;; Use arc-length continuation to follow the branch
+           [continuation (continue-fixed-point-arclength psys -1.0 fp0 40 0.1)]
+           ;; Detect bifurcations from the continuation data
+           [bifurcations (detect-bifurcations continuation psys)]
+           ;; Filter for saddle-node detections
+           [saddle-nodes (filter (lambda (b) (eq? (car b) 'saddle-node)) bifurcations)])
+          ;; Should detect at least one saddle-node near r=0
+          (assert-true (>= (length saddle-nodes) 1)
+                       "Should detect saddle-node bifurcation")
+          ;; The detected bifurcation should be near r=0
+          (when (pair? saddle-nodes)
+                (let ([bif-param (cadr (car saddle-nodes))])
+                     (assert-true (< (abs bif-param) 0.3)
+                                  (format "Saddle-node should be near r=0, got r=~a" bif-param))))))
+
   ;;; ============================================================
   ;;; Bifurcation Diagrams
   ;;; ============================================================
