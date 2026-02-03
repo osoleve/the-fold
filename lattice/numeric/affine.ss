@@ -321,6 +321,52 @@
 ;;;   sqrt: f'(x) = 1/(2√x) = β  →  x = 1/(4β²)   →  (lambda (β) (/ 1 (* 4 β β)))
 ;;;   exp:  f'(x) = exp(x) = β   →  x = log(β)    →  log
 ;;;   log:  f'(x) = 1/x = β      →  x = 1/β       →  (lambda (β) (/ 1 β))
+;;;
+;;; If deriv-inverse is #f, a numerical fallback using bisection is used.
+;;; This is slower but works for any monotonic function.
+
+(define *deriv-h* 1e-8)           ; Step size for numerical derivative
+(define *bisection-tol* 1e-10)    ; Tolerance for bisection
+(define *bisection-max-iter* 50)  ; Maximum bisection iterations
+
+(define (numerical-derivative f x)
+  (doc 'type '(-> (-> Number Number) Number Number))
+  (doc 'description "Compute f'(x) using central difference")
+  (let ([h (max *deriv-h* (* (abs x) 1e-8))])  ; Relative step for large x
+       (/ (- (f (+ x h)) (f (- x h))) (* 2 h))))
+
+(define (find-deriv-inverse-bisection f a b target-slope convexity)
+  (doc 'type '(-> (-> Number Number) Number Number Number Symbol Number))
+  (doc 'description "Find x in [a,b] where f'(x) = target-slope using bisection")
+  (doc 'note "For convex functions, f' is increasing; for concave, f' is decreasing")
+  (let* ([fa-deriv (numerical-derivative f a)]
+         [fb-deriv (numerical-derivative f b)]
+         ;; Check if target is in range
+         [lo-deriv (min fa-deriv fb-deriv)]
+         [hi-deriv (max fa-deriv fb-deriv)])
+        (cond
+         ;; Target not in range - clamp to endpoint
+         [(<= target-slope lo-deriv)
+          (if (< fa-deriv fb-deriv) a b)]
+         [(>= target-slope hi-deriv)
+          (if (< fa-deriv fb-deriv) b a)]
+         ;; Bisection search
+         [else
+          (let loop ([lo a] [hi b] [iter 0])
+               (if (or (>= iter *bisection-max-iter*)
+                       (< (- hi lo) *bisection-tol*))
+                   (/ (+ lo hi) 2)
+                   (let* ([mid (/ (+ lo hi) 2)]
+                          [mid-deriv (numerical-derivative f mid)])
+                         ;; For convex: f' increasing, for concave: f' decreasing
+                         (if (eq? convexity 'convex)
+                             (if (< mid-deriv target-slope)
+                                 (loop mid hi (+ iter 1))
+                                 (loop lo mid (+ iter 1)))
+                             (if (> mid-deriv target-slope)
+                                 (loop mid hi (+ iter 1))
+                                 (loop lo mid (+ iter 1)))))))])))
+
 (define (affine-chebyshev-approx af f deriv-inverse convexity . clamp-lo-opt)
   (let* ([iv (affine->interval af)]
          [a-raw (interval-lo iv)]
@@ -339,7 +385,11 @@
               ;; Secant intercept: line through (a, f(a)) with slope beta
               [alpha-secant (- fa (* beta a))]
               ;; Tangent point: where f'(x) = beta, clamped to [a, b]
-              [x-tangent (max a (min b (deriv-inverse beta)))]
+              ;; Use analytical deriv-inverse if provided, else numerical bisection
+              [x-tangent-raw (if deriv-inverse
+                                 (deriv-inverse beta)
+                                 (find-deriv-inverse-bisection f a b beta convexity))]
+              [x-tangent (max a (min b x-tangent-raw))]
               [alpha-tangent (- (f x-tangent) (* beta x-tangent))]
               ;; Optimal: midpoint between tangent and secant
               [alpha (/ (+ alpha-tangent alpha-secant) 2)]

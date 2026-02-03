@@ -375,7 +375,55 @@
            [ratio (/ computed-width true-width)])
       ;; Reciprocal is trickier, allow more slack
       (assert-true (< ratio 2.5)
-                   (format "reciprocal ratio ~a should be < 2.5" ratio)))))
+                   (format "reciprocal ratio ~a should be < 2.5" ratio))))
+
+  (define-test "numerical fallback for deriv-inverse (fold-zxpn)"
+    ;; Test affine-chebyshev-approx with deriv-inverse = #f
+    ;; Should use numerical bisection to find tangent point
+    (affine-reset-noise-counter!)
+    (let* ([a 0.0] [b 1.0]
+           [x (affine-from-interval (interval a b))]
+           ;; Use exp with numerical fallback (deriv-inverse = #f)
+           [result-numerical (affine-chebyshev-approx x exp #f 'convex)]
+           ;; Compare with analytical result
+           [result-analytical (affine-exp x)]
+           [iv-num (affine->interval result-numerical)]
+           [iv-ana (affine->interval result-analytical)]
+           [true-lo (exp a)]
+           [true-hi (exp b)])
+      ;; Both should contain the true range
+      (assert-true (<= (interval-lo iv-num) true-lo)
+                   "numerical fallback should contain true lower bound")
+      (assert-true (>= (interval-hi iv-num) true-hi)
+                   "numerical fallback should contain true upper bound")
+      ;; Numerical should be close to analytical (within 10% width)
+      (let* ([width-num (interval-width iv-num)]
+             [width-ana (interval-width iv-ana)]
+             [ratio (/ width-num width-ana)])
+        (assert-true (< ratio 1.1)
+                     (format "numerical fallback width ratio ~a should be < 1.1" ratio)))))
+
+  (define-test "numerical fallback for sqrt (fold-zxpn)"
+    ;; Test with sqrt (concave function)
+    (affine-reset-noise-counter!)
+    (let* ([a 1.0] [b 4.0]
+           [x (affine-from-interval (interval a b))]
+           ;; Use sqrt with numerical fallback
+           [result-numerical (affine-chebyshev-approx x sqrt #f 'concave)]
+           [iv-num (affine->interval result-numerical)]
+           [true-lo (sqrt a)]
+           [true-hi (sqrt b)])
+      ;; Should contain true range
+      (assert-true (<= (interval-lo iv-num) true-lo)
+                   "numerical sqrt should contain true lower bound")
+      (assert-true (>= (interval-hi iv-num) true-hi)
+                   "numerical sqrt should contain true upper bound")
+      ;; Width should be reasonable (within 50% of true width)
+      (let* ([true-width (- true-hi true-lo)]
+             [computed-width (interval-width iv-num)]
+             [ratio (/ computed-width true-width)])
+        (assert-true (< ratio 1.5)
+                     (format "numerical sqrt width ratio ~a should be < 1.5" ratio))))))
 
 ;;; ============================================================================
 ;;; Complex Expression Tests
