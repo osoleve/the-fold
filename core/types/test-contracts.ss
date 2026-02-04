@@ -1068,6 +1068,34 @@
 (test "report mentions checks" #t (string-contains? report "Checks performed"))
 (test "report mentions violations" #t (string-contains? report "Violations detected"))
 
+(test-section "Statistical Contract Monitoring - Call-Time Violations")
+
+;; This tests the key fix: violations that occur when a wrapped function is CALLED
+;; (not just at wrap-time) should still be tracked in statistical mode.
+(set-contract-mode! 'statistical)
+(set-statistical-sample-rate! 1.0)
+(reset-statistical-counters!)
+
+;; Wrap a function (this should succeed and count as 1 check)
+(define stat-wrapped-fn
+  (let ([result (contract-wrap/mode add1-contract (lambda (x) (+ x 1)) 'stat-test)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "wrap-time check recorded" 1 *statistical-check-count*)
+(test "no wrap-time violation" 0 *statistical-violation-count*)
+
+;; Now call with valid input - no violation
+(stat-wrapped-fn 5)
+
+;; Call with invalid input - should raise AND record violation
+(define (test-call-time-violation-tracked)
+  (guard (e [else #t])
+    (stat-wrapped-fn -1)  ; -1 violates nat/c domain
+    #f))
+
+(test "call-time violation raises error" #t (test-call-time-violation-tracked))
+(test "call-time violation was tracked" 1 *statistical-violation-count*)
+
 (test-section "Statistical Contract Monitoring - Mode String")
 
 (test "statistical mode string" "statistical (probabilistic sampling)"

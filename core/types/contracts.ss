@@ -512,6 +512,42 @@ If body is a procedure, apply it to values. If body is a contract, return as-is.
                      "  Value: " (format "~s" (blame-value b)))
       "Invalid blame"))
 
+(doc 'section 'centralized-violation-handling)
+
+;;; Centralized Contract Violation Handling
+;;;
+;;; All contract violations should go through raise-contract-violation!
+;;; This ensures statistical monitoring can track violations that occur
+;;; during wrapped function execution (call-time violations), not just
+;;; violations detected during initial wrap-time checks.
+
+;;; Forward declaration - actual implementation is in statistical-monitoring section
+;;; This breaks the circular dependency: violations need to record stats,
+;;; but stats section is defined later.
+(define *record-violation-if-statistical* #f)
+
+(define (raise-contract-violation! message)
+  (doc 'type (-> String Never))
+  (doc 'description "Raise a contract violation error, recording it for statistical monitoring if enabled.")
+  (doc 'export #t)
+  ;; Record violation if statistical monitoring is active
+  (when (and *record-violation-if-statistical*
+             (eq? *contract-mode* 'statistical))
+    (*record-violation-if-statistical*))
+  (error 'contract-violation message))
+
+(define (raise-contract-violation/blame! blame)
+  (doc 'type (-> Blame Never))
+  (doc 'description "Raise a contract violation from a blame record.")
+  (doc 'export #t)
+  (raise-contract-violation! (blame->string blame)))
+
+(define (raise-contract-violation/fmt! location fmt-string . args)
+  (doc 'type (-> Symbol String Any ... Never))
+  (doc 'description "Raise a contract violation with formatted message.")
+  (doc 'export #t)
+  (raise-contract-violation! (apply format (cons fmt-string args))))
+
 (doc 'section 'higher-order-wrapping)
 
 ;;; Forward declarations for chaperone contract predicates
@@ -587,18 +623,18 @@ If body is a procedure, apply it to values. If body is a contract, return as-is.
         [range-contract (function-contract-range contract)])
     (lambda args
       (if (not (= (length args) (length domain-contracts)))
-          (error 'contract-violation
-                 (format "~a: expected ~a arguments, got ~a"
-                         location (length domain-contracts) (length args)))
+          (raise-contract-violation!
+           (format "~a: expected ~a arguments, got ~a"
+                   location (length domain-contracts) (length args)))
           (let ([wrapped-args (check-and-wrap-args domain-contracts args location blame-party)])
             (if (eq? (car wrapped-args) 'Err)
-                (error 'contract-violation (blame->string (cadr wrapped-args)))
+                (raise-contract-violation/blame! (cadr wrapped-args))
                 (let ([result (apply proc (cadr wrapped-args))])
                   (let ([checked-result (contract-wrap-with-blame
                                           range-contract result location
                                           (if (eq? blame-party 'caller) 'callee 'caller))])
                     (if (eq? (car checked-result) 'Err)
-                        (error 'contract-violation (blame->string (cadr checked-result)))
+                        (raise-contract-violation/blame! (cadr checked-result))
                         (cadr checked-result))))))))))
 
 (doc 'section 'dependent-contract-wrapping)
@@ -664,30 +700,30 @@ Captures argument values at call time, instantiates the contract, and applies it
           (let* ([domain-contracts (function-contract-domain concrete-contract)]
                  [range-contract (function-contract-range concrete-contract)])
             (if (not (= (length args) (length domain-contracts)))
-                (error 'contract-violation
-                       (format "~a: expected ~a arguments, got ~a"
-                               location (length domain-contracts) (length args)))
+                (raise-contract-violation!
+                 (format "~a: expected ~a arguments, got ~a"
+                         location (length domain-contracts) (length args)))
                 (let ([wrapped-args (check-and-wrap-args domain-contracts args location blame-party)])
                   (if (eq? (car wrapped-args) 'Err)
-                      (error 'contract-violation (blame->string (cadr wrapped-args)))
+                      (raise-contract-violation/blame! (cadr wrapped-args))
                       (let ([result (apply proc (cadr wrapped-args))])
                         (let ([checked-result (contract-wrap-with-blame
                                                 range-contract result location
                                                 (if (eq? blame-party 'caller) 'callee 'caller))])
                           (if (eq? (car checked-result) 'Err)
-                              (error 'contract-violation (blame->string (cadr checked-result)))
+                              (raise-contract-violation/blame! (cadr checked-result))
                               (cadr checked-result))))))))]
          ;; If instantiation produced another dependent contract, recurse
          [(dependent-contract? concrete-contract)
           (let ([inner-result (wrap-dependent-contract concrete-contract proc location blame-party)])
             (if (eq? (car inner-result) 'Err)
-                (error 'contract-violation (blame->string (cadr inner-result)))
+                (raise-contract-violation/blame! (cadr inner-result))
                 (apply (cadr inner-result) args)))]
          ;; If it's a flat contract, check and call
          [else
           (let ([check-result (check-flat concrete-contract proc location)])
             (if (eq? (car check-result) 'Err)
-                (error 'contract-violation (blame->string (cadr check-result)))
+                (raise-contract-violation/blame! (cadr check-result))
                 (apply proc args)))])))))
 
 ;;; Helper to take first n elements from a list
@@ -746,19 +782,19 @@ Captures argument values at call time, instantiates the contract, and applies it
           (lambda args
             ;; First, verify arity matches
             (if (not (= (length args) (length domain-contracts)))
-                (error 'contract-violation
-                       (format "~a: ~a arity mismatch - expected ~a arguments, got ~a"
-                               location contract-str (length domain-contracts) (length args)))
+                (raise-contract-violation!
+                 (format "~a: ~a arity mismatch - expected ~a arguments, got ~a"
+                         location contract-str (length domain-contracts) (length args)))
                 ;; Check domain contracts from ALL function contracts
                 (let ([domain-check (check-all-domains fn-contracts args location blame-party)])
                   (if (eq? (car domain-check) 'Err)
-                      (error 'contract-violation (blame->string (cadr domain-check)))
+                      (raise-contract-violation/blame! (cadr domain-check))
                       (let ([result (apply proc (cadr domain-check))])
                         ;; Check range contracts from ALL function contracts
                         (let ([range-check (check-all-ranges fn-contracts result location
                                                              (if (eq? blame-party 'caller) 'callee 'caller))])
                           (if (eq? (car range-check) 'Err)
-                              (error 'contract-violation (blame->string (cadr range-check)))
+                              (raise-contract-violation/blame! (cadr range-check))
                               (cadr range-check))))))))))))
 
 (define (check-all-domains fn-contracts args location current-blame-party)
@@ -867,9 +903,9 @@ Captures argument values at call time, instantiates the contract, and applies it
                                                    (contract->string (cadr f))
                                                    (caddr f)))
                                          (reverse failures)))))])
-            (error 'contract-violation
-                   (format "~a: or/c - no function contract matched\n~a"
-                           location failure-details)))
+            (raise-contract-violation!
+             (format "~a: or/c - no function contract matched\n~a"
+                     location failure-details)))
           (let* ([c (car cs)]
                  [domain-contracts (function-contract-domain c)])
             (if (not (= (length args) (length domain-contracts)))
@@ -895,15 +931,14 @@ Captures argument values at call time, instantiates the contract, and applies it
                           (if (eq? (car range-check) 'Err)
                               ;; Range failed - include which contract was selected
                               (let ([orig-blame (cadr range-check)])
-                                (error 'contract-violation
-                                       (blame->string
-                                        (make-blame (blame-party orig-blame)
-                                                    (blame-location orig-blame)
-                                                    (format "or/c contract #~a ~a range: ~a"
-                                                            (+ idx 1)
-                                                            (contract->string c)
-                                                            (blame-message orig-blame))
-                                                    (blame-value orig-blame)))))
+                                (raise-contract-violation/blame!
+                                 (make-blame (blame-party orig-blame)
+                                             (blame-location orig-blame)
+                                             (format "or/c contract #~a ~a range: ~a"
+                                                     (+ idx 1)
+                                                     (contract->string c)
+                                                     (blame-message orig-blame))
+                                             (blame-value orig-blame))))
                               (cadr range-check))))))))))))
 
 (define (wrap-not-contract inner-contract value location blame-party)
@@ -950,9 +985,9 @@ Captures argument values at call time, instantiates the contract, and applies it
                                       (if (eq? blame-party 'caller) 'callee 'caller))])
                     (if (eq? (car range-check) 'Ok)
                         ;; Range satisfied - the function DOES satisfy the contract, so not/c FAILS
-                        (error 'contract-violation
-                               (format "~a: not/c ~a violated - function satisfies negated contract (args: ~s, result: ~s)"
-                                       location contract-str args result))
+                        (raise-contract-violation!
+                         (format "~a: not/c ~a violated - function satisfies negated contract (args: ~s, result: ~s)"
+                                 location contract-str args result))
                         ;; Range failed - doesn't satisfy contract, not/c passes
                         result)))))))))
 
@@ -1049,7 +1084,7 @@ Captures argument values at call time, instantiates the contract, and applies it
   (doc 'export #t)
   (let ([result (contract-wrap contract value location)])
     (if (eq? (car result) 'Err)
-        (error 'contract-violation (blame->string (cadr result)))
+        (raise-contract-violation/blame! (cadr result))
         (cadr result))))
 
 (doc 'section 'chaperone-contracts)
@@ -1366,7 +1401,7 @@ Captures argument values at call time, instantiates the contract, and applies it
   (doc 'export #t)
   (let ([result (contract-wrap-chaperone contract value location)])
     (if (eq? (car result) 'Err)
-        (error 'contract-violation (blame->string (cadr result)))
+        (raise-contract-violation/blame! (cadr result))
         (cadr result))))
 
 (doc 'section 'contract-checking-modes)
@@ -1714,6 +1749,9 @@ Uses (random 1.0) < sample-rate for probabilistic sampling.")
   (doc 'description "Record that a contract violation was detected in statistical mode.")
   (doc 'export #f)
   (set! *statistical-violation-count* (+ *statistical-violation-count* 1)))
+
+;; Wire up the forward reference for centralized violation handling
+(set! *record-violation-if-statistical* record-statistical-violation!)
 
 (define (statistical-monitoring-report)
   (doc 'type (-> String))
