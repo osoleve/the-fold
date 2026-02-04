@@ -572,6 +572,13 @@
       'Err
       (car (verify-contract-statically nat/c 'Nat 'test)))
 
+;; Test that non-procedure verifier is rejected
+(define (test-verifier-must-be-procedure)
+  (guard (e [else #t])
+    (set-compile-time-verifier! "not a procedure")
+    #f))
+(test "verifier must be a procedure" #t (test-verifier-must-be-procedure))
+
 ;; Register a simple verifier
 (set-compile-time-verifier!
   (lambda (contract type)

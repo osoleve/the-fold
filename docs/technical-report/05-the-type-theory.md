@@ -529,6 +529,65 @@ value    : the offending value
 (not/c nat/c)                 ; Must NOT be a natural number
 ```
 
+#### 5.10.5 Contract Enforcement Modes
+
+Contracts can operate in different enforcement modes, balancing safety against performance:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `runtime` | Always check at runtime (default) | Development, safety-critical code |
+| `compile-time` | Trust static verification, elide checks | After type system proves contracts |
+| `test-only` | Check only when in test context | Performance-critical production code |
+| `doc-only` | No checking, documentation only | Legacy integration, gradual adoption |
+
+**Mode Selection API**:
+```scheme
+(set-contract-mode! 'test-only)    ; Set global mode
+(get-contract-mode)                 ; Query current mode
+(contracts-enabled?)                ; Check if checking is active
+
+;; Test context for test-only mode
+(enter-test-context!)
+(exit-test-context!)
+(in-test-context?)
+```
+
+**Mode-Aware Checking Functions**:
+```scheme
+;; These respect the current mode:
+(check-flat/mode contract value location)
+(contract-wrap/mode contract value location)
+(apply-contract/mode contract value location)
+
+;; Scoped mode changes (exception-safe via dynamic-wind):
+(call-with-contract-mode 'doc-only
+  (lambda () (expensive-computation-with-many-contracts)))
+
+(call-with-test-context
+  (lambda () (run-test-suite)))  ; Enables test-only contracts
+
+(call-without-contracts
+  (lambda () (trusted-hot-path)))  ; Temporarily disables
+```
+
+**Compile-Time Verification Hook**:
+
+The `compile-time` mode is designed for integration with the type system. A verifier can be registered to statically prove contracts:
+
+```scheme
+(set-compile-time-verifier!
+  (lambda (contract type)
+    ;; Attempt to prove contract is satisfied by type
+    (if (contract-implied-by-type? contract type)
+        '(Ok ())
+        '(Err "Cannot verify statically"))))
+
+;; Then in compile-time mode, runtime checks are elided
+;; because the type system has already verified the contract
+```
+
+This prepares for refinement type integration (see fold-hex).
+
 ### 5.11 Category Theory Foundations
 
 The Fold provides category-theoretic abstractions as first-class values, supporting compositional reasoning about functors and transformations.

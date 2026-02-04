@@ -997,7 +997,10 @@
   (doc 'type (-> (-> Contract Type (Result Unit String)) Void))
   (doc 'description "Register a compile-time contract verifier (called by type system).")
   (doc 'export #t)
-  (set! *compile-time-verifier* verifier))
+  (if (procedure? verifier)
+      (set! *compile-time-verifier* verifier)
+      (error 'set-compile-time-verifier!
+             "Verifier must be a procedure")))
 
 (define (verify-contract-statically contract type location)
   (doc 'type (-> Contract Type Symbol (Result Unit String)))
