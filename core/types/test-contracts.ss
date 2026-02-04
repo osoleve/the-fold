@@ -788,6 +788,180 @@
       (and (string? not-c-violation-error)
            (string-contains? not-c-violation-error "->")))
 
+;;; ====
+;;; Dependent Contract Wrapping
+;;; ====
+(test-section "Dependent Contract Instantiation")
+
+;; Test instantiate-dependent-contract with procedure body
+(define dep-listof-n
+  (dep '(n) (lambda (n) (listof-length n nat/c))))
+
+(test "instantiate with procedure body" #t
+      (contract? (instantiate-dependent-contract dep-listof-n '(3))))
+(test "instantiated contract is flat" #t
+      (flat-contract? (instantiate-dependent-contract dep-listof-n '(3))))
+
+;; Test instantiation with multiple vars
+(define dep-multi-var
+  (dep '(x y) (lambda (x y) (between/c x y))))
+
+(test "instantiate with multiple vars" #t
+      (contract? (instantiate-dependent-contract dep-multi-var '(0 10))))
+
+;; Test instantiation check - value passes
+(let* ([instantiated (instantiate-dependent-contract dep-listof-n '(3))]
+       [result (check-flat instantiated '(1 2 3) 'test)])
+  (test "instantiated listof-length passes for correct length" 'Ok (car result)))
+
+;; Test instantiation check - value fails (wrong length)
+(let* ([instantiated (instantiate-dependent-contract dep-listof-n '(3))]
+       [result (check-flat instantiated '(1 2) 'test)])
+  (test "instantiated listof-length fails for wrong length" 'Err (car result)))
+
+;; Test instantiation with static body (no vars used)
+(define dep-static-body
+  (dep '(unused) nat/c))
+
+(test "instantiate with static body returns body" nat/c
+      (instantiate-dependent-contract dep-static-body '(anything)))
+
+(test-section "Dependent Function Contracts - Range Depends on Input")
+
+;; Dependent function contract: result list must have length equal to input
+;; (dep '(n) (lambda (n) (->c (list nat/c) (listof-length n nat/c))))
+(define dep-fn-range-contract
+  (dep '(n) (lambda (n) (->c (list nat/c) (listof-length n nat/c)))))
+
+(test "dep function contract recognized" #t (dependent-contract? dep-fn-range-contract))
+
+;; Function that returns a list of n zeros
+(define (make-zeros n)
+  (if (<= n 0)
+      '()
+      (cons 0 (make-zeros (- n 1)))))
+
+;; Wrap the function
+(define wrapped-make-zeros
+  (let ([result (contract-wrap dep-fn-range-contract make-zeros 'make-zeros)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "dep function wraps successfully" #t (procedure? wrapped-make-zeros))
+(test "dep function works with valid return" '(0 0 0) (wrapped-make-zeros 3))
+(test "dep function works with zero" '() (wrapped-make-zeros 0))
+
+;; Function that returns wrong length - should fail
+(define (bad-make-zeros n)
+  '(1 2))  ; Always returns 2 elements regardless of n
+
+(define wrapped-bad-make-zeros
+  (let ([result (contract-wrap dep-fn-range-contract bad-make-zeros 'bad-make-zeros)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(define (test-dep-range-violation)
+  (guard (e [else #t])
+    (wrapped-bad-make-zeros 5)  ; Expects 5 elements, gets 2
+    #f))
+(test "dep function range violation caught" #t (test-dep-range-violation))
+
+(test-section "Dependent Function Contracts - Domain Depends on Earlier Arg")
+
+;; Dependent function contract: second arg must be less than first
+;; (dep '(x) (lambda (x) (->c (list nat/c (less-than/c x)) nat/c)))
+(define dep-fn-domain-contract
+  (dep '(x) (lambda (x) (->c (list nat/c (less-than/c x)) nat/c))))
+
+(test "dep domain contract recognized" #t (dependent-contract? dep-fn-domain-contract))
+
+;; Simple function that adds two numbers
+(define wrapped-add-with-constraint
+  (let ([result (contract-wrap dep-fn-domain-contract + 'constrained-add)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "dep domain wraps successfully" #t (procedure? wrapped-add-with-constraint))
+(test "dep domain passes when constraint satisfied" 7 (wrapped-add-with-constraint 5 2))  ; 2 < 5
+(test "dep domain passes at boundary" 9 (wrapped-add-with-constraint 5 4))  ; 4 < 5
+
+;; Test violation: second arg not less than first
+(define (test-dep-domain-violation)
+  (guard (e [else #t])
+    (wrapped-add-with-constraint 5 5)  ; 5 is NOT less than 5
+    #f))
+(test "dep domain violation caught (equal)" #t (test-dep-domain-violation))
+
+(define (test-dep-domain-violation-greater)
+  (guard (e [else #t])
+    (wrapped-add-with-constraint 5 10)  ; 10 is NOT less than 5
+    #f))
+(test "dep domain violation caught (greater)" #t (test-dep-domain-violation-greater))
+
+(test-section "Dependent Function Contracts - Multiple Dependent Vars")
+
+;; Contract with two dependent vars: (->c (list nat/c nat/c) (between/c x y))
+;; Return must be between first and second arg
+(define dep-multi-var-contract
+  (dep '(x y) (lambda (x y) (->c (list nat/c nat/c) (between/c x y)))))
+
+(define (clamp-to-range low high)
+  (max low (min high (+ low (quotient (- high low) 2)))))
+
+(define wrapped-clamp
+  (let ([result (contract-wrap dep-multi-var-contract clamp-to-range 'clamp)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "multi-var dep wraps successfully" #t (procedure? wrapped-clamp))
+(test "multi-var dep passes when in range" 5 (wrapped-clamp 0 10))  ; 5 is between 0 and 10
+
+;; Function that returns out of range
+(define (bad-clamp low high)
+  100)  ; Always returns 100
+
+(define wrapped-bad-clamp
+  (let ([result (contract-wrap dep-multi-var-contract bad-clamp 'bad-clamp)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(define (test-multi-var-range-violation)
+  (guard (e [else #t])
+    (wrapped-bad-clamp 0 10)  ; Expects 0-10, gets 100
+    #f))
+(test "multi-var dep range violation caught" #t (test-multi-var-range-violation))
+
+(test-section "Dependent Contract Blame")
+
+;; Test that blame is correctly assigned for dependent contracts
+(define dep-blame-contract
+  (dep '(n) (lambda (n) (->c (list nat/c) (listof-length n nat/c)))))
+
+(define wrapped-for-blame
+  (let ([result (contract-wrap dep-blame-contract (lambda (n) '(1)) 'blame-test)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+;; Range violation should blame callee
+(define dep-blame-error
+  (guard (ex [else (condition-message ex)])
+    (wrapped-for-blame 3)  ; Expects 3 elements, function returns 1
+    "no error"))
+
+(test "dep contract violation produces error message" #t
+      (string? dep-blame-error))
+
+(test-section "Dependent Contract Edge Cases")
+
+;; Empty vars list - body should just be used directly
+(define dep-no-vars
+  (dep '() (lambda () nat/c)))
+
+(test "dep with no vars instantiates correctly" nat/c
+      (instantiate-dependent-contract dep-no-vars '()))
+
+;; Nested dependent contracts (dep returning another dep)
+;; This is an advanced case - just verify it doesn't crash
+(define dep-returning-dep
+  (dep '(outer) (lambda (outer)
+    (dep '(inner) (lambda (inner) (between/c outer inner))))))
+
+(test "nested dep contract recognized" #t (dependent-contract? dep-returning-dep))
+
 (newline)
 (display "All tests completed!")
 (newline)

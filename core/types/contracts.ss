@@ -27,7 +27,9 @@
     (and (= (length c) 3)
          (list? (cadr c))
          (andmap symbol? (cadr c))
-         (contract? (caddr c)))]
+         ;; Body can be a contract (static) or procedure (dynamic contract factory)
+         (or (contract? (caddr c))
+             (procedure? (caddr c))))]
    [(eq? (car c) 'And)
     (andmap contract? (cdr c))]
    [(eq? (car c) 'Or)
@@ -228,6 +230,39 @@
       (caddr c)
       none/c))
 
+(doc 'section 'dependent-contract-instantiation)
+
+(define (dependent-contract-body-is-procedure? c)
+  (doc 'type (-> Contract Boolean))
+  (doc 'description "Check if dependent contract body is a procedure (contract factory).")
+  (doc 'export #f)
+  (and (dependent-contract? c)
+       (procedure? (dependent-contract-body c))))
+
+(define (instantiate-dependent-contract dep-contract values)
+  (doc 'type (-> Contract (List Any) Contract))
+  (doc 'description "Instantiate a dependent contract by binding vars to values.
+If body is a procedure, apply it to values. If body is a contract, return as-is.")
+  (doc 'export #t)
+  (if (not (dependent-contract? dep-contract))
+      dep-contract
+      (let ([vars (dependent-contract-vars dep-contract)]
+            [body (dependent-contract-body dep-contract)])
+        (cond
+         ;; Body is a procedure (contract factory) - apply it to get concrete contract
+         [(procedure? body)
+          (if (not (= (length vars) (length values)))
+              (error 'instantiate-dependent-contract
+                     (format "Expected ~a values for vars ~s, got ~a"
+                             (length vars) vars (length values)))
+              (apply body values))]
+         ;; Body is already a contract - use as-is (vars don't affect it)
+         [(contract? body)
+          body]
+         [else
+          (error 'instantiate-dependent-contract
+                 "Dependent contract body must be a contract or procedure")]))))
+
 (doc 'section 'blame-tracking)
 
 (define (make-blame party location message value)
@@ -415,6 +450,24 @@
   (flat (lambda (x)
                 (if (memq x values) #t #f))))
 
+(define (listof-length n elem-contract)
+  (doc 'type (-> Nat Contract Contract))
+  (doc 'description "Contract for a list of exactly n elements, each satisfying elem-contract.")
+  (doc 'export #t)
+  (flat (lambda (lst)
+          (and (list? lst)
+               (= (length lst) n)
+               (andmap (lambda (x)
+                        (let ([result (check-flat elem-contract x 'listof-length)])
+                          (eq? (car result) 'Ok)))
+                       lst)))))
+
+(define (less-than/c bound)
+  (doc 'type (-> Number Contract))
+  (doc 'description "Contract for numbers strictly less than bound.")
+  (doc 'export #t)
+  (flat (lambda (x) (and (number? x) (< x bound)))))
+
 (doc 'section 'contract-display)
 
 (define (contract->string c)
@@ -505,9 +558,7 @@
                            "Expected a procedure for function contract"
                            value)))]
    [(dependent-contract? contract)
-    `(Err ,(make-blame 'callee location
-                       "Dependent contract wrapping not yet implemented"
-                       value))]
+    (wrap-dependent-contract contract value location 'caller)]
    ;; Chaperone contracts
    [(chaperone-listof-contract? contract)
     (let ([elem-contract (cadr contract)])
@@ -549,6 +600,101 @@
                     (if (eq? (car checked-result) 'Err)
                         (error 'contract-violation (blame->string (cadr checked-result)))
                         (cadr checked-result))))))))))
+
+(doc 'section 'dependent-contract-wrapping)
+
+;;; Dependent Contract Wrapping
+;;;
+;;; Dependent contracts have the form (Dep (vars...) body) where:
+;;; - vars are symbols that will be bound to actual values at check time
+;;; - body is either a contract or a procedure (contract factory)
+;;;
+;;; For dependent function contracts like:
+;;;   (dep '(n) (lambda (n) (->c (list nat/c) (listof-length n nat/c))))
+;;; The vars correspond positionally to the function's arguments.
+;;; When the wrapped function is called, we capture the args, instantiate
+;;; the contract, and apply the resulting function contract.
+
+(define (wrap-dependent-contract dep-contract value location blame-party)
+  (doc 'type (-> Contract Any Symbol Symbol (Result Any Blame)))
+  (doc 'description "Wrap a value with a dependent contract.")
+  (doc 'export #f)
+  (let ([vars (dependent-contract-vars dep-contract)]
+        [body (dependent-contract-body dep-contract)])
+    (cond
+     ;; Body is a procedure (contract factory)
+     [(procedure? body)
+      (if (procedure? value)
+          ;; Wrapping a function - create a wrapper that captures args
+          `(Ok ,(wrap-dependent-function dep-contract value location blame-party))
+          ;; Non-function value - we need var values to instantiate
+          ;; This case requires the values to be provided externally
+          `(Err ,(make-blame blame-party location
+                             (format "Dependent contract with ~a vars requires a procedure, or use instantiate-dependent-contract first"
+                                     (length vars))
+                             value)))]
+     ;; Body is a static contract - delegate to appropriate wrapper
+     [(contract? body)
+      (contract-wrap-with-blame body value location blame-party)]
+     [else
+      `(Err ,(make-blame blame-party location
+                         "Invalid dependent contract body"
+                         dep-contract))])))
+
+(define (wrap-dependent-function dep-contract proc location blame-party)
+  (doc 'type (-> Contract Procedure Symbol Symbol Procedure))
+  (doc 'description "Wrap a procedure with a dependent function contract.
+Captures argument values at call time, instantiates the contract, and applies it.")
+  (doc 'export #f)
+  (let ([vars (dependent-contract-vars dep-contract)]
+        [body (dependent-contract-body dep-contract)])
+    (lambda args
+      ;; Capture the first N arguments for dependent var binding
+      ;; where N = number of dependent vars
+      (let* ([num-vars (length vars)]
+             [captured-vals (if (<= num-vars (length args))
+                               (take args num-vars)
+                               args)]
+             ;; Instantiate the contract with captured values
+             [concrete-contract (instantiate-dependent-contract dep-contract captured-vals)])
+        ;; Now apply the concrete contract
+        (cond
+         ;; If instantiation produced a function contract, apply it
+         [(function-contract? concrete-contract)
+          (let* ([domain-contracts (function-contract-domain concrete-contract)]
+                 [range-contract (function-contract-range concrete-contract)])
+            (if (not (= (length args) (length domain-contracts)))
+                (error 'contract-violation
+                       (format "~a: expected ~a arguments, got ~a"
+                               location (length domain-contracts) (length args)))
+                (let ([wrapped-args (check-and-wrap-args domain-contracts args location blame-party)])
+                  (if (eq? (car wrapped-args) 'Err)
+                      (error 'contract-violation (blame->string (cadr wrapped-args)))
+                      (let ([result (apply proc (cadr wrapped-args))])
+                        (let ([checked-result (contract-wrap-with-blame
+                                                range-contract result location
+                                                (if (eq? blame-party 'caller) 'callee 'caller))])
+                          (if (eq? (car checked-result) 'Err)
+                              (error 'contract-violation (blame->string (cadr checked-result)))
+                              (cadr checked-result))))))))]
+         ;; If instantiation produced another dependent contract, recurse
+         [(dependent-contract? concrete-contract)
+          (let ([inner-result (wrap-dependent-contract concrete-contract proc location blame-party)])
+            (if (eq? (car inner-result) 'Err)
+                (error 'contract-violation (blame->string (cadr inner-result)))
+                (apply (cadr inner-result) args)))]
+         ;; If it's a flat contract, check and call
+         [else
+          (let ([check-result (check-flat concrete-contract proc location)])
+            (if (eq? (car check-result) 'Err)
+                (error 'contract-violation (blame->string (cadr check-result)))
+                (apply proc args)))])))))
+
+;;; Helper to take first n elements from a list
+(define (take lst n)
+  (if (or (null? lst) (<= n 0))
+      '()
+      (cons (car lst) (take (cdr lst) (- n 1)))))
 
 (doc 'section 'higher-order-combinators)
 
@@ -876,9 +1022,7 @@
                            "Expected a procedure for function contract"
                            value)))]
    [(dependent-contract? contract)
-    `(Err ,(make-blame blame-party location
-                       "Dependent contract wrapping not yet implemented"
-                       value))]
+    (wrap-dependent-contract contract value location blame-party)]
    ;; Chaperone contracts - delegate to chaperone wrapper
    [(chaperone-listof-contract? contract)
     (let ([elem-contract (cadr contract)])
