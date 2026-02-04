@@ -20,6 +20,19 @@
        (display actual)))
   (newline))
 
+;;; Helper to check if a string contains a substring
+(define (string-contains?? haystack needle)
+  (let ([hay-len (string-length haystack)]
+        [need-len (string-length needle)])
+    (if (> need-len hay-len)
+        #f
+        (let loop ([i 0])
+          (if (> (+ i need-len) hay-len)
+              #f
+              (if (string=? (substring haystack i (+ i need-len)) needle)
+                  #t
+                  (loop (+ i 1))))))))
+
 (define (test-section name)
   (newline)
   (display name)
@@ -713,6 +726,86 @@
 ;; Restore original state
 (set! *contract-mode* saved-mode)
 (set! *in-test-context* saved-test-context)
+
+;;; ====
+;;; Blame Precision Tests
+;;; ====
+(test-section "Blame Precision - and/c Domain")
+;; Test that and/c domain failures include contract index and description
+(define precise-pos/c (->c (list pos/c) any/c))
+(define precise-even/c (->c (list (flat (lambda (x) (and (integer? x) (even? x))))) any/c))
+(define precise-and-contract (and/c precise-pos/c precise-even/c))
+
+(define precise-wrapped
+  (let ([result (contract-wrap precise-and-contract (lambda (x) x) 'blame-test)])
+    (if (eq? (car result) 'Ok)
+        (cadr result)
+        #f)))
+
+(test "precise and/c wraps function" #t (procedure? precise-wrapped))
+
+;; Call with value that fails second domain (3 is pos but not even)
+(define and-c-domain-error
+  (guard (ex [else (condition-message ex)])
+    (precise-wrapped 3)
+    "no error"))
+
+(test "and/c domain error includes contract #" #t
+      (if (string? and-c-domain-error)
+          (let ([has-num (string-contains? and-c-domain-error "#")])
+            (if has-num #t #f))
+          #f))
+
+(test-section "Blame Precision - or/c No Match")
+;; Test that or/c no-match errors list what was tried
+(define or-pos/c (->c (list pos/c) any/c))
+(define or-string/c (->c (list string/c) any/c))
+(define precise-or-contract (or/c or-pos/c or-string/c))
+
+(define precise-or-wrapped
+  (let ([result (contract-wrap precise-or-contract (lambda (x) x) 'or-blame-test)])
+    (if (eq? (car result) 'Ok)
+        (cadr result)
+        #f)))
+
+(test "precise or/c wraps function" #t (procedure? precise-or-wrapped))
+
+;; Call with value that matches neither (negative number, not string)
+(define or-c-no-match-error
+  (guard (ex [else (condition-message ex)])
+    (precise-or-wrapped -5)
+    "no error"))
+
+(test "or/c no-match error includes tried contracts" #t
+      (if (string? or-c-no-match-error)
+          (let ([has-tried (string-contains? or-c-no-match-error "tried")])
+            (if has-tried #t #f))
+          #f))
+
+(test-section "Blame Precision - not/c")
+;; Test that not/c violations include the contract description
+(define not-contract-inner (->c (list nat/c) nat/c))
+(define precise-not-contract (not/c not-contract-inner))
+
+(define precise-not-wrapped
+  (let ([result (contract-wrap precise-not-contract (lambda (x) x) 'not-blame-test)])
+    (if (eq? (car result) 'Ok)
+        (cadr result)
+        #f)))
+
+(test "precise not/c wraps function" #t (procedure? precise-not-wrapped))
+
+;; Call with valid input that would satisfy the negated contract (triggers not/c violation)
+(define not-c-violation-error
+  (guard (ex [else (condition-message ex)])
+    (precise-not-wrapped 5)
+    "no error"))
+
+(test "not/c violation error includes contract description" #t
+      (if (string? not-c-violation-error)
+          (let ([has-desc (string-contains? not-c-violation-error "->")])
+            (if has-desc #t #f))
+          #f))
 
 (newline)
 (display "All tests completed!")

@@ -595,13 +595,14 @@
         ;; No function contracts - shouldn't happen but handle gracefully
         proc
         (let* ([first-fn (car fn-contracts)]
-               [domain-contracts (function-contract-domain first-fn)])
+               [domain-contracts (function-contract-domain first-fn)]
+               [contract-str (contract->string (cons 'And contracts))])  ; For error messages
           (lambda args
             ;; First, verify arity matches
             (if (not (= (length args) (length domain-contracts)))
                 (error 'contract-violation
-                       (format "~a: expected ~a arguments, got ~a"
-                               location (length domain-contracts) (length args)))
+                       (format "~a: ~a arity mismatch - expected ~a arguments, got ~a"
+                               location contract-str (length domain-contracts) (length args)))
                 ;; Check domain contracts from ALL function contracts
                 (let ([domain-check (check-all-domains fn-contracts args location blame-party)])
                   (if (eq? (car domain-check) 'Err)
@@ -614,35 +615,53 @@
                               (error 'contract-violation (blame->string (cadr range-check)))
                               (cadr range-check))))))))))))
 
-(define (check-all-domains fn-contracts args location blame-party)
+(define (check-all-domains fn-contracts args location current-blame-party)
   (doc 'type (-> (List Contract) (List Any) Symbol Symbol (Result (List Any) Blame)))
   (doc 'description "Check arguments against all function contracts' domains.")
   (doc 'export #f)
   ;; For and/c, ALL domain contracts must pass
   ;; We check each contract's domain in sequence, threading wrapped args through
-  (let loop ([fns fn-contracts] [current-args args])
+  ;; Track index for precise blame messages
+  (let loop ([fns fn-contracts] [current-args args] [idx 0])
     (if (null? fns)
         `(Ok ,current-args)
         (let* ([fn (car fns)]
                [domain-cs (function-contract-domain fn)]
-               [check (check-and-wrap-args domain-cs current-args location blame-party)])
+               [check (check-and-wrap-args domain-cs current-args location current-blame-party)])
           (if (eq? (car check) 'Err)
-              check
-              (loop (cdr fns) (cadr check)))))))
+              ;; Enhance blame message with contract index and description
+              (let ([orig-blame (cadr check)])
+                `(Err ,(make-blame (blame-party orig-blame)
+                                   (blame-location orig-blame)
+                                   (format "and/c contract #~a ~a: ~a"
+                                           (+ idx 1)
+                                           (contract->string fn)
+                                           (blame-message orig-blame))
+                                   (blame-value orig-blame))))
+              (loop (cdr fns) (cadr check) (+ idx 1)))))))
 
-(define (check-all-ranges fn-contracts result location blame-party)
+(define (check-all-ranges fn-contracts result location current-blame-party)
   (doc 'type (-> (List Contract) Any Symbol Symbol (Result Any Blame)))
   (doc 'description "Check result against all function contracts' ranges.")
   (doc 'export #f)
-  (let loop ([fns fn-contracts] [val result])
+  ;; Track index for precise blame messages
+  (let loop ([fns fn-contracts] [val result] [idx 0])
     (if (null? fns)
         `(Ok ,val)
         (let* ([fn (car fns)]
                [range-c (function-contract-range fn)]
-               [check (contract-wrap-with-blame range-c val location blame-party)])
+               [check (contract-wrap-with-blame range-c val location current-blame-party)])
           (if (eq? (car check) 'Err)
-              check
-              (loop (cdr fns) (cadr check)))))))
+              ;; Enhance blame message with contract index and description
+              (let ([orig-blame (cadr check)])
+                `(Err ,(make-blame (blame-party orig-blame)
+                                   (blame-location orig-blame)
+                                   (format "and/c contract #~a ~a range: ~a"
+                                           (+ idx 1)
+                                           (contract->string fn)
+                                           (blame-message orig-blame))
+                                   (blame-value orig-blame))))
+              (loop (cdr fns) (cadr check) (+ idx 1)))))))
 
 (define (wrap-or-contract contracts value location blame-party)
   (doc 'type (-> (List Contract) Any Symbol Symbol (Result Any Blame)))
@@ -685,28 +704,60 @@
   (doc 'export #f)
   ;; At call time, try each function contract in order
   ;; First one whose domain accepts the args is used for range checking
+  ;; Track failures for precise blame messages
   (lambda args
-    (let try-contracts ([cs contracts])
+    (let try-contracts ([cs contracts] [idx 0] [failures '()])
       (if (null? cs)
-          (error 'contract-violation
-                 (format "~a: no function contract in or/c matched" location))
+          ;; No contract matched - build informative error message
+          (let ([failure-details
+                 (if (null? failures)
+                     "all contracts had arity mismatch"
+                     (string-append
+                      "tried " (number->string (length contracts)) " contracts:\n"
+                      (join-strings "\n"
+                                    (map (lambda (f)
+                                           (format "  #~a ~a: ~a"
+                                                   (car f)
+                                                   (contract->string (cadr f))
+                                                   (caddr f)))
+                                         (reverse failures)))))])
+            (error 'contract-violation
+                   (format "~a: or/c - no function contract matched\n~a"
+                           location failure-details)))
           (let* ([c (car cs)]
                  [domain-contracts (function-contract-domain c)])
             (if (not (= (length args) (length domain-contracts)))
                 ;; Arity mismatch, try next contract
-                (try-contracts (cdr cs))
+                (try-contracts (cdr cs) (+ idx 1)
+                               (cons (list (+ idx 1) c
+                                          (format "arity mismatch (expected ~a, got ~a)"
+                                                  (length domain-contracts) (length args)))
+                                     failures))
                 ;; Try this contract
                 (let ([domain-check (check-and-wrap-args domain-contracts args location blame-party)])
                   (if (eq? (car domain-check) 'Err)
                       ;; Domain check failed, try next contract
-                      (try-contracts (cdr cs))
+                      (try-contracts (cdr cs) (+ idx 1)
+                                     (cons (list (+ idx 1) c
+                                                (blame-message (cadr domain-check)))
+                                           failures))
                       ;; Domain passed, use this contract
                       (let ([result (apply proc (cadr domain-check))])
                         (let ([range-check (contract-wrap-with-blame
                                             (function-contract-range c) result location
                                             (if (eq? blame-party 'caller) 'callee 'caller))])
                           (if (eq? (car range-check) 'Err)
-                              (error 'contract-violation (blame->string (cadr range-check)))
+                              ;; Range failed - include which contract was selected
+                              (let ([orig-blame (cadr range-check)])
+                                (error 'contract-violation
+                                       (blame->string
+                                        (make-blame (blame-party orig-blame)
+                                                    (blame-location orig-blame)
+                                                    (format "or/c contract #~a ~a range: ~a"
+                                                            (+ idx 1)
+                                                            (contract->string c)
+                                                            (blame-message orig-blame))
+                                                    (blame-value orig-blame)))))
                               (cadr range-check))))))))))))
 
 (define (wrap-not-contract inner-contract value location blame-party)
@@ -735,7 +786,8 @@
   ;; Semantics: The wrapped function should fail if it WOULD satisfy the inner contract
   ;; This is useful for negative testing or exclusion constraints
   (let ([domain-contracts (function-contract-domain inner-contract)]
-        [range-contract (function-contract-range inner-contract)])
+        [range-contract (function-contract-range inner-contract)]
+        [contract-str (contract->string inner-contract)])  ; Cache for error messages
     (lambda args
       (if (not (= (length args) (length domain-contracts)))
           ;; Arity mismatch - doesn't match the contract, so not/c passes
@@ -753,8 +805,8 @@
                     (if (eq? (car range-check) 'Ok)
                         ;; Range satisfied - the function DOES satisfy the contract, so not/c FAILS
                         (error 'contract-violation
-                               (format "~a: not/c violated - function satisfies negated contract"
-                                       location))
+                               (format "~a: not/c ~a violated - function satisfies negated contract (args: ~s, result: ~s)"
+                                       location contract-str args result))
                         ;; Range failed - doesn't satisfy contract, not/c passes
                         result)))))))))
 
