@@ -82,10 +82,15 @@ A refinement type (refine ((x : T)) P) becomes a flat contract that:
       (if (< type-len 2)
           (lambda (x) (vector? x))  ; Bare Vector/Vec - just check vector?
           (let* ([has-dim (= type-len 3)]
+                 [expected-len (if has-dim (cadr type) #f)]  ; n from (Vec n T)
                  [elem-type (if has-dim (caddr type) (cadr type))]
                  [elem-pred (type->predicate elem-type)])
             (lambda (x)
               (and (vector? x)
+                   ;; Check length if specified and is integer
+                   (or (not expected-len)
+                       (not (integer? expected-len))
+                       (= (vector-length x) expected-len))
                    (let ([vec-len (vector-length x)])
                      (let loop ([i 0])
                        (if (>= i vec-len)
@@ -271,16 +276,16 @@ that can be derived from the type structure.")
       (if (flat-contract? elem-contract)
           (listof elem-contract)
           (listof/c elem-contract)))]
-   ;; Vec types -> listof with length
+   ;; Vec types -> vectorof with length
    [(vec-type? type)
     (let* ([len-expr (cadr type)]
            [elem-type (caddr type)]
            [elem-contract (type->contract elem-type)])
-      ;; If length is known, create dependent contract
+      ;; If length is known, include length check
       (if (integer? len-expr)
-          (and/c (listof elem-contract)
-                 (flat (lambda (lst) (= (length lst) len-expr))))
-          (listof elem-contract)))]
+          (and/c (vectorof elem-contract)
+                 (flat (lambda (v) (and (vector? v) (= (vector-length v) len-expr)))))
+          (vectorof elem-contract)))]
    ;; Function types: (-> A B)
    [(and (pair? type) (eq? (car type) '->))
     (let* ([args (butlast (cdr type))]

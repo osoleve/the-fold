@@ -135,7 +135,24 @@
       (assert-true (flat-contract? contract))
       (let ([pred (flat-predicate contract)])
         (assert-true (pred 1))
-        (assert-false (pred 0))))))
+        (assert-false (pred 0)))))
+
+  (define-test "infers vector contract for Vec type"
+    (let ([vec-c (type->contract '(Vec 3 Int))])
+      ;; Should be And contract with vectorof + length check
+      (assert-true (and (pair? vec-c) (eq? (car vec-c) 'And)))))
+
+  (define-test "Vec predicate checks length"
+    (let ([pred (type->predicate '(Vec 3 Int))])
+      (assert-true (pred (vector 1 2 3)))
+      (assert-false (pred (vector 1 2)))     ; wrong length
+      (assert-false (pred (vector 1 2 3 4))) ; wrong length
+      (assert-false (pred '(1 2 3)))))       ; not a vector
+
+  (define-test "Vec predicate checks element type"
+    (let ([pred (type->predicate '(Vec 2 Nat))])
+      (assert-true (pred (vector 0 1)))
+      (assert-false (pred (vector -1 1))))))  ; negative not Nat
 
 ;;; ====
 ;;; Static Verification
