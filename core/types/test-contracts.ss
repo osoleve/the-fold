@@ -962,6 +962,129 @@
 
 (test "nested dep contract recognized" #t (dependent-contract? dep-returning-dep))
 
+;;; ====
+;;; Statistical Contract Monitoring
+;;; ====
+(test-section "Statistical Contract Monitoring - Configuration")
+
+;; Save state
+(define saved-mode-stat (get-contract-mode))
+(define saved-rate-stat (get-statistical-sample-rate))
+(define saved-checks *statistical-check-count*)
+(define saved-violations *statistical-violation-count*)
+
+(test "statistical is valid mode" #t (contract-mode? 'statistical))
+(test "default sample rate is 0.1" 0.1 (get-statistical-sample-rate))
+
+;; Test setting sample rate
+(set-statistical-sample-rate! 0.5)
+(test "sample rate can be set" 0.5 (get-statistical-sample-rate))
+
+(set-statistical-sample-rate! 1.0)
+(test "sample rate can be 1.0" 1.0 (get-statistical-sample-rate))
+
+(set-statistical-sample-rate! 0.0)
+(test "sample rate can be 0.0" 0.0 (get-statistical-sample-rate))
+
+;; Test invalid sample rates
+(define (test-invalid-sample-rate-negative)
+  (guard (e [else #t])
+    (set-statistical-sample-rate! -0.1)
+    #f))
+(test "rejects negative sample rate" #t (test-invalid-sample-rate-negative))
+
+(define (test-invalid-sample-rate-over-one)
+  (guard (e [else #t])
+    (set-statistical-sample-rate! 1.5)
+    #f))
+(test "rejects sample rate > 1.0" #t (test-invalid-sample-rate-over-one))
+
+(test-section "Statistical Contract Monitoring - Counter Tracking")
+
+;; Reset for clean slate
+(reset-statistical-counters!)
+(test "counters reset check count" 0 *statistical-check-count*)
+(test "counters reset violation count" 0 *statistical-violation-count*)
+(test "violation rate is 0 with no checks" 0.0 (statistical-violation-rate))
+
+;; Set to 100% sampling so all checks happen
+(set-contract-mode! 'statistical)
+(set-statistical-sample-rate! 1.0)
+(reset-statistical-counters!)
+
+;; Perform some checks
+(check-flat/mode nat/c 5 'test)   ; Should pass
+(check-flat/mode nat/c 10 'test)  ; Should pass
+(check-flat/mode nat/c -1 'test)  ; Should fail
+
+(test "statistical tracks check count" 3 *statistical-check-count*)
+(test "statistical tracks violation count" 1 *statistical-violation-count*)
+
+;; Calculate violation rate
+(test "violation rate calculated correctly" #t
+      (and (> (statistical-violation-rate) 0.33)
+           (< (statistical-violation-rate) 0.34)))
+
+(test-section "Statistical Contract Monitoring - Zero Sampling")
+
+;; At 0% sampling, no checks should happen
+(set-statistical-sample-rate! 0.0)
+(reset-statistical-counters!)
+
+;; These should not be checked
+(check-flat/mode nat/c -100 'test)  ; Would fail but isn't checked
+(check-flat/mode nat/c -200 'test)  ; Would fail but isn't checked
+
+(test "0% sampling performs no checks" 0 *statistical-check-count*)
+(test "0% sampling detects no violations" 0 *statistical-violation-count*)
+
+(test-section "Statistical Contract Monitoring - Scoped Usage")
+
+;; Test call-with-statistical-contracts
+(set-contract-mode! 'runtime)
+(reset-statistical-counters!)
+
+(define stat-scoped-result
+  (call-with-statistical-contracts 1.0
+    (lambda ()
+      (check-flat/mode nat/c 5 'test)
+      (check-flat/mode nat/c -1 'test)
+      *statistical-check-count*)))
+
+(test "scoped statistical mode performs checks" 2 stat-scoped-result)
+(test "mode restored after scoped statistical" 'runtime (get-contract-mode))
+
+(test-section "Statistical Contract Monitoring - Reporting")
+
+(reset-statistical-counters!)
+(set-contract-mode! 'statistical)
+(set-statistical-sample-rate! 1.0)
+(check-flat/mode nat/c 5 'test)
+(check-flat/mode nat/c -1 'test)
+
+(define report (statistical-monitoring-report))
+(test "report is a string" #t (string? report))
+(test "report mentions sample rate" #t (string-contains? report "Sample rate"))
+(test "report mentions checks" #t (string-contains? report "Checks performed"))
+(test "report mentions violations" #t (string-contains? report "Violations detected"))
+
+(test-section "Statistical Contract Monitoring - Mode String")
+
+(test "statistical mode string" "statistical (probabilistic sampling)"
+      (contract-mode->string 'statistical))
+
+;; Contract status in statistical mode includes stats
+(set-contract-mode! 'statistical)
+(define stat-status (contract-status))
+(test "status includes statistical info" #t
+      (string-contains? stat-status "Statistical sample rate"))
+
+;; Restore original state
+(set! *contract-mode* saved-mode-stat)
+(set! *statistical-sample-rate* saved-rate-stat)
+(set! *statistical-check-count* saved-checks)
+(set! *statistical-violation-count* saved-violations)
+
 (newline)
 (display "All tests completed!")
 (newline)

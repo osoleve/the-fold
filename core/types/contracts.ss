@@ -1388,7 +1388,7 @@ Captures argument values at call time, instantiates the contract, and applies it
 (doc contract-modes 'type '(List Symbol))
 (doc contract-modes 'description "Valid contract checking modes.")
 (doc contract-modes 'export #t)
-(define contract-modes '(runtime compile-time test-only doc-only))
+(define contract-modes '(runtime compile-time test-only doc-only statistical))
 
 (define (contract-mode? m)
   (doc 'type (-> Any Boolean))
@@ -1444,13 +1444,15 @@ Captures argument values at call time, instantiates the contract, and applies it
 
 (define (contracts-enabled?)
   (doc 'type (-> Boolean))
-  (doc 'description "Check if contract checking is currently enabled based on mode and context.")
+  (doc 'description "Check if contract checking is currently enabled based on mode and context.
+For statistical mode, returns #t probabilistically based on sample rate.")
   (doc 'export #t)
   (case *contract-mode*
     [(runtime) #t]
     [(compile-time) #f]  ; Trust static verification
     [(test-only) *in-test-context*]
     [(doc-only) #f]
+    [(statistical) (should-check-statistically?)]
     [else #t]))  ; Default to enabled for safety
 
 ;;; Compile-time verification hooks
@@ -1486,27 +1488,60 @@ Captures argument values at call time, instantiates the contract, and applies it
 
 (define (check-flat/mode contract value location)
   (doc 'type (-> Contract Any Symbol (Result Any Blame)))
-  (doc 'description "Mode-aware flat contract check. Respects *contract-mode* setting.")
+  (doc 'description "Mode-aware flat contract check. Respects *contract-mode* setting.
+In statistical mode, tracks checks and violations.")
   (doc 'export #t)
-  (if (contracts-enabled?)
-      (check-flat contract value location)
-      `(Ok ,value)))
+  (cond
+   [(eq? *contract-mode* 'statistical)
+    (if (should-check-statistically?)
+        (begin
+          (record-statistical-check!)
+          (let ([result (check-flat contract value location)])
+            (when (eq? (car result) 'Err)
+              (record-statistical-violation!))
+            result))
+        `(Ok ,value))]
+   [(contracts-enabled?)
+    (check-flat contract value location)]
+   [else `(Ok ,value)]))
 
 (define (contract-wrap/mode contract value location)
   (doc 'type (-> Contract Any Symbol (Result Any Blame)))
-  (doc 'description "Mode-aware contract wrap. Respects *contract-mode* setting.")
+  (doc 'description "Mode-aware contract wrap. Respects *contract-mode* setting.
+In statistical mode, tracks checks and violations.")
   (doc 'export #t)
-  (if (contracts-enabled?)
-      (contract-wrap contract value location)
-      `(Ok ,value)))
+  (cond
+   [(eq? *contract-mode* 'statistical)
+    (if (should-check-statistically?)
+        (begin
+          (record-statistical-check!)
+          (let ([result (contract-wrap contract value location)])
+            (when (eq? (car result) 'Err)
+              (record-statistical-violation!))
+            result))
+        `(Ok ,value))]
+   [(contracts-enabled?)
+    (contract-wrap contract value location)]
+   [else `(Ok ,value)]))
 
 (define (apply-contract/mode contract value location)
   (doc 'type (-> Contract Any Symbol Any))
-  (doc 'description "Mode-aware apply-contract. Respects *contract-mode* setting.")
+  (doc 'description "Mode-aware apply-contract. Respects *contract-mode* setting.
+In statistical mode, tracks checks and violations.")
   (doc 'export #t)
-  (if (contracts-enabled?)
-      (apply-contract contract value location)
-      value))
+  (cond
+   [(eq? *contract-mode* 'statistical)
+    (if (should-check-statistically?)
+        (begin
+          (record-statistical-check!)
+          (guard (e [else
+                     (record-statistical-violation!)
+                     (raise e)])
+            (apply-contract contract value location)))
+        value)]
+   [(contracts-enabled?)
+    (apply-contract contract value location)]
+   [else value]))
 
 (define (apply-contract/c/mode contract value location)
   (doc 'type (-> Contract Any Symbol Any))
@@ -1550,6 +1585,22 @@ Captures argument values at call time, instantiates the contract, and applies it
   (doc 'export #t)
   (call-with-contract-mode 'runtime thunk))
 
+(define (call-with-statistical-contracts rate thunk)
+  (doc 'type (-> Real (-> a) a))
+  (doc 'description "Call thunk with statistical contract checking at the given sample rate.
+Useful for production code where full checking is too expensive.")
+  (doc 'export #t)
+  (let ([saved-mode *contract-mode*]
+        [saved-rate *statistical-sample-rate*])
+    (dynamic-wind
+      (lambda ()
+        (set! *contract-mode* 'statistical)
+        (set! *statistical-sample-rate* rate))
+      thunk
+      (lambda ()
+        (set! *contract-mode* saved-mode)
+        (set! *statistical-sample-rate* saved-rate)))))
+
 (doc 'section 'mode-reporting)
 
 (define (contract-mode->string mode)
@@ -1561,6 +1612,7 @@ Captures argument values at call time, instantiates the contract, and applies it
     [(compile-time) "compile-time (static verification only)"]
     [(test-only) "test-only (check only during tests)"]
     [(doc-only) "documentation-only (no checking)"]
+    [(statistical) "statistical (probabilistic sampling)"]
     [else "unknown"]))
 
 (define (contract-status)
@@ -1571,4 +1623,116 @@ Captures argument values at call time, instantiates the contract, and applies it
    "Contract mode: " (contract-mode->string *contract-mode*) "\n"
    "In test context: " (if *in-test-context* "yes" "no") "\n"
    "Contracts enabled: " (if (contracts-enabled?) "yes" "no") "\n"
-   "Compile-time verifier: " (if *compile-time-verifier* "registered" "not registered")))
+   "Compile-time verifier: " (if *compile-time-verifier* "registered" "not registered")
+   (if (eq? *contract-mode* 'statistical)
+       (string-append "\n"
+        "Statistical sample rate: " (number->string *statistical-sample-rate*) "\n"
+        "Checks performed: " (number->string *statistical-check-count*) "\n"
+        "Violations detected: " (number->string *statistical-violation-count*))
+       "")))
+
+(doc 'section 'statistical-monitoring)
+
+;;; Statistical Contract Monitoring
+;;;
+;;; In statistical mode, contracts are checked probabilistically based on
+;;; a configurable sample rate. This provides a performance/safety tradeoff:
+;;;
+;;;   - Sample rate 1.0: Check every call (equivalent to runtime mode)
+;;;   - Sample rate 0.1: Check ~10% of calls (90% overhead reduction)
+;;;   - Sample rate 0.01: Check ~1% of calls (high-volume production)
+;;;
+;;; Statistical monitoring tracks:
+;;;   - Number of checks performed
+;;;   - Number of violations detected
+;;;   - Estimated violation rate
+;;;
+;;; This is useful for production systems where full contract checking
+;;; is too expensive, but you still want visibility into contract health.
+
+(doc *statistical-sample-rate* 'type 'Real)
+(doc *statistical-sample-rate* 'description "Probability of checking a contract in statistical mode (0.0 to 1.0).")
+(doc *statistical-sample-rate* 'export #t)
+(define *statistical-sample-rate* 0.1)
+
+(doc *statistical-check-count* 'type 'Nat)
+(doc *statistical-check-count* 'description "Number of contract checks performed in statistical mode.")
+(doc *statistical-check-count* 'export #t)
+(define *statistical-check-count* 0)
+
+(doc *statistical-violation-count* 'type 'Nat)
+(doc *statistical-violation-count* 'description "Number of contract violations detected in statistical mode.")
+(doc *statistical-violation-count* 'export #t)
+(define *statistical-violation-count* 0)
+
+(define (set-statistical-sample-rate! rate)
+  (doc 'type (-> Real Void))
+  (doc 'description "Set the probability of checking contracts in statistical mode.")
+  (doc 'export #t)
+  (if (and (number? rate) (>= rate 0.0) (<= rate 1.0))
+      (set! *statistical-sample-rate* rate)
+      (error 'set-statistical-sample-rate!
+             "Sample rate must be a number between 0.0 and 1.0")))
+
+(define (get-statistical-sample-rate)
+  (doc 'type (-> Real))
+  (doc 'description "Get the current statistical sampling rate.")
+  (doc 'export #t)
+  *statistical-sample-rate*)
+
+(define (reset-statistical-counters!)
+  (doc 'type (-> Void))
+  (doc 'description "Reset the statistical monitoring counters.")
+  (doc 'export #t)
+  (set! *statistical-check-count* 0)
+  (set! *statistical-violation-count* 0))
+
+(define (statistical-violation-rate)
+  (doc 'type (-> Real))
+  (doc 'description "Calculate the observed violation rate (violations / checks).
+Returns 0.0 if no checks have been performed.")
+  (doc 'export #t)
+  (if (= *statistical-check-count* 0)
+      0.0
+      (/ *statistical-violation-count* *statistical-check-count*)))
+
+(define (should-check-statistically?)
+  (doc 'type (-> Boolean))
+  (doc 'description "Decide whether to check this contract based on sample rate.
+Uses (random 1.0) < sample-rate for probabilistic sampling.")
+  (doc 'export #f)
+  (< (random 1.0) *statistical-sample-rate*))
+
+(define (record-statistical-check!)
+  (doc 'type (-> Void))
+  (doc 'description "Record that a statistical contract check was performed.")
+  (doc 'export #f)
+  (set! *statistical-check-count* (+ *statistical-check-count* 1)))
+
+(define (record-statistical-violation!)
+  (doc 'type (-> Void))
+  (doc 'description "Record that a contract violation was detected in statistical mode.")
+  (doc 'export #f)
+  (set! *statistical-violation-count* (+ *statistical-violation-count* 1)))
+
+(define (statistical-monitoring-report)
+  (doc 'type (-> String))
+  (doc 'description "Generate a detailed report of statistical monitoring metrics.")
+  (doc 'export #t)
+  (let ([rate (statistical-violation-rate)]
+        [checks *statistical-check-count*]
+        [violations *statistical-violation-count*]
+        [sample-rate *statistical-sample-rate*])
+    (string-append
+     "Statistical Contract Monitoring Report\n"
+     "======================================\n"
+     "Sample rate: " (number->string (* sample-rate 100)) "%\n"
+     "Checks performed: " (number->string checks) "\n"
+     "Violations detected: " (number->string violations) "\n"
+     "Violation rate: " (number->string (* rate 100)) "%\n"
+     (if (and (> checks 0) (> sample-rate 0))
+         (string-append
+          "Estimated total violations: "
+          (number->string (inexact->exact (round (/ violations sample-rate))))
+          " (if all calls were checked)\n")
+         ""))))
