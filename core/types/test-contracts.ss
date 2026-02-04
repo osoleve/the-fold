@@ -177,6 +177,34 @@
 (define int->int-contract (->c (list int/c) int/c))
 (define nat->pos-contract (->c (list nat/c) pos/c))
 ;; A function satisfying both must: take nat (subset of int), return pos (subset of int)
+
+;; Test that and/c checks ALL domains, not just the first
+;; pos/c requires x > 0, (between/c 0 10) allows 0 but caps at 10
+(define pos->nat-contract (->c (list pos/c) nat/c))
+(define range-limited-contract (->c (list (between/c 0 10)) nat/c))
+;; The intersection: must be > 0 AND <= 10, i.e., (1, 10]
+(define both-domain-contract (and/c pos->nat-contract range-limited-contract))
+
+(define wrapped-both-domains
+  (let ([result (contract-wrap both-domain-contract (lambda (x) x) 'id)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "and/c wraps with multiple domain contracts" #t (procedure? wrapped-both-domains))
+(test "and/c passes when both domains satisfied" 5 (wrapped-both-domains 5))
+
+;; Test that 0 fails (pos/c requires > 0)
+(define (test-and-c-first-domain-fails)
+  (guard (e [else #t])
+    (wrapped-both-domains 0)  ; Fails pos/c (first contract)
+    #f))
+(test "and/c fails when first domain fails" #t (test-and-c-first-domain-fails))
+
+;; Test that 15 fails (between/c 0 10 requires <= 10)
+(define (test-and-c-second-domain-fails)
+  (guard (e [else #t])
+    (wrapped-both-domains 15)  ; Passes pos/c but fails between/c (second contract)
+    #f))
+(test "and/c fails when second domain fails" #t (test-and-c-second-domain-fails))
 (define both-fn-contract (and/c nat->nat-contract nat->pos-contract))
 
 ;; Wrap a function that satisfies both (takes nat, returns positive)

@@ -618,12 +618,17 @@
   (doc 'type (-> (List Contract) (List Any) Symbol Symbol (Result (List Any) Blame)))
   (doc 'description "Check arguments against all function contracts' domains.")
   (doc 'export #f)
-  ;; For and/c, all domain contracts must pass
-  ;; Use first contract's structure for wrapping
-  (if (null? fn-contracts)
-      `(Ok ,args)
-      (let ([first-fn (car fn-contracts)])
-        (check-and-wrap-args (function-contract-domain first-fn) args location blame-party))))
+  ;; For and/c, ALL domain contracts must pass
+  ;; We check each contract's domain in sequence, threading wrapped args through
+  (let loop ([fns fn-contracts] [current-args args])
+    (if (null? fns)
+        `(Ok ,current-args)
+        (let* ([fn (car fns)]
+               [domain-cs (function-contract-domain fn)]
+               [check (check-and-wrap-args domain-cs current-args location blame-party)])
+          (if (eq? (car check) 'Err)
+              check
+              (loop (cdr fns) (cadr check)))))))
 
 (define (check-all-ranges fn-contracts result location blame-party)
   (doc 'type (-> (List Contract) Any Symbol Symbol (Result Any Blame)))
