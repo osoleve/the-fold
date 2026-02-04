@@ -1562,17 +1562,16 @@ In statistical mode, tracks checks and violations.")
 (define (apply-contract/mode contract value location)
   (doc 'type (-> Contract Any Symbol Any))
   (doc 'description "Mode-aware apply-contract. Respects *contract-mode* setting.
-In statistical mode, tracks checks and violations.")
+In statistical mode, tracks checks via check-count; violations are tracked
+by the centralized raise-contract-violation! function.")
   (doc 'export #t)
   (cond
    [(eq? *contract-mode* 'statistical)
     (if (should-check-statistically?)
         (begin
           (record-statistical-check!)
-          (guard (e [else
-                     (record-statistical-violation!)
-                     (raise e)])
-            (apply-contract contract value location)))
+          ;; Note: violations are recorded by raise-contract-violation! inside apply-contract
+          (apply-contract contract value location))
         value)]
    [(contracts-enabled?)
     (apply-contract contract value location)]
