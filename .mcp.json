@@ -6,6 +6,10 @@
       "env": {
         "FOLD_ROOT": "/home/osoleve/the-fold"
       }
+    },
+    "vllm": {
+      "command": "/home/osoleve/fold/vllm-spark-plugin/.venv/bin/python",
+      "args": ["/home/osoleve/fold/vllm-spark-plugin/mcp/vllm_mcp_server.py"]
     }
   }
 }
