@@ -900,3 +900,204 @@
     (if (eq? (car result) 'Err)
         (error 'contract-violation (blame->string (cadr result)))
         (cadr result))))
+
+(doc 'section 'contract-checking-modes)
+
+;;; Contract Checking Modes
+;;;
+;;; Contracts can operate in different enforcement modes:
+;;;
+;;;   'runtime     - Always check at runtime (default, current behavior)
+;;;   'compile-time - Trust static verification, elide runtime checks
+;;;   'test-only   - Only check when in test context
+;;;   'doc-only    - No checking, contracts serve as documentation only
+;;;
+;;; Mode selection affects performance vs. safety tradeoffs:
+;;; - Production code may use 'compile-time after static verification
+;;; - Performance-critical paths may use 'test-only
+;;; - Legacy integration may use 'doc-only during gradual adoption
+
+(doc contract-modes 'type '(List Symbol))
+(doc contract-modes 'description "Valid contract checking modes.")
+(doc contract-modes 'export #t)
+(define contract-modes '(runtime compile-time test-only doc-only))
+
+(define (contract-mode? m)
+  (doc 'type (-> Any Boolean))
+  (doc 'description "Check if a value is a valid contract mode.")
+  (doc 'export #t)
+  (if (memq m contract-modes) #t #f))
+
+;;; Global mode parameter - defaults to runtime checking
+(doc *contract-mode* 'type 'Symbol)
+(doc *contract-mode* 'description "Current contract checking mode. One of: runtime, compile-time, test-only, doc-only.")
+(doc *contract-mode* 'export #t)
+(define *contract-mode* 'runtime)
+
+;;; Test context flag - used by test-only mode
+(doc *in-test-context* 'type 'Boolean)
+(doc *in-test-context* 'description "Flag indicating whether we're currently in a test context.")
+(doc *in-test-context* 'export #t)
+(define *in-test-context* #f)
+
+(define (set-contract-mode! mode)
+  (doc 'type (-> Symbol Void))
+  (doc 'description "Set the global contract checking mode.")
+  (doc 'export #t)
+  (if (contract-mode? mode)
+      (set! *contract-mode* mode)
+      (error 'set-contract-mode!
+             (format "Invalid contract mode: ~s. Must be one of: ~s"
+                     mode contract-modes))))
+
+(define (get-contract-mode)
+  (doc 'type (-> Symbol))
+  (doc 'description "Get the current contract checking mode.")
+  (doc 'export #t)
+  *contract-mode*)
+
+(define (enter-test-context!)
+  (doc 'type (-> Void))
+  (doc 'description "Mark entry into a test context (enables test-only contracts).")
+  (doc 'export #t)
+  (set! *in-test-context* #t))
+
+(define (exit-test-context!)
+  (doc 'type (-> Void))
+  (doc 'description "Mark exit from test context (disables test-only contracts).")
+  (doc 'export #t)
+  (set! *in-test-context* #f))
+
+(define (in-test-context?)
+  (doc 'type (-> Boolean))
+  (doc 'description "Check if we're currently in a test context.")
+  (doc 'export #t)
+  *in-test-context*)
+
+(define (contracts-enabled?)
+  (doc 'type (-> Boolean))
+  (doc 'description "Check if contract checking is currently enabled based on mode and context.")
+  (doc 'export #t)
+  (case *contract-mode*
+    [(runtime) #t]
+    [(compile-time) #f]  ; Trust static verification
+    [(test-only) *in-test-context*]
+    [(doc-only) #f]
+    [else #t]))  ; Default to enabled for safety
+
+;;; Compile-time verification hooks
+;;; These are stubs for future integration with the type system (fold-hex)
+
+(doc *compile-time-verifier* 'type '(Or #f (-> Contract Type (Result Unit String))))
+(doc *compile-time-verifier* 'description "Optional compile-time contract verifier. Set by type system integration.")
+(doc *compile-time-verifier* 'export #t)
+(define *compile-time-verifier* #f)
+
+(define (set-compile-time-verifier! verifier)
+  (doc 'type (-> (-> Contract Type (Result Unit String)) Void))
+  (doc 'description "Register a compile-time contract verifier (called by type system).")
+  (doc 'export #t)
+  (set! *compile-time-verifier* verifier))
+
+(define (verify-contract-statically contract type location)
+  (doc 'type (-> Contract Type Symbol (Result Unit String)))
+  (doc 'description "Attempt static verification of a contract against a type.")
+  (doc 'export #t)
+  (if *compile-time-verifier*
+      (*compile-time-verifier* contract type)
+      ;; No verifier registered - cannot verify statically
+      '(Err "No compile-time verifier registered")))
+
+(doc 'section 'mode-aware-checking)
+
+;;; Mode-aware contract checking functions
+;;; These wrap the core checking functions with mode awareness
+
+(define (check-flat/mode contract value location)
+  (doc 'type (-> Contract Any Symbol (Result Any Blame)))
+  (doc 'description "Mode-aware flat contract check. Respects *contract-mode* setting.")
+  (doc 'export #t)
+  (if (contracts-enabled?)
+      (check-flat contract value location)
+      `(Ok ,value)))
+
+(define (contract-wrap/mode contract value location)
+  (doc 'type (-> Contract Any Symbol (Result Any Blame)))
+  (doc 'description "Mode-aware contract wrap. Respects *contract-mode* setting.")
+  (doc 'export #t)
+  (if (contracts-enabled?)
+      (contract-wrap contract value location)
+      `(Ok ,value)))
+
+(define (apply-contract/mode contract value location)
+  (doc 'type (-> Contract Any Symbol Any))
+  (doc 'description "Mode-aware apply-contract. Respects *contract-mode* setting.")
+  (doc 'export #t)
+  (if (contracts-enabled?)
+      (apply-contract contract value location)
+      value))
+
+(define (apply-contract/c/mode contract value location)
+  (doc 'type (-> Contract Any Symbol Any))
+  (doc 'description "Mode-aware apply-contract/c with chaperone support. Respects *contract-mode* setting.")
+  (doc 'export #t)
+  (if (contracts-enabled?)
+      (apply-contract/c contract value location)
+      value))
+
+;;; Convenience forms for scoped mode changes
+
+(define (call-with-contract-mode mode thunk)
+  (doc 'type (-> Symbol (-> a) a))
+  (doc 'description "Call thunk with contract mode temporarily set to mode.")
+  (doc 'export #t)
+  (let ([saved-mode *contract-mode*])
+    (dynamic-wind
+      (lambda () (set! *contract-mode* mode))
+      thunk
+      (lambda () (set! *contract-mode* saved-mode)))))
+
+(define (call-with-test-context thunk)
+  (doc 'type (-> (-> a) a))
+  (doc 'description "Call thunk with test context enabled.")
+  (doc 'export #t)
+  (let ([saved-context *in-test-context*])
+    (dynamic-wind
+      (lambda () (set! *in-test-context* #t))
+      thunk
+      (lambda () (set! *in-test-context* saved-context)))))
+
+(define (call-without-contracts thunk)
+  (doc 'type (-> (-> a) a))
+  (doc 'description "Call thunk with contracts disabled (doc-only mode).")
+  (doc 'export #t)
+  (call-with-contract-mode 'doc-only thunk))
+
+(define (call-with-runtime-contracts thunk)
+  (doc 'type (-> (-> a) a))
+  (doc 'description "Call thunk with runtime contracts explicitly enabled.")
+  (doc 'export #t)
+  (call-with-contract-mode 'runtime thunk))
+
+(doc 'section 'mode-reporting)
+
+(define (contract-mode->string mode)
+  (doc 'type (-> Symbol String))
+  (doc 'description "Convert contract mode to human-readable description.")
+  (doc 'export #t)
+  (case mode
+    [(runtime) "runtime (always check)"]
+    [(compile-time) "compile-time (static verification only)"]
+    [(test-only) "test-only (check only during tests)"]
+    [(doc-only) "documentation-only (no checking)"]
+    [else "unknown"]))
+
+(define (contract-status)
+  (doc 'type (-> String))
+  (doc 'description "Return human-readable contract system status.")
+  (doc 'export #t)
+  (string-append
+   "Contract mode: " (contract-mode->string *contract-mode*) "\n"
+   "In test context: " (if *in-test-context* "yes" "no") "\n"
+   "Contracts enabled: " (if (contracts-enabled?) "yes" "no") "\n"
+   "Compile-time verifier: " (if *compile-time-verifier* "registered" "not registered")))

@@ -430,6 +430,167 @@
 (test "chaperone in function domain wraps" #t (procedure? wrapped-apply-first))
 (test "chaperone in function domain works" 6 (wrapped-apply-first (list (lambda (x) (+ x 1)))))
 
+;;; ====
+;;; Contract Checking Modes
+;;; ====
+(test-section "Contract Checking Modes - Mode Validation")
+
+(test "runtime is valid mode" #t (contract-mode? 'runtime))
+(test "compile-time is valid mode" #t (contract-mode? 'compile-time))
+(test "test-only is valid mode" #t (contract-mode? 'test-only))
+(test "doc-only is valid mode" #t (contract-mode? 'doc-only))
+(test "invalid mode rejected" #f (contract-mode? 'invalid))
+(test "non-symbol rejected" #f (contract-mode? 42))
+
+(test-section "Contract Checking Modes - Default State")
+
+;; Save current state for restoration
+(define saved-mode (get-contract-mode))
+(define saved-test-context (in-test-context?))
+
+(test "default mode is runtime" 'runtime (get-contract-mode))
+(test "default not in test context" #f (in-test-context?))
+(test "contracts enabled by default" #t (contracts-enabled?))
+
+(test-section "Contract Checking Modes - Mode Switching")
+
+;; Test mode switching
+(set-contract-mode! 'doc-only)
+(test "mode switches to doc-only" 'doc-only (get-contract-mode))
+(test "contracts disabled in doc-only" #f (contracts-enabled?))
+
+(set-contract-mode! 'compile-time)
+(test "mode switches to compile-time" 'compile-time (get-contract-mode))
+(test "contracts disabled in compile-time" #f (contracts-enabled?))
+
+(set-contract-mode! 'test-only)
+(test "mode switches to test-only" 'test-only (get-contract-mode))
+(test "contracts disabled in test-only outside test context" #f (contracts-enabled?))
+
+;; Enable test context
+(enter-test-context!)
+(test "in test context after enter" #t (in-test-context?))
+(test "contracts enabled in test-only with test context" #t (contracts-enabled?))
+
+(exit-test-context!)
+(test "out of test context after exit" #f (in-test-context?))
+(test "contracts disabled in test-only outside test context" #f (contracts-enabled?))
+
+;; Back to runtime
+(set-contract-mode! 'runtime)
+(test "mode back to runtime" 'runtime (get-contract-mode))
+(test "contracts enabled in runtime" #t (contracts-enabled?))
+
+(test-section "Contract Checking Modes - Mode-Aware Functions")
+
+;; Test apply-contract/mode in runtime mode
+(test "apply-contract/mode works in runtime" 42 (apply-contract/mode nat/c 42 'test))
+
+;; Test that mode-aware function respects doc-only
+(set-contract-mode! 'doc-only)
+(test "apply-contract/mode passes through in doc-only" "not a nat"
+      (apply-contract/mode nat/c "not a nat" 'test))
+
+;; Back to runtime for violation test
+(set-contract-mode! 'runtime)
+(define (test-mode-aware-violation)
+  (guard (e [else #t])
+    (apply-contract/mode nat/c "not a nat" 'test)
+    #f))
+(test "apply-contract/mode catches violation in runtime" #t (test-mode-aware-violation))
+
+(test-section "Contract Checking Modes - Scoped Mode Changes")
+
+;; Test call-with-contract-mode
+(set-contract-mode! 'runtime)
+(test "call-with-contract-mode temporarily changes mode"
+      'doc-only
+      (call-with-contract-mode 'doc-only (lambda () (get-contract-mode))))
+(test "mode restored after call-with-contract-mode" 'runtime (get-contract-mode))
+
+;; Test call-without-contracts
+(test "call-without-contracts disables checking"
+      "invalid"
+      (call-without-contracts
+        (lambda () (apply-contract/mode nat/c "invalid" 'test))))
+(test "mode restored after call-without-contracts" 'runtime (get-contract-mode))
+
+;; Test call-with-test-context
+(set-contract-mode! 'test-only)
+(test "test-only disabled outside test context" #f (contracts-enabled?))
+(test "call-with-test-context enables contracts"
+      #t
+      (call-with-test-context (lambda () (contracts-enabled?))))
+(test "test context restored" #f (in-test-context?))
+
+;; Test scoped mode with exception
+(set-contract-mode! 'runtime)
+(guard (e [else #t])
+  (call-with-contract-mode 'doc-only
+    (lambda () (error 'test "intentional"))))
+(test "mode restored after exception" 'runtime (get-contract-mode))
+
+(test-section "Contract Checking Modes - check-flat/mode and contract-wrap/mode")
+
+;; Test check-flat/mode
+(set-contract-mode! 'runtime)
+(test "check-flat/mode checks in runtime" 'Ok (car (check-flat/mode nat/c 5 'test)))
+(test "check-flat/mode fails in runtime" 'Err (car (check-flat/mode nat/c -1 'test)))
+
+(set-contract-mode! 'doc-only)
+(test "check-flat/mode passes in doc-only" 'Ok (car (check-flat/mode nat/c -1 'test)))
+(test "check-flat/mode returns value in doc-only" -1 (cadr (check-flat/mode nat/c -1 'test)))
+
+;; Test contract-wrap/mode
+(set-contract-mode! 'runtime)
+(test "contract-wrap/mode wraps in runtime" #t
+      (let ([result (contract-wrap/mode add1-contract (lambda (x) (+ x 1)) 'test)])
+        (and (eq? (car result) 'Ok)
+             (procedure? (cadr result)))))
+
+(set-contract-mode! 'doc-only)
+(test "contract-wrap/mode returns unwrapped in doc-only" #t
+      (let ([result (contract-wrap/mode add1-contract (lambda (x) x) 'test)])
+        (and (eq? (car result) 'Ok)
+             (procedure? (cadr result))
+             ;; The function should be the original, not wrapped
+             (eq? ((cadr result) 5) 5))))
+
+(test-section "Contract Checking Modes - Status Reporting")
+
+(set-contract-mode! 'runtime)
+(test "contract-mode->string for runtime" "runtime (always check)"
+      (contract-mode->string 'runtime))
+(test "contract-mode->string for compile-time" "compile-time (static verification only)"
+      (contract-mode->string 'compile-time))
+(test "contract-status returns string" #t (string? (contract-status)))
+
+(test-section "Contract Checking Modes - Compile-Time Verifier Hook")
+
+(test "no verifier by default" #f *compile-time-verifier*)
+(test "verify-contract-statically fails without verifier"
+      'Err
+      (car (verify-contract-statically nat/c 'Nat 'test)))
+
+;; Register a simple verifier
+(set-compile-time-verifier!
+  (lambda (contract type)
+    (if (and (eq? contract nat/c) (eq? type 'Nat))
+        '(Ok ())
+        '(Err "Type mismatch"))))
+(test "verifier registered" #t (procedure? *compile-time-verifier*))
+(test "static verification succeeds" 'Ok
+      (car (verify-contract-statically nat/c 'Nat 'test)))
+(test "static verification fails on mismatch" 'Err
+      (car (verify-contract-statically nat/c 'String 'test)))
+
+;; Clean up verifier
+(set! *compile-time-verifier* #f)
+
+;; Restore original state
+(set! *contract-mode* saved-mode)
+(set! *in-test-context* saved-test-context)
+
 (newline)
 (display "All tests completed!")
 (newline)
