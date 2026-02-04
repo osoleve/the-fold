@@ -244,7 +244,39 @@ def apply_implicit_parens(code):
     return f"({code})"
 
 def is_daemon_running():
-    return os.path.exists(READY_FILE)
+    """Check if daemon is actually running (not just zombie state)."""
+    if not os.path.exists(READY_FILE):
+        return False
+
+    # Verify the PID is actually alive
+    pid_file = os.path.join(REPL_DIR, "daemon.pid")
+    if not os.path.exists(pid_file):
+        # Ready file without PID file = zombie state
+        return False
+
+    try:
+        with open(pid_file, 'r') as f:
+            raw = f.read().strip()
+        if not raw or not raw.isdigit():
+            return False  # Corrupt PID file
+        pid = int(raw)
+        if pid <= 0:
+            return False
+        os.kill(pid, 0)  # Check if process exists
+        return True
+    except (IOError, ValueError, OSError):
+        # PID file unreadable or process not running - zombie state
+        return False
+
+def cleanup_zombie_state():
+    """Clean up zombie daemon state (ready file without running process)."""
+    pid_file = os.path.join(REPL_DIR, "daemon.pid")
+    # Use try/except to handle concurrent cleanup safely
+    for path in [READY_FILE, pid_file]:
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass  # Already removed by another process
 
 def start_daemon(verbose=False):
     """Attempt to start the daemon. Returns True if successful."""
@@ -282,6 +314,12 @@ def ensure_daemon_running(verbose=False, auto_start=True):
     """Ensure daemon is running, optionally auto-starting it."""
     if is_daemon_running():
         return True, None
+
+    # Check for zombie state: ready file exists but process not running
+    if os.path.exists(READY_FILE):
+        if verbose:
+            print(f"{COLORS['yellow']}Daemon in zombie state, cleaning up...{COLORS['reset']}", file=sys.stderr)
+        cleanup_zombie_state()
 
     if not auto_start:
         return False, "REPL daemon is not running. Run './daemon.sh start' first."

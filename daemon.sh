@@ -28,9 +28,25 @@ find_scheme() {
 case "$1" in
     start)
         if [ -f "$READY_FILE" ]; then
-            echo "Daemon is already running."
-            echo "Use './daemon.sh stop' to stop it first."
-            exit 1
+            # Check if daemon is actually running or in zombie state
+            if [ -f "$PID_FILE" ]; then
+                PID=$(cat "$PID_FILE" 2>/dev/null)
+                # Validate PID is numeric
+                if ! [[ "$PID" =~ ^[0-9]+$ ]]; then
+                    echo "Cleaning up corrupt PID file..."
+                    rm -f "$READY_FILE" "$PID_FILE"
+                elif kill -0 "$PID" 2>/dev/null; then
+                    echo "Daemon is already running (PID: $PID)."
+                    echo "Use './daemon.sh stop' to stop it first."
+                    exit 1
+                else
+                    echo "Cleaning up zombie state (PID $PID was not running)..."
+                    rm -f "$READY_FILE" "$PID_FILE"
+                fi
+            else
+                echo "Cleaning up stale ready file..."
+                rm -f "$READY_FILE"
+            fi
         fi
 
         echo "Starting REPL daemon in background..."
@@ -99,9 +115,23 @@ case "$1" in
 
     status)
         if [ -f "$READY_FILE" ]; then
-            echo "Daemon is running."
+            # Verify the process is actually running (not a zombie state)
             if [ -f "$PID_FILE" ]; then
-                echo "PID: $(cat $PID_FILE)"
+                PID=$(cat "$PID_FILE" 2>/dev/null)
+                # Validate PID is numeric
+                if ! [[ "$PID" =~ ^[0-9]+$ ]]; then
+                    echo "WARNING: Corrupt PID file (non-numeric content)"
+                    echo "Use './daemon.sh stop' to clean up"
+                elif kill -0 "$PID" 2>/dev/null; then
+                    echo "Daemon is running (PID: $PID)"
+                else
+                    echo "WARNING: Daemon is in zombie state (PID $PID not running)"
+                    echo "Ready file exists but process is dead."
+                    echo "Use './daemon.sh stop' to clean up, then './daemon.sh start'"
+                fi
+            else
+                echo "WARNING: Ready file exists but no PID file"
+                echo "Use './daemon.sh stop' to clean up"
             fi
         else
             echo "Daemon is not running."
