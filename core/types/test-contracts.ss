@@ -738,10 +738,8 @@
     "no error"))
 
 (test "and/c domain error includes contract #" #t
-      (if (string? and-c-domain-error)
-          (let ([has-num (string-contains? and-c-domain-error "#")])
-            (if has-num #t #f))
-          #f))
+      (and (string? and-c-domain-error)
+           (string-contains? and-c-domain-error "#")))
 
 (test-section "Blame Precision - or/c No Match")
 ;; Test that or/c no-match errors list what was tried
@@ -764,10 +762,8 @@
     "no error"))
 
 (test "or/c no-match error includes tried contracts" #t
-      (if (string? or-c-no-match-error)
-          (let ([has-tried (string-contains? or-c-no-match-error "tried")])
-            (if has-tried #t #f))
-          #f))
+      (and (string? or-c-no-match-error)
+           (string-contains? or-c-no-match-error "tried")))
 
 (test-section "Blame Precision - not/c")
 ;; Test that not/c violations include the contract description
@@ -789,10 +785,8 @@
     "no error"))
 
 (test "not/c violation error includes contract description" #t
-      (if (string? not-c-violation-error)
-          (let ([has-desc (string-contains? not-c-violation-error "->")])
-            (if has-desc #t #f))
-          #f))
+      (and (string? not-c-violation-error)
+           (string-contains? not-c-violation-error "->")))
 
 (newline)
 (display "All tests completed!")
