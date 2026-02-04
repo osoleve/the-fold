@@ -1767,7 +1767,60 @@ value    : the offending value
 (not/c nat/c)                 ; Must NOT be a natural number
 ```
 
-#### 5.10.5 Contract Enforcement Modes
+#### 5.10.5 Higher-Order Contract Combinators
+
+Boolean combinators (`and/c`, `or/c`, `not/c`) support function contracts, enabling expressive contract specifications:
+
+```scheme
+;; A function accepting either nat->nat or string->string
+(define either-fn
+  (or/c (->c (list nat/c) nat/c)
+        (->c (list string/c) string/c)))
+
+;; A function satisfying both constraints
+(define strict-fn
+  (and/c (->c (list nat/c) nat/c)
+         (->c (list pos/c) pos/c)))
+```
+
+**Semantics**:
+
+| Combinator | For Procedures | For Non-Procedures |
+|------------|----------------|-------------------|
+| `and/c` | Wrap; check ALL domains and ranges at call time | Check flat contracts; error on function contracts |
+| `or/c` | Wrap; try each contract in order until one matches | Try flat contracts in order |
+| `not/c` | Wrap; fail if function WOULD satisfy inner contract | Check flat; invert result |
+
+**Call-time checking for or/c**:
+```scheme
+;; At call time, or/c tries contracts in order:
+;; 1. Check arity matches
+;; 2. Check domain contracts
+;; 3. First contract whose domain passes is used
+;; 4. Range is checked against that contract
+
+(define wrapped (apply-contract either-fn add1 'f))
+(wrapped 5)      ; Tries nat->nat first, domain passes, uses it
+(wrapped "hi")   ; nat domain fails, tries string->string
+```
+
+**Intersection semantics for and/c**:
+```scheme
+;; For and/c, ALL contracts must be satisfied
+;; Domain = intersection of all domains
+;; Range = intersection of all ranges
+
+(define wrapped (apply-contract strict-fn add1 'f))
+(wrapped 5)      ; Must satisfy BOTH pos/c and nat/c domains
+(wrapped 0)      ; Fails: 0 satisfies nat/c but not pos/c
+```
+
+**Limitations**:
+- Dependent contracts in combinators are not yet supported
+- Chaperone contracts in combinators have limited support
+- Blame messages for complex combinators may be less precise
+
+#### 5.10.6 Contract Enforcement Modes
 
 Contracts can operate in different enforcement modes, balancing safety against performance:
 
