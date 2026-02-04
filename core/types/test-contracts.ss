@@ -20,19 +20,6 @@
        (display actual)))
   (newline))
 
-;;; Helper to check if a string contains a substring
-(define (string-contains?? haystack needle)
-  (let ([hay-len (string-length haystack)]
-        [need-len (string-length needle)])
-    (if (> need-len hay-len)
-        #f
-        (let loop ([i 0])
-          (if (> (+ i need-len) hay-len)
-              #f
-              (if (string=? (substring haystack i (+ i need-len)) needle)
-                  #t
-                  (loop (+ i 1))))))))
-
 (define (test-section name)
   (newline)
   (display name)
