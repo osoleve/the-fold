@@ -132,6 +132,94 @@
 (test "not/c with string failure becomes success" 'Ok (car (check-flat (not/c string/c) 42 'test)))
 
 ;;; ====
+;;; Higher-Order Contract Combinators
+;;; ====
+(test-section "Higher-Order Contract Combinators - or/c")
+
+;; or/c with function contracts
+(define nat->nat-contract (->c (list nat/c) nat/c))
+(define string->string-contract (->c (list string/c) string/c))
+(define either-fn-contract (or/c nat->nat-contract string->string-contract))
+
+;; Wrap a function that works with nats
+(define wrapped-add1
+  (let ([result (contract-wrap either-fn-contract (lambda (x) (+ x 1)) 'add1)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "or/c wraps function contract" #t (procedure? wrapped-add1))
+(test "or/c wrapped function works with first alternative" 6 (wrapped-add1 5))
+
+;; Wrap a function that works with strings
+(define wrapped-upcase
+  (let ([result (contract-wrap either-fn-contract
+                               (lambda (s) (string-append s "!"))
+                               'upcase)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "or/c wraps string function" #t (procedure? wrapped-upcase))
+(test "or/c wrapped function works with second alternative" "hello!"
+      (wrapped-upcase "hello"))
+
+;; Test or/c failure - neither contract matches
+(define (test-or-c-no-match)
+  (guard (e [else #t])
+    ;; Function takes nat but returns string - neither contract works
+    (let* ([bad-fn (lambda (x) "not a number")]
+           [result (contract-wrap either-fn-contract bad-fn 'bad)]
+           [wrapped (if (eq? (car result) 'Ok) (cadr result) #f)])
+      (wrapped 5))  ; Call it
+    #f))
+(test "or/c fails when no contract matches at call time" #t (test-or-c-no-match))
+
+(test-section "Higher-Order Contract Combinators - and/c")
+
+;; and/c with function contracts - both must be satisfied
+(define int->int-contract (->c (list int/c) int/c))
+(define nat->pos-contract (->c (list nat/c) pos/c))
+;; A function satisfying both must: take nat (subset of int), return pos (subset of int)
+(define both-fn-contract (and/c nat->nat-contract nat->pos-contract))
+
+;; Wrap a function that satisfies both (takes nat, returns positive)
+(define wrapped-add1-both
+  (let ([result (contract-wrap both-fn-contract (lambda (x) (+ x 1)) 'add1)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "and/c wraps function contract" #t (procedure? wrapped-add1-both))
+(test "and/c wrapped function works" 6 (wrapped-add1-both 5))
+
+;; Test and/c with non-procedure value and mixed contracts
+(define mixed-and-contract (and/c nat/c pos/c))
+(test "and/c with flat contracts still works" 'Ok (car (contract-wrap mixed-and-contract 5 'test)))
+(test "and/c flat fails when one fails" 'Err (car (contract-wrap mixed-and-contract 0 'test)))
+
+(test-section "Higher-Order Contract Combinators - not/c")
+
+;; not/c with function contract - value must NOT satisfy it
+(define not-nat-fn-contract (not/c nat->nat-contract))
+
+;; A string function does NOT satisfy nat->nat
+(define wrapped-string-fn
+  (let ([result (contract-wrap not-nat-fn-contract
+                               (lambda (s) (string-append s "!"))
+                               'string-fn)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "not/c wraps function that doesn't match inner" #t (procedure? wrapped-string-fn))
+;; When called with a string (not a nat), domain check fails, so not/c passes
+(test "not/c function works when domain doesn't match" "hi!"
+      (wrapped-string-fn "hi"))
+
+;; Test not/c violation - when function DOES satisfy the negated contract
+(define (test-not-c-violation)
+  (guard (e [else #t])
+    (let* ([result (contract-wrap not-nat-fn-contract (lambda (x) (+ x 1)) 'add1)]
+           [wrapped (if (eq? (car result) 'Ok) (cadr result) #f)])
+      ;; This function satisfies nat->nat, so not/c should fail
+      (wrapped 5))
+    #f))
+(test "not/c fails when function satisfies negated contract" #t (test-not-c-violation))
+
+;;; ====
 ;;; Advanced Combinators
 ;;; ====
 (test-section "Advanced Combinators")

@@ -55,6 +55,27 @@
   (doc 'export #t)
   (and (pair? c) (eq? (car c) 'Dep)))
 
+(define (higher-order-contract? c)
+  (doc 'type (-> Contract Boolean))
+  (doc 'description "Check if a contract is higher-order (function, dependent, or chaperone).")
+  (doc 'export #t)
+  (cond
+   [(not (pair? c)) #f]
+   [(eq? (car c) '->) #t]
+   [(eq? (car c) 'Dep) #t]
+   [(eq? (car c) 'chaperone-listof) #t]
+   [(eq? (car c) 'chaperone-vectorof) #t]
+   [(eq? (car c) 'And) (ormap higher-order-contract? (cdr c))]
+   [(eq? (car c) 'Or) (ormap higher-order-contract? (cdr c))]
+   [(eq? (car c) 'Not) (higher-order-contract? (cadr c))]
+   [else #f]))
+
+(define (all-flat-contracts? contracts)
+  (doc 'type (-> (List Contract) Boolean))
+  (doc 'description "Check if all contracts in a list are flat (no function contracts).")
+  (doc 'export #f)
+  (not (ormap higher-order-contract? contracts)))
+
 (doc 'section 'contract-constructors)
 
 (define (flat pred)
@@ -458,11 +479,25 @@
   (doc 'description "Wrap a value with a contract - flat contracts check immediately, function contracts wrap.")
   (doc 'export #t)
   (cond
+   ;; Simple cases: Any, None, flat contracts
    [(or (eq? contract 'Any)
         (eq? contract 'None)
-        (flat-contract? contract)
-        (and (pair? contract) (memq (car contract) '(And Or Not))))
+        (flat-contract? contract))
     (check-flat contract value location)]
+   ;; And/Or/Not: check if all sub-contracts are flat
+   [(and (pair? contract) (eq? (car contract) 'And))
+    (if (all-flat-contracts? (cdr contract))
+        (check-flat contract value location)
+        (wrap-and-contract (cdr contract) value location 'caller))]
+   [(and (pair? contract) (eq? (car contract) 'Or))
+    (if (all-flat-contracts? (cdr contract))
+        (check-flat contract value location)
+        (wrap-or-contract (cdr contract) value location 'caller))]
+   [(and (pair? contract) (eq? (car contract) 'Not))
+    (if (not (higher-order-contract? (cadr contract)))
+        (check-flat contract value location)
+        (wrap-not-contract (cadr contract) value location 'caller))]
+   ;; Function contracts
    [(function-contract? contract)
     (if (procedure? value)
         `(Ok ,(wrap-function contract value location 'caller))
@@ -515,6 +550,209 @@
                         (error 'contract-violation (blame->string (cadr checked-result)))
                         (cadr checked-result))))))))))
 
+(doc 'section 'higher-order-combinators)
+
+;;; Higher-Order Contract Combinators
+;;;
+;;; When And/Or/Not contain function contracts, we cannot check them immediately.
+;;; Instead, we wrap the value and check at call-time.
+
+(define (wrap-and-contract contracts value location blame-party)
+  (doc 'type (-> (List Contract) Any Symbol Symbol (Result Any Blame)))
+  (doc 'description "Wrap a value with conjunction of contracts, some of which may be higher-order.")
+  (doc 'export #f)
+  ;; Strategy: Check all flat contracts immediately, wrap for function contracts
+  ;; For and/c, ALL contracts must be satisfied
+  (if (not (procedure? value))
+      ;; Non-procedure: check flat contracts, fail on function contracts
+      (let loop ([cs contracts])
+        (if (null? cs)
+            `(Ok ,value)
+            (let ([c (car cs)])
+              (if (higher-order-contract? c)
+                  `(Err ,(make-blame blame-party location
+                                     "and/c: expected procedure for function contract"
+                                     value))
+                  (let ([result (check-flat c value location)])
+                    (if (eq? (car result) 'Ok)
+                        (loop (cdr cs))
+                        `(Err ,(make-blame blame-party
+                                           (blame-location (cadr result))
+                                           (blame-message (cadr result))
+                                           (blame-value (cadr result))))))))))
+      ;; Procedure: wrap it to check all contracts at call time
+      `(Ok ,(wrap-and-function contracts value location blame-party))))
+
+(define (wrap-and-function contracts proc location blame-party)
+  (doc 'type (-> (List Contract) Procedure Symbol Symbol Procedure))
+  (doc 'description "Wrap a procedure to satisfy all contracts in conjunction.")
+  (doc 'export #f)
+  ;; At call time, the wrapped function checks each function contract
+  ;; All must pass - we use the first function contract's arity
+  (let ([fn-contracts (filter function-contract? contracts)]
+        [flat-contracts (filter (lambda (c) (not (higher-order-contract? c))) contracts)])
+    (if (null? fn-contracts)
+        ;; No function contracts - shouldn't happen but handle gracefully
+        proc
+        (let* ([first-fn (car fn-contracts)]
+               [domain-contracts (function-contract-domain first-fn)])
+          (lambda args
+            ;; First, verify arity matches
+            (if (not (= (length args) (length domain-contracts)))
+                (error 'contract-violation
+                       (format "~a: expected ~a arguments, got ~a"
+                               location (length domain-contracts) (length args)))
+                ;; Check domain contracts from ALL function contracts
+                (let ([domain-check (check-all-domains fn-contracts args location blame-party)])
+                  (if (eq? (car domain-check) 'Err)
+                      (error 'contract-violation (blame->string (cadr domain-check)))
+                      (let ([result (apply proc (cadr domain-check))])
+                        ;; Check range contracts from ALL function contracts
+                        (let ([range-check (check-all-ranges fn-contracts result location
+                                                             (if (eq? blame-party 'caller) 'callee 'caller))])
+                          (if (eq? (car range-check) 'Err)
+                              (error 'contract-violation (blame->string (cadr range-check)))
+                              (cadr range-check))))))))))))
+
+(define (check-all-domains fn-contracts args location blame-party)
+  (doc 'type (-> (List Contract) (List Any) Symbol Symbol (Result (List Any) Blame)))
+  (doc 'description "Check arguments against all function contracts' domains.")
+  (doc 'export #f)
+  ;; For and/c, all domain contracts must pass
+  ;; Use first contract's structure for wrapping
+  (if (null? fn-contracts)
+      `(Ok ,args)
+      (let ([first-fn (car fn-contracts)])
+        (check-and-wrap-args (function-contract-domain first-fn) args location blame-party))))
+
+(define (check-all-ranges fn-contracts result location blame-party)
+  (doc 'type (-> (List Contract) Any Symbol Symbol (Result Any Blame)))
+  (doc 'description "Check result against all function contracts' ranges.")
+  (doc 'export #f)
+  (let loop ([fns fn-contracts] [val result])
+    (if (null? fns)
+        `(Ok ,val)
+        (let* ([fn (car fns)]
+               [range-c (function-contract-range fn)]
+               [check (contract-wrap-with-blame range-c val location blame-party)])
+          (if (eq? (car check) 'Err)
+              check
+              (loop (cdr fns) (cadr check)))))))
+
+(define (wrap-or-contract contracts value location blame-party)
+  (doc 'type (-> (List Contract) Any Symbol Symbol (Result Any Blame)))
+  (doc 'description "Wrap a value with disjunction of contracts, some of which may be higher-order.")
+  (doc 'export #f)
+  ;; Strategy for or/c:
+  ;; 1. If value is not a procedure, try flat contracts first
+  ;; 2. If value is a procedure, try function contracts
+  ;; 3. At call time, try each function contract until one works
+  (let ([flat-contracts (filter (lambda (c) (not (higher-order-contract? c))) contracts)]
+        [fn-contracts (filter function-contract? contracts)])
+    (if (not (procedure? value))
+        ;; Non-procedure: only flat contracts can match
+        (let loop ([cs flat-contracts])
+          (if (null? cs)
+              `(Err ,(make-blame blame-party location
+                                 "or/c: no flat contract satisfied for non-procedure"
+                                 value))
+              (let ([result (check-flat (car cs) value location)])
+                (if (eq? (car result) 'Ok)
+                    result
+                    (loop (cdr cs))))))
+        ;; Procedure: wrap to try function contracts at call time
+        (if (null? fn-contracts)
+            ;; No function contracts - try flat contracts (might be contract for procedures)
+            (let loop ([cs flat-contracts])
+              (if (null? cs)
+                  `(Err ,(make-blame blame-party location
+                                     "or/c: no contract satisfied for procedure"
+                                     value))
+                  (let ([result (check-flat (car cs) value location)])
+                    (if (eq? (car result) 'Ok)
+                        result
+                        (loop (cdr cs))))))
+            `(Ok ,(wrap-or-function fn-contracts value location blame-party))))))
+
+(define (wrap-or-function contracts proc location blame-party)
+  (doc 'type (-> (List Contract) Procedure Symbol Symbol Procedure))
+  (doc 'description "Wrap a procedure to satisfy at least one contract in disjunction.")
+  (doc 'export #f)
+  ;; At call time, try each function contract in order
+  ;; First one whose domain accepts the args is used for range checking
+  (lambda args
+    (let try-contracts ([cs contracts])
+      (if (null? cs)
+          (error 'contract-violation
+                 (format "~a: no function contract in or/c matched" location))
+          (let* ([c (car cs)]
+                 [domain-contracts (function-contract-domain c)])
+            (if (not (= (length args) (length domain-contracts)))
+                ;; Arity mismatch, try next contract
+                (try-contracts (cdr cs))
+                ;; Try this contract
+                (let ([domain-check (check-and-wrap-args domain-contracts args location blame-party)])
+                  (if (eq? (car domain-check) 'Err)
+                      ;; Domain check failed, try next contract
+                      (try-contracts (cdr cs))
+                      ;; Domain passed, use this contract
+                      (let ([result (apply proc (cadr domain-check))])
+                        (let ([range-check (contract-wrap-with-blame
+                                            (function-contract-range c) result location
+                                            (if (eq? blame-party 'caller) 'callee 'caller))])
+                          (if (eq? (car range-check) 'Err)
+                              (error 'contract-violation (blame->string (cadr range-check)))
+                              (cadr range-check))))))))))))
+
+(define (wrap-not-contract inner-contract value location blame-party)
+  (doc 'type (-> Contract Any Symbol Symbol (Result Any Blame)))
+  (doc 'description "Wrap a value with negation of a higher-order contract.")
+  (doc 'export #f)
+  ;; For not/c with function contracts:
+  ;; The value must NOT satisfy the inner contract
+  ;; For functions, this is tricky - we'd need to prove the function CAN'T satisfy it
+  ;; Practical approach: wrap and check at call time, inverting the result
+  (if (not (procedure? value))
+      ;; Non-procedure with HO inner contract: it trivially doesn't satisfy a function contract
+      `(Ok ,value)
+      ;; Procedure: wrap to check at call time
+      (if (function-contract? inner-contract)
+          `(Ok ,(wrap-not-function inner-contract value location blame-party))
+          ;; Other HO contracts (chaperones, etc.) - not supported yet
+          `(Err ,(make-blame blame-party location
+                             "not/c: unsupported higher-order contract type"
+                             inner-contract)))))
+
+(define (wrap-not-function inner-contract proc location blame-party)
+  (doc 'type (-> Contract Procedure Symbol Symbol Procedure))
+  (doc 'description "Wrap a procedure to NOT satisfy a function contract.")
+  (doc 'export #f)
+  ;; Semantics: The wrapped function should fail if it WOULD satisfy the inner contract
+  ;; This is useful for negative testing or exclusion constraints
+  (let ([domain-contracts (function-contract-domain inner-contract)]
+        [range-contract (function-contract-range inner-contract)])
+    (lambda args
+      (if (not (= (length args) (length domain-contracts)))
+          ;; Arity mismatch - doesn't match the contract, so not/c passes
+          (apply proc args)
+          ;; Same arity - check if args satisfy domain
+          (let ([domain-check (check-and-wrap-args domain-contracts args location blame-party)])
+            (if (eq? (car domain-check) 'Err)
+                ;; Domain check failed - doesn't match contract, not/c passes
+                (apply proc args)
+                ;; Domain passed - call function and check if result satisfies range
+                (let ([result (apply proc (cadr domain-check))])
+                  (let ([range-check (contract-wrap-with-blame
+                                      range-contract result location
+                                      (if (eq? blame-party 'caller) 'callee 'caller))])
+                    (if (eq? (car range-check) 'Ok)
+                        ;; Range satisfied - the function DOES satisfy the contract, so not/c FAILS
+                        (error 'contract-violation
+                               (format "~a: not/c violated - function satisfies negated contract"
+                                       location))
+                        ;; Range failed - doesn't satisfy contract, not/c passes
+                        result)))))))))
+
 (define (check-and-wrap-args contracts args location blame-party)
   (doc 'type (-> (List Contract) (List Any) Symbol Symbol (Result (List Any) Blame)))
   (doc 'description "Check each argument against its contract, wrapping higher-order arguments.")
@@ -532,10 +770,10 @@
   (doc 'description "Wrap with explicit blame party - higher-order arguments get flipped blame.")
   (doc 'export #f)
   (cond
+   ;; Simple cases: Any, None, flat contracts
    [(or (eq? contract 'Any)
         (eq? contract 'None)
-        (flat-contract? contract)
-        (and (pair? contract) (memq (car contract) '(And Or Not))))
+        (flat-contract? contract))
     (let ([result (check-flat contract value location)])
       (if (eq? (car result) 'Err)
           (let ([b (cadr result)])
@@ -544,6 +782,35 @@
                                (blame-message b)
                                (blame-value b))))
           result))]
+   ;; And/Or/Not: check if all sub-contracts are flat
+   [(and (pair? contract) (eq? (car contract) 'And))
+    (if (all-flat-contracts? (cdr contract))
+        (let ([result (check-flat contract value location)])
+          (if (eq? (car result) 'Err)
+              (let ([b (cadr result)])
+                `(Err ,(make-blame blame-party (blame-location b)
+                                   (blame-message b) (blame-value b))))
+              result))
+        (wrap-and-contract (cdr contract) value location blame-party))]
+   [(and (pair? contract) (eq? (car contract) 'Or))
+    (if (all-flat-contracts? (cdr contract))
+        (let ([result (check-flat contract value location)])
+          (if (eq? (car result) 'Err)
+              (let ([b (cadr result)])
+                `(Err ,(make-blame blame-party (blame-location b)
+                                   (blame-message b) (blame-value b))))
+              result))
+        (wrap-or-contract (cdr contract) value location blame-party))]
+   [(and (pair? contract) (eq? (car contract) 'Not))
+    (if (not (higher-order-contract? (cadr contract)))
+        (let ([result (check-flat contract value location)])
+          (if (eq? (car result) 'Err)
+              (let ([b (cadr result)])
+                `(Err ,(make-blame blame-party (blame-location b)
+                                   (blame-message b) (blame-value b))))
+              result))
+        (wrap-not-contract (cadr contract) value location blame-party))]
+   ;; Function contracts
    [(function-contract? contract)
     (if (procedure? value)
         `(Ok ,(wrap-function contract value location
