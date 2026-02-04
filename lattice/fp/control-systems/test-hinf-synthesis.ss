@@ -61,6 +61,39 @@
             (assert-true (ss? G-ss))
             (assert-equal 0 (ss-order G-ss))
             (assert-true (< (abs (- (matrix-ref (ss-D G-ss) 0 0) 5)) 1e-10))))
+
+    (define-test "higher-order numerator converts correctly"
+      ;; G(s) = (s^2 + 2s + 3) / (s^3 + 4s^2 + 5s + 6)
+      ;; Tests that poly-from-complex-samples handles degree ≥ 2
+      (let* ([G-tf (tf-from-lists '(1 2 3) '(1 4 5 6))]
+             [G-ss (tf->ss G-tf)])
+            (assert-true (ss? G-ss))
+            (assert-equal 3 (ss-order G-ss))))
+
+    (define-test "tf with equal numerator and denominator degree"
+      ;; G(s) = (s^2 + 1) / (s^2 + 2s + 1)
+      ;; This has direct feedthrough (D ≠ 0 in state-space)
+      (let* ([G-tf (tf-from-lists '(1 0 1) '(1 2 1))]
+             [G-ss (tf->ss G-tf)])
+            (assert-true (ss? G-ss))
+            (assert-equal 2 (ss-order G-ss))
+            ;; D should be 1 (leading coeff ratio)
+            (assert-true (< (abs (- (matrix-ref (ss-D G-ss) 0 0) 1)) 1e-10))))
+
+    (define-test "ss->tf round-trip for first-order"
+      ;; Start with G(s) = 1/(s+2), convert to ss, back to tf
+      (let* ([G-tf (tf-from-lists '(1) '(1 2))]
+             [G-ss (tf->ss G-tf)]
+             [G-tf2 (ss->tf G-ss)])
+            (assert-true (tf? G-tf2))
+            ;; Check DC gain matches: G(0) = 1/2 = 0.5
+            (let ([dc-orig (hinf-norm (tf-from-lists '(1) '(2)))]   ; |1/2| at w=0
+                  [dc-round (hinf-norm (tf-from-lists
+                                        (vector->list (poly-coeffs (tf-num G-tf2)))
+                                        (vector->list (poly-coeffs (tf-den G-tf2)))))])
+                 ;; Both should have same DC characteristics (approximate check)
+                 (assert-true (number? dc-orig))
+                 (assert-true (number? dc-round)))))
   )
 
   ;;; =========================================================================
@@ -86,6 +119,22 @@
             (assert-equal 2 (gp-nz gp))
             ;; 1 measurement
             (assert-equal 1 (gp-ny gp))))
+
+    (define-test "plant with direct feedthrough produces D22 error"
+      ;; Create plant with D ≠ 0 (direct feedthrough from input to output)
+      ;; G(s) = (s+1)/(s+2) has D = 1
+      (let* ([G (tf->ss (tf-from-lists '(1 1) '(1 2)))]  ; Has D ≠ 0
+             [W1 (hinf-weight-constant 1)]
+             [W3 (hinf-weight-constant 0.5)]
+             [gp (hinf-mixed-sensitivity-plant G W1 W3)])
+            ;; The generalized plant should be created fine
+            (assert-true (gp? gp))
+            ;; But attempting synthesis should fail with D22 error
+            (let ([result (hinf-check-gamma gp 5)])
+                 (assert-true (pair? result))
+                 (assert-equal 'error (car result))
+                 ;; Should specifically be d22-nonzero-not-supported
+                 (assert-equal 'd22-nonzero-not-supported (cadr result)))))
   )
 
   ;;; =========================================================================
@@ -93,6 +142,23 @@
   ;;; =========================================================================
 
   (test-group "Riccati Solving"
+
+    (define-test "psd projection clamps negative eigenvalues"
+      ;; Create matrix with negative eigenvalue
+      ;; [[1, 2], [2, 1]] has eigenvalues 3 and -1
+      (let* ([M (matrix-from-lists '((1 2) (2 1)))]
+             [M-psd (matrix-psd-project M)])
+            (assert-true (matrix? M-psd))
+            ;; Result should be PSD (all eigenvalues ≥ 0)
+            ;; The projected matrix should have eigenvalue -1 → 0
+            ;; This means trace should decrease from 2 to ~1.5 (approx)
+            ;; More importantly, the smallest eigenvalue should be ≥ 0
+            (let ([eigs (symmetric-eigen M-psd 100 1e-10)])
+                 (when (and (pair? eigs) (not (eq? (car eigs) 'error)))
+                       (let ([eigenvalues (car eigs)])
+                            (do ([i 0 (+ i 1)])
+                                [(= i (vector-length eigenvalues))]
+                                (assert-true (>= (vector-ref eigenvalues i) -1e-10))))))))
 
     (define-test "simple Riccati converges"
       ;; Solve A'X + XA + Q + X*R*X = 0

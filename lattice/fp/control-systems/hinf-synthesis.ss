@@ -254,7 +254,11 @@
 (define (hinf-check-gamma gp gamma)
   (doc 'type "GeneralizedPlant × Number → (ok K) | (error ...)")
   (doc 'description "Check if γ is achievable and compute controller if so.
-  Uses the two-Riccati approach (Glover-Doyle).")
+  Uses the two-Riccati approach (Glover-Doyle).
+
+  IMPORTANT: This implementation assumes D22 = 0 (no direct feedthrough from
+  control input to measurement output). Plants with D22 ≠ 0 require loop-shifting
+  transformations that are not yet implemented.")
   (let* ([A (gp-A gp)]
          [B1 (gp-B1 gp)]
          [B2 (gp-B2 gp)]
@@ -262,40 +266,47 @@
          [C2 (gp-C2 gp)]
          [D12 (gp-D12 gp)]
          [D21 (gp-D21 gp)]
+         [D22 (gp-D22 gp)]
          [n (gp-order gp)]
          [gamma2 (* gamma gamma)]
          [gamma2-inv (/ 1 gamma2)])
-        ;; Simplifying assumptions for standard form:
-        ;; D11 = 0, D12'D12 = I, D21 D21' = I, D22 = 0
-        ;; (These are achievable via loop-shifting transformations)
-
-        ;; Step 1: Solve control Riccati
-        ;; A'X + XA + C1'C1 + X*R_X*X = 0
-        ;; where R_X = γ^-2 B1 B1' - B2 B2'
-        (let* ([B1B1t (matrix-mul B1 (matrix-transpose B1))]
-               [B2B2t (matrix-mul B2 (matrix-transpose B2))]
-               [R-X (matrix-sub (matrix-scale gamma2-inv B1B1t) B2B2t)]
-               [C1tC1 (matrix-mul (matrix-transpose C1) C1)]
-               [X-result (solve-hinf-riccati A R-X C1tC1 1000)])
-              (if (and (pair? X-result) (eq? (car X-result) 'error))
-                  X-result
-                  ;; Step 2: Solve filter Riccati
-                  ;; AY + YA' + B1 B1' + Y*R_Y*Y = 0
-                  ;; where R_Y = γ^-2 C1'C1 - C2'C2
-                  (let* ([X X-result]
-                         [C2tC2 (matrix-mul (matrix-transpose C2) C2)]
-                         [R-Y (matrix-sub (matrix-scale gamma2-inv C1tC1) C2tC2)]
-                         [Y-result (solve-hinf-riccati-dual A R-Y B1B1t 1000)])
-                        (if (and (pair? Y-result) (eq? (car Y-result) 'error))
-                            Y-result
-                            ;; Step 3: Check spectral radius condition
-                            (let* ([Y Y-result]
-                                   [XY (matrix-mul X Y)]
-                                   [rho (spectral-radius XY)])
-                                  (if (>= rho gamma2)
-                                      '(error spectral-radius-too-large)
-                                      ;; Step 4: Construct controller
-                                      (hinf-construct-controller A B1 B2 C1 C2 X Y gamma)))))))))
+        ;; Verify D22 = 0 assumption
+        ;; The two-Riccati formulas require D22 = 0. Non-zero D22 would need
+        ;; loop-shifting: replace G with G̃ = G - D22, then adjust controller.
+        (if (not (matrix-near-zero? D22 1e-10))
+            '(error d22-nonzero-not-supported
+                    "Plant has direct feedthrough (D22 ≠ 0). This implementation "
+                    "requires D22 = 0. Loop-shifting transformation not yet implemented.")
+            ;; D22 = 0 verified, proceed with synthesis
+            ;; Simplifying assumptions for standard form:
+            ;; D11 = 0, D12'D12 = I, D21 D21' = I, D22 = 0
+            ;; Step 1: Solve control Riccati
+            ;; A'X + XA + C1'C1 + X*R_X*X = 0
+            ;; where R_X = γ^-2 B1 B1' - B2 B2'
+            (let* ([B1B1t (matrix-mul B1 (matrix-transpose B1))]
+                   [B2B2t (matrix-mul B2 (matrix-transpose B2))]
+                   [R-X (matrix-sub (matrix-scale gamma2-inv B1B1t) B2B2t)]
+                   [C1tC1 (matrix-mul (matrix-transpose C1) C1)]
+                   [X-result (solve-hinf-riccati A R-X C1tC1 1000)])
+                  (if (and (pair? X-result) (eq? (car X-result) 'error))
+                      X-result
+                      ;; Step 2: Solve filter Riccati
+                      ;; AY + YA' + B1 B1' + Y*R_Y*Y = 0
+                      ;; where R_Y = γ^-2 C1'C1 - C2'C2
+                      (let* ([X X-result]
+                             [C2tC2 (matrix-mul (matrix-transpose C2) C2)]
+                             [R-Y (matrix-sub (matrix-scale gamma2-inv C1tC1) C2tC2)]
+                             [Y-result (solve-hinf-riccati-dual A R-Y B1B1t 1000)])
+                            (if (and (pair? Y-result) (eq? (car Y-result) 'error))
+                                Y-result
+                                ;; Step 3: Check spectral radius condition
+                                (let* ([Y Y-result]
+                                       [XY (matrix-mul X Y)]
+                                       [rho (spectral-radius XY)])
+                                      (if (>= rho gamma2)
+                                          '(error spectral-radius-too-large)
+                                          ;; Step 4: Construct controller
+                                          (hinf-construct-controller A B1 B2 C1 C2 X Y gamma))))))))))
 
 (define (solve-hinf-riccati A R Q max-iter)
   (doc 'type "Matrix × Matrix × Matrix × Nat → Matrix | Error")
@@ -363,6 +374,21 @@
                                              (inner (+ j 1)
                                                     (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
+(define (matrix-near-zero? M tol)
+  (doc 'type "Matrix × Number → Boolean")
+  (doc 'description "Check if all elements of matrix are within tolerance of zero")
+  (let* ([rows (matrix-rows M)]
+         [cols (matrix-cols M)])
+        (let loop ([i 0])
+             (if (>= i rows)
+                 #t
+                 (let inner ([j 0])
+                      (if (>= j cols)
+                          (loop (+ i 1))
+                          (if (> (abs (matrix-ref M i j)) tol)
+                              #f
+                              (inner (+ j 1)))))))))
+
 (define (lyapunov-solve-hinf A Q max-iter)
   (doc 'type "Matrix × Matrix × Nat → Matrix")
   (doc 'description "Solve A'X + XA = -Q via iteration (for Newton step)")
@@ -385,17 +411,43 @@
 (define (matrix-psd-project M)
   (doc 'type "Matrix → Matrix")
   (doc 'description "Project matrix onto positive semi-definite cone.
-  Sets negative eigenvalues to zero.")
-  ;; Simple approximation: symmetrize and ensure diagonal dominance
+  Uses eigendecomposition: M = V D V', clamp D to D' = max(D,0), return V D' V'.
+  This is the nearest PSD matrix in Frobenius norm.")
+  (let* ([n (matrix-rows M)])
+        (if (= n 0)
+            M
+            ;; Symmetrize first: M_sym = (M + M')/2
+            (let* ([M-sym (matrix-scale 0.5 (matrix-add M (matrix-transpose M)))]
+                   ;; Compute eigendecomposition: M_sym = V D V'
+                   [eigen-result (symmetric-eigen M-sym 200 1e-12)])
+                  (if (and (pair? eigen-result) (eq? (car eigen-result) 'error))
+                      ;; Fallback to simple diagonal clamping if eigen fails
+                      (matrix-psd-project-simple M-sym)
+                      (let* ([eigenvalues (car eigen-result)]   ; Vector
+                             [eigenvectors (cdr eigen-result)]  ; Matrix V
+                             ;; Clamp negative eigenvalues to zero
+                             [D-clamped (make-matrix n n 0)])
+                            ;; Fill diagonal with clamped eigenvalues
+                            (do ([i 0 (+ i 1)])
+                                [(= i n)]
+                                (let ([ev (vector-ref eigenvalues i)])
+                                     (matrix-set! D-clamped i i (max 0 ev))))
+                            ;; Reconstruct: V * D' * V'
+                            (let* ([Vt (matrix-transpose eigenvectors)]
+                                   [V-D (matrix-mul eigenvectors D-clamped)])
+                                  (matrix-mul V-D Vt))))))))
+
+(define (matrix-psd-project-simple M)
+  (doc 'type "Matrix → Matrix")
+  (doc 'description "Simple fallback PSD projection: clamp diagonal to non-negative.
+  This is a crude approximation used when eigendecomposition fails.")
   (let* ([n (matrix-rows M)]
-         [M-sym (matrix-scale 0.5 (matrix-add M (matrix-transpose M)))]
          [result (make-matrix n n 0)])
-        ;; Copy symmetric part and clamp small negatives
         (do ([i 0 (+ i 1)])
             [(= i n) result]
             (do ([j 0 (+ j 1)])
                 [(= j n)]
-                (let ([val (matrix-ref M-sym i j)])
+                (let ([val (matrix-ref M i j)])
                      (matrix-set! result i j
                                   (if (and (= i j) (< val 0))
                                       0
@@ -606,12 +658,15 @@
                       [(= i n)]
                       (vector-set! a i (/ (vector-ref den-coeffs (- n i)) lead)))
                   ;; Pad numerator coefficients
-                  (do ([i 0 (+ i 1)])
-                      [(> i m)]
-                      (let ([idx (- n m i -1)])
-                           (when (and (>= idx 0) (< idx (+ n 1)))
-                                 (vector-set! b idx
-                                              (/ (vector-ref num-coeffs (- m i)) lead)))))
+                  ;; num-coeffs is in descending order: [b_m, b_{m-1}, ..., b_0]
+                  ;; b vector should be ascending: b[j] = coefficient of s^j
+                  ;; So b[j] = num-coeffs[m-j] for j = 0, ..., m
+                  (do ([j 0 (+ j 1)])
+                      [(> j m)]
+                      (let* ([num-idx (- m j)]     ; map b[j] <- num-coeffs[m-j]
+                             [coeff (/ (vector-ref num-coeffs num-idx) lead)])
+                            (when (< j (+ n 1))
+                                  (vector-set! b j coeff))))
                   ;; Fill A: companion matrix
                   (do ([i 0 (+ i 1)])
                       [(= i (- n 1))]
@@ -698,15 +753,24 @@
          [B (ss-B sys)]
          [C (ss-C sys)]
          [D (ss-D sys)]
-         [n (ss-order sys)]
-         [sI-A (matrix-sub-scalar-diag (matrix-scale-complex s (matrix-identity n))
-                                        A)])
-        ;; (sI-A)^-1 via simple iteration for complex case
-        (let* ([inv-result (matrix-inverse-complex sI-A)]
-               [CinvB (matrix-mul-complex C (matrix-mul-complex inv-result B))]
-               [result (complex-add (matrix-ref-complex CinvB 0 0)
-                                    (make-complex (matrix-ref D 0 0) 0))])
-              result)))
+         [n (ss-order sys)])
+        (if (= n 0)
+            ;; Static system: just return D
+            (make-complex (matrix-ref D 0 0) 0)
+            ;; Dynamic system: compute C(sI-A)^-1 B + D
+            (let* ([sI-A (matrix-sub-scalar-diag (matrix-scale-complex s (matrix-identity n))
+                                                  A)]
+                   ;; Wrap real matrices C, B as complex (zero imaginary part)
+                   [C-complex (list C (make-matrix (matrix-rows C) (matrix-cols C) 0))]
+                   [B-complex (list B (make-matrix (matrix-rows B) (matrix-cols B) 0))]
+                   ;; (sI-A)^-1
+                   [inv-result (matrix-inverse-complex sI-A)]
+                   ;; C * (sI-A)^-1 * B
+                   [invB (matrix-mul-complex inv-result B-complex)]
+                   [CinvB (matrix-mul-complex C-complex invB)]
+                   [result (complex-add (matrix-ref-complex CinvB 0 0)
+                                        (make-complex (matrix-ref D 0 0) 0))])
+                  result))))
 
 ;; Simplified complex matrix operations (for small matrices)
 (define (matrix-scale-complex s M)
@@ -799,21 +863,72 @@
 
 (define (poly-from-complex-samples s-vals num-vals degree)
   (doc 'type "(List Complex) × (List Complex) × Nat → Poly")
-  (doc 'description "Fit polynomial to complex samples (simplified)")
-  ;; For small degrees, extract real coefficients directly
-  ;; This is a simplification - full implementation would use least squares
-  (let* ([coeffs (make-vector (+ degree 1) 0)])
-        ;; Use real parts of low-frequency samples
-        (let* ([dc (complex-real (car num-vals))])
-              (vector-set! coeffs degree dc)
-              ;; For higher coefficients, use finite differences
-              (when (> degree 0)
-                    (let* ([slope (if (> (length num-vals) 1)
-                                      (/ (- (complex-real (cadr num-vals)) dc)
-                                         (complex-imag (cadr s-vals)))
-                                      0)])
-                          (vector-set! coeffs (- degree 1) slope))))
-        (make-poly coeffs)))
+  (doc 'description "Fit polynomial to complex samples using least squares.
+  Given samples (s_k, y_k) where y_k = p(s_k), recover polynomial p of given degree.
+  Uses the structure of purely imaginary samples to extract real coefficients.
+
+  For p(s) = c_n*s^n + ... + c_1*s + c_0 evaluated at s = iω:
+    Re[p(iω)] uses even powers: c_0 - c_2*ω² + c_4*ω⁴ - ...
+    Im[p(iω)] uses odd powers:  c_1*ω - c_3*ω³ + c_5*ω⁵ - ...")
+  (let* ([n degree]
+         [n-coeffs (+ n 1)]
+         [n-samples (length s-vals)]
+         ;; Build overdetermined system: 2*n-samples rows, n-coeffs columns
+         ;; Each complex sample gives 2 real equations
+         [A (make-matrix (* 2 n-samples) n-coeffs 0)]
+         [b (make-vector (* 2 n-samples) 0)])
+        ;; Fill system for each sample
+        (let fill-loop ([k 0] [s-rest s-vals] [y-rest num-vals])
+             (if (or (null? s-rest) (null? y-rest))
+                 ;; Solve via least squares
+                 (let ([coeffs-vec (matrix-least-squares A b)])
+                      (if (and (pair? coeffs-vec) (eq? (car coeffs-vec) 'error))
+                          ;; Fallback to simple DC-only if solver fails
+                          (make-poly (vector (complex-real (car num-vals))))
+                          (make-poly coeffs-vec)))
+                 (let* ([s (car s-rest)]
+                        [y (car y-rest)]
+                        [omega (complex-imag s)]  ; s = iω
+                        [y-re (complex-real y)]
+                        [y-im (complex-imag y)]
+                        [row-re (* 2 k)]
+                        [row-im (+ (* 2 k) 1)])
+                       ;; Fill b vector
+                       (vector-set! b row-re y-re)
+                       (vector-set! b row-im y-im)
+                       ;; Fill A matrix row
+                       ;; Column j corresponds to coefficient c_{n-j} (descending order)
+                       ;; Term c_{n-j} * s^{n-j} contributes to real/imag based on power
+                       (do ([j 0 (+ j 1)])
+                           [(= j n-coeffs)]
+                           (let* ([power (- n j)]  ; s^power
+                                  [i^pow-re (ipow-real power)]    ; Re[i^power]
+                                  [i^pow-im (ipow-imag power)]    ; Im[i^power]
+                                  [omega^pow (expt omega power)]
+                                  ;; (iω)^power = i^power * ω^power
+                                  [contrib-re (* i^pow-re omega^pow)]
+                                  [contrib-im (* i^pow-im omega^pow)])
+                                 (matrix-set! A row-re j contrib-re)
+                                 (matrix-set! A row-im j contrib-im)))
+                       (fill-loop (+ k 1) (cdr s-rest) (cdr y-rest)))))))
+
+(define (ipow-real power)
+  (doc 'type "Nat → Number")
+  (doc 'description "Real part of i^power: pattern 1, 0, -1, 0, 1, ...")
+  (case (modulo power 4)
+    [(0) 1]
+    [(1) 0]
+    [(2) -1]
+    [(3) 0]))
+
+(define (ipow-imag power)
+  (doc 'type "Nat → Number")
+  (doc 'description "Imaginary part of i^power: pattern 0, 1, 0, -1, 0, ...")
+  (case (modulo power 4)
+    [(0) 0]
+    [(1) 1]
+    [(2) 0]
+    [(3) -1]))
 
 (define (complex-mul a b)
   (make-complex (- (* (complex-real a) (complex-real b))
