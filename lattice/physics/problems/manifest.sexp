@@ -5,7 +5,7 @@
   (purity partial)
   (stability experimental)
   (fuel-bound "O(n*frames)")
-  (deps (classical dataset))
+  (deps (physics/classical dataset))
   (description "Physics word problem generation using the Dataset SDK and classical physics engine. Provides declarative templates for spatial, kinematic, and dynamic problems.")
   (keywords (physics problems dataset ml benchmark visual-reasoning))
   (exports

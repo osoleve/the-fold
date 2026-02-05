@@ -1,5 +1,6 @@
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/interval-newton.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'test-interval-newton)
 (doc 'description "Tests for interval Newton root finding")
@@ -330,7 +331,7 @@
       ;; Must find 2 roots near 0.468 and 0.532
       (assert-true (= (length roots) 2))
       (let* ([root-mids (map (lambda (r) (interval-mid (car r))) roots)]
-             [sorted (list-sort < root-mids)])
+             [sorted (merge-sort-by < root-mids)])
         ;; First root near 0.468
         (assert-true (< (abs (- (car sorted) 0.4684)) 0.01))
         ;; Second root near 0.532

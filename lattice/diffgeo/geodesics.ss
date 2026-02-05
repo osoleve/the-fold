@@ -2,6 +2,7 @@
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/diffgeo/curvature.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'geodesics)
 (doc 'description "Geodesic Computation - Geodesic curves on Riemannian manifolds")
@@ -360,7 +361,7 @@
   (doc 'description "Trace adaptively, returning states at specified times")
   (if (null? times)
       '()
-      (let* ([sorted-times (list-sort < times)]
+      (let* ([sorted-times (merge-sort-by < times)]
              [T (car (reverse sorted-times))]  ; Final time
              [state0 (make-geodesic-state initial-coords initial-velocity)]
              [dt0 (/ T 10)]

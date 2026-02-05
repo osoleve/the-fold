@@ -2,6 +2,7 @@
 (load "lattice/fp/control/state.ss")
 (load "lattice/random/prng.ss")
 (load "lattice/optimization/convergence.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'metaheuristic)
 (doc 'description "Global optimization via metaheuristics: simulated annealing, genetic algorithms, particle swarm")
@@ -625,7 +626,7 @@ A solution x dominates y if:
                      ;; Sort by this objective
                      ;; Each element is ((solution objectives) distance)
                      ;; To get objectives: (cadr (car elem)) = (cadr (car ((sol objs) dist))) = objs
-                     (let* ([sorted (list-sort (lambda (a b)
+                     (let* ([sorted (merge-sort-by (lambda (a b)
                                                        (< (list-ref (cadr (car a)) obj-idx)
                                                           (list-ref (cadr (car b)) obj-idx)))
                                                (map (lambda (pt d) (list pt d))

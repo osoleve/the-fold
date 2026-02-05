@@ -1,6 +1,7 @@
 (load "lattice/tiles/core.ss")
 (load "lattice/topology/simplicial-complex.ss")
 (load "lattice/topology/homology.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'tiles/topology-analysis)
 (doc 'description "Topological analysis of game boards using simplicial homology.
@@ -383,7 +384,7 @@ Useful for heatmap visualization or finding all high-value positions.")
     (let-values ([(keys vals) (hashtable-entries scores)])
       (let ([key-list (vector->list keys)]
             [val-list (vector->list vals)])
-        (list-sort
+        (merge-sort-by
           (lambda (a b) (> (cdr a) (cdr b)))
           (map cons key-list val-list))))))
 
@@ -395,7 +396,7 @@ Useful for heatmap visualization or finding all high-value positions.")
 Useful for identifying the most valuable chokepoints to control.")
 (define (board-most-critical-bridges board neighbor-fn k)
   (let* ([bridges (find-bridges-with-weights board neighbor-fn)]
-         [sorted (list-sort (lambda (a b)
+         [sorted (merge-sort-by (lambda (a b)
                               (> (weighted-bridge-weight a)
                                  (weighted-bridge-weight b)))
                             bridges)])
@@ -431,7 +432,7 @@ Useful for identifying the most valuable chokepoints to control.")
     (printf "~n--- Strategic Analysis ---~n")
     (printf "Critical edges:     ~a~n" (length weighted))
     (when (not (null? weighted))
-      (let ([sorted (list-sort (lambda (a b)
+      (let ([sorted (merge-sort-by (lambda (a b)
                                  (> (weighted-bridge-weight a)
                                     (weighted-bridge-weight b)))
                                weighted)]

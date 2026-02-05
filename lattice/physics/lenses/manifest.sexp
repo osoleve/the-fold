@@ -7,7 +7,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(1) for all lens operations, O(n) for traversals")
-  (deps (fp fp/optics geometry physics/classical physics/classical3d))
+  (deps (fp optics geometry physics/classical physics/classical3d))
 
   (description
    "Optics (lenses) for functional access to 2D and 3D physics state. Enables elegant

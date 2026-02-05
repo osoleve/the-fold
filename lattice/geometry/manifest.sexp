@@ -5,7 +5,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n log n) for BVH/octree operations, O(n) for raymarching")
-  (deps (linalg topology fp/optics fp/protocol))
+  (deps (linalg topology optics fp))
 
   (description
    "2D/3D computational geometry library providing primitives, spatial data structures,

@@ -982,11 +982,5 @@
               (map (lambda (l) (string-append l "\n"))
                    (reverse lines)))))
 
-;;; graph-export-dot : CompGraph × String → Unit
-;;; Export graph to a DOT file for Graphviz.
-(define (graph-export-dot g filename)
-  (let ([dot-content (graph-to-dot g)])
-       (call-with-output-file filename
-                              (lambda (port)
-                                      (display dot-content port))
-                              'replace)))
+;;; NOTE: graph-export-dot (file I/O) removed — core must be pure.
+;;; Use (graph-to-dot g) to get the DOT string, then write at the boundary.
