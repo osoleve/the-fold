@@ -152,7 +152,26 @@
   (define-test "Vec predicate checks element type"
     (let ([pred (type->predicate '(Vec 2 Nat))])
       (assert-true (pred (vector 0 1)))
-      (assert-false (pred (vector -1 1))))))  ; negative not Nat
+      (assert-false (pred (vector -1 1)))))  ; negative not Nat
+
+  (define-test "infers vector contract for simple Vector type"
+    ;; (Vector Int) should produce a vectorof contract (no length check)
+    (let ([vec-c (type->contract '(Vector Int))])
+      (assert-true (flat-contract? vec-c))))
+
+  (define-test "Vector contract checks element type"
+    (let* ([vec-c (type->contract '(Vector Nat))]
+           [pred (flat-predicate vec-c)])
+      (assert-true (pred (vector 0 1 2)))
+      (assert-false (pred (vector 0 -1 2)))    ; negative not Nat
+      (assert-false (pred '(0 1 2)))))          ; not a vector
+
+  (define-test "Vector contract accepts any length"
+    (let* ([vec-c (type->contract '(Vector Int))]
+           [pred (flat-predicate vec-c)])
+      (assert-true (pred (vector)))             ; empty
+      (assert-true (pred (vector 1)))           ; singleton
+      (assert-true (pred (vector 1 2 3 4 5)))))) ; long — closes test-group
 
 ;;; ====
 ;;; Static Verification

@@ -276,7 +276,13 @@ that can be derived from the type structure.")
       (if (flat-contract? elem-contract)
           (listof elem-contract)
           (listof/c elem-contract)))]
-   ;; Vec types -> vectorof with length
+   ;; Vector types -> vectorof (simple: (Vector T), no length constraint)
+   [(and (pair? type) (eq? (car type) 'Vector) (= (length type) 2))
+    (let ([elem-contract (type->contract (cadr type))])
+      (if (flat-contract? elem-contract)
+          (vectorof elem-contract)
+          (vectorof/c elem-contract)))]
+   ;; Vec types -> vectorof with length (dimensioned: (Vec n T))
    [(vec-type? type)
     (let* ([len-expr (cadr type)]
            [elem-type (caddr type)]

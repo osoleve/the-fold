@@ -1096,6 +1096,35 @@
 (test "call-time violation raises error" #t (test-call-time-violation-tracked))
 (test "call-time violation was tracked" 1 *statistical-violation-count*)
 
+(test-section "Statistical Contract Monitoring - apply-contract/mode Violation Count")
+
+;; This test addresses the QA gap from 7c462fff: verify that apply-contract/mode
+;; increments the violation count exactly once in statistical mode (no double-counting).
+(set-contract-mode! 'statistical)
+(set-statistical-sample-rate! 1.0)
+(reset-statistical-counters!)
+
+;; Flat contract failure via apply-contract/mode
+(guard (e [else #t])
+  (apply-contract/mode nat/c "not a nat" 'stat-exact-test))
+
+(test "apply-contract/mode records exactly 1 violation (flat)" 1 *statistical-violation-count*)
+(test "apply-contract/mode records exactly 1 check (flat)" 1 *statistical-check-count*)
+
+;; Reset and test with function contract call-time violation
+(reset-statistical-counters!)
+
+;; Wrap a function - this is the "check" (should succeed)
+(define stat-exact-fn
+  (let ([result (contract-wrap/mode add1-contract (lambda (x) (+ x 1)) 'stat-exact)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+;; Now trigger a call-time violation
+(guard (e [else #t])
+  (stat-exact-fn -1))  ; -1 violates nat/c domain
+
+(test "apply-contract/mode records exactly 1 violation (call-time)" 1 *statistical-violation-count*)
+
 (test-section "Statistical Contract Monitoring - Mode String")
 
 (test "statistical mode string" "statistical (probabilistic sampling)"
