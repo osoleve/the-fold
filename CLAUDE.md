@@ -8,6 +8,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **The Fold** is a content-addressable homoiconic universe built on Chez Scheme.
 
+The Fold is being built as a cognitive substrate for AI — an environment where intelligence and tooling converge. The homoiconic design means abstractions are free from a context-window perspective: once a skill is verified in the lattice, an AI agent doesn't need to reason about its internals, it just reaches for a tool. The lattice is a hierarchy of verified cognitive shortcuts of increasing abstraction and sophistication. Every design decision optimizes for composability and cognitive efficiency — the more composable things are, the more an LLM can accomplish with fewer parameters.
+
+The long-term vision: a smaller, Fold-native model that's as capable as frontier models within this substrate, because the lattice has already done most of the thinking for it. The lines between AI and ecosystem blur because the tools are symbiotic with its intelligence.
+
 ---
 
 ## Interacting with The Fold
@@ -307,13 +311,14 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 - Core code assumes perfect input — no defensive code
 - Core functions are total (enforced via **fuel** parameter)
 - Evaluation strategy is **call-by-value**
+- Purity is a **cognitive optimization**: referentially transparent functions are safe to treat as black boxes. An AI agent can trust composed results without re-verifying internals. Trust is transitive through pure code.
 
 ### The Lattice Is Transparent
 
 - Lattice code must be **decomposable to Fold primitives** (cons, car, cdr, arithmetic, comparisons, eq?, pair?, null?)
 - **Never replace lattice implementations with opaque Scheme built-ins** (e.g., don't replace a local `list-sort` with Chez's built-in) — even if the built-in is faster
 - Rationale: fuel instrumentation, Rust codegen, and BSL containment all require the compiler to see through every operation
-- Fuel semantics are **physics**, not optimization hints — they're the planned containment mechanism for Fold-native models
+- Fuel semantics are **physics**, not optimization hints — they're the planned containment mechanism for Fold-native models. A Fold-native AI is constitutively bounded by fuel; it can reason about its own computational budget the way we reason about energy
 - Boundary code is exempt: it's already outside the fuel model and can freely use Scheme built-ins
 - See `fold-zxum` for the epic tracking Scheme primitive surface area reduction
 
@@ -344,7 +349,7 @@ S-expressions are normalized before hashing:
 
 ### No Third-Party Dependencies
 
-Everything is built in-house. Exceptions require approval from Andy.
+Everything is built in-house. Exceptions require approval from Andy. This is an **epistemological constraint**: third-party code is opaque to introspection. Lattice code decomposes to Fold primitives, giving AI agents total transparency when needed and free abstraction when not. Dependencies would break that unity.
 
 ### Naming Conventions
 
@@ -357,6 +362,24 @@ Everything is built in-house. Exceptions require approval from Andy.
 - `make-type` — Constructors (`make-block`, `make-functor`)
 - `type?` — Predicates (`block?`, `valid-hash?`)
 - `type-field` — Accessors (`block-tag`, `functor-fmap`)
+
+---
+
+## Key Architectural Pipelines
+
+### Optics → Autodiff → E-Graphs → Codegen
+
+These subsystems compose into a differentiable programming pipeline:
+
+1. **Optics** (`lattice/fp/optics/`) specify *what* to access and differentiate. The full tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter.
+2. **Traced optics** (`lattice/autodiff/traced-optics.ss`) integrate optics with autodiff. `lift-at-optic` traces only the optic's focus (the "pair of traced" pattern), enabling efficient gradient computation through optic-focused paths.
+3. **Autodiff** (`core/autodiff/`) provides forward-mode (dual numbers), reverse-mode (tape-based), and second-order (hyperdual numbers). The `Differentiable` type class unifies these.
+4. **E-graphs** (`lattice/egraph/`) enable equality saturation: the same computation can be extracted as different optimal forms depending on the cost model (`cuda-cost`, `cpu-cost`, `code-size-cost`). The same function yields different kernels for different hardware.
+5. **CUDA codegen** (planned, `docs/cuda-codegen-design.md`) — traced computations normalize to S-expressions, hash to content addresses, and compile to CUDA kernels cached in the CAS. Optics compile to GPU memory access patterns (Lens→direct index, Traversal→parallel map, Fold→parallel reduction).
+
+### Hardware Context
+
+Development runs on **2x NVIDIA DGX Spark** (GB10 Grace Blackwell, ARM Cortex-X925/A725) linked over **200Gbps ConnectX-7 with NCCL**. 256GB unified memory total. Native FP8 tensor core support. vLLM serves local models for development and experimentation.
 
 ---
 
