@@ -1113,6 +1113,145 @@
 (set! *statistical-check-count* saved-checks)
 (set! *statistical-violation-count* saved-violations)
 
+;;; ====
+;;; Invariant Contracts
+;;; ====
+(test-section "Invariant Contracts - Basic")
+
+;; Test invariant/c constructor
+(define test-positive-list/c
+  (invariant/c list? (lambda (lst) (andmap positive? lst))))
+
+(test "invariant/c is recognized as contract" #t (contract? test-positive-list/c))
+(test "invariant-contract? recognizes invariants" #t (invariant-contract? test-positive-list/c))
+(test "invariant-contract? rejects non-invariants" #f (invariant-contract? nat/c))
+
+;; Test check-invariant
+(test "invariant passes for valid value" 'Ok
+      (car (check-invariant test-positive-list/c '(1 2 3) 'test)))
+(test "invariant returns value on success" '(1 2 3)
+      (cadr (check-invariant test-positive-list/c '(1 2 3) 'test)))
+
+(test "invariant fails for invalid base type" 'Err
+      (car (check-invariant test-positive-list/c 42 'test)))
+(test "invariant fails for violated property" 'Err
+      (car (check-invariant test-positive-list/c '(1 -2 3) 'test)))
+
+;; Test apply-invariant
+(test "apply-invariant returns value on success" '(1 2 3)
+      (apply-invariant test-positive-list/c '(1 2 3) 'test))
+
+(define (test-apply-invariant-failure)
+  (guard (e [else #t])
+    (apply-invariant test-positive-list/c '(-1 2 3) 'test)
+    #f))
+(test "apply-invariant raises on violation" #t (test-apply-invariant-failure))
+
+(test-section "Invariant Contracts - Built-in Invariants")
+
+;; sorted-list/c (non-decreasing: allows duplicates)
+(test "sorted-list/c accepts empty list" 'Ok
+      (car (check-flat sorted-list/c '() 'test)))
+(test "sorted-list/c accepts singleton" 'Ok
+      (car (check-flat sorted-list/c '(5) 'test)))
+(test "sorted-list/c accepts sorted list" 'Ok
+      (car (check-flat sorted-list/c '(1 2 3 4 5) 'test)))
+(test "sorted-list/c accepts list with duplicates" 'Ok
+      (car (check-flat sorted-list/c '(1 2 2 3) 'test)))
+(test "sorted-list/c rejects unsorted list" 'Err
+      (car (check-flat sorted-list/c '(1 3 2) 'test)))
+(test "sorted-list/c rejects non-list" 'Err
+      (car (check-flat sorted-list/c 42 'test)))
+
+;; strictly-sorted-list/c (strictly increasing: no duplicates)
+(test "strictly-sorted-list/c accepts strictly sorted" 'Ok
+      (car (check-flat strictly-sorted-list/c '(1 2 3) 'test)))
+(test "strictly-sorted-list/c rejects duplicates" 'Err
+      (car (check-flat strictly-sorted-list/c '(1 2 2 3) 'test)))
+
+;; non-empty-list/c
+(test "non-empty-list/c accepts non-empty" 'Ok
+      (car (check-flat non-empty-list/c '(1) 'test)))
+(test "non-empty-list/c rejects empty" 'Err
+      (car (check-flat non-empty-list/c '() 'test)))
+
+;; unique-list/c
+(test "unique-list/c accepts unique elements" 'Ok
+      (car (check-flat unique-list/c '(1 2 3) 'test)))
+(test "unique-list/c rejects duplicates" 'Err
+      (car (check-flat unique-list/c '(1 2 1) 'test)))
+(test "unique-list/c accepts empty list" 'Ok
+      (car (check-flat unique-list/c '() 'test)))
+
+(test-section "Invariant Contracts - Combinators")
+
+;; and-invariant/c
+(define sorted-unique/c (and-invariant/c sorted-list/c unique-list/c))
+(test "and-invariant/c is a contract" #t (contract? sorted-unique/c))
+(test "and-invariant/c passes when both hold" 'Ok
+      (car (check-flat sorted-unique/c '(1 2 3) 'test)))
+(test "and-invariant/c fails when sorted but not unique" 'Err
+      (car (check-flat sorted-unique/c '(1 2 2 3) 'test)))
+
+;; or-invariant/c
+(define either-sorted-or-empty/c (or-invariant/c sorted-list/c non-empty-list/c))
+(test "or-invariant/c is a contract" #t (contract? either-sorted-or-empty/c))
+;; Note: '(3 2 1) is not sorted but IS non-empty, so should pass
+(test "or-invariant/c passes when second holds" 'Ok
+      (car (check-flat either-sorted-or-empty/c '(3 2 1) 'test)))
+;; Sorted list passes
+(test "or-invariant/c passes when first holds" 'Ok
+      (car (check-flat either-sorted-or-empty/c '(1 2 3) 'test)))
+
+(test-section "Invariant Contracts - maintains-invariant")
+
+;; Create a function contract that maintains sorted-list invariant
+(define sorted-insert-contract
+  (maintains-invariant sorted-list/c
+    (->c (list int/c sorted-list/c) sorted-list/c)))
+
+(test "maintains-invariant creates function contract" #t
+      (function-contract? sorted-insert-contract))
+
+;; A correct sorted insert function
+(define (sorted-insert n lst)
+  (cond
+   [(null? lst) (list n)]
+   [(<= n (car lst)) (cons n lst)]
+   [else (cons (car lst) (sorted-insert n (cdr lst)))]))
+
+;; Wrap it
+(define wrapped-sorted-insert
+  (let ([result (contract-wrap sorted-insert-contract sorted-insert 'sorted-insert)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(test "maintains-invariant wraps function" #t (procedure? wrapped-sorted-insert))
+(test "maintained invariant passes for correct function" '(1 2 3 4 5)
+      (wrapped-sorted-insert 3 '(1 2 4 5)))
+
+;; Test that violation is caught when result violates invariant
+(define (bad-sorted-insert n lst)
+  (cons n lst))  ; Just prepends - doesn't maintain sorted order
+
+(define wrapped-bad-insert
+  (let ([result (contract-wrap sorted-insert-contract bad-sorted-insert 'bad-insert)])
+    (if (eq? (car result) 'Ok) (cadr result) #f)))
+
+(define (test-maintains-invariant-violation)
+  (guard (e [else #t])
+    (wrapped-bad-insert 5 '(1 2 3))  ; Would produce '(5 1 2 3) - not sorted
+    #f))
+(test "maintains-invariant catches violation" #t (test-maintains-invariant-violation))
+
+(test-section "Invariant Contracts - invariant->flat-contract")
+
+(define sorted-flat (invariant->flat-contract sorted-list/c))
+(test "invariant->flat-contract creates flat contract" #t (flat-contract? sorted-flat))
+(test "converted invariant checks correctly" 'Ok
+      (car (check-flat sorted-flat '(1 2 3) 'test)))
+(test "converted invariant fails correctly" 'Err
+      (car (check-flat sorted-flat '(3 2 1) 'test)))
+
 (newline)
 (display "All tests completed!")
 (newline)
