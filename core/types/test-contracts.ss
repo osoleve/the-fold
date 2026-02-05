@@ -286,6 +286,8 @@
 (test "flat contract display" "(flat ...)" (contract->string (flat integer?)))
 (test "function contract display" #t (string? (contract->string (->c (list nat/c) pos/c))))
 (test "dependent contract display" #t (string? (contract->string (dep '(x) nat/c))))
+(test "invariant contract display" "(invariant/c <base> <property>)"
+      (contract->string sorted-list/c))
 (test "blame display is string" #t (string? (blame->string (make-blame 'caller 'test "msg" 42))))
 
 ;;; ====
@@ -1191,12 +1193,18 @@
       (car (check-flat sorted-list/c '(1 3 2) 'test)))
 (test "sorted-list/c rejects non-list" 'Err
       (car (check-flat sorted-list/c 42 'test)))
+(test "sorted-list/c rejects non-numeric elements" 'Err
+      (car (check-flat sorted-list/c '("c" "a" "b") 'test)))
+(test "sorted-list/c rejects mixed types" 'Err
+      (car (check-flat sorted-list/c '(1 "two" 3) 'test)))
 
 ;; strictly-sorted-list/c (strictly increasing: no duplicates)
 (test "strictly-sorted-list/c accepts strictly sorted" 'Ok
       (car (check-flat strictly-sorted-list/c '(1 2 3) 'test)))
 (test "strictly-sorted-list/c rejects duplicates" 'Err
       (car (check-flat strictly-sorted-list/c '(1 2 2 3) 'test)))
+(test "strictly-sorted-list/c rejects non-numeric elements" 'Err
+      (car (check-flat strictly-sorted-list/c '("a" "b" "c") 'test)))
 
 ;; non-empty-list/c
 (test "non-empty-list/c accepts non-empty" 'Ok

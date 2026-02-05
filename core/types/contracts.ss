@@ -504,6 +504,8 @@ If body is a procedure, apply it to values. If body is a contract, return as-is.
     (string-append "(or/c " (join-strings " " (map contract->string (cdr c))) ")")]
    [(and (pair? c) (eq? (car c) 'Not))
     (string-append "(not/c " (contract->string (cadr c)) ")")]
+   [(invariant-contract? c)
+    (invariant->string c)]
    [else "???"]))
 
 (define (blame->string b)
@@ -1919,6 +1921,7 @@ Elements must satisfy: a <= b <= c <= ... Use strictly-sorted-list/c for strict 
          (let loop ([prev (car lst)] [rest (cdr lst)])
            (cond
             [(null? rest) #t]
+            [(not (and (real? prev) (real? (car rest)))) #f]
             [(<= prev (car rest))
              (loop (car rest) (cdr rest))]
             [else #f]))))))
@@ -1936,6 +1939,7 @@ Elements must satisfy: a < b < c < ... No duplicates allowed.")
          (let loop ([prev (car lst)] [rest (cdr lst)])
            (cond
             [(null? rest) #t]
+            [(not (and (real? prev) (real? (car rest)))) #f]
             [(< prev (car rest))
              (loop (car rest) (cdr rest))]
             [else #f]))))))
