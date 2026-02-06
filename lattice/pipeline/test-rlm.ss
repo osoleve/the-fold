@@ -157,6 +157,31 @@
     (let ([blocks (rlm-parse-response "")])
       (assert-true (pair? blocks))))
 
+  (define-test "rlm-parse-response handles unlabeled code fence"
+    (let* ([text "```\n(+ 1 2)\n```"]
+           [blocks (rlm-parse-response text)])
+      (let ([code-blocks (filter rlm-block-code? blocks)])
+        (assert-equal 1 (length code-blocks))
+        (assert-equal "(+ 1 2)" (rlm-block-content (car code-blocks))))))
+
+  (define-test "rlm-parse-response rejects DONE prefix in prose"
+    (let* ([text "DONE with the analysis, moving on."]
+           [blocks (rlm-parse-response text)])
+      (let ([done-blocks (filter rlm-block-done? blocks)])
+        (assert-equal 0 (length done-blocks)))))
+
+  (define-test "rlm-parse-response rejects FINALLY as done marker"
+    (let* ([text "FINALLY we can proceed"]
+           [blocks (rlm-parse-response text)])
+      (let ([done-blocks (filter rlm-block-done? blocks)])
+        (assert-equal 0 (length done-blocks)))))
+
+  (define-test "rlm-parse-response detects bare DONE"
+    (let* ([text "I computed the answer.\nDONE"]
+           [blocks (rlm-parse-response text)])
+      (let ([done-blocks (filter rlm-block-done? blocks)])
+        (assert-equal 1 (length done-blocks)))))
+
   ;;; ====
   ;;; Loop Detection
   ;;; ====

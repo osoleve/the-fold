@@ -164,7 +164,9 @@
     ;; Topology
     "topology/test-homology.ss"
     ;; Meta
-    "meta/test-meta.ss"))
+    "meta/test-meta.ss"
+    ;; Pipeline (RLM)
+    "pipeline/test-rlm.ss"))
 
 ;;; Boundary tests (validated, stable)
 (define boundary-tests
@@ -172,6 +174,11 @@
     "test-block-index.ss"
     "test-duckie-persist.ss"
     "test-string-utils.ss"))
+
+;;; Boundary pipeline tests (RLM harness, no live infra required)
+(define boundary-pipeline-tests
+  '("test-rlm-client.ss"
+    "test-rlm-loop.ss"))
 
 ;;; Slow tests (excluded from 'quick' mode)
 (define slow-tests
@@ -187,7 +194,8 @@
     "test-commands.ss"
     "test-commands-demo.ss"
     "test-commands-advanced.ss"
-    "test-repl-integration.ss"))
+    "test-repl-integration.ss"
+    "test-rlm-integration.ss"))  ; requires live vLLM + daemon
 
 ;;; ====
 ;;; Main Test Runner
@@ -302,7 +310,10 @@ Working directory: " (current-directory) "
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
               (display "
 ")
-              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
+              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
+              (display "
+")
+              (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests)]
              
              [(core)
               (run-test-category "CORE TESTS" "core" core-tests)]
@@ -311,7 +322,10 @@ Working directory: " (current-directory) "
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)]
              
              [(boundary)
-              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
+              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
+              (display "
+")
+              (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests)]
              
              [(quick)
               (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])

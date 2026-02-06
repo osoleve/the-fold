@@ -241,8 +241,7 @@
 (define (code-fence-open? line)
   (let ([trimmed (string-trim-left line)])
     (and (>= (string-length trimmed) 3)
-         (string=? (substring trimmed 0 3) "```")
-         (> (string-length trimmed) 3))))
+         (string=? (substring trimmed 0 3) "```"))))
 
 (define (code-fence-close? line)
   (let ([trimmed (string-trim-left line)])
@@ -263,12 +262,17 @@
       [else 'code])))  ; default to code for unknown languages
 
 ;;; DONE/FINAL marker
+;;; done-marker? : String -> Bool
+;;; Matches: DONE, DONE(value), FINAL, FINAL(value)
+;;; Does NOT match: DONE with analysis, FINALLY, DONESTUFF
 (define (done-marker? line)
   (let ([trimmed (string-trim line)])
-    (or (and (>= (string-length trimmed) 4)
-             (string=? (substring trimmed 0 4) "DONE"))
+    (or (string=? trimmed "DONE")
+        (string=? trimmed "FINAL")
         (and (>= (string-length trimmed) 5)
-             (string=? (substring trimmed 0 5) "FINAL")))))
+             (string=? (substring trimmed 0 5) "DONE("))
+        (and (>= (string-length trimmed) 6)
+             (string=? (substring trimmed 0 6) "FINAL(")))))
 
 (define (extract-done-value line)
   (let* ([trimmed (string-trim line)]

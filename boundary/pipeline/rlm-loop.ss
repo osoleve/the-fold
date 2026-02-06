@@ -46,7 +46,9 @@
          [started (current-iso8601)]
          ;; Initialize environment, seeding from initial-env if provided
          [env0 (or initial-env (make-rlm-env))]
-         [env+input (car (rlm-env-store! env0 'input input 'sexpr))]
+         [input-pair (rlm-env-store! env0 'input input 'sexpr)]
+         [env+input (car input-pair)]
+         [input-hex (cdr input-pair)]
          [env+task (car (rlm-env-store! env+input 'task task 'text))])
     ;; Parameterize the pipeline session for Fold IPC
     (parameterize ([*pipeline-session* session-id])
@@ -62,12 +64,12 @@
           [(>= step-num (rlm-config-max-steps config))
            (finalize-run config env 'exhausted
                          "Max steps reached" started depth
-                         prev-step-hash step-num fuel-remaining)]
+                         prev-step-hash step-num fuel-remaining input-hex)]
           ;; Fuel exhausted
           [(<= fuel-remaining 0)
            (finalize-run config env 'exhausted
                          "Fuel exhausted" started depth
-                         prev-step-hash step-num 0)]
+                         prev-step-hash step-num 0 input-hex)]
           [else
            ;; Step 1: Build prompt with env summary
            (let* ([env-summary (rlm-env-summary env)]
@@ -83,7 +85,7 @@
                  [(rlm-chat-err? response)
                   (finalize-run config env 'error
                                 (rlm-chat-error-msg response) started depth
-                                prev-step-hash step-num fuel-remaining)]
+                                prev-step-hash step-num fuel-remaining input-hex)]
                  [else
                   (let* ([response-text (rlm-chat-text response)]
                          ;; Step 3: Parse response
@@ -96,7 +98,7 @@
                           (let ([env* (car (rlm-env-store! env 'output final-value 'result))])
                             (finalize-run config env* 'completed
                                           final-value started depth
-                                          prev-step-hash (+ step-num 1) fuel-remaining)))
+                                          prev-step-hash (+ step-num 1) fuel-remaining input-hex)))
                         ;; Step 4: Execute code blocks
                         (let-values ([(env* results fuel-used)
                                       (execute-blocks blocks env fuel-remaining
@@ -361,7 +363,7 @@
     (hash->hex hash)))
 
 (define (finalize-run config env status output started depth
-                      last-step-hash total-steps fuel-remaining)
+                      last-step-hash total-steps fuel-remaining input-hex)
   (let* ([finished (current-iso8601)]
          ;; Store output
          [output-pair (rlm-env-store! env 'output output 'result)]
@@ -369,7 +371,7 @@
          [output-hex (cdr output-pair)]
          ;; Build trajectory record
          [config-hex (store-config! config)]
-         [traj (make-rlm-trajectory config-hex "" output-hex
+         [traj (make-rlm-trajectory config-hex input-hex output-hex
                                      total-steps
                                      (- (rlm-config-max-fuel config) fuel-remaining)
                                      status started finished depth)]
