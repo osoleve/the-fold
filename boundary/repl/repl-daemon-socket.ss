@@ -38,33 +38,37 @@
 ;;; ====
 
 ;;; Session entry: (session-id . session-record)
-;;; session-record: (input-port output-port pid client-ids last-request expires)
+;;; session-record: (input-port output-port stderr-port pid client-ids last-request expires)
+;;; NOTE: stderr-port MUST be stored to prevent GC from closing the pipe fd.
+;;; If GC collects an unreferenced port, Chez closes the fd, the worker gets
+;;; SIGPIPE when writing to stderr, and dies silently during init.
 (define *sessions* '())
 
-(define (make-session-record inp outp pid)
+(define (make-session-record inp outp errp pid)
   (let ([now (time-second (current-time))])
-    (list inp outp pid '() now (+ now 600))))
+    (list inp outp errp pid '() now (+ now 600))))
 
 (define (session-input-port rec) (list-ref rec 0))
 (define (session-output-port rec) (list-ref rec 1))
-(define (session-pid rec) (list-ref rec 2))
-(define (session-client-ids rec) (list-ref rec 3))
-(define (session-last-request rec) (list-ref rec 4))
-(define (session-expires rec) (list-ref rec 5))
+(define (session-stderr-port rec) (list-ref rec 2))
+(define (session-pid rec) (list-ref rec 3))
+(define (session-client-ids rec) (list-ref rec 4))
+(define (session-last-request rec) (list-ref rec 5))
+(define (session-expires rec) (list-ref rec 6))
 
 (define (session-set-client-ids! rec ids)
-  (set-car! (list-tail rec 3) ids))
+  (set-car! (list-tail rec 4) ids))
 
 (define (session-touch! rec)
   (let ([now (time-second (current-time))])
-    (set-car! (list-tail rec 4) now)
+    (set-car! (list-tail rec 5) now)
     ;; Decay-based expiration extension
     (let* ([current-expires (session-expires rec)]
            [remaining (max 0 (- current-expires now))]
            [decay (max 0.1 (- 1.0 (/ (exact->inexact remaining) 3600.0)))]
            [extension (inexact->exact (floor (* 600 decay)))]
            [new-expires (+ now (max extension 600))])
-      (set-car! (list-tail rec 5) new-expires))))
+      (set-car! (list-tail rec 6) new-expires))))
 
 ;;; ====
 ;;; Input Validation
@@ -156,10 +160,10 @@
                                      (condition-message ex)
                                      "unknown error")))
                 #f])
-      (let-values ([(to-worker from-worker pid) (open-process-ports cmd 'block (native-transcoder))])
-        (let ([rec (make-session-record to-worker from-worker pid)])
+      (let-values ([(to-worker from-worker from-stderr worker-pid) (open-process-ports cmd)])
+        (let ([rec (make-session-record to-worker from-worker from-stderr worker-pid)])
           (set! *sessions* (cons (cons session-id rec) *sessions*))
-          (display (format "  [spawn] Worker for session '~a' (pid not tracked via ports)\n" session-id))
+          (display (format "  [spawn] Worker for session '~a' (pid ~a)\n" session-id worker-pid))
           rec)))))
 
 ;;; get-or-spawn-session! : String → session-record | #f
@@ -228,11 +232,13 @@
 ;;; read-available-bytes : InputPort → Bytevector | #f
 ;;; Read whatever bytes are currently available without blocking.
 ;;; Returns #f if nothing is available or port is at EOF.
+;;; NOTE: Do NOT use port-eof? here — on pipe ports it blocks waiting for
+;;; data or close. input-port-ready? is the correct non-blocking check.
 (define (read-available-bytes port)
   (guard (ex [else #f])
-    (if (and (not (port-eof? port))
-             (input-port-ready? port))
-        (get-bytevector-some port)  ; Non-blocking: reads only what's available
+    (if (input-port-ready? port)
+        (let ([data (get-bytevector-some port)])
+          (if (eof-object? data) #f data))
         #f)))
 
 ;;; Per-session read buffers for incremental frame assembly
@@ -360,6 +366,8 @@
                     (close-port (session-input-port rec)))
                   (guard (ex [else #f])
                     (close-port (session-output-port rec)))
+                  (guard (ex [else #f])
+                    (close-port (session-stderr-port rec)))
                   (clear-read-buffer! session-id)
                   (loop (cdr remaining) kept))
                 (loop (cdr remaining) (cons entry kept))))))))
@@ -387,7 +395,9 @@
      (guard (ex [else #f])
        (close-port (session-input-port (cdr entry))))
      (guard (ex [else #f])
-       (close-port (session-output-port (cdr entry)))))
+       (close-port (session-output-port (cdr entry))))
+     (guard (ex [else #f])
+       (close-port (session-stderr-port (cdr entry)))))
    *sessions*)
   (set! *sessions* '())
   (clear-ready!)

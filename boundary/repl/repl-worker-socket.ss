@@ -138,16 +138,23 @@
 ;;; Frame I/O on stdin/stdout
 ;;; ====
 
+;;; Cache binary ports once — (standard-input-port) and (standard-output-port)
+;;; create FRESH ports on each call per R6RS. Multiple ports on the same fd
+;;; have independent buffers, so buffered data from port #1 is invisible to
+;;; port #2. This causes payload reads to block forever after header reads.
+(define *stdin-binary* (standard-input-port))
+(define *stdout-binary* (standard-output-port))
+
 ;;; read-frame-stdin : → Bytevector | #f
 ;;; Read a complete length-prefixed frame from stdin (binary mode).
 (define (read-frame-stdin)
-  (let ([header (get-bytevector-n (standard-input-port) 4)])
+  (let ([header (get-bytevector-n *stdin-binary* 4)])
     (if (or (eof-object? header) (< (bytevector-length header) 4))
         #f
         (let ([payload-len (bytevector-u32-ref header 0 (endianness big))])
           (if (> payload-len (* 16 1024 1024))
               #f  ; Oversized
-              (let ([payload (get-bytevector-n (standard-input-port) payload-len)])
+              (let ([payload (get-bytevector-n *stdin-binary* payload-len)])
                 (if (or (eof-object? payload)
                         (< (bytevector-length payload) payload-len))
                     #f
@@ -160,8 +167,8 @@
 ;;; write-frame-stdout : Bytevector → Void
 ;;; Write a complete frame to stdout (binary mode).
 (define (write-frame-stdout frame)
-  (put-bytevector (standard-output-port) frame)
-  (flush-output-port (standard-output-port)))
+  (put-bytevector *stdout-binary* frame)
+  (flush-output-port *stdout-binary*))
 
 ;;; ====
 ;;; Request Processing
@@ -217,8 +224,11 @@
 
 (define (start-socket-worker!)
   (let ([session-id (require-session-id (command-line))])
-    ;; Load the REPL environment so workers have access to Fold commands
-    (load "boundary/repl/repl.ss")
+    ;; Load the REPL environment so workers have access to Fold commands.
+    ;; Redirect stdout to stderr during init to keep the binary frame
+    ;; protocol clean — many modules print load banners on stdout.
+    (parameterize ([current-output-port (current-error-port)])
+      (load "boundary/repl/repl.ss"))
     ;; Run the frame-based worker loop
     (worker-loop session-id)))
 

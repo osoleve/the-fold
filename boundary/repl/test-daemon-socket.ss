@@ -69,9 +69,10 @@
     (assert-false (valid-session-id? "a b c")))
 
   (define-test "session record creation and access"
-    (let ([rec (make-session-record 'fake-inp 'fake-outp 12345)])
+    (let ([rec (make-session-record 'fake-inp 'fake-outp 'fake-errp 12345)])
       (assert-equal (session-input-port rec) 'fake-inp)
       (assert-equal (session-output-port rec) 'fake-outp)
+      (assert-equal (session-stderr-port rec) 'fake-errp)
       (assert-equal (session-pid rec) 12345)
       (assert-equal (session-client-ids rec) '())
       ;; Touch extends expiration
