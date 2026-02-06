@@ -202,7 +202,7 @@ ${file_contents}"
 
 # Function to check if vLLM is running
 vllm_is_running() {
-    curl -s --max-time 5 "http://127.0.0.1:$VLLM_PORT/health" | grep -q "ok" 2>/dev/null
+    curl -sf --max-time 5 "http://127.0.0.1:$VLLM_PORT/health" > /dev/null 2>&1
 }
 
 # Function to get the vLLM model name
