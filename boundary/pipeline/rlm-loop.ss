@@ -260,8 +260,10 @@
                (values env* (list 'ok (format "Stored ~a in context" key)) 1))
              (values env (list 'error "Failed to parse rlm-env-put! call") 1)))]
       ;; Regular code — eval via Fold IPC
+      ;; Pre-expand any (rlm-env-get 'key) calls before sending to worker
       [else
-       (let ([result (fold-ipc-eval code-text)])
+       (let* ([expanded-code (expand-env-gets-in-code code-text env)]
+              [result (fold-ipc-eval expanded-code)])
          (if (fold-result-ok? result)
              (values env (list 'ok (fold-result-value result)) 10)
              (values env (list 'error (fold-result-error result)) 5)))])))
@@ -314,19 +316,53 @@
       (values sub-prompt context-keys))))
 
 (define (parse-env-put-call code env)
-  ;; Parse (rlm-env-put! 'key value) — evaluate value via IPC
+  ;; Parse (rlm-env-put! 'key value) — evaluate value via IPC.
+  ;; Pre-expands (rlm-env-get 'k) calls in the value expression
+  ;; so the IPC worker can evaluate the result.
   (guard (ex [else (values #f #f)])
     (let* ([expr (read (open-input-string code))]
            [key-expr (cadr expr)]
            [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
                     (cadr key-expr)
                     key-expr)]
-           ;; Evaluate the value expression
-           [value-code (format "~s" (caddr expr))]
+           [raw-value (caddr expr)]
+           [expanded (expand-env-gets raw-value env)]
+           [value-code (format "~s" expanded)]
            [result (fold-ipc-eval value-code)])
       (if (fold-result-ok? result)
           (values key (fold-result-value result))
-          (values key (caddr expr))))))  ; store unevaluated if eval fails
+          (values key expanded)))))  ; store expanded form if eval fails
+
+;;; expand-env-gets : SExpr -> RlmEnv -> SExpr
+;;; Recursively replace (rlm-env-get 'key) with the CAS-fetched value.
+(define (expand-env-gets expr env)
+  (cond
+    [(and (pair? expr)
+          (eq? (car expr) 'rlm-env-get)
+          (pair? (cdr expr)))
+     (let* ([key-arg (cadr expr)]
+            [key (if (and (pair? key-arg) (eq? (car key-arg) 'quote))
+                     (cadr key-arg)
+                     key-arg)]
+            [val (rlm-env-fetch env key)])
+       (if val val expr))]  ; substitute if found, keep original otherwise
+    [(pair? expr)
+     (cons (expand-env-gets (car expr) env)
+           (expand-env-gets (cdr expr) env))]
+    [else expr]))
+
+;;; expand-env-gets-in-code : String -> RlmEnv -> String
+;;; Parse code text, expand rlm-env-get calls, re-serialize.
+;;; Falls back to original text if parsing fails.
+(define (expand-env-gets-in-code code-text env)
+  (guard (ex [else code-text])
+    (let ([expr (read (open-input-string code-text))])
+      (if (eof-object? expr)
+          code-text
+          (let ([expanded (expand-env-gets expr env)])
+            (if (equal? expanded expr)
+                code-text  ; no changes, keep original text
+                (format "~s" expanded)))))))
 
 ;;; Slice environment: extract only named keys
 (define (slice-env env keys)
