@@ -114,19 +114,3 @@
            (vector-ref vertices (+ n idx))
            (vector-ref vertices (- idx 1)))))
 
-(doc 'section 'file-loading)
-
-(define (load-obj-file filename)
-  (doc 'export #t)
-  (doc 'type '(-> String (List Triangle3)))
-  (let ([content (call-with-input-file filename
-                                       (lambda (port)
-                                               (get-string-all port)))])
-       (load-obj-from-string content)))
-
-(define (obj->mesh filename)
-  (doc 'export #t)
-  (doc 'type '(-> String Mesh))
-  (doc 'description "Load OBJ file and create mesh with BVH")
-  (load "lattice/geometry/mesh-sdf.ss")
-  (make-mesh (load-obj-file filename)))

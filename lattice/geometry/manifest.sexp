@@ -73,15 +73,14 @@
 
    (obj-loader
     parse-obj-line parse-vertex parse-face
-    load-obj-from-string faces->triangles face->triangles get-vertex
-    load-obj-file obj->mesh)
+    load-obj-from-string faces->triangles face->triangles get-vertex)
 
    (ascii-render
     ascii-ramp intensity->char rgb->ansi256 ansi-fg ansi-reset
     make-camera camera-pos camera-forward camera-right camera-up
     camera-half-width camera-half-height camera-ray
     render-pixel-color render-frame rotate-camera-around
-    render-spinning-frames frames->ansi-animation save-frame)
+    render-spinning-frames)
 
    (mesh-sdf
     make-mesh mesh? mesh-triangles mesh-bvh

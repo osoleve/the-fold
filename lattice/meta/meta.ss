@@ -3,6 +3,7 @@
 (load "lattice/meta/inspect.ss")
 (load "lattice/meta/persist.ss")
 (load "lattice/meta/source-loc.ss")
+(load "boundary/meta/kg-io.ss")
 (load "boundary/introspect/exports.ss")
 
 (doc 'module 'meta)

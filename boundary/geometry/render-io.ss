@@ -1,0 +1,27 @@
+(load "lattice/geometry/ascii-render.ss")
+
+(doc 'module 'render-io)
+(doc 'description "I/O wrappers for ASCII rendering — terminal output and file save")
+(doc 'layer 'boundary)
+
+(define (frames->ansi-animation frames delay-ms)
+  (doc 'export #t)
+  (doc 'type '(-> (List String) Number Void))
+  (doc 'description "Play animation in terminal with delay (ms)")
+  (for-each (lambda (frame)
+                    (display "\x1b;[2J\x1b;[H")
+                    (display frame)
+                    (flush-output-port (current-output-port))
+                    (let ([start (current-time)])
+                         (let loop ()
+                              (when (< (- (current-time) start) (/ delay-ms 1000.0))
+                                    (loop)))))
+            frames))
+
+(define (save-frame frame filename)
+  (doc 'export #t)
+  (doc 'type '(-> String String Void))
+  (doc 'description "Save rendered frame to file")
+  (call-with-output-file filename
+                         (lambda (port)
+                                 (display frame port))))

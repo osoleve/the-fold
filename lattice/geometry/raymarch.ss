@@ -140,18 +140,19 @@
   (doc 'description "Compute ambient occlusion factor (0 = fully occluded, 1 = no occlusion)")
   (doc 'note "Uses multiple samples along normal direction")
   (doc 'param 'num-samples "typically 5")
-  (define (sample-ao i total sum)
-    (if (>= i num-samples)
-        (/ sum num-samples)
-        (let* ([step-size (* (+ i 1) 0.1)]
-               [sample-point (vec3-add point (vec3-scale normal step-size))]
-               [dist (sdf-fn sample-point)]
-               [occlusion (- step-size dist)]
-               [weight (/ 1.0 (expt 2.0 i))])
-              (sample-ao (+ i 1)
-                         total
-                         (+ sum (* weight (max 0.0 occlusion)))))))
-  (max 0.0 (- 1.0 (sample-ao 0 0 0.0))))
+  (max 0.0
+       (- 1.0
+          (let sample-ao ([i 0] [total 0] [sum 0.0])
+               (if (>= i num-samples)
+                   (/ sum num-samples)
+                   (let* ([step-size (* (+ i 1) 0.1)]
+                          [sample-point (vec3-add point (vec3-scale normal step-size))]
+                          [dist (sdf-fn sample-point)]
+                          [occlusion (- step-size dist)]
+                          [weight (/ 1.0 (expt 2.0 i))])
+                         (sample-ao (+ i 1)
+                                    total
+                                    (+ sum (* weight (max 0.0 occlusion))))))))))
 
 (doc 'section 'scene-rendering)
 

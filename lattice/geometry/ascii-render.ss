@@ -179,27 +179,3 @@
                            (render-frame mesh cam light-dir width height)))
              (iota num-frames))))
 
-(doc 'section 'output-utilities)
-
-(define (frames->ansi-animation frames delay-ms)
-  (doc 'export #t)
-  (doc 'type '(-> (List String) Number Void))
-  (doc 'description "Play animation in terminal with delay (ms)")
-  (for-each (lambda (frame)
-                    (display "\x1b;[2J\x1b;[H")  ; Clear screen, home cursor
-                    (display frame)
-                    (flush-output-port (current-output-port))
-                    ;; Simple busy-wait delay (no sleep in R6RS)
-                    (let ([start (current-time)])
-                         (let loop ()
-                              (when (< (- (current-time) start) (/ delay-ms 1000.0))
-                                    (loop)))))
-            frames))
-
-(define (save-frame frame filename)
-  (doc 'export #t)
-  (doc 'type '(-> String String Void))
-  (doc 'description "Save frame to file")
-  (call-with-output-file filename
-                         (lambda (port)
-                                 (display frame port))))

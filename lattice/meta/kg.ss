@@ -6,7 +6,7 @@
 (doc 'module 'kg)
 (doc 'description "Lattice knowledge graph builder from manifest files")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 
 ;;; ====
 ;;; Quiet Load Mode
@@ -33,33 +33,6 @@
 (define KG-EXPORT 'lattice/export)
 (define KG-DEPENDS-ON 'lattice/depends-on)
 (define KG-INDEX-ROOT 'lattice/index-root)
-
-;;; ====
-;;; Manifest Reading (I/O)
-;;; ====
-
-;;; NOTE: Parsing functions (parse-manifest, manifest-field, etc.) are now
-;;; provided by lattice/meta/manifest.ss which is loaded above.
-
-;;; read-manifest : String -> SExp | #f
-;;; Read and parse a manifest.sexp file.
-;;; This is the only I/O function in this module.
-(define (read-manifest filepath)
-  (guard (e [else #f])
-         (call-with-input-file filepath
-                               (lambda (port)
-                                       ;; Skip comment lines at the start
-                                       (let loop ()
-                                            (let ([c (peek-char port)])
-                                                 (cond
-                                                  [(eof-object? c) #f]
-                                                  [(char=? c #\;)
-                                                   (get-line port)  ; Skip comment line
-                                                   (loop)]
-                                                  [(char-whitespace? c)
-                                                   (get-char port)
-                                                   (loop)]
-                                                  [else (read port)])))))))
 
 ;;; ====
 ;;; Entity Creation
@@ -210,62 +183,12 @@
        (if entry (cdr entry) #f)))
 
 ;;; ====
-;;; Manifest Discovery
-;;; ====
-
-;;; find-manifests : String -> (List String)
-;;; Find all manifest.sexp files under a directory
-(define (find-manifests base-dir)
-  (let ([result '()])
-       ;; Check immediate directory
-       (let ([manifest-path (string-append base-dir "/manifest.sexp")])
-            (when (file-exists? manifest-path)
-                  (set! result (cons manifest-path result))))
-       ;; Check subdirectories
-       (guard (e [else result])
-              (for-each
-               (lambda (entry)
-                       (let ([path (string-append base-dir "/" entry)])
-                            (when (and (file-directory? path)
-                                       (not (string-starts-with? entry ".")))
-                                  (set! result (append (find-manifests path) result)))))
-               (directory-list base-dir)))
-       result))
-
-;;; ====
 ;;; Main API
 ;;; ====
 
-;;; kg-build! : -> Hash
-;;; Build knowledge graph from all manifests in lattice/
-(define (kg-build!)
-  (kg-reset!)
-  (let ([manifests (find-manifests "lattice")])
-       (printf "Found ~a manifests\n" (length manifests))
-       ;; Load all skills
-       (for-each
-        (lambda (manifest-path)
-                (let* ([sexp (read-manifest manifest-path)]
-                       [data (if sexp (parse-manifest sexp) #f)])
-                      (when data
-                            (printf "  Loading: ~a\n" (cdr (assq 'name data)))
-                            (kg-add-skill! data))))
-        manifests)
-       ;; Build dependency relations
-       (kg-build-deps!)
-       ;; Create index root
-       (let* ([skill-hashes (map (lambda (e) (hash-block (cdr e))) *kg-skills*)]
-              [root (make-block KG-INDEX-ROOT
-                                (string->utf8 (format "~a" (length *kg-skills*)))
-                                (list->vector skill-hashes))])
-             (set! *kg-index-root* (hash-block root))
-             (set! *kg-loaded* #t)
-             (printf "Knowledge graph built: ~a skills, ~a modules, ~a exports, ~a deps\n"
-                     (length *kg-skills*)
-                     (length *kg-modules*)
-                     (length *kg-exports*)
-                     (length *kg-deps*))
-             *kg-index-root*)))
+;;; NOTE: kg-build! and kg-ensure! have moved to boundary/meta/kg-io.ss
+;;; They orchestrate I/O (manifest discovery and file reading) and delegate
+;;; to the pure functions below.
 
 ;;; kg-skills : -> (List Symbol)
 ;;; Get list of all skill names
@@ -278,14 +201,6 @@
 ;;; handle the edge case of a truly empty lattice (0 skills).
 (define (kg-initialized?)
   *kg-loaded*)
-
-;;; kg-ensure! : -> Hash | #f
-;;; Build knowledge graph only if not already initialized.
-;;; Returns index root hash if built, #f if already initialized.
-(define (kg-ensure!)
-  (if (kg-initialized?)
-      #f
-      (kg-build!)))
 
 ;;; kg-skill : Symbol -> Block | #f
 ;;; Get skill block by name
