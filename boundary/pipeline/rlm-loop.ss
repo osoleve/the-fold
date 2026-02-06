@@ -22,6 +22,23 @@
                      core/blocks/cas.ss boundary/storage/cas-persist.ss))
 
 ;;; ====
+;;; Lattice Search (lazy-loaded in main process)
+;;; ====
+;;; Lattice meta can't load in the IPC worker (nested loads break the frame
+;;; protocol). Instead, we load it lazily in the main process and intercept
+;;; lf/li/le/require commands during code execution.
+
+(define *lattice-meta-loaded?* #f)
+
+(define (ensure-lattice-meta!)
+  (unless *lattice-meta-loaded?*
+    (let ([sink (open-output-string)])
+      (parameterize ([current-output-port sink])
+        (load "lattice/meta/meta.ss")
+        (lattice-init!)))
+    (set! *lattice-meta-loaded?* #t)))
+
+;;; ====
 ;;; Main Entry Point
 ;;; ====
 
@@ -60,7 +77,9 @@
     (parameterize ([*pipeline-session* session-id])
       ;; Pre-load string utilities into the IPC worker so map-chunks
       ;; expressions can do real text processing.
+      (display "DEBUG: sending worker prelude...\n") (flush-output-port)
       (rlm-init-worker-prelude!)
+      (display "DEBUG: worker prelude done\n") (flush-output-port)
       (let loop ([step-num 0]
                  [env env+task]
                  [fuel-remaining (rlm-config-max-fuel config)]
@@ -84,19 +103,34 @@
            (let* ([env-summary (rlm-env-summary env)]
                   [tool-docs (rlm-tool-docs depth config)]
                   [user-msg (build-step-prompt env-summary tool-docs step-num)])
+             (display (format "DEBUG: step ~a — calling LLM (~a msgs, user-msg ~a chars)...\n"
+                              step-num (+ 1 (length messages))
+                              (string-length user-msg)))
+             (flush-output-port)
              ;; Step 2: Call LLM
              (let ([response (rlm-chat (rlm-config-provider config)
                                        (append messages
                                                (list (make-msg "user" user-msg)))
-                                       4096 0.7)])
+                                       2048 0.7)])
+               (display (format "DEBUG: LLM returned, status: ~a\n"
+                               (if (rlm-chat-err? response) "ERR" "OK")))
+               (flush-output-port)
                (cond
                  ;; LLM call failed
                  [(rlm-chat-err? response)
+                  (display (format "DEBUG: LLM error: ~a\n" (rlm-chat-error-msg response)))
+                  (flush-output-port)
                   (finalize-run config env 'error
                                 (rlm-chat-error-msg response) started depth
                                 prev-step-hash step-num fuel-remaining input-hex)]
                  [else
                   (let* ([response-text (rlm-chat-text response)]
+                         [_ (begin (display (format "DEBUG: response (~a chars): ~a...\n"
+                                                    (string-length response-text)
+                                                    (if (> (string-length response-text) 200)
+                                                        (substring response-text 0 200)
+                                                        response-text)))
+                                   (flush-output-port))]
                          ;; Step 3: Parse response
                          [blocks (rlm-parse-response response-text)]
                          ;; Check for DONE marker
@@ -181,7 +215,18 @@
             "  (rlm-env-read-chunk 'key index)          — Read chunk by 0-based index\n"
             "  (rlm-env-map-chunks 'key \"(expr)\")       — Eval expr per chunk (*chunk* bound), return results list\n"
             "  (rlm-env-keys)                           — List all context keys\n"
-            "  Any valid Fold/Scheme expression          — evaluated in sandbox\n")])
+            "  Any valid Fold/Scheme expression          — evaluated in sandbox\n"
+            "\n"
+            "Lattice discovery (find & load additional tools):\n"
+            "  (lf \"query\")        — Search the skill lattice by keyword (e.g. \"constraint\", \"sort\", \"graph\")\n"
+            "  (li 'skill-name)    — Describe a skill (what it does, dependencies)\n"
+            "  (le 'skill-name)    — List a skill's exported functions\n"
+            "  (require 'module)   — Load a module to use its functions\n"
+            "  The lattice has 36 skills covering: algebra, geometry, optimization,\n"
+            "  constraint logic programming, statistics, graph algorithms, data structures,\n"
+            "  linear algebra, information theory, and more.\n"
+            "  If the task calls for specialized computation, search for it before\n"
+            "  writing it from scratch.\n")])
     (if (< depth (rlm-config-max-depth config))
         (string-append base-docs
           "  (rlm-spawn \"sub-task\" '(key1 key2))  — Spawn sub-agent with sliced context\n")
@@ -194,6 +239,8 @@
 ;;; execute-blocks : (List RlmBlock) -> RlmEnv -> Nat -> Nat -> RlmConfig
 ;;;                  -> (Values RlmEnv (List Result) Nat)
 ;;; Execute all code/template blocks. Returns updated env, results, fuel used.
+;;; Code blocks are split into individual expressions so each gets proper routing
+;;; (intercepted commands vs IPC worker).
 (define (execute-blocks blocks env fuel-remaining depth config)
   (let loop ([bs blocks]
              [env env]
@@ -203,15 +250,22 @@
         (values env (reverse results) fuel-used)
         (let ([block (car bs)])
           (cond
-            ;; Code block — evaluate in sandbox
+            ;; Code block — split into expressions and evaluate each
             [(rlm-block-code? block)
-             (let-values ([(env* result fu)
-                           (execute-code (rlm-block-content block)
-                                         env (- fuel-remaining fuel-used)
-                                         depth config)])
-               (loop (cdr bs) env*
-                     (cons result results)
-                     (+ fuel-used fu)))]
+             (let ([exprs (split-code-exprs (rlm-block-content block))])
+               (let expr-loop ([es exprs]
+                               [env env]
+                               [results results]
+                               [fuel-used fuel-used])
+                 (if (null? es)
+                     (loop (cdr bs) env results fuel-used)
+                     (let-values ([(env* result fu)
+                                   (execute-code (car es)
+                                                 env (- fuel-remaining fuel-used)
+                                                 depth config)])
+                       (expr-loop (cdr es) env*
+                                  (cons result results)
+                                  (+ fuel-used fu))))))]
             ;; Template block — parse via tp-batch then evaluate
             [(rlm-block-template? block)
              (let-values ([(env* result fu)
@@ -343,6 +397,18 @@
                      (if result
                          (values env (list 'ok (format "~s" result)) 1)
                          (values env (list 'error (format "Failed to fetch '~a' from CAS" key)) 1)))))))]
+      ;; Lattice search — intercepted and run in main process
+      ;; (lf/li/le/require can't run in IPC worker — nested loads break frame protocol)
+      ;; Note: multi-expression blocks are pre-split by execute-blocks, so code-text
+      ;; here is a single expression.
+      [(lattice-search-call? code-text)
+       (display (format "DEBUG: lattice: ~a\n"
+                        (if (> (string-length code-text) 80)
+                            (string-append (substring code-text 0 80) "...")
+                            code-text)))
+       (flush-output-port)
+       (let ([result (execute-lattice-search code-text)])
+         (values env result 1))]
       ;; Regular code — eval via Fold IPC
       ;; Pre-expand any (rlm-env-get 'key) calls before sending to worker
       [else
@@ -538,6 +604,95 @@
                             (cdr r) (car r)))
                   results))))
 
+;;; ====
+;;; Lattice Search Interception
+;;; ====
+;;; The model can call (lf "query"), (li 'skill), (le 'skill), or (require 'mod)
+;;; to discover and load lattice tools. These run in the main process because
+;;; nested loads in the IPC worker break the frame protocol.
+
+;;; split-code-exprs : String -> (List String)
+;;; Split a code block into individual S-expressions.
+;;; Each expression is returned as a string. Comments are attached
+;;; to the following expression. Falls back to returning the whole
+;;; block as a single entry if parsing fails.
+(define (split-code-exprs code-text)
+  (guard (ex [else (list code-text)])  ; fallback: treat as single expr
+    (let ([port (open-input-string code-text)])
+      (let loop ([exprs '()])
+        ;; Skip whitespace and comments
+        (let skip-ws ()
+          (let ([c (peek-char port)])
+            (cond
+              [(eof-object? c) (void)]
+              [(char-whitespace? c) (read-char port) (skip-ws)]
+              [(char=? c #\;)
+               (let skip-comment ()
+                 (let ([c (read-char port)])
+                   (unless (or (eof-object? c) (char=? c #\newline))
+                     (skip-comment))))
+               (skip-ws)]
+              [else (void)])))
+        (if (eof-object? (peek-char port))
+            (reverse exprs)
+            (let ([expr (read port)])
+              (if (eof-object? expr)
+                  (reverse exprs)
+                  (loop (cons (format "~s" expr) exprs)))))))))
+
+(define (lattice-search-call? code)
+  (let ([sym (rlm-first-symbol code)])
+    (and sym (memq sym '(lf li le lfe lfp lfs require)))))
+
+;;; string-trim : String -> String
+;;; Remove leading/trailing whitespace.
+(define (string-trim s)
+  (let* ([len (string-length s)]
+         [start (let loop ([i 0])
+                  (if (and (< i len) (char-whitespace? (string-ref s i)))
+                      (loop (+ i 1))
+                      i))]
+         [end (let loop ([i len])
+                (if (and (> i start) (char-whitespace? (string-ref s (- i 1))))
+                    (loop (- i 1))
+                    i))])
+    (substring s start end)))
+
+(define (execute-lattice-search code)
+  (guard (ex [else
+              (list 'error (format "Lattice search error: ~a"
+                                   (if (message-condition? ex)
+                                       (condition-message ex)
+                                       "unknown")))])
+    (ensure-lattice-meta!)
+    (let* ([expr (read (open-input-string code))]
+           [cmd (car expr)]
+           [out (open-output-string)])
+      (case cmd
+        [(lf lfe lfp lfs)
+         ;; Search commands print results — capture their output
+         (parameterize ([current-output-port out])
+           (eval expr))
+         (let ([result (get-output-string out)])
+           (if (string=? result "")
+               (list 'ok "No matches found.")
+               (list 'ok result)))]
+        [(li le)
+         ;; Inspect/exports — capture printed output
+         (parameterize ([current-output-port out])
+           (eval expr))
+         (let ([result (get-output-string out)])
+           (if (string=? result "")
+               (list 'ok (format "Skill '~a' not found." (cadr expr)))
+               (list 'ok result)))]
+        [(require)
+         ;; Module loading — run in the IPC worker so the module is available there
+         (let ([result (fold-ipc-eval code)])
+           (if (fold-result-ok? result)
+               (list 'ok (format "Module loaded: ~a" (cadr expr)))
+               (list 'error (format "Failed to load module: ~a" (fold-result-error result)))))]
+        [else (list 'error (format "Unknown lattice command: ~a" cmd))]))))
+
 ;;; quote-if-needed : Any -> SExpr
 ;;; Wrap non-self-evaluating values in (quote ...) so they survive IPC eval.
 ;;; Numbers, strings, booleans, and characters are self-evaluating.
@@ -547,11 +702,14 @@
       (list 'quote val)))
 
 ;;; expand-env-gets : SExpr -> RlmEnv -> SExpr
-;;; Recursively replace (rlm-env-get 'key) with the CAS-fetched value.
-;;; Non-self-evaluating values (lists, symbols) are quoted to prevent
-;;; the IPC worker from interpreting them as code.
+;;; Recursively replace intercepted RLM calls with their evaluated results.
+;;; This allows the model to use intercepted functions inside larger expressions
+;;; (e.g., (define x (rlm-env-map-chunks ...))) that get sent to the IPC worker.
+;;; Handles: rlm-env-get, rlm-env-peek, rlm-env-grep, rlm-env-chunk-count,
+;;;          rlm-env-read-chunk, rlm-env-map-chunks, rlm-env-keys.
 (define (expand-env-gets expr env)
   (cond
+    ;; rlm-env-get → substitute value from CAS
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-get)
           (pair? (cdr expr)))
@@ -560,24 +718,109 @@
                      (cadr key-arg)
                      key-arg)]
             [val (rlm-env-fetch env key)])
-       (if val (quote-if-needed val) expr))]  ; substitute if found
+       (if val (quote-if-needed val) expr))]
+    ;; rlm-env-peek → substitute preview string
+    [(and (pair? expr)
+          (eq? (car expr) 'rlm-env-peek)
+          (pair? (cdr expr)))
+     (let* ([args (cdr expr)]
+            [key (unquote-key (car args))]
+            [n (if (pair? (cdr args)) (cadr args) 2000)]
+            [val (rlm-env-peek env key n)])
+       (if val (quote-if-needed val) expr))]
+    ;; rlm-env-grep → substitute grep results string
+    [(and (pair? expr)
+          (eq? (car expr) 'rlm-env-grep)
+          (>= (length (cdr expr)) 2))
+     (let* ([args (cdr expr)]
+            [key (unquote-key (car args))]
+            [pattern (cadr args)]
+            [k (if (>= (length args) 3) (caddr args) 5)]
+            [results (rlm-env-grep env key pattern k)])
+       (if results (quote-if-needed (format-grep-results results)) expr))]
+    ;; rlm-env-chunk-count → substitute count
+    [(and (pair? expr)
+          (eq? (car expr) 'rlm-env-chunk-count)
+          (pair? (cdr expr)))
+     (let* ([key (unquote-key (cadr expr))]
+            [count (rlm-env-chunk-count env key)])
+       (if count count expr))]
+    ;; rlm-env-read-chunk → substitute chunk text
+    [(and (pair? expr)
+          (eq? (car expr) 'rlm-env-read-chunk)
+          (>= (length (cdr expr)) 2))
+     (let* ([key (unquote-key (cadr expr))]
+            [idx (caddr expr)]
+            [text (rlm-env-read-chunk env key idx)])
+       (if text (quote-if-needed text) expr))]
+    ;; rlm-env-map-chunks → pre-evaluate, substitute result list
+    ;; IPC eval returns strings; parse them back to S-expressions so the
+    ;; substituted code can operate on structured data (e.g. apply append).
+    ;; If any chunk has errors, DON'T substitute — return original expr
+    ;; so the top-level intercept gives a clear error message.
+    [(and (pair? expr)
+          (eq? (car expr) 'rlm-env-map-chunks)
+          (>= (length (cdr expr)) 2))
+     (let* ([key (unquote-key (cadr expr))]
+            [expr-text (caddr expr)]
+            [result (rlm-env-map-chunks-impl env key expr-text)])
+       (if (and (pair? result) (eq? (car result) 'ok))
+           (let* ([raw (cadr result)]
+                  ;; Check for error strings before attempting parse
+                  [has-errors (exists (lambda (s)
+                                       (and (string? s)
+                                            (>= (string-length s) 6)
+                                            (string=? (substring s 0 6) "error:")))
+                                     raw)])
+             (if has-errors
+                 expr  ; don't substitute — let original code hit top-level intercept
+                 (let ([parsed (map (lambda (s)
+                                     (guard (ex [else s])
+                                       (if (string? s)
+                                           (read (open-input-string s))
+                                           s)))
+                                   raw)])
+                   (quote-if-needed parsed))))
+           expr))]
+    ;; rlm-env-keys → substitute key list
+    [(and (pair? expr) (eq? (car expr) 'rlm-env-keys))
+     (quote-if-needed (rlm-env-keys env))]
+    ;; Recurse into sub-expressions
     [(pair? expr)
      (cons (expand-env-gets (car expr) env)
            (expand-env-gets (cdr expr) env))]
     [else expr]))
 
+;;; unquote-key : SExpr -> Symbol
+;;; Extract the symbol from a possibly-quoted argument.
+(define (unquote-key arg)
+  (if (and (pair? arg) (eq? (car arg) 'quote))
+      (cadr arg)
+      arg))
+
 ;;; expand-env-gets-in-code : String -> RlmEnv -> String
 ;;; Parse code text, expand rlm-env-get calls, re-serialize.
 ;;; Falls back to original text if parsing fails.
 (define (expand-env-gets-in-code code-text env)
-  (guard (ex [else code-text])
+  (guard (ex [else
+              (display (format "DEBUG: expand-env-gets FAILED: ~a\n"
+                               (if (message-condition? ex)
+                                   (condition-message ex)
+                                   ex)))
+              (flush-output-port)
+              code-text])
     (let ([expr (read (open-input-string code-text))])
       (if (eof-object? expr)
           code-text
           (let ([expanded (expand-env-gets expr env)])
             (if (equal? expanded expr)
                 code-text  ; no changes, keep original text
-                (format "~s" expanded)))))))
+                (begin
+                  (display (format "DEBUG: expanded ~a chars -> ~a chars\n"
+                                   (string-length code-text)
+                                   (string-length (format "~s" expanded))))
+                  (flush-output-port)
+                  (format "~s" expanded))))))))
 
 ;;; Slice environment: extract only named keys
 (define (slice-env env keys)
@@ -696,9 +939,12 @@
 ;;; ====
 
 ;;; rlm-init-worker-prelude! : -> void
-;;; Load minimal string utilities into the IPC worker session so that
-;;; map-chunks expressions and general code blocks can do text processing.
+;;; Load string utilities and lattice search into the IPC worker session.
+;;; String utils enable map-chunks text processing.
+;;; Lattice search enables tool discovery — the model can find and load
+;;; any skill from the lattice DAG rather than relying on hand-curated tools.
 (define (rlm-init-worker-prelude!)
+  ;; Phase 1: String utilities (always needed for text processing)
   (fold-ipc-eval
     (string-append
       "(begin"
@@ -752,7 +998,67 @@
       "                      [(char-whitespace? (string-ref after j))"
       "                       (trim-end (- j 1))]"
       "                      [else (substring after 0 (+ j 1))])))))))  "
-      "  (void))")))
+      ;; Standard-name aliases: models write these names naturally
+      "  (define string-contains? rlm-string-contains?)"
+      "  (define split-lines rlm-split-lines)"
+      "  (define flatten rlm-flatten)"
+      "  (define deduplicate rlm-deduplicate)"
+      "  (define remove-duplicates rlm-deduplicate)"
+      "  (define extract-field rlm-extract-field)"
+      "  (define extract-after rlm-extract-after)"
+      ;; Extra utilities models commonly reach for
+      "  (define (string-split str delim)"
+      "    (let ([dc (if (char? delim) delim (string-ref delim 0))]"
+      "          [len (string-length str)])"
+      "      (let loop ([i 0] [start 0] [acc '()])"
+      "        (cond [(= i len) (reverse (cons (substring str start len) acc))]"
+      "              [(char=? (string-ref str i) dc)"
+      "               (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]"
+      "              [else (loop (+ i 1) start acc)]))))"
+      "  (define (string-trim str)"
+      "    (let ([len (string-length str)])"
+      "      (let ([s (let loop ([i 0])"
+      "                 (if (and (< i len) (char-whitespace? (string-ref str i)))"
+      "                     (loop (+ i 1)) i))])"
+      "        (let ([e (let loop ([i len])"
+      "                   (if (and (> i s) (char-whitespace? (string-ref str (- i 1))))"
+      "                       (loop (- i 1)) i))])"
+      "          (substring str s e)))))"
+      "  (define (string-prefix? str prefix)"
+      "    (and (>= (string-length str) (string-length prefix))"
+      "         (string=? (substring str 0 (string-length prefix)) prefix)))"
+      "  (define (string-suffix? str suffix)"
+      "    (let ([slen (string-length str)] [xlen (string-length suffix)])"
+      "      (and (>= slen xlen)"
+      "           (string=? (substring str (- slen xlen) slen) suffix))))"
+      "  (define (take lst n)"
+      "    (if (or (null? lst) (<= n 0)) '()"
+      "        (cons (car lst) (take (cdr lst) (- n 1)))))"
+      "  (define (drop lst n)"
+      "    (if (or (null? lst) (<= n 0)) lst"
+      "        (drop (cdr lst) (- n 1))))"
+      "  (define (cartesian-product xs ys)"
+      "    (apply append (map (lambda (x) (map (lambda (y) (list x y)) ys)) xs)))"
+      "  (define (string-replace str old new)"
+      "    (let ([s-len (string-length str)] [o-len (string-length old)])"
+      "      (if (= o-len 0) str"
+      "          (let loop ([i 0] [acc '()])"
+      "            (cond [(> (+ i o-len) s-len)"
+      "                   (apply string-append (reverse (cons (substring str i s-len) acc)))]"
+      "                  [(string=? (substring str i (+ i o-len)) old)"
+      "                   (loop (+ i o-len) (cons new acc))]"
+      "                  [else (loop (+ i 1)"
+      "                              (cons (string (string-ref str i)) acc))])))))"
+      "  (define (string-join lst sep)"
+      "    (if (null? lst) \"\""
+      "        (let loop ([rest (cdr lst)] [acc (car lst)])"
+      "          (if (null? rest) acc"
+      "              (loop (cdr rest) (string-append acc sep (car rest)))))))"
+      "  (void))"))
+  ;; Phase 2: Lattice search is handled by command interception in execute-code.
+  ;; We can't load lattice meta in the IPC worker (nested loads break frame protocol).
+  ;; Instead, lf/li/le/require are intercepted and run in the main process.
+  (void))
 
 (define (generate-run-id)
   (format "~a-~a"

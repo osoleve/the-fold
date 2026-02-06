@@ -113,18 +113,34 @@
                          `((model . ,model-id)
                            (messages . ,(map format-openai-message messages))
                            (max_tokens . ,max-tokens)
-                           (temperature . ,temperature)))]
+                           (temperature . ,temperature)
+                           (chat_template_kwargs . ((enable_thinking . #f)))))]
          [auth-header (if api-key
                          (format "-H 'Authorization: Bearer '\"$RLM_API_KEY\"")
                          "")]
-         [cmd (format "curl -sS --max-time 300 -X POST ~a -H 'Content-Type: application/json' ~a -d @-"
+         ;; Write request body to temp file to avoid pipe buffering issues
+         ;; in long-running processes with many sequential subprocess calls.
+         [request-file "/tmp/rlm-request-body.json"]
+         [_ (call-with-output-file request-file
+              (lambda (p) (display request-body p))
+              'replace)]
+         [cmd (format "curl -sS --max-time 300 -X POST ~a -H 'Content-Type: application/json' ~a -d @~a"
                       (shell-escape-url endpoint)
-                      auth-header)]
-         [env (if api-key `(("RLM_API_KEY" . ,api-key)) '())]
-         [result (shell-exec-with-env-stdin env cmd request-body)])
-    (if (shell-result-ok? result)
-        (parse-openai-response (shell-result-stdout result))
-        (list 'err 'http-error (shell-result-stderr result)))))
+                      auth-header
+                      request-file)]
+         [env (if api-key `(("RLM_API_KEY" . ,api-key)) '())])
+    (display (format "DEBUG: curl req ~a chars, endpoint ~a\n"
+                     (string-length request-body) endpoint))
+    (flush-output-port)
+    (let ([result (shell-exec-with-env-no-stdin env cmd)])
+      (display (format "DEBUG: curl returned, ok?=~a stdout-len=~a stderr-len=~a\n"
+                       (shell-result-ok? result)
+                       (string-length (shell-result-stdout result))
+                       (string-length (shell-result-stderr result))))
+      (flush-output-port)
+      (if (shell-result-ok? result)
+          (parse-openai-response (shell-result-stdout result))
+          (list 'err 'http-error (shell-result-stderr result))))))
 
 (define (format-openai-message msg)
   `((role . ,(cdr (assq 'role msg)))
@@ -176,10 +192,15 @@
                                  '()
                                  `((system . ,system-content)))
                            (messages . ,(map format-openai-message non-system))))]
-         [cmd (format "curl -sS --max-time 300 -X POST ~a -H 'Content-Type: application/json' -H 'x-api-key: '\"$RLM_API_KEY\" -H 'anthropic-version: 2023-06-01' -d @-"
-                      (shell-escape-url endpoint))]
+         [request-file "/tmp/rlm-request-body.json"]
+         [_ (call-with-output-file request-file
+              (lambda (p) (display request-body p))
+              'replace)]
+         [cmd (format "curl -sS --max-time 300 -X POST ~a -H 'Content-Type: application/json' -H 'x-api-key: '\"$RLM_API_KEY\" -H 'anthropic-version: 2023-06-01' -d @~a"
+                      (shell-escape-url endpoint)
+                      request-file)]
          [env `(("RLM_API_KEY" . ,api-key))]
-         [result (shell-exec-with-env-stdin env cmd request-body)])
+         [result (shell-exec-with-env-no-stdin env cmd)])
     (if (shell-result-ok? result)
         (parse-anthropic-response (shell-result-stdout result))
         (list 'err 'http-error (shell-result-stderr result)))))

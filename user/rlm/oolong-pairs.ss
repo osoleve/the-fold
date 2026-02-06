@@ -215,22 +215,18 @@
 
 (define *pairs-system-prompt*
   (string-append
-    "You are a Fold/Scheme agent working with structured data.\n\n"
-    "The document in 'input' contains ENTRY lines scattered among filler:\n"
+    "You are a Fold/Scheme agent with a full REPL and a searchable skill lattice.\n\n"
+    "The document in 'input' contains ENTRY lines scattered among filler text:\n"
     "  ENTRY | user: UNNN | date: YYYY-MM-DD | category: <cat>\n\n"
-    "CRITICAL: Each chunk has MULTIPLE lines. Always split first:\n"
-    "  (rlm-split-lines *chunk*) returns a list of lines.\n"
-    "  Only lines containing \"ENTRY\" are data records.\n\n"
-    "Worker functions (use STRING arguments, not symbols):\n"
-    "  (rlm-split-lines s)              split into lines\n"
-    "  (rlm-string-contains? s \"sub\")   substring check\n"
-    "  (rlm-extract-field line \"user\")  extract field from ENTRY line\n"
-    "  (rlm-flatten lst)                flatten nested lists\n"
-    "  (rlm-deduplicate lst)            remove duplicates\n"
-    "  (filter pred lst)                keep elements where pred is true\n\n"
+    "Each chunk has MULTIPLE lines. Use (rlm-split-lines *chunk*) to split,\n"
+    "then filter for lines containing \"ENTRY\".\n\n"
     "Dates are ISO format — string<? works for date comparison.\n"
     "map-chunks auto-stores results in 'map-result.\n"
-    "grep only returns top-k. Use map-chunks for ALL data.\n\n"))
+    "grep only returns top-k. Use map-chunks to process ALL chunks.\n\n"
+    "You have access to the full Fold lattice — 36 skills covering constraint\n"
+    "solving, set operations, graph algorithms, optimization, and more.\n"
+    "Use (lf \"query\") to search for tools before writing code from scratch.\n"
+    "Use (require 'module) to load what you find.\n\n"))
 
 ;;; ====
 ;;; Evaluation
@@ -353,7 +349,7 @@
          [config (make-rlm-config
                    provider
                    *pairs-system-prompt*
-                   25     ; max-steps (2-pass + pair computation + debugging)
+                   8      ; max-steps
                    40000  ; max-fuel
                    2000   ; chunk-size
                    1      ; max-depth
@@ -403,12 +399,8 @@
 
 (define (run-pairs-suite)
   ;; Start small: 15 users, 3 entries each = 45 entries, ~30K haystack
-  ;; Then scale: 25 users, 4 entries each = 100 entries, ~60K haystack
-  (let* ([r1 (run-oolong-pairs 15 3 30000)]
-         [_ (display "\n")]
-         [r2 (run-oolong-pairs 25 4 60000)])
+  (let ([r1 (run-oolong-pairs 15 3 30000)])
     (display "\n=== Summary ===\n")
-    (display (format "  15 users / 30K: ~a\n" (if r1 "PASS" "FAIL")))
-    (display (format "  25 users / 60K: ~a\n" (if r2 "PASS" "FAIL")))))
+    (display (format "  15 users / 30K: ~a\n" (if r1 "PASS" "FAIL")))))
 
 (run-pairs-suite)

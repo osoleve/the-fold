@@ -290,6 +290,38 @@
                                            stdout-str
                                            stderr-str)))))))
 
+;;; shell-exec-with-env-no-stdin : Alist -> String -> ShellResult
+;;; Like shell-exec-with-env-stdin but without stdin pipe.
+;;; Avoids pipe fd accumulation issues in long-running processes.
+(define (shell-exec-with-env-no-stdin env cmd)
+  (guard (ex [else
+              (list 'shell-result #f ""
+                    (format "shell-exec-with-env-no-stdin error: ~a"
+                            (if (message-condition? ex)
+                                (condition-message ex)
+                                "unknown error")))])
+    (let* ([env-exports (apply string-append
+                               (map (lambda (pair)
+                                      (format "export ~a=~s; "
+                                              (car pair) (cdr pair)))
+                                    env))]
+           [full-cmd (string-append env-exports cmd)])
+      (let-values ([(to-stdin from-stdout from-stderr process-id)
+                    (open-process-ports (format "/bin/sh -c ~s" full-cmd)
+                                        (buffer-mode block)
+                                        (native-transcoder))])
+        (close-port to-stdin)  ; no stdin needed
+        (let ([stdout-all (get-string-all from-stdout)]
+              [stderr-all (get-string-all from-stderr)])
+          (close-port from-stdout)
+          (close-port from-stderr)
+          (let ([stdout-str (if (eof-object? stdout-all) "" stdout-all)]
+                [stderr-str (if (eof-object? stderr-all) "" stderr-all)])
+            (list 'shell-result
+                  (string=? stderr-str "")
+                  stdout-str
+                  stderr-str)))))))
+
 (define (shell-result-ok? r) (list-ref r 1))
 (define (shell-result-stdout r) (list-ref r 2))
 (define (shell-result-stderr r) (list-ref r 3))
