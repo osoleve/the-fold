@@ -62,9 +62,9 @@
 ;;; model-sym: 'opus, 'sonnet, 'haiku (mapped to API model IDs)
 (define (rlm-provider-anthropic model-sym)
   (let ([model-id (case model-sym
-                    [(opus)   "claude-opus-4-20250514"]
-                    [(sonnet) "claude-sonnet-4-20250514"]
-                    [(haiku)  "claude-3-5-haiku-20241022"]
+                    [(opus)   "claude-opus-4-6"]
+                    [(sonnet) "claude-sonnet-4-5-20250929"]
+                    [(haiku)  "claude-haiku-4-5-20251001"]
                     [else     (symbol->string model-sym)])])
     (make-rlm-provider
       "https://api.anthropic.com/v1/messages"
@@ -129,15 +129,7 @@
                       auth-header
                       request-file)]
          [env (if api-key `(("RLM_API_KEY" . ,api-key)) '())])
-    (display (format "DEBUG: curl req ~a chars, endpoint ~a\n"
-                     (string-length request-body) endpoint))
-    (flush-output-port)
     (let ([result (shell-exec-with-env-no-stdin env cmd)])
-      (display (format "DEBUG: curl returned, ok?=~a stdout-len=~a stderr-len=~a\n"
-                       (shell-result-ok? result)
-                       (string-length (shell-result-stdout result))
-                       (string-length (shell-result-stderr result))))
-      (flush-output-port)
       (if (shell-result-ok? result)
           (parse-openai-response (shell-result-stdout result))
           (list 'err 'http-error (shell-result-stderr result))))))

@@ -77,9 +77,7 @@
     (parameterize ([*pipeline-session* session-id])
       ;; Pre-load string utilities into the IPC worker so map-chunks
       ;; expressions can do real text processing.
-      (display "DEBUG: sending worker prelude...\n") (flush-output-port)
       (rlm-init-worker-prelude!)
-      (display "DEBUG: worker prelude done\n") (flush-output-port)
       (let loop ([step-num 0]
                  [env env+task]
                  [fuel-remaining (rlm-config-max-fuel config)]
@@ -103,50 +101,38 @@
            (let* ([env-summary (rlm-env-summary env)]
                   [tool-docs (rlm-tool-docs depth config)]
                   [user-msg (build-step-prompt env-summary tool-docs step-num)])
-             (display (format "DEBUG: step ~a — calling LLM (~a msgs, user-msg ~a chars)...\n"
-                              step-num (+ 1 (length messages))
-                              (string-length user-msg)))
-             (flush-output-port)
              ;; Step 2: Call LLM
              (let ([response (rlm-chat (rlm-config-provider config)
                                        (append messages
                                                (list (make-msg "user" user-msg)))
-                                       2048 0.7)])
-               (display (format "DEBUG: LLM returned, status: ~a\n"
-                               (if (rlm-chat-err? response) "ERR" "OK")))
-               (flush-output-port)
+                                       4096 0.7)])
                (cond
                  ;; LLM call failed
                  [(rlm-chat-err? response)
-                  (display (format "DEBUG: LLM error: ~a\n" (rlm-chat-error-msg response)))
-                  (flush-output-port)
                   (finalize-run config env 'error
                                 (rlm-chat-error-msg response) started depth
                                 prev-step-hash step-num fuel-remaining input-hex)]
                  [else
                   (let* ([response-text (rlm-chat-text response)]
-                         [_ (begin (display (format "DEBUG: response (~a chars): ~a...\n"
-                                                    (string-length response-text)
-                                                    (if (> (string-length response-text) 200)
-                                                        (substring response-text 0 200)
-                                                        response-text)))
-                                   (flush-output-port))]
                          ;; Step 3: Parse response
-                         [blocks (rlm-parse-response response-text)]
-                         ;; Check for DONE marker
-                         [done-block (find-done-block blocks)])
-                    (if done-block
-                        ;; Model says it's done
-                        (let ([final-value (rlm-block-content done-block)])
-                          (let ([env* (car (rlm-env-store! env 'output final-value 'result))])
-                            (finalize-run config env* 'completed
-                                          final-value started depth
-                                          prev-step-hash (+ step-num 1) fuel-remaining input-hex)))
-                        ;; Step 4: Execute code blocks
-                        (let-values ([(env* results fuel-used)
-                                      (execute-blocks blocks env fuel-remaining
-                                                      depth config)])
-                          (let* ([fuel-after (- fuel-remaining fuel-used)]
+                         [blocks (rlm-parse-response response-text)])
+                    ;; Step 4: Execute code blocks.
+                    (let-values ([(env* results fuel-used)
+                                  (execute-blocks blocks env fuel-remaining
+                                                  depth config)])
+                      ;; Check for answer: model stores final result via
+                      ;; (rlm-env-put! 'answer value). No text-level DONE parsing.
+                      (let ([answer (rlm-env-fetch env* 'answer)])
+                        (if answer
+                            ;; Model stored an answer — finalize
+                            (let* ([final-value (format "~a" answer)]
+                                   [env** (car (rlm-env-store! env* 'output final-value 'result))])
+                              (finalize-run config env** 'completed
+                                            final-value started depth
+                                            prev-step-hash (+ step-num 1)
+                                            (- fuel-remaining fuel-used) input-hex))
+                            ;; No answer yet — continue loop
+                            (let* ([fuel-after (- fuel-remaining fuel-used)]
                                  ;; Step 5: Loop detection
                                  [code-text (extract-all-code blocks)]
                                  [fp (rlm-step-fingerprint env-summary code-text)]
@@ -158,12 +144,19 @@
                                                              fuel-used
                                                              env env*
                                                              prev-step-hash)]
-                                   ;; Build updated message history
-                                   [messages* (append messages
+                                   ;; Build updated message history (sliding window: keep
+                                   ;; system + task msgs, last 4 steps = 12 msgs max)
+                                   [all-msgs (append messages
                                                 (list (make-msg "user" user-msg)
                                                       (make-msg "assistant" response-text)
                                                       (make-msg "user"
-                                                        (format-results results looping?))))])
+                                                        (format-results results looping?))))]
+                                   ;; Keep first 2 messages (system + task) + last 12
+                                   [messages* (if (> (length all-msgs) 14)
+                                                  (append (list (car all-msgs) (cadr all-msgs))
+                                                          (list-tail all-msgs
+                                                            (- (length all-msgs) 12)))
+                                                  all-msgs)])
                               (if looping?
                                   ;; Inject loop-break message but continue
                                   (loop (+ step-num 1)
@@ -179,7 +172,7 @@
                                         (cons step-hash history)
                                         (cons fp fingerprints)
                                         step-hash
-                                        messages*)))))))])))])))))
+                                        messages*))))))))])))])))))
 
 ;;; ====
 ;;; Message Construction
@@ -201,7 +194,11 @@
     "Use (rlm-env-put! 'key value) to store results in context.\n"
     "Use (rlm-env-get 'key) to retrieve context values.\n"
     "Use (rlm-env-peek 'key n) to preview the first n characters.\n"
-    "When done, write DONE(your-final-answer) on its own line.\n"))
+    "When you have computed the final answer, store it with:\n"
+    "  (rlm-env-put! 'answer \"your final answer string\")\n"
+    "The run completes automatically when 'answer is set.\n"
+    "Do NOT set 'answer until your code has executed successfully\n"
+    "and you have verified the result is correct.\n"))
 
 (define (rlm-tool-docs depth config)
   (let ([base-docs
@@ -213,9 +210,41 @@
             "  (rlm-env-grep 'key \"pattern\" k)          — Search chunks by keyword, top-k results\n"
             "  (rlm-env-chunk-count 'key)               — Number of chunks in a chunked value\n"
             "  (rlm-env-read-chunk 'key index)          — Read chunk by 0-based index\n"
-            "  (rlm-env-map-chunks 'key \"(expr)\")       — Eval expr per chunk (*chunk* bound), return results list\n"
+            "  (rlm-env-map-chunks 'key \"(expr)\")       — Eval expr per chunk (*chunk* bound), store result in 'map-result\n"
+            "    NOTE: The expr string is eval'd standalone per chunk. Only *chunk* is bound.\n"
+            "    Do NOT reference variables defined outside the string. Example:\n"
+            "    (rlm-env-map-chunks 'input \"(filter (lambda (line) (string-contains? line \\\"ENTRY\\\")) (split-lines *chunk*))\")\n"
             "  (rlm-env-keys)                           — List all context keys\n"
             "  Any valid Fold/Scheme expression          — evaluated in sandbox\n"
+            "\n"
+            "Built-in string & list utilities (already loaded, no require needed):\n"
+            "  (string-split str delim)    — Split string by char or 1-char string delimiter\n"
+            "  (split-lines str)           — Split string by newlines into list of strings\n"
+            "  (string-trim str)           — Strip leading/trailing whitespace\n"
+            "  (string-contains? str sub)  — Does str contain substring sub?\n"
+            "  (string-index str ch)       — Find index of char ch in str, or #f\n"
+            "  (string-index-of str sub)   — Find index of substring sub in str, or #f\n"
+            "  (string-replace str old new) — Replace all occurrences of old with new\n"
+            "  (string-join lst sep)        — Join list of strings with separator\n"
+            "  (string-prefix? str pfx)    — Does str start with pfx?\n"
+            "  (string-suffix? str sfx)    — Does str end with sfx?\n"
+            "  (first lst) / (second lst) / (third lst) / (fourth lst) / (fifth lst) — List accessors\n"
+            "  (rest lst)                 — Alias for cdr\n"
+            "  (last lst)                 — Last element of list\n"
+            "  (flatten lst)              — Flatten nested list\n"
+            "  (iota n)                   — List of integers 0..n-1\n"
+            "  (build-list n f)           — Build list by mapping f over 0..n-1\n"
+            "  (take lst n) / (drop lst n) — Take/drop first n elements\n"
+            "  (cartesian-product xs ys)   — All (x y) pairs\n"
+            "  (deduplicate lst)           — Remove duplicates (preserves order)\n"
+            "  (filter-map f lst)          — Map f, keep non-#f results\n"
+            "  (extract-after str prefix)  — Get text after prefix (e.g. (extract-after \"user: U007\" \"user: \") → \"U007\")\n"
+            "  (sort predicate list)         — Sort list (NOTE: predicate comes FIRST)\n"
+            "  (sorted lst predicate)       — Sort list (list-first order)\n"
+            "  (list<? a b)                  — Lexicographic comparison for sorting list-of-lists/pairs\n"
+            "  NOTE: car/cdr/cons/null?/pair?/map/filter/append/apply/length — all standard Scheme\n"
+            "  (substring str start end) — extract substring (requires start AND end)\n"
+            "  (substr str start) / (substr str start end) — like substring, end defaults to length\n"
             "\n"
             "Lattice discovery (find & load additional tools):\n"
             "  (lf \"query\")        — Search the skill lattice by keyword (e.g. \"constraint\", \"sort\", \"graph\")\n"
@@ -361,10 +390,16 @@
          (let ([result (rlm-env-map-chunks-impl env key expr-text)])
            (if (and (pair? result) (eq? (car result) 'ok))
                (let* ([raw-results (cadr result)]
-                      ;; Try to parse numeric strings into numbers
+                      ;; Parse result strings back to S-expressions.
+                      ;; IPC worker returns strings like "(\"a\" \"b\")" for lists.
+                      ;; Parse them so 'map-result contains actual lists, not
+                      ;; string representations that the model has to re-parse.
                       [parsed (map (lambda (x)
                                      (if (string? x)
-                                         (or (string->number x) x)
+                                         (guard (ex [else
+                                                  (or (string->number x) x)])
+                                           (let ([val (read (open-input-string x))])
+                                             (if (eof-object? val) x val)))
                                          x))
                                    raw-results)]
                       [n-chunks (length parsed)]
@@ -402,11 +437,6 @@
       ;; Note: multi-expression blocks are pre-split by execute-blocks, so code-text
       ;; here is a single expression.
       [(lattice-search-call? code-text)
-       (display (format "DEBUG: lattice: ~a\n"
-                        (if (> (string-length code-text) 80)
-                            (string-append (substring code-text 0 80) "...")
-                            code-text)))
-       (flush-output-port)
        (let ([result (execute-lattice-search code-text)])
          (values env result 1))]
       ;; Regular code — eval via Fold IPC
@@ -440,10 +470,26 @@
 
 ;;; Parse-based detection: read the first symbol from the expression.
 ;;; More robust than substring matching — tolerates whitespace variations.
+;;; canonicalize-rlm-symbol : Symbol -> Symbol
+;;; Normalize short-name aliases to canonical rlm-env-* names.
+;;; Models drop the rlm-env- prefix constantly — this catches them.
+(define (canonicalize-rlm-symbol sym)
+  (case sym
+    [(map-chunks env-map-chunks)             'rlm-env-map-chunks]
+    [(env-get)                               'rlm-env-get]
+    [(env-put! env-store!)                   'rlm-env-put!]
+    [(env-peek)                              'rlm-env-peek]
+    [(env-grep grep-chunks)                  'rlm-env-grep]
+    [(env-keys)                              'rlm-env-keys]
+    [(chunk-count env-chunk-count)           'rlm-env-chunk-count]
+    [(read-chunk env-read-chunk)             'rlm-env-read-chunk]
+    [(spawn)                                 'rlm-spawn]
+    [else sym]))
+
 (define (rlm-first-symbol code)
   (guard (ex [else #f])
     (let ([expr (read (open-input-string code))])
-      (if (pair? expr) (car expr) #f))))
+      (if (pair? expr) (canonicalize-rlm-symbol (car expr)) #f))))
 
 (define (rlm-spawn-call? code)
   (eq? (rlm-first-symbol code) 'rlm-spawn))
@@ -481,7 +527,7 @@
            [result (fold-ipc-eval value-code)])
       (if (fold-result-ok? result)
           (values key (fold-result-value result))
-          (values key expanded)))))  ; store expanded form if eval fails
+          (values #f #f)))))  ; eval failed — don't store garbage
 
 ;;; rlm-env-peek/grep/keys/get detection
 (define (rlm-env-peek-call? code)
@@ -588,21 +634,38 @@
                      ;; Build: (let ([*chunk* "..."]) expr)
                      [code (format "(let ([*chunk* ~s]) ~a)" chunk-text expr-text)]
                      [result (fold-ipc-eval code)])
-                (loop (cdr hashes)
-                      (cons (if (fold-result-ok? result)
-                                (fold-result-value result)
-                                (format "error:~a" (fold-result-error result)))
-                            results)
-                      (+ idx 1))))))))
+                (let ([val (if (fold-result-ok? result)
+                              (fold-result-value result)
+                              (format "error:~a" (fold-result-error result)))])
+                  ;; Replace void/empty results with "()" — chunks that produce
+                  ;; no value (e.g. no entries found) should return empty list,
+                  ;; not #<void> which is unparseable and confuses the model.
+                  (loop (cdr hashes)
+                        (cons (if (and (string? val)
+                                       (or (string=? val "#<void>")
+                                           (string=? val "")))
+                                  "()"
+                                  val)
+                              results)
+                        (+ idx 1)))))))))
 
+;;; format-grep-results : (List (text . score)) -> String
+;;; Returns matched lines, one per line, with no formatting headers.
+;;; Small models struggle to parse the "--- Match ---" format;
+;;; raw lines are directly processable with string-split on "|".
 (define (format-grep-results results)
   (if (null? results)
       "No matches found."
-      (apply string-append
-             (map (lambda (r)
-                    (format "--- Match (score: ~,2f) ---\n~a\n\n"
-                            (cdr r) (car r)))
-                  results))))
+      (let loop ([rs results] [acc '()])
+        (if (null? rs)
+            (let join ([strs (reverse acc)] [out ""])
+              (if (null? strs)
+                  out
+                  (join (cdr strs)
+                        (if (string=? out "")
+                            (car strs)
+                            (string-append out "\n" (car strs))))))
+            (loop (cdr rs) (cons (car (car rs)) acc))))))
 
 ;;; ====
 ;;; Lattice Search Interception
@@ -701,54 +764,84 @@
       val
       (list 'quote val)))
 
+;;; literal-arg? : SExpr -> Boolean
+;;; True if the expression is a compile-time constant (safe to pass to
+;;; expansion functions). False for variable references and compound
+;;; expressions whose values depend on runtime state.
+(define (literal-arg? x)
+  (or (number? x) (string? x) (boolean? x) (char? x)
+      (null? x)
+      (and (pair? x) (eq? (car x) 'quote))))
+
 ;;; expand-env-gets : SExpr -> RlmEnv -> SExpr
 ;;; Recursively replace intercepted RLM calls with their evaluated results.
-;;; This allows the model to use intercepted functions inside larger expressions
-;;; (e.g., (define x (rlm-env-map-chunks ...))) that get sent to the IPC worker.
+;;; Only expands calls whose arguments are compile-time literals (numbers,
+;;; strings, quoted symbols). Runtime variable references are left intact
+;;; so the expression can be evaluated properly in the IPC worker.
 ;;; Handles: rlm-env-get, rlm-env-peek, rlm-env-grep, rlm-env-chunk-count,
 ;;;          rlm-env-read-chunk, rlm-env-map-chunks, rlm-env-keys.
 (define (expand-env-gets expr env)
+  ;; Canonicalize short-name aliases before matching
+  (let ([expr (if (and (pair? expr) (symbol? (car expr)))
+                  (let ([c (canonicalize-rlm-symbol (car expr))])
+                    (if (eq? c (car expr)) expr (cons c (cdr expr))))
+                  expr)])
   (cond
-    ;; rlm-env-get → substitute value from CAS
+    ;; rlm-env-get → substitute value from CAS (cap at 2000 chars to
+    ;; prevent context explosion; large values stay as IPC calls)
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-get)
-          (pair? (cdr expr)))
+          (pair? (cdr expr))
+          (literal-arg? (cadr expr)))
      (let* ([key-arg (cadr expr)]
             [key (if (and (pair? key-arg) (eq? (car key-arg) 'quote))
                      (cadr key-arg)
                      key-arg)]
             [val (rlm-env-fetch env key)])
-       (if val (quote-if-needed val) expr))]
+       (if (and val
+                (let ([s (format "~a" val)])
+                  (<= (string-length s) 2000)))
+           (quote-if-needed val)
+           expr))]
     ;; rlm-env-peek → substitute preview string
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-peek)
-          (pair? (cdr expr)))
+          (pair? (cdr expr))
+          (literal-arg? (cadr expr))
+          (or (null? (cddr expr)) (literal-arg? (caddr expr))))
      (let* ([args (cdr expr)]
             [key (unquote-key (car args))]
             [n (if (pair? (cdr args)) (cadr args) 2000)]
             [val (rlm-env-peek env key n)])
        (if val (quote-if-needed val) expr))]
-    ;; rlm-env-grep → substitute grep results string
+    ;; rlm-env-grep → substitute as list of matched text lines.
+    ;; In expansion context, return a proper list so model code can
+    ;; iterate directly (map, filter, etc.) without string parsing.
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-grep)
-          (>= (length (cdr expr)) 2))
+          (>= (length (cdr expr)) 2)
+          (for-all literal-arg? (cdr expr)))
      (let* ([args (cdr expr)]
             [key (unquote-key (car args))]
             [pattern (cadr args)]
             [k (if (>= (length args) 3) (caddr args) 5)]
             [results (rlm-env-grep env key pattern k)])
-       (if results (quote-if-needed (format-grep-results results)) expr))]
+       (if results
+           (quote-if-needed (map car results))  ; list of matched text strings
+           expr))]
     ;; rlm-env-chunk-count → substitute count
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-chunk-count)
-          (pair? (cdr expr)))
+          (pair? (cdr expr))
+          (literal-arg? (cadr expr)))
      (let* ([key (unquote-key (cadr expr))]
             [count (rlm-env-chunk-count env key)])
        (if count count expr))]
     ;; rlm-env-read-chunk → substitute chunk text
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-read-chunk)
-          (>= (length (cdr expr)) 2))
+          (>= (length (cdr expr)) 2)
+          (for-all literal-arg? (cdr expr)))
      (let* ([key (unquote-key (cadr expr))]
             [idx (caddr expr)]
             [text (rlm-env-read-chunk env key idx)])
@@ -760,7 +853,8 @@
     ;; so the top-level intercept gives a clear error message.
     [(and (pair? expr)
           (eq? (car expr) 'rlm-env-map-chunks)
-          (>= (length (cdr expr)) 2))
+          (>= (length (cdr expr)) 2)
+          (for-all literal-arg? (cdr expr)))
      (let* ([key (unquote-key (cadr expr))]
             [expr-text (caddr expr)]
             [result (rlm-env-map-chunks-impl env key expr-text)])
@@ -789,7 +883,7 @@
     [(pair? expr)
      (cons (expand-env-gets (car expr) env)
            (expand-env-gets (cdr expr) env))]
-    [else expr]))
+    [else expr])))
 
 ;;; unquote-key : SExpr -> Symbol
 ;;; Extract the symbol from a possibly-quoted argument.
@@ -803,11 +897,6 @@
 ;;; Falls back to original text if parsing fails.
 (define (expand-env-gets-in-code code-text env)
   (guard (ex [else
-              (display (format "DEBUG: expand-env-gets FAILED: ~a\n"
-                               (if (message-condition? ex)
-                                   (condition-message ex)
-                                   ex)))
-              (flush-output-port)
               code-text])
     (let ([expr (read (open-input-string code-text))])
       (if (eof-object? expr)
@@ -815,12 +904,7 @@
           (let ([expanded (expand-env-gets expr env)])
             (if (equal? expanded expr)
                 code-text  ; no changes, keep original text
-                (begin
-                  (display (format "DEBUG: expanded ~a chars -> ~a chars\n"
-                                   (string-length code-text)
-                                   (string-length (format "~s" expanded))))
-                  (flush-output-port)
-                  (format "~s" expanded))))))))
+                (format "~s" expanded)))))))
 
 ;;; Slice environment: extract only named keys
 (define (slice-env env keys)
@@ -894,12 +978,17 @@
   (let ([result-text
           (apply string-append
                  (map (lambda (r)
-                        (cond
-                          [(and (pair? r) (eq? (car r) 'ok))
-                           (format "Result: ~a\n" (cadr r))]
-                          [(and (pair? r) (eq? (car r) 'error))
-                           (format "Error: ~a\n" (cadr r))]
-                          [else (format "~a\n" r)]))
+                        (let ([raw (cond
+                                     [(and (pair? r) (eq? (car r) 'ok))
+                                      (format "Result: ~a" (cadr r))]
+                                     [(and (pair? r) (eq? (car r) 'error))
+                                      (format "Error: ~a" (cadr r))]
+                                     [else (format "~a" r)])])
+                          ;; Truncate long results to prevent context explosion
+                          (if (> (string-length raw) 500)
+                              (string-append (substring raw 0 500)
+                                             "... [truncated, use peek/get to inspect]\n")
+                              (string-append raw "\n"))))
                       results))])
     (if looping?
         (string-append result-text
@@ -914,13 +1003,6 @@
                     (rlm-block-content b)
                     ""))
               blocks)))
-
-(define (find-done-block blocks)
-  (let loop ([bs blocks])
-    (cond
-      [(null? bs) #f]
-      [(rlm-block-done? (car bs)) (car bs)]
-      [else (loop (cdr bs))])))
 
 ;;; ====
 ;;; Run Result Accessors
@@ -1006,6 +1088,42 @@
       "  (define remove-duplicates rlm-deduplicate)"
       "  (define extract-field rlm-extract-field)"
       "  (define extract-after rlm-extract-after)"
+      ;; List accessors models reach for (Python-style naming)
+      "  (define first car)"
+      "  (define second cadr)"
+      "  (define third caddr)"
+      "  (define fourth cadddr)"
+      "  (define (fifth lst) (car (cddddr lst)))"
+      "  (define (rest lst) (cdr lst))"
+      "  (define (last lst) (if (null? (cdr lst)) (car lst) (last (cdr lst))))"
+      "  (define rest cdr)"
+      ;; iota / build-list: models expect (iota n) or (build-list n f)
+      "  (define (iota n) (let loop ([i (- n 1)] [acc '()]) (if (< i 0) acc (loop (- i 1) (cons i acc)))))"
+      "  (define (build-list n f) (map f (iota n)))"
+      ;; sort: models always write (sort list pred), Chez uses (sort pred list)
+      ;; sort is (sort predicate list) in Chez — models write (sort list pred).
+      ;; Can't redefine built-ins in IPC worker, so provide 'sorted' alias.
+      "  (define (sorted lst pred) (sort pred lst))"
+      ;; list<? : lexicographic comparison for sorting list-of-lists
+      ;; Models use (sort string<? pairs) where pairs are lists, not strings.
+      "  (define (list<? a b)"
+      "    (cond [(and (null? a) (null? b)) #f]"
+      "          [(null? a) #t]"
+      "          [(null? b) #f]"
+      "          [(string<? (if (string? (car a)) (car a) (format \"~a\" (car a)))"
+      "                     (if (string? (car b)) (car b) (format \"~a\" (car b)))) #t]"
+      "          [(string=? (if (string? (car a)) (car a) (format \"~a\" (car a)))"
+      "                     (if (string? (car b)) (car b) (format \"~a\" (car b))))"
+      "           (list<? (cdr a) (cdr b))]"
+      "          [else #f]))"
+      ;; filter-map: models use this constantly (SRFI-1, not in Chez base)
+      "  (define (filter-map f lst)"
+      "    (let loop ([xs lst] [acc '()])"
+      "      (if (null? xs) (reverse acc)"
+      "          (let ([result (f (car xs))])"
+      "            (if result"
+      "                (loop (cdr xs) (cons result acc))"
+      "                (loop (cdr xs) acc))))))"
       ;; Extra utilities models commonly reach for
       "  (define (string-split str delim)"
       "    (let ([dc (if (char? delim) delim (string-ref delim 0))]"
@@ -1054,6 +1172,22 @@
       "        (let loop ([rest (cdr lst)] [acc (car lst)])"
       "          (if (null? rest) acc"
       "              (loop (cdr rest) (string-append acc sep (car rest)))))))"
+      "  (define (string-index str ch)"
+      "    (let ([len (string-length str)])"
+      "      (let loop ([i 0])"
+      "        (cond [(= i len) #f]"
+      "              [(char=? (string-ref str i) ch) i]"
+      "              [else (loop (+ i 1))]))))"
+      "  (define (string-index-of str sub)"
+      "    (let ([slen (string-length str)] [sublen (string-length sub)])"
+      "      (let loop ([i 0])"
+      "        (cond [(> (+ i sublen) slen) #f]"
+      "              [(string=? (substring str i (+ i sublen)) sub) i]"
+      "              [else (loop (+ i 1))]))))"
+      "  (define (substr str start . rest)"
+      "    (if (null? rest)"
+      "        (substring str start (string-length str))"
+      "        (substring str start (car rest))))"
       "  (void))"))
   ;; Phase 2: Lattice search is handled by command interception in execute-code.
   ;; We can't load lattice meta in the IPC worker (nested loads break frame protocol).

@@ -40,16 +40,16 @@
       (assert-true (rlm-provider? p))
       (assert-equal "https://api.anthropic.com/v1/messages"
                     (rlm-provider-endpoint p))
-      (assert-equal "claude-sonnet-4-20250514" (rlm-provider-model-id p))
+      (assert-equal "claude-sonnet-4-5-20250929" (rlm-provider-model-id p))
       (assert-equal "ANTHROPIC_API_KEY" (rlm-provider-api-key-env p))
       (assert-equal 'anthropic (rlm-provider-api-format p))))
 
   (define-test "rlm-provider-anthropic maps opus"
-    (assert-equal "claude-opus-4-20250514"
+    (assert-equal "claude-opus-4-6"
                   (rlm-provider-model-id (rlm-provider-anthropic 'opus))))
 
   (define-test "rlm-provider-anthropic maps haiku"
-    (assert-equal "claude-3-5-haiku-20241022"
+    (assert-equal "claude-haiku-4-5-20251001"
                   (rlm-provider-model-id (rlm-provider-anthropic 'haiku))))
 
   (define-test "make-rlm-provider custom endpoint"

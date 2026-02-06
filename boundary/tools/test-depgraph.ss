@@ -1,4 +1,4 @@
-;;; core/lang/test-depgraph.ss — Tests for depgraph.ss
+;;; boundary/tools/test-depgraph.ss — Tests for depgraph.ss
 ;;; Standardized to use test-framework.ss
 
 (load "core/testing/test-framework.ss")
