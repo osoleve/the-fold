@@ -540,3 +540,26 @@
 (define (discord-effect? e)
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'discord)))
+
+;;; ====
+;;; RLM Effects (Recursive Language Model)
+;;; ====
+
+(doc 'section 'rlm-effects)
+(doc 'description "RLM agent loop effects. Runs an iterative code-emitting agent that navigates CAS-backed context.")
+
+;;; rlm : RlmConfig -> String -> Nat -> Stage ctx String Any
+;;; Run an RLM agent loop with given config, system prompt override, and max steps.
+;;; Input becomes the task description.
+(define (rlm model-config system-prompt max-steps)
+  (effect 'rlm (list 'run model-config system-prompt max-steps)))
+
+;;; rlm-with-input : RlmConfig -> String -> Stage ctx (String . Any) Any
+;;; Run RLM where input is a (task . initial-value) pair.
+(define (rlm-with-input model-config system-prompt)
+  (effect 'rlm (list 'run-with-input model-config system-prompt)))
+
+;;; rlm-effect? : Effect -> Boolean
+(define (rlm-effect? e)
+  (and (stage-effect? e)
+       (eq? (stage-effect-type e) 'rlm)))

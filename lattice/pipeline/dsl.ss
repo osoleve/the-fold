@@ -387,6 +387,15 @@
 ;;; Save checkpoint.
 (define save checkpoint)
 
+;;; ====
+;;; RLM Convenience
+;;; ====
+
+;;; ask-rlm : RlmConfig -> String -> Nat -> Stage ctx String Any
+;;; Run an RLM agent loop. Input is the task; output is the final answer.
+;;; Analogous to ask-llm but iterative with CAS-backed context.
+(define ask-rlm rlm)
+
 ;;; load : Symbol -> Stage ctx i Any
 ;;; Load checkpoint.
 (define load-checkpoint restore)

@@ -9,6 +9,7 @@
 (load "boundary/pipeline/effects/discord.ss")
 (load "boundary/pipeline/effects/misc.ss")
 (load "boundary/pipeline/checkpoint.ss")
+(load "boundary/pipeline/rlm-loop.ss")
 
 (define-syntax doc
   (syntax-rules ()
@@ -113,6 +114,7 @@
              [(git) (interpret-git-effect payload ctx state input)]
              [(pipeline) (interpret-pipeline-effect payload ctx state input)]
              [(discord) (interpret-discord-effect payload ctx state input)]
+             [(rlm) (interpret-rlm-effect payload ctx state input)]
              [else
               (cons (stage-err 'unknown-effect
                                (format "Unknown effect type: ~a" type)
@@ -169,6 +171,55 @@
                                (format "Unknown pipeline op: ~a" op)
                                payload)
                     state)])))
+
+(doc 'section 'rlm-effect-interpretation)
+
+(define (interpret-rlm-effect payload ctx state input)
+  (doc 'description "Interpret RLM effect — run an iterative agent loop")
+  (doc 'type '(-> Payload Context State Input (Pair Result State)))
+  (let ([op (car payload)])
+    (case op
+      [(run)
+       (let* ([config (cadr payload)]
+              [system-prompt (caddr payload)]
+              [max-steps (cadddr payload)]
+              ;; Override config with provided system-prompt and max-steps
+              [effective-config (make-rlm-config
+                                  (rlm-config-provider config)
+                                  system-prompt
+                                  max-steps
+                                  (rlm-config-max-fuel config)
+                                  (rlm-config-chunk-size config)
+                                  (rlm-config-max-depth config)
+                                  (rlm-config-loop-window config))]
+              [result (rlm-run effective-config input "")])
+         (if (eq? (rlm-run-result-status result) 'completed)
+             (cons (stage-ok (rlm-run-result-output result))
+                   (state-add-log state
+                     (make-log-entry 'info
+                       (format "RLM completed: ~a" (rlm-run-result-trajectory-hash result))
+                       '())))
+             (cons (stage-err 'rlm-error
+                              (format "RLM ~a" (rlm-run-result-status result))
+                              result)
+                   state)))]
+      [(run-with-input)
+       (let* ([config (cadr payload)]
+              [system-prompt (caddr payload)]
+              [task (if (pair? input) (car input) input)]
+              [initial-value (if (pair? input) (cdr input) "")]
+              [result (rlm-run config task initial-value)])
+         (if (eq? (rlm-run-result-status result) 'completed)
+             (cons (stage-ok (rlm-run-result-output result)) state)
+             (cons (stage-err 'rlm-error
+                              (format "RLM ~a" (rlm-run-result-status result))
+                              result)
+                   state)))]
+      [else
+       (cons (stage-err 'unknown-rlm-op
+                        (format "Unknown RLM operation: ~a" op)
+                        payload)
+             state)])))
 
 (doc 'section 'council-effect-interpretation)
 
