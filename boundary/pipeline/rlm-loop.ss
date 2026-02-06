@@ -281,18 +281,18 @@
 ;;; Special Call Detection
 ;;; ====
 
+;;; Parse-based detection: read the first symbol from the expression.
+;;; More robust than substring matching — tolerates whitespace variations.
+(define (rlm-first-symbol code)
+  (guard (ex [else #f])
+    (let ([expr (read (open-input-string code))])
+      (if (pair? expr) (car expr) #f))))
+
 (define (rlm-spawn-call? code)
-  (and (>= (string-length code) 11)
-       (let ([trimmed (string-trim-left code)])
-         (and (>= (string-length trimmed) 11)
-              (string=? (substring trimmed 0 10) "(rlm-spawn")))))
+  (eq? (rlm-first-symbol code) 'rlm-spawn))
 
 (define (rlm-env-put-call? code)
-  (let ([trimmed (string-trim-left code)])
-    (and (>= (string-length trimmed) 14)
-         ;; Match "(rlm-env-put!" — 13 chars including the !
-         (string=? (substring trimmed 0 13) "(rlm-env-put!")
-         )))
+  (eq? (rlm-first-symbol code) 'rlm-env-put!))
 
 (define (parse-spawn-call code)
   ;; Parse (rlm-spawn "sub-prompt" '(key1 key2))
