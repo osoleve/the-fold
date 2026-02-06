@@ -5,7 +5,7 @@
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "core/blocks/cas.ss")
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (load "boundary/ui/color.ss")
 (load "boundary/ui/graphics.ss")
 

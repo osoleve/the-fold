@@ -1,4 +1,4 @@
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (load "boundary/ui/layers.ss")
 
 (doc 'module 'test-alpha-blending)

@@ -1,4 +1,4 @@
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 (doc 'module 'test-transforms)
 (doc 'description "Test suite for transform operations (fold-q196) - tests transform concepts to verify correctness of the design")

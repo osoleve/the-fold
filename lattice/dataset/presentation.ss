@@ -3,7 +3,7 @@
 ;;; @requires prelude layout
 
 (load "core/base/prelude.ss")
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 (doc 'module 'presentation)
 (doc 'description "Composable layout system for combining physics frames with textual context. Supports multiple output targets (plain text, ANSI, structured).")

@@ -2,7 +2,7 @@
 
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (load "boundary/ui/layers.ss")
 
 (doc 'module 'test-layers)

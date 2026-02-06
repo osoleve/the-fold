@@ -13,7 +13,7 @@
 ;;; Load Dependencies
 ;;; ====
 
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (load "boundary/ui/layers.ss")
 
 ;;; ====

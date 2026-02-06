@@ -1,4 +1,4 @@
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 (doc 'module 'test-layout-combinators)
 (doc 'description "Test suite for layout combinators (fold-q196)")

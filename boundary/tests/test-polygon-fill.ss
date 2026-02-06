@@ -1,4 +1,4 @@
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 (doc 'module 'test-polygon-fill)
 (doc 'description "Tests the Active Edge Table (AET) polygon fill algorithm concepts")

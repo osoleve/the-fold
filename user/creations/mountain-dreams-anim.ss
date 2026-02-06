@@ -2,7 +2,7 @@
 ;;; Twinkling stars over static mountains
 
 (load "core/base/prelude.ss")
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
 

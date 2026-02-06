@@ -1,8 +1,8 @@
-;;; boundary/ui/layout.ss — Text Layout Primitives
+;;; lattice/ui/layout.ss — Text Layout Primitives
 ;;;
 ;;; The canvas for DUCKIE — a 2D character framebuffer for ASCII/ANSI rendering.
 ;;;
-;;; This is Shell code: handles display/IO, but keeps pure functions pure.
+;;; Pure data structures and algorithms — no I/O. Canvas is a 2D char vector.
 ;;;
 ;;; Data Structures:
 ;;;   Canvas — A 2D grid of characters (width × height)

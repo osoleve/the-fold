@@ -1,6 +1,6 @@
-;;; core/lang/depgraph.ss — Module Dependency Graph & Cycle Detection
+;;; boundary/tools/depgraph.ss — Module Dependency Graph & Cycle Detection
 ;;; @module depgraph
-;;; @requires prelude
+;;; @requires prelude index
 ;;;
 ;;; Builds module dependency graphs, detects cycles, and provides
 ;;; suggestions for breaking them. Integrates with REPL for inspection.

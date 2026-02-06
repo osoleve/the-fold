@@ -22,7 +22,7 @@
 ;;; ====
 
 (load "core/base/prelude.ss")
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (import (boundary easing))
 (import (boundary graphics-primitives))
 (import (boundary layout-combinators))

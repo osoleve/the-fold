@@ -2,7 +2,7 @@
 ;;; Standardized to use test-framework.ss
 
 (load "core/testing/test-framework.ss")
-(load "core/lang/depgraph.ss")
+(load "boundary/tools/depgraph.ss")
 
 ;;; ============================================================================
 ;;; Tests

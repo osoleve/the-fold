@@ -1,5 +1,5 @@
 (load "core/base/prelude.ss")
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 (doc 'module 'test-layout)
 (doc 'description "Test vectors for Text Layout Primitives")

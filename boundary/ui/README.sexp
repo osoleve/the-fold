@@ -17,7 +17,7 @@
    (layers.ss "Layer-based rendering with z-ordering")
    (layout-color.ss "Color schemes for layout rendering")
    (layout-combinators.ss "Composable layout primitives for UI construction")
-   (layout.ss "Canvas and grid-based layout system")
+   ;; layout.ss moved to lattice/ui/layout.ss (pure data structures)
    (particles.ss "Particle system for visual effects")
    (profile-viz.ss "Profiler output visualization")
    (svg-renderer.ss "SVG output generation for shapes and canvases")

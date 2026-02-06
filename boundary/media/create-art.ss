@@ -1,4 +1,4 @@
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 (load "boundary/ui/easing.ss")
 (load "boundary/ui/graphics-primitives.ss")
 

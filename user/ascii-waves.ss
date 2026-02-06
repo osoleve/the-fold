@@ -6,7 +6,7 @@
 ;;; This is Playpen code: creative exploration of the canvas system.
 
 ;;; Load dependencies
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 ;;; ====
 ;;; Wave Animation

@@ -1,4 +1,4 @@
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 (doc 'module 'test-svg-renderer)
 (doc 'description "Test suite for SVG concepts (fold-q196) - tests basic canvas-to-string rendering which underlies SVG generation")

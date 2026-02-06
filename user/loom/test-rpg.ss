@@ -61,7 +61,7 @@
 ;;; ====
 
 ;;; Load canvas system from shell (needed for rendering tests)
-(load "boundary/ui/layout.ss")
+(load "lattice/ui/layout.ss")
 
 ;;; Load the RPG SDK
 (load "user/loom/core.ss")
