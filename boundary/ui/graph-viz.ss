@@ -18,6 +18,7 @@
 (load "lattice/linalg/vec2.ss")
 (load "boundary/storage/store-api.ss")
 (load "lattice/data/graph-algorithms.ss")
+(load "boundary/data/graph-traversal.ss")
 (load "boundary/ui/graph-export.ss")
 (load "boundary/ui/turtle-color.ss")
 (load "boundary/ui/turtle-path.ss")

@@ -6,6 +6,3 @@
 
 # lattice/meta → boundary (tracked: fold-zxvr)
 lattice/meta/meta.ss           # orchestrator, planned move to boundary/meta/
-
-# lattice/ → boundary (untracked, need investigation)
-lattice/data/graph-algorithms.ss    # loads boundary/storage/store-api.ss
