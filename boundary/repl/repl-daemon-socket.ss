@@ -225,30 +225,90 @@
 ;;; Worker Output Polling
 ;;; ====
 
-;;; read-frame-from-port : InputPort → Bytevector | #f
-;;; Try to read a complete length-prefixed frame from a port.
-;;; Returns #f if no data is available (non-blocking check).
-(define (read-frame-from-port port)
+;;; read-available-bytes : InputPort → Bytevector | #f
+;;; Read whatever bytes are currently available without blocking.
+;;; Returns #f if nothing is available or port is at EOF.
+(define (read-available-bytes port)
   (guard (ex [else #f])
-    ;; Check if data is available without blocking
     (if (and (not (port-eof? port))
              (input-port-ready? port))
-        (let ([header (get-bytevector-n port 4)])
-          (if (or (eof-object? header) (< (bytevector-length header) 4))
-              #f
-              (let ([payload-len (bytevector-u32-ref header 0 (endianness big))])
-                (if (> payload-len (* 16 1024 1024))
-                    #f  ; Oversized frame
-                    (let ([payload (get-bytevector-n port payload-len)])
-                      (if (or (eof-object? payload)
-                              (< (bytevector-length payload) payload-len))
-                          #f
-                          ;; Reconstruct full frame (header + payload)
-                          (let ([frame (make-bytevector (+ 4 payload-len))])
-                            (bytevector-copy! header 0 frame 0 4)
-                            (bytevector-copy! payload 0 frame 4 payload-len)
-                            frame)))))))
+        (get-bytevector-some port)  ; Non-blocking: reads only what's available
         #f)))
+
+;;; Per-session read buffers for incremental frame assembly
+(define *session-read-buffers* '())
+
+(define (get-read-buffer session-id)
+  (let ([entry (assoc session-id *session-read-buffers*)])
+    (if entry (cdr entry) (make-bytevector 0))))
+
+(define (set-read-buffer! session-id bv)
+  (let ([entry (assoc session-id *session-read-buffers*)])
+    (if entry
+        (set-cdr! entry bv)
+        (set! *session-read-buffers*
+              (cons (cons session-id bv) *session-read-buffers*)))))
+
+(define (clear-read-buffer! session-id)
+  (set! *session-read-buffers*
+        (filter (lambda (e) (not (equal? (car e) session-id)))
+                *session-read-buffers*)))
+
+;;; bytevector-append : Bytevector × Bytevector → Bytevector
+(define (bytevector-append a b)
+  (let* ([alen (bytevector-length a)]
+         [blen (bytevector-length b)]
+         [result (make-bytevector (+ alen blen))])
+    (bytevector-copy! a 0 result 0 alen)
+    (bytevector-copy! b 0 result alen blen)
+    result))
+
+;;; try-extract-frame : Bytevector → (Bytevector . Bytevector) | #f
+;;; If the buffer contains a complete frame, returns (frame . remaining).
+;;; Otherwise returns #f.
+(define (try-extract-frame buf)
+  (let ([buflen (bytevector-length buf)])
+    (if (< buflen 4)
+        #f
+        (let ([payload-len (bytevector-u32-ref buf 0 (endianness big))])
+          (cond
+           [(> payload-len (* 16 1024 1024))
+            ;; Oversized — discard entire buffer (corrupted stream)
+            (cons #f (make-bytevector 0))]
+           [(< buflen (+ 4 payload-len))
+            #f]  ; Not enough data yet
+           [else
+            (let ([frame (make-bytevector (+ 4 payload-len))]
+                  [remaining-len (- buflen (+ 4 payload-len))])
+              (bytevector-copy! buf 0 frame 0 (+ 4 payload-len))
+              (let ([remaining (make-bytevector remaining-len)])
+                (when (> remaining-len 0)
+                  (bytevector-copy! buf (+ 4 payload-len) remaining 0 remaining-len))
+                (cons frame remaining)))])))))
+
+;;; read-frame-from-port : InputPort × String → Bytevector | #f
+;;; Non-blocking frame read with incremental accumulation.
+;;; Never blocks — reads whatever is available and assembles frames
+;;; from per-session buffers.
+(define (read-frame-from-port port session-id)
+  (guard (ex [else #f])
+    ;; Read any available bytes into session buffer
+    (let ([new-bytes (read-available-bytes port)])
+      (when new-bytes
+        (set-read-buffer! session-id
+                          (bytevector-append (get-read-buffer session-id) new-bytes))))
+    ;; Try to extract a complete frame
+    (let ([buf (get-read-buffer session-id)])
+      (let ([result (try-extract-frame buf)])
+        (cond
+         [(not result) #f]  ; Not enough data
+         [(not (car result))
+          ;; Oversized/corrupt — clear buffer
+          (clear-read-buffer! session-id)
+          #f]
+         [else
+          (set-read-buffer! session-id (cdr result))
+          (car result)])))))
 
 ;;; check-worker-outputs! : → Void
 ;;; Non-blocking poll of all worker output ports.
@@ -263,7 +323,7 @@
                    ;; Worker output error — session may be dead
                    #f])
          (let loop ()
-           (let ([frame (read-frame-from-port outp)])
+           (let ([frame (read-frame-from-port outp session-id)])
              (when frame
                ;; Decode to get message type for routing
                (let ([msg (guard (ex [else #f])
@@ -295,11 +355,12 @@
             (if (>= now (session-expires rec))
                 (begin
                   (display (format "  [expire] Session '~a' expired\n" session-id))
-                  ;; Close worker ports
+                  ;; Close worker ports and clean up read buffer
                   (guard (ex [else #f])
                     (close-port (session-input-port rec)))
                   (guard (ex [else #f])
                     (close-port (session-output-port rec)))
+                  (clear-read-buffer! session-id)
                   (loop (cdr remaining) kept))
                 (loop (cdr remaining) (cons entry kept))))))))
 

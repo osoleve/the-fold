@@ -75,6 +75,13 @@ case "$1" in
 
         # Wait for ready file
         for i in {1..30}; do
+            # Check if daemon process died
+            if ! kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
+                echo "Daemon process died during startup."
+                echo "Check .fold-repl/daemon.log for details."
+                rm -f "$PID_FILE"
+                exit 1
+            fi
             if [ -f "$READY_FILE" ]; then
                 echo "Daemon started (PID: $(cat $PID_FILE))"
                 # Check transport type

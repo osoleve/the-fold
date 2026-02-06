@@ -407,6 +407,12 @@ pub extern "C" fn fold_ipc_start(path_ptr: *const u8, path_len: usize, out: *mut
         }
     };
 
+    // Restrict socket permissions to owner only (0600)
+    unsafe {
+        let path_c = std::ffi::CString::new(path_str.as_bytes()).unwrap();
+        libc::chmod(path_c.as_ptr(), 0o600);
+    }
+
     // Set listener non-blocking
     listener.set_nonblocking(true).ok();
 
