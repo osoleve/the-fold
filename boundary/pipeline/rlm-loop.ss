@@ -333,8 +333,18 @@
           (values key (fold-result-value result))
           (values key expanded)))))  ; store expanded form if eval fails
 
+;;; quote-if-needed : Any -> SExpr
+;;; Wrap non-self-evaluating values in (quote ...) so they survive IPC eval.
+;;; Numbers, strings, booleans, and characters are self-evaluating.
+(define (quote-if-needed val)
+  (if (or (number? val) (string? val) (boolean? val) (char? val))
+      val
+      (list 'quote val)))
+
 ;;; expand-env-gets : SExpr -> RlmEnv -> SExpr
 ;;; Recursively replace (rlm-env-get 'key) with the CAS-fetched value.
+;;; Non-self-evaluating values (lists, symbols) are quoted to prevent
+;;; the IPC worker from interpreting them as code.
 (define (expand-env-gets expr env)
   (cond
     [(and (pair? expr)
@@ -345,7 +355,7 @@
                      (cadr key-arg)
                      key-arg)]
             [val (rlm-env-fetch env key)])
-       (if val val expr))]  ; substitute if found, keep original otherwise
+       (if val (quote-if-needed val) expr))]  ; substitute if found
     [(pair? expr)
      (cons (expand-env-gets (car expr) env)
            (expand-env-gets (cdr expr) env))]

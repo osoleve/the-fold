@@ -104,6 +104,46 @@
       (assert-equal 1 (length sliced))))
 
   ;;; ====
+  ;;; Env-Get Expansion
+  ;;; ====
+
+  (define-test "expand-env-gets substitutes number values"
+    (let* ([env (car (rlm-env-store! (make-rlm-env) 'x 42 'sexpr))]
+           [expr '(+ (rlm-env-get 'x) 10)]
+           [expanded (expand-env-gets expr env)])
+      (assert-equal '(+ 42 10) expanded)))
+
+  (define-test "expand-env-gets quotes list values"
+    (let* ([env (car (rlm-env-store! (make-rlm-env) 'xs '(1 2 3) 'sexpr))]
+           [expr '(car (rlm-env-get 'xs))]
+           [expanded (expand-env-gets expr env)])
+      (assert-equal '(car '(1 2 3)) expanded)))
+
+  (define-test "expand-env-gets quotes symbol values"
+    (let* ([env (car (rlm-env-store! (make-rlm-env) 'name 'hello 'sexpr))]
+           [expr '(symbol->string (rlm-env-get 'name))]
+           [expanded (expand-env-gets expr env)])
+      (assert-equal '(symbol->string 'hello) expanded)))
+
+  (define-test "expand-env-gets preserves strings unquoted"
+    (let* ([env (car (rlm-env-store! (make-rlm-env) 'msg "hi" 'sexpr))]
+           [expr '(string-length (rlm-env-get 'msg))]
+           [expanded (expand-env-gets expr env)])
+      (assert-equal '(string-length "hi") expanded)))
+
+  (define-test "expand-env-gets leaves missing keys unchanged"
+    (let* ([env (make-rlm-env)]
+           [expr '(rlm-env-get 'missing)]
+           [expanded (expand-env-gets expr env)])
+      (assert-equal expr expanded)))
+
+  (define-test "expand-env-gets-in-code round-trips string"
+    (let* ([env (car (rlm-env-store! (make-rlm-env) 'x 42 'sexpr))]
+           [code "(+ (rlm-env-get 'x) 10)"]
+           [expanded (expand-env-gets-in-code code env)])
+      (assert-equal "(+ 42 10)" expanded)))
+
+  ;;; ====
   ;;; Special Call Detection
   ;;; ====
 
