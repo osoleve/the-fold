@@ -206,7 +206,7 @@
        (set! *kg-modules* (map (lambda (n) (cons n #f)) (or module-names '())))
        (set! *kg-exports* (map (lambda (n) (cons n #f)) (or export-names '())))
        (set! *kg-deps* '())  ; Deps can be recomputed from skill-data if needed
-       ))
+       (set! *kg-loaded* #t)))
 
 ;;; restore-docstrings! : (List (Symbol . String)) -> void
 ;;; Restore docstrings cache from alist

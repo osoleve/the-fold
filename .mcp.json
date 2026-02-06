@@ -4,7 +4,7 @@
       "command": "node",
       "args": ["boundary/mcp-server/dist/index.js"],
       "env": {
-        "FOLD_ROOT": "/home/osoleve/the-fold"
+        "FOLD_ROOT": "/home/osoleve/fold"
       }
     },
     "vllm": {

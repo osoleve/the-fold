@@ -404,9 +404,9 @@
                   (set! all-labels (cons label all-labels))))
               labels)))))
      (bbs-all-ids))
-    (sort (lambda (a b)
-            (string<? (symbol->string a) (symbol->string b)))
-          all-labels)))
+    (list-sort (lambda (a b)
+                 (string<? (symbol->string a) (symbol->string b)))
+               all-labels)))
 
 (define (bbs-label-report)
   (doc 'type (-> Void))
