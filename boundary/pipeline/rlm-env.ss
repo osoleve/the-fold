@@ -155,6 +155,12 @@
 ;;; Grep (BM25 Search)
 ;;; ====
 
+;;; Content-addressed BM25 index cache.
+;;; Key: manifest CAS hex hash. Value: BM25 index.
+;;; Same manifest hash = same chunks = same index, so this is
+;;; always valid (CAS blocks are immutable). Built lazily on first grep.
+(define *bm25-index-cache* (make-hashtable string-hash string=?))
+
 ;;; rlm-env-grep : RlmEnv -> Symbol -> String -> Nat -> (List (String . Number)) | #f
 ;;; Search chunks of a chunked env entry using BM25.
 ;;; Returns top-k list of (chunk-text . score), or #f if key not found/not chunked.
@@ -165,25 +171,30 @@
         (let ([tag (cadr entry)])
           (if (not (eq? tag 'chunks))
               #f  ; can only grep chunked values
-              (let ([manifest (rlm-env-fetch env key)])
+              (let* ([manifest-hex (cadddr entry)]
+                     [manifest (rlm-env-fetch env key)])
                 (if (and manifest (chunk-manifest? manifest))
-                    (grep-chunks (chunk-manifest-hashes manifest) pattern k)
+                    (let ([idx (get-or-build-bm25-index
+                                 manifest-hex
+                                 (chunk-manifest-hashes manifest))])
+                      (search-bm25-index idx pattern k))
                     #f)))))))
 
-(define (grep-chunks chunk-hashes pattern k)
-  ;; Build a BM25 index from all chunks, then search
+;;; get-or-build-bm25-index : String -> (List String) -> BM25Index
+;;; Returns cached index if available, otherwise builds and caches.
+(define (get-or-build-bm25-index manifest-hex chunk-hashes)
+  (or (hashtable-ref *bm25-index-cache* manifest-hex #f)
+      (let ([idx (build-bm25-index chunk-hashes)])
+        (hashtable-set! *bm25-index-cache* manifest-hex idx)
+        idx)))
+
+;;; build-bm25-index : (List String) -> BM25Index
+(define (build-bm25-index chunk-hashes)
   (let loop ([hashes chunk-hashes]
              [idx (bm25-create)]
              [i 0])
     (if (null? hashes)
-        ;; Search
-        (let* ([results (bm25-search-string idx pattern k)]
-               [with-data (map (lambda (r)
-                                 (let ([data (bm25-get-data idx (car r))])
-                                   (cons (if data data "") (cdr r))))
-                               results)])
-          with-data)
-        ;; Index this chunk
+        idx
         (let* ([hash (hex->hash (car hashes))]
                [blk (fetch-persistent hash)])
           (if blk
@@ -192,6 +203,15 @@
                      [idx* (bm25-add-doc idx i terms text)])
                 (loop (cdr hashes) idx* (+ i 1)))
               (loop (cdr hashes) idx (+ i 1)))))))
+
+;;; search-bm25-index : BM25Index -> String -> Nat -> (List (String . Number))
+(define (search-bm25-index idx pattern k)
+  (let* ([results (bm25-search-string idx pattern k)]
+         [with-data (map (lambda (r)
+                           (let ([data (bm25-get-data idx (car r))])
+                             (cons (if data data "") (cdr r))))
+                         results)])
+    with-data))
 
 ;;; ====
 ;;; Chunk Access (Sequential)

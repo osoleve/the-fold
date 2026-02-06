@@ -64,6 +64,9 @@
 
 (define *n-fillers* (vector-length *filler-paragraphs*))
 
+;;; Seed PRNG for reproducible haystack layout.
+(random-seed 42)
+
 ;;; ====
 ;;; Haystack Generation
 ;;; ====
