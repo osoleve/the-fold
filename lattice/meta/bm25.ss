@@ -263,7 +263,7 @@
                               (cons doc-id (bm25-score idx doc-id query-terms)))
                       all-docs)]
          [filtered (filter (lambda (entry) (> (cdr entry) 0)) scored)]
-         [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) filtered)])
+         [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) filtered)])
         (take-at-most k sorted)))
 
 (doc bm25-search-string 'type (-> Index String Int (List (Pair DocId Score))))
