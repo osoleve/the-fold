@@ -117,7 +117,7 @@
          [auth-header (if api-key
                          (format "-H 'Authorization: Bearer '\"$RLM_API_KEY\"")
                          "")]
-         [cmd (format "curl -sS --max-time 120 -X POST ~a -H 'Content-Type: application/json' ~a -d @-"
+         [cmd (format "curl -sS --max-time 300 -X POST ~a -H 'Content-Type: application/json' ~a -d @-"
                       (shell-escape-url endpoint)
                       auth-header)]
          [env (if api-key `(("RLM_API_KEY" . ,api-key)) '())]
@@ -176,7 +176,7 @@
                                  '()
                                  `((system . ,system-content)))
                            (messages . ,(map format-openai-message non-system))))]
-         [cmd (format "curl -sS --max-time 120 -X POST ~a -H 'Content-Type: application/json' -H 'x-api-key: '\"$RLM_API_KEY\" -H 'anthropic-version: 2023-06-01' -d @-"
+         [cmd (format "curl -sS --max-time 300 -X POST ~a -H 'Content-Type: application/json' -H 'x-api-key: '\"$RLM_API_KEY\" -H 'anthropic-version: 2023-06-01' -d @-"
                       (shell-escape-url endpoint))]
          [env `(("RLM_API_KEY" . ,api-key))]
          [result (shell-exec-with-env-stdin env cmd request-body)])
