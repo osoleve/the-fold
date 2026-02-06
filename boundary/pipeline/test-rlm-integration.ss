@@ -3,7 +3,11 @@
 ;;; Tests against a live vLLM instance and the REPL daemon.
 ;;; Prerequisites: vLLM running on localhost:8000, fold daemon running.
 ;;;
-;;; Run: scheme --script boundary/pipeline/test-rlm-integration.ss
+;;; Run: RLM_INTEGRATION=1 scheme --script boundary/pipeline/test-rlm-integration.ss
+
+(unless (getenv "RLM_INTEGRATION")
+  (display "Skipping RLM integration tests (set RLM_INTEGRATION=1 to enable)\n")
+  (exit 0))
 
 (load "core/testing/test-framework.ss")
 (load "boundary/pipeline/rlm-loop.ss")
@@ -51,12 +55,12 @@
               (make-msg "user"
                 "Write a single ```scheme block that computes (+ 1 2). Nothing else."))]
            [result (rlm-chat *vllm-provider* messages 256 0.0)])
-      (when (rlm-chat-ok? result)
-        (let ([blocks (rlm-parse-response (rlm-chat-text result))])
-          ;; Should have at least one code block
-          (assert-true (pair? blocks))
-          (let ([code-blocks (filter rlm-block-code? blocks)])
-            (assert-true (>= (length code-blocks) 1)))))))
+      (assert-true (rlm-chat-ok? result))
+      (let ([blocks (rlm-parse-response (rlm-chat-text result))])
+        ;; Should have at least one code block
+        (assert-true (pair? blocks))
+        (let ([code-blocks (filter rlm-block-code? blocks)])
+          (assert-true (>= (length code-blocks) 1))))))
 
   (define-test "real model output parses DONE marker"
     (let* ([messages (list
@@ -65,11 +69,11 @@
               (make-msg "user"
                 "The answer is 42. Say DONE(42) now."))]
            [result (rlm-chat *vllm-provider* messages 128 0.0)])
-      (when (rlm-chat-ok? result)
-        (let ([blocks (rlm-parse-response (rlm-chat-text result))])
-          ;; Should contain a done block
-          (let ([done-blocks (filter rlm-block-done? blocks)])
-            (assert-true (>= (length done-blocks) 1))))))))
+      (assert-true (rlm-chat-ok? result))
+      (let ([blocks (rlm-parse-response (rlm-chat-text result))])
+        ;; Should contain a done block
+        (let ([done-blocks (filter rlm-block-done? blocks)])
+          (assert-true (>= (length done-blocks) 1)))))))
 
 ;;; ====
 ;;; Layer 3: CAS environment with real data

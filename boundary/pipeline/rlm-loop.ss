@@ -35,16 +35,17 @@
 ;;; Returns: (list 'rlm-run-result status output trajectory-hash env)
 ;;;   status: 'completed | 'exhausted | 'error | 'loop-detected
 (define (rlm-run config task input)
-  (rlm-run-at-depth config task input 0))
+  (rlm-run-at-depth config task input 0 #f))
 
-;;; rlm-run-at-depth : RlmConfig -> String -> Any -> Nat -> RlmRunResult
+;;; rlm-run-at-depth : RlmConfig -> String -> Any -> Nat -> (Maybe RlmEnv) -> RlmRunResult
 ;;; Internal: runs the loop at a given recursion depth.
-(define (rlm-run-at-depth config task input depth)
+;;; initial-env: if provided, seeds the environment (used by rlm-spawn to pass sliced context).
+(define (rlm-run-at-depth config task input depth initial-env)
   (let* ([run-id (generate-run-id)]
          [session-id (format "rlm-~a" run-id)]
          [started (current-iso8601)]
-         ;; Initialize environment with input
-         [env0 (make-rlm-env)]
+         ;; Initialize environment, seeding from initial-env if provided
+         [env0 (or initial-env (make-rlm-env))]
          [env+input (car (rlm-env-store! env0 'input input 'sexpr))]
          [env+task (car (rlm-env-store! env+input 'task task 'text))])
     ;; Parameterize the pipeline session for Fold IPC
@@ -191,7 +192,8 @@
             [(rlm-block-code? block)
              (let-values ([(env* result fu)
                            (execute-code (rlm-block-content block)
-                                         env fuel-remaining depth config)])
+                                         env (- fuel-remaining fuel-used)
+                                         depth config)])
                (loop (cdr bs) env*
                      (cons result results)
                      (+ fuel-used fu)))]
@@ -199,7 +201,8 @@
             [(rlm-block-template? block)
              (let-values ([(env* result fu)
                            (execute-template (rlm-block-content block)
-                                             env fuel-remaining depth config)])
+                                             env (- fuel-remaining fuel-used)
+                                             depth config)])
                (loop (cdr bs) env*
                      (cons result results)
                      (+ fuel-used fu)))]
@@ -237,7 +240,7 @@
                                     (rlm-config-chunk-size config)
                                     (rlm-config-max-depth config)
                                     (rlm-config-loop-window config))]
-                    [child-result (rlm-run-at-depth child-config sub-prompt "" (+ depth 1))]
+                    [child-result (rlm-run-at-depth child-config sub-prompt "" (+ depth 1) child-env)]
                     [child-output (rlm-run-result-output child-result)]
                     [child-traj-hash (rlm-run-result-trajectory-hash child-result)]
                     ;; Store child result in parent env

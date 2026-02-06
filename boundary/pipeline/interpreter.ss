@@ -206,9 +206,18 @@
       [(run-with-input)
        (let* ([config (cadr payload)]
               [system-prompt (caddr payload)]
+              ;; Override config with provided system-prompt
+              [effective-config (make-rlm-config
+                                  (rlm-config-provider config)
+                                  system-prompt
+                                  (rlm-config-max-steps config)
+                                  (rlm-config-max-fuel config)
+                                  (rlm-config-chunk-size config)
+                                  (rlm-config-max-depth config)
+                                  (rlm-config-loop-window config))]
               [task (if (pair? input) (car input) input)]
               [initial-value (if (pair? input) (cdr input) "")]
-              [result (rlm-run config task initial-value)])
+              [result (rlm-run effective-config task initial-value)])
          (if (eq? (rlm-run-result-status result) 'completed)
              (cons (stage-ok (rlm-run-result-output result)) state)
              (cons (stage-err 'rlm-error
