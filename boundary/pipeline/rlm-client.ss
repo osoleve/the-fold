@@ -15,6 +15,13 @@
 (doc 'purity 'impure)
 (doc 'dependencies '(boundary/io/json.ss boundary/pipeline/effects/llm.ss))
 
+;;; Monotonic counter for unique temp file names (concurrent-safe).
+(define *rlm-req-counter* 0)
+(define (rlm-request-file!)
+  (set! *rlm-req-counter* (+ *rlm-req-counter* 1))
+  (format "/tmp/rlm-req-~a-~a.json"
+          (get-process-id) *rlm-req-counter*))
+
 ;;; ====
 ;;; Provider Configuration (pure data)
 ;;; ====
@@ -118,9 +125,9 @@
          [auth-header (if api-key
                          (format "-H 'Authorization: Bearer '\"$RLM_API_KEY\"")
                          "")]
-         ;; Write request body to temp file to avoid pipe buffering issues
+         ;; Write request body to temp file to avoid pipe fd accumulation
          ;; in long-running processes with many sequential subprocess calls.
-         [request-file "/tmp/rlm-request-body.json"]
+         [request-file (rlm-request-file!)]
          [_ (call-with-output-file request-file
               (lambda (p) (display request-body p))
               'replace)]
@@ -130,6 +137,7 @@
                       request-file)]
          [env (if api-key `(("RLM_API_KEY" . ,api-key)) '())])
     (let ([result (shell-exec-with-env-no-stdin env cmd)])
+      (delete-file request-file)
       (if (shell-result-ok? result)
           (parse-openai-response (shell-result-stdout result))
           (list 'err 'http-error (shell-result-stderr result))))))
@@ -184,7 +192,7 @@
                                  '()
                                  `((system . ,system-content)))
                            (messages . ,(map format-openai-message non-system))))]
-         [request-file "/tmp/rlm-request-body.json"]
+         [request-file (rlm-request-file!)]
          [_ (call-with-output-file request-file
               (lambda (p) (display request-body p))
               'replace)]
@@ -193,6 +201,7 @@
                       request-file)]
          [env `(("RLM_API_KEY" . ,api-key))]
          [result (shell-exec-with-env-no-stdin env cmd)])
+    (delete-file request-file)
     (if (shell-result-ok? result)
         (parse-anthropic-response (shell-result-stdout result))
         (list 'err 'http-error (shell-result-stderr result)))))
