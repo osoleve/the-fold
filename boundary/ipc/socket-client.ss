@@ -76,7 +76,7 @@
     (unless (fold-ipc-connect!)
       (error 'fold-ipc-eval "Could not connect to daemon"))
 
-    (let* ([session (if (parameter? *pipeline-session*)
+    (let* ([session (if (procedure? *pipeline-session*)
                         (*pipeline-session*)
                         "pipeline")]
            [req (ipc-make-request session expr)]

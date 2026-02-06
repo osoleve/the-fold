@@ -450,7 +450,7 @@
           (random 100000)))
 
 (define (current-iso8601)
-  (let* ([t (current-time)]
-         [s (time-second t)])
-    ;; Simple ISO8601-ish timestamp
-    (format "~a" s)))
+  (let ([d (current-date)])
+    (format "~4d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"
+            (date-year d) (date-month d) (date-day d)
+            (date-hour d) (date-minute d) (date-second d))))
