@@ -46,12 +46,21 @@
          [started (current-iso8601)]
          ;; Initialize environment, seeding from initial-env if provided
          [env0 (or initial-env (make-rlm-env))]
-         [input-pair (rlm-env-store! env0 'input input 'sexpr)]
-         [env+input (car input-pair)]
-         [input-hex (cdr input-pair)]
+         ;; Auto-chunk large string inputs for grep/peek support
+         [large-input? (and (string? input)
+                            (> (string-length input)
+                               (rlm-config-chunk-size config)))]
+         [env+input (if large-input?
+                        (rlm-env-ingest-text! env0 'input input
+                                              (rlm-config-chunk-size config))
+                        (car (rlm-env-store! env0 'input input 'sexpr)))]
+         [input-hex (or (rlm-env-hash env+input 'input) "")]
          [env+task (car (rlm-env-store! env+input 'task task 'text))])
     ;; Parameterize the pipeline session for Fold IPC
     (parameterize ([*pipeline-session* session-id])
+      ;; Pre-load string utilities into the IPC worker so map-chunks
+      ;; expressions can do real text processing.
+      (rlm-init-worker-prelude!)
       (let loop ([step-num 0]
                  [env env+task]
                  [fuel-remaining (rlm-config-max-fuel config)]
@@ -164,11 +173,15 @@
   (let ([base-docs
           (string-append
             "Available tools:\n"
-            "  (rlm-env-put! 'key value)  — Store a value in context\n"
-            "  (rlm-env-get 'key)          — Retrieve a value from context\n"
-            "  (rlm-env-peek 'key n)       — Preview first n chars of a value\n"
-            "  (rlm-env-keys)              — List all context keys\n"
-            "  Any valid Fold/Scheme expression — evaluated in sandbox\n")])
+            "  (rlm-env-put! 'key value)               — Store a value in context\n"
+            "  (rlm-env-get 'key)                       — Retrieve a value from context\n"
+            "  (rlm-env-peek 'key n)                    — Preview first n chars of a value\n"
+            "  (rlm-env-grep 'key \"pattern\" k)          — Search chunks by keyword, top-k results\n"
+            "  (rlm-env-chunk-count 'key)               — Number of chunks in a chunked value\n"
+            "  (rlm-env-read-chunk 'key index)          — Read chunk by 0-based index\n"
+            "  (rlm-env-map-chunks 'key \"(expr)\")       — Eval expr per chunk (*chunk* bound), return results list\n"
+            "  (rlm-env-keys)                           — List all context keys\n"
+            "  Any valid Fold/Scheme expression          — evaluated in sandbox\n")])
     (if (< depth (rlm-config-max-depth config))
         (string-append base-docs
           "  (rlm-spawn \"sub-task\" '(key1 key2))  — Spawn sub-agent with sliced context\n")
@@ -259,6 +272,77 @@
              (let ([env* (car (rlm-env-store! env key value 'sexpr))])
                (values env* (list 'ok (format "Stored ~a in context" key)) 1))
              (values env (list 'error "Failed to parse rlm-env-put! call") 1)))]
+      ;; rlm-env-peek: preview a value
+      [(rlm-env-peek-call? code-text)
+       (let-values ([(key n) (parse-env-peek-call code-text)])
+         (let ([result (rlm-env-peek env key n)])
+           (if result
+               (values env (list 'ok result) 1)
+               (values env (list 'error (format "Key '~a' not found" key)) 1))))]
+      ;; rlm-env-grep: search chunked values by keyword
+      [(rlm-env-grep-call? code-text)
+       (let-values ([(key pattern k) (parse-env-grep-call code-text)])
+         (let ([results (rlm-env-grep env key pattern k)])
+           (if results
+               (values env (list 'ok (format-grep-results results)) 1)
+               (values env (list 'error (format "Key '~a' not found or not chunked" key)) 1))))]
+      ;; rlm-env-chunk-count: number of chunks
+      [(rlm-env-chunk-count-call? code-text)
+       (let* ([key (parse-env-simple-key code-text)]
+              [count (rlm-env-chunk-count env key)])
+         (if count
+             (values env (list 'ok (format "~a" count)) 1)
+             (values env (list 'error (format "Key '~a' not found or not chunked" key)) 1)))]
+      ;; rlm-env-read-chunk: read chunk by index
+      [(rlm-env-read-chunk-call? code-text)
+       (let-values ([(key index) (parse-env-read-chunk-call code-text)])
+         (let ([text (rlm-env-read-chunk env key index)])
+           (if text
+               (values env (list 'ok text) 1)
+               (values env (list 'error (format "Chunk ~a of '~a' not found" index key)) 1))))]
+      ;; rlm-env-map-chunks: eval expression per chunk, collect results.
+      ;; Auto-stores results as 'map-result in the env for downstream use.
+      [(rlm-env-map-chunks-call? code-text)
+       (let-values ([(key expr-text) (parse-env-map-chunks-call code-text)])
+         (let ([result (rlm-env-map-chunks-impl env key expr-text)])
+           (if (and (pair? result) (eq? (car result) 'ok))
+               (let* ([raw-results (cadr result)]
+                      ;; Try to parse numeric strings into numbers
+                      [parsed (map (lambda (x)
+                                     (if (string? x)
+                                         (or (string->number x) x)
+                                         x))
+                                   raw-results)]
+                      [n-chunks (length parsed)]
+                      ;; Store in env for programmatic access
+                      [env* (car (rlm-env-store! env 'map-result parsed 'sexpr))])
+                 (values env*
+                         (list 'ok (format "map-chunks processed ~a chunks. Results stored as 'map-result.\nValues: ~s"
+                                           n-chunks parsed))
+                         (max 1 n-chunks)))
+               (values env result 1))))]
+      ;; rlm-env-keys: list environment contents
+      [(rlm-env-keys-call? code-text)
+       (values env (list 'ok (format "~s" (rlm-env-keys env))) 1)]
+      ;; rlm-env-get: retrieve a value (intercepted for chunked value handling)
+      [(rlm-env-get-call? code-text)
+       (let* ([key (parse-env-get-key code-text)]
+              [entry (rlm-env-get env key)])
+         (if (not entry)
+             (values env (list 'error (format "Key '~a' not found" key)) 1)
+             (let ([tag (cadr entry)]
+                   [size (caddr entry)])
+               (if (eq? tag 'chunks)
+                   ;; Chunked value — tell model to use peek/grep instead
+                   (values env
+                           (list 'ok (format "Value '~a' is chunked (~a chars). Use (rlm-env-peek '~a n) to preview or (rlm-env-grep '~a \"pattern\" k) to search."
+                                             key size key key))
+                           1)
+                   ;; Regular value — fetch from CAS
+                   (let ([result (rlm-env-fetch env key)])
+                     (if result
+                         (values env (list 'ok (format "~s" result)) 1)
+                         (values env (list 'error (format "Failed to fetch '~a' from CAS" key)) 1)))))))]
       ;; Regular code — eval via Fold IPC
       ;; Pre-expand any (rlm-env-get 'key) calls before sending to worker
       [else
@@ -332,6 +416,127 @@
       (if (fold-result-ok? result)
           (values key (fold-result-value result))
           (values key expanded)))))  ; store expanded form if eval fails
+
+;;; rlm-env-peek/grep/keys/get detection
+(define (rlm-env-peek-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-peek))
+
+(define (rlm-env-grep-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-grep))
+
+(define (rlm-env-keys-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-keys))
+
+(define (rlm-env-get-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-get))
+
+(define (parse-env-peek-call code)
+  ;; Parse (rlm-env-peek 'key n) -> (values key n)
+  (guard (ex [else (values 'input 2000)])
+    (let* ([expr (read (open-input-string code))]
+           [key-expr (cadr expr)]
+           [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
+                    (cadr key-expr)
+                    key-expr)]
+           [n (if (> (length expr) 2) (caddr expr) 2000)])
+      (values key n))))
+
+(define (parse-env-grep-call code)
+  ;; Parse (rlm-env-grep 'key "pattern" k) -> (values key pattern k)
+  (guard (ex [else (values 'input "" 5)])
+    (let* ([expr (read (open-input-string code))]
+           [key-expr (cadr expr)]
+           [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
+                    (cadr key-expr)
+                    key-expr)]
+           [pattern (caddr expr)]
+           [k (if (> (length expr) 3) (cadddr expr) 5)])
+      (values key pattern k))))
+
+(define (parse-env-get-key code)
+  ;; Parse (rlm-env-get 'key) -> key
+  (guard (ex [else 'input])
+    (let* ([expr (read (open-input-string code))]
+           [key-expr (cadr expr)]
+           [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
+                    (cadr key-expr)
+                    key-expr)])
+      key)))
+
+(define (rlm-env-chunk-count-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-chunk-count))
+
+(define (rlm-env-read-chunk-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-read-chunk))
+
+(define (rlm-env-map-chunks-call? code)
+  (eq? (rlm-first-symbol code) 'rlm-env-map-chunks))
+
+(define (parse-env-simple-key code)
+  ;; Parse (some-command 'key) -> key
+  (guard (ex [else 'input])
+    (let* ([expr (read (open-input-string code))]
+           [key-expr (cadr expr)]
+           [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
+                    (cadr key-expr)
+                    key-expr)])
+      key)))
+
+(define (parse-env-read-chunk-call code)
+  ;; Parse (rlm-env-read-chunk 'key index) -> (values key index)
+  (guard (ex [else (values 'input 0)])
+    (let* ([expr (read (open-input-string code))]
+           [key-expr (cadr expr)]
+           [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
+                    (cadr key-expr)
+                    key-expr)]
+           [index (caddr expr)])
+      (values key index))))
+
+(define (parse-env-map-chunks-call code)
+  ;; Parse (rlm-env-map-chunks 'key "expr") -> (values key expr-text)
+  (guard (ex [else (values 'input "*chunk*")])
+    (let* ([expr (read (open-input-string code))]
+           [key-expr (cadr expr)]
+           [key (if (and (pair? key-expr) (eq? (car key-expr) 'quote))
+                    (cadr key-expr)
+                    key-expr)]
+           [expr-text (caddr expr)])
+      (values key expr-text))))
+
+;;; rlm-env-map-chunks-impl : RlmEnv -> Symbol -> String -> (ok List) | (error String)
+;;; Evaluate a Scheme expression for each chunk with *chunk* bound.
+;;; The expression runs in the IPC worker, so it has access to the
+;;; worker prelude (string-split-lines, string-contains?, etc.).
+(define (rlm-env-map-chunks-impl env key expr-text)
+  (let ([manifest (rlm-env-fetch env key)])
+    (if (not (and manifest (chunk-manifest? manifest)))
+        (list 'error (format "Key '~a' not found or not chunked" key))
+        (let loop ([hashes (chunk-manifest-hashes manifest)]
+                   [results '()]
+                   [idx 0])
+          (if (null? hashes)
+              (list 'ok (reverse results))
+              (let* ([chunk-blk (fetch-persistent (hex->hash (car hashes)))]
+                     [chunk-text (if chunk-blk (utf8->string (block-payload chunk-blk)) "")]
+                     ;; Build: (let ([*chunk* "..."]) expr)
+                     [code (format "(let ([*chunk* ~s]) ~a)" chunk-text expr-text)]
+                     [result (fold-ipc-eval code)])
+                (loop (cdr hashes)
+                      (cons (if (fold-result-ok? result)
+                                (fold-result-value result)
+                                (format "error:~a" (fold-result-error result)))
+                            results)
+                      (+ idx 1))))))))
+
+(define (format-grep-results results)
+  (if (null? results)
+      "No matches found."
+      (apply string-append
+             (map (lambda (r)
+                    (format "--- Match (score: ~,2f) ---\n~a\n\n"
+                            (cdr r) (car r)))
+                  results))))
 
 ;;; quote-if-needed : Any -> SExpr
 ;;; Wrap non-self-evaluating values in (quote ...) so they survive IPC eval.
@@ -489,6 +694,40 @@
 ;;; ====
 ;;; Utilities
 ;;; ====
+
+;;; rlm-init-worker-prelude! : -> void
+;;; Load minimal string utilities into the IPC worker session so that
+;;; map-chunks expressions and general code blocks can do text processing.
+(define (rlm-init-worker-prelude!)
+  (fold-ipc-eval
+    (string-append
+      "(begin"
+      "  (define (rlm-split-lines s)"
+      "    (let loop ([chars (string->list s)] [current '()] [lines '()])"
+      "      (cond"
+      "        [(null? chars) (reverse (cons (list->string (reverse current)) lines))]"
+      "        [(char=? (car chars) #\\newline)"
+      "         (loop (cdr chars) '() (cons (list->string (reverse current)) lines))]"
+      "        [else (loop (cdr chars) (cons (car chars) current) lines)])))"
+      "  (define (rlm-string-contains? s sub)"
+      "    (let ([s-len (string-length s)] [sub-len (string-length sub)])"
+      "      (if (> sub-len s-len) #f"
+      "          (let loop ([i 0])"
+      "            (cond [(> (+ i sub-len) s-len) #f]"
+      "                  [(string=? (substring s i (+ i sub-len)) sub) #t]"
+      "                  [else (loop (+ i 1))])))))"
+      "  (define (rlm-extract-after s marker)"
+      "    (let ([s-len (string-length s)] [m-len (string-length marker)])"
+      "      (let loop ([i 0])"
+      "        (cond [(> (+ i m-len) s-len) #f]"
+      "              [(string=? (substring s i (+ i m-len)) marker)"
+      "               (let ([rest (substring s (+ i m-len) s-len)])"
+      "                 (let trim ([j 0])"
+      "                   (cond [(>= j (string-length rest)) rest]"
+      "                         [(char-whitespace? (string-ref rest j)) (trim (+ j 1))]"
+      "                         [else (substring rest j (string-length rest))])))]"
+      "              [else (loop (+ i 1))]))))"
+      "  (void))")))
 
 (define (generate-run-id)
   (format "~a-~a"

@@ -194,6 +194,46 @@
               (loop (cdr hashes) idx (+ i 1)))))))
 
 ;;; ====
+;;; Chunk Access (Sequential)
+;;; ====
+
+;;; rlm-env-chunk-count : RlmEnv -> Symbol -> Nat | #f
+;;; Return the number of chunks for a chunked entry, or #f if not chunked.
+(define (rlm-env-chunk-count env key)
+  (let ([entry (rlm-env-get env key)])
+    (if (not entry)
+        #f
+        (let ([tag (cadr entry)])
+          (if (not (eq? tag 'chunks))
+              #f
+              (let ([manifest (rlm-env-fetch env key)])
+                (if (and manifest (chunk-manifest? manifest))
+                    (chunk-manifest-count manifest)
+                    #f)))))))
+
+;;; rlm-env-read-chunk : RlmEnv -> Symbol -> Nat -> String | #f
+;;; Read a specific chunk by index (0-based).
+(define (rlm-env-read-chunk env key index)
+  (let ([entry (rlm-env-get env key)])
+    (if (not entry)
+        #f
+        (let ([tag (cadr entry)])
+          (if (not (eq? tag 'chunks))
+              #f
+              (let ([manifest (rlm-env-fetch env key)])
+                (if (and manifest (chunk-manifest? manifest))
+                    (let ([hashes (chunk-manifest-hashes manifest)])
+                      (if (and (>= index 0) (< index (length hashes)))
+                          (let* ([hex (list-ref hashes index)]
+                                 [hash (hex->hash hex)]
+                                 [blk (fetch-persistent hash)])
+                            (if blk
+                                (utf8->string (block-payload blk))
+                                #f))
+                          #f))
+                    #f)))))))
+
+;;; ====
 ;;; Env Snapshot (for trajectory recording)
 ;;; ====
 
