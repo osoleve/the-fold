@@ -11,6 +11,7 @@ pub mod bvh;
 pub mod bytes;
 pub mod fuel;
 pub mod generated;
+pub mod ipc_reactor;
 pub mod mat4;
 pub mod posix;
 pub mod raymarch;

@@ -52,6 +52,8 @@ import uuid
 import argparse
 import subprocess
 import shutil
+import socket as sock_mod
+import struct
 
 # Configuration
 REPL_DIR = ".fold-repl"
@@ -336,7 +338,122 @@ def generate_session_id():
     """
     return "agent-default"
 
+def get_socket_path():
+    """Check if socket daemon is running and return socket path, or None."""
+    ready_file = os.path.join(REPL_DIR, "ready")
+    if not os.path.exists(ready_file):
+        return None
+    try:
+        with open(ready_file, 'r') as f:
+            content = f.read().strip()
+        if content.startswith("socket:"):
+            sock_path = content[len("socket:"):]
+            if os.path.exists(sock_path):
+                return sock_path
+    except IOError:
+        pass
+    return None
+
+def recv_exact(s, n):
+    """Receive exactly n bytes from socket."""
+    buf = b''
+    while len(buf) < n:
+        chunk = s.recv(n - len(buf))
+        if not chunk:
+            raise ConnectionError("Socket closed during read")
+        buf += chunk
+    return buf
+
+def run_request_socket(session_id, code, timeout, sock_path):
+    """Send request via Unix domain socket and receive response."""
+    s = sock_mod.socket(sock_mod.AF_UNIX, sock_mod.SOCK_STREAM)
+    s.settimeout(timeout)
+    try:
+        s.connect(sock_path)
+
+        # Build s-expression request
+        req_id = uuid.uuid4().hex[:8]
+        # Escape the expression for s-expression embedding
+        escaped_code = code.replace('\\', '\\\\').replace('"', '\\"')
+        msg = f'((type . request) (id . "{req_id}") (session . "{session_id}") (expr . "{escaped_code}"))'
+        data = msg.encode('utf-8')
+
+        # Send length-prefixed frame
+        s.sendall(struct.pack('>I', len(data)) + data)
+
+        # Read response frame
+        length_bytes = recv_exact(s, 4)
+        length = struct.unpack('>I', length_bytes)[0]
+        if length > 16 * 1024 * 1024:
+            return {
+                "status": "error",
+                "result": None,
+                "session": session_id,
+                "error": f"Response too large: {length} bytes"
+            }
+        payload = recv_exact(s, length)
+        resp_str = payload.decode('utf-8')
+
+        # Parse s-expression response (simple extraction)
+        return parse_sexp_response(resp_str, session_id)
+    except sock_mod.timeout:
+        return {
+            "status": "timeout",
+            "result": None,
+            "session": session_id,
+            "error": f"Request timed out after {timeout}s"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "result": None,
+            "session": session_id,
+            "error": str(e)
+        }
+    finally:
+        s.close()
+
+def parse_sexp_response(resp_str, session_id):
+    """Parse an s-expression response alist into a result dict."""
+    # Extract type, value, message fields from the alist
+    import re
+    type_match = re.search(r'\(type\s+\.\s+(\w+)\)', resp_str)
+    msg_type = type_match.group(1) if type_match else "unknown"
+
+    if msg_type == "result":
+        # Extract value — it's after (value . "...")
+        value_match = re.search(r'\(value\s+\.\s+"((?:[^"\\]|\\.)*)"\)', resp_str)
+        value = value_match.group(1).replace('\\"', '"').replace('\\\\', '\\') if value_match else ""
+        return {
+            "status": "success",
+            "result": value,
+            "session": session_id,
+            "error": None
+        }
+    elif msg_type == "error":
+        err_match = re.search(r'\(message\s+\.\s+"((?:[^"\\]|\\.)*)"\)', resp_str)
+        error_msg = err_match.group(1).replace('\\"', '"').replace('\\\\', '\\') if err_match else "unknown error"
+        return {
+            "status": "error",
+            "result": None,
+            "session": session_id,
+            "error": error_msg
+        }
+    else:
+        return {
+            "status": "error",
+            "result": None,
+            "session": session_id,
+            "error": f"Unexpected response type: {msg_type}"
+        }
+
 def run_request(session_id, code, timeout):
+    # Try socket transport first
+    sock_path = get_socket_path()
+    if sock_path:
+        return run_request_socket(session_id, code, timeout, sock_path)
+
+    # Fall back to file-based IPC
     request_file = os.path.join(REQUESTS_DIR, f"{session_id}.ss")
     response_file = os.path.join(RESPONSES_DIR, f"{session_id}.txt")
     error_file = os.path.join(RESPONSES_DIR, f"{session_id}.error.txt")

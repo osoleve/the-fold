@@ -123,10 +123,35 @@
 ;;; Fold IPC Implementation
 ;;; ====
 
+;;; Detect socket daemon by checking ready file contents
+(define (socket-daemon-available?)
+  (guard (ex [else #f])
+    (and (file-exists? ".fold-repl/ready")
+         (let ([content (call-with-input-file ".fold-repl/ready" get-string-all)])
+           (and (>= (string-length content) 7)
+                (string=? (substring content 0 7) "socket:"))))))
+
+;;; Try to load socket client (lazy, one-time)
+(define *socket-client-loaded* #f)
+(define (ensure-socket-client!)
+  (unless *socket-client-loaded*
+    (guard (ex [else #f])
+      (load "boundary/ipc/socket-client.ss")
+      (set! *socket-client-loaded* #t)))
+  *socket-client-loaded*)
+
 ;;; fold-ipc-eval : String -> FoldResult
 ;;; Evaluate an expression via the Fold REPL daemon IPC.
-;;; Uses file-based IPC: write to requests/, poll responses/
+;;; Uses socket transport when available, falls back to file-based IPC.
 (define (fold-ipc-eval expr)
+  (if (and (socket-daemon-available?) (ensure-socket-client!))
+      (guard (ex [else (fold-ipc-eval-file expr)])
+        (fold-ipc-eval-socket expr))
+      (fold-ipc-eval-file expr)))
+
+;;; fold-ipc-eval-file : String -> FoldResult
+;;; File-based IPC fallback: write to requests/, poll responses/
+(define (fold-ipc-eval-file expr)
   (let ([session-id (*pipeline-session*)]
         [req-dir ".fold-repl/requests"]
         [resp-dir ".fold-repl/responses"])

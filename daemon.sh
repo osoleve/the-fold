@@ -27,6 +27,12 @@ find_scheme() {
 
 case "$1" in
     start)
+        # Parse sub-options
+        USE_LEGACY=false
+        if [ "$2" = "--legacy" ]; then
+            USE_LEGACY=true
+        fi
+
         if [ -f "$READY_FILE" ]; then
             # Check if daemon is actually running or in zombie state
             if [ -f "$PID_FILE" ]; then
@@ -49,7 +55,6 @@ case "$1" in
             fi
         fi
 
-        echo "Starting REPL daemon in background..."
         mkdir -p .fold-repl
 
         SCHEME_CMD=$(find_scheme) || {
@@ -57,17 +62,30 @@ case "$1" in
             echo "Install with: apt install chezscheme"
             exit 1
         }
-        echo "Using Chez Scheme daemon..."
         export FOLD_SCHEME_CMD="$SCHEME_CMD"
-        nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
+
+        if [ "$USE_LEGACY" = true ]; then
+            echo "Starting REPL daemon (file-based) in background..."
+            nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
+        else
+            echo "Starting REPL daemon (socket) in background..."
+            nohup "$SCHEME_CMD" --script start-daemon-socket.ss > .fold-repl/daemon.log 2>&1 &
+        fi
         echo $! > "$PID_FILE"
 
         # Wait for ready file
         for i in {1..30}; do
             if [ -f "$READY_FILE" ]; then
                 echo "Daemon started (PID: $(cat $PID_FILE))"
-                echo "Write expressions to: .fold-repl/requests/<session-id>.ss"
-                echo "Read responses from:  .fold-repl/responses/<session-id>.txt"
+                # Check transport type
+                if grep -q "^socket:" "$READY_FILE" 2>/dev/null; then
+                    SOCK_PATH=$(sed 's/^socket://' "$READY_FILE")
+                    echo "Transport: Unix domain socket ($SOCK_PATH)"
+                else
+                    echo "Transport: File-based IPC"
+                    echo "  Requests:  .fold-repl/requests/<session-id>.ss"
+                    echo "  Responses: .fold-repl/responses/<session-id>.txt"
+                fi
                 exit 0
             fi
             sleep 0.5
@@ -91,6 +109,9 @@ case "$1" in
             kill "$PID" 2>/dev/null || true
             rm -f "$PID_FILE"
         fi
+
+        # Clean up socket file
+        rm -f .fold-repl/fold.sock
 
         if [ -d ".fold-repl/workers" ]; then
             for pidfile in .fold-repl/workers/*.pid; do
@@ -124,6 +145,12 @@ case "$1" in
                     echo "Use './daemon.sh stop' to clean up"
                 elif kill -0 "$PID" 2>/dev/null; then
                     echo "Daemon is running (PID: $PID)"
+                    if grep -q "^socket:" "$READY_FILE" 2>/dev/null; then
+                        SOCK_PATH=$(sed 's/^socket://' "$READY_FILE")
+                        echo "Transport: Unix domain socket ($SOCK_PATH)"
+                    else
+                        echo "Transport: File-based IPC"
+                    fi
                 else
                     echo "WARNING: Daemon is in zombie state (PID $PID not running)"
                     echo "Ready file exists but process is dead."

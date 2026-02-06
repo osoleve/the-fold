@@ -1,14 +1,16 @@
 /**
  * IPC utilities for communicating with The Fold REPL daemon
  *
- * Implements session-aware file-based IPC:
- * - Writes requests to .fold-repl/requests/<session-id>.ss
- * - Reads responses from .fold-repl/responses/<session-id>.txt
- * - Handles concurrent sessions
+ * Supports two transports:
+ * 1. Socket-based (preferred): Unix domain socket with length-prefixed s-expression frames
+ * 2. File-based (fallback): Write to .fold-repl/requests/, poll .fold-repl/responses/
+ *
+ * Transport is auto-detected from the ready file contents.
  */
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { createConnection, Socket } from 'net';
 
 export interface FoldRequest {
   sessionId: string;
@@ -28,6 +30,7 @@ const POLL_INTERVAL_MS = 100;
 const TIMEOUT_MS = 30000; // 30 seconds
 const DAEMON_RETRY_ATTEMPTS = 5;
 const DAEMON_RETRY_DELAY_MS = 2000;
+const SOCKET_TIMEOUT_MS = 30000;
 
 /**
  * Initialize IPC directories
@@ -38,12 +41,104 @@ export async function initIPC(): Promise<void> {
 }
 
 /**
- * Send an expression to the daemon and wait for response
+ * Get socket path from ready file, or null if file-based daemon
+ */
+async function getSocketPath(): Promise<string | null> {
+  const readyFile = join(REPL_DIR, 'ready');
+  try {
+    const content = (await fs.readFile(readyFile, 'utf-8')).trim();
+    if (content.startsWith('socket:')) {
+      const sockPath = content.slice('socket:'.length);
+      await fs.access(sockPath);
+      return sockPath;
+    }
+  } catch {
+    // No socket daemon
+  }
+  return null;
+}
+
+/**
+ * Send request via Unix domain socket with length-prefixed s-expression framing
+ */
+async function sendRequestSocket(
+  sessionId: string,
+  expression: string,
+  sockPath: string
+): Promise<FoldResponse> {
+  return new Promise((resolve, reject) => {
+    const sock = createConnection({ path: sockPath });
+    const reqId = Math.random().toString(36).slice(2, 10);
+
+    // Escape expression for s-expression embedding
+    const escapedExpr = expression.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const msg = `((type . request) (id . "${reqId}") (session . "${sessionId}") (expr . "${escapedExpr}"))`;
+    const payload = Buffer.from(msg, 'utf-8');
+    const header = Buffer.alloc(4);
+    header.writeUInt32BE(payload.length);
+    sock.write(Buffer.concat([header, payload]));
+
+    // Collect response
+    let buf = Buffer.alloc(0);
+    sock.on('data', (chunk: Buffer) => {
+      buf = Buffer.concat([buf, chunk]);
+      if (buf.length >= 4) {
+        const len = buf.readUInt32BE(0);
+        if (buf.length >= 4 + len) {
+          const resp = buf.slice(4, 4 + len).toString('utf-8');
+          sock.destroy();
+          resolve(parseSexpResponse(resp));
+        }
+      }
+    });
+    sock.on('error', (err: Error) => {
+      reject(err);
+    });
+    sock.setTimeout(SOCKET_TIMEOUT_MS, () => {
+      sock.destroy();
+      reject(new Error('Socket timeout'));
+    });
+  });
+}
+
+/**
+ * Parse s-expression response alist into FoldResponse
+ */
+function parseSexpResponse(resp: string): FoldResponse {
+  const typeMatch = resp.match(/\(type\s+\.\s+(\w+)\)/);
+  const msgType = typeMatch ? typeMatch[1] : 'unknown';
+
+  if (msgType === 'result') {
+    const valueMatch = resp.match(/\(value\s+\.\s+"((?:[^"\\]|\\.)*)"\)/);
+    const value = valueMatch
+      ? valueMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\')
+      : '';
+    return { output: value };
+  } else if (msgType === 'error') {
+    const errMatch = resp.match(/\(message\s+\.\s+"((?:[^"\\]|\\.)*)"\)/);
+    const errorMsg = errMatch
+      ? errMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\')
+      : 'unknown error';
+    return { output: '', error: errorMsg };
+  }
+  return { output: '', error: `Unexpected response type: ${msgType}` };
+}
+
+/**
+ * Send an expression to the daemon and wait for response.
+ * Auto-detects socket vs file-based transport.
  */
 export async function sendRequest(
   sessionId: string,
   expression: string
 ): Promise<FoldResponse> {
+  // Try socket transport first
+  const sockPath = await getSocketPath();
+  if (sockPath) {
+    return sendRequestSocket(sessionId, expression, sockPath);
+  }
+
+  // Fall back to file-based IPC
   const requestFile = join(REQUESTS_DIR, `${sessionId}.ss`);
   const responseFile = join(RESPONSES_DIR, `${sessionId}.txt`);
   const errorFile = join(RESPONSES_DIR, `${sessionId}.error.txt`);
@@ -122,7 +217,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Check if the daemon is running
+ * Check if the daemon is running (file-based or socket-based)
  */
 export async function isDaemonRunning(): Promise<boolean> {
   const readyFile = join(REPL_DIR, 'ready');
@@ -161,6 +256,8 @@ export async function waitForDaemon(
  */
 export interface DaemonStatus {
   running: boolean;
+  transport: 'socket' | 'file' | 'none';
+  socketPath?: string;
   readyFile: string;
   requestsDir: string;
   responsesDir: string;
@@ -171,8 +268,12 @@ export interface DaemonStatus {
  */
 export async function getDaemonStatus(): Promise<DaemonStatus> {
   const readyFile = join(REPL_DIR, 'ready');
+  const running = await isDaemonRunning();
+  const socketPath = running ? await getSocketPath() : null;
   return {
-    running: await isDaemonRunning(),
+    running,
+    transport: socketPath ? 'socket' : (running ? 'file' : 'none'),
+    socketPath: socketPath || undefined,
     readyFile,
     requestsDir: REQUESTS_DIR,
     responsesDir: RESPONSES_DIR
