@@ -1,0 +1,16 @@
+# Known layer violations — each tracked for remediation.
+# Format: file_path  # reason (BBS issue if applicable)
+#
+# Test and bench files are automatically excluded from checks.
+# Only add non-test, non-bench files here.
+
+# core/ → boundary (infrastructure)
+core/lang/depgraph.ss          # loads boundary/tools/index.ss — tooling dependency
+core/benchmarks/bench-core.ss  # loads boundary/tools/benchmark.ss — bench infrastructure
+
+# lattice/meta → boundary (tracked: fold-zxvr)
+lattice/meta/meta.ss           # orchestrator, planned move to boundary/meta/
+
+# lattice/ → boundary (untracked, need investigation)
+lattice/data/graph-algorithms.ss    # loads boundary/storage/store-api.ss
+lattice/dataset/presentation.ss     # loads boundary/ui/layout.ss
