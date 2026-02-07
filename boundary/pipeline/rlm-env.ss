@@ -8,7 +8,6 @@
 
 (load "core/blocks/cas.ss")
 (load "boundary/storage/cas-persist.ss")
-(load "lattice/pipeline/rlm.ss")
 
 ;; meta-printf is defined in kg.ss but bm25.ss uses it at load time.
 ;; Provide a no-op stub to avoid pulling in the full knowledge graph.
@@ -20,7 +19,92 @@
 (doc 'layer 'boundary)
 (doc 'purity 'impure)
 (doc 'dependencies '(core/blocks/cas.ss boundary/storage/cas-persist.ss
-                     lattice/pipeline/rlm.ss lattice/meta/bm25.ss))
+                     lattice/meta/bm25.ss))
+
+;;; ====
+;;; RLM Environment Types (Pure)
+;;; ====
+;;;
+;;; An RLM environment maps symbolic keys to metadata entries.
+;;; Values themselves live in CAS — the env tracks what's available
+;;; without materializing content.
+;;;
+;;; Entry: (key type size hash)
+;;;   key  : Symbol — human-readable name
+;;;   type : Symbol — 'text, 'sexpr, 'chunks, 'result, 'sub-result
+;;;   size : Nat    — character count or item count
+;;;   hash : String — CAS hash (hex) of the stored value
+
+(doc 'type '(-> RlmEnv))
+(doc 'description "Create an empty RLM environment")
+(define (make-rlm-env) '())
+
+(doc 'type '(-> RlmEnv Symbol Any Symbol RlmEnv))
+(doc 'description "Add or update an entry in the environment.")
+(define (rlm-env-put env key value-hash tag size)
+  (let ([entry (list key tag size value-hash)])
+    (cons entry (rlm-env-remove-key env key))))
+
+(doc 'type '(-> RlmEnv Symbol (Maybe RlmEntry)))
+(doc 'description "Look up an entry by key. Returns (key type size hash) or #f.")
+(define (rlm-env-get env key)
+  (let loop ([e env])
+    (cond
+      [(null? e) #f]
+      [(eq? (caar e) key) (car e)]
+      [else (loop (cdr e))])))
+
+(doc 'type '(-> RlmEnv (List (List Symbol Symbol Nat))))
+(doc 'description "List all keys with their types and sizes")
+(define (rlm-env-keys env)
+  (map (lambda (entry)
+         (list (car entry)     ; key
+               (cadr entry)    ; type
+               (caddr entry))) ; size
+       env))
+
+(doc 'type '(-> RlmEnv Symbol RlmEnv))
+(doc 'description "Remove a key from the environment")
+(define (rlm-env-remove-key env key)
+  (filter (lambda (entry) (not (eq? (car entry) key))) env))
+
+(doc 'type '(-> RlmEnv String))
+(doc 'description "Generate a human-readable summary of environment contents")
+(define (rlm-env-summary env)
+  (if (null? env)
+      "[Environment is empty]"
+      (let ([lines (map (lambda (entry)
+                          (format "  ~a (~a, ~a chars)"
+                                  (car entry)    ; key
+                                  (cadr entry)   ; type
+                                  (caddr entry))); size
+                        env)])
+        (string-append "Available context:\n"
+                       (apply string-append
+                              (map (lambda (l) (string-append l "\n")) lines))))))
+
+(doc 'type '(-> RlmEnv Symbol String))
+(doc 'description "Get the CAS hash for a key, or #f if not present")
+(define (rlm-env-hash env key)
+  (let ([entry (rlm-env-get env key)])
+    (if entry (cadddr entry) #f)))
+
+;;; ====
+;;; Chunk Manifest Types
+;;; ====
+
+(doc 'type '(-> Symbol Nat Nat (List String) ChunkManifest))
+(doc 'description "Metadata for a chunked text entry in the environment")
+(define (make-chunk-manifest key total-chars chunk-count chunk-hashes)
+  (list 'chunk-manifest key total-chars chunk-count chunk-hashes))
+
+(define (chunk-manifest? x)
+  (and (pair? x) (eq? (car x) 'chunk-manifest)))
+
+(define (chunk-manifest-key m)          (list-ref m 1))
+(define (chunk-manifest-total-chars m)  (list-ref m 2))
+(define (chunk-manifest-count m)        (list-ref m 3))
+(define (chunk-manifest-hashes m)       (list-ref m 4))
 
 ;;; ====
 ;;; Store / Fetch

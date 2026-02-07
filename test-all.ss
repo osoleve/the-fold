@@ -165,8 +165,8 @@
     "topology/test-homology.ss"
     ;; Meta
     "meta/test-meta.ss"
-    ;; Pipeline (RLM)
-    "pipeline/test-rlm.ss"))
+    ;; Pipeline (RLM v2)
+    "pipeline/test-rlm2.ss"))
 
 ;;; Boundary tests (validated, stable)
 (define boundary-tests
@@ -178,7 +178,7 @@
 ;;; Boundary pipeline tests (RLM harness, no live infra required)
 (define boundary-pipeline-tests
   '("test-rlm-client.ss"
-    "test-rlm-loop.ss"))
+    "test-rlm2-drive.ss"))
 
 ;;; Slow tests (excluded from 'quick' mode)
 (define slow-tests
@@ -195,7 +195,7 @@
     "test-commands-demo.ss"
     "test-commands-advanced.ss"
     "test-repl-integration.ss"
-    "test-rlm-integration.ss"))  ; requires live vLLM + daemon
+    "test-rlm2-integration.ss"))  ; requires live vLLM + daemon
 
 ;;; ====
 ;;; Main Test Runner

@@ -9,7 +9,7 @@
 (load "boundary/pipeline/effects/discord.ss")
 (load "boundary/pipeline/effects/misc.ss")
 (load "boundary/pipeline/checkpoint.ss")
-(load "boundary/pipeline/rlm-loop.ss")
+(load "boundary/pipeline/rlm2-drive.ss")
 
 (define-syntax doc
   (syntax-rules ()
@@ -175,7 +175,7 @@
 (doc 'section 'rlm-effect-interpretation)
 
 (define (interpret-rlm-effect payload ctx state input)
-  (doc 'description "Interpret RLM effect — run an iterative agent loop")
+  (doc 'description "Interpret RLM effect — run a v2 HUD-based agent loop")
   (doc 'type '(-> Payload Context State Input (Pair Result State)))
   (let ([op (car payload)])
     (case op
@@ -183,45 +183,47 @@
        (let* ([config (cadr payload)]
               [system-prompt (caddr payload)]
               [max-steps (cadddr payload)]
-              ;; Override config with provided system-prompt and max-steps
-              [effective-config (make-rlm-config
-                                  (rlm-config-provider config)
+              [effective-config (make-rlm2-config
+                                  (rlm2-config-provider config)
                                   system-prompt
                                   max-steps
-                                  (rlm-config-max-fuel config)
-                                  (rlm-config-chunk-size config)
-                                  (rlm-config-max-depth config)
-                                  (rlm-config-loop-window config))]
-              [result (rlm-run effective-config input "")])
-         (if (eq? (rlm-run-result-status result) 'completed)
-             (cons (stage-ok (rlm-run-result-output result))
+                                  (rlm2-config-max-fuel config)
+                                  (rlm2-config-chunk-size config)
+                                  (rlm2-config-max-depth config)
+                                  (rlm2-config-loop-window config)
+                                  (rlm2-config-context-budget config)
+                                  (rlm2-config-verifier config))]
+              [result (rlm2-run effective-config input "")])
+         (if (eq? (rlm2-run-result-status result) 'completed)
+             (cons (stage-ok (rlm2-run-result-output result))
                    (state-add-log state
                      (make-log-entry 'info
-                       (format "RLM completed: ~a" (rlm-run-result-trajectory-hash result))
+                       (format "RLM completed: ~a" (rlm2-run-result-trajectory-hash result))
                        '())))
              (cons (stage-err 'rlm-error
-                              (format "RLM ~a" (rlm-run-result-status result))
+                              (format "RLM ~a" (rlm2-run-result-status result))
                               result)
                    state)))]
       [(run-with-input)
        (let* ([config (cadr payload)]
               [system-prompt (caddr payload)]
-              ;; Override config with provided system-prompt
-              [effective-config (make-rlm-config
-                                  (rlm-config-provider config)
+              [effective-config (make-rlm2-config
+                                  (rlm2-config-provider config)
                                   system-prompt
-                                  (rlm-config-max-steps config)
-                                  (rlm-config-max-fuel config)
-                                  (rlm-config-chunk-size config)
-                                  (rlm-config-max-depth config)
-                                  (rlm-config-loop-window config))]
+                                  (rlm2-config-max-steps config)
+                                  (rlm2-config-max-fuel config)
+                                  (rlm2-config-chunk-size config)
+                                  (rlm2-config-max-depth config)
+                                  (rlm2-config-loop-window config)
+                                  (rlm2-config-context-budget config)
+                                  (rlm2-config-verifier config))]
               [task (if (pair? input) (car input) input)]
               [initial-value (if (pair? input) (cdr input) "")]
-              [result (rlm-run effective-config task initial-value)])
-         (if (eq? (rlm-run-result-status result) 'completed)
-             (cons (stage-ok (rlm-run-result-output result)) state)
+              [result (rlm2-run effective-config task initial-value)])
+         (if (eq? (rlm2-run-result-status result) 'completed)
+             (cons (stage-ok (rlm2-run-result-output result)) state)
              (cons (stage-err 'rlm-error
-                              (format "RLM ~a" (rlm-run-result-status result))
+                              (format "RLM ~a" (rlm2-run-result-status result))
                               result)
                    state)))]
       [else

@@ -1,17 +1,15 @@
-;;; user/rlm/bench-v1-v2.ss — RLM v1 vs v2 Benchmark
+;;; user/rlm/bench.ss — RLM Benchmark Suite
 ;;;
-;;; Runs identical OOLONG tasks through both v1 and v2 drivers,
-;;; collects metrics, and produces a side-by-side comparison.
+;;; Runs OOLONG (linear aggregation) and OOLONG-Pairs (pairwise reasoning)
+;;; tasks through the RLM v2 driver.
 ;;;
-;;; Run: RLM_INTEGRATION=1 scheme --script user/rlm/bench-v1-v2.ss
+;;; Run: RLM_INTEGRATION=1 scheme --script user/rlm/bench.ss
 
 (unless (getenv "RLM_INTEGRATION")
   (display "Skipping benchmark (set RLM_INTEGRATION=1 to enable)\n")
   (exit 0))
 
-;;; Load both drivers
-(load "boundary/pipeline/rlm-loop.ss")   ; v1
-(load "boundary/pipeline/rlm2-drive.ss") ; v2
+(load "boundary/pipeline/rlm2-drive.ss")
 
 ;;; ====
 ;;; Shared Task Generation
@@ -147,43 +145,10 @@
             [else (loop (+ i 1))])))))
 
 ;;; ====
-;;; Version-Specific System Prompts
+;;; System Prompts
 ;;; ====
 
-(define *v1-system-prompt*
-  (string-append
-    "You are a Fold/Scheme agent. Your task is to find and aggregate "
-    "specific data from a large document.\n\n"
-    "The document is stored in your environment under 'input'. It contains "
-    "structured RECORD entries scattered among other text. Each record has:\n"
-    "  RECORD NNNN | type: <type> | region: <region> | value: <number>\n\n"
-    "IMPORTANT: grep only returns top-k matches, NOT all matches. "
-    "For aggregation tasks, you MUST use map-chunks to process every chunk.\n\n"
-    "Strategy:\n"
-    "1. Peek at the input to understand its structure\n"
-    "2. Use map-chunks to process ALL chunks with a per-chunk expression:\n"
-    "   (rlm-env-map-chunks 'input \"(expression using *chunk*)\")\n"
-    "   This runs the expression for each chunk with *chunk* bound to its text.\n"
-    "   Results are auto-stored in 'map-result as a list.\n"
-    "3. Sum the results: (apply + (rlm-env-get 'map-result))\n"
-    "4. Store final answer: (rlm-env-put! 'answer total)\n\n"
-    "Example map-chunks expression for summing matching values:\n"
-    "  (rlm-env-map-chunks 'input\n"
-    "    \"(let ([lines (rlm-split-lines *chunk*)])\n"
-    "       (apply + (map (lambda (line)\n"
-    "                       (if (and (rlm-string-contains? line \\\"type: alpha\\\")\n"
-    "                                (rlm-string-contains? line \\\"region: north\\\"))\n"
-    "                           (let ([v (rlm-extract-after line \\\"value: \\\")])\n"
-    "                             (if v (string->number v) 0))\n"
-    "                           0))\n"
-    "                     lines)))\")\n\n"
-    "Useful functions available in the worker:\n"
-    "  (rlm-split-lines s)           — split string into list of lines\n"
-    "  (rlm-string-contains? s sub)  — check if s contains sub\n"
-    "  (rlm-extract-after s marker)  — get text after marker in s\n\n"
-    "Be precise. Return only the numeric total.\n"))
-
-(define *v2-system-prompt*
+(define *oolong-system-prompt*
   (string-append
     "You are a Fold/Scheme agent. Your task is to find and aggregate "
     "specific data from a large document.\n\n"
@@ -229,11 +194,9 @@
     (values result ms)))
 
 ;;; ====
-;;; Benchmark Runner
+;;; OOLONG Benchmark Runner
 ;;; ====
 
-;;; run-single-benchmark : Nat -> Nat -> String -> RlmProvider -> Alist
-;;; Generate task, run both versions, return comparison alist.
 (define (run-single-benchmark n-entries target-size label provider)
   (let* ([entries (generate-entries n-entries)]
          [haystack (build-oolong-haystack entries target-size)]
@@ -250,118 +213,64 @@
                      n-entries match-count (string-length haystack) expected))
     (flush-output-port)
 
-    ;; --- V1 Run ---
-    (display "\n--- Running v1 ---\n")
+    (display "\n--- Running ---\n")
     (flush-output-port)
-    (let-values ([(v1-result v1-ms)
+    (let-values ([(result ms)
                   (wall-clock-ms
                    (lambda ()
-                     (let ([config (make-rlm-config
-                                    provider *v1-system-prompt*
-                                    max-steps max-fuel chunk-size
-                                    1    ; max-depth
-                                    3)]) ; loop-window
-                       (rlm-run config task haystack))))])
-      (let* ([v1-status (rlm-run-result-status v1-result)]
-             [v1-output (format "~a" (rlm-run-result-output v1-result))]
-             [v1-correct? (output-contains-number? v1-output expected)]
-             [v1-traj (rlm-run-result-trajectory-hash v1-result)])
+                     (let ([config (make-rlm2-config
+                                     provider *oolong-system-prompt*
+                                     max-steps max-fuel chunk-size
+                                     1     ; max-depth
+                                     3     ; loop-window
+                                     8000  ; context-budget
+                                     #f)]) ; no verifier
+                       (rlm2-run config task haystack))))])
+      (let* ([status (rlm2-run-result-status result)]
+             [output (format "~a" (rlm2-run-result-output result))]
+             [correct? (output-contains-number? output expected)]
+             [traj (rlm2-run-result-trajectory-hash result)])
         (display (format "  Status: ~a | Time: ~a ms | Correct: ~a\n"
-                         v1-status v1-ms v1-correct?))
-        (display (format "  Output: ~a\n" (if (> (string-length v1-output) 200)
-                                               (string-append (substring v1-output 0 200) "...")
-                                               v1-output)))
+                         status ms correct?))
+        (display (format "  Output: ~a\n" (if (> (string-length output) 200)
+                                               (string-append (substring output 0 200) "...")
+                                               output)))
         (flush-output-port)
 
-        ;; --- V2 Run ---
-        (display "\n--- Running v2 ---\n")
-        (flush-output-port)
-        (let-values ([(v2-result v2-ms)
-                      (wall-clock-ms
-                       (lambda ()
-                         (let ([config (make-rlm2-config
-                                         provider *v2-system-prompt*
-                                         max-steps max-fuel chunk-size
-                                         1     ; max-depth
-                                         3     ; loop-window
-                                         8000  ; context-budget
-                                         #f)]) ; no verifier
-                           (rlm2-run config task haystack))))])
-          (let* ([v2-status (rlm2-run-result-status v2-result)]
-                 [v2-output (format "~a" (rlm2-run-result-output v2-result))]
-                 [v2-correct? (output-contains-number? v2-output expected)]
-                 [v2-traj (rlm2-run-result-trajectory-hash v2-result)])
-            (display (format "  Status: ~a | Time: ~a ms | Correct: ~a\n"
-                             v2-status v2-ms v2-correct?))
-            (display (format "  Output: ~a\n" (if (> (string-length v2-output) 200)
-                                                   (string-append (substring v2-output 0 200) "...")
-                                                   v2-output)))
-            (flush-output-port)
-
-            ;; Build comparison record
-            `((label . ,label)
-              (n-entries . ,n-entries)
-              (haystack-chars . ,(string-length haystack))
-              (expected . ,expected)
-              (match-count . ,match-count)
-              (v1 . ((status . ,v1-status)
-                     (time-ms . ,v1-ms)
-                     (correct . ,v1-correct?)
-                     (output . ,v1-output)
-                     (trajectory . ,v1-traj)))
-              (v2 . ((status . ,v2-status)
-                     (time-ms . ,v2-ms)
-                     (correct . ,v2-correct?)
-                     (output . ,v2-output)
-                     (trajectory . ,v2-traj))))))))))
+        `((label . ,label)
+          (n-entries . ,n-entries)
+          (haystack-chars . ,(string-length haystack))
+          (expected . ,expected)
+          (match-count . ,match-count)
+          (status . ,status)
+          (time-ms . ,ms)
+          (correct . ,correct?)
+          (output . ,output)
+          (trajectory . ,traj))))))
 
 ;;; ====
-;;; Report
+;;; OOLONG Report
 ;;; ====
 
-(define (print-comparison results)
+(define (print-oolong-results results)
   (display "\n")
   (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              RLM v1 vs v2 BENCHMARK RESULTS                ║\n")
+  (display "║                 RLM BENCHMARK RESULTS                      ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  (display (format "~30a ~15a ~15a\n" "" "v1" "v2"))
-  (display (make-string 60 #\─))
-  (display "\n")
   (for-each
    (lambda (r)
      (let ([label (cdr (assq 'label r))]
-           [v1 (cdr (assq 'v1 r))]
-           [v2 (cdr (assq 'v2 r))]
            [expected (cdr (assq 'expected r))])
-       (display (format "\n~a (expected: ~a)\n" label expected))
-       (display (format "  ~28a ~15a ~15a\n" "Status"
-                        (cdr (assq 'status v1))
-                        (cdr (assq 'status v2))))
-       (display (format "  ~28a ~15a ~15a\n" "Time (ms)"
-                        (cdr (assq 'time-ms v1))
-                        (cdr (assq 'time-ms v2))))
-       (display (format "  ~28a ~15a ~15a\n" "Correct?"
-                        (if (cdr (assq 'correct v1)) "YES" "NO")
-                        (if (cdr (assq 'correct v2)) "YES" "NO")))))
+       (display (format "~a (expected: ~a)\n" label expected))
+       (display (format "  Status:   ~a\n" (cdr (assq 'status r))))
+       (display (format "  Time:     ~a ms\n" (cdr (assq 'time-ms r))))
+       (display (format "  Correct:  ~a\n\n" (if (cdr (assq 'correct r)) "YES" "NO")))))
    results)
-  (display "\n")
 
-  ;; Summary
-  (let* ([v1-correct (length (filter (lambda (r)
-                                       (cdr (assq 'correct (cdr (assq 'v1 r)))))
-                                     results))]
-         [v2-correct (length (filter (lambda (r)
-                                       (cdr (assq 'correct (cdr (assq 'v2 r)))))
-                                     results))]
-         [n (length results)]
-         [v1-total-ms (apply + (map (lambda (r)
-                                      (cdr (assq 'time-ms (cdr (assq 'v1 r)))))
-                                    results))]
-         [v2-total-ms (apply + (map (lambda (r)
-                                      (cdr (assq 'time-ms (cdr (assq 'v2 r)))))
-                                    results))])
-    (display (format "\nSummary: v1 ~a/~a correct (~a ms total) | v2 ~a/~a correct (~a ms total)\n"
-                     v1-correct n v1-total-ms v2-correct n v2-total-ms))))
+  (let* ([n (length results)]
+         [correct (length (filter (lambda (r) (cdr (assq 'correct r))) results))]
+         [total-ms (apply + (map (lambda (r) (cdr (assq 'time-ms r))) results))])
+    (display (format "Summary: ~a/~a correct (~a ms total)\n" correct n total-ms))))
 
 ;;; ====
 ;;; OOLONG-Pairs Task Generation
@@ -588,24 +497,9 @@
                            (loop (- i 1)) (+ i 1)))])
             (substring s start end))))))
 
-;;; Pairs System Prompts
+;;; Pairs System Prompt
 
-(define *v1-pairs-system-prompt*
-  (string-append
-    "You are a Fold/Scheme agent with a full REPL and a searchable skill lattice.\n\n"
-    "The document in 'input' contains ENTRY lines scattered among filler text:\n"
-    "  ENTRY | user: UNNN | date: YYYY-MM-DD | category: <cat>\n\n"
-    "Each chunk has MULTIPLE lines. Use (rlm-split-lines *chunk*) to split,\n"
-    "then filter for lines containing \"ENTRY\".\n\n"
-    "Dates are ISO format — string<? works for date comparison.\n"
-    "rlm-env-map-chunks auto-stores results in 'map-result.\n"
-    "grep only returns top-k. Use rlm-env-map-chunks to process ALL chunks.\n\n"
-    "You have access to the full Fold lattice — 36 skills covering constraint\n"
-    "solving, set operations, graph algorithms, optimization, and more.\n"
-    "Use (lf \"query\") to search for tools before writing code from scratch.\n"
-    "Use (require 'module) to load what you find.\n\n"))
-
-(define *v2-pairs-system-prompt*
+(define *pairs-system-prompt*
   (string-append
     "You are a Fold/Scheme agent. Your task involves pairwise reasoning over "
     "structured data in a large document.\n\n"
@@ -649,104 +543,57 @@
     (display (format "Expected pairs: ~a\n" (length expected-pairs)))
     (flush-output-port)
 
-    ;; --- V1 Run ---
-    (display "\n--- Running v1 ---\n")
+    (display "\n--- Running ---\n")
     (flush-output-port)
-    (let-values ([(v1-result v1-ms)
+    (let-values ([(result ms)
                   (wall-clock-ms
                    (lambda ()
-                     (let ([config (make-rlm-config
-                                    provider *v1-pairs-system-prompt*
-                                    max-steps max-fuel chunk-size
-                                    1 4)])
-                       (rlm-run config task haystack))))])
-      (let* ([v1-status (rlm-run-result-status v1-result)]
-             [v1-output (format "~a" (rlm-run-result-output v1-result))]
-             [v1-traj (rlm-run-result-trajectory-hash v1-result)])
-        (let-values ([(v1-f1 v1-prec v1-rec v1-tp v1-pred v1-exp)
-                      (compute-f1 expected-pairs v1-output)])
-          (display (format "  Status: ~a | Time: ~a ms\n" v1-status v1-ms))
+                     (let ([config (make-rlm2-config
+                                     provider *pairs-system-prompt*
+                                     max-steps max-fuel chunk-size
+                                     1 4 8000 #f)])
+                       (rlm2-run config task haystack))))])
+      (let* ([status (rlm2-run-result-status result)]
+             [output (format "~a" (rlm2-run-result-output result))]
+             [traj (rlm2-run-result-trajectory-hash result)])
+        (let-values ([(f1 prec rec tp pred exp)
+                      (compute-f1 expected-pairs output)])
+          (display (format "  Status: ~a | Time: ~a ms\n" status ms))
           (display (format "  F1: ~,2f (P=~,2f R=~,2f TP=~a pred=~a exp=~a)\n"
-                           v1-f1 v1-prec v1-rec v1-tp v1-pred v1-exp))
+                           f1 prec rec tp pred exp))
           (flush-output-port)
 
-          ;; --- V2 Run ---
-          (display "\n--- Running v2 ---\n")
-          (flush-output-port)
-          (let-values ([(v2-result v2-ms)
-                        (wall-clock-ms
-                         (lambda ()
-                           (let ([config (make-rlm2-config
-                                           provider *v2-pairs-system-prompt*
-                                           max-steps max-fuel chunk-size
-                                           1 4 8000 #f)])
-                             (rlm2-run config task haystack))))])
-            (let* ([v2-status (rlm2-run-result-status v2-result)]
-                   [v2-output (format "~a" (rlm2-run-result-output v2-result))]
-                   [v2-traj (rlm2-run-result-trajectory-hash v2-result)])
-              (let-values ([(v2-f1 v2-prec v2-rec v2-tp v2-pred v2-exp)
-                            (compute-f1 expected-pairs v2-output)])
-                (display (format "  Status: ~a | Time: ~a ms\n" v2-status v2-ms))
-                (display (format "  F1: ~,2f (P=~,2f R=~,2f TP=~a pred=~a exp=~a)\n"
-                                 v2-f1 v2-prec v2-rec v2-tp v2-pred v2-exp))
-                (flush-output-port)
+          `((label . ,label)
+            (n-users . ,n-users)
+            (entries-per-user . ,entries-per-user)
+            (haystack-chars . ,(string-length haystack))
+            (expected-pairs . ,(length expected-pairs))
+            (status . ,status)
+            (time-ms . ,ms)
+            (f1 . ,f1)
+            (precision . ,prec)
+            (recall . ,rec)
+            (tp . ,tp)
+            (predicted . ,pred)
+            (output . ,output)
+            (trajectory . ,traj)))))))
 
-                `((label . ,label)
-                  (n-users . ,n-users)
-                  (entries-per-user . ,entries-per-user)
-                  (haystack-chars . ,(string-length haystack))
-                  (expected-pairs . ,(length expected-pairs))
-                  (v1 . ((status . ,v1-status)
-                         (time-ms . ,v1-ms)
-                         (f1 . ,v1-f1)
-                         (precision . ,v1-prec)
-                         (recall . ,v1-rec)
-                         (tp . ,v1-tp)
-                         (predicted . ,v1-pred)
-                         (output . ,v1-output)
-                         (trajectory . ,v1-traj)))
-                  (v2 . ((status . ,v2-status)
-                         (time-ms . ,v2-ms)
-                         (f1 . ,v2-f1)
-                         (precision . ,v2-prec)
-                         (recall . ,v2-rec)
-                         (tp . ,v2-tp)
-                         (predicted . ,v2-pred)
-                         (output . ,v2-output)
-                         (trajectory . ,v2-traj))))))))))))
-
-(define (print-pairs-comparison results)
+(define (print-pairs-results results)
   (display "\n")
   (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║            OOLONG-Pairs v1 vs v2 RESULTS                   ║\n")
+  (display "║              OOLONG-Pairs RESULTS                          ║\n")
   (display "╚══════════════════════════════════════════════════════════════╝\n\n")
-  (display (format "~30a ~15a ~15a\n" "" "v1" "v2"))
-  (display (make-string 60 #\─))
-  (display "\n")
   (for-each
    (lambda (r)
      (let ([label (cdr (assq 'label r))]
-           [v1 (cdr (assq 'v1 r))]
-           [v2 (cdr (assq 'v2 r))]
            [exp (cdr (assq 'expected-pairs r))])
-       (display (format "\n~a (~a expected pairs)\n" label exp))
-       (display (format "  ~28a ~15a ~15a\n" "Status"
-                        (cdr (assq 'status v1))
-                        (cdr (assq 'status v2))))
-       (display (format "  ~28a ~15a ~15a\n" "Time (ms)"
-                        (cdr (assq 'time-ms v1))
-                        (cdr (assq 'time-ms v2))))
-       (display (format "  ~28a ~15,2f ~15,2f\n" "F1"
-                        (cdr (assq 'f1 v1))
-                        (cdr (assq 'f1 v2))))
-       (display (format "  ~28a ~15,2f ~15,2f\n" "Precision"
-                        (cdr (assq 'precision v1))
-                        (cdr (assq 'precision v2))))
-       (display (format "  ~28a ~15,2f ~15,2f\n" "Recall"
-                        (cdr (assq 'recall v1))
-                        (cdr (assq 'recall v2))))))
-   results)
-  (display "\n"))
+       (display (format "~a (~a expected pairs)\n" label exp))
+       (display (format "  Status:    ~a\n" (cdr (assq 'status r))))
+       (display (format "  Time:      ~a ms\n" (cdr (assq 'time-ms r))))
+       (display (format "  F1:        ~,2f\n" (cdr (assq 'f1 r))))
+       (display (format "  Precision: ~,2f\n" (cdr (assq 'precision r))))
+       (display (format "  Recall:    ~,2f\n\n" (cdr (assq 'recall r))))))
+   results))
 
 ;;; ====
 ;;; Main
@@ -769,12 +616,12 @@
                  "OOLONG 100 entries / 50K" provider)]
            [r2 (run-single-benchmark 200 100000
                  "OOLONG 200 entries / 100K" provider)])
-      (print-comparison (list r1 r2))
+      (print-oolong-results (list r1 r2))
 
       ;; OOLONG-Pairs (pairwise reasoning)
       (let* ([p1 (run-pairs-benchmark 15 3 30000
                    "OOLONG-Pairs 15 users" provider)])
-        (print-pairs-comparison (list p1))
+        (print-pairs-results (list p1))
 
         ;; Store all results
         (let ([results-file (format "user/rlm/bench-results-~a.sexp"
