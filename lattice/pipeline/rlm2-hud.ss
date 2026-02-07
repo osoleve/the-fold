@@ -33,17 +33,20 @@
                         (string-length result-section)
                         100)]  ; overhead for section wrappers
          [remaining (max 0 (- budget fixed-cost))]
-         ;; Variable sections — share remaining budget
-         [plan-budget (min (quotient remaining 4) 2000)]
-         [env-budget (min (quotient remaining 4) 1500)]
-         [loaded-budget (min (quotient remaining 8) 500)]
-         [notes-budget (max 0 (- remaining plan-budget env-budget loaded-budget))]
+         ;; Variable sections — share remaining budget (6 shares)
+         [plan-budget (min (quotient remaining 6) 2000)]
+         [env-budget (min (quotient remaining 6) 1500)]
+         [loaded-budget (min (quotient remaining 12) 500)]
+         [journal-budget (min (quotient remaining 6) 1000)]
+         [notes-budget (max 0 (- remaining plan-budget env-budget
+                                 loaded-budget journal-budget))]
          ;; Render variable sections
          [plan-section (rlm2-render-plan state plan-budget)]
          [env-section (rlm2-render-env state env-budget)]
          [loaded-section (rlm2-render-loaded state loaded-budget)]
          [notes-section (rlm2-render-notes state notes-budget)]
-         [episodic-section (rlm2-render-episodic state)])
+         [episodic-section (rlm2-render-episodic state)]
+         [journal-section (rlm2-render-journal state journal-budget)])
     (string-append
      "(rlm-state\n"
      task-section "\n"
@@ -52,6 +55,7 @@
      loaded-section "\n"
      notes-section "\n"
      episodic-section "\n"
+     journal-section "\n"
      result-section "\n"
      fuel-section "\n"
      step-section ")")))
@@ -132,6 +136,33 @@
                           episodic)])
           (string-append "  (episodic\n    (" (rlm2-join-lines items) "))")))))
 
+(define (rlm2-render-journal state budget)
+  (let ([journal (rlm2-state-journal state)])
+    (if (null? journal)
+        "  (journal ())"
+        (let loop ([entries (reverse journal)]  ; most recent first
+                   [acc '()]
+                   [used 0])
+          (cond
+            [(null? entries)
+             (let ([items (map (lambda (e)
+                                 (format "     (~a . ~s)" (car e) (cdr e)))
+                               acc)])
+               (string-append "  (journal\n    (" (rlm2-join-lines items) "))"))]
+            [else
+             (let* ([entry (car entries)]
+                    [cost (+ (string-length (format "~a" (car entry)))
+                             (string-length (cdr entry)) 15)])
+               (if (> (+ used cost) budget)
+                   (let* ([remaining-count (length entries)]
+                          [marker (cons 'truncated
+                                        (format "~a earlier entries omitted" remaining-count))]
+                          [items (map (lambda (e)
+                                        (format "     (~a . ~s)" (car e) (cdr e)))
+                                      (cons marker acc))])
+                     (string-append "  (journal\n    (" (rlm2-join-lines items) "))"))
+                   (loop (cdr entries) (cons entry acc) (+ used cost))))])))))
+
 (define (rlm2-render-last-result state)
   (let ([result (rlm2-state-last-result state)])
     (if (not result)
@@ -180,6 +211,10 @@
    "  (think text)            — Reasoning (ephemeral, fed to reflection)\n"
    "  (plan! items)           — Propose/update plan: ((item . status) ...)\n"
    "  (map-chunks key expr)   — Eval expr per chunk with *chunk* bound, store in 'map-result\n"
+   "  (journal tag text)      — Write tagged note to session journal\n"
+   "  (recall tag)            — Read all journal entries matching tag\n"
+   "  (memorize key text)     — Save knowledge to persistent memory (survives across runs)\n"
+   "  (remember query)        — Search persistent memory (BM25)\n"
    "  (begin action ...)      — Execute multiple actions sequentially\n\n"
    "Common pattern — think first, then act:\n"
    "  (begin\n"

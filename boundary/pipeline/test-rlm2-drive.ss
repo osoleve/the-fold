@@ -208,4 +208,144 @@
     (assert-equal '(quote (1 2 3)) (rlm2-quote-if-needed '(1 2 3))))
 )
 
+;;; ====
+;;; String helper (same as test-rlm2.ss)
+;;; ====
+
+(define (rlm2-hud-contains? text needle)
+  (let ([tlen (string-length text)]
+        [nlen (string-length needle)])
+    (if (> nlen tlen)
+        -1
+        (let loop ([i 0])
+          (cond
+            [(> (+ i nlen) tlen) -1]
+            [(string=? (substring text i (+ i nlen)) needle) i]
+            [else (loop (+ i 1))])))))
+
+;;; ====
+;;; Journal & Memory Actions
+;;; ====
+
+(test-group "rlm2-exec-journal"
+
+  (define-test "exec-journal adds entry to state"
+    (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+           [action '(journal hypothesis "Input is 50x50 matrix")]
+           [result (rlm2-exec-journal s action)]
+           [obs (car result)]
+           [state* (cadr result)])
+      (assert-true (rlm2-observation-ok? obs))
+      (assert-equal '((hypothesis . "Input is 50x50 matrix"))
+                    (rlm2-state-journal state*))))
+
+  (define-test "exec-journal rejects non-string text"
+    (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+           [action '(journal tag 42)]
+           [result (rlm2-exec-journal s action)]
+           [obs (car result)])
+      (assert-false (rlm2-observation-ok? obs))))
+)
+
+(test-group "rlm2-exec-recall"
+
+  (define-test "exec-recall filters by tag"
+    (let* ([s (rlm2-state-add-journal
+               (rlm2-state-add-journal
+                (rlm2-state-add-journal
+                 (make-initial-rlm2-state "t" #f 1000)
+                 'hypothesis "matrix")
+                'observation "has eigenvalues")
+               'hypothesis "symmetric")]
+           [action '(recall hypothesis)]
+           [result (rlm2-exec-recall s action)]
+           [obs (car result)])
+      (assert-true (rlm2-observation-ok? obs))
+      ;; Should find 2 hypothesis entries
+      (assert-true (>= (rlm2-hud-contains?
+                         (rlm2-observation-value obs) "2 entries") 0))))
+
+  (define-test "exec-recall returns no entries for missing tag"
+    (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+           [action '(recall nonexistent)]
+           [result (rlm2-exec-recall s action)]
+           [obs (car result)])
+      (assert-true (rlm2-observation-ok? obs))
+      (assert-true (>= (rlm2-hud-contains?
+                         (rlm2-observation-value obs) "No journal entries") 0))))
+)
+
+(test-group "rlm2-exec-memorize"
+
+  (define-test "exec-memorize writes to .rlm/ dir"
+    (let ([test-dir (string-append (current-directory) "/.rlm-test-" (format "~a" (random 100000)))])
+      (dynamic-wind
+        (lambda ()
+          ;; Redirect system memory to test dir
+          (set! rlm2-system-memory-path
+            (lambda () (string-append test-dir "/memories.sexp")))
+          (set! rlm2-ensure-rlm-dir!
+            (lambda () (unless (file-exists? test-dir) (mkdir test-dir)))))
+        (lambda ()
+          (rlm2-invalidate-system-memory-cache!)
+          (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+                 [action '(memorize eigen-strategy "Use QR decomposition")]
+                 [result (rlm2-exec-memorize s action)]
+                 [obs (car result)])
+            (assert-true (rlm2-observation-ok? obs))
+            ;; Verify file was created
+            (assert-true (file-exists? (string-append test-dir "/memories.sexp")))))
+        (lambda ()
+          ;; Cleanup
+          (when (file-exists? (string-append test-dir "/memories.sexp"))
+            (delete-file (string-append test-dir "/memories.sexp")))
+          (when (file-exists? test-dir)
+            (delete-directory test-dir))
+          (rlm2-invalidate-system-memory-cache!)
+          ;; Restore original
+          (set! rlm2-system-memory-path
+            (lambda () (string-append (current-directory) "/.rlm/memories.sexp")))
+          (set! rlm2-ensure-rlm-dir!
+            (lambda ()
+              (let ([dir (string-append (current-directory) "/.rlm")])
+                (unless (file-exists? dir) (mkdir dir)))))))))
+)
+
+(test-group "rlm2-exec-remember"
+
+  (define-test "exec-remember searches over written memories"
+    (let ([test-dir (string-append (current-directory) "/.rlm-test-" (format "~a" (random 100000)))])
+      (dynamic-wind
+        (lambda ()
+          (set! rlm2-system-memory-path
+            (lambda () (string-append test-dir "/memories.sexp")))
+          (set! rlm2-ensure-rlm-dir!
+            (lambda () (unless (file-exists? test-dir) (mkdir test-dir)))))
+        (lambda ()
+          (rlm2-invalidate-system-memory-cache!)
+          ;; Write some memories
+          (rlm2-append-system-memory! 'matrix-strategy "Use QR for symmetric matrices")
+          (rlm2-append-system-memory! 'graph-strategy "Use BFS for shortest paths")
+          ;; Search
+          (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+                 [action '(remember "matrix decomposition")]
+                 [result (rlm2-exec-remember s action)]
+                 [obs (car result)])
+            (assert-true (rlm2-observation-ok? obs))
+            ;; Should find the matrix entry
+            (assert-true (string? (rlm2-observation-value obs)))))
+        (lambda ()
+          (when (file-exists? (string-append test-dir "/memories.sexp"))
+            (delete-file (string-append test-dir "/memories.sexp")))
+          (when (file-exists? test-dir)
+            (delete-directory test-dir))
+          (rlm2-invalidate-system-memory-cache!)
+          (set! rlm2-system-memory-path
+            (lambda () (string-append (current-directory) "/.rlm/memories.sexp")))
+          (set! rlm2-ensure-rlm-dir!
+            (lambda ()
+              (let ([dir (string-append (current-directory) "/.rlm")])
+                (unless (file-exists? dir) (mkdir dir)))))))))
+)
+
 (run-all-tests)

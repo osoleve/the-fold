@@ -21,16 +21,17 @@
 ;;;   loaded   : List of Symbol — available lattice modules
 ;;;   notes    : List of String — semantic memory (reflection distillates)
 ;;;   episodic : Alist of (step-num . cas-hash) — pointers to full records
+;;;   journal  : List of (tag . text) — tagged within-run scratch
 ;;;   last-result : Any — most recent observation (cleared each step)
 ;;;   fuel     : Nat — remaining fuel budget
 ;;;   step     : Nat — current step number
 
 (doc 'section 'rlm2-state)
 
-(doc 'type '(-> String Alist Alist (List Symbol) (List String) Alist Any Nat Nat Rlm2State))
+(doc 'type '(-> String Alist Alist (List Symbol) (List String) Alist (List (Symbol . String)) Any Nat Nat Rlm2State))
 (doc 'description "Create an RLM v2 state — the complete HUD for one agent step")
-(define (make-rlm2-state task plan env loaded notes episodic last-result fuel step)
-  (list 'rlm2-state task plan env loaded notes episodic last-result fuel step))
+(define (make-rlm2-state task plan env loaded notes episodic journal last-result fuel step)
+  (list 'rlm2-state task plan env loaded notes episodic journal last-result fuel step))
 
 (define (rlm2-state? x)
   (and (pair? x) (eq? (car x) 'rlm2-state)))
@@ -41,14 +42,15 @@
 (define (rlm2-state-loaded s)      (list-ref s 4))
 (define (rlm2-state-notes s)       (list-ref s 5))
 (define (rlm2-state-episodic s)    (list-ref s 6))
-(define (rlm2-state-last-result s) (list-ref s 7))
-(define (rlm2-state-fuel s)        (list-ref s 8))
-(define (rlm2-state-step s)        (list-ref s 9))
+(define (rlm2-state-journal s)     (list-ref s 7))
+(define (rlm2-state-last-result s) (list-ref s 8))
+(define (rlm2-state-fuel s)        (list-ref s 9))
+(define (rlm2-state-step s)        (list-ref s 10))
 
 (doc 'type '(-> String Any Nat Rlm2State))
 (doc 'description "Create an initial state with just task, input as last-result, and fuel budget")
 (define (make-initial-rlm2-state task initial-result fuel)
-  (make-rlm2-state task '() '() '() '() '() initial-result fuel 0))
+  (make-rlm2-state task '() '() '() '() '() '() initial-result fuel 0))
 
 ;;; ====
 ;;; State Update (Functional — returns new state)
@@ -61,7 +63,8 @@
 (define (rlm2-state-with-plan s plan)
   (make-rlm2-state (rlm2-state-task s) plan (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State Alist Rlm2State))
@@ -69,7 +72,8 @@
 (define (rlm2-state-with-env s env)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) env
                    (rlm2-state-loaded s) (rlm2-state-notes s)
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State (List Symbol) Rlm2State))
@@ -77,7 +81,8 @@
 (define (rlm2-state-with-loaded s loaded)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    loaded (rlm2-state-notes s)
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State String Rlm2State))
@@ -86,7 +91,8 @@
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s)
                    (append (rlm2-state-notes s) (list note))
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State (List String) Rlm2State))
@@ -94,7 +100,8 @@
 (define (rlm2-state-with-notes s notes)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) notes
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State Nat String Rlm2State))
@@ -103,6 +110,7 @@
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (append (rlm2-state-episodic s) (list (cons step-num cas-hash)))
+                   (rlm2-state-journal s)
                    (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
@@ -111,7 +119,8 @@
 (define (rlm2-state-with-last-result s result)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
-                   (rlm2-state-episodic s) result
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   result
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State Nat Rlm2State))
@@ -119,7 +128,8 @@
 (define (rlm2-state-use-fuel s amount)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (max 0 (- (rlm2-state-fuel s) amount))
                    (rlm2-state-step s)))
 
@@ -128,9 +138,29 @@
 (define (rlm2-state-advance-step s)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
-                   (rlm2-state-episodic s) (rlm2-state-last-result s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
                    (rlm2-state-fuel s)
                    (+ 1 (rlm2-state-step s))))
+
+(doc 'type '(-> Rlm2State Symbol String Rlm2State))
+(doc 'description "Return a new state with a journal entry appended")
+(define (rlm2-state-add-journal s tag text)
+  (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
+                   (rlm2-state-loaded s) (rlm2-state-notes s)
+                   (rlm2-state-episodic s)
+                   (append (rlm2-state-journal s) (list (cons tag text)))
+                   (rlm2-state-last-result s)
+                   (rlm2-state-fuel s) (rlm2-state-step s)))
+
+(doc 'type '(-> Rlm2State (List (Symbol . String)) Rlm2State))
+(doc 'description "Return a new state with journal replaced")
+(define (rlm2-state-with-journal s journal)
+  (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
+                   (rlm2-state-loaded s) (rlm2-state-notes s)
+                   (rlm2-state-episodic s) journal
+                   (rlm2-state-last-result s)
+                   (rlm2-state-fuel s) (rlm2-state-step s)))
 
 ;;; ====
 ;;; Completion & Exhaustion
@@ -207,13 +237,15 @@
 ;;; Action Language
 ;;; ====
 ;;;
-;;; 14 forms + begin. Each is a tagged list.
+;;; 18 forms + begin. Each is a tagged list.
 ;;;
 ;;; (search query)           (inspect skill)        (exports skill)
 ;;; (load module)            (eval expr)            (store key expr)
 ;;; (retrieve key)           (peek key n)           (grep key pattern k)
 ;;; (slice key start end)    (recall-step n)        (submit expr)
 ;;; (think text)             (plan! items)          (map-chunks key expr)
+;;; (journal tag text)       (recall tag)           (memorize key text)
+;;; (remember query)
 ;;; (begin action ...)
 
 (doc 'section 'rlm2-actions)
@@ -221,7 +253,8 @@
 ;;; Known action type symbols
 (define *rlm2-action-types*
   '(search inspect exports load eval store retrieve peek
-    grep slice recall-step submit think plan! map-chunks begin))
+    grep slice recall-step submit think plan! map-chunks
+    journal recall memorize remember begin))
 
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a well-formed action (tagged list with known type)")
@@ -251,6 +284,10 @@
 (define (rlm2-think? a)       (and (pair? a) (eq? (car a) 'think)))
 (define (rlm2-plan!? a)       (and (pair? a) (eq? (car a) 'plan!)))
 (define (rlm2-map-chunks? a)  (and (pair? a) (eq? (car a) 'map-chunks)))
+(define (rlm2-journal? a)     (and (pair? a) (eq? (car a) 'journal)))
+(define (rlm2-recall? a)      (and (pair? a) (eq? (car a) 'recall)))
+(define (rlm2-memorize? a)    (and (pair? a) (eq? (car a) 'memorize)))
+(define (rlm2-remember? a)    (and (pair? a) (eq? (car a) 'remember)))
 (define (rlm2-begin? a)       (and (pair? a) (eq? (car a) 'begin)))
 
 ;;; Unquote helper: (quote x) -> x, else identity.
@@ -286,6 +323,12 @@
 (define (rlm2-plan!-items a)        (cadr a))                    ; (plan! items)
 (define (rlm2-map-chunks-key a)     (rlm2-unquote (cadr a)))     ; (map-chunks 'key expr)
 (define (rlm2-map-chunks-expr a)    (caddr a))                   ; (map-chunks key expr) — string
+(define (rlm2-journal-tag a)        (rlm2-unquote (cadr a)))     ; (journal 'tag text)
+(define (rlm2-journal-text a)       (caddr a))                   ; (journal tag text) — string
+(define (rlm2-recall-tag a)         (rlm2-unquote (cadr a)))     ; (recall 'tag)
+(define (rlm2-memorize-key a)       (rlm2-unquote (cadr a)))     ; (memorize 'key text)
+(define (rlm2-memorize-text a)      (caddr a))                   ; (memorize key text) — string
+(define (rlm2-remember-query a)     (cadr a))                    ; (remember query) — string
 (define (rlm2-begin-actions a)      (cdr a))                     ; (begin action ...)
 
 ;;; ====
@@ -314,6 +357,10 @@
     (think       . 1)
     (plan!       . 1)
     (map-chunks  . 2)
+    (journal     . 2)
+    (recall      . 1)
+    (memorize    . 2)
+    (remember    . 1)
     (begin       . #f)))
 
 (doc 'type '(-> Symbol (Maybe Nat)))

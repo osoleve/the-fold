@@ -15,7 +15,7 @@
 (test-group "rlm2-state"
 
   (define-test "make-rlm2-state creates tagged state"
-    (let ([s (make-rlm2-state "task" '() '() '() '() '() #f 1000 0)])
+    (let ([s (make-rlm2-state "task" '() '() '() '() '() '() #f 1000 0)])
       (assert-true (rlm2-state? s))
       (assert-equal "task" (rlm2-state-task s))
       (assert-equal '() (rlm2-state-plan s))
@@ -23,6 +23,7 @@
       (assert-equal '() (rlm2-state-loaded s))
       (assert-equal '() (rlm2-state-notes s))
       (assert-equal '() (rlm2-state-episodic s))
+      (assert-equal '() (rlm2-state-journal s))
       (assert-false (rlm2-state-last-result s))
       (assert-equal 1000 (rlm2-state-fuel s))
       (assert-equal 0 (rlm2-state-step s))))
@@ -657,6 +658,126 @@
            [hud (rlm2-render-state s 4000)])
       (assert-true (string? hud))
       (assert-true (>= (rlm2-hud-contains? hud "pending") 0))))
+)
+
+;;; ====
+;;; Journal State Operations
+;;; ====
+
+(test-group "rlm2-journal"
+
+  (define-test "state-add-journal appends entries"
+    (let* ([s (make-initial-rlm2-state "t" #f 100)]
+           [s1 (rlm2-state-add-journal s 'hypothesis "Input looks like a matrix")]
+           [s2 (rlm2-state-add-journal s1 'observation "eigenvalue decomposition available")])
+      (assert-equal '((hypothesis . "Input looks like a matrix"))
+                    (rlm2-state-journal s1))
+      (assert-equal 2 (length (rlm2-state-journal s2)))))
+
+  (define-test "state-with-journal replaces journal"
+    (let* ([s (rlm2-state-add-journal
+               (make-initial-rlm2-state "t" #f 100)
+               'old "should be gone")]
+           [s* (rlm2-state-with-journal s '((new . "fresh")))])
+      (assert-equal '((new . "fresh")) (rlm2-state-journal s*))))
+
+  (define-test "journal field does not affect other state fields"
+    (let* ([s (make-initial-rlm2-state "task" "input" 5000)]
+           [s* (rlm2-state-add-journal s 'tag "text")])
+      (assert-equal "task" (rlm2-state-task s*))
+      (assert-equal "input" (rlm2-state-last-result s*))
+      (assert-equal 5000 (rlm2-state-fuel s*))
+      (assert-equal 0 (rlm2-state-step s*))
+      (assert-equal '() (rlm2-state-notes s*))
+      (assert-equal '() (rlm2-state-episodic s*))))
+
+  (define-test "make-initial-rlm2-state has empty journal"
+    (assert-equal '() (rlm2-state-journal
+                       (make-initial-rlm2-state "t" #f 100))))
+
+  (define-test "state round-trip preserves all 10 fields"
+    (let ([s (make-rlm2-state "task" '((a . done)) '((x text 100 "h"))
+                              '(mod1) '("note") '((0 . "hash"))
+                              '((tag . "entry"))
+                              "result" 999 7)])
+      (assert-equal "task" (rlm2-state-task s))
+      (assert-equal '((a . done)) (rlm2-state-plan s))
+      (assert-equal '((x text 100 "h")) (rlm2-state-env s))
+      (assert-equal '(mod1) (rlm2-state-loaded s))
+      (assert-equal '("note") (rlm2-state-notes s))
+      (assert-equal '((0 . "hash")) (rlm2-state-episodic s))
+      (assert-equal '((tag . "entry")) (rlm2-state-journal s))
+      (assert-equal "result" (rlm2-state-last-result s))
+      (assert-equal 999 (rlm2-state-fuel s))
+      (assert-equal 7 (rlm2-state-step s))))
+)
+
+;;; ====
+;;; Memory Action Types
+;;; ====
+
+(test-group "rlm2-memory-actions"
+
+  (define-test "journal action validates"
+    (let ([r (rlm2-validate-action '(journal hypothesis "it's a matrix"))])
+      (assert-true (rlm2-validation-ok? r))))
+
+  (define-test "journal action wrong arity rejects"
+    (let ([r (rlm2-validate-action '(journal hypothesis))])
+      (assert-false (rlm2-validation-ok? r))))
+
+  (define-test "recall action validates"
+    (let ([r (rlm2-validate-action '(recall hypothesis))])
+      (assert-true (rlm2-validation-ok? r))))
+
+  (define-test "recall action wrong arity rejects"
+    (let ([r (rlm2-validate-action '(recall))])
+      (assert-false (rlm2-validation-ok? r))))
+
+  (define-test "memorize action validates"
+    (let ([r (rlm2-validate-action '(memorize eigenvalue-strategy "use QR decomposition"))])
+      (assert-true (rlm2-validation-ok? r))))
+
+  (define-test "memorize action wrong arity rejects"
+    (let ([r (rlm2-validate-action '(memorize key))])
+      (assert-false (rlm2-validation-ok? r))))
+
+  (define-test "remember action validates"
+    (let ([r (rlm2-validate-action '(remember "eigenvalue strategy"))])
+      (assert-true (rlm2-validation-ok? r))))
+
+  (define-test "remember action wrong arity rejects"
+    (let ([r (rlm2-validate-action '(remember))])
+      (assert-false (rlm2-validation-ok? r))))
+
+  (define-test "rlm2-action? accepts new memory actions"
+    (assert-true (rlm2-action? '(journal tag "text")))
+    (assert-true (rlm2-action? '(recall tag)))
+    (assert-true (rlm2-action? '(memorize key "text")))
+    (assert-true (rlm2-action? '(remember "query"))))
+
+  (define-test "per-type predicates for memory actions"
+    (assert-true (rlm2-journal? '(journal tag "text")))
+    (assert-false (rlm2-journal? '(recall tag)))
+    (assert-true (rlm2-recall? '(recall tag)))
+    (assert-false (rlm2-recall? '(journal tag "text")))
+    (assert-true (rlm2-memorize? '(memorize key "text")))
+    (assert-false (rlm2-memorize? '(remember "q")))
+    (assert-true (rlm2-remember? '(remember "query")))
+    (assert-false (rlm2-remember? '(memorize key "text"))))
+
+  (define-test "memory action accessors"
+    (assert-equal 'hypothesis (rlm2-journal-tag '(journal hypothesis "text")))
+    (assert-equal "it's a matrix" (rlm2-journal-text '(journal hypothesis "it's a matrix")))
+    (assert-equal 'hypothesis (rlm2-recall-tag '(recall hypothesis)))
+    (assert-equal 'strategy (rlm2-memorize-key '(memorize strategy "use QR")))
+    (assert-equal "use QR" (rlm2-memorize-text '(memorize strategy "use QR")))
+    (assert-equal "eigenvalue" (rlm2-remember-query '(remember "eigenvalue"))))
+
+  (define-test "memory action accessors handle quoted args"
+    (assert-equal 'tag (rlm2-journal-tag '(journal (quote tag) "text")))
+    (assert-equal 'tag (rlm2-recall-tag '(recall (quote tag))))
+    (assert-equal 'key (rlm2-memorize-key '(memorize (quote key) "text"))))
 )
 
 ;;; ====

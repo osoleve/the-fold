@@ -60,7 +60,7 @@
          [env+task (car (rlm-env-store! env+input 'task task 'text))]
          ;; Build initial state
          [initial-state (make-rlm2-state
-                         task '() env+task '() '() '()
+                         task '() env+task '() '() '() '()
                          #f  ; no last-result yet
                          (rlm2-config-max-fuel config) 0)]
          ;; Build system prompt
@@ -188,6 +188,10 @@
         [(think)    (rlm2-exec-think state action)]
         [(plan!)    (rlm2-exec-plan! state action)]
         [(map-chunks) (rlm2-exec-map-chunks state action config)]
+        [(journal)  (rlm2-exec-journal state action)]
+        [(recall)   (rlm2-exec-recall state action)]
+        [(memorize) (rlm2-exec-memorize state action)]
+        [(remember) (rlm2-exec-remember state action)]
         [(begin)    (rlm2-exec-begin state action config depth)]
         [else
          (list (make-rlm2-observation type #f
@@ -515,6 +519,138 @@
                                     val)])
                      (loop (cdr hashes) (cons val* results)
                            (+ errors (if failed? 1 0)) (+ idx 1)))))))])))
+
+;;; --- Memory Actions ---
+
+(define (rlm2-exec-journal state action)
+  (let ([tag (rlm2-journal-tag action)]
+        [text (rlm2-journal-text action)])
+    (if (not (string? text))
+        (list (make-rlm2-observation 'journal tag
+                "Journal text must be a string" #f)
+              state 0)
+        (let ([state* (rlm2-state-add-journal state tag text)])
+          (list (make-rlm2-observation 'journal tag
+                  (format "Logged to journal under '~a'" tag) #t)
+                state* 0)))))
+
+(define (rlm2-exec-recall state action)
+  (let* ([tag (rlm2-recall-tag action)]
+         [journal (rlm2-state-journal state)]
+         [matches (filter (lambda (entry) (eq? (car entry) tag)) journal)])
+    (if (null? matches)
+        (list (make-rlm2-observation 'recall tag
+                (format "No journal entries tagged '~a'" tag) #t)
+              state 0)
+        (let ([texts (map cdr matches)])
+          (list (make-rlm2-observation 'recall tag
+                  (format "~a entries:\n~a"
+                          (length texts)
+                          (rlm2-join-journal-entries texts))
+                  #t)
+                state 0)))))
+
+(define (rlm2-join-journal-entries texts)
+  (if (null? texts)
+      ""
+      (let loop ([rest (cdr texts)] [acc (car texts)])
+        (if (null? rest) acc
+            (loop (cdr rest) (string-append acc "\n" (car rest)))))))
+
+;;; --- System Memory (persistent across runs) ---
+
+(define *rlm2-system-memory-cache* #f)
+(define *rlm2-system-memory-index* #f)
+
+(define (rlm2-system-memory-path)
+  (string-append (current-directory) "/.rlm/memories.sexp"))
+
+(define (rlm2-ensure-rlm-dir!)
+  (let ([dir (string-append (current-directory) "/.rlm")])
+    (unless (file-exists? dir)
+      (mkdir dir))))
+
+(define (rlm2-load-system-memory!)
+  (or *rlm2-system-memory-cache*
+      (let ([path (rlm2-system-memory-path)])
+        (if (file-exists? path)
+            (guard (ex [else '()])
+              (let* ([port (open-input-file path)]
+                     [data (read port)])
+                (close-input-port port)
+                (if (list? data)
+                    (begin (set! *rlm2-system-memory-cache* data) data)
+                    (begin (set! *rlm2-system-memory-cache* '()) '()))))
+            (begin (set! *rlm2-system-memory-cache* '()) '())))))
+
+(define (rlm2-invalidate-system-memory-cache!)
+  (set! *rlm2-system-memory-cache* #f)
+  (set! *rlm2-system-memory-index* #f))
+
+(define (rlm2-append-system-memory! key text)
+  (rlm2-ensure-rlm-dir!)
+  (let* ([memories (rlm2-load-system-memory!)]
+         [entry (list key text (rlm2-current-iso8601))]
+         [updated (append memories (list entry))]
+         [port (open-output-file (rlm2-system-memory-path) 'replace)])
+    (write updated port)
+    (newline port)
+    (close-output-port port)
+    (rlm2-invalidate-system-memory-cache!)))
+
+(define (rlm2-build-system-memory-index!)
+  (or *rlm2-system-memory-index*
+      (let* ([memories (rlm2-load-system-memory!)]
+             [idx0 (bm25-create)])
+        (let loop ([ms memories] [i 0] [idx idx0])
+          (if (null? ms)
+              (begin (set! *rlm2-system-memory-index* idx) idx)
+              (let* ([entry (car ms)]
+                     [text (format "~a ~a" (car entry) (cadr entry))]
+                     [terms (tokenize text)]
+                     [idx* (bm25-add-doc idx i terms entry)])
+                (loop (cdr ms) (+ i 1) idx*)))))))
+
+(define (rlm2-exec-memorize state action)
+  (let ([key (rlm2-memorize-key action)]
+        [text (rlm2-memorize-text action)])
+    (if (not (string? text))
+        (list (make-rlm2-observation 'memorize key
+                "Memorize text must be a string" #f)
+              state 1)
+        (begin
+          (rlm2-append-system-memory! key text)
+          (list (make-rlm2-observation 'memorize key
+                  (format "Saved to persistent memory under '~a'" key) #t)
+                state 1)))))
+
+(define (rlm2-exec-remember state action)
+  (let ([query (rlm2-remember-query action)])
+    (if (not (string? query))
+        (list (make-rlm2-observation 'remember query
+                "Remember query must be a string" #f)
+              state 1)
+        (let ([memories (rlm2-load-system-memory!)])
+          (if (null? memories)
+              (list (make-rlm2-observation 'remember query
+                      "No memories stored yet." #t)
+                    state 1)
+              (let* ([idx (rlm2-build-system-memory-index!)]
+                     [results (bm25-search-string idx query 3)]
+                     [entries (map (lambda (r)
+                                    (let ([data (bm25-get-data idx (car r))])
+                                      (if data
+                                          (format "(~a ~s ~a)"
+                                                  (car data) (cadr data)
+                                                  (if (>= (length data) 3) (caddr data) ""))
+                                          (format "match:~a" (car r)))))
+                                  results)])
+                (list (make-rlm2-observation 'remember query
+                        (if (null? entries)
+                            "No matching memories found."
+                            (rlm2-join-journal-entries entries))
+                        #t)
+                      state 1)))))))
 
 (define (rlm2-exec-begin state action config depth)
   ;; Execute children sequentially, stop on first error or submit completion
