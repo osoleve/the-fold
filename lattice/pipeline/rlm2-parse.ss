@@ -52,83 +52,76 @@
       ;; Empty output -> think
       [(string=? trimmed "")
        (make-rlm2-parse-result (list 'think "") #f text #f "empty-input")]
-      ;; Try direct read
-      [(rlm2-try-read-action trimmed)
-       => (lambda (result)
-            (rlm2-extract-thought-and-action result text))]
-      ;; Try fuzzy extraction
-      [(rlm2-extract-balanced trimmed)
-       => (lambda (candidate)
-            (cond
-              [(rlm2-try-read-action candidate)
-               => (lambda (result)
-                    (let ([pre (rlm2-text-before-paren trimmed)])
-                      (rlm2-extract-thought-and-action
-                       result text
-                       (if (string=? pre "") #f pre))))]
-              [else
-               ;; Fuzzy extraction found balanced parens but validation failed
-               (let ([failure (list (car *rlm2-last-parse-failure*)
-                                    (cadr *rlm2-last-parse-failure*))])
-                 (make-rlm2-parse-result
-                   (list 'think trimmed) trimmed text
-                   (car failure)
-                   (or (cadr failure) "balanced-extraction-read-failed")))]))]
-      ;; Total fallback — no balanced parens found
       [else
-       ;; Direct read also failed — capture that failure info
-       (let ([failure (list (car *rlm2-last-parse-failure*)
-                            (cadr *rlm2-last-parse-failure*))])
-         (make-rlm2-parse-result
-           (list 'think trimmed) trimmed text
-           (car failure)
-           (or (cadr failure) "no-balanced-sexp")))])))
+       (let ([direct (rlm2-try-read-action trimmed)])
+         (if (rlm2-try-ok? direct)
+             ;; Direct read succeeded
+             (rlm2-extract-thought-and-action (rlm2-try-action direct) text)
+             ;; Direct read failed — try fuzzy extraction
+             (let ([balanced (rlm2-extract-balanced trimmed)])
+               (if (not balanced)
+                   ;; No balanced parens — use direct failure info
+                   (make-rlm2-parse-result
+                     (list 'think trimmed) trimmed text
+                     (rlm2-try-candidate direct)
+                     (or (rlm2-try-reason direct) "no-balanced-sexp"))
+                   ;; Found balanced parens — try reading that
+                   (let ([fuzzy (rlm2-try-read-action balanced)])
+                     (if (rlm2-try-ok? fuzzy)
+                         (let ([pre (rlm2-text-before-paren trimmed)])
+                           (rlm2-extract-thought-and-action
+                             (rlm2-try-action fuzzy) text
+                             (if (string=? pre "") #f pre)))
+                         ;; Balanced parens found but validation failed
+                         (make-rlm2-parse-result
+                           (list 'think trimmed) trimmed text
+                           (rlm2-try-candidate fuzzy)
+                           (or (rlm2-try-reason fuzzy)
+                               "balanced-extraction-read-failed"))))))))])))
+
 
 ;;; ====
 ;;; Helpers
 ;;; ====
 
 ;;; Try to read an S-expression from a string and validate it as an action.
-;;; Returns the validated action or #f.
+;;; Returns a tagged result:
+;;;   (parse-ok action)              — valid action
+;;;   (parse-fail candidate reason)  — failure with diagnostics
 ;;; Rejects input with significant trailing content after the first expression
 ;;; (whitespace and comments are tolerated).
-(doc 'description "Try to read and validate an action from a string. Returns action on success, #f on failure. Sets *rlm2-last-parse-failure* with (candidate . reason) on failure for telemetry.")
-(define *rlm2-last-parse-failure* (list #f #f))
+(doc 'description "Try to read and validate an action from a string. Returns (parse-ok action) or (parse-fail candidate reason).")
+
+(define (rlm2-try-ok? r) (eq? (car r) 'parse-ok))
+(define (rlm2-try-action r) (cadr r))
+(define (rlm2-try-candidate r) (cadr r))
+(define (rlm2-try-reason r) (caddr r))
 
 (define (rlm2-try-read-action str)
   (guard (exn [#t
-               (set! *rlm2-last-parse-failure*
-                     (list #f (format "read-error: ~a"
-                                (if (message-condition? exn)
-                                    (condition-message exn)
-                                    exn))))
-               #f])
+               (list 'parse-fail #f
+                     (format "read-error: ~a"
+                       (if (message-condition? exn)
+                           (condition-message exn)
+                           exn)))])
     (let* ([port (open-input-string str)]
            [expr (read port)])
       (if (eof-object? expr)
-          (begin
-            (set! *rlm2-last-parse-failure* (list #f "empty-read"))
-            #f)
+          (list 'parse-fail #f "empty-read")
           ;; Check for trailing content
           (let ([rest (rlm2-port-rest-trimmed port)])
             (if (and (not (string=? rest ""))
                      (not (rlm2-only-comments? rest)))
-                (begin
-                  (set! *rlm2-last-parse-failure*
-                        (list expr (format "trailing-content: ~a"
-                                     (if (> (string-length rest) 100)
-                                         (string-append (substring rest 0 97) "...")
-                                         rest))))
-                  #f)
+                (list 'parse-fail expr
+                      (format "trailing-content: ~a"
+                        (if (> (string-length rest) 100)
+                            (string-append (substring rest 0 97) "...")
+                            rest)))
                 (let ([validation (rlm2-validate-action expr)])
                   (if (rlm2-validation-ok? validation)
-                      (begin
-                        (set! *rlm2-last-parse-failure* (list #f #f))
-                        (rlm2-validation-value validation))
-                      (begin
-                        (set! *rlm2-last-parse-failure*
-                              (list expr (rlm2-validation-error validation)))
-                        #f)))))))))
+                      (list 'parse-ok (rlm2-validation-value validation))
+                      (list 'parse-fail expr
+                            (rlm2-validation-error validation))))))))))
 
 ;;; Read remaining content from a port, trimmed.
 (define (rlm2-port-rest-trimmed port)
