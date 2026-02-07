@@ -72,6 +72,9 @@ logs/*.log
 *.pyc
 .beads/
 
+# Generated training data (regenerate with gen-discovery.ss / sft-synth.ss)
+user/rlm/training/
+
 # Visual artifacts
 user/creations/*.gif
 user/creations/*.mp4

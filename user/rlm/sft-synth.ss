@@ -84,6 +84,34 @@
     "5. (eval expr) to compute\n"
     "6. (submit result) to report the answer\n"))
 
+(define *prompt-multi-key*
+  (string-append
+    "You are a Fold/Scheme agent. Your task involves analyzing multiple "
+    "data sources stored under different keys in your environment.\n\n"
+    "Each key holds a different dataset. Use (peek key n) to preview, "
+    "(grep key pattern k) to search, and (map-chunks key expr) to process.\n\n"
+    "Strategy:\n"
+    "1. Peek at each input to understand the data format\n"
+    "2. Process each dataset as needed (map-chunks for exhaustive operations)\n"
+    "3. Store intermediate results with (store 'key expr)\n"
+    "4. Combine results and (submit answer)\n\n"
+    "Available string utilities (already loaded):\n"
+    "  (split-lines s)            -- split string into list of lines\n"
+    "  (string-contains? s sub)   -- check if s contains sub\n"
+    "  (extract-after s marker)   -- get text after marker in s\n\n"))
+
+(define *prompt-iterative*
+  (string-append
+    "You are a Fold/Scheme agent. Solve the given task.\n\n"
+    "If your first attempt is wrong, the verifier will reject it with feedback. "
+    "Use (think ...) to reason about what went wrong, then try a different approach.\n\n"
+    "Available actions: peek, grep, map-chunks, store, retrieve, eval, think, "
+    "plan!, journal, submit.\n\n"
+    "Available string utilities (already loaded):\n"
+    "  (split-lines s)            -- split string into list of lines\n"
+    "  (string-contains? s sub)   -- check if s contains sub\n"
+    "  (extract-after s marker)   -- get text after marker in s\n\n"))
+
 ;;; ====
 ;;; Scenario Data
 ;;; ====
@@ -825,7 +853,351 @@
           "Extracted value: 500.")
         (make-step
           '(submit 500)
-          'submit #t "Answer accepted: 500")))))
+          'submit #t "Answer accepted: 500")))
+
+    ;; ---- Domain 7: Cross-Key Operations ----
+
+    ;; 26. Two datasets, compare totals
+    (make-scenario "synth-cross-key-compare"
+      "You have two datasets: 'sales-q1' and 'sales-q2', each containing sales records. Compare the total revenue between Q1 and Q2."
+      *prompt-multi-key*
+      '((sales-q1 chunks 25000) (sales-q2 chunks 30000) (task text 100))
+      20000
+      (list
+        (make-step
+          '(begin
+             (peek 'sales-q1 400)
+             (peek 'sales-q2 400))
+          'peek #t "sales-q1: SALE 001 | product: widget | qty: 5 | price: 10.00\nSALE 002 | product: gadget | qty: 2 | price: 25.50\n...\nsales-q2: SALE 001 | product: widget | qty: 8 | price: 10.00\nSALE 002 | product: gadget | qty: 3 | price: 25.50\n..."
+          "Both datasets have same format: product, qty, price per record. Revenue = qty * price.")
+        (make-step
+          '(plan! (("Preview both datasets" . done)
+                   ("Sum Q1 revenue via map-chunks" . pending)
+                   ("Sum Q2 revenue via map-chunks" . pending)
+                   ("Compare and report" . pending)))
+          'plan #t "Plan updated: 4 items")
+        (make-step
+          '(map-chunks 'sales-q1
+            "(apply + (map (lambda (line)\n  (if (string-contains? line \"SALE\")\n      (let ([qty (extract-after line \"qty: \")]\n            [price (extract-after line \"price: \")])\n        (if (and qty price)\n            (* (string->number qty) (string->number price))\n            0))\n      0))\n  (split-lines *chunk*)))")
+          'map-chunks #t "Processed 25 chunks, results stored as 'map-result"
+          "Q1 per-chunk revenues computed.")
+        (make-step
+          '(store 'q1-total (apply + (retrieve 'map-result)))
+          'store #t "Stored: 45230.50")
+        (make-step
+          '(map-chunks 'sales-q2
+            "(apply + (map (lambda (line)\n  (if (string-contains? line \"SALE\")\n      (let ([qty (extract-after line \"qty: \")]\n            [price (extract-after line \"price: \")])\n        (if (and qty price)\n            (* (string->number qty) (string->number price))\n            0))\n      0))\n  (split-lines *chunk*)))")
+          'map-chunks #t "Processed 30 chunks, results stored as 'map-result"
+          "Q2 per-chunk revenues computed.")
+        (make-step
+          '(store 'q2-total (apply + (retrieve 'map-result)))
+          'store #t "Stored: 52875.00")
+        (make-step
+          '(submit (list 'q2-higher-by (- (retrieve 'q2-total) (retrieve 'q1-total))))
+          'submit #t "Answer accepted: (q2-higher-by 7644.50)")))
+
+    ;; 27. Cross-key join (users + orders → top customer)
+    (make-scenario "synth-cross-key-join"
+      "You have 'users' (id, name) and 'orders' (user_id, amount). Find the user with the highest total order amount."
+      *prompt-multi-key*
+      '((users chunks 5000) (orders chunks 40000) (task text 80))
+      20000
+      (list
+        (make-step
+          '(begin
+             (peek 'users 400)
+             (peek 'orders 400))
+          'peek #t "users: USER 001 | name: Alice\nUSER 002 | name: Bob\nUSER 003 | name: Charlie\n...\norders: ORDER 0001 | user_id: 002 | amount: 150.00\nORDER 0002 | user_id: 001 | amount: 75.50\nORDER 0003 | user_id: 003 | amount: 200.00\n..."
+          "Users have id+name. Orders have user_id+amount. Need to sum orders by user_id, then lookup name.")
+        (make-step
+          '(think "Strategy: (1) map-chunks on orders to build (user_id . total) per chunk, (2) aggregate across chunks, (3) find max, (4) look up name in users.")
+          'think #t #f)
+        (make-step
+          '(plan! (("Understand formats" . done)
+                   ("Sum orders by user_id" . pending)
+                   ("Find top user_id" . pending)
+                   ("Look up user name" . pending)
+                   ("Submit result" . pending)))
+          'plan #t "Plan updated: 5 items")
+        (make-step
+          '(map-chunks 'orders
+            "(let loop ([lines (split-lines *chunk*)] [acc '()])\n  (if (null? lines) acc\n      (let ([line (car lines)])\n        (if (string-contains? line \"ORDER\")\n            (let ([uid (extract-after line \"user_id: \")]\n                  [amt (extract-after line \"amount: \")])\n              (if (and uid amt)\n                  (let ([uid-sym (string->symbol uid)]\n                        [amt-n (string->number amt)])\n                    (let ([existing (assq uid-sym acc)])\n                      (loop (cdr lines)\n                            (if existing\n                                (map (lambda (p) (if (eq? (car p) uid-sym) (cons uid-sym (+ (cdr p) amt-n)) p)) acc)\n                                (cons (cons uid-sym amt-n) acc)))))\n                  (loop (cdr lines) acc)))\n            (loop (cdr lines) acc)))))")
+          'map-chunks #t "Processed 40 chunks, results stored as 'map-result"
+          "Per-chunk user totals as alist. Need to merge across chunks.")
+        (make-step
+          '(eval (let merge-all ([chunks (retrieve 'map-result)] [merged '()])
+                   (if (null? chunks)
+                       merged
+                       (merge-all (cdr chunks)
+                         (fold-left (lambda (acc pair)
+                                      (let ([existing (assq (car pair) acc)])
+                                        (if existing
+                                            (map (lambda (p) (if (eq? (car p) (car pair))
+                                                                 (cons (car pair) (+ (cdr p) (cdr pair)))
+                                                                 p)) acc)
+                                            (cons pair acc))))
+                                    merged
+                                    (car chunks))))))
+          'eval #t "((|003| . 12450.00) (|002| . 18750.50) (|001| . 9200.00))"
+          "Merged totals: user 002 (Bob) has highest at 18750.50.")
+        (make-step
+          '(store 'totals (retrieve 'step-4-result))
+          'store #t "Stored totals")
+        (make-step
+          '(grep 'users "002" 1)
+          'grep #t "1 match:\n[0.99] USER 002 | name: Bob"
+          "User 002 is Bob.")
+        (make-step
+          '(submit (list 'top-customer "Bob" 'total 18750.50))
+          'submit #t "Answer accepted: (top-customer Bob total 18750.50)")))
+
+    ;; ---- Domain 8: Iterative Refinement ----
+
+    ;; 28. First attempt wrong, verifier rejects, retry with correct approach
+    (make-scenario "synth-iterative-refine"
+      "Count the number of UNIQUE product names in the inventory data."
+      *prompt-iterative*
+      '((input chunks 35000) (task text 55))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "ITEM 001 | product: Widget A | qty: 50 | warehouse: W1\nITEM 002 | product: Widget B | qty: 30 | warehouse: W2\nITEM 003 | product: Widget A | qty: 20 | warehouse: W1\nITEM 004 | product: Gadget X | qty: 10 | warehouse: W3\n..."
+          "Products repeat across items. Need UNIQUE count, not total count.")
+        (make-step
+          '(map-chunks 'input
+            "(length (filter (lambda (line) (string-contains? line \"ITEM\")) (split-lines *chunk*)))")
+          'map-chunks #t "Processed 35 chunks, results stored as 'map-result"
+          "Counted all ITEM lines per chunk. But this counts total items, not unique products!")
+        (make-step
+          '(submit (apply + (retrieve 'map-result)))
+          'submit #f "Rejected: 1750 is the total item count, not the unique product count. Products like 'Widget A' appear in multiple items."
+          "The verifier caught my mistake. I counted total items, not unique products.")
+        (make-step
+          '(think "I need unique product names. map-chunks per chunk gives per-chunk unique sets, but products may span chunks. I need to collect all unique names across all chunks, then count.")
+          'think #t #f)
+        (make-step
+          '(map-chunks 'input
+            "(let loop ([lines (split-lines *chunk*)] [names '()])\n  (if (null? lines) names\n      (let ([line (car lines)])\n        (if (string-contains? line \"product: \")\n            (let ([name (extract-after line \"product: \")])\n              (if (and name (not (member name names)))\n                  (loop (cdr lines) (cons name names))\n                  (loop (cdr lines) names)))\n            (loop (cdr lines) names)))))")
+          'map-chunks #t "Processed 35 chunks, results stored as 'map-result"
+          "Per-chunk unique product lists. Need to merge and deduplicate across chunks.")
+        (make-step
+          '(begin
+             (store 'all-products
+               (let dedup ([lists (retrieve 'map-result)] [seen '()])
+                 (if (null? lists) seen
+                     (dedup (cdr lists)
+                       (fold-left (lambda (acc name) (if (member name acc) acc (cons name acc)))
+                                  seen (car lists))))))
+             (submit (length (retrieve 'all-products))))
+          'submit #t "Answer accepted: 42")))
+
+    ;; 29. Wrong aggregation, then correct
+    (make-scenario "synth-iterative-refine-avg"
+      "Compute the average price per item across all inventory records."
+      *prompt-iterative*
+      '((input chunks 35000) (task text 55))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "ITEM 001 | product: Widget A | price: 12.50\nITEM 002 | product: Widget B | price: 8.00\nITEM 003 | product: Gadget X | price: 45.00\n..."
+          "Need sum of all prices divided by count of items.")
+        (make-step
+          '(map-chunks 'input
+            "(apply + (filter number? (map (lambda (line)\n  (let ([p (extract-after line \"price: \")])\n    (if p (string->number p) #f)))\n  (split-lines *chunk*))))")
+          'map-chunks #t "Processed 35 chunks, results stored as 'map-result")
+        (make-step
+          '(submit (apply + (retrieve 'map-result)))
+          'submit #f "Rejected: 48750.00 is the total sum, not the average. You need to divide by the number of items."
+          "Submitted sum instead of average. Need count too.")
+        (make-step
+          '(think "I computed the sum but forgot to count. I need a second pass for count, or I should have returned (sum . count) pairs per chunk in one pass.")
+          'think #t #f)
+        (make-step
+          '(store 'total-sum (apply + (retrieve 'map-result)))
+          'store #t "Stored: 48750.00")
+        (make-step
+          '(map-chunks 'input
+            "(length (filter (lambda (line) (string-contains? line \"ITEM\")) (split-lines *chunk*)))")
+          'map-chunks #t "Processed 35 chunks, results stored as 'map-result")
+        (make-step
+          '(begin
+             (store 'total-count (apply + (retrieve 'map-result)))
+             (submit (/ (retrieve 'total-sum) (retrieve 'total-count))))
+          'submit #t "Answer accepted: 27.86")))
+
+    ;; ---- Domain 9: Recall-Step and Journal Workflows ----
+
+    ;; 30. Recall a previous step's output for verification
+    (make-scenario "synth-recall-step"
+      "Verify that the sum of alpha values equals the sum of beta values in the dataset."
+      *prompt-aggregation*
+      '((input chunks 55000) (task text 70))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "RECORD 0001 | type: alpha | value: 42\nRECORD 0002 | type: beta | value: 42\nRECORD 0003 | type: alpha | value: 18\nRECORD 0004 | type: beta | value: 18\n..."
+          "Data has alpha and beta records. Need to sum both types and compare.")
+        (make-step
+          '(map-chunks 'input
+            "(apply + (map (lambda (line)\n  (if (string-contains? line \"type: alpha\")\n      (let ([v (extract-after line \"value: \")])\n        (if v (string->number v) 0))\n      0))\n  (split-lines *chunk*)))")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Alpha per-chunk sums computed.")
+        (make-step
+          '(store 'alpha-sum (apply + (retrieve 'map-result)))
+          'store #t "Stored: 2847")
+        (make-step
+          '(map-chunks 'input
+            "(apply + (map (lambda (line)\n  (if (string-contains? line \"type: beta\")\n      (let ([v (extract-after line \"value: \")])\n        (if v (string->number v) 0))\n      0))\n  (split-lines *chunk*)))")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Beta per-chunk sums computed.")
+        (make-step
+          '(store 'beta-sum (apply + (retrieve 'map-result)))
+          'store #t "Stored: 2847")
+        (make-step
+          '(begin
+             (recall-step 2)
+             (recall-step 4))
+          'recall-step #t "Step 2: store alpha-sum → 2847\nStep 4: store beta-sum → 2847"
+          "Both sums are 2847. The totals are equal.")
+        (make-step
+          '(submit (list 'equal (retrieve 'alpha-sum) (retrieve 'beta-sum)))
+          'submit #t "Answer accepted: (equal 2847 2847)")))
+
+    ;; 31. Journal-driven multi-phase analysis
+    (make-scenario "synth-journal-analysis"
+      "Analyze a server log: (1) identify the most common error type, (2) find the time range of errors, (3) report both."
+      *prompt-text-analysis*
+      '((input chunks 50000) (task text 95))
+      25000
+      (list
+        (make-step
+          '(plan! (("Phase 1: Identify error types" . pending)
+                   ("Phase 2: Find time range" . pending)
+                   ("Phase 3: Report" . pending)))
+          'plan #t "Plan updated: 3 items")
+        (make-step
+          '(peek 'input 500)
+          'peek #t "[2026-02-06 10:23:01] ERROR ConnTimeout - Connection timed out to db-primary\n[2026-02-06 10:23:03] ERROR AuthFail - Invalid credentials for user admin\n[2026-02-06 10:23:05] ERROR ConnTimeout - Connection timed out to db-replica\n..."
+          "Errors have typed labels: ConnTimeout, AuthFail, etc. Timestamps in brackets.")
+        (make-step
+          '(journal observation "Error format: [timestamp] ERROR <type> - <message>. Types include ConnTimeout, AuthFail.")
+          'journal #t "Recorded to journal: observation")
+        (make-step
+          '(map-chunks 'input
+            "(let loop ([lines (split-lines *chunk*)] [counts '()])\n  (if (null? lines) counts\n      (let ([line (car lines)])\n        (if (string-contains? line \"ERROR\")\n            (let ([type (extract-after line \"ERROR \")])\n              (if type\n                  (let ([t (car (split-lines type))])\n                    (let ([existing (assoc t counts)])\n                      (loop (cdr lines)\n                            (if existing\n                                (map (lambda (p) (if (equal? (car p) t) (cons t (+ (cdr p) 1)) p)) counts)\n                                (cons (cons t 1) counts)))))\n                  (loop (cdr lines) counts)))\n            (loop (cdr lines) counts)))))")
+          'map-chunks #t "Processed 50 chunks, results stored as 'map-result"
+          "Per-chunk error type counts. Need to merge across chunks.")
+        (make-step
+          '(begin
+             (store 'error-counts
+               (let merge ([chunks (retrieve 'map-result)] [merged '()])
+                 (if (null? chunks) merged
+                     (merge (cdr chunks)
+                       (fold-left (lambda (acc pair)
+                                    (let ([existing (assoc (car pair) acc)])
+                                      (if existing
+                                          (map (lambda (p) (if (equal? (car p) (car pair))
+                                                               (cons (car pair) (+ (cdr p) (cdr pair)))
+                                                               p)) acc)
+                                          (cons pair acc))))
+                                  merged (car chunks))))))
+             (journal 'phase1-result "Error type counts merged and stored in error-counts."))
+          'store #t "Stored error counts")
+        (make-step
+          '(plan! (("Phase 1: Identify error types" . done)
+                   ("Phase 2: Find time range" . pending)
+                   ("Phase 3: Report" . pending)))
+          'plan #t "Plan updated: 3 items")
+        (make-step
+          '(begin
+             (grep 'input "ERROR" 1)
+             (slice 'input 0 1))
+          'grep #t "First ERROR at [2026-02-06 10:23:01]")
+        (make-step
+          '(slice 'input 48 50)
+          'slice #t "...\n[2026-02-06 14:55:22] ERROR ConnTimeout - Connection timed out to cache-3\n[2026-02-06 14:55:30] INFO - Service restored"
+          "Last error around 14:55. Time range: 10:23 to 14:55.")
+        (make-step
+          '(journal phase2-result "Error time range: 10:23:01 to 14:55:22 (about 4.5 hours)")
+          'journal #t "Recorded to journal: phase2-result")
+        (make-step
+          '(submit (list 'most-common "ConnTimeout" 'count 287 'time-range "10:23:01 to 14:55:22"))
+          'submit #t "Answer accepted")))
+
+    ;; ---- Domain 10: CSV/Structured Numeric Data ----
+
+    ;; 32. CSV parsing and statistical aggregation
+    (make-scenario "synth-csv-stats"
+      "The input is CSV data with columns: id, temperature, humidity, pressure. Compute the average temperature and the max pressure."
+      *prompt-text-analysis*
+      '((input chunks 20000) (task text 90))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "id,temperature,humidity,pressure\n1,22.5,45,1013.2\n2,23.1,42,1013.5\n3,21.8,48,1012.9\n4,24.0,40,1014.1\n5,22.2,46,1013.0\n..."
+          "CSV with header. temperature is col 2 (0-indexed 1), pressure is col 4 (0-indexed 3).")
+        (make-step
+          '(think "I need to parse CSV lines. Skip the header. For each data line, split by comma, extract temperature (index 1) and pressure (index 3).")
+          'think #t #f)
+        (make-step
+          '(map-chunks 'input
+            "(let ([lines (filter (lambda (l) (and (not (string=? l \"\")) (not (string-contains? l \"id,temperature\")))) (split-lines *chunk*))])\n  (let loop ([ls lines] [t-sum 0] [t-count 0] [p-max 0])\n    (if (null? ls) (list t-sum t-count p-max)\n        (let* ([parts (split-csv (car ls))]\n               [temp (and (>= (length parts) 2) (string->number (list-ref parts 1)))]\n               [pres (and (>= (length parts) 4) (string->number (list-ref parts 3)))])\n          (loop (cdr ls)\n                (if temp (+ t-sum temp) t-sum)\n                (if temp (+ t-count 1) t-count)\n                (if (and pres (> pres p-max)) pres p-max))))))")
+          'map-chunks #t "Processed 20 chunks, results stored as 'map-result"
+          "Per-chunk (temp-sum, temp-count, max-pressure) triples collected.")
+        (make-step
+          '(begin
+             (store 'temp-avg (/ (apply + (map car (retrieve 'map-result)))
+                                 (apply + (map cadr (retrieve 'map-result)))))
+             (store 'max-pressure (apply max (map caddr (retrieve 'map-result)))))
+          'store #t "Stored: temp-avg=22.87, max-pressure=1015.3")
+        (make-step
+          '(submit (list 'avg-temperature (retrieve 'temp-avg)
+                         'max-pressure (retrieve 'max-pressure)))
+          'submit #t "Answer accepted: (avg-temperature 22.87 max-pressure 1015.3)")))
+
+    ;; 33. Lattice + data processing (hybrid)
+    (make-scenario "synth-hybrid-lattice-data"
+      "Compute the standard deviation of all 'value' fields from records where type is 'alpha'. Use the statistics lattice skill."
+      *prompt-aggregation*
+      '((input chunks 55000) (task text 90))
+      25000
+      (list
+        (make-step
+          '(think "I need to extract all alpha values, then compute std dev. The lattice has a statistics skill with vec-std-dev.")
+          'think #t #f)
+        (make-step
+          '(plan! (("Extract alpha values via map-chunks" . pending)
+                   ("Load statistics module" . pending)
+                   ("Compute std dev" . pending)
+                   ("Submit" . pending)))
+          'plan #t "Plan updated: 4 items")
+        (make-step
+          '(map-chunks 'input
+            "(filter number? (map (lambda (line)\n  (if (string-contains? line \"type: alpha\")\n      (let ([v (extract-after line \"value: \")])\n        (if v (string->number v) #f))\n      #f))\n  (split-lines *chunk*)))")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Per-chunk alpha value lists collected.")
+        (make-step
+          '(store 'all-values (apply append (retrieve 'map-result)))
+          'store #t "Stored: list of 847 values")
+        (make-step
+          '(begin
+             (search "standard deviation")
+             (load 'statistics/summary-stats))
+          'load #t "Module statistics/summary-stats loaded."
+          "statistics skill found and summary-stats module loaded.")
+        (make-step
+          '(eval (vec-std-dev (retrieve 'all-values)))
+          'eval #t "14.32"
+          "Standard deviation computed: 14.32.")
+        (make-step
+          '(submit (retrieve 'step-5-result))
+          'submit #t "Answer accepted: 14.32")))
+
+    ))
 
 ;;; ====
 ;;; State Reconstruction
