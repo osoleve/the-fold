@@ -169,7 +169,7 @@
            "(let ([lines (split-lines *chunk*)])\n  (map (lambda (line) (extract-after line \"emp: \"))\n       (filter (lambda (line) (string-contains? line \"dept: engineering\")) lines)))")
          (store 'eng (apply append (retrieve 'map-result)))
          (store 'pairs
-           (sorted string<?
+           (sorted
              (apply append
                (map (lambda (a)
                       (filter (lambda (p) p)
@@ -178,7 +178,8 @@
                                    (format "(~a, ~a)" a b)
                                    #f))
                              (retrieve 'eng))))
-                    (retrieve 'mkt)))))
+                    (retrieve 'mkt)))
+             string<?))
          (submit (retrieve 'pairs))))))
 
 (define *fewshot-examples*

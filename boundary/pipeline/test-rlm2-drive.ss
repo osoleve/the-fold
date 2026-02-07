@@ -62,6 +62,33 @@
 )
 
 ;;; ====
+;;; Escaping Normalization
+;;; ====
+
+(test-group "rlm2-normalize-expr-escaping"
+
+  (define-test "collapses backslash-quote to bare quote"
+    (assert-equal "foo \"bar\" baz"
+                  (rlm2-normalize-expr-escaping "foo \\\"bar\\\" baz")))
+
+  (define-test "stable on already-clean strings"
+    (assert-equal "(+ 1 2)"
+                  (rlm2-normalize-expr-escaping "(+ 1 2)")))
+
+  (define-test "handles multiple layers of escaping"
+    ;; \\\\\" -> \\\\" -> \\" -> \" -> "
+    (assert-equal "x\"y"
+                  (rlm2-normalize-expr-escaping "x\\\\\\\\\\\"y")))
+
+  (define-test "preserves non-quote backslashes"
+    (assert-equal "foo\\nbar"
+                  (rlm2-normalize-expr-escaping "foo\\nbar")))
+
+  (define-test "handles empty string"
+    (assert-equal "" (rlm2-normalize-expr-escaping "")))
+)
+
+;;; ====
 ;;; Code Splitting
 ;;; ====
 
