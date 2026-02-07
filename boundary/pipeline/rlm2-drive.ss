@@ -1047,8 +1047,15 @@
             (rlm2-think? (rlm2-parse-result-action parse-result)))
     (let* ([detail (cond
                      [(rlm2-think? (rlm2-parse-result-action parse-result))
-                      ;; Parse fell through to think — log the raw output
-                      (rlm2-truncate-telemetry raw-text 500)]
+                      ;; Parse fell through to think — log raw output, candidate, and reason
+                      (let ([candidate (rlm2-parse-result-candidate parse-result)]
+                            [reason (rlm2-parse-result-failure-reason parse-result)])
+                        (format "~s"
+                          `((raw . ,(rlm2-truncate-telemetry raw-text 500))
+                            (candidate . ,(and candidate
+                                               (rlm2-truncate-telemetry
+                                                 (format "~s" candidate) 200)))
+                            (reason . ,reason))))]
                      [(eq? action-type 'eval)
                       "eval-usage"]
                      [else "action-error"])]

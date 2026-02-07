@@ -24,17 +24,21 @@
 
 (doc 'section 'rlm2-parse)
 
-(doc 'type '(-> String (Maybe String) Action String Rlm2ParseResult))
-(doc 'description "Parse result: action + optional thought + raw text")
-(define (make-rlm2-parse-result action thought raw)
-  (list 'rlm2-parse-result action thought raw))
+(doc 'type '(-> Action (Maybe String) String Rlm2ParseResult))
+(doc 'description "Parse result: action + optional thought + raw text + optional failure info")
+(define (make-rlm2-parse-result action thought raw . rest)
+  (let ([candidate (if (pair? rest) (car rest) #f)]
+        [failure-reason (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) #f)])
+    (list 'rlm2-parse-result action thought raw candidate failure-reason)))
 
 (define (rlm2-parse-result? x)
   (and (pair? x) (eq? (car x) 'rlm2-parse-result)))
 
-(define (rlm2-parse-result-action r)  (list-ref r 1))
-(define (rlm2-parse-result-thought r) (list-ref r 2))
-(define (rlm2-parse-result-raw r)     (list-ref r 3))
+(define (rlm2-parse-result-action r)         (list-ref r 1))
+(define (rlm2-parse-result-thought r)        (list-ref r 2))
+(define (rlm2-parse-result-raw r)            (list-ref r 3))
+(define (rlm2-parse-result-candidate r)      (if (> (length r) 4) (list-ref r 4) #f))
+(define (rlm2-parse-result-failure-reason r) (if (> (length r) 5) (list-ref r 5) #f))
 
 ;;; ====
 ;;; Main entry point
@@ -47,7 +51,7 @@
     (cond
       ;; Empty output -> think
       [(string=? trimmed "")
-       (make-rlm2-parse-result (list 'think "") #f text)]
+       (make-rlm2-parse-result (list 'think "") #f text #f "empty-input")]
       ;; Try direct read
       [(rlm2-try-read-action trimmed)
        => (lambda (result)
@@ -63,10 +67,22 @@
                        result text
                        (if (string=? pre "") #f pre))))]
               [else
-               (make-rlm2-parse-result (list 'think trimmed) trimmed text)]))]
-      ;; Total fallback
+               ;; Fuzzy extraction found balanced parens but validation failed
+               (let ([failure (list (car *rlm2-last-parse-failure*)
+                                    (cadr *rlm2-last-parse-failure*))])
+                 (make-rlm2-parse-result
+                   (list 'think trimmed) trimmed text
+                   (car failure)
+                   (or (cadr failure) "balanced-extraction-read-failed")))]))]
+      ;; Total fallback — no balanced parens found
       [else
-       (make-rlm2-parse-result (list 'think trimmed) trimmed text)])))
+       ;; Direct read also failed — capture that failure info
+       (let ([failure (list (car *rlm2-last-parse-failure*)
+                            (cadr *rlm2-last-parse-failure*))])
+         (make-rlm2-parse-result
+           (list 'think trimmed) trimmed text
+           (car failure)
+           (or (cadr failure) "no-balanced-sexp")))])))
 
 ;;; ====
 ;;; Helpers
@@ -76,21 +92,43 @@
 ;;; Returns the validated action or #f.
 ;;; Rejects input with significant trailing content after the first expression
 ;;; (whitespace and comments are tolerated).
+(doc 'description "Try to read and validate an action from a string. Returns action on success, #f on failure. Sets *rlm2-last-parse-failure* with (candidate . reason) on failure for telemetry.")
+(define *rlm2-last-parse-failure* (list #f #f))
+
 (define (rlm2-try-read-action str)
-  (guard (exn [#t #f])
+  (guard (exn [#t
+               (set! *rlm2-last-parse-failure*
+                     (list #f (format "read-error: ~a"
+                                (if (message-condition? exn)
+                                    (condition-message exn)
+                                    exn))))
+               #f])
     (let* ([port (open-input-string str)]
            [expr (read port)])
       (if (eof-object? expr)
-          #f
+          (begin
+            (set! *rlm2-last-parse-failure* (list #f "empty-read"))
+            #f)
           ;; Check for trailing content
           (let ([rest (rlm2-port-rest-trimmed port)])
             (if (and (not (string=? rest ""))
                      (not (rlm2-only-comments? rest)))
-                #f  ; significant trailing garbage — reject
+                (begin
+                  (set! *rlm2-last-parse-failure*
+                        (list expr (format "trailing-content: ~a"
+                                     (if (> (string-length rest) 100)
+                                         (string-append (substring rest 0 97) "...")
+                                         rest))))
+                  #f)
                 (let ([validation (rlm2-validate-action expr)])
                   (if (rlm2-validation-ok? validation)
-                      (rlm2-validation-value validation)
-                      #f))))))))
+                      (begin
+                        (set! *rlm2-last-parse-failure* (list #f #f))
+                        (rlm2-validation-value validation))
+                      (begin
+                        (set! *rlm2-last-parse-failure*
+                              (list expr (rlm2-validation-error validation)))
+                        #f)))))))))
 
 ;;; Read remaining content from a port, trimmed.
 (define (rlm2-port-rest-trimmed port)
