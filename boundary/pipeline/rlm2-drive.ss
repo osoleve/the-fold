@@ -455,9 +455,26 @@
                   (format "Plan updated: ~a items" (length normalized)) #t)
                 (rlm2-state-with-plan state normalized) 0)))))
 
+(define (rlm2-normalize-expr-escaping s)
+  ;; Desire path: models over-escape quotes in map-chunks expressions.
+  ;; Collapse \" → " repeatedly until stable.
+  (let loop ([prev s])
+    (let ([next (let walk ([cs (string->list prev)] [acc '()])
+                  (cond
+                    [(null? cs) (list->string (reverse acc))]
+                    [(and (char=? (car cs) #\\)
+                          (pair? (cdr cs))
+                          (char=? (cadr cs) #\"))
+                     (walk (cddr cs) (cons #\" acc))]
+                    [else (walk (cdr cs) (cons (car cs) acc))]))])
+      (if (string=? next prev)
+          next
+          (loop next)))))
+
 (define (rlm2-exec-map-chunks state action config)
   (let* ([key (rlm2-map-chunks-key action)]
-         [expr-text (rlm2-map-chunks-expr action)]
+         [expr-text (rlm2-normalize-expr-escaping
+                      (rlm2-map-chunks-expr action))]
          [env (rlm2-state-env state)]
          [entry (rlm-env-get env key)])
     (cond
