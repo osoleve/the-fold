@@ -89,9 +89,12 @@
            ;; === ACT PHASE ===
            (let* ([hud (rlm2-render-state state
                          (rlm2-config-context-budget config))]
-                  ;; Call LLM with system prompt + HUD as user message
-                  [messages (list (rlm2-make-msg "system" sys-prompt)
-                                  (rlm2-make-msg "user" hud))]
+                  ;; Call LLM with system prompt + optional few-shot + HUD
+                  [few-shot (rlm2-config-few-shot config)]
+                  [messages (append
+                              (list (rlm2-make-msg "system" sys-prompt))
+                              few-shot
+                              (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
                                           messages 4096 0.7)])
              (cond

@@ -551,10 +551,10 @@
                  [(begin)
                   (synth-env-from-begin env action step)]
                  [else env])]
-         ;; Plan updates
+         ;; Plan updates (cadr extracts the items list from (plan! items))
          [plan* (cond
                   [(eq? atype 'plan!)
-                   (if (>= (length action) 2) (cdr action) '())]
+                   (if (>= (length action) 2) (cadr action) '())]
                   ;; Check for plan! inside begin
                   [(eq? atype 'begin)
                    (let loop ([subs (cdr action)] [p (rlm2-state-plan state)])
@@ -562,7 +562,7 @@
                        [(null? subs) p]
                        [(and (pair? (car subs)) (eq? (caar subs) 'plan!))
                         (loop (cdr subs) (if (>= (length (car subs)) 2)
-                                             (cdar subs) '()))]
+                                             (cadar subs) '()))]
                        [else (loop (cdr subs) p)]))]
                   [else (rlm2-state-plan state)])]
          ;; Loaded updates (unquote module names)

@@ -5,11 +5,9 @@
 ;;;
 ;;; Run: RLM_INTEGRATION=1 scheme --script user/rlm/bench.ss
 
-(unless (getenv "RLM_INTEGRATION")
-  (display "Skipping benchmark (set RLM_INTEGRATION=1 to enable)\n")
-  (exit 0))
-
-(load "boundary/pipeline/rlm2-drive.ss")
+;; Load driver if not already loaded (allows bench.ss to be loaded as a library)
+(unless (top-level-bound? 'rlm2-run)
+  (load "boundary/pipeline/rlm2-drive.ss"))
 
 ;;; ====
 ;;; Shared Task Generation
@@ -636,4 +634,6 @@
                             port)))
           (display (format "\nResults saved to ~a\n" results-file)))))))
 
-(run-benchmark-suite)
+;; Auto-run when invoked as script (RLM_INTEGRATION=1)
+(when (getenv "RLM_INTEGRATION")
+  (run-benchmark-suite))

@@ -215,6 +215,11 @@
 (define (rlm2-config-context-budget cfg) (list-ref cfg 8))
 (define (rlm2-config-verifier cfg)       (list-ref cfg 9))
 
+(doc 'type '(-> Rlm2Config (List Msg)))
+(doc 'description "Few-shot examples as user/assistant message pairs. Empty list if not set.")
+(define (rlm2-config-few-shot cfg)
+  (if (> (length cfg) 10) (list-ref cfg 10) '()))
+
 (doc 'type '(-> RlmProvider String Rlm2Config))
 (doc 'description "Sensible defaults: 20 steps, 50k fuel, 2k chunks, depth 2, window 3, 8k budget, no verifier")
 (define (make-rlm2-config-default provider system-prompt)
