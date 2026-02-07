@@ -95,7 +95,7 @@ scheme --script test-all.ss
 
 ## The Lattice at a Glance
 
-~284k lines across 36 skills, organized by dependency tier:
+Skills are naturally organized by dependency tier:
 
 **Tier 0 — Foundations:** `linalg`, `data`, `algebra`, `random`. No lattice dependencies.
 
