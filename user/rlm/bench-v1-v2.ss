@@ -364,6 +364,391 @@
                      v1-correct n v1-total-ms v2-correct n v2-total-ms))))
 
 ;;; ====
+;;; OOLONG-Pairs Task Generation
+;;; ====
+
+(define *pairs-categories* '#("science" "history" "sports" "technology" "arts"))
+(define *n-pairs-categories* (vector-length *pairs-categories*))
+(define *cutoff-day* 152)  ; ~June 1
+(define *condition-a-cat* "science")
+(define *condition-b-cat* "technology")
+
+(define (day->date-string day)
+  (let* ([month-days '#(31 28 31 30 31 30 31 31 30 31 30 31)]
+         [month-names '#("01" "02" "03" "04" "05" "06" "07" "08" "09" "10" "11" "12")])
+    (let loop ([m 0] [remaining day])
+      (if (or (>= m 12) (<= remaining (vector-ref month-days m)))
+          (format "2025-~a-~2,'0d"
+                  (vector-ref month-names (min m 11))
+                  (max 1 remaining))
+          (loop (+ m 1) (- remaining (vector-ref month-days m)))))))
+
+(define (generate-pairs-entries n-users entries-per-user)
+  (random-seed 42)
+  (let loop ([u 0] [entries '()])
+    (if (>= u n-users)
+        (reverse entries)
+        (let ([user-id (format "U~3,'0d" (+ u 1))])
+          (let inner ([e 0] [entries entries])
+            (if (>= e entries-per-user)
+                (loop (+ u 1) entries)
+                (let* ([day (+ 1 (random 365))]
+                       [cat-idx (random *n-pairs-categories*)]
+                       [category (vector-ref *pairs-categories* cat-idx)]
+                       [text (format "ENTRY | user: ~a | date: ~a | category: ~a"
+                                     user-id (day->date-string day) category)])
+                  (inner (+ e 1)
+                         (cons (list user-id day category text) entries)))))))))
+
+(define (pairs-deduplicate lst)
+  (let loop ([l lst] [seen '()] [acc '()])
+    (if (null? l) (reverse acc)
+        (if (member (car l) seen)
+            (loop (cdr l) seen acc)
+            (loop (cdr l) (cons (car l) seen) (cons (car l) acc))))))
+
+(define (compute-condition-set entries target-cat temporal-dir cutoff)
+  (let loop ([es entries] [users '()])
+    (if (null? es)
+        (list-sort string<? (pairs-deduplicate users))
+        (let* ([e (car es)]
+               [uid (car e)]
+               [day (cadr e)]
+               [cat (caddr e)]
+               [date-match? (if (eq? temporal-dir 'before)
+                                (< day cutoff)
+                                (> day cutoff))]
+               [cat-match? (string=? cat target-cat)])
+          (if (and cat-match? date-match?)
+              (loop (cdr es) (cons uid users))
+              (loop (cdr es) users))))))
+
+(define (compute-pairs set-a set-b)
+  (let ([pairs '()])
+    (for-each
+      (lambda (a)
+        (for-each
+          (lambda (b)
+            (cond
+              [(string<? a b)
+               (set! pairs (cons (cons a b) pairs))]
+              [(string<? b a)
+               (set! pairs (cons (cons b a) pairs))]))
+          set-b))
+      set-a)
+    (let ([unique (deduplicate-pairs (reverse pairs))])
+      (list-sort pair<? unique))))
+
+(define (deduplicate-pairs pairs)
+  (let loop ([ps pairs] [seen '()] [acc '()])
+    (if (null? ps)
+        (reverse acc)
+        (let ([p (car ps)])
+          (if (member p seen)
+              (loop (cdr ps) seen acc)
+              (loop (cdr ps) (cons p seen) (cons p acc)))))))
+
+(define (pair<? a b)
+  (or (string<? (car a) (car b))
+      (and (string=? (car a) (car b))
+           (string<? (cdr a) (cdr b)))))
+
+(define (build-pairs-haystack entries target-size)
+  (let* ([entry-texts (map cadddr entries)]
+         [entry-blocks (group-entries entry-texts 8)])
+    (let loop ([size 0] [paras '()] [filler-idx 0]
+               [eblocks entry-blocks] [paras-since-entry 0])
+      (cond
+        [(and (>= size target-size) (null? eblocks))
+         (join-paragraphs (reverse paras))]
+        [(and (pair? eblocks) (>= paras-since-entry 6))
+         (let ([block-text (string-append
+                             "--- DATA ENTRIES ---\n"
+                             (join-entries (car eblocks))
+                             "--- END ENTRIES ---")])
+           (loop (+ size (string-length block-text) 2)
+                 (cons block-text paras)
+                 filler-idx
+                 (cdr eblocks)
+                 0))]
+        [else
+         (let ([para (vector-ref *filler-paragraphs* (modulo filler-idx *n-fillers*))])
+           (loop (+ size (string-length para) 2)
+                 (cons para paras)
+                 (+ filler-idx 1)
+                 eblocks
+                 (+ paras-since-entry 1)))]))))
+
+;;; F1 evaluation
+(define (compute-f1 expected-pairs output-text)
+  (let* ([predicted (parse-pairs-from-output output-text)]
+         [tp (count-intersect predicted expected-pairs)]
+         [precision (if (zero? (length predicted)) 0.0
+                        (exact->inexact (/ tp (length predicted))))]
+         [recall (if (zero? (length expected-pairs)) 0.0
+                     (exact->inexact (/ tp (length expected-pairs))))]
+         [f1 (if (zero? (+ precision recall)) 0.0
+                 (exact->inexact (/ (* 2 precision recall) (+ precision recall))))])
+    (values f1 precision recall tp (length predicted) (length expected-pairs))))
+
+(define (count-intersect lst1 lst2)
+  (let loop ([l lst1] [n 0])
+    (if (null? l) n
+        (if (member (car l) lst2)
+            (loop (cdr l) (+ n 1))
+            (loop (cdr l) n)))))
+
+(define (parse-pairs-from-output text)
+  (let* ([clean (strip-outer-quotes text)]
+         [lines (string-split-lines clean)])
+    (let loop ([ls lines] [pairs '()])
+      (if (null? ls)
+          (deduplicate-pairs (reverse pairs))
+          (let ([pair (try-parse-pair (car ls))])
+            (if pair
+                (loop (cdr ls) (cons pair pairs))
+                (loop (cdr ls) pairs)))))))
+
+(define (strip-outer-quotes s)
+  (let ([len (string-length s)])
+    (if (and (>= len 2)
+             (char=? (string-ref s 0) #\")
+             (char=? (string-ref s (- len 1)) #\"))
+        (substring s 1 (- len 1))
+        (if (and (>= len 1) (char=? (string-ref s 0) #\"))
+            (substring s 1 len)
+            s))))
+
+(define (try-parse-pair line)
+  (let ([trimmed (string-trim line)])
+    (guard (ex [else #f])
+      (let ([paren-start (find-char trimmed #\()])
+        (if paren-start
+            (let ([paren-end (find-char-from trimmed #\) paren-start)])
+              (if paren-end
+                  (parse-pair-content (substring trimmed (+ paren-start 1) paren-end))
+                  (parse-pair-content (substring trimmed (+ paren-start 1)
+                                                (string-length trimmed)))))
+            (parse-pair-content trimmed))))))
+
+(define (parse-pair-content content)
+  (let ([parts (string-split-on-comma content)])
+    (if (= (length parts) 2)
+        (let ([a (string-trim (car parts))]
+              [b (string-trim (cadr parts))])
+          (if (and (> (string-length a) 0)
+                   (> (string-length b) 0)
+                   (char=? (string-ref a 0) #\U)
+                   (char=? (string-ref b 0) #\U))
+              (cons a b)
+              #f))
+        #f)))
+
+(define (find-char s ch)
+  (let loop ([i 0])
+    (cond [(>= i (string-length s)) #f]
+          [(char=? (string-ref s i) ch) i]
+          [else (loop (+ i 1))])))
+
+(define (find-char-from s ch start)
+  (let loop ([i start])
+    (cond [(>= i (string-length s)) #f]
+          [(char=? (string-ref s i) ch) i]
+          [else (loop (+ i 1))])))
+
+(define (string-split-on-comma s)
+  (let loop ([chars (string->list s)] [current '()] [parts '()])
+    (cond
+      [(null? chars)
+       (reverse (cons (list->string (reverse current)) parts))]
+      [(char=? (car chars) #\,)
+       (loop (cdr chars) '()
+             (cons (list->string (reverse current)) parts))]
+      [else
+       (loop (cdr chars) (cons (car chars) current) parts)])))
+
+(define (string-split-lines s)
+  (let loop ([chars (string->list s)] [current '()] [lines '()])
+    (cond
+      [(null? chars)
+       (reverse (cons (list->string (reverse current)) lines))]
+      [(char=? (car chars) #\newline)
+       (loop (cdr chars) '() (cons (list->string (reverse current)) lines))]
+      [else
+       (loop (cdr chars) (cons (car chars) current) lines)])))
+
+(define (string-trim s)
+  (let ([len (string-length s)])
+    (let ([start (let loop ([i 0])
+                   (if (and (< i len) (char-whitespace? (string-ref s i)))
+                       (loop (+ i 1)) i))])
+      (if (>= start len) ""
+          (let ([end (let loop ([i (- len 1)])
+                       (if (and (> i start) (char-whitespace? (string-ref s (- i 0))))
+                           (loop (- i 1)) (+ i 1)))])
+            (substring s start end))))))
+
+;;; Pairs System Prompts
+
+(define *v1-pairs-system-prompt*
+  (string-append
+    "You are a Fold/Scheme agent with a full REPL and a searchable skill lattice.\n\n"
+    "The document in 'input' contains ENTRY lines scattered among filler text:\n"
+    "  ENTRY | user: UNNN | date: YYYY-MM-DD | category: <cat>\n\n"
+    "Each chunk has MULTIPLE lines. Use (rlm-split-lines *chunk*) to split,\n"
+    "then filter for lines containing \"ENTRY\".\n\n"
+    "Dates are ISO format — string<? works for date comparison.\n"
+    "rlm-env-map-chunks auto-stores results in 'map-result.\n"
+    "grep only returns top-k. Use rlm-env-map-chunks to process ALL chunks.\n\n"
+    "You have access to the full Fold lattice — 36 skills covering constraint\n"
+    "solving, set operations, graph algorithms, optimization, and more.\n"
+    "Use (lf \"query\") to search for tools before writing code from scratch.\n"
+    "Use (require 'module) to load what you find.\n\n"))
+
+(define *v2-pairs-system-prompt*
+  (string-append
+    "You are a Fold/Scheme agent. Your task involves pairwise reasoning over "
+    "structured data in a large document.\n\n"
+    "The document in 'input' contains ENTRY lines scattered among filler text:\n"
+    "  ENTRY | user: UNNN | date: YYYY-MM-DD | category: <cat>\n\n"
+    "Each chunk has MULTIPLE lines. Use (split-lines *chunk*) inside map-chunks,\n"
+    "then filter for lines containing \"ENTRY\".\n\n"
+    "Dates are ISO format — string<? works for date comparison.\n"
+    "map-chunks auto-stores results as 'map-result.\n"
+    "grep only returns top-k. Use (map-chunks ...) to process ALL chunks.\n\n"
+    "Strategy for pairwise tasks:\n"
+    "1. (peek 'input 500) to understand structure\n"
+    "2. (map-chunks 'input \"expr\") to extract per-chunk data\n"
+    "3. (store 'key expr) to build intermediate results\n"
+    "4. Compute the final answer using (eval ...) or (store ...)\n"
+    "5. (submit result) when done\n\n"
+    "You have access to the full Fold lattice (36 skills). Use:\n"
+    "  (search \"query\") to find tools\n"
+    "  (load 'module) to load what you find\n\n"))
+
+;;; Pairs Benchmark Runner
+
+(define (run-pairs-benchmark n-users entries-per-user target-size label provider)
+  (let* ([entries (generate-pairs-entries n-users entries-per-user)]
+         [haystack (build-pairs-haystack entries target-size)]
+         [set-a (compute-condition-set entries *condition-a-cat* 'before *cutoff-day*)]
+         [set-b (compute-condition-set entries *condition-b-cat* 'after *cutoff-day*)]
+         [expected-pairs (compute-pairs set-a set-b)]
+         [cutoff-date (day->date-string *cutoff-day*)]
+         [task (format "Find all pairs (A, B) where A < B (alphabetical), user A has at least one 'science' entry dated before ~a, and user B has at least one 'technology' entry dated after ~a. List each pair as (UNNN, UMMM), one per line, sorted ascending."
+                       cutoff-date cutoff-date)]
+         [max-steps 10]
+         [max-fuel 40000]
+         [chunk-size 2000])
+
+    (display (format "\n=== BENCHMARK: ~a ===\n" label))
+    (display (format "Users: ~a (~a entries/user) | Haystack: ~a chars\n"
+                     n-users entries-per-user (string-length haystack)))
+    (display (format "Set A (science before ~a): ~a users\n" cutoff-date (length set-a)))
+    (display (format "Set B (tech after ~a): ~a users\n" cutoff-date (length set-b)))
+    (display (format "Expected pairs: ~a\n" (length expected-pairs)))
+    (flush-output-port)
+
+    ;; --- V1 Run ---
+    (display "\n--- Running v1 ---\n")
+    (flush-output-port)
+    (let-values ([(v1-result v1-ms)
+                  (wall-clock-ms
+                   (lambda ()
+                     (let ([config (make-rlm-config
+                                    provider *v1-pairs-system-prompt*
+                                    max-steps max-fuel chunk-size
+                                    1 4)])
+                       (rlm-run config task haystack))))])
+      (let* ([v1-status (rlm-run-result-status v1-result)]
+             [v1-output (format "~a" (rlm-run-result-output v1-result))]
+             [v1-traj (rlm-run-result-trajectory-hash v1-result)])
+        (let-values ([(v1-f1 v1-prec v1-rec v1-tp v1-pred v1-exp)
+                      (compute-f1 expected-pairs v1-output)])
+          (display (format "  Status: ~a | Time: ~a ms\n" v1-status v1-ms))
+          (display (format "  F1: ~,2f (P=~,2f R=~,2f TP=~a pred=~a exp=~a)\n"
+                           v1-f1 v1-prec v1-rec v1-tp v1-pred v1-exp))
+          (flush-output-port)
+
+          ;; --- V2 Run ---
+          (display "\n--- Running v2 ---\n")
+          (flush-output-port)
+          (let-values ([(v2-result v2-ms)
+                        (wall-clock-ms
+                         (lambda ()
+                           (let ([config (make-rlm2-config
+                                           provider *v2-pairs-system-prompt*
+                                           max-steps max-fuel chunk-size
+                                           1 4 8000 #f)])
+                             (rlm2-run config task haystack))))])
+            (let* ([v2-status (rlm2-run-result-status v2-result)]
+                   [v2-output (format "~a" (rlm2-run-result-output v2-result))]
+                   [v2-traj (rlm2-run-result-trajectory-hash v2-result)])
+              (let-values ([(v2-f1 v2-prec v2-rec v2-tp v2-pred v2-exp)
+                            (compute-f1 expected-pairs v2-output)])
+                (display (format "  Status: ~a | Time: ~a ms\n" v2-status v2-ms))
+                (display (format "  F1: ~,2f (P=~,2f R=~,2f TP=~a pred=~a exp=~a)\n"
+                                 v2-f1 v2-prec v2-rec v2-tp v2-pred v2-exp))
+                (flush-output-port)
+
+                `((label . ,label)
+                  (n-users . ,n-users)
+                  (entries-per-user . ,entries-per-user)
+                  (haystack-chars . ,(string-length haystack))
+                  (expected-pairs . ,(length expected-pairs))
+                  (v1 . ((status . ,v1-status)
+                         (time-ms . ,v1-ms)
+                         (f1 . ,v1-f1)
+                         (precision . ,v1-prec)
+                         (recall . ,v1-rec)
+                         (tp . ,v1-tp)
+                         (predicted . ,v1-pred)
+                         (output . ,v1-output)
+                         (trajectory . ,v1-traj)))
+                  (v2 . ((status . ,v2-status)
+                         (time-ms . ,v2-ms)
+                         (f1 . ,v2-f1)
+                         (precision . ,v2-prec)
+                         (recall . ,v2-rec)
+                         (tp . ,v2-tp)
+                         (predicted . ,v2-pred)
+                         (output . ,v2-output)
+                         (trajectory . ,v2-traj))))))))))))
+
+(define (print-pairs-comparison results)
+  (display "\n")
+  (display "╔══════════════════════════════════════════════════════════════╗\n")
+  (display "║            OOLONG-Pairs v1 vs v2 RESULTS                   ║\n")
+  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display (format "~30a ~15a ~15a\n" "" "v1" "v2"))
+  (display (make-string 60 #\─))
+  (display "\n")
+  (for-each
+   (lambda (r)
+     (let ([label (cdr (assq 'label r))]
+           [v1 (cdr (assq 'v1 r))]
+           [v2 (cdr (assq 'v2 r))]
+           [exp (cdr (assq 'expected-pairs r))])
+       (display (format "\n~a (~a expected pairs)\n" label exp))
+       (display (format "  ~28a ~15a ~15a\n" "Status"
+                        (cdr (assq 'status v1))
+                        (cdr (assq 'status v2))))
+       (display (format "  ~28a ~15a ~15a\n" "Time (ms)"
+                        (cdr (assq 'time-ms v1))
+                        (cdr (assq 'time-ms v2))))
+       (display (format "  ~28a ~15,2f ~15,2f\n" "F1"
+                        (cdr (assq 'f1 v1))
+                        (cdr (assq 'f1 v2))))
+       (display (format "  ~28a ~15,2f ~15,2f\n" "Precision"
+                        (cdr (assq 'precision v1))
+                        (cdr (assq 'precision v2))))
+       (display (format "  ~28a ~15,2f ~15,2f\n" "Recall"
+                        (cdr (assq 'recall v1))
+                        (cdr (assq 'recall v2))))))
+   results)
+  (display "\n"))
+
+;;; ====
 ;;; Main
 ;;; ====
 
@@ -379,22 +764,29 @@
     (display "Starting benchmark suite...\n")
     (flush-output-port)
 
+    ;; OOLONG (linear aggregation)
     (let* ([r1 (run-single-benchmark 100 50000
                  "OOLONG 100 entries / 50K" provider)]
            [r2 (run-single-benchmark 200 100000
                  "OOLONG 200 entries / 100K" provider)])
       (print-comparison (list r1 r2))
 
-      ;; Store results as sexp for analysis
-      (let ([results-file (format "user/rlm/bench-results-~a.sexp"
-                                  (rlm2-current-iso8601))])
-        (call-with-output-file results-file
-          (lambda (port)
-            (pretty-print `(benchmark-results
-                            (model ,model-id)
-                            (timestamp ,(rlm2-current-iso8601))
-                            (runs ,(list r1 r2)))
-                          port)))
-        (display (format "\nResults saved to ~a\n" results-file))))))
+      ;; OOLONG-Pairs (pairwise reasoning)
+      (let* ([p1 (run-pairs-benchmark 15 3 30000
+                   "OOLONG-Pairs 15 users" provider)])
+        (print-pairs-comparison (list p1))
+
+        ;; Store all results
+        (let ([results-file (format "user/rlm/bench-results-~a.sexp"
+                                    (rlm2-current-iso8601))])
+          (call-with-output-file results-file
+            (lambda (port)
+              (pretty-print `(benchmark-results
+                              (model ,model-id)
+                              (timestamp ,(rlm2-current-iso8601))
+                              (oolong ,(list r1 r2))
+                              (pairs ,(list p1)))
+                            port)))
+          (display (format "\nResults saved to ~a\n" results-file)))))))
 
 (run-benchmark-suite)
