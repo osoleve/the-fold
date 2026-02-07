@@ -213,7 +213,7 @@
 ;;; (load module)            (eval expr)            (store key expr)
 ;;; (retrieve key)           (peek key n)           (grep key pattern k)
 ;;; (slice key start end)    (recall-step n)        (submit expr)
-;;; (think text)             (plan! items)
+;;; (think text)             (plan! items)          (map-chunks key expr)
 ;;; (begin action ...)
 
 (doc 'section 'rlm2-actions)
@@ -221,7 +221,7 @@
 ;;; Known action type symbols
 (define *rlm2-action-types*
   '(search inspect exports load eval store retrieve peek
-    grep slice recall-step submit think plan! begin))
+    grep slice recall-step submit think plan! map-chunks begin))
 
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a well-formed action (tagged list with known type)")
@@ -250,6 +250,7 @@
 (define (rlm2-submit? a)      (and (pair? a) (eq? (car a) 'submit)))
 (define (rlm2-think? a)       (and (pair? a) (eq? (car a) 'think)))
 (define (rlm2-plan!? a)       (and (pair? a) (eq? (car a) 'plan!)))
+(define (rlm2-map-chunks? a)  (and (pair? a) (eq? (car a) 'map-chunks)))
 (define (rlm2-begin? a)       (and (pair? a) (eq? (car a) 'begin)))
 
 ;;; Unquote helper: (quote x) -> x, else identity.
@@ -283,6 +284,8 @@
 (define (rlm2-submit-expr a)        (cadr a))                    ; (submit expr) — expr, no unquote
 (define (rlm2-think-text a)         (cadr a))                    ; (think text)
 (define (rlm2-plan!-items a)        (cadr a))                    ; (plan! items)
+(define (rlm2-map-chunks-key a)     (rlm2-unquote (cadr a)))     ; (map-chunks 'key expr)
+(define (rlm2-map-chunks-expr a)    (caddr a))                   ; (map-chunks key expr) — string
 (define (rlm2-begin-actions a)      (cdr a))                     ; (begin action ...)
 
 ;;; ====
@@ -310,6 +313,7 @@
     (submit      . 1)
     (think       . 1)
     (plan!       . 1)
+    (map-chunks  . 2)
     (begin       . #f)))
 
 (doc 'type '(-> Symbol (Maybe Nat)))

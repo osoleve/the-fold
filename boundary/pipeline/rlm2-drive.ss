@@ -187,6 +187,7 @@
         [(submit)   (rlm2-exec-submit state action config)]
         [(think)    (rlm2-exec-think state action)]
         [(plan!)    (rlm2-exec-plan! state action)]
+        [(map-chunks) (rlm2-exec-map-chunks state action config)]
         [(begin)    (rlm2-exec-begin state action config depth)]
         [else
          (list (make-rlm2-observation type #f
@@ -446,6 +447,70 @@
           (list (make-rlm2-observation 'plan! normalized
                   (format "Plan updated: ~a items" (length normalized)) #t)
                 (rlm2-state-with-plan state normalized) 0)))))
+
+(define (rlm2-exec-map-chunks state action config)
+  (let* ([key (rlm2-map-chunks-key action)]
+         [expr-text (rlm2-map-chunks-expr action)]
+         [env (rlm2-state-env state)]
+         [entry (rlm-env-get env key)])
+    (cond
+      [(not entry)
+       (list (make-rlm2-observation 'map-chunks key
+               (format "Key '~a' not found" key) #f)
+             state 1)]
+      [(not (eq? (cadr entry) 'chunks))
+       (list (make-rlm2-observation 'map-chunks key
+               (format "Key '~a' is not chunked — use (eval ...) for small values" key) #f)
+             state 1)]
+      [(not (string? expr-text))
+       (list (make-rlm2-observation 'map-chunks key
+               "Expression must be a string (evaluated per chunk with *chunk* bound)" #f)
+             state 1)]
+      [else
+       ;; Fetch manifest and iterate over chunks
+       (let ([manifest (rlm-env-fetch env key)])
+         (if (not (and manifest (chunk-manifest? manifest)))
+             (list (make-rlm2-observation 'map-chunks key
+                     "Chunk manifest not found in CAS" #f)
+                   state 1)
+             (let loop ([hashes (chunk-manifest-hashes manifest)]
+                        [results '()]
+                        [idx 0])
+               (if (null? hashes)
+                   ;; All chunks processed — parse results and store as 'map-result
+                   (let* ([raw-results (reverse results)]
+                          [parsed (map (lambda (x)
+                                         (if (string? x)
+                                             (guard (ex [else (or (string->number x) x)])
+                                               (let ([val (read (open-input-string x))])
+                                                 (if (eof-object? val) x val)))
+                                             x))
+                                       raw-results)]
+                          [n-chunks (length parsed)]
+                          [env* (car (rlm-env-store! env 'map-result parsed 'sexpr))]
+                          [state* (rlm2-state-with-env state env*)])
+                     (list (make-rlm2-observation 'map-chunks key
+                             (format "Processed ~a chunks. Results stored as 'map-result.\nValues: ~s"
+                                     n-chunks parsed)
+                             #t)
+                           state* (max 1 n-chunks)))
+                   ;; Process one chunk
+                   (let* ([chunk-blk (fetch-persistent (hex->hash (car hashes)))]
+                          [chunk-text (if chunk-blk
+                                         (utf8->string (block-payload chunk-blk))
+                                         "")]
+                          [code (format "(let ([*chunk* ~s]) ~a)" chunk-text expr-text)]
+                          [result (fold-ipc-eval code)]
+                          [val (if (fold-result-ok? result)
+                                   (fold-result-value result)
+                                   (format "error:~a" (fold-result-error result)))]
+                          ;; Normalize void/empty to "()"
+                          [val* (if (and (string? val)
+                                         (or (string=? val "#<void>")
+                                             (string=? val "")))
+                                    "()"
+                                    val)])
+                     (loop (cdr hashes) (cons val* results) (+ idx 1)))))))])))
 
 (define (rlm2-exec-begin state action config depth)
   ;; Execute children sequentially, stop on first error or submit completion

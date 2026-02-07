@@ -174,7 +174,8 @@
     (assert-true (rlm2-action? '(recall-step 2)))
     (assert-true (rlm2-action? '(submit 42)))
     (assert-true (rlm2-action? '(think "hmm")))
-    (assert-true (rlm2-action? '(plan! ((a . pending))))))
+    (assert-true (rlm2-action? '(plan! ((a . pending)))))
+    (assert-true (rlm2-action? '(map-chunks input "(split-lines *chunk*)"))))
 
   (define-test "rlm2-action? rejects non-actions"
     (assert-false (rlm2-action? 42))
@@ -192,7 +193,9 @@
     (assert-true (rlm2-begin? '(begin (search "q"))))
     (assert-true (rlm2-think? '(think "hmm")))
     (assert-true (rlm2-submit? '(submit 42)))
-    (assert-true (rlm2-plan!? '(plan! ((a . done))))))
+    (assert-true (rlm2-plan!? '(plan! ((a . done)))))
+    (assert-true (rlm2-map-chunks? '(map-chunks input "expr")))
+    (assert-false (rlm2-map-chunks? '(eval 42))))
 
   (define-test "per-type accessors work"
     (assert-equal "eigenvalue" (rlm2-search-query '(search "eigenvalue")))
@@ -209,7 +212,9 @@
     (assert-equal 3 (rlm2-slice-end '(slice input 0 3)))
     (assert-equal 2 (rlm2-recall-step-n '(recall-step 2)))
     (assert-equal 42 (rlm2-submit-expr '(submit 42)))
-    (assert-equal "hmm" (rlm2-think-text '(think "hmm"))))
+    (assert-equal "hmm" (rlm2-think-text '(think "hmm")))
+    (assert-equal 'input (rlm2-map-chunks-key '(map-chunks input "(split-lines *chunk*)")))
+    (assert-equal "(split-lines *chunk*)" (rlm2-map-chunks-expr '(map-chunks input "(split-lines *chunk*)"))))
 
   (define-test "begin-actions returns children"
     (let ([a '(begin (search "q") (load linalg))])
@@ -260,6 +265,14 @@
   (define-test "validate-action accepts nested begin"
     (let ([r (rlm2-validate-action '(begin (begin (search "a") (search "b"))))])
       (assert-true (rlm2-validation-ok? r))))
+
+  (define-test "validate-action accepts map-chunks"
+    (let ([r (rlm2-validate-action '(map-chunks input "(split-lines *chunk*)"))])
+      (assert-true (rlm2-validation-ok? r))))
+
+  (define-test "validate-action rejects map-chunks wrong arity"
+    (let ([r (rlm2-validate-action '(map-chunks input))])
+      (assert-false (rlm2-validation-ok? r))))
 )
 
 ;;; ====
@@ -375,6 +388,12 @@
   (define-test "parses plan!"
     (let ([r (rlm2-parse-response "(plan! ((search . pending) (compute . pending)))")])
       (assert-true (rlm2-plan!? (rlm2-parse-result-action r)))))
+
+  (define-test "parses map-chunks"
+    (let ([r (rlm2-parse-response "(map-chunks 'input \"(split-lines *chunk*)\")")])
+      (assert-true (rlm2-map-chunks? (rlm2-parse-result-action r)))
+      (assert-equal 'input (rlm2-map-chunks-key (rlm2-parse-result-action r)))
+      (assert-equal "(split-lines *chunk*)" (rlm2-map-chunks-expr (rlm2-parse-result-action r)))))
 
   (define-test "parses eval with nested expression"
     (let ([r (rlm2-parse-response "(eval (matrix-eigen (retrieve 'input)))")])

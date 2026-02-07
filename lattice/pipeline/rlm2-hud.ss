@@ -179,11 +179,15 @@
    "  (submit expr)           — Submit final answer (terminates run)\n"
    "  (think text)            — Reasoning (ephemeral, fed to reflection)\n"
    "  (plan! items)           — Propose/update plan: ((item . status) ...)\n"
+   "  (map-chunks key expr)   — Eval expr per chunk with *chunk* bound, store in 'map-result\n"
    "  (begin action ...)      — Execute multiple actions sequentially\n\n"
    "Common pattern — think first, then act:\n"
    "  (begin\n"
    "    (think \"The input is a matrix. I need eigenvalue tools.\")\n"
    "    (search \"eigenvalue decomposition\"))\n\n"
+   "Map-chunks evaluates expr as a string for each chunk with *chunk* bound to chunk text:\n"
+   "  (map-chunks 'input \"(filter (lambda (line) (string-contains? line \\\"RECORD\\\")) (split-lines *chunk*))\")\n"
+   "Results are auto-stored as 'map-result. Use (retrieve 'map-result) or (eval (apply + (retrieve 'map-result))).\n\n"
    "Eval results are auto-stored as step-N-result. Use (store key expr) to name values.\n"
    "Plan status: pending, done, blocked, skipped. You own plan status.\n"))
 
