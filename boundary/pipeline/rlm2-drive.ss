@@ -270,20 +270,18 @@
                                 [last-val ""]
                                 [total-fuel 0])
                   (if (null? es)
-                      (list last-val total-fuel)
+                      (list 'ok last-val total-fuel)
                       (let ([result (fold-ipc-eval (car es))])
                         (if (fold-result-ok? result)
                             (exec-loop (cdr es)
                                        (fold-result-value result)
                                        (+ total-fuel 10))
-                            ;; Error: stop and report
-                            (list (format "Error: ~a" (fold-result-error result))
+                            (list 'err
+                                  (format "Error: ~a" (fold-result-error result))
                                   (+ total-fuel 5))))))]
-         [result-val (car final)]
-         [fuel (cadr final)]
-         [ok? (not (and (string? result-val)
-                        (> (string-length result-val) 6)
-                        (string=? (substring result-val 0 6) "Error:")))]
+         [ok? (eq? 'ok (car final))]
+         [result-val (cadr final)]
+         [fuel (caddr final)]
          ;; Auto-store result in env
          [result-key (string->symbol
                       (format "step-~a-result" (rlm2-state-step state)))]
