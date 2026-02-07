@@ -18,6 +18,28 @@
 (doc 'purity 'impure)
 
 ;;; ====
+;;; Step Timing (gated by RLM_TIMING env var)
+;;; ====
+
+(define (rlm2-time-ms)
+  (let ([t (current-time)])
+    (+ (* (time-second t) 1000)
+       (quotient (time-nanosecond t) 1000000))))
+
+(define *rlm2-timing-enabled?*
+  (and (getenv "RLM_TIMING") #t))
+
+;;; ====
+;;; Mechanical Actions (skip LLM reflection, use template note)
+;;; ====
+;;; These actions are deterministic enough that an LLM reflection call
+;;; adds latency without insight. Think and begin are NOT here —
+;;; think is designed to feed reflection, begin hides intermediate obs.
+
+(define *rlm2-mechanical-actions*
+  '(submit store load plan! journal memorize remember recall))
+
+;;; ====
 ;;; Lattice Search (lazy-loaded in main process)
 ;;; ====
 ;;; Same pattern as v1: lattice meta can't load in IPC worker (nested loads
@@ -86,9 +108,11 @@
                           "Resources exhausted" started depth
                           prev-step-hash input-hex)]
           [else
-           ;; === ACT PHASE ===
-           (let* ([hud (rlm2-render-state state
+           ;; === ACT PHASE (with optional timing) ===
+           (let* ([t0 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
+                  [hud (rlm2-render-state state
                          (rlm2-config-context-budget config))]
+                  [t1 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
                   ;; Call LLM with system prompt + optional few-shot + HUD
                   [few-shot (rlm2-config-few-shot config)]
                   [messages (append
@@ -96,7 +120,8 @@
                               few-shot
                               (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
-                                          messages 4096 0.7)])
+                                          messages 1024 0.7)]
+                  [t2 (and *rlm2-timing-enabled?* (rlm2-time-ms))])
              (cond
                ;; LLM call failed
                [(rlm-chat-err? act-response)
@@ -109,21 +134,61 @@
                        [parse-result (rlm2-parse-response raw-text)]
                        [action (rlm2-parse-result-action parse-result)]
                        [raw-thought (rlm2-parse-result-thought parse-result)]
+                       ;; One-shot retry: if parser fell back to (think ...)
+                       ;; and raw text looks truncated, retry at 4096
+                       [truncated? (and (rlm2-think? action)
+                                        (rlm2-looks-truncated? raw-text))]
+                       ;; Retry with higher budget if truncated
+                       [retry-result (and truncated?
+                                         (rlm-chat (rlm2-config-provider config)
+                                                   messages 4096 0.7))]
+                       ;; Use retry if it succeeded and parsed to non-think
+                       [effective-text
+                        (if (and retry-result (rlm-chat-ok? retry-result))
+                            (let ([rt (rlm-chat-text retry-result)])
+                              (let ([rp (rlm2-parse-response rt)])
+                                (if (rlm2-think? (rlm2-parse-result-action rp))
+                                    raw-text  ; retry also fell back, use original
+                                    rt)))
+                            raw-text)]
+                       ;; Re-parse if we used retry text
+                       [final-parse (if (eq? effective-text raw-text)
+                                        parse-result
+                                        (rlm2-parse-response effective-text))]
+                       [action (rlm2-parse-result-action final-parse)]
+                       [raw-thought (rlm2-parse-result-thought final-parse)]
                        ;; === EXECUTE PHASE ===
                        [exec-result (rlm2-execute-action state action
                                       config depth)]
                        [observation (car exec-result)]
                        [state-after-exec (cadr exec-result)]
                        [fuel-used (caddr exec-result)]
+                       [t3 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
                        ;; === REFLECT PHASE ===
-                       [note (rlm2-reflect config raw-thought action
-                               observation (rlm2-state-step state))]
+                       ;; Skip LLM reflection for mechanical actions
+                       [action-type (rlm2-action-type action)]
+                       [mechanical? (memq action-type
+                                         *rlm2-mechanical-actions*)]
+                       [note (if mechanical?
+                                 (rlm2-mechanical-note action observation
+                                   (rlm2-state-step state))
+                                 (rlm2-reflect config raw-thought action
+                                   observation (rlm2-state-step state)))]
+                       [t4 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
+                       ;; Emit timing to stderr if enabled
+                       [_timing (when *rlm2-timing-enabled?*
+                                  (format (current-error-port)
+                                    "  step ~a: hud=~ams act=~ams exec=~ams reflect=~ams~a~%"
+                                    (rlm2-state-step state)
+                                    (- t1 t0) (- t2 t1) (- t3 t2)
+                                    (- t4 t3)
+                                    (if mechanical? " [mechanical]" "")))]
                        ;; === UPDATE STATE ===
                        [state* (rlm2-update-state state-after-exec
                                  action observation note fuel-used)]
                        ;; === LOOP DETECTION ===
                        [fp (rlm2-semantic-fingerprint state*
-                             (rlm2-action-type action))]
+                             action-type)]
                        [looping? (rlm2-loop-detected? fingerprints fp
                                    (rlm2-config-loop-window config))]
                        ;; Inject loop-break note if stuck
@@ -145,11 +210,11 @@
                        [_telem (rlm2-record-telemetry!
                                 (rlm-provider-model-id
                                  (rlm2-config-provider config))
-                                (rlm2-action-type action)
+                                action-type
                                 (rlm2-state-step state)
                                 fuel-used
                                 (rlm2-observation-ok? observation)
-                                raw-text parse-result)]
+                                effective-text final-parse)]
                        ;; Update fingerprints
                        [fps* (if looping?
                                  '()  ; reset after loop break
@@ -726,10 +791,20 @@
           (rlm2-mechanical-note action observation step-num)))))
 
 (define (rlm2-mechanical-note action observation step-num)
-  (let ([type (rlm2-action-type action)]
-        [ok? (rlm2-observation-ok? observation)])
-    (format "Step ~a: ~a ~a"
-            step-num type (if ok? "succeeded" "failed"))))
+  (let* ([type (rlm2-action-type action)]
+         [ok? (rlm2-observation-ok? observation)]
+         [value (rlm2-observation-value observation)]
+         [summary (if (string? value)
+                      (if (> (string-length value) 200)
+                          (string-append (substring value 0 197) "...")
+                          value)
+                      (let ([s (format "~a" value)])
+                        (if (> (string-length s) 200)
+                            (string-append (substring s 0 197) "...")
+                            s)))])
+    (format "Step ~a: ~a ~a. ~a"
+            step-num type (if ok? "succeeded" "FAILED")
+            summary)))
 
 ;;; ====
 ;;; State Update
@@ -1111,6 +1186,24 @@
       "        (substring str start (car rest))))"
       "  (void))"))
   (void))
+
+;;; ====
+;;; Truncation Detection
+;;; ====
+;;; Heuristic: if the raw text has more open parens than close parens,
+;;; it was likely cut off by max_tokens.
+
+(define (rlm2-looks-truncated? text)
+  (let ([len (string-length text)])
+    (and (> len 50)  ; don't trigger on very short outputs
+         (let loop ([i 0] [depth 0])
+           (if (>= i len)
+               (> depth 0)  ; unclosed parens remain
+               (let ([c (string-ref text i)])
+                 (cond
+                   [(char=? c #\() (loop (+ i 1) (+ depth 1))]
+                   [(char=? c #\)) (loop (+ i 1) (- depth 1))]
+                   [else           (loop (+ i 1) depth)])))))))
 
 ;;; ====
 ;;; Utilities
