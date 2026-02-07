@@ -83,6 +83,13 @@ for file in $CHANGED_FILES; do
     fi
 done
 
+# Capture the actual diff (capped at 8000 chars to avoid context explosion)
+DIFF_TEXT=$(git diff HEAD~1..HEAD -- $CHANGED_FILES 2>/dev/null | head -c 8000)
+if [ ${#DIFF_TEXT} -ge 8000 ]; then
+    DIFF_TEXT="${DIFF_TEXT}
+... [diff truncated at 8000 chars]"
+fi
+
 # Build the review prompt
 REVIEW_PROMPT="You are reviewing a commit to The Fold, a Chez Scheme codebase.
 
@@ -91,6 +98,11 @@ Message: ${COMMIT_MSG}
 
 Changed files:
 ${CHANGED_FILES}
+
+Diff:
+\`\`\`
+${DIFF_TEXT}
+\`\`\`
 
 Please review the changes for:
 1. **Correctness**: Logic errors, edge cases, off-by-one errors
@@ -159,29 +171,12 @@ start_llama_server() {
 run_llama_review() {
     local output_file="$1"
 
-    # Read the changed files content to include in context
-    local file_contents=""
-    for file in $CHANGED_FILES; do
-        if [[ -f "$file" ]]; then
-            file_contents="${file_contents}
-
-=== $file ===
-$(head -500 "$file")"
-        fi
-    done
-
-    # Build the full prompt with file contents
-    local full_prompt="${REVIEW_PROMPT}
-
-Here are the file contents for reference:
-${file_contents}"
-
     # Call llama-server's completion endpoint
     local response
     response=$(curl -s --max-time 300 "http://127.0.0.1:$LLAMA_PORT/v1/chat/completions" \
         -H "Content-Type: application/json" \
         -d "$(jq -n \
-            --arg prompt "$full_prompt" \
+            --arg prompt "$REVIEW_PROMPT" \
             '{
                 model: "local",
                 messages: [
@@ -223,30 +218,13 @@ run_vllm_review() {
 
     echo -e "${YELLOW}[post-commit]${NC} Using vLLM model: $model_name"
 
-    # Read the changed files content to include in context
-    local file_contents=""
-    for file in $CHANGED_FILES; do
-        if [[ -f "$file" ]]; then
-            file_contents="${file_contents}
-
-=== $file ===
-$(head -500 "$file")"
-        fi
-    done
-
-    # Build the full prompt with file contents
-    local full_prompt="${REVIEW_PROMPT}
-
-Here are the file contents for reference:
-${file_contents}"
-
     # Call vLLM's OpenAI-compatible endpoint
     local response
     response=$(curl -s --max-time 300 "http://127.0.0.1:$VLLM_PORT/v1/chat/completions" \
         -H "Content-Type: application/json" \
         -d "$(jq -n \
             --arg model "$model_name" \
-            --arg prompt "$full_prompt" \
+            --arg prompt "$REVIEW_PROMPT" \
             '{
                 model: $model,
                 messages: [
