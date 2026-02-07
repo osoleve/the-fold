@@ -152,7 +152,34 @@
       '((input chunks 45000) (task text 60))
       20000
       '(map-chunks 'input
-        "(filter (lambda (line) (string-contains? line \"@\")) (split-lines *chunk*))"))))
+        "(filter (lambda (line) (string-contains? line \"@\")) (split-lines *chunk*))"))
+
+    ;; 6. Set collection + pairing — complete begin pipeline (step 0)
+    ;;    Shows: map-chunks twice to collect two sets, flatten, generate pairs, submit.
+    ;;    Domain: employees/departments (same shape as Pairs, different context)
+    (fewshot-render-example
+      "Find all employee IDs in the 'marketing' dept and all in 'engineering'. List all cross-department pairs (A, B) where A < B alphabetically, one per line, sorted."
+      '((input chunks 40000) (task text 150))
+      30000
+      '(begin
+         (map-chunks 'input
+           "(let ([lines (split-lines *chunk*)])\n  (map (lambda (line) (extract-after line \"emp: \"))\n       (filter (lambda (line) (string-contains? line \"dept: marketing\")) lines)))")
+         (store 'mkt (apply append (retrieve 'map-result)))
+         (map-chunks 'input
+           "(let ([lines (split-lines *chunk*)])\n  (map (lambda (line) (extract-after line \"emp: \"))\n       (filter (lambda (line) (string-contains? line \"dept: engineering\")) lines)))")
+         (store 'eng (apply append (retrieve 'map-result)))
+         (store 'pairs
+           (sorted string<?
+             (apply append
+               (map (lambda (a)
+                      (filter (lambda (p) p)
+                        (map (lambda (b)
+                               (if (string<? a b)
+                                   (format "(~a, ~a)" a b)
+                                   #f))
+                             (retrieve 'eng))))
+                    (retrieve 'mkt)))))
+         (submit (retrieve 'pairs))))))
 
 (define *fewshot-examples*
   (append *aggregation-examples* *discovery-examples*))
@@ -188,7 +215,7 @@
                        cutoff-date cutoff-date)]
          [config (append
                    (make-rlm2-config provider *pairs-system-prompt*
-                                     10 40000 2000 1 4 8000 #f)
+                                     50 40000 2000 1 4 8000 #f)
                    (list *few-shot-msgs*))])
 
     (display (format "Users: 15 (3 entries/user) | Haystack: ~a chars\n"
