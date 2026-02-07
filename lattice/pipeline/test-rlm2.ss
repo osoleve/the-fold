@@ -815,4 +815,26 @@
   (assert-false (rlm2-only-comments? "not a comment"))
   (assert-false (rlm2-only-comments? ";; comment\ncode")))
 
+(define-test "rlm2-only-comments? handles block comments"
+  (assert-true (rlm2-only-comments? "#| this is a block comment |#"))
+  (assert-true (rlm2-only-comments? "#| nested #| inner |# outer |#"))
+  (assert-true (rlm2-only-comments? "  #| spaced |#  "))
+  (assert-true (rlm2-only-comments? ";; line\n#| block |#"))
+  (assert-false (rlm2-only-comments? "#| unclosed block"))
+  (assert-false (rlm2-only-comments? "#| block |# code")))
+
+(define-test "rlm2-only-comments? handles datum comments"
+  (assert-true (rlm2-only-comments? "#; (ignored datum)"))
+  (assert-true (rlm2-only-comments? "#; 42"))
+  (assert-true (rlm2-only-comments? "#; (foo bar) ;; and a line comment"))
+  (assert-false (rlm2-only-comments? "#; datum real-code")))
+
+(define-test "parser accepts action with trailing block comment"
+  (let ([r (rlm2-parse-response "(store 'x 5) #| explanation |#")])
+    (assert-true (rlm2-store? (rlm2-parse-result-action r)))))
+
+(define-test "parser accepts action with trailing datum comment"
+  (let ([r (rlm2-parse-response "(search \"q\") #; (this is ignored)")])
+    (assert-true (rlm2-search? (rlm2-parse-result-action r)))))
+
 (run-all-tests)

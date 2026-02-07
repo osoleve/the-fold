@@ -114,7 +114,7 @@
              [(git) (interpret-git-effect payload ctx state input)]
              [(pipeline) (interpret-pipeline-effect payload ctx state input)]
              [(discord) (interpret-discord-effect payload ctx state input)]
-             [(rlm) (interpret-rlm-effect payload ctx state input)]
+             [(rlm rlm2) (interpret-rlm-effect payload ctx state input)]
              [else
               (cons (stage-err 'unknown-effect
                                (format "Unknown effect type: ~a" type)

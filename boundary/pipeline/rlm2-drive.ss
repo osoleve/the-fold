@@ -11,6 +11,7 @@
 (load "boundary/pipeline/effects/fold.ss")
 (load "core/blocks/cas.ss")
 (load "boundary/storage/cas-persist.ss")
+(load "boundary/io/atomic.ss")
 
 (doc 'module 'rlm2-drive)
 (doc 'description "RLM v2 driver: HUD-based state machine with act/reflect loop, action dispatch, CAS trajectory recording, and telemetry.")
@@ -109,7 +110,8 @@
                           prev-step-hash input-hex)]
           [else
            ;; === ACT PHASE (with optional timing) ===
-           (let* ([t0 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
+           (let* ([step-t0 (rlm2-time-ms)]  ; always capture for telemetry
+                  [t0 (and *rlm2-timing-enabled?* step-t0)]
                   [hud (rlm2-render-state state
                          (rlm2-config-context-budget config))]
                   [t1 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
@@ -207,12 +209,13 @@
                                    (rlm2-state-step state)
                                    step-hash)]
                        ;; === TELEMETRY ===
+                       [step-duration-ms (- (rlm2-time-ms) step-t0)]
                        [_telem (rlm2-record-telemetry!
                                 (rlm-provider-model-id
                                  (rlm2-config-provider config))
                                 action-type
                                 (rlm2-state-step state)
-                                fuel-used
+                                step-duration-ms
                                 (rlm2-observation-ok? observation)
                                 effective-text final-parse)]
                        ;; Update fingerprints
@@ -659,13 +662,23 @@
   (or *rlm2-system-memory-cache*
       (let ([path (rlm2-system-memory-path)])
         (if (file-exists? path)
-            (guard (ex [else '()])
+            (guard (ex [else
+                        (format (current-error-port)
+                          "[RLM] WARNING: corrupt memory file ~a: ~a~%"
+                          path (if (message-condition? ex)
+                                   (condition-message ex) ex))
+                        (set! *rlm2-system-memory-cache* '())
+                        '()])
               (let* ([port (open-input-file path)]
                      [data (read port)])
                 (close-input-port port)
                 (if (list? data)
                     (begin (set! *rlm2-system-memory-cache* data) data)
-                    (begin (set! *rlm2-system-memory-cache* '()) '()))))
+                    (begin
+                      (format (current-error-port)
+                        "[RLM] WARNING: memory file ~a contains non-list data~%"
+                        path)
+                      (set! *rlm2-system-memory-cache* '()) '()))))
             (begin (set! *rlm2-system-memory-cache* '()) '())))))
 
 (define (rlm2-invalidate-system-memory-cache!)
@@ -676,12 +689,20 @@
   (rlm2-ensure-rlm-dir!)
   (let* ([memories (rlm2-load-system-memory!)]
          [entry (list key text (rlm2-current-iso8601))]
-         [updated (append memories (list entry))]
-         [port (open-output-file (rlm2-system-memory-path) 'replace)])
-    (write updated port)
-    (newline port)
-    (close-output-port port)
-    (rlm2-invalidate-system-memory-cache!)))
+         [updated (append memories (list entry))])
+    (atomic-write-file (rlm2-system-memory-path)
+      (lambda (port)
+        (write updated port)
+        (newline port)))
+    ;; Incremental update: update cache in-place, add to index
+    (set! *rlm2-system-memory-cache* updated)
+    (when *rlm2-system-memory-index*
+      (let* ([doc-id (- (length updated) 1)]
+             [doc-text (format "~a ~a" key text)]
+             [terms (tokenize doc-text)])
+        (set! *rlm2-system-memory-index*
+              (bm25-add-doc *rlm2-system-memory-index*
+                            doc-id terms entry))))))
 
 (define (rlm2-build-system-memory-index!)
   (or *rlm2-system-memory-index*
@@ -946,10 +967,13 @@
 
 (define (rlm2-record-step! step-num action observation note provider
                            fuel-used prev-step-hash)
-  (let* ([payload `((step . ,step-num)
+  (let* ([obs-val-str (let ([v (rlm2-observation-value observation)])
+                        (if (string? v) v (format "~a" v)))]
+         [payload `((step . ,step-num)
                     (action . ,action)
                     (observation-type . ,(rlm2-observation-action-type observation))
                     (observation-ok . ,(rlm2-observation-ok? observation))
+                    (observation-value . ,(rlm2-truncate-telemetry obs-val-str 2000))
                     (note . ,note)
                     (model . ,(rlm-provider-model-id provider))
                     (fuel-used . ,fuel-used)

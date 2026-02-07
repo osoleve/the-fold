@@ -271,4 +271,12 @@
 (define (rlm2-truncate-to text max-chars)
   (if (<= (string-length text) max-chars)
       text
-      (string-append (substring text 0 (max 0 (- max-chars 3))) "...")))
+      ;; Find last newline before budget to avoid breaking S-expressions mid-token
+      (let* ([limit (max 0 (- max-chars 20))]  ; reserve room for marker
+             [cut-point
+              (let loop ([i (min limit (- (string-length text) 1))])
+                (cond
+                  [(< i 0) limit]  ; no newline found, fall back to hard cut
+                  [(char=? (string-ref text i) #\newline) i]
+                  [else (loop (- i 1))]))])
+        (string-append (substring text 0 cut-point) "\n     ... [truncated]"))))

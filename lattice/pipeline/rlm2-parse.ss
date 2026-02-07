@@ -100,21 +100,55 @@
           (rlm2-parse-trim (list->string (reverse chars)))
           (loop (cons c chars))))))
 
-;;; Check if a string contains only comments (lines starting with ;)
-;;; and whitespace. Used to tolerate trailing ;; explanations from models.
+;;; Check if a string contains only comments (line comments starting with ;,
+;;; block comments #|...|#, datum comments #;) and whitespace.
+;;; Used to tolerate trailing explanations from models.
 (define (rlm2-only-comments? str)
   (let ([len (string-length str)])
-    (let loop ([i 0] [at-line-start #t] [in-comment #f])
+    (let loop ([i 0])
       (cond
         [(>= i len) #t]
-        [(char=? (string-ref str i) #\newline)
-         (loop (+ i 1) #t #f)]
-        [in-comment
-         (loop (+ i 1) #f #t)]
+        ;; Whitespace — skip
         [(char-whitespace? (string-ref str i))
-         (loop (+ i 1) at-line-start #f)]
+         (loop (+ i 1))]
+        ;; Line comment: ; to end of line
         [(char=? (string-ref str i) #\;)
-         (loop (+ i 1) #f #t)]
+         (let skip-line ([j (+ i 1)])
+           (cond
+             [(>= j len) #t]
+             [(char=? (string-ref str j) #\newline) (loop (+ j 1))]
+             [else (skip-line (+ j 1))]))]
+        ;; #| block comment |# with nesting
+        [(and (char=? (string-ref str i) #\#)
+              (< (+ i 1) len)
+              (char=? (string-ref str (+ i 1)) #\|))
+         (let skip-block ([j (+ i 2)] [depth 1])
+           (cond
+             [(>= j len) #f]  ; unclosed block comment
+             [(and (char=? (string-ref str j) #\|)
+                   (< (+ j 1) len)
+                   (char=? (string-ref str (+ j 1)) #\#))
+              (if (= depth 1)
+                  (loop (+ j 2))
+                  (skip-block (+ j 2) (- depth 1)))]
+             [(and (char=? (string-ref str j) #\#)
+                   (< (+ j 1) len)
+                   (char=? (string-ref str (+ j 1)) #\|))
+              (skip-block (+ j 2) (+ depth 1))]
+             [else (skip-block (+ j 1) depth)]))]
+        ;; #; datum comment — skip next datum via read
+        [(and (char=? (string-ref str i) #\#)
+              (< (+ i 1) len)
+              (char=? (string-ref str (+ i 1)) #\;))
+         (guard (ex [else #f])
+           (let* ([port (open-input-string (substring str (+ i 2) len))]
+                  [datum (read port)]
+                  ;; Calculate how many chars were consumed
+                  [rest (rlm2-port-rest-trimmed port)])
+             (if (eof-object? datum)
+                 #f
+                 (rlm2-only-comments? rest))))]
+        ;; Anything else — not a comment
         [else #f]))))
 
 ;;; Extract the first balanced parenthesized expression from text.
