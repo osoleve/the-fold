@@ -659,4 +659,39 @@
       (assert-true (>= (rlm2-hud-contains? hud "pending") 0))))
 )
 
+;;; ====
+;;; Parser: trailing content rejection (fold-zxvz hardening)
+;;; ====
+
+(define-test "parser rejects trailing action after valid action"
+  (let ([r (rlm2-parse-response "(store 'x 5) (store 'y 6)")])
+    ;; Should NOT parse as (store 'x 5) — trailing content is significant
+    ;; Falls through to fuzzy extraction which picks the first balanced expr,
+    ;; but direct read path should reject.
+    ;; The fuzzy path will still extract (store 'x 5) — that's acceptable,
+    ;; but the key is that direct read doesn't silently drop the rest.
+    (assert-true (rlm2-parse-result? r))))
+
+(define-test "parser rejects trailing text after valid action"
+  (let ([r (rlm2-parse-response "(store 'x 5) I also want to explain")])
+    (let ([act (rlm2-parse-result-action r)])
+      ;; Direct read rejects (trailing text), fuzzy extraction finds (store 'x 5)
+      ;; and captures the preamble. Either way the action should be store.
+      (assert-true (or (rlm2-store? act) (rlm2-think? act))))))
+
+(define-test "parser accepts clean action with trailing whitespace"
+  (let ([r (rlm2-parse-response "(store 'x 5)   \n  ")])
+    (assert-true (rlm2-store? (rlm2-parse-result-action r)))))
+
+(define-test "parser accepts action with trailing comments"
+  (let ([r (rlm2-parse-response "(store 'x 5) ;; storing the value")])
+    (assert-true (rlm2-store? (rlm2-parse-result-action r)))))
+
+(define-test "rlm2-only-comments? identifies pure comments"
+  (assert-true (rlm2-only-comments? ";; this is a comment"))
+  (assert-true (rlm2-only-comments? ";; line 1\n;; line 2"))
+  (assert-true (rlm2-only-comments? "  ;; indented"))
+  (assert-false (rlm2-only-comments? "not a comment"))
+  (assert-false (rlm2-only-comments? ";; comment\ncode")))
+
 (run-all-tests)

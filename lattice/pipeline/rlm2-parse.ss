@@ -74,15 +74,48 @@
 
 ;;; Try to read an S-expression from a string and validate it as an action.
 ;;; Returns the validated action or #f.
+;;; Rejects input with significant trailing content after the first expression
+;;; (whitespace and comments are tolerated).
 (define (rlm2-try-read-action str)
   (guard (exn [#t #f])
-    (let ([expr (read (open-input-string str))])
+    (let* ([port (open-input-string str)]
+           [expr (read port)])
       (if (eof-object? expr)
           #f
-          (let ([validation (rlm2-validate-action expr)])
-            (if (rlm2-validation-ok? validation)
-                (rlm2-validation-value validation)
-                #f))))))
+          ;; Check for trailing content
+          (let ([rest (rlm2-port-rest-trimmed port)])
+            (if (and (not (string=? rest ""))
+                     (not (rlm2-only-comments? rest)))
+                #f  ; significant trailing garbage — reject
+                (let ([validation (rlm2-validate-action expr)])
+                  (if (rlm2-validation-ok? validation)
+                      (rlm2-validation-value validation)
+                      #f))))))))
+
+;;; Read remaining content from a port, trimmed.
+(define (rlm2-port-rest-trimmed port)
+  (let loop ([chars '()])
+    (let ([c (read-char port)])
+      (if (eof-object? c)
+          (rlm2-parse-trim (list->string (reverse chars)))
+          (loop (cons c chars))))))
+
+;;; Check if a string contains only comments (lines starting with ;)
+;;; and whitespace. Used to tolerate trailing ;; explanations from models.
+(define (rlm2-only-comments? str)
+  (let ([len (string-length str)])
+    (let loop ([i 0] [at-line-start #t] [in-comment #f])
+      (cond
+        [(>= i len) #t]
+        [(char=? (string-ref str i) #\newline)
+         (loop (+ i 1) #t #f)]
+        [in-comment
+         (loop (+ i 1) #f #t)]
+        [(char-whitespace? (string-ref str i))
+         (loop (+ i 1) at-line-start #f)]
+        [(char=? (string-ref str i) #\;)
+         (loop (+ i 1) #f #t)]
+        [else #f]))))
 
 ;;; Extract the first balanced parenthesized expression from text.
 ;;; Returns the substring or #f.

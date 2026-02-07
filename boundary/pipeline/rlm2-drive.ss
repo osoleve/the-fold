@@ -475,6 +475,7 @@
                    state 1)
              (let loop ([hashes (chunk-manifest-hashes manifest)]
                         [results '()]
+                        [errors 0]
                         [idx 0])
                (if (null? hashes)
                    ;; All chunks processed — parse results and store as 'map-result
@@ -488,11 +489,12 @@
                                        raw-results)]
                           [n-chunks (length parsed)]
                           [env* (car (rlm-env-store! env 'map-result parsed 'sexpr))]
-                          [state* (rlm2-state-with-env state env*)])
+                          [state* (rlm2-state-with-env state env*)]
+                          [ok? (= errors 0)])
                      (list (make-rlm2-observation 'map-chunks key
-                             (format "Processed ~a chunks. Results stored as 'map-result.\nValues: ~s"
-                                     n-chunks parsed)
-                             #t)
+                             (format "Processed ~a chunks (~a errors). Results stored as 'map-result.\nValues: ~s"
+                                     n-chunks errors parsed)
+                             ok?)
                            state* (max 1 n-chunks)))
                    ;; Process one chunk
                    (let* ([chunk-blk (fetch-persistent (hex->hash (car hashes)))]
@@ -501,16 +503,18 @@
                                          "")]
                           [code (format "(let ([*chunk* ~s]) ~a)" chunk-text expr-text)]
                           [result (fold-ipc-eval code)]
-                          [val (if (fold-result-ok? result)
-                                   (fold-result-value result)
-                                   (format "error:~a" (fold-result-error result)))]
+                          [failed? (not (fold-result-ok? result))]
+                          [val (if failed?
+                                   (format "error:~a" (fold-result-error result))
+                                   (fold-result-value result))]
                           ;; Normalize void/empty to "()"
                           [val* (if (and (string? val)
                                          (or (string=? val "#<void>")
                                              (string=? val "")))
                                     "()"
                                     val)])
-                     (loop (cdr hashes) (cons val* results) (+ idx 1)))))))])))
+                     (loop (cdr hashes) (cons val* results)
+                           (+ errors (if failed? 1 0)) (+ idx 1)))))))])))
 
 (define (rlm2-exec-begin state action config depth)
   ;; Execute children sequentially, stop on first error or submit completion
