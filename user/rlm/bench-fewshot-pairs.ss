@@ -204,7 +204,7 @@
                    (length *discovery-examples*)))
 
   (let* ([provider (rlm-provider-vllm
-                     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4" 8000)]
+                     "Qwen/Qwen3-Coder-Next-FP8" 8000)]
          [entries (generate-pairs-entries 15 3)]
          [haystack (build-pairs-haystack entries 30000)]
          [set-a (compute-condition-set entries *condition-a-cat* 'before *cutoff-day*)]
@@ -253,7 +253,7 @@
               (lambda (port)
                 (pretty-print
                   `(benchmark-results
-                     (model "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4")
+                     (model "Qwen/Qwen3-Coder-Next-FP8")
                      (mode "few-shot-pairs")
                      (n-fewshot ,(length *fewshot-examples*))
                      (timestamp ,ts)

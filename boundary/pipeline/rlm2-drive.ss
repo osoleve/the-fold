@@ -765,9 +765,7 @@
           (rlm2-literal-arg? (cadr expr)))
      (let* ([key (rlm2-unquote-key (cadr expr))]
             [val (rlm-env-fetch env key)])
-       (if (and val
-                (let ([s (format "~a" val)])
-                  (<= (string-length s) 2000)))
+       (if val
            (rlm2-quote-if-needed val)
            expr))]
     ;; (peek 'key n) -> expanded preview
@@ -798,9 +796,7 @@
           (rlm2-literal-arg? (cadr expr)))
      (let* ([key (rlm2-unquote-key (cadr expr))]
             [val (rlm-env-fetch env key)])
-       (if (and val
-                (let ([s (format "~a" val)])
-                  (<= (string-length s) 2000)))
+       (if val
            (rlm2-quote-if-needed val)
            expr))]
     ;; Recurse into sub-expressions

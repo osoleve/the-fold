@@ -48,17 +48,17 @@
            [expanded (rlm2-expand-env-refs expr env)])
       (assert-equal '(retrieve 'missing) expanded)))
 
-  (define-test "does not expand large values"
-    ;; Create a value > 2000 chars
+  (define-test "expands large values for eval"
+    ;; Values of any size should be expanded (cap removed — eval path, not HUD)
     (let* ([big-string (make-string 3000 #\x)]
            [env (car (rlm-env-store! (make-rlm-env) 'big big-string 'text))]
            [expr '(string-length (retrieve 'big))]
            [expanded (rlm2-expand-env-refs expr env)])
-      ;; Should leave the retrieve in place (too large for inline expansion)
+      ;; The retrieve should be replaced with the actual value
       (assert-true (pair? expanded))
-      ;; The retrieve call should still be there
-      (assert-true (pair? (cadr expanded)))
-      (assert-equal 'retrieve (caadr expanded))))
+      (assert-equal 'string-length (car expanded))
+      (assert-true (string? (cadr expanded)))
+      (assert-equal 3000 (string-length (cadr expanded)))))
 )
 
 ;;; ====
