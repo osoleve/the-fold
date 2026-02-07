@@ -5,6 +5,10 @@
 ;;; The generator reconstructs HUD state at each step and produces
 ;;; JSONL in OpenAI chat format.
 ;;;
+;;; Generates two kinds of examples:
+;;;   1. Act-phase: system + HUD -> action (the agent's move)
+;;;   2. Reflect-phase: reflection prompt -> concise note (distillation)
+;;;
 ;;; Run: scheme --script user/rlm/sft-synth.ss
 
 (load "boundary/pipeline/rlm2-drive.ss")
@@ -85,7 +89,10 @@
 ;;; ====
 ;;;
 ;;; Each scenario: (label task base-prompt env-spec fuel steps)
-;;; Each step:     (action obs-type obs-ok obs-value)
+;;; Each step:     (action obs-type obs-ok obs-value [obs-note])
+;;;
+;;; obs-note: optional reflection for non-mechanical actions.
+;;; When present, a paired reflect-phase example is generated.
 
 (define (make-scenario label task base-prompt env-spec fuel steps)
   `((label . ,label)
@@ -95,11 +102,13 @@
     (fuel . ,fuel)
     (steps . ,steps)))
 
-(define (make-step action obs-type obs-ok obs-value)
-  `((action . ,action)
-    (obs-type . ,obs-type)
-    (obs-ok . ,obs-ok)
-    (obs-value . ,obs-value)))
+(define (make-step action obs-type obs-ok obs-value . rest)
+  (let ([note (if (null? rest) #f (car rest))])
+    `((action . ,action)
+      (obs-type . ,obs-type)
+      (obs-ok . ,obs-ok)
+      (obs-value . ,obs-value)
+      (obs-note . ,note))))
 
 ;; ---- Domain 1: Record Aggregation (OOLONG-style) ----
 
@@ -130,7 +139,8 @@
       (list
         (make-step
           '(peek 'input 500)
-          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 18\nNoise line: lorem ipsum dolor sit amet\nRECORD 0003 | type: gamma | region: east | value: 55\nRECORD 0004 | type: beta | region: south | value: 31\n...")
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 18\nNoise line: lorem ipsum dolor sit amet\nRECORD 0003 | type: gamma | region: east | value: 55\nRECORD 0004 | type: beta | region: south | value: 31\n..."
+          "Input has RECORD format with type/region/value fields separated by pipes.")
         (make-step
           '(plan! (("Scan input format" . done)
                    ("Map all chunks to extract beta-south values" . pending)
@@ -140,7 +150,8 @@
         (make-step
           '(map-chunks 'input
             "(let ([lines (split-lines *chunk*)])\n       (apply + (map (lambda (line)\n                       (if (and (string-contains? line \"type: beta\")\n                                (string-contains? line \"region: south\"))\n                           (let ([v (extract-after line \"value: \")])\n                             (if v (string->number v) 0))\n                           0))\n                     lines)))")
-          'map-chunks #t "Processed 55 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "map-chunks extracted beta-south values from all 55 chunks. Per-chunk sums ready for aggregation.")
         (make-step
           '(store 'total (apply + (retrieve 'map-result)))
           'store #t "Stored: 728")
@@ -157,11 +168,13 @@
       (list
         (make-step
           '(peek 'input 500)
-          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: gamma | region: west | value: 19\nRECORD 0003 | type: beta | region: south | value: 55\n...")
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: gamma | region: west | value: 19\nRECORD 0003 | type: beta | region: south | value: 55\n..."
+          "Input uses standard RECORD format. Need to count gamma-typed lines.")
         (make-step
           '(map-chunks 'input
             "(length (filter (lambda (line) (string-contains? line \"type: gamma\")) (split-lines *chunk*)))")
-          'map-chunks #t "Processed 110 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 110 chunks, results stored as 'map-result"
+          "Per-chunk gamma counts ready. 110 chunks processed.")
         (make-step
           '(begin
              (store 'count (apply + (retrieve 'map-result)))
@@ -179,11 +192,13 @@
           '(begin
              (think "Need to find the max across all chunks. map-chunks returns per-chunk results, then I take max of those.")
              (peek 'input 500))
-          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 18\n...")
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 18\n..."
+          "Input confirmed. Per-chunk max strategy is correct for finding global max.")
         (make-step
           '(map-chunks 'input
             "(let ([vals (filter number? (map (lambda (line)\n        (if (string-contains? line \"type: alpha\")\n            (let ([v (extract-after line \"value: \")])\n              (if v (string->number v) #f))\n            #f))\n      (split-lines *chunk*)))])\n  (if (null? vals) 0 (apply max vals)))")
-          'map-chunks #t "Processed 55 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Per-chunk max values computed. Global max = max of per-chunk maxima.")
         (make-step
           '(store 'max-val (apply max (retrieve 'map-result)))
           'store #t "Stored: 98")
@@ -200,14 +215,16 @@
       (list
         (make-step
           '(peek 'input 500)
-          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: east | value: 18\nRECORD 0003 | type: gamma | region: east | value: 55\n...")
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: east | value: 18\nRECORD 0003 | type: gamma | region: east | value: 55\n..."
+          "East-region records present. Need sum and count for average.")
         (make-step
           '(think "I need both the sum and count of east-region values to compute an average. I can get both in one map-chunks pass by returning a pair (sum . count) per chunk.")
           'think #t #f)
         (make-step
           '(map-chunks 'input
             "(let ([vals (filter number? (map (lambda (line)\n        (if (string-contains? line \"region: east\")\n            (let ([v (extract-after line \"value: \")])\n              (if v (string->number v) #f))\n            #f))\n      (split-lines *chunk*)))])\n  (cons (apply + vals) (length vals)))")
-          'map-chunks #t "Processed 55 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Each chunk returned (sum . count) pair. Need to aggregate both components.")
         (make-step
           '(begin
              (store 'total-sum (apply + (map car (retrieve 'map-result))))
@@ -228,17 +245,20 @@
       (list
         (make-step
           '(peek 'input 500)
-          'peek #t "[2026-02-06 10:23:01] INFO  - Server started on port 8080\n[2026-02-06 10:23:02] ERROR - Failed to connect to database\n[2026-02-06 10:23:03] INFO  - Retrying connection\n[2026-02-06 10:23:04] ERROR - Connection timeout after 30s\n...")
+          'peek #t "[2026-02-06 10:23:01] INFO  - Server started on port 8080\n[2026-02-06 10:23:02] ERROR - Failed to connect to database\n[2026-02-06 10:23:03] INFO  - Retrying connection\n[2026-02-06 10:23:04] ERROR - Connection timeout after 30s\n..."
+          "Log format: [timestamp] LEVEL - message. ERROR lines clearly identifiable.")
         (make-step
           '(grep 'input "ERROR" 5)
-          'grep #t "5 matches (showing top 5):\n[0.95] [2026-02-06 10:23:02] ERROR - Failed to connect to database\n[0.95] [2026-02-06 10:23:04] ERROR - Connection timeout after 30s\n[0.94] [2026-02-06 10:23:07] ERROR - Authentication failed\n...")
+          'grep #t "5 matches (showing top 5):\n[0.95] [2026-02-06 10:23:02] ERROR - Failed to connect to database\n[0.95] [2026-02-06 10:23:04] ERROR - Connection timeout after 30s\n[0.94] [2026-02-06 10:23:07] ERROR - Authentication failed\n..."
+          "grep shows top-5 but total count may be higher. Need map-chunks for exhaustive count.")
         (make-step
           '(think "grep shows top-k matches, not all. I need map-chunks to count every occurrence.")
           'think #t #f)
         (make-step
           '(map-chunks 'input
             "(length (filter (lambda (line) (string-contains? line \"ERROR\")) (split-lines *chunk*)))")
-          'map-chunks #t "Processed 30 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 30 chunks, results stored as 'map-result"
+          "Per-chunk ERROR counts computed across all 30 chunks.")
         (make-step
           '(begin
              (store 'error-count (apply + (retrieve 'map-result)))
@@ -254,7 +274,8 @@
       (list
         (make-step
           '(peek 'input 500)
-          'peek #t "GET /api/users 200 12ms\nPOST /api/login 401 5ms\nGET /api/data 200 45ms\nGET /api/missing 404 3ms\nPOST /api/upload 500 120ms\n...")
+          'peek #t "GET /api/users 200 12ms\nPOST /api/login 401 5ms\nGET /api/data 200 45ms\nGET /api/missing 404 3ms\nPOST /api/upload 500 120ms\n..."
+          "HTTP log format: METHOD PATH STATUS DURATION. Four status codes visible: 200, 401, 404, 500.")
         (make-step
           '(journal observation "Input is HTTP log. Format: METHOD PATH STATUS_CODE DURATION. Need to extract status codes and count each.")
           'journal #t "Recorded to journal: observation")
@@ -268,7 +289,8 @@
         (make-step
           '(map-chunks 'input
             "(let ([lines (split-lines *chunk*)])\n  (let ([c200 (length (filter (lambda (l) (string-contains? l \" 200 \")) lines))]\n        [c404 (length (filter (lambda (l) (string-contains? l \" 404 \")) lines))]\n        [c401 (length (filter (lambda (l) (string-contains? l \" 401 \")) lines))]\n        [c500 (length (filter (lambda (l) (string-contains? l \" 500 \")) lines))])\n    (list c200 c404 c401 c500)))")
-          'map-chunks #t "Processed 45 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 45 chunks, results stored as 'map-result"
+          "Per-chunk status code counts in (200 404 401 500) order. Ready for aggregation.")
         (make-step
           '(begin
              (store 'counts
@@ -290,7 +312,8 @@
       (list
         (make-step
           '(map-chunks 'input "(length (split-lines *chunk*))")
-          'map-chunks #t "Processed 20 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 20 chunks, results stored as 'map-result"
+          "Per-chunk line counts computed.")
         (make-step
           '(begin
              (store 'line-count (apply + (retrieve 'map-result)))
@@ -308,10 +331,12 @@
       (list
         (make-step
           '(search "vector dot product")
-          'search #t "Found 3 results:\n  linalg (score: 0.92) -- Linear algebra: vectors, matrices, decomposition\n  geometry (score: 0.65) -- Shapes, transforms, SDFs\n  physics (score: 0.45) -- Physics simulation")
+          'search #t "Found 3 results:\n  linalg (score: 0.92) -- Linear algebra: vectors, matrices, decomposition\n  geometry (score: 0.65) -- Shapes, transforms, SDFs\n  physics (score: 0.45) -- Physics simulation"
+          "linalg is the top hit for vector operations. Need to inspect for specific module.")
         (make-step
           '(inspect 'linalg)
-          'inspect #t "Skill: linalg\n  Description: Linear algebra - vectors, matrices, decomposition, solvers\n  Modules: linalg/vec, linalg/matrix, linalg/decomp, linalg/solve\n  Dependencies: ()")
+          'inspect #t "Skill: linalg\n  Description: Linear algebra - vectors, matrices, decomposition, solvers\n  Modules: linalg/vec, linalg/matrix, linalg/decomp, linalg/solve\n  Dependencies: ()"
+          "linalg/vec is the right module for vector operations like dot product.")
         (make-step
           '(begin
              (load 'linalg/vec)
@@ -332,10 +357,12 @@
           '(begin
              (think "I need statistics functions. Let me search the lattice.")
              (search "statistics mean standard deviation"))
-          'search #t "Found 2 results:\n  statistics (score: 0.95) -- Regression, GLM, time series, hypothesis testing\n  numeric (score: 0.40) -- Complex numbers, DFT, signal processing")
+          'search #t "Found 2 results:\n  statistics (score: 0.95) -- Regression, GLM, time series, hypothesis testing\n  numeric (score: 0.40) -- Complex numbers, DFT, signal processing"
+          "statistics skill has mean and stddev. Load it directly.")
         (make-step
           '(exports 'statistics)
-          'exports #t "Exports from statistics:\n  mean, variance, stddev, median, quantile, covariance, correlation, ...")
+          'exports #t "Exports from statistics:\n  mean, variance, stddev, median, quantile, covariance, correlation, ..."
+          "Both mean and stddev are exported from statistics module.")
         (make-step
           '(begin
              (load 'statistics)
@@ -347,9 +374,154 @@
                          (cons 'stddev (retrieve 'sigma))))
           'submit #t "Answer accepted: ((mean . 30) (stddev . 14.142135623730951))")))
 
+    ;; 11. Polynomial roots
+    (make-scenario "synth-lattice-polynomial"
+      "Find the roots of the polynomial x^2 - 5x + 6."
+      *prompt-lattice*
+      '((task text 45))
+      10000
+      (list
+        (make-step
+          '(search "polynomial roots")
+          'search #t "Found 2 results:\n  algebra/polynomial (score: 0.94) -- Polynomial algebra, roots, GCD\n  numeric (score: 0.35) -- Complex numbers, DFT"
+          "algebra/polynomial is the right skill for root-finding.")
+        (make-step
+          '(inspect 'algebra/polynomial)
+          'inspect #t "Skill: algebra/polynomial\n  Description: Polynomial algebra — construction, arithmetic, roots, GCD, Gröbner bases\n  Modules: algebra/polynomial\n  Dependencies: (linalg)"
+          "Single module algebra/polynomial. Has root-finding functions.")
+        (make-step
+          '(exports 'algebra/polynomial)
+          'exports #t "Exports from algebra/polynomial:\n  make-poly, poly-add, poly-mul, poly-roots, poly-eval, poly-degree, poly-gcd, ..."
+          "poly-roots should find roots. make-poly constructs from coefficients.")
+        (make-step
+          '(begin
+             (load 'algebra/polynomial)
+             (eval (poly-roots (make-poly '(6 -5 1)))))
+          'eval #t "(2 3)"
+          "Roots found: x=2 and x=3. Verify: (2-2)(2-3)=0, (3-2)(3-3)=0.")
+        (make-step
+          '(submit '(2 3))
+          'submit #t "Answer accepted: (2 3)")))
+
+    ;; 12. Matrix determinant
+    (make-scenario "synth-lattice-matrix-det"
+      "Compute the determinant of the matrix [[1 2] [3 4]]."
+      *prompt-lattice*
+      '((task text 45))
+      10000
+      (list
+        (make-step
+          '(search "matrix determinant")
+          'search #t "Found 2 results:\n  linalg (score: 0.93) -- Linear algebra: vectors, matrices, decomposition\n  algebra (score: 0.30) -- Groups, rings, polynomial algebra"
+          "linalg skill for matrix operations.")
+        (make-step
+          '(inspect 'linalg)
+          'inspect #t "Skill: linalg\n  Description: Linear algebra - vectors, matrices, decomposition, solvers\n  Modules: linalg/vec, linalg/matrix, linalg/decomp, linalg/solve\n  Dependencies: ()"
+          "linalg/matrix module for determinant computation.")
+        (make-step
+          '(begin
+             (load 'linalg/matrix)
+             (eval (matrix-det (make-matrix 2 2 '(1 2 3 4)))))
+          'eval #t "-2"
+          "det([[1,2],[3,4]]) = 1*4 - 2*3 = -2. Correct.")
+        (make-step
+          '(submit -2)
+          'submit #t "Answer accepted: -2")))
+
+    ;; 13. Entropy computation
+    (make-scenario "synth-lattice-entropy"
+      "Compute the Shannon entropy of the distribution (0.25 0.25 0.25 0.25) in bits."
+      *prompt-lattice*
+      '((task text 70))
+      10000
+      (list
+        (make-step
+          '(search "entropy information theory")
+          'search #t "Found 2 results:\n  info (score: 0.96) -- Entropy, coding, information theory\n  statistics (score: 0.40) -- Regression, GLM, time series"
+          "info skill covers entropy and information theory.")
+        (make-step
+          '(inspect 'info)
+          'inspect #t "Skill: info\n  Description: Entropy, coding, information theory\n  Modules: info/entropy, info/coding\n  Dependencies: ()"
+          "info/entropy module has the entropy function.")
+        (make-step
+          '(exports 'info)
+          'exports #t "Exports from info:\n  shannon-entropy, cross-entropy, kl-divergence, mutual-info, ..."
+          "shannon-entropy is the function needed.")
+        (make-step
+          '(begin
+             (load 'info/entropy)
+             (eval (shannon-entropy '(0.25 0.25 0.25 0.25))))
+          'eval #t "2.0"
+          "Uniform distribution over 4 outcomes = log2(4) = 2.0 bits. Correct.")
+        (make-step
+          '(submit 2.0)
+          'submit #t "Answer accepted: 2.0")))
+
+    ;; 14. Graph shortest path
+    (make-scenario "synth-lattice-graph"
+      "Find the shortest path from node A to node D in a graph with edges A-B(1), B-C(2), A-C(4), C-D(1)."
+      *prompt-lattice*
+      '((task text 90))
+      10000
+      (list
+        (make-step
+          '(think "Need graph data structure and shortest path algorithm. The lattice should have graph tools.")
+          'think #t #f)
+        (make-step
+          '(search "graph shortest path")
+          'search #t "Found 2 results:\n  data/graph (score: 0.91) -- Data structures, graphs, collections\n  topology (score: 0.35) -- Simplicial complexes, homology"
+          "data/graph skill has graph algorithms.")
+        (make-step
+          '(inspect 'data/graph)
+          'inspect #t "Skill: data/graph\n  Description: Graph data structures, algorithms, community detection\n  Modules: data/graph\n  Dependencies: ()"
+          "Single module data/graph covers construction and algorithms.")
+        (make-step
+          '(exports 'data/graph)
+          'exports #t "Exports from data/graph:\n  make-graph, add-edge, add-node, shortest-path, bfs, dfs, connected-components, ..."
+          "make-graph, add-edge, and shortest-path are what I need.")
+        (make-step
+          '(begin
+             (load 'data/graph)
+             (store 'g (let ([g (make-graph)])
+                         (add-edge (add-edge (add-edge (add-edge g 'A 'B 1) 'B 'C 2) 'A 'C 4) 'C 'D 1))))
+          'store #t "Stored graph"
+          "Graph constructed with 4 weighted edges.")
+        (make-step
+          '(eval (shortest-path (retrieve 'g) 'A 'D))
+          'eval #t "((A B C D) . 4)"
+          "Shortest path A->B->C->D costs 1+2+1=4. Direct A->C->D is 4+1=5, so BCD route wins.")
+        (make-step
+          '(submit '((A B C D) . 4))
+          'submit #t "Answer accepted: ((A B C D) . 4)")))
+
+    ;; 15. Complex number arithmetic
+    (make-scenario "synth-lattice-complex"
+      "Compute (3+4i) * (1-2i) and report the result."
+      *prompt-lattice*
+      '((task text 50))
+      10000
+      (list
+        (make-step
+          '(search "complex number arithmetic")
+          'search #t "Found 2 results:\n  numeric (score: 0.93) -- Complex numbers, DFT, signal processing\n  algebra (score: 0.30) -- Groups, rings, polynomial algebra"
+          "numeric skill has complex number support.")
+        (make-step
+          '(inspect 'numeric)
+          'inspect #t "Skill: numeric\n  Description: Complex numbers, DFT, signal processing\n  Modules: numeric/complex, numeric/dft\n  Dependencies: ()"
+          "numeric/complex module for complex arithmetic.")
+        (make-step
+          '(begin
+             (load 'numeric/complex)
+             (eval (complex-mul (make-complex 3 4) (make-complex 1 -2))))
+          'eval #t "(complex 11 -2)"
+          "(3+4i)(1-2i) = 3-6i+4i-8i² = 3-2i+8 = 11-2i. Correct.")
+        (make-step
+          '(submit '(complex 11 -2))
+          'submit #t "Answer accepted: (complex 11 -2)")))
+
     ;; ---- Domain 4: Reasoning Patterns ----
 
-    ;; 11. Think + plan + execute
+    ;; 16. Think + plan + execute
     (make-scenario "synth-reasoning-plan"
       "Find the sum of all 'value' fields from records where type is 'alpha' OR type is 'beta'. Exclude records where region is 'west'."
       *prompt-aggregation*
@@ -361,7 +533,8 @@
           'think #t #f)
         (make-step
           '(peek 'input 500)
-          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: west | value: 18\nRECORD 0003 | type: gamma | region: east | value: 55\nRECORD 0004 | type: alpha | region: west | value: 30\n...")
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: west | value: 18\nRECORD 0003 | type: gamma | region: east | value: 55\nRECORD 0004 | type: alpha | region: west | value: 30\n..."
+          "Data confirmed. West-region records with alpha/beta types must be excluded.")
         (make-step
           '(plan! (("Understand filter criteria" . done)
                    ("Map-chunks with OR type filter and NOT west" . pending)
@@ -371,14 +544,15 @@
         (make-step
           '(map-chunks 'input
             "(let ([lines (split-lines *chunk*)])\n  (apply + (map (lambda (line)\n    (if (and (or (string-contains? line \"type: alpha\")\n                 (string-contains? line \"type: beta\"))\n             (not (string-contains? line \"region: west\")))\n        (let ([v (extract-after line \"value: \")])\n          (if v (string->number v) 0))\n        0))\n    lines)))")
-          'map-chunks #t "Processed 55 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Compound filter applied: (alpha OR beta) AND NOT west. Per-chunk sums ready.")
         (make-step
           '(begin
              (store 'total (apply + (retrieve 'map-result)))
              (submit (retrieve 'total)))
           'submit #t "Answer accepted: 1591")))
 
-    ;; 12. Error recovery pattern
+    ;; 17. Error recovery pattern
     (make-scenario "synth-reasoning-recover"
       "Sum all numeric values in the input (one number per line, with some non-numeric lines mixed in)."
       *prompt-text-analysis*
@@ -387,18 +561,20 @@
       (list
         (make-step
           '(peek 'input 300)
-          'peek #t "42\nhello world\n17\n\n99\nnot a number\n-5\n12.5\n...")
+          'peek #t "42\nhello world\n17\n\n99\nnot a number\n-5\n12.5\n..."
+          "Mixed content: numbers and text. Need to parse each line, skip non-numeric.")
         (make-step
           '(map-chunks 'input
             "(apply + (filter number? (map (lambda (line)\n  (let ([n (string->number line)])\n    (if n n 0)))\n  (split-lines *chunk*))))")
-          'map-chunks #t "Processed 15 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 15 chunks, results stored as 'map-result"
+          "Per-chunk numeric sums computed, non-numeric lines returned 0.")
         (make-step
           '(begin
              (store 'total (apply + (retrieve 'map-result)))
              (submit (retrieve 'total)))
           'submit #t "Answer accepted: 8847.5")))
 
-    ;; 13. Slice-based exploration
+    ;; 18. Slice-based exploration
     (make-scenario "synth-explore-slice"
       "Find which chunk range contains the HEADER section in the input document, and report the header text."
       *prompt-text-analysis*
@@ -407,21 +583,24 @@
       (list
         (make-step
           '(peek 'input 500)
-          'peek #t "--- METADATA ---\nCreated: 2026-02-06\nAuthor: system\n\n--- DATA ---\nRECORD 0001 | value: 42\nRECORD 0002 | value: 18\n...")
+          'peek #t "--- METADATA ---\nCreated: 2026-02-06\nAuthor: system\n\n--- DATA ---\nRECORD 0001 | value: 42\nRECORD 0002 | value: 18\n..."
+          "Peek shows METADATA and DATA sections but no HEADER yet. It may be in later chunks.")
         (make-step
           '(grep 'input "HEADER" 5)
-          'grep #t "2 matches (showing top 2):\n[0.98] --- HEADER ---\n[0.87] Note: see HEADER for column definitions")
+          'grep #t "2 matches (showing top 2):\n[0.98] --- HEADER ---\n[0.87] Note: see HEADER for column definitions"
+          "HEADER section exists. grep found the marker. Need slice to get the full section text.")
         (make-step
           '(think "The HEADER section exists. grep found it but I need the full section. Let me search for it in the early chunks since headers usually come first.")
           'think #t #f)
         (make-step
           '(slice 'input 0 3)
-          'slice #t "--- METADATA ---\nCreated: 2026-02-06\nAuthor: system\n\n--- HEADER ---\nColumn 1: type (alpha, beta, gamma)\nColumn 2: region (north, south, east, west)\nColumn 3: value (integer 0-100)\n\n--- DATA ---\nRECORD 0001 | type: alpha | region: north | value: 42\n...")
+          'slice #t "--- METADATA ---\nCreated: 2026-02-06\nAuthor: system\n\n--- HEADER ---\nColumn 1: type (alpha, beta, gamma)\nColumn 2: region (north, south, east, west)\nColumn 3: value (integer 0-100)\n\n--- DATA ---\nRECORD 0001 | type: alpha | region: north | value: 42\n..."
+          "Found HEADER in chunks 0-2. Three columns defined: type, region, value.")
         (make-step
           '(submit "Column 1: type (alpha, beta, gamma), Column 2: region (north, south, east, west), Column 3: value (integer 0-100)")
           'submit #t "Answer accepted")))
 
-    ;; 14. Large begin with memorize
+    ;; 19. Large begin with memorize
     (make-scenario "synth-memorize"
       "Find the total sum of all 'value' fields from records where type is 'alpha' AND region is 'north'. Report only the numeric total."
       *prompt-aggregation*
@@ -445,7 +624,7 @@
              (submit (retrieve 'total)))
           'submit #t "Answer accepted: 403")))
 
-    ;; 15. Multi-pass with plan updates
+    ;; 20. Multi-pass with plan updates
     (make-scenario "synth-multipass"
       "Compare the total values for type 'alpha' vs type 'beta'. Report which type has a higher total and by how much."
       *prompt-aggregation*
@@ -460,7 +639,8 @@
           'plan #t "Plan updated: 4 items")
         (make-step
           '(peek 'input 500)
-          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 18\nRECORD 0003 | type: gamma | region: east | value: 55\n...")
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 18\nRECORD 0003 | type: gamma | region: east | value: 55\n..."
+          "Standard RECORD format. Two map-chunks passes needed: one for alpha, one for beta.")
         (make-step
           '(plan! (("Peek at data format" . done)
                    ("Sum alpha values" . pending)
@@ -470,7 +650,8 @@
         (make-step
           '(map-chunks 'input
             "(apply + (map (lambda (line)\n  (if (string-contains? line \"type: alpha\")\n      (let ([v (extract-after line \"value: \")])\n        (if v (string->number v) 0))\n      0))\n  (split-lines *chunk*)))")
-          'map-chunks #t "Processed 55 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Alpha totals computed per-chunk.")
         (make-step
           '(store 'alpha-total (apply + (retrieve 'map-result)))
           'store #t "Stored: 1247")
@@ -483,7 +664,8 @@
         (make-step
           '(map-chunks 'input
             "(apply + (map (lambda (line)\n  (if (string-contains? line \"type: beta\")\n      (let ([v (extract-after line \"value: \")])\n        (if v (string->number v) 0))\n      0))\n  (split-lines *chunk*)))")
-          'map-chunks #t "Processed 55 chunks, results stored as 'map-result")
+          'map-chunks #t "Processed 55 chunks, results stored as 'map-result"
+          "Beta totals computed per-chunk.")
         (make-step
           '(store 'beta-total (apply + (retrieve 'map-result)))
           'store #t "Stored: 983")
@@ -491,7 +673,159 @@
           '(begin
              (store 'diff (- (retrieve 'alpha-total) (retrieve 'beta-total)))
              (submit (list 'alpha-higher-by (retrieve 'diff))))
-          'submit #t "Answer accepted: (alpha-higher-by 264)")))))
+          'submit #t "Answer accepted: (alpha-higher-by 264)")))
+
+    ;; ---- Domain 5: Error Recovery ----
+
+    ;; 21. Bad module name, then correct
+    (make-scenario "synth-error-bad-module"
+      "Compute the dot product of vectors (1 0 0) and (0 1 0)."
+      *prompt-lattice*
+      '((task text 50))
+      10000
+      (list
+        (make-step
+          '(search "vector dot product")
+          'search #t "Found 3 results:\n  linalg (score: 0.92) -- Linear algebra: vectors, matrices, decomposition\n  geometry (score: 0.65) -- Shapes, transforms, SDFs\n  physics (score: 0.45) -- Physics simulation"
+          "linalg skill is the right choice for vector operations.")
+        (make-step
+          '(load 'linalg)
+          'load #f "Failed to load linalg: module not found. Available: linalg/vec, linalg/matrix, linalg/decomp, linalg/solve"
+          "Module name was wrong — linalg is a skill, not a module. Need linalg/vec.")
+        (make-step
+          '(load 'linalg/vec)
+          'load #t "Module linalg/vec loaded."
+          "Correct module loaded. vec-dot should now be available.")
+        (make-step
+          '(eval (vec-dot (vec 1 0 0) (vec 0 1 0)))
+          'eval #t "0"
+          "Orthogonal vectors have dot product 0. Correct.")
+        (make-step
+          '(submit 0)
+          'submit #t "Answer accepted: 0")))
+
+    ;; 22. Eval failure, then correct
+    (make-scenario "synth-error-eval-failure"
+      "Compute the variance of (2 4 6 8 10)."
+      *prompt-lattice*
+      '((task text 40))
+      10000
+      (list
+        (make-step
+          '(search "variance statistics")
+          'search #t "Found 1 result:\n  statistics (score: 0.95) -- Regression, GLM, time series, hypothesis testing"
+          "statistics skill has variance function.")
+        (make-step
+          '(begin
+             (load 'statistics)
+             (eval (var '(2 4 6 8 10))))
+          'eval #f "Error: var is not bound"
+          "Wrong function name. Need to check exports for the correct name.")
+        (make-step
+          '(exports 'statistics)
+          'exports #t "Exports from statistics:\n  mean, variance, stddev, median, quantile, covariance, correlation, ..."
+          "The function is called 'variance', not 'var'. Let me retry.")
+        (make-step
+          '(eval (variance '(2 4 6 8 10)))
+          'eval #t "10"
+          "Variance of (2 4 6 8 10) = 10. Mean is 6, deviations squared sum to 40, /4 = 10.")
+        (make-step
+          '(submit 10)
+          'submit #t "Answer accepted: 10")))
+
+    ;; 23. Type mismatch, think, then correct
+    (make-scenario "synth-error-type-mismatch"
+      "Compute the sum of elements in the vector (10 20 30)."
+      *prompt-lattice*
+      '((task text 45))
+      10000
+      (list
+        (make-step
+          '(begin
+             (search "vector sum")
+             (load 'linalg/vec))
+          'load #t "Module linalg/vec loaded."
+          "linalg/vec loaded. Need to find the right function for element sum.")
+        (make-step
+          '(eval (apply + (vec 10 20 30)))
+          'eval #f "Error: + expects numbers, got vec"
+          "Can't apply + to a vec directly — vec is not a list. Need to convert or use vec-sum.")
+        (make-step
+          '(think "The vec type is not a list, so apply + doesn't work. I should look for a vec-sum or vec-fold function, or convert to list first.")
+          'think #t #f)
+        (make-step
+          '(exports 'linalg)
+          'exports #t "Exports from linalg:\n  vec, vec-ref, vec-dot, vec-add, vec-scale, vec-norm, vec-sum, vec->list, ..."
+          "vec-sum exists. Use that instead of apply +.")
+        (make-step
+          '(eval (vec-sum (vec 10 20 30)))
+          'eval #t "60"
+          "vec-sum correctly sums vector elements: 10+20+30=60.")
+        (make-step
+          '(submit 60)
+          'submit #t "Answer accepted: 60")))
+
+    ;; ---- Domain 6: Underrepresented Actions ----
+
+    ;; 24. Grep multi-pattern comparison
+    (make-scenario "synth-grep-pattern"
+      "Compare the frequency of 'WARNING' vs 'CRITICAL' messages in the log. Which is more common?"
+      *prompt-text-analysis*
+      '((input chunks 50000) (task text 80))
+      15000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "[2026-02-06 12:00:01] INFO     - Normal operation\n[2026-02-06 12:00:02] WARNING  - Disk usage at 85%\n[2026-02-06 12:00:03] CRITICAL - Primary database down\n[2026-02-06 12:00:04] WARNING  - Memory pressure detected\n..."
+          "Log has INFO, WARNING, and CRITICAL levels. Need to count WARNING vs CRITICAL.")
+        (make-step
+          '(grep 'input "WARNING" 3)
+          'grep #t "3 matches (showing top 3):\n[0.96] [2026-02-06 12:00:02] WARNING  - Disk usage at 85%\n[0.95] [2026-02-06 12:00:04] WARNING  - Memory pressure detected\n[0.94] [2026-02-06 12:00:09] WARNING  - Connection pool exhausted"
+          "grep shows sample WARNINGs. Need map-chunks for exact counts of both levels.")
+        (make-step
+          '(grep 'input "CRITICAL" 3)
+          'grep #t "3 matches (showing top 3):\n[0.97] [2026-02-06 12:00:03] CRITICAL - Primary database down\n[0.96] [2026-02-06 12:00:15] CRITICAL - Replication lag exceeded threshold\n[0.95] [2026-02-06 12:00:22] CRITICAL - SSL certificate expiring"
+          "Both levels present. grep top-k insufficient for counts; use map-chunks.")
+        (make-step
+          '(map-chunks 'input
+            "(let ([lines (split-lines *chunk*)])\n  (cons (length (filter (lambda (l) (string-contains? l \"WARNING\")) lines))\n        (length (filter (lambda (l) (string-contains? l \"CRITICAL\")) lines))))")
+          'map-chunks #t "Processed 50 chunks, results stored as 'map-result"
+          "Per-chunk (warning-count . critical-count) pairs collected.")
+        (make-step
+          '(begin
+             (store 'warnings (apply + (map car (retrieve 'map-result))))
+             (store 'criticals (apply + (map cdr (retrieve 'map-result))))
+             (submit (if (> (retrieve 'warnings) (retrieve 'criticals))
+                         (list 'WARNING (retrieve 'warnings) 'vs 'CRITICAL (retrieve 'criticals))
+                         (list 'CRITICAL (retrieve 'criticals) 'vs 'WARNING (retrieve 'warnings)))))
+          'submit #t "Answer accepted: (WARNING 287 vs CRITICAL 43)")))
+
+    ;; 25. Slice-based targeted extraction
+    (make-scenario "synth-slice-explore"
+      "Find the configuration section in the input file and extract the 'max_connections' setting."
+      *prompt-text-analysis*
+      '((input chunks 30000) (task text 80))
+      15000
+      (list
+        (make-step
+          '(grep 'input "max_connections" 3)
+          'grep #t "1 match:\n[0.99] max_connections = 500"
+          "Setting found via grep. But need surrounding context to verify it's in [config] section.")
+        (make-step
+          '(grep 'input "CONFIG" 3)
+          'grep #t "2 matches:\n[0.98] --- CONFIG ---\n[0.85] ; See CONFIG for server settings"
+          "CONFIG section exists. Need to slice the right chunk range to see full context.")
+        (make-step
+          '(slice 'input 0 2)
+          'slice #t "--- HEADER ---\nApp: my-server v2.1\n\n--- CONFIG ---\nhost = 0.0.0.0\nport = 8080\nmax_connections = 500\ntimeout_ms = 30000\nlog_level = info\n\n--- DATA ---\n..."
+          "Found max_connections = 500 inside [CONFIG] section in chunks 0-1.")
+        (make-step
+          '(eval (string->number "500"))
+          'eval #t "500"
+          "Extracted value: 500.")
+        (make-step
+          '(submit 500)
+          'submit #t "Answer accepted: 500")))))
 
 ;;; ====
 ;;; State Reconstruction
@@ -631,7 +965,34 @@
                  ((role . "user") (content . ,hud))
                  ((role . "assistant") (content . ,action-str))))
     (source . ,label)
-    (step . ,step-num)))
+    (step . ,step-num)
+    (phase . "act")))
+
+(define *synth-mechanical-actions*
+  '(submit store load plan! journal memorize remember recall))
+
+(define (synth-make-reflect-example action obs-value note label step-num)
+  ;; Generates a reflect-phase training example.
+  ;; Input: reflection prompt (action + observation).
+  ;; Output: concise note.
+  (let* ([action-str (synth-format-action action)]
+         [obs-str (if (string? obs-value)
+                      (if (> (string-length obs-value) 500)
+                          (string-append (substring obs-value 0 497) "...")
+                          obs-value)
+                      (format "~a" obs-value))]
+         [reflect-prompt (string-append
+                           "Distill the following step into a single concise note "
+                           "(one sentence, max 120 chars). "
+                           "The note should capture what was learned or accomplished.\n\n"
+                           "Action: " action-str "\n\n"
+                           "Result: " obs-str "\n\n"
+                           "Note:")])
+    `((messages . (((role . "user") (content . ,reflect-prompt))
+                   ((role . "assistant") (content . ,note))))
+      (source . ,label)
+      (step . ,step-num)
+      (phase . "reflect"))))
 
 (define (synth-generate-from-scenario scenario)
   (let* ([label (cdr (assq 'label scenario))]
@@ -655,15 +1016,30 @@
                  [obs-type (cdr (assq 'obs-type step-data))]
                  [obs-ok (cdr (assq 'obs-ok step-data))]
                  [obs-value (cdr (assq 'obs-value step-data))]
+                 [obs-note (cdr (assq 'obs-note step-data))]
                  [hud (rlm2-render-state state *synth-context-budget*)]
                  [action-str (synth-format-action action)]
-                 [example (synth-make-example
-                            sys-prompt hud action-str
-                            label (rlm2-state-step state))]
+                 ;; Act-phase example (always generated)
+                 [act-example (synth-make-example
+                                sys-prompt hud action-str
+                                label (rlm2-state-step state))]
+                 ;; Reflect-phase example (when note provided and action is non-mechanical)
+                 [action-type (if (pair? action) (car action) 'unknown)]
+                 [mechanical? (memq action-type *synth-mechanical-actions*)]
+                 [reflect-example
+                   (and obs-note
+                        (not mechanical?)
+                        (not (eq? action-type 'think))
+                        (synth-make-reflect-example
+                          action obs-value obs-note
+                          label (rlm2-state-step state)))]
+                 [new-examples (if reflect-example
+                                   (list act-example reflect-example)
+                                   (list act-example))]
                  [state* (synth-advance-state
                            state action obs-type obs-ok obs-value)])
             (loop (cdr remaining) state*
-                  (cons example examples)))))))
+                  (append (reverse new-examples) examples)))))))
 
 ;;; ====
 ;;; JSONL Writer
@@ -705,7 +1081,19 @@
                 (append acc examples)))
             '()
             *scenarios*)])
-    (display (format "\nTotal: ~a training examples\n" (length all-examples)))
+
+    ;; Report distribution
+    (let* ([act-count (length (filter (lambda (e)
+                                        (let ([p (assq 'phase e)])
+                                          (and p (string=? (cdr p) "act"))))
+                                      all-examples))]
+           [reflect-count (length (filter (lambda (e)
+                                            (let ([p (assq 'phase e)])
+                                              (and p (string=? (cdr p) "reflect"))))
+                                          all-examples))])
+      (display (format "\nTotal: ~a training examples (~a act, ~a reflect)\n"
+                       (length all-examples) act-count reflect-count)))
+
     (if (null? all-examples)
         (display "No examples generated.\n")
         (begin
