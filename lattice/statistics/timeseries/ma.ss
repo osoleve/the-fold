@@ -32,11 +32,13 @@
                                        (loop (+ i 1) (+ s (vector-ref xs i)))))])
                   (vector-set! result 0 (/ first-sum window))
                   ;; Rolling update for efficiency
-                  (do ([i 1 (+ i 1)]
-                       [sum first-sum (- (+ sum (vector-ref xs (+ i window -1)))
-                                         (vector-ref xs (- i 1)))])
-                      [(= i m) result]
-                      (vector-set! result i (/ sum window))))))))
+                  (let loop ([i 1] [sum first-sum])
+                       (when (< i m)
+                             (let ([new-sum (- (+ sum (vector-ref xs (+ i window -1)))
+                                               (vector-ref xs (- i 1)))])
+                                  (vector-set! result i (/ new-sum window))
+                                  (loop (+ i 1) new-sum))))
+                  result)))))
 
 ;;; weighted-moving-average : Vec × Vec → Vec
 ;;; Weighted moving average using custom weights.
