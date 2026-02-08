@@ -161,6 +161,8 @@
     ;; Statistics
     "statistics/test-statistics.ss"
     ;; Optimization
+    "optimization/test-convergence.ss"
+    "optimization/test-line-search.ss"
     "optimization/test-optimize.ss"
     "optimization/test-interval-global.ss"
     ;; Query
