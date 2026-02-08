@@ -125,12 +125,12 @@ print(f"  Mathador with targets: {len(mathador)}")
 # Sample 10 Object Counting at medium difficulty
 medium_oc = [x for x in object_counting if 0.1 <= x["difficulty"] <= 0.6]
 print(f"  Medium OC (0.1-0.6): {len(medium_oc)}")
-sampled_oc = random.sample(medium_oc, min(10, len(medium_oc)))
+sampled_oc = random.sample(medium_oc, min(30, len(medium_oc)))
 
 # Sample 10 Mathador
 medium_math = [x for x in mathador if 0.05 <= x["difficulty"] <= 0.5]
 print(f"  Medium Mathador (0.05-0.5): {len(medium_math)}")
-sampled_mathador = random.sample(medium_math, min(10, len(medium_math)))
+sampled_mathador = random.sample(medium_math, min(30, len(medium_math)))
 
 # Combine into logic sample
 sampled_logic = sampled_oc + sampled_mathador
@@ -181,8 +181,8 @@ for domain, items in by_domain.items():
     n = max(2, min(5, len(items) * 10 // max(1, len(medium_sci))))
     sampled_science.extend(random.sample(items, min(n, len(items))))
 
-if len(sampled_science) > 10:
-    sampled_science = random.sample(sampled_science, 10)
+if len(sampled_science) > 30:
+    sampled_science = random.sample(sampled_science, 30)
 
 write_sexp(sampled_science, "intellect3-science",
            "user/rlm/data/intellect3-science-sample.sexp",
@@ -216,7 +216,7 @@ print(f"  Numeric-answer math: {len(math_items)}")
 
 medium_math_q = [x for x in math_items if 0.05 <= x["difficulty"] <= 0.5]
 print(f"  Medium (0.05-0.5): {len(medium_math_q)}")
-sampled_math_q = random.sample(medium_math_q, min(10, len(medium_math_q)))
+sampled_math_q = random.sample(medium_math_q, min(30, len(medium_math_q)))
 
 write_sexp(sampled_math_q, "intellect3-math",
            "user/rlm/data/intellect3-math-sample.sexp",

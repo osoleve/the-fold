@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Download 20 samples each from GSM8K and DROP, save as sexp files."""
+"""Download samples from GSM8K and DROP, save as sexp files."""
 
+import os
 import random
 import re
+
+os.environ["HF_HOME"] = "/tmp/hf_cache"
 
 from datasets import load_dataset
 
 SEED = 42
-N = 20
+N = 100
 
 
 def escape_sexp_string(s: str) -> str:
@@ -63,7 +66,7 @@ rng.shuffle(easy)
 rng.shuffle(medium)
 rng.shuffle(hard)
 
-selected_gsm8k = easy[:5] + medium[:8] + hard[:7]
+selected_gsm8k = easy[:25] + medium[:40] + hard[:35]
 rng.shuffle(selected_gsm8k)
 
 with open("/home/osoleve/fold/user/rlm/data/gsm8k-sample.sexp", "w") as f:
