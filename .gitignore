@@ -74,6 +74,10 @@ logs/*.log
 
 # Generated training data (regenerate with gen-discovery.ss / sft-synth.ss)
 user/rlm/training/
+!user/rlm/training/*.py
+
+# Trained model weights (too large for git, regenerate with train-sft.py)
+user/rlm/models/
 
 # Generated QA reviews (post-commit hook output)
 docs/peer-review/

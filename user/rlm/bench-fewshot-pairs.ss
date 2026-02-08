@@ -205,7 +205,7 @@
                    (length *discovery-examples*)))
 
   (let* ([provider (rlm-provider-vllm
-                     "Qwen/Qwen3-Coder-Next-FP8" 8000)]
+                     "Qwen/Qwen3-32B-FP8" 8000)]
          [entries (generate-pairs-entries 15 3)]
          [haystack (build-pairs-haystack entries 30000)]
          [set-a (compute-condition-set entries *condition-a-cat* 'before *cutoff-day*)]
@@ -254,7 +254,7 @@
               (lambda (port)
                 (pretty-print
                   `(benchmark-results
-                     (model "Qwen/Qwen3-Coder-Next-FP8")
+                     (model "Qwen/Qwen3-32B-FP8")
                      (mode "few-shot-pairs")
                      (n-fewshot ,(length *fewshot-examples*))
                      (timestamp ,ts)
