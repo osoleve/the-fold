@@ -93,7 +93,7 @@
      (reverse (append (reverse remaining) elected))]
     [else
      (let* ([vote-counts (count-votes ballots remaining)]
-            [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) vote-counts)]
+            [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) vote-counts)]
             [top-candidate (caar sorted)]
             [top-votes (cdar sorted)])
        (if (>= top-votes quota)
@@ -188,7 +188,7 @@
 (define (approval-winners profile num-seats)
   (doc 'export #t)
   (let* ([scores (approval-scores profile)]
-         [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)])
+         [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)])
     (take-up-to num-seats (map car sorted))))
 
 ;;; take-up-to : Nat × (List a) → (List a)
@@ -232,7 +232,7 @@
   (if (or (= seats-left 0) (null? remaining))
       (reverse elected)
       (let* ([scores (map (lambda (c) (cons c (pav-score c profile elected))) remaining)]
-             [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)]
+             [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)]
              [winner (caar sorted)])
         (pav-loop profile
                   (remove winner remaining)
@@ -263,7 +263,7 @@
   (doc 'export #t)
   (let* ([candidates (approval-profile-candidates profile)]
          [scores (map (lambda (c) (cons c (sav-score c profile))) candidates)]
-         [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)])
+         [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)])
     (take-up-to num-seats (map car sorted))))
 
 (doc 'section 'monroe)
@@ -305,7 +305,7 @@
       (let* ([scores (map (lambda (c)
                            (cons c (monroe-candidate-score c profile elected num-candidates)))
                          remaining)]
-             [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)]
+             [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)]
              [winner (caar sorted)])
         (monroe-loop profile
                      (remove winner remaining)
@@ -355,7 +355,7 @@
       (let* ([scores (map (lambda (c)
                            (cons c (cc-marginal-score c profile elected num-candidates)))
                          remaining)]
-             [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) scores)]
+             [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)]
              [winner (caar sorted)])
         (cc-loop profile
                  (remove winner remaining)

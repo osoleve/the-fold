@@ -80,21 +80,21 @@
 (define (apply-voting-rule rule profile)
   (case rule
     [(plurality)
-     (let ([sorted (map car (sort (lambda (a b) (> (cdr a) (cdr b)))
-                                  (plurality-scores-all profile)))])
+     (let ([sorted (map car (sort-by (lambda (a b) (> (cdr a) (cdr b)))
+                                     (plurality-scores-all profile)))])
        (cons (car sorted) sorted))]
     [(borda)
-     (let ([sorted (map car (sort (lambda (a b) (> (cdr a) (cdr b)))
-                                  (borda-scores-all profile)))])
+     (let ([sorted (map car (sort-by (lambda (a b) (> (cdr a) (cdr b)))
+                                     (borda-scores-all profile)))])
        (cons (car sorted) sorted))]
     [(schulze)
      (let ([ranking (schulze-ranking profile)])
        (cons (car ranking) ranking))]
     [(copeland)
-     (let ([sorted (sort (lambda (a b)
-                           (> (copeland-score a profile)
-                              (copeland-score b profile)))
-                         (profile-candidates profile))])
+     (let ([sorted (sort-by (lambda (a b)
+                              (> (copeland-score a profile)
+                                 (copeland-score b profile)))
+                            (profile-candidates profile))])
        (cons (car sorted) sorted))]
     [(condorcet)
      ;; Condorcet with Schulze fallback

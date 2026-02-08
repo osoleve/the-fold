@@ -3,6 +3,7 @@
 ;;; @requires prelude
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'voting)
 (doc 'description "Social choice functions and voting rules for aggregating preferences. Covers positional rules (Borda, plurality), Condorcet methods (Copeland, Schulze), and related concepts")
@@ -175,10 +176,10 @@
 ;;; Rank all candidates by score (highest first).
 (define (positional-ranking profile scores)
   (let ([candidates (profile-candidates profile)])
-    (sort (lambda (a b)
-            (> (positional-score a profile scores)
-               (positional-score b profile scores)))
-          candidates)))
+    (sort-by (lambda (a b)
+               (> (positional-score a profile scores)
+                  (positional-score b profile scores)))
+             candidates)))
 
 ;;; ============================================================================
 ;;; Specific Voting Rules
@@ -298,8 +299,8 @@
 ;;; copeland-ranking : PreferenceProfile -> (List Candidate)
 ;;; Full ranking by Copeland scores.
 (define (copeland-ranking profile)
-  (sort (lambda (a b) (> (copeland-score a profile) (copeland-score b profile)))
-        (profile-candidates profile)))
+  (sort-by (lambda (a b) (> (copeland-score a profile) (copeland-score b profile)))
+           (profile-candidates profile)))
 
 (doc 'section 'minimax-method)
 (doc 'note "Minimax selects the candidate whose worst pairwise defeat is smallest. Also known as Simpson-Kramer method. If a Condorcet winner exists, minimax selects them.")
@@ -329,8 +330,8 @@
 ;;; Full ranking by minimax scores (best worst-case first).
 (define (minimax-ranking profile)
   (doc 'export #t)
-  (sort (lambda (a b) (> (minimax-score a profile) (minimax-score b profile)))
-        (profile-candidates profile)))
+  (sort-by (lambda (a b) (> (minimax-score a profile) (minimax-score b profile)))
+           (profile-candidates profile)))
 
 (doc 'section 'smith-set)
 (doc 'note "The Smith set is the smallest non-empty set of candidates such that every member beats every non-member pairwise. Contains the Condorcet winner if one exists. The Schulze winner is always in the Smith set.")
@@ -513,12 +514,12 @@
              [n (length candidates)]
              [strength (schulze-strengths profile)])
         ;; Sort by Schulze relation
-        (sort (lambda (a b)
-                (let ([ia (position-of a candidates)]
-                      [ib (position-of b candidates)])
-                  (> (vector-ref (vector-ref strength ia) ib)
-                     (vector-ref (vector-ref strength ib) ia))))
-              candidates))))
+        (sort-by (lambda (a b)
+                   (let ([ia (position-of a candidates)]
+                         [ib (position-of b candidates)])
+                     (> (vector-ref (vector-ref strength ia) ib)
+                        (vector-ref (vector-ref strength ib) ia))))
+                 candidates))))
 
 (doc 'section 'manipulation-detection)
 (doc 'note "A voting rule is manipulable if a voter can benefit by misreporting.")

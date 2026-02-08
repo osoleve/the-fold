@@ -82,9 +82,9 @@
 
 ;;; Convenience constructors
 
-;;; range : Number × Number → ParamRange
+;;; uniform-range : Symbol × Number × Number → ParamRange
 ;;; Simple uniform range with no constraint
-(define (range name min-val max-val)
+(define (uniform-range name min-val max-val)
   (doc 'export #t)
   (make-param-range name min-val max-val 'uniform (lambda (_) #t)))
 

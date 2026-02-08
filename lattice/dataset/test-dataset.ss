@@ -12,6 +12,30 @@
 (load "lattice/random/prng.ss")
 
 ;;; ============================================================
+;;; Helpers
+;;; ============================================================
+
+;;; string-contains? : String × String → Boolean
+(define (string-contains? str substr)
+  (let ([len1 (string-length str)]
+        [len2 (string-length substr)])
+    (let loop ([i 0])
+      (cond
+        [(> (+ i len2) len1) #f]
+        [(string=? (substring str i (+ i len2)) substr) #t]
+        [else (loop (+ i 1))]))))
+
+;;; unique-strings : (List String) → (List String)
+;;; Return only unique strings from list
+(define (unique-strings strings)
+  (let loop ([remaining strings] [seen '()])
+    (if (null? remaining)
+        (reverse seen)
+        (if (member (car remaining) seen)
+            (loop (cdr remaining) seen)
+            (loop (cdr remaining) (cons (car remaining) seen))))))
+
+;;; ============================================================
 ;;; Sample Tests
 ;;; ============================================================
 
@@ -58,14 +82,14 @@
 
 (test-group "parameter"
   (define-test "range creates valid param range"
-    (let ([r (range 'mass 1.0 10.0)])
+    (let ([r (uniform-range 'mass 1.0 10.0)])
       (assert-true (param-range? r))
       (assert-equal 'mass (param-range-name r))
       (assert-equal 1.0 (param-range-min r))
       (assert-equal 10.0 (param-range-max r))))
 
   (define-test "param-sample returns value in range"
-    (let* ([r (range 'x 0.0 100.0)]
+    (let* ([r (uniform-range 'x 0.0 100.0)]
            [rng (make-prng 42)])
       (do ([i 0 (+ i 1)])
           ((>= i 20))
@@ -93,8 +117,8 @@
 
   (define-test "param-set-sample returns all params"
     (let* ([ps (make-param-set
-                (list (range 'm1 1.0 5.0)
-                      (range 'm2 1.0 5.0)
+                (list (uniform-range 'm1 1.0 5.0)
+                      (uniform-range 'm2 1.0 5.0)
                       (range-int 'n 1 10))
                 (lambda (_) #t))]
            [rng (make-prng 456)]
@@ -113,7 +137,7 @@
       (assert-true (string-contains? result "2"))))
 
   (define-test "param-interpolate works for numeric"
-    (let* ([r (range 'x 0.0 10.0)]
+    (let* ([r (uniform-range 'x 0.0 10.0)]
            [v1 2.0]
            [v2 8.0]
            [mid (param-interpolate r v1 v2 0.5)])
@@ -279,30 +303,6 @@
       (assert-true (> (string-length str) 10))
       ;; Should start with { and end with }
       (assert-true (char=? (string-ref str 0) #\{)))))
-
-;;; ============================================================
-;;; Helpers
-;;; ============================================================
-
-;;; string-contains? : String × String → Boolean
-(define (string-contains? str substr)
-  (let ([len1 (string-length str)]
-        [len2 (string-length substr)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i len2) len1) #f]
-        [(string=? (substring str i (+ i len2)) substr) #t]
-        [else (loop (+ i 1))]))))
-
-;;; unique-strings : (List String) → (List String)
-;;; Return only unique strings from list
-(define (unique-strings strings)
-  (let loop ([remaining strings] [seen '()])
-    (if (null? remaining)
-        (reverse seen)
-        (if (member (car remaining) seen)
-            (loop (cdr remaining) seen)
-            (loop (cdr remaining) (cons (car remaining) seen))))))
 
 ;;; ============================================================
 ;;; Run Tests

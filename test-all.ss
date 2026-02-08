@@ -173,8 +173,9 @@
     ;; Pipeline
     "pipeline/test-stage-context.ss"
     "pipeline/test-rlm2.ss"
-    ;; NOTE: dataset/test-dataset.ss and pipeline/test-council-voting.ss
-    ;; excluded pending sort-shadowing fix (fold-zxw4/fold-zxw5)
+    "pipeline/test-council-voting.ss"
+    ;; Dataset
+    "dataset/test-dataset.ss"
     ))
 
 ;;; Boundary tests (validated, stable)

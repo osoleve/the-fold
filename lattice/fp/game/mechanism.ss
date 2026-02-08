@@ -3,6 +3,7 @@
 ;;; @requires prelude
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'mechanism)
 (doc 'description "Mechanism design: auctions, incentive compatibility, VCG mechanisms")
@@ -212,7 +213,7 @@
   (let* ([n (bids-length bids)]
          [winners (bids-winners bids)]
          [winner (select-winner winners)]
-         [sorted (sort > (vector->list bids))]
+         [sorted (sort-by > (vector->list bids))]
          [payment (if (>= n 3) (caddr sorted) 0)])
     (make-auction-outcome winner payment)))
 
@@ -549,8 +550,8 @@
   (doc 'type '(-> (Vector Number) (Vector Number) Number DoubleAuctionOutcome))
   (doc 'description "k-double auction: price = k × (marginal winning bid) + (1-k) × (marginal winning ask)")
   (doc 'note "k=0: seller's price (highest winning ask). k=1: buyer's price (lowest winning bid). k=0.5: split the difference. Only k=0.5 is budget-balanced in expectation.")
-  (let* ([sorted-buyers (sort > (vector->list buyer-bids))]
-         [sorted-sellers (sort < (vector->list seller-asks))]
+  (let* ([sorted-buyers (sort-by > (vector->list buyer-bids))]
+         [sorted-sellers (sort-by < (vector->list seller-asks))]
          ;; Find market-clearing quantity
          [qty (let loop ([b sorted-buyers] [s sorted-sellers] [q 0])
                 (if (or (null? b) (null? s) (< (car b) (car s)))

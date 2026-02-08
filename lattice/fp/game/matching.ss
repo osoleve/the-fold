@@ -490,10 +490,10 @@
 ;;; same-matched-agents? : (List (Id . Id)) × (List (Id . Id)) → Boolean
 ;;; Check if two matchings have the same set of matched agents.
 (define (same-matched-agents? matching1 matching2)
-  (let ((props1 (sort symbol<? (map car matching1)))
-        (props2 (sort symbol<? (map car matching2)))
-        (recvs1 (sort symbol<? (map cdr matching1)))
-        (recvs2 (sort symbol<? (map cdr matching2))))
+  (let ((props1 (sort-by symbol<? (map car matching1)))
+        (props2 (sort-by symbol<? (map car matching2)))
+        (recvs1 (sort-by symbol<? (map cdr matching1)))
+        (recvs2 (sort-by symbol<? (map cdr matching2))))
     (and (equal? props1 props2)
          (equal? recvs1 recvs2))))
 

@@ -23,11 +23,11 @@
 ;;; Parameters for size comparison problems
 (define size-comparison-params
   (make-param-set
-   (list (range 'r1 1.0 4.0)       ; radius of ball A
-         (range 'r2 1.0 4.0)       ; radius of ball B
-         (range 'x1 -10.0 -3.0)    ; x position of ball A
-         (range 'x2 3.0 10.0)      ; x position of ball B
-         (range 'y 5.0 15.0))      ; y position (same for both)
+   (list (uniform-range 'r1 1.0 4.0)       ; radius of ball A
+         (uniform-range 'r2 1.0 4.0)       ; radius of ball B
+         (uniform-range 'x1 -10.0 -3.0)    ; x position of ball A
+         (uniform-range 'x2 3.0 10.0)      ; x position of ball B
+         (uniform-range 'y 5.0 15.0))      ; y position (same for both)
    ;; Constraint: balls should be visually distinct (ratio > 1.2 or < 0.8)
    (lambda (params)
      (let ([r1 (cdr (assq 'r1 params))]
@@ -87,11 +87,11 @@
 ;;; distance-params : ParamSet
 (define distance-params
   (make-param-set
-   (list (range 'x1 -15.0 -5.0)    ; position of object A
-         (range 'x2 5.0 15.0)       ; position of object B
-         (range 'y1 5.0 15.0)       ; y position of A
-         (range 'y2 5.0 15.0)       ; y position of B
-         (range 'r 1.0 2.0))        ; radius (same for both)
+   (list (uniform-range 'x1 -15.0 -5.0)    ; position of object A
+         (uniform-range 'x2 5.0 15.0)       ; position of object B
+         (uniform-range 'y1 5.0 15.0)       ; y position of A
+         (uniform-range 'y2 5.0 15.0)       ; y position of B
+         (uniform-range 'r 1.0 2.0))        ; radius (same for both)
    ;; Constraint: minimum distance for visibility
    (lambda (params)
      (let ([x1 (cdr (assq 'x1 params))]
@@ -154,7 +154,7 @@
 (define count-params
   (make-param-set
    (list (range-int 'n 2 6)          ; number of objects
-         (range 'spread 4.0 8.0))    ; how spread out (limited to keep all visible)
+         (uniform-range 'spread 4.0 8.0))    ; how spread out (limited to keep all visible)
    (lambda (_) #t)))                 ; no constraint
 
 ;;; count-setup : Alist → World
@@ -214,11 +214,11 @@
 ;;; Note: x-left and x-right define positions, swap determines assignment
 (define position-params
   (make-param-set
-   (list (range 'x-left -15.0 -3.0)   ; left position
-         (range 'x-right 3.0 15.0)    ; right position
-         (range 'y1 2.0 18.0)
-         (range 'y2 2.0 18.0)
-         (range 'r 1.5 2.5)
+   (list (uniform-range 'x-left -15.0 -3.0)   ; left position
+         (uniform-range 'x-right 3.0 15.0)    ; right position
+         (uniform-range 'y1 2.0 18.0)
+         (uniform-range 'y2 2.0 18.0)
+         (uniform-range 'r 1.5 2.5)
          (range-int 'swap 0 1))       ; 0: A=left, B=right; 1: A=right, B=left
    ;; Constraint: positions should be sufficiently distinct
    (lambda (params)

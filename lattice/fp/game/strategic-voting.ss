@@ -274,7 +274,7 @@
                 (cons (car rule-pair)
                       (strategy-proofness-ratio (cdr rule-pair) num-candidates num-voters)))
               rules-alist)])
-    (sort (lambda (a b) (> (cdr a) (cdr b))) results)))
+    (sort-by (lambda (a b) (> (cdr a) (cdr b))) results)))
 
 ;;; ============================================================================
 ;;; Gibbard-Satterthwaite Demonstration

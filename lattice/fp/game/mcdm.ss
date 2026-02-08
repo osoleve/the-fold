@@ -76,10 +76,10 @@
   (doc 'type '(-> DecisionProblem Criterion (List Alternative)))
   (doc 'description "Rank alternatives by score on a single criterion (highest score first)")
   (let ([alts (dp-alternatives dp)])
-    (sort (lambda (a b)
-            (> (dp-score dp a criterion)
-               (dp-score dp b criterion)))
-          alts)))
+    (sort-by (lambda (a b)
+                (> (dp-score dp a criterion)
+                   (dp-score dp b criterion)))
+              alts)))
 
 ;;; dp->profile : DecisionProblem → PreferenceProfile
 ;;; Convert decision problem to preference profile.
@@ -188,7 +188,7 @@
                                             (if pos (* w (list-ref borda pos)) 0)))
                                         criteria weights))))
                     alts)])
-          (sort (lambda (a b) (> (cdr a) (cdr b))) alt-scores)))))
+          (sort-by (lambda (a b) (> (cdr a) (cdr b))) alt-scores)))))
 
 ;;; weighted-borda-winner : DecisionProblem × (List Real) → Alternative
 ;;; Best alternative using weighted Borda scores.

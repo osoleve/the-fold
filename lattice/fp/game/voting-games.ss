@@ -229,7 +229,7 @@
 (define (power-gini power-vec)
   (doc 'export #t)
   (let* ([n (vector-length power-vec)]
-         [sorted (sort < (vector->list power-vec))]
+         [sorted (sort-by < (vector->list power-vec))]
          [total (apply + sorted)])
     (if (or (= n 0) (= total 0))
         0

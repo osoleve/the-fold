@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/linalg/vec.ss")
 
 (doc 'module 'fair-division)
@@ -368,9 +369,9 @@
          [c-choice (argmax (vector->list vals-2))]
          ;; Player B picks from remaining
          [remaining-1 (filter (lambda (i) (not (= i c-choice))) '(0 1 2))]
-         [b-choice (car (sort (lambda (i j)
-                                (> (vector-ref vals-1 i) (vector-ref vals-1 j)))
-                              remaining-1))]
+         [b-choice (car (sort-by (lambda (i j)
+                                    (> (vector-ref vals-1 i) (vector-ref vals-1 j)))
+                                  remaining-1))]
          ;; Player A gets the last piece
          [a-choice (car (filter (lambda (i) (and (not (= i c-choice))
                                                   (not (= i b-choice))))
@@ -387,7 +388,7 @@
 ;;; When player B trims the largest piece.
 (define (selfridge-conway-with-trim c div pieces vals-1 trim-idx fuel)
   ;; Player B trims piece trim-idx to tie with second-largest
-  (let* ([sorted-vals (sort > (vector->list vals-1))]
+  (let* ([sorted-vals (sort-by > (vector->list vals-1))]
          [second-max (cadr sorted-vals)]
          [trim-piece (vector-ref pieces trim-idx)]
          [trim-start (car trim-piece)]
@@ -406,9 +407,9 @@
          ;; Player B: if C took trimmed piece, B can pick freely; else B must take trimmed
          [b-choice (if (= c-choice trim-idx)
                        (let ([remaining (filter (lambda (i) (not (= i c-choice))) '(0 1 2))])
-                         (car (sort (lambda (i j)
-                                      (> (vector-ref vals-1 i) (vector-ref vals-1 j)))
-                                    remaining)))
+                         (car (sort-by (lambda (i j)
+                                          (> (vector-ref vals-1 i) (vector-ref vals-1 j)))
+                                        remaining)))
                        trim-idx)]
          ;; Player A gets remaining
          [a-choice (car (filter (lambda (i) (and (not (= i c-choice))
@@ -538,7 +539,7 @@
                               [dest-val (vector-ref points-dest (car x))])
                           (cons i (if (= src-val 0) +inf.0 (/ dest-val src-val)))))
                       src-goods)]
-         [sorted (sort (lambda (a b) (< (cdr a) (cdr b))) ratios)])
+         [sorted (sort-by (lambda (a b) (< (cdr a) (cdr b))) ratios)])
     (transfer-loop goods points-src points-dest
                    alloc-src alloc-dest score-src score-dest
                    sorted)))
@@ -638,10 +639,10 @@
                                     (iota m))])
             (if (null? remaining)
                 allocs
-                (let* ([best (car (sort (lambda (j1 j2)
-                                          (> (discrete-problem-valuation dp player j1)
-                                             (discrete-problem-valuation dp player j2)))
-                                        remaining))])
+                (let* ([best (car (sort-by (lambda (j1 j2)
+                                              (> (discrete-problem-valuation dp player j1)
+                                                 (discrete-problem-valuation dp player j2)))
+                                            remaining))])
                   (vector-set! available best #f)
                   (vector-set! allocs player
                                (cons (vector-ref goods best)
@@ -726,10 +727,10 @@
       ;; Greedy: create balanced bundles based on player's valuation
       (let* ([bundles (make-vector num-bundles '())]
              [vals (make-vector num-bundles 0)]
-             [sorted-goods (sort (lambda (j1 j2)
-                                   (> (discrete-problem-valuation dp player j1)
-                                      (discrete-problem-valuation dp player j2)))
-                                 goods)])
+             [sorted-goods (sort-by (lambda (j1 j2)
+                                       (> (discrete-problem-valuation dp player j1)
+                                          (discrete-problem-valuation dp player j2)))
+                                     goods)])
         ;; Assign each good to bundle with lowest total value (greedy balancing)
         (for-each
          (lambda (g)
