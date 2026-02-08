@@ -146,12 +146,14 @@
     "numeric/test-affine.ss"
     "numeric/test-complex.ss"
     "numeric/test-interpolate.ss"
+    "numeric/test-complex-bridge.ss"
     ;; Info Theory
     "info/test-entropy.ss"
     ;; FP Core
     "fp/optics/test-optics.ss"
     "fp/category/test-comonad.ss"
     "fp/category/test-natural-transform.ss"
+    "fp/category/test-common-monads.ss"
     "fp/clp/test-clp.ss"
     "fp/game/test-voting-games.ss"
     "fp/game/test-coop-games.ss"
