@@ -6,6 +6,7 @@
 
 ;;; IMPORTANT: Load numeric/polynomial.ss BEFORE poly-bridge.ss
 ;;; This is the recommended load order to avoid name collisions.
+(unless (top-level-bound? 'doc) (load "core/base/prelude.ss"))
 (load "lattice/numeric/polynomial.ss")
 (load "lattice/algebra/poly-bridge.ss")
 

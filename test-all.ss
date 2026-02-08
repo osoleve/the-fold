@@ -135,6 +135,10 @@
     ;; Algebra
     "algebra/test-polynomial.ss"
     "algebra/test-ring-field.ss"
+    "algebra/test-multivariate-groebner.ss"
+    "algebra/test-galois.ss"
+    "algebra/test-field-ext.ss"
+    "algebra/test-module.ss"
 
     ;; === Tier 1: Intermediate ===
     ;; Numeric
@@ -156,6 +160,10 @@
     ;; Optimization
     "optimization/test-optimize.ss"
     "optimization/test-interval-global.ss"
+    ;; Query
+    "query/test-optic-query.ss"
+    "query/test-query-macro.ss"
+    "query/sql/test-ast-zipper.ss"
     ;; Autodiff
     "autodiff/test-traced-optics.ss"
 
@@ -166,6 +174,7 @@
     "topology/test-homology.ss"
     ;; Tiles
     "tiles/test-tiles.ss"
+    "tiles/test-triangle.ss"
     "tiles/test-topology-analysis.ss"
     ;; Simulation
     "sim/test-simulation-stream.ss"
