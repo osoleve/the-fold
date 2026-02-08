@@ -364,9 +364,9 @@
 ;;; Verify ideal properties.
 (define (is-valid-ideal? ideal)
   (doc 'export #t)
-  (let ([r (ideal-ring ideal)]
-        [i-elems (ideal-elements ideal)]
-        [r-elems (ring-elements r)])
+  (let* ([r (ideal-ring ideal)]
+         [i-elems (ideal-elements ideal)]
+         [r-elems (ring-elements r)])
        ; Check closure under addition
        (and (let loop ([as i-elems])
                  (if (null? as)
@@ -439,9 +439,9 @@
 ;;; I is prime if a×b ∈ I implies a ∈ I or b ∈ I
 (define (is-prime-ideal? ideal)
   (doc 'export #t)
-  (let ([r (ideal-ring ideal)]
-        [i-elems (ideal-elements ideal)]
-        [r-elems (ring-elements r)])
+  (let* ([r (ideal-ring ideal)]
+         [i-elems (ideal-elements ideal)]
+         [r-elems (ring-elements r)])
        (let loop ([as r-elems])
             (if (null? as)
                 #t
@@ -464,9 +464,9 @@
 ;;; Equivalently: for every x ∉ I, the ideal <I ∪ {x}> = R
 (define (is-maximal-ideal? ideal)
   (doc 'export #t)
-  (let ([r (ideal-ring ideal)]
-        [i-elems (ideal-elements ideal)]
-        [r-elems (ring-elements r)]
+  (let* ([r (ideal-ring ideal)]
+         [i-elems (ideal-elements ideal)]
+         [r-elems (ring-elements r)]
         [eq-fn (ring-equal-fn r)])
        ; Check if ideal is proper (doesn't contain 1)
        (and (not (member-equal (ring-one r) i-elems eq-fn))

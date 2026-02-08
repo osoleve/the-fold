@@ -134,6 +134,7 @@
     "data/test-heap.ss"
     ;; Algebra
     "algebra/test-polynomial.ss"
+    "algebra/test-ring-field.ss"
 
     ;; === Tier 1: Intermediate ===
     ;; Numeric
