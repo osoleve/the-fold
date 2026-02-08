@@ -326,6 +326,8 @@
     "query/test-aho-corasick.ss"
     "query/test-patterns-parse.ss"
     "query/test-query-patterns.ss"
+    "query/sql/test-sql.ss"
+    "query/sql/test-dialect.ss"
     "query/sql/test-ast-zipper.ss"
     ;; Autodiff
     "autodiff/test-traced-optics.ss"

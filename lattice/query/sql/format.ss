@@ -73,7 +73,7 @@
 (define (make-indent level opts)
   (let ([indent-val (get-option opts 'indent 'tab)])
        (if (eq? indent-val 'tab)
-           (make-string level #	ab)
+           (make-string level #\tab)
            (make-string (* level indent-val) #\space))))
 
 ;;; make-string : Nat × Char → String

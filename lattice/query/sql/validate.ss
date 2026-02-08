@@ -6,15 +6,40 @@
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
-;;; Set up source directories for loading
-(let ([stitches-path (string-append (current-directory) "/fabric/stitches")])
-     (unless (member stitches-path (source-directories))
-             (source-directories (cons stitches-path (source-directories)))))
-
 (unless (top-level-bound? '*sql-types-loaded*)
         (load "lattice/query/sql/types.ss"))
-(unless (top-level-bound? 'validation-success)
-        (load "fp/validation.ss"))
+
+;;; Validation type (applicative validation = Either with different names)
+(define (validation-success val) (list 'validation-success val))
+(define (validation-failure err) (list 'validation-failure err))
+(define (validation-success? v) (and (pair? v) (eq? (car v) 'validation-success)))
+(define (from-success v) (list-ref v 1))
+(define (from-failure v) (list-ref v 1))
+
+;;; Applicative combinators — accumulate ALL errors
+(define (validation-ap2 f va vb)
+  (cond
+   [(and (validation-success? va) (validation-success? vb))
+    (validation-success ((f (from-success va)) (from-success vb)))]
+   [(and (not (validation-success? va)) (not (validation-success? vb)))
+    (validation-failure (append (list (from-failure va)) (list (from-failure vb))))]
+   [(not (validation-success? va)) (validation-failure (list (from-failure va)))]
+   [else (validation-failure (list (from-failure vb)))]))
+
+(define (validation-ap3 f va vb vc)
+  (validation-ap2 (lambda (ab) (lambda (c) (ab c)))
+                  (validation-ap2 f va vb) vc))
+
+(define (validation-ap4 f va vb vc vd)
+  (validation-ap2 (lambda (abc) (lambda (d) (abc d)))
+                  (validation-ap3 f va vb vc) vd))
+
+(define (validation-sequence vs)
+  (if (null? vs)
+      (validation-success '())
+      (validation-ap2 (lambda (x) (lambda (xs) (cons x xs)))
+                      (car vs)
+                      (validation-sequence (cdr vs)))))
 
 ;;; ====
 ;;; Validation Error Types

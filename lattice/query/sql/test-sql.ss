@@ -1,10 +1,11 @@
-;;; playpen/sql/test-sql.ss — SQL DSL Tests
+;;; lattice/query/sql/test-sql.ss — SQL DSL Tests
 ;;;
 ;;; Tests for the SQL parser, validator, and formatter.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/sql/test-sql.ss
+;;;   scheme --script lattice/query/sql/test-sql.ss
 
+(source-directories (cons "core" (cons "lattice" (source-directories))))
 (load "core/base/prelude.ss")
 (load "lattice/query/sql/sql.ss")
 

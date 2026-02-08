@@ -1,10 +1,11 @@
-;;; playpen/sql/test-dialect.ss — SQL Dialect Translation Tests
+;;; lattice/query/sql/test-dialect.ss — SQL Dialect Translation Tests
 ;;;
 ;;; Tests for dialect-specific SQL translation.
 ;;;
 ;;; Usage:
-;;;   scheme --script playpen/sql/test-dialect.ss
+;;;   scheme --script lattice/query/sql/test-dialect.ss
 
+(source-directories (cons "core" (cons "lattice" (source-directories))))
 (load "core/base/prelude.ss")
 (load "lattice/query/sql/sql.ss")
 (load "lattice/query/sql/dialect.ss")

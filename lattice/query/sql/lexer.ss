@@ -6,15 +6,10 @@
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
-;;; Set up source directories for loading
-(let ([stitches-path (string-append (current-directory) "/fabric/stitches")])
-     (unless (member stitches-path (source-directories))
-             (source-directories (cons stitches-path (source-directories)))))
-
 (unless (top-level-bound? 'make-parser)
-        (load "fp/parser.ss"))
-(unless (top-level-bound? 'make-ast)
-        (load "fp/parser-dsl.ss"))
+        (load "fp/parsing/parser.ss"))
+(unless (top-level-bound? '*sql-types-loaded*)
+        (load "lattice/query/sql/types.ss"))
 
 ;;; ====
 ;;; Character Constants
@@ -92,22 +87,24 @@
       (parser-pure "")
       (make-parser
        (lambda (state)
-               (let* ([input (state-input state)]
-                      [len (string-length str)])
-                     (if (< (string-length input) len)
+               (let* ([full-input (state-input state)]
+                      [idx (state-index state)]
+                      [len (string-length str)]
+                      [remaining (- (string-length full-input) idx)])
+                     (if (< remaining len)
                          (left (make-parse-error
                                 (state-pos state)
                                 "unexpected end of input"
                                 (list str)))
-                         (let ([prefix (substring input 0 len)])
+                         (let ([prefix (substring full-input idx (+ idx len))])
                               (if (string-ci-equal? prefix str)
-                                  (let* ([rest (substring input len (string-length input))]
+                                  (let* ([new-idx (+ idx len)]
                                          [new-pos (fold-left
                                                    (lambda (p i)
                                                            (advance-pos p (string-ref prefix i)))
                                                    (state-pos state)
                                                    (iota len))]
-                                         [new-state (make-state rest new-pos)])
+                                         [new-state (make-state full-input new-idx new-pos)])
                                         (right (cons prefix new-state)))
                                   (left (make-parse-error
                                          (state-pos state)

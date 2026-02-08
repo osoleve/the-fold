@@ -6,14 +6,16 @@
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
-;;; Set up source directories for loading
-(let ([stitches-path (string-append (current-directory) "/fabric/stitches")])
-     (unless (member stitches-path (source-directories))
-             (source-directories (cons stitches-path (source-directories)))))
-
-;; parser-dsl.ss loads parser.ss which loads prelude.ss and combinators.ss
-(unless (top-level-bound? 'make-ast)
-        (load "fp/parser-dsl.ss"))
+;;; Source span primitives (formerly in fp/parser-dsl.ss)
+(define (make-source-span start end) (list 'source-span start end))
+(define (source-span? x) (and (pair? x) (eq? (car x) 'source-span)))
+(define (span-start s) (list-ref s 1))
+(define (span-end s) (list-ref s 2))
+(define (merge-spans s1 s2)
+  (if (and (source-span? s1) (source-span? s2))
+      (make-source-span (span-start s1) (span-end s2))
+      (or s1 s2)))
+(define no-span #f)
 
 ;;; ====
 ;;; SQL AST Node Constructors
