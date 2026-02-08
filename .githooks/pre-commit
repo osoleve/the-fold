@@ -37,8 +37,15 @@ TOTAL_CHECKS=2
 # Check 1: Scheme test suite
 # ============================================================================
 CHECK_NUM=$((CHECK_NUM + 1))
-echo -e "${YELLOW}[$CHECK_NUM/$TOTAL_CHECKS]${NC} Running Scheme test suite..."
-if scheme --script test-all.ss > /dev/null 2>&1; then
+# Respect FOLD_FULL_TESTS=1 to force full run
+if [ "${FOLD_FULL_TESTS:-0}" = "1" ]; then
+    TEST_MODE=""
+    echo -e "${YELLOW}[$CHECK_NUM/$TOTAL_CHECKS]${NC} Running Scheme test suite (full)..."
+else
+    TEST_MODE="incremental"
+    echo -e "${YELLOW}[$CHECK_NUM/$TOTAL_CHECKS]${NC} Running Scheme test suite (incremental)..."
+fi
+if scheme --script test-all.ss $TEST_MODE > /dev/null 2>&1; then
     echo -e "  ${GREEN}✓${NC} All tests passed"
 else
     echo -e "  ${RED}✗${NC} Tests failed"

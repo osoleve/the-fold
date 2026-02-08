@@ -78,6 +78,9 @@ user/rlm/training/
 # Generated QA reviews (post-commit hook output)
 docs/peer-review/
 
+# Incremental test cache (local, rebuilt on demand)
+.test-cache/
+
 # Visual artifacts
 user/creations/*.gif
 user/creations/*.mp4

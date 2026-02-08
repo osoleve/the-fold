@@ -4,10 +4,12 @@
 ;;; Invoke from ccverse root directory.
 ;;;
 ;;; Usage:
-;;;   scheme --script test-all.ss           ; run all tests
-;;;   scheme --script test-all.ss quick     ; skip slow tests
-;;;   scheme --script test-all.ss core      ; core tests only
-;;;   scheme --script test-all.ss boundary  ; boundary tests only
+;;;   scheme --script test-all.ss               ; run all tests
+;;;   scheme --script test-all.ss quick         ; skip slow tests
+;;;   scheme --script test-all.ss core          ; core tests only
+;;;   scheme --script test-all.ss boundary      ; boundary tests only
+;;;   scheme --script test-all.ss incremental   ; skip tests unchanged since last pass
+;;;   FOLD_FULL_TESTS=1 git commit              ; force full run from pre-commit
 
 ;;; ====
 ;;; Setup
@@ -51,6 +53,190 @@
                    (number->string (quotient (remainder ms 60000) 1000)) "s")]))
 
 ;;; ====
+;;; Incremental Test Cache
+;;; ====
+
+(define *cache-version* 1)
+(define *cache-dir* ".test-cache")
+(define *cache-file* ".test-cache/manifest.sexp")
+(define *incremental-mode* #f)
+(define *cached-tests* '())    ; alist: ((full-path . (fingerprint deps ...)) ...)
+(define *dep-memo* (make-hashtable string-hash string=?))   ; path → dep-list
+(define *hash-memo* (make-hashtable string-hash string=?))  ; path → content-hash
+(define *skipped-count* 0)
+
+;;; extract-load-paths : String → (List String)
+;;; Parse (load "...") from file contents. Handles guarded loads too.
+(define (extract-load-paths file)
+  (guard (e [else '()])
+    (let ([text (call-with-input-file file
+                  (lambda (p)
+                    (let loop ([chars '()])
+                      (let ([c (read-char p)])
+                        (if (eof-object? c)
+                            (list->string (reverse chars))
+                            (loop (cons c chars)))))))])
+      (let loop ([pos 0] [results '()])
+        (let ([idx (string-search "(load \"" text pos)])
+          (if (not idx)
+              (reverse results)
+              (let* ([start (+ idx 7)]
+                     [end (string-search "\"" text start)])
+                (if (not end)
+                    (reverse results)
+                    (loop (+ end 1)
+                          (cons (substring text start end) results))))))))))
+
+;;; string-search : String × String × Int → Int|#f
+;;; Find needle in haystack starting at pos. Returns index or #f.
+(define (string-search needle haystack pos)
+  (let ([nlen (string-length needle)]
+        [hlen (string-length haystack)])
+    (let loop ([i pos])
+      (cond
+       [(> (+ i nlen) hlen) #f]
+       [(string=? needle (substring haystack i (+ i nlen))) i]
+       [else (loop (+ i 1))]))))
+
+;;; resolve-load-path : String → String|#f
+;;; Resolve a load path, trying as-is then with source-directories prefixes.
+(define (resolve-load-path path)
+  (cond
+   [(file-exists? path) path]
+   [(file-exists? (string-append "core/" path)) (string-append "core/" path)]
+   [(file-exists? (string-append "lattice/" path)) (string-append "lattice/" path)]
+   [else #f]))
+
+;;; scan-deps : String → (List String)
+;;; Recursive transitive closure of (load ...) dependencies. Memoized.
+(define (scan-deps file)
+  (cond
+   [(hashtable-ref *dep-memo* file #f) => values]
+   [else
+    ;; Mark in-progress to avoid cycles
+    (hashtable-set! *dep-memo* file '())
+    (let* ([loads (extract-load-paths file)]
+           [resolved (filter values (map resolve-load-path loads))]
+           [transitive (apply append (map scan-deps resolved))]
+           [all-deps (delete-duplicates (append resolved transitive))])
+      (hashtable-set! *dep-memo* file all-deps)
+      all-deps)]))
+
+;;; delete-duplicates : (List String) → (List String)
+(define (delete-duplicates lst)
+  (let ([seen (make-hashtable string-hash string=?)])
+    (filter (lambda (x)
+              (if (hashtable-ref seen x #f)
+                  #f
+                  (begin (hashtable-set! seen x #t) #t)))
+            lst)))
+
+;;; file-content-hash : String → String
+;;; Content hash via git hash-object. Memoized.
+;;; Uses temp file for subprocess output capture (Chez has no popen).
+(define (file-content-hash file)
+  (cond
+   [(hashtable-ref *hash-memo* file #f) => values]
+   [else
+    (let ([hash
+           (if (file-exists? file)
+               (let* ([tmp (string-append *cache-dir* "/.hash-tmp")]
+                      [cmd (string-append "git hash-object "
+                                          file " > " tmp " 2>/dev/null")]
+                      [_ (system cmd)])
+                 (guard (e [else "missing"])
+                   (call-with-input-file tmp
+                     (lambda (p)
+                       (let ([line (get-line p)])
+                         (if (eof-object? line) "missing" line))))))
+               "missing")])
+      (hashtable-set! *hash-memo* file hash)
+      hash)]))
+
+;;; compute-fingerprint : (List String) → String
+;;; Sort dep files, concatenate their content hashes, produce compact key.
+(define (compute-fingerprint files)
+  (let* ([sorted (sort string<? files)]
+         [hashes (map file-content-hash sorted)]
+         [combined (apply string-append hashes)])
+    (number->string (equal-hash combined))))
+
+;;; current-branch : → String
+(define (current-branch)
+  (let* ([tmp (string-append *cache-dir* "/.branch-tmp")]
+         [_ (system (string-append "git rev-parse --abbrev-ref HEAD > " tmp " 2>/dev/null"))]
+         [branch (guard (e [else "unknown"])
+                   (call-with-input-file tmp
+                     (lambda (p)
+                       (let ([line (get-line p)])
+                         (if (eof-object? line) "unknown" line)))))])
+    branch))
+
+;;; load-test-cache : → Alist
+;;; Returns cached test data or '() on any failure.
+(define (load-test-cache)
+  (guard (e [else '()])
+    (if (file-exists? *cache-file*)
+        (let ([data (call-with-input-file *cache-file* read)])
+          (if (and (pair? data)
+                   (assq 'version data)
+                   (= (cdr (assq 'version data)) *cache-version*)
+                   (assq 'branch data)
+                   (string=? (cdr (assq 'branch data)) (current-branch))
+                   (assq 'tests data))
+              (cdr (assq 'tests data))
+              '()))
+        '())))
+
+;;; save-test-cache! : Alist → Void
+;;; Write cache manifest to disk.
+(define (save-test-cache! tests)
+  (unless (file-exists? *cache-dir*)
+    (system (string-append "mkdir -p " *cache-dir*)))
+  (call-with-output-file *cache-file*
+    (lambda (p)
+      (write `((version . ,*cache-version*)
+               (branch . ,(current-branch))
+               (tests . ,tests))
+             p)
+      (newline p))
+    'replace))
+
+;;; test-cached? : String → Boolean
+;;; Check if test's fingerprint matches cached value.
+(define (test-cached? full-path)
+  (let ([entry (assoc full-path *cached-tests*)])
+    (if entry
+        (let* ([cached-fp (cdr (assq 'fingerprint (cdr entry)))]
+               [cached-deps (cdr (assq 'deps (cdr entry)))]
+               ;; Check all deps still exist
+               [deps-exist (for-all file-exists? cached-deps)]
+               [current-fp (if deps-exist
+                               (compute-fingerprint (cons full-path cached-deps))
+                               "invalid")])
+          (string=? cached-fp current-fp))
+        #f)))
+
+;;; cache-test-result! : String × Symbol → Void
+;;; On pass: scan deps, compute fingerprint, store.
+;;; On fail: remove from cache.
+(define (cache-test-result! full-path status)
+  (cond
+   [(eq? status 'passed)
+    (let* ([deps (scan-deps full-path)]
+           [fp (compute-fingerprint (cons full-path deps))])
+      (set! *cached-tests*
+            (cons (cons full-path
+                        `((fingerprint . ,fp)
+                          (deps . ,deps)))
+                  (remove (lambda (e) (string=? (car e) full-path))
+                          *cached-tests*))))]
+   [else
+    (set! *cached-tests*
+          (remove (lambda (e) (string=? (car e) full-path))
+                  *cached-tests*))]))
+
+;;; ====
 ;;; Test Registry
 ;;; ====
 
@@ -69,23 +255,35 @@
 ;;; run-test-file : String x String -> Void
 ;;; Run a test file as a subprocess (isolates exit calls).
 ;;; Uses scheme --script which properly handles test file exits.
+;;; In incremental mode, skips tests whose fingerprint matches cache.
 (define (run-test-file base-dir filename)
-  (let* ([start (current-time-ms)]
-         [path (string-append base-dir "/" filename)]
-         [cmd (string-append "scheme --script " path " 2>&1")])
-    (display (string-append "  " filename " "))
-    (flush-output-port)
-    (let* ([exit-code (system cmd)]
-           [duration (- (current-time-ms) start)])
-      (if (= exit-code 0)
-          (begin
-            (record-result! filename 'passed duration)
-            (display (string-append "(" (format-duration-ms duration) ") ok"))
-            (newline))
-          (begin
-            (record-result! filename 'failed duration (string-append "exit code " (number->string exit-code)))
-            (display (string-append "FAILED (" (format-duration-ms duration) ")"))
-            (newline))))))
+  (let* ([path (string-append base-dir "/" filename)])
+    (if (and *incremental-mode* (test-cached? path))
+        (begin
+          (set! *skipped-count* (+ *skipped-count* 1))
+          (record-result! filename 'passed 0)
+          (display (string-append "  " filename " (cached) ok"))
+          (newline))
+        (let* ([start (current-time-ms)]
+               [cmd (string-append "scheme --script " path " 2>&1")])
+          (display (string-append "  " filename " "))
+          (flush-output-port)
+          (let* ([exit-code (system cmd)]
+                 [duration (- (current-time-ms) start)])
+            (if (= exit-code 0)
+                (begin
+                  (record-result! filename 'passed duration)
+                  (when *incremental-mode*
+                    (cache-test-result! path 'passed))
+                  (display (string-append "(" (format-duration-ms duration) ") ok"))
+                  (newline))
+                (begin
+                  (record-result! filename 'failed duration
+                                  (string-append "exit code " (number->string exit-code)))
+                  (when *incremental-mode*
+                    (cache-test-result! path 'failed))
+                  (display (string-append "FAILED (" (format-duration-ms duration) ")"))
+                  (newline))))))))
 
 ;;; ====
 ;;; Test Categories
@@ -544,6 +742,9 @@
 "))
         (display (string-append "  Failed:      " (number->string failed) "
 "))
+        (when (> *skipped-count* 0)
+          (display (string-append "  Cached:      " (number->string *skipped-count*) "
+")))
         (display (string-append "  Duration:    " (format-duration-ms duration) "
 
 "))
@@ -589,9 +790,31 @@
 ;;; Main Entry Point
 ;;; ====
 
+(define (run-all-categories)
+  (run-test-category "CORE TESTS" "core" core-tests)
+  (display "
+")
+  (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
+  (display "
+")
+  (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
+  (display "
+")
+  (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests))
+
 (define (main args)
-  (let ([mode (if (null? args) 'all (string->symbol (car args)))])
-       
+  ;; Parse args: support "incremental", "incremental quick", etc.
+  (let* ([has-incremental (and (member "incremental" args) #t)]
+         [other-args (filter (lambda (a) (not (string=? a "incremental"))) args)]
+         [mode (if (null? other-args) 'all (string->symbol (car other-args)))])
+
+       ;; Enable incremental mode
+       (when has-incremental
+         (set! *incremental-mode* #t)
+         (unless (file-exists? *cache-dir*)
+           (system (string-append "mkdir -p " *cache-dir*)))
+         (set! *cached-tests* (load-test-cache)))
+
        (display "
 ")
        (display "╔══════════════════════════════════════════════════════════════╗
@@ -603,37 +826,29 @@
        (display (string-append "
 Working directory: " (current-directory) "
 "))
-       (display (string-append "Mode: " (symbol->string mode) "
+       (display (string-append "Mode: " (symbol->string mode)
+                               (if *incremental-mode* " (incremental)" "") "
 
 "))
-       
+
        (set! total-start-time (current-time-ms))
-       
+
        (case mode
              [(all)
-              (run-test-category "CORE TESTS" "core" core-tests)
-              (display "
-")
-              (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
-              (display "
-")
-              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
-              (display "
-")
-              (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests)]
-             
+              (run-all-categories)]
+
              [(core)
               (run-test-category "CORE TESTS" "core" core-tests)]
-             
+
              [(lattice)
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)]
-             
+
              [(boundary)
               (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
               (display "
 ")
               (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests)]
-             
+
              [(quick)
               (let ([quick-core (filter (lambda (t) (not (member t slow-tests))) core-tests)])
                    (run-test-category "CORE TESTS (quick)" "core" quick-core))
@@ -643,14 +858,18 @@ Working directory: " (current-directory) "
               (display "
 ")
               (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
-             
+
              [else
               (display (string-append "Unknown mode: " (symbol->string mode) "
 "))
-              (display "Valid modes: all, quick, core, lattice, boundary
+              (display "Valid modes: all, quick, core, lattice, boundary, incremental
 ")
               (exit 1)])
-       
+
+       ;; Save cache after all tests complete
+       (when *incremental-mode*
+         (save-test-cache! *cached-tests*))
+
        (print-final-summary)))
 
 ;;; Run with command line args
