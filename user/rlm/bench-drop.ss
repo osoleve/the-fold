@@ -116,11 +116,16 @@
           (trajectory . ,traj))))))
 
 (define (run-drop-suite!)
-  (let* ([provider (rlm-provider-vllm "Qwen/Qwen3-32B-FP8" 8000)]
+  (let* ([model-id (or (getenv "RLM_MODEL")
+                       "Qwen/Qwen3-Next-80B-A3B-Instruct-FP8")]
+         [port (or (and (getenv "RLM_PORT")
+                        (string->number (getenv "RLM_PORT")))
+                   8000)]
+         [provider (rlm-provider-vllm model-id port)]
          [samples (load-drop-samples "user/rlm/data/drop-sample.sexp")]
          [n (length samples)])
 
-    (display "DROP Benchmark (Qwen3-32B)\n")
+    (display (format "DROP Benchmark (~a)\n" model-id))
     (display "==========================\n")
     (display (format "Problems: ~a (numeric answers only)\n\n" n))
     (flush-output-port)
@@ -147,7 +152,7 @@
                 (lambda (port)
                   (pretty-print
                     `(benchmark-results
-                       (model "Qwen/Qwen3-32B-FP8")
+                       (model ,model-id)
                        (mode "drop")
                        (timestamp ,ts)
                        (n-problems ,n)

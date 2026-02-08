@@ -96,11 +96,16 @@
           (trajectory . ,traj))))))
 
 (define (run-gsm8k-suite!)
-  (let* ([provider (rlm-provider-vllm "Qwen/Qwen3-32B-FP8" 8000)]
+  (let* ([model-id (or (getenv "RLM_MODEL")
+                       "Qwen/Qwen3-Next-80B-A3B-Instruct-FP8")]
+         [port (or (and (getenv "RLM_PORT")
+                        (string->number (getenv "RLM_PORT")))
+                   8000)]
+         [provider (rlm-provider-vllm model-id port)]
          [samples (load-gsm8k-samples "user/rlm/data/gsm8k-sample.sexp")]
          [n (length samples)])
 
-    (display "GSM8K Benchmark (Qwen3-32B)\n")
+    (display (format "GSM8K Benchmark (~a)\n" model-id))
     (display "===========================\n")
     (display (format "Problems: ~a\n\n" n))
     (flush-output-port)
@@ -127,7 +132,7 @@
                 (lambda (port)
                   (pretty-print
                     `(benchmark-results
-                       (model "Qwen/Qwen3-32B-FP8")
+                       (model ,model-id)
                        (mode "gsm8k")
                        (timestamp ,ts)
                        (n-problems ,n)
