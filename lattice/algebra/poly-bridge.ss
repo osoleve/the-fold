@@ -50,11 +50,10 @@
 (doc 'note "We implement a simple version for algebra polynomials")
 
 (doc 'section 'standard-rational-field)
-(doc Q-field 'export #t)
+(doc 'type '(define Q-field Field))
+(doc 'description "The standard field of rational numbers for exact arithmetic")
+(doc 'export #t)
 (define Q-field
-  (doc 'type 'Field)
-  (doc 'description "The standard field of rational numbers for exact arithmetic")
-  (doc 'description "Use this as the default field for most polynomial operations")
   (make-field
    '()                                    ; Infinite field
    +                                      ; Addition

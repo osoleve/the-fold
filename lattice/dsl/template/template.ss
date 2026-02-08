@@ -46,12 +46,12 @@ Once all holes are filled, the template compiles to an S-expression")
 ;;; Returns unique holes in order of first occurrence (left-to-right).
 (define (find-holes expr)
   (doc 'export #t)
-  (define (collect expr)
-    (cond
-      [(hole? expr) (list expr)]
-      [(pair? expr) (append (collect (car expr)) (collect (cdr expr)))]
-      [else '()]))
-  (remove-duplicates (collect expr)))
+  (letrec ([collect (lambda (expr)
+                      (cond
+                        [(hole? expr) (list expr)]
+                        [(pair? expr) (append (collect (car expr)) (collect (cdr expr)))]
+                        [else '()]))])
+    (remove-duplicates (collect expr))))
 
 ;;; ====
 ;;; String Utilities (needed before compilation)

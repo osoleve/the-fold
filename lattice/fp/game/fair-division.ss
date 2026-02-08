@@ -196,11 +196,10 @@
 (doc 'section 'cut-and-choose)
 (doc 'note "The classic protocol for 2-player fair division: (1) Player 0 (cutter) divides cake into two equal-value pieces, (2) Player 1 (chooser) picks their preferred piece, (3) Player 0 gets the remaining piece. Properties: Proportional, envy-free (for chooser), simple")
 
-(define (find-cut-point c i target fuel)
-  (doc 'type '(-> Cake Nat Real Real))
 ;;; Find point x where player i values [0,x] at target value.
 ;;; Uses binary search.
 (define (find-cut-point c i target fuel)
+  (doc 'type '(-> Cake Nat Real Real))
   (let* ([total (cake-total-value c i)])
     (if (<= target 0)
         0
@@ -251,11 +250,10 @@
 (doc 'section 'dubins-spanier)
 (doc 'note "For n players, achieves proportional division: (1) A knife moves continuously from left to right, (2) First player to say stop gets the piece [0, x], (3) Recurse with n-1 players on remaining cake [x, 1]. Properties: Proportional (but NOT envy-free for n > 2)")
 
-(define (dubins-spanier c fuel)
-  (doc 'type '(-> Cake Nat Division))
 ;;; Perform Dubins-Spanier moving knife protocol.
 ;;; fuel bounds search iterations.
 (define (dubins-spanier c fuel)
+  (doc 'type '(-> Cake Nat Division))
   (let* ([n (cake-players c)]
          [div (make-division n)])
     (dubins-spanier-recurse c div (iota n) 0 1 n fuel)
@@ -330,11 +328,10 @@
 (doc 'note "For exactly 3 players, achieves envy-free division: (1) Player A divides cake into 3 equal pieces (by their valuation), (2) Player B trims largest piece to tie for largest (trimmings set aside), (3) Player C picks first, then B (must take trimmed if didn't pick it), then A, (4) Trimmings divided by similar process. This is the first bounded envy-free protocol for 3 players (1960s)")
 (doc 'fixme "SIMPLIFIED implementation. The full protocol requires a complex sub-routine for dividing trimmings that recursively ensures envy-freeness. Our simplified version assigns trimmings heuristically, which guarantees proportionality but may not achieve strict envy-freeness in adversarial cases with extreme opposing valuations")
 
-(define (selfridge-conway c fuel)
-  (doc 'type '(-> Cake Nat Division))
 ;;; 3-player division using simplified Selfridge-Conway protocol.
 ;;; Guarantees proportionality; envy-freeness is approximate.
 (define (selfridge-conway c fuel)
+  (doc 'type '(-> Cake Nat Division))
   (if (not (= 3 (cake-players c)))
       (error 'selfridge-conway "requires exactly 3 players")
       (let* ([div (make-division 3)]

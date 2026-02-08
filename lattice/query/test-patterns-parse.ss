@@ -3,6 +3,7 @@
 ;;; Run with: scheme --script core/query/test-patterns-parse.ss
 ;;; Or load in REPL: (load "lattice/query/patterns-parse.ss") (load "lattice/query/test-patterns-parse.ss")
 
+(load "core/base/prelude.ss")
 (load "lattice/query/patterns-parse.ss")
 
 ;;; ====

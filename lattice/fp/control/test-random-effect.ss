@@ -175,7 +175,11 @@
 ;;; ====
 
 (test-group random-practical
-            ;; Monte Carlo estimation of pi
+            ;; Helpers (defines must precede define-test in R6RS)
+            (define (make-list n val)
+              (if (<= n 0) '()
+                  (cons val (make-list (- n 1) val))))
+
             (define (estimate-pi n)
               (eff-bind (random-list-eff n
                                          (eff-bind random-uniform-eff
@@ -188,14 +192,7 @@
                                                                                   0)))))))
                         (lambda (hits)
                                 (eff-return (* 4.0 (/ (fold-left + 0 hits) n))))))
-            
-            (define-test monte-carlo-pi-test
-              ;; Pi should be roughly 3.14 with enough samples
-              (let ([pi-est (run-random 42 (estimate-pi 1000))])
-                   ;; Should be between 2.5 and 3.8 (loose bounds for test)
-                   (assert-true (and (> pi-est 2.5) (< pi-est 3.8)))))
-            
-            ;; Random walk
+
             (define (random-walk steps)
               (eff-fold (lambda (pos _)
                                 (eff-bind (random-choice-eff '(-1 1))
@@ -203,18 +200,7 @@
                                                   (eff-return (+ pos step)))))
                         0
                         (make-list steps '())))
-            
-            ;; Helper: make-list n val
-            (define (make-list n val)
-              (if (<= n 0) '()
-                  (cons val (make-list (- n 1) val))))
-            
-            (define-test random-walk-deterministic-test
-              (let ([r1 (run-random 42 (random-walk 100))]
-                    [r2 (run-random 42 (random-walk 100))])
-                   (assert-equal r1 r2)))
-            
-            ;; Stochastic simulation: simple coin flip game
+
             (define (coin-flip-game n-flips)
               (eff-fold (lambda (score _)
                                 (eff-bind random-bool-eff
@@ -224,10 +210,18 @@
                                                                   (- score 1))))))
                         0
                         (make-list n-flips '())))
-            
+
+            (define-test monte-carlo-pi-test
+              (let ([pi-est (run-random 42 (estimate-pi 1000))])
+                   (assert-true (and (> pi-est 2.5) (< pi-est 3.8)))))
+
+            (define-test random-walk-deterministic-test
+              (let ([r1 (run-random 42 (random-walk 100))]
+                    [r2 (run-random 42 (random-walk 100))])
+                   (assert-equal r1 r2)))
+
             (define-test coin-flip-game-test
               (let ([score (run-random 42 (coin-flip-game 100))])
-                   ;; Score should be between -100 and 100
                    (assert-true (and (>= score -100) (<= score 100))))))
 
 ;;; ====

@@ -13,6 +13,13 @@
 (define (approx= a b eps)
   (< (abs (- a b)) eps))
 
+;;; drop-while: used by tests but not provided by obj-loader
+(define (drop-while pred lst)
+  (cond
+    [(null? lst) '()]
+    [(pred (car lst)) (drop-while pred (cdr lst))]
+    [else lst]))
+
 ;;; Helper for approximate vector equality
 (define (vec3-approx= v1 v2 eps)
   (and (approx= (vec3-x v1) (vec3-x v2) eps)

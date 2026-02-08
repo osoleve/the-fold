@@ -65,12 +65,12 @@
   (doc 'param 'size "Half-size of root node")
   (doc 'param 'max-depth "Maximum subdivision depth")
   (doc 'param 'max-leaf-size "Maximum triangles per leaf")
-  (define (build-recursive tris ctr sz depth)
+  (let build-recursive ([tris triangles] [ctr center] [sz size] [depth 0])
     (cond
      ;; Base case: max depth or few enough triangles
      [(or (>= depth max-depth) (<= (length tris) max-leaf-size))
       (octree-leaf ctr sz tris)]
-     
+
      ;; Recursive case: subdivide into 8 octants
      [else
       (let* ([half-size (* sz 0.5)]
@@ -88,9 +88,8 @@
                  (if (>= total (* 8 (length tris)))
                      (octree-leaf ctr sz tris)
                      ;; Keep internal node - partitioning reduced search space
-                     (octree-node ctr sz (list->vector children)))))]))
+                     (octree-node ctr sz (list->vector children)))))])))
 
-  (build-recursive triangles center size 0))
 
 (define (all-children-leaves? children)
   (doc 'type '(-> (List Octree) Bool))
@@ -172,15 +171,15 @@
   (doc 'export #t)
   (doc 'type '(-> Octree Ray3 (Maybe (Pair Triangle3 Number))))
   (doc 'description "Find closest triangle intersection along ray using octree")
-  (define (traverse node closest-t closest-tri)
+  (let traverse ([node octree] [closest-t #f] [closest-tri #f])
     (cond
      [(not node)
       (if closest-tri (list closest-tri closest-t) #f)]
-     
+
      ;; Check if ray intersects node's bbox
      [(not (ray-intersects-octant? ray (octree-center node) (octree-size node)))
       (if closest-tri (list closest-tri closest-t) #f)]
-     
+
      ;; Leaf node: test all triangles
      [(octree-leaf? node)
       (let loop ([tris (octree-primitives node)]
@@ -193,7 +192,7 @@
                      (if (and t (or (not best-t) (< t best-t)))
                          (loop (cdr tris) t tri)
                          (loop (cdr tris) best-t best-tri)))))]
-     
+
      ;; Internal node: traverse children
      [(octree-node? node)
       (let ([children (vector->list (octree-children node))])
@@ -203,10 +202,8 @@
                                    (or (traverse child t tri) result)))
                       (if closest-tri (list closest-tri closest-t) #f)
                       children))]
-     
-     [else (if closest-tri (list closest-tri closest-t) #f)]))
 
-  (traverse octree #f #f))
+     [else (if closest-tri (list closest-tri closest-t) #f)])))
 
 (define (ray-intersects-octant? ray center size)
   (doc 'export #t)

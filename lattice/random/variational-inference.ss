@@ -173,7 +173,7 @@
         (map (lambda (mu-i L-row)
                      (+ mu-i
                         (fold-left + 0
-                                   (map * L-row (take (length L-row) epsilons))))))
+                                   (map * L-row (take (length L-row) epsilons)))))
              means L)))
 
 ;; take provided by prelude

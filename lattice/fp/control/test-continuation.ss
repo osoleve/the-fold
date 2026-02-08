@@ -235,23 +235,29 @@
 ;;; ====
 
 (test-group trampoline
+            ;; Helpers (defines must precede define-test in R6RS)
+            (define (tramp-fact n acc)
+              (if (= n 0)
+                  (make-done acc)
+                  (make-bounce (lambda () (tramp-fact (- n 1) (* n acc))))))
+
             (define-test done-test
               (let ([t (make-done 42)])
                    (assert-true (done? t))
                    (assert-false (bounce? t))
                    (assert-equal 42 (done-value t))))
-            
+
             (define-test bounce-test
               (let ([t (make-bounce (lambda () (make-done 42)))])
                    (assert-true (bounce? t))
                    (assert-false (done? t))))
-            
+
             (define-test trampoline-done-test
               (assert-equal 42 (trampoline (make-done 42))))
-            
+
             (define-test trampoline-bounce-test
               (assert-equal 42 (trampoline (make-bounce (lambda () (make-done 42))))))
-            
+
             (define-test trampoline-multi-bounce-test
               (let ([t (make-bounce
                         (lambda ()
@@ -260,13 +266,7 @@
                                          (make-bounce
                                           (lambda () (make-done 42)))))))])
                    (assert-equal 42 (trampoline t))))
-            
-            ;; Trampolined factorial
-            (define (tramp-fact n acc)
-              (if (= n 0)
-                  (make-done acc)
-                  (make-bounce (lambda () (tramp-fact (- n 1) (* n acc))))))
-            
+
             (define-test trampoline-factorial-test
               (assert-equal 1 (trampoline (tramp-fact 0 1)))
               (assert-equal 1 (trampoline (tramp-fact 1 1)))
@@ -367,17 +367,7 @@
                                               (cont-return acc)))
                                   nothing
                                   lst))))
-            
-            (define-test find-first-found-test
-              (let ([result (find-first (lambda (x) (> x 3)) '(1 2 3 4 5))])
-                   (assert-true (just? result))
-                   (assert-equal 4 (from-just result))))
-            
-            (define-test find-first-not-found-test
-              (let ([result (find-first (lambda (x) (> x 10)) '(1 2 3 4 5))])
-                   (assert-true (nothing? result))))
-            
-            ;; Sum until negative
+
             (define (sum-until-negative lst)
               (with-early-return
                (lambda (stop)
@@ -387,13 +377,7 @@
                                               (cont-return (+ acc x))))
                                   0
                                   lst))))
-            
-            (define-test sum-until-negative-test
-              (assert-equal 6 (sum-until-negative '(1 2 3 -1 10 20)))
-              (assert-equal 15 (sum-until-negative '(1 2 3 4 5)))
-              (assert-equal 0 (sum-until-negative '(-1 2 3))))
-            
-            ;; Validate all with early failure using fold
+
             (define (validate-all pred lst)
               (with-early-return
                (lambda (fail)
@@ -403,10 +387,24 @@
                                               (fail #f)))
                                   #t
                                   lst))))
-            
+
+            (define-test find-first-found-test
+              (let ([result (find-first (lambda (x) (> x 3)) '(1 2 3 4 5))])
+                   (assert-true (just? result))
+                   (assert-equal 4 (from-just result))))
+
+            (define-test find-first-not-found-test
+              (let ([result (find-first (lambda (x) (> x 10)) '(1 2 3 4 5))])
+                   (assert-true (nothing? result))))
+
+            (define-test sum-until-negative-test
+              (assert-equal 6 (sum-until-negative '(1 2 3 -1 10 20)))
+              (assert-equal 15 (sum-until-negative '(1 2 3 4 5)))
+              (assert-equal 0 (sum-until-negative '(-1 2 3))))
+
             (define-test validate-all-pass-test
               (assert-true (validate-all positive? '(1 2 3 4 5))))
-            
+
             (define-test validate-all-fail-test
               (assert-false (validate-all positive? '(1 2 -3 4 5)))))
 

@@ -10,8 +10,8 @@
 (doc 'section 'marching-cubes-configuration)
 (doc 'note "Edge table: which edges are intersected for each cube configuration; Edges numbered 0-11 (4 on bottom face, 4 on top face, 4 vertical)")
 
+(doc 'export #t)
 (define edge-table
-  (doc 'export #t)
   '#(#x0   #x109 #x203 #x30a #x406 #x50f #x605 #x70c
      #x80c #x905 #xa0f #xb06 #xc0a #xd03 #xe09 #xf00
      #x190 #x99  #x393 #x29a #x596 #x49f #x795 #x69c
@@ -47,8 +47,8 @@
 
 (doc 'note "Triangle table: simplified version (maps cube config to triangle count); full implementation would map to specific triangle configurations")
 
+(doc 'export #t)
 (define tri-table
-  (doc 'export #t)
   '#(0 1 1 2 1 2 2 3 1 2 2 3 2 3 3 2
      1 2 2 3 2 3 3 4 2 3 3 4 3 4 4 3
      1 2 2 3 2 3 3 4 2 3 3 4 3 4 4 3

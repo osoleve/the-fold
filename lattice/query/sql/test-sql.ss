@@ -5,11 +5,7 @@
 ;;; Usage:
 ;;;   scheme --script playpen/sql/test-sql.ss
 
-;;; Set up source directories for loading
-(let ([stitches-path (string-append (current-directory) "/fabric/stitches")])
-     (unless (member stitches-path (source-directories))
-             (source-directories (cons stitches-path (source-directories)))))
-
+(load "core/base/prelude.ss")
 (load "lattice/query/sql/sql.ss")
 
 ;;; ====

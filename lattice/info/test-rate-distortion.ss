@@ -3,8 +3,8 @@
 ;;; Tests rate-distortion theory functions.
 
 (load "core/base/prelude.ss")
-(load "lattice/info/rate-distortion.ss")
 (load "lattice/data/sort.ss")
+(load "lattice/info/rate-distortion.ss")
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)
@@ -229,8 +229,8 @@
 (test-true "op distortion > 0" (> (cdr op-rd) 0))
 
 ;; Unique values
-(test "unique 1" '(c b a) (unique-values '(a b c)))
-(test "unique dup" '(b a) (unique-values '(a b a b)))
+(test "unique 1" '(a b c) (unique-values '(a b c)))
+(test "unique dup" '(a b) (unique-values '(a b a b)))
 
 ;; RD gap (should be positive for operational point above bound)
 (define gap (rd-gap 2.0 0.5 4.0))

@@ -809,23 +809,17 @@
 ;;; ====
 
 (test-group practical-examples
-            ;; Stateful computation: factorial
+            ;; Helpers (all defines must precede define-test in R6RS)
+            (define (range lo hi)
+              (if (> lo hi) '()
+                  (cons lo (range (+ lo 1) hi))))
+
             (define (eff-factorial n)
               (eff-fold (lambda (acc x)
                                 (eff-return (* acc x)))
                         1
                         (range 1 n)))
-            
-            ;; Helper: range [lo, hi]
-            (define (range lo hi)
-              (if (> lo hi) '()
-                  (cons lo (range (+ lo 1) hi))))
-            
-            (define-test factorial-test
-              (let ([result (run-state 0 (eff-factorial 5))])
-                   (assert-equal 120 (car result))))
-            
-            ;; Non-deterministic search: find pairs summing to n
+
             (define (pairs-summing-to n max)
               (eff-bind (nondet-choose (range 1 max))
                         (lambda (x)
@@ -834,30 +828,12 @@
                                                   (if (= (+ x y) n)
                                                       (eff-return (list x y))
                                                       nondet-fail))))))
-            
-            (define-test pairs-summing-test
-              (let ([result (run-nondet (pairs-summing-to 10 8))])
-                   (assert-true (not (not (member '(2 8) result))))
-                   (assert-true (not (not (member '(3 7) result))))
-                   (assert-true (not (not (member '(4 6) result))))))
-            
-            ;; Exception in computation
+
             (define (safe-divide a b)
               (if (= b 0)
                   (eff-throw "division by zero")
                   (eff-return (/ a b))))
-            
-            (define-test safe-divide-success-test
-              (let ([result (run-exception (safe-divide 10 2))])
-                   (assert-true (right? result))
-                   (assert-equal 5 (from-right result))))
-            
-            (define-test safe-divide-failure-test
-              (let ([result (run-exception (safe-divide 10 0))])
-                   (assert-true (left? result))
-                   (assert-equal "division by zero" (from-left result))))
-            
-            ;; Pythonic-style with guard
+
             (define (pythagorean-triples limit)
               (eff-bind (nondet-choose (range 1 limit))
                         (lambda (a)
@@ -868,7 +844,27 @@
                                                                     (eff-bind (nondet-guard (= (+ (* a a) (* b b)) (* c c)))
                                                                               (lambda (_)
                                                                                       (eff-return (list a b c)))))))))))
-            
+
+            (define-test factorial-test
+              (let ([result (run-state 0 (eff-factorial 5))])
+                   (assert-equal 120 (car result))))
+
+            (define-test pairs-summing-test
+              (let ([result (run-nondet (pairs-summing-to 10 8))])
+                   (assert-true (not (not (member '(2 8) result))))
+                   (assert-true (not (not (member '(3 7) result))))
+                   (assert-true (not (not (member '(4 6) result))))))
+
+            (define-test safe-divide-success-test
+              (let ([result (run-exception (safe-divide 10 2))])
+                   (assert-true (right? result))
+                   (assert-equal 5 (from-right result))))
+
+            (define-test safe-divide-failure-test
+              (let ([result (run-exception (safe-divide 10 0))])
+                   (assert-true (left? result))
+                   (assert-equal "division by zero" (from-left result))))
+
             (define-test pythagorean-triples-test
               (let ([result (run-nondet (pythagorean-triples 15))])
                    (assert-true (not (not (member '(3 4 5) result))))

@@ -168,6 +168,7 @@
     "algebra/test-field-ext.ss"
     "algebra/test-module.ss"
     "algebra/test-group.ss"
+    "algebra/test-poly-bridge.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
     ;; Number Theory
@@ -203,6 +204,7 @@
     "info/test-channel-capacity.ss"
     "info/test-epiplexity.ss"
     "info/test-statistical-measures.ss"
+    "info/test-rate-distortion.ss"
     ;; Random
     "random/test-prng.ss"
     "random/test-random.ss"
@@ -210,6 +212,7 @@
     "random/test-probability.ss"
     "random/test-monte-carlo.ss"
     "random/test-bayesian.ss"
+    "random/test-variational-inference.ss"
     ;; FP Core
     "fp/test-protocol.ss"
     "fp/test-protocol-bundle.ss"
@@ -246,6 +249,8 @@
     "fp/sat/test-maxsat.ss"
     "fp/control/test-free.ss"
     "fp/control/test-state.ss"
+    "fp/control/test-effects.ss"
+    "fp/control/test-continuation.ss"
     "fp/data/test-zipper.ss"
     "fp/data/test-stream.ss"
     "fp/data/test-tree-zipper.ss"
@@ -284,6 +289,7 @@
     "fp/control-systems/test-poly-algebra.ss"
     "fp/control-systems/test-kalman.ss"
     "fp/control-systems/test-hinf-synthesis.ss"
+    "fp/game/test-fair-division.ss"
     "fp/game/test-voting-games.ss"
     "fp/game/test-coop-games.ss"
     "fp/game/test-normal-form.ss"
@@ -317,6 +323,8 @@
     "query/test-query-macro.ss"
     "query/test-query-dsl.ss"
     "query/test-aho-corasick.ss"
+    "query/test-patterns-parse.ss"
+    "query/test-query-patterns.ss"
     "query/sql/test-ast-zipper.ss"
     ;; Autodiff
     "autodiff/test-traced-optics.ss"
@@ -362,6 +370,9 @@
     "geometry/test-mesh-sdf.ss"
     "geometry/test-geometry-optics.ss"
     "geometry/test-ascii-render.ss"
+    "geometry/test-obj-loader.ss"
+    "geometry/test-octree.ss"
+    "geometry/test-marching-cubes.ss"
     ;; DSL
     "dsl/test-tagless.ss"
     "dsl/test-staging.ss"
@@ -370,6 +381,8 @@
     "dsl/test-reader.ss"
     "dsl/test-compose.ss"
     "dsl/test-partial-eval.ss"
+    "dsl/template/test-template.ss"
+    "dsl/template/test-template-zipper.ss"
     "dsl/chronicle/test-chronicle.ss"
     "dsl/chronicle/test-chronicle-parser.ss"
     "dsl/chronicle/test-tagless-chronicle.ss"
