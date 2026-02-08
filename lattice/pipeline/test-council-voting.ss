@@ -211,6 +211,4 @@
 
 )
 
-(doc 'section 'run-tests)
-
-(run-all-tests)
+(run-all-tests-and-exit)

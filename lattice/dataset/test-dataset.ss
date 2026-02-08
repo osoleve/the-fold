@@ -308,5 +308,4 @@
 ;;; Run Tests
 ;;; ============================================================
 
-(display "\n=== Dataset SDK Tests ===\n\n")
-(run-all-tests)
+(run-all-tests-and-exit)

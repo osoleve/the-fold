@@ -163,10 +163,19 @@
     "physics/diff/test-rollout.ss"
     ;; Topology
     "topology/test-homology.ss"
+    ;; Tiles
+    "tiles/test-tiles.ss"
+    "tiles/test-topology-analysis.ss"
+    ;; Simulation
+    "sim/test-simulation-stream.ss"
     ;; Meta
     "meta/test-meta.ss"
-    ;; Pipeline (RLM v2)
-    "pipeline/test-rlm2.ss"))
+    ;; Pipeline
+    "pipeline/test-stage-context.ss"
+    "pipeline/test-rlm2.ss"
+    ;; NOTE: dataset/test-dataset.ss and pipeline/test-council-voting.ss
+    ;; excluded pending sort-shadowing fix (fold-zxw4/fold-zxw5)
+    ))
 
 ;;; Boundary tests (validated, stable)
 (define boundary-tests

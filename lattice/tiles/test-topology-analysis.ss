@@ -373,4 +373,4 @@
       ;; Should find bridges at the narrow corridor
       (assert-true (> (length critical) 0)))))
 
-(run-all-tests)
+(run-all-tests-and-exit)

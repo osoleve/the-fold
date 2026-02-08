@@ -502,10 +502,4 @@
 
 (display "\n")
 (display "====\n")
-(printf "Tests passed: ~a\n" *tests-passed*)
-(printf "Tests failed: ~a\n" *tests-failed*)
-(printf "Total tests:  ~a\n" *tests-run*)
-
-(if (= *tests-failed* 0)
-    (display "\n[SUCCESS] All simulation stream tests passed.\n")
-    (display "\n[FAILURE] Some simulation stream tests failed.\n"))
+(run-all-tests-and-exit)
