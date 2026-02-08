@@ -2,7 +2,7 @@
 ;; Spinning Lorenz Attractor Animation
 ;; Run with: scheme --script user/demos/lorenz-animation.ss
 
-(load "lattice/sim/dynamics/attractor-render.ss")
+(load "boundary/sim/animation-io.ss")
 
 (display "Generating Lorenz attractor trajectory (10000 points)...\n")
 (flush-output-port (current-output-port))

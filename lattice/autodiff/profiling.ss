@@ -5,7 +5,7 @@
 
 (doc 'module 'profiling)
 (doc 'description "Performance Profiling for Autodiff - utilities for profiling and debugging autodiff performance")
-(doc 'layer 'core)
+(doc 'layer 'lattice)
 (doc 'purity 'partial)
 (doc 'note "Provides tape-stats (operation counts and tape size), graph-stats (node/edge counts, depth), time-gradient (measure forward/backward pass time), memory-estimate (estimate memory usage)")
 

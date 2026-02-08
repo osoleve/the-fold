@@ -43,7 +43,7 @@
                 transcritical-normal-form-param hopf-normal-form-param)
    (attractor-render render-attractor render-attractor-colored
                      render-spinning-attractor render-spinning-attractor-colored
-                     play-animation loop-animation demo-lorenz demo-rossler))
+                     demo-lorenz demo-rossler))
 
   (modules
    (simulation-stream "simulation-stream.ss" "Core simulation stream abstraction and utilities")

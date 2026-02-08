@@ -283,28 +283,8 @@
                                                     tilt angle 0)))
             (iota n-frames))))
 
-(define (play-animation frames delay-ms)
-  (doc 'export #t)
-  (doc 'type '(-> (List String) Number Void))
-  (doc 'description "Play animation in terminal with delay between frames")
-  (for-each (lambda (frame)
-                    (display "\x1b;[2J\x1b;[H")  ; clear screen, home cursor
-                    (display frame)
-                    (flush-output-port (current-output-port))
-                    ;; Busy-wait delay (no sleep in R6RS)
-                    (let ([start (current-time)])
-                         (let loop ()
-                              (when (< (- (current-time) start) (/ delay-ms 1000.0))
-                                    (loop)))))
-            frames))
-
-(define (loop-animation frames delay-ms n-loops)
-  (doc 'export #t)
-  (doc 'type '(-> (List String) Number Nat Void))
-  (doc 'description "Loop animation n times")
-  (do ([i 0 (+ i 1)])
-      ((>= i n-loops))
-      (play-animation frames delay-ms)))
+;;; play-animation and loop-animation moved to boundary/sim/animation-io.ss
+;;; (terminal I/O: display, flush, current-time busy-wait)
 
 ;;; ============================================================
 ;;; Section: Quick Demos
