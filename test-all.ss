@@ -147,6 +147,7 @@
     "numeric/test-complex.ss"
     "numeric/test-interpolate.ss"
     "numeric/test-complex-bridge.ss"
+    "numeric/test-spectral-analysis.ss"
     ;; Info Theory
     "info/test-entropy.ss"
     ;; FP Core
@@ -177,6 +178,8 @@
     ;; Tiles
     "tiles/test-tiles.ss"
     "tiles/test-triangle.ss"
+    "tiles/test-visibility.ss"
+    "tiles/test-turns.ss"
     "tiles/test-topology-analysis.ss"
     ;; Simulation
     "sim/test-simulation-stream.ss"
