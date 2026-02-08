@@ -251,6 +251,7 @@
     "fp/control/test-state.ss"
     "fp/control/test-effects.ss"
     "fp/control/test-continuation.ss"
+    "fp/control/test-random-effect.ss"
     "fp/data/test-zipper.ss"
     "fp/data/test-stream.ss"
     "fp/data/test-tree-zipper.ss"

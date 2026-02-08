@@ -160,6 +160,8 @@
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) gen)]
+   [(eff-queue? eff)
+    (run-random-helper gen (eff-normalize eff))]
    [(eff-op? eff)
     (let ([effect (eff-op-effect eff)]
           [k (eff-op-cont eff)])
