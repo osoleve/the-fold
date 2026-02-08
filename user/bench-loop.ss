@@ -1,7 +1,7 @@
 ;;; Benchmark: Loop-heavy computation
 
 (load "core/lang/rust-codegen.ss")
-(load "core/lang/rust-compile.ss")
+(load "boundary/ffi/rust-compile.ss")
 (load "boundary/ffi/rust-loader.ss")
 
 (display "=== Loop Computation Benchmark ===\n\n")

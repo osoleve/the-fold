@@ -207,7 +207,7 @@
                   (scheme->rust-ir '(prim 'lt? (abs x) (abs y))))))
 
 (test-group end-to-end-compilation
-  (load "core/lang/rust-compile.ss")
+  (load "boundary/ffi/rust-compile.ss")
 
   (define-test "Compiling basic add"
     (let ([res (compile-rust-lib "test_codegen"

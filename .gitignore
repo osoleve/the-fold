@@ -75,6 +75,9 @@ logs/*.log
 # Generated training data (regenerate with gen-discovery.ss / sft-synth.ss)
 user/rlm/training/
 
+# Generated QA reviews (post-commit hook output)
+docs/peer-review/
+
 # Visual artifacts
 user/creations/*.gif
 user/creations/*.mp4

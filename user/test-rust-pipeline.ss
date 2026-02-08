@@ -6,7 +6,7 @@
 ;; Load the pipeline
 (display "1. Loading modules...\n")
 (load "core/lang/rust-codegen.ss")
-(load "core/lang/rust-compile.ss")
+(load "boundary/ffi/rust-compile.ss")
 (load "boundary/ffi/rust-loader.ss")
 (display "   Done.\n\n")
 

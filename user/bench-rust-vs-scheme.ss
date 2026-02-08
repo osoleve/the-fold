@@ -1,7 +1,7 @@
 ;;; user/bench-rust-vs-scheme.ss — Benchmark Rust FFI vs Scheme interpreter
 
 (load "core/lang/rust-codegen.ss")
-(load "core/lang/rust-compile.ss")
+(load "boundary/ffi/rust-compile.ss")
 (load "boundary/ffi/rust-loader.ss")
 (load "core/lang/eval.ss")
 

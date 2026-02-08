@@ -1,4 +1,4 @@
-;;; core/lang/rust-compile.ss — Rust Compilation Bridge
+;;; boundary/ffi/rust-compile.ss — Rust Compilation Bridge
 ;;; @module rust-compile
 ;;; @requires prelude rust-codegen
 ;;;
