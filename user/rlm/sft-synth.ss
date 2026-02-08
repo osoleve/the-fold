@@ -112,6 +112,98 @@
     "  (string-contains? s sub)   -- check if s contains sub\n"
     "  (extract-after s marker)   -- get text after marker in s\n\n"))
 
+(define *prompt-inventory*
+  (string-append
+    "You are a Fold/Scheme agent. Your task is to count items from an "
+    "inventory description.\n\n"
+    "The inventory is stored under 'input. It lists items owned by "
+    "various people (\"I\", \"My uncle\", \"My father\", etc.).\n\n"
+    "Lines follow patterns like:\n"
+    "  \"I have 23 reference books (which are bestsellers)\"\n"
+    "  \"I also have 50 sofas(here's how I ended up with 50 of them: ...)\"\n"
+    "  \"My uncle has 99 sofas\"\n\n"
+    "IMPORTANT:\n"
+    "- Only count items belonging to \"I\" (lines with \"I have\" or "
+    "\"I also have\"), NOT items owned by relatives (lines starting with \"My \")\n"
+    "- The number right after \"have\" is the correct count\n"
+    "- Narratives like \"(here's how I ended up with N of them: ...)\" "
+    "explain history; the stated count before the item name is final\n"
+    "- Use map-chunks since the inventory text is large\n\n"
+    "Strategy:\n"
+    "1. (peek 'input 500) to see the format\n"
+    "2. (think ...) to plan your approach and define category word lists\n"
+    "3. (map-chunks 'input expr) to extract matching counts per chunk\n"
+    "4. (store 'total (apply + (retrieve 'map-result))) to sum\n"
+    "5. (submit (retrieve 'total))\n\n"
+    "For map-chunks, the expression must:\n"
+    "  a) Split *chunk* into lines\n"
+    "  b) Filter to only lines containing \"I have \" or \"I also have \" "
+    "(skip lines with \"My \")\n"
+    "  c) Extract the number (first token after \"have \")\n"
+    "  d) Check if the item name matches the target category\n"
+    "  e) Sum the matching counts\n\n"
+    "Available string utilities (already loaded):\n"
+    "  (split-lines s)            -- split string into list of lines\n"
+    "  (string-contains? s sub)   -- check if s contains sub\n"
+    "  (extract-after s marker)   -- get text after marker in s\n"
+    "  (string-index-of s sub)    -- find index of substring\n"
+    "  (substr s start end)       -- substring extraction\n\n"))
+
+(define *prompt-competition-math*
+  (string-append
+    "You are a Fold/Scheme agent. Solve the given math competition problem.\n\n"
+    "Strategy:\n"
+    "1. (think ...) to decompose the problem and plan your approach\n"
+    "2. (eval expr) to compute intermediate results — use Scheme arithmetic\n"
+    "3. (store 'key value) to save intermediate results\n"
+    "4. (submit answer) to report the final numeric answer\n\n"
+    "Available math functions:\n"
+    "  +, -, *, /, modulo, remainder, quotient, expt, sqrt, abs\n"
+    "  floor, ceiling, round, min, max, gcd, lcm\n"
+    "  sin, cos, tan, asin, acos, atan (radians)\n"
+    "  iota, build-list, length, apply, map, filter, fold-left\n\n"
+    "Tips:\n"
+    "- Use exact arithmetic (fractions) when possible: (/ 7 3) stays exact\n"
+    "- For combinatorics: write explicit loops or recursive functions\n"
+    "- Convert to inexact only at the end if needed: (inexact x)\n"
+    "- Report only the numeric answer, not the expression\n\n"))
+
+(define *prompt-ranking*
+  (string-append
+    "You are a Fold/Scheme agent. Your task is to find top records from data.\n\n"
+    "The data is stored under 'input as structured RECORD entries:\n"
+    "  RECORD NNNN | type: <type> | region: <region> | value: <number>\n\n"
+    "Strategy:\n"
+    "1. (peek 'input 500) to understand the data format\n"
+    "2. (map-chunks 'input expr) to extract matching records per chunk\n"
+    "   Return a list of (id . value) pairs per chunk.\n"
+    "3. (store 'all (apply append (retrieve 'map-result))) to merge\n"
+    "4. (eval (list-sort pred (retrieve 'all))) to sort\n"
+    "5. (submit answer) with the top-k results\n\n"
+    "Available utilities:\n"
+    "  (split-lines s)            -- split string into list of lines\n"
+    "  (string-contains? s sub)   -- check if s contains sub\n"
+    "  (extract-after s marker)   -- get text after marker in s\n"
+    "  (list-sort pred lst)       -- sort list by predicate\n"
+    "  (substr s start end)       -- substring extraction\n\n"))
+
+(define *prompt-multi-hop-qa*
+  (string-append
+    "You are a Fold/Scheme agent. Answer a question that requires combining "
+    "information from multiple parts of a passage.\n\n"
+    "The passage is stored under 'input.\n\n"
+    "Strategy:\n"
+    "1. (peek 'input 500) to read the passage start\n"
+    "2. (grep 'input \"keyword\" 10) to find relevant mentions\n"
+    "3. (think ...) to reason about connected facts\n"
+    "4. (store 'key value) to save intermediate facts\n"
+    "5. (submit answer) with the final answer\n\n"
+    "Tips:\n"
+    "- grep returns matching lines; use multiple greps for different entities\n"
+    "- Think step-by-step: identify what facts you need, find each one, combine\n"
+    "- For numeric answers, compute with (eval expr) before submitting\n"
+    "- For text answers, submit a simple string\n\n"))
+
 ;;; ====
 ;;; Scenario Data
 ;;; ====
@@ -1196,6 +1288,580 @@
         (make-step
           '(submit (retrieve 'step-5-result))
           'submit #t "Answer accepted: 14.32")))
+
+    ;; ---- Domain 11: Inventory Counting (Intellect3-style) ----
+
+    ;; 34. Count fruits I own (step-by-step, teaches the full pattern)
+    (make-scenario "synth-inventory-fruits"
+      "How many fruits do I have in total?"
+      *prompt-inventory*
+      '((input chunks 5000) (task text 200))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "I have 23 reference books (which are bestsellers). I also have 31 guavas (which are organic). I also have 20 audi a4 (which are vintage models). My uncle has 99 sofas. My father has 59 graphic novels. My neighbor has 69 apricots. My aunt has 94 cherries. I also have 35 gloves (which are in my closet). My grandfather has 49 audi a4. I also have 78 headphones..."
+          "Inventory format: 'I have N <item>' or 'I also have N <item>' for my items. 'My <relative> has N <item>' for others. Some have narrative tracking in parens.")
+        (make-step
+          '(think "I need to count only MY fruits. Steps: (1) Filter to lines with 'I have'/'I also have' — skip lines with 'My '. (2) Extract the number right after 'have '. (3) Check if the item name matches a fruit. Fruit stems to match: apple, orange, guava, cherr, blackberr, strawberr, grape, mango, kiwi, peach, plum, persimmon, pomegranate, dates, dragonfruit, blueberr, watermelon, nectarine, lemon, lychee, breadfruit, raspberr, apricot, banana, pineapple, jonagold, envy. Use map-chunks to process all chunks.")
+          'think #t #f)
+        (make-step
+          '(plan! (("Peek at inventory format" . done)
+                   ("Plan fruit word list" . done)
+                   ("map-chunks to extract my fruit counts" . pending)
+                   ("Sum across chunks" . pending)
+                   ("Submit total" . pending)))
+          'plan #t "Plan updated: 5 items")
+        (make-step
+          '(map-chunks 'input
+            "(let ([fruits '(\"apple\" \"orange\" \"guava\" \"cherr\" \"blackberr\" \"strawberr\" \"grape\" \"mango\" \"kiwi\" \"peach\" \"plum\" \"persimmon\" \"pomegranate\" \"dates\" \"dragonfruit\" \"blueberr\" \"watermelon\" \"nectarine\" \"lemon\" \"lychee\" \"breadfruit\" \"raspberr\" \"apricot\" \"banana\" \"pineapple\" \"jonagold\" \"envy\")])\n  (apply +\n    (map (lambda (line)\n      (if (and (or (string-contains? line \"I have \")\n                   (string-contains? line \"I also have \"))\n               (not (string-contains? line \"My \")))\n          (let* ([after (or (extract-after line \"I also have \")\n                            (extract-after line \"I have \"))]\n                 [sp (and after (string-index-of after \" \"))]\n                 [num (and sp (> sp 0) (string->number (substr after 0 sp)))])\n            (if (and num (exists (lambda (f) (string-contains? after f)) fruits))\n                num 0))\n          0))\n      (split-lines *chunk*))))")
+          'map-chunks #t "Processed 5 chunks, results stored as 'map-result"
+          "Per-chunk fruit sums extracted. The expression filters ownership (not 'My '), extracts number after 'have', and checks item against fruit word list.")
+        (make-step
+          '(store 'total (apply + (retrieve 'map-result)))
+          'store #t "Stored: 501")
+        (make-step
+          '(submit (retrieve 'total))
+          'submit #t "Answer accepted: 501")))
+
+    ;; 35. Count clothing items I own (teaches different category word list)
+    (make-scenario "synth-inventory-clothing"
+      "What is the total number of clothing items that I have?"
+      *prompt-inventory*
+      '((input chunks 5000) (task text 200))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "I have 78 scarves. I also have 100 shoes. My grandfather has 69 mazda cx-90. I also have 75 ducks. My father has 79 swimsuits. I also have 76 opossums(here's how I ended up with 76 of them: initially I had 99, then I lost 24...). My professor has 61 plantains..."
+          "Items are mixed: clothing, animals, cars, electronics, etc. Need clothing word list.")
+        (make-step
+          '(think "Clothing items to match: t-shirt, shoes, hat, hoodie, sweater, glove, shorts, boots, sneaker, coat, ties, dress, suit, skirt, swimsuit, pajama, socks, jeans, jacket, scarf, scarves, hoodies, coats. I'll use stems that catch plurals. Watch out: 'dressers' is furniture not clothing, but 'dress' stem matches it. Use 'dresses' or check more carefully. Actually 'suit' catches 'suits' and 'swimsuits' — both are clothing so that's fine.")
+          'think #t #f)
+        (make-step
+          '(map-chunks 'input
+            "(let ([clothing '(\"t-shirt\" \"shoes\" \"shoe \" \"hats\" \"hat \" \"hoodie\" \"sweater\" \"glove\" \"shorts\" \"boots\" \"sneaker\" \"coats\" \"coat \" \"ties\" \"tie \" \"dresses\" \"dress \" \"suits\" \"suit \" \"skirt\" \"swimsuit\" \"pajama\" \"socks\" \"sock \" \"jeans\" \"jean \" \"jacket\" \"scarf\" \"scarves\")])\n  (apply +\n    (map (lambda (line)\n      (if (and (or (string-contains? line \"I have \")\n                   (string-contains? line \"I also have \"))\n               (not (string-contains? line \"My \")))\n          (let* ([after (or (extract-after line \"I also have \")\n                            (extract-after line \"I have \"))]\n                 [sp (and after (string-index-of after \" \"))]\n                 [num (and sp (> sp 0) (string->number (substr after 0 sp)))])\n            (if (and num (exists (lambda (f) (string-contains? after f)) clothing))\n                num 0))\n          0))\n      (split-lines *chunk*))))")
+          'map-chunks #t "Processed 5 chunks, results stored as 'map-result"
+          "Per-chunk clothing sums extracted. Word list uses plural forms to avoid matching 'dressers' with 'dress'.")
+        (make-step
+          '(store 'total (apply + (retrieve 'map-result)))
+          'store #t "Stored: 729")
+        (make-step
+          '(submit (retrieve 'total))
+          'submit #t "Answer accepted: 729")))
+
+    ;; 36. Count fruits + clothing combined (multi-category)
+    (make-scenario "synth-inventory-combined"
+      "What is the total number of fruits and clothing items that I have?"
+      *prompt-inventory*
+      '((input chunks 5000) (task text 200))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "I have 53 jaguar f-type (which have low mileage). I also have 98 history books. I also have 92 apples (which are for a fruit salad). My mother has 98 ties. My brother has 78 jeans. I also have 83 ties. My teacher has 51 rocking chairs. I also have 48 self-help books..."
+          "Mixed inventory. Need to count both fruits and clothing that belong to me.")
+        (make-step
+          '(think "Two categories to count: fruits and clothing. I can combine both word lists into one and do a single map-chunks pass. Fruit stems: apple, orange, guava, cherr, blackberr, strawberr, grape, mango, kiwi, peach, plum, persimmon, pomegranate, dates, dragonfruit, blueberr, watermelon, nectarine, lemon, lychee, breadfruit, raspberr, apricot, banana, pineapple, jonagold, envy. Clothing: t-shirt, shoes, hats, hoodie, sweater, glove, shorts, boots, sneaker, coats, ties, dresses, suits, skirt, swimsuit, pajama, socks, jeans, jacket, scarf.")
+          'think #t #f)
+        (make-step
+          '(map-chunks 'input
+            "(let ([targets '(\"apple\" \"orange\" \"guava\" \"cherr\" \"blackberr\" \"strawberr\" \"grape\" \"mango\" \"kiwi\" \"peach\" \"plum\" \"persimmon\" \"pomegranate\" \"dates\" \"dragonfruit\" \"blueberr\" \"watermelon\" \"nectarine\" \"lemon\" \"lychee\" \"breadfruit\" \"raspberr\" \"apricot\" \"banana\" \"pineapple\" \"jonagold\" \"envy\" \"t-shirt\" \"shoes\" \"hats\" \"hoodie\" \"sweater\" \"glove\" \"shorts\" \"boots\" \"sneaker\" \"coats\" \"ties\" \"dresses\" \"suits\" \"skirt\" \"swimsuit\" \"pajama\" \"socks\" \"jeans\" \"jacket\" \"scarf\")])\n  (apply +\n    (map (lambda (line)\n      (if (and (or (string-contains? line \"I have \")\n                   (string-contains? line \"I also have \"))\n               (not (string-contains? line \"My \")))\n          (let* ([after (or (extract-after line \"I also have \")\n                            (extract-after line \"I have \"))]\n                 [sp (and after (string-index-of after \" \"))]\n                 [num (and sp (> sp 0) (string->number (substr after 0 sp)))])\n            (if (and num (exists (lambda (f) (string-contains? after f)) targets))\n                num 0))\n          0))\n      (split-lines *chunk*))))")
+          'map-chunks #t "Processed 5 chunks, results stored as 'map-result"
+          "Single pass with combined fruit+clothing word list. More efficient than two separate map-chunks.")
+        (make-step
+          '(store 'total (apply + (retrieve 'map-result)))
+          'store #t "Stored: 664")
+        (make-step
+          '(submit (retrieve 'total))
+          'submit #t "Answer accepted: 664")))
+
+    ;; 37. One-shot inventory counting (compact begin pattern)
+    (make-scenario "synth-inventory-oneshot"
+      "How many fruits do I have in total?"
+      *prompt-inventory*
+      '((input chunks 5000) (task text 200))
+      20000
+      (list
+        (make-step
+          '(begin
+             (map-chunks 'input
+               "(let ([fruits '(\"apple\" \"orange\" \"guava\" \"cherr\" \"blackberr\" \"strawberr\" \"grape\" \"mango\" \"kiwi\" \"peach\" \"plum\" \"persimmon\" \"pomegranate\" \"dates\" \"dragonfruit\" \"blueberr\" \"watermelon\" \"nectarine\" \"lemon\" \"lychee\" \"breadfruit\" \"raspberr\" \"apricot\" \"banana\" \"pineapple\" \"jonagold\" \"envy\")])\n  (apply +\n    (map (lambda (line)\n      (if (and (or (string-contains? line \"I have \")\n                   (string-contains? line \"I also have \"))\n               (not (string-contains? line \"My \")))\n          (let* ([after (or (extract-after line \"I also have \")\n                            (extract-after line \"I have \"))]\n                 [sp (and after (string-index-of after \" \"))]\n                 [num (and sp (> sp 0) (string->number (substr after 0 sp)))])\n            (if (and num (exists (lambda (f) (string-contains? after f)) fruits))\n                num 0))\n          0))\n      (split-lines *chunk*))))")
+             (store 'total (apply + (retrieve 'map-result)))
+             (submit (retrieve 'total)))
+          'submit #t "Answer accepted: 501")))
+
+    ;; 38. Count cars I own (different category, exercises generalization)
+    (make-scenario "synth-inventory-cars"
+      "How many cars do I have in total?"
+      *prompt-inventory*
+      '((input chunks 5000) (task text 200))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "I have 65 mazda cx-90. My colleague has 92 wireless earbuds. My brother has 84 smartphones. I also have 68 toyota corolla (which need maintenance). I also have 82 magazines. I also have 52 stools (which match the decor). My sister has 59 nissan altima..."
+          "Inventory contains car models mixed with other items. Car names are specific makes/models.")
+        (make-step
+          '(think "Car brands and models to match: toyota, honda, nissan, mazda, hyundai, subaru, chevrolet, ford, bmw, audi, mercedes, volkswagen, porsche, jaguar, volvo, tesla, kia, jeep, lexus. These are distinctive enough that partial matching on the brand name works — no non-car items contain 'toyota' or 'honda'.")
+          'think #t #f)
+        (make-step
+          '(map-chunks 'input
+            "(let ([cars '(\"toyota\" \"honda\" \"nissan\" \"mazda\" \"hyundai\" \"subaru\" \"chevrolet\" \"ford\" \"bmw\" \"audi\" \"mercedes\" \"volkswagen\" \"porsche\" \"jaguar\" \"volvo\" \"tesla\" \"kia\" \"jeep\" \"lexus\")])\n  (apply +\n    (map (lambda (line)\n      (if (and (or (string-contains? line \"I have \")\n                   (string-contains? line \"I also have \"))\n               (not (string-contains? line \"My \")))\n          (let* ([after (or (extract-after line \"I also have \")\n                            (extract-after line \"I have \"))]\n                 [sp (and after (string-index-of after \" \"))]\n                 [num (and sp (> sp 0) (string->number (substr after 0 sp)))])\n            (if (and num (exists (lambda (f) (string-contains? after f)) cars))\n                num 0))\n          0))\n      (split-lines *chunk*))))")
+          'map-chunks #t "Processed 5 chunks, results stored as 'map-result"
+          "Car brand names are unambiguous — 'toyota', 'honda' etc. won't match non-car items.")
+        (make-step
+          '(store 'total (apply + (retrieve 'map-result)))
+          'store #t "Stored: 297")
+        (make-step
+          '(submit (retrieve 'total))
+          'submit #t "Answer accepted: 297")))
+
+    ;; 39. Absolute difference between two categories (teaches structured map-chunks returns)
+    (make-scenario "synth-inventory-diff"
+      "What is the absolute difference between the number of clothing items and furniture items that I have?"
+      *prompt-inventory*
+      '((input chunks 5000) (task text 200))
+      20000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "I have 88 sneakers. I also have 41 pajamas (which need washing). My mother has 46 smartwatches. I also have 22 video game consoles. My uncle has 88 boots. I also have 57 kia niro (which are in the garage). I also have 79 beds. I also have 100 parrots. I also have 15 t-shirts. My boss has 51 sofas..."
+          "Mixed inventory. Need separate counts for clothing and furniture.")
+        (make-step
+          '(think "I need TWO counts: clothing and furniture. I can do a single map-chunks pass that returns (list clothing-sum furniture-sum) per chunk, then aggregate separately. Clothing: t-shirt, shoes, hats, hoodie, sweater, glove, shorts, boots, sneaker, coats, ties, dresses, suits, skirt, swimsuit, pajama, socks, jeans, jacket, scarf. Furniture: bed, desk, table, chair, sofa, rocking chair, bookshelf, dresser, ottoman, recliner, armchair, nightstand, bench, stool, coffee table, dining table.")
+          'think #t #f)
+        (make-step
+          '(map-chunks 'input
+            "(let ([clothing '(\"t-shirt\" \"shoes\" \"hats\" \"hoodie\" \"sweater\" \"glove\" \"shorts\" \"boots\" \"sneaker\" \"coats\" \"ties\" \"dresses\" \"suits\" \"skirt\" \"swimsuit\" \"pajama\" \"socks\" \"jeans\" \"jacket\" \"scarf\")]\n       [furniture '(\"beds\" \"bed \" \"desk\" \"table\" \"chair\" \"sofa\" \"rocking chair\" \"bookshel\" \"dresser\" \"ottoman\" \"recliner\" \"armchair\" \"nightstand\" \"bench\" \"stool\" \"coffee table\" \"dining table\")])\n  (let ([extract (lambda (line cats)\n    (if (and (or (string-contains? line \"I have \")\n                 (string-contains? line \"I also have \"))\n             (not (string-contains? line \"My \")))\n        (let* ([after (or (extract-after line \"I also have \")\n                          (extract-after line \"I have \"))]\n               [sp (and after (string-index-of after \" \"))]\n               [num (and sp (> sp 0) (string->number (substr after 0 sp)))])\n          (if (and num (exists (lambda (f) (string-contains? after f)) cats))\n              num 0))\n        0))])\n    (let ([lines (split-lines *chunk*)])\n      (list (apply + (map (lambda (l) (extract l clothing)) lines))\n            (apply + (map (lambda (l) (extract l furniture)) lines))))))")
+          'map-chunks #t "Processed 5 chunks, results stored as 'map-result"
+          "Returns (clothing-sum furniture-sum) per chunk for separate aggregation.")
+        (make-step
+          '(begin
+             (store 'clothing (apply + (map car (retrieve 'map-result))))
+             (store 'furniture (apply + (map cadr (retrieve 'map-result)))))
+          'store #t "Stored: clothing=387, furniture=348")
+        (make-step
+          '(submit (abs (- (retrieve 'clothing) (retrieve 'furniture))))
+          'submit #t "Answer accepted: 39")))
+
+    ;; ---- Domain 12: Mathador (Intellect3-style arithmetic puzzles) ----
+
+    ;; 40. Simple mathador (3 numbers → target)
+    (make-scenario "synth-mathador-simple"
+      "From the numbers [3, 6, 7], combine them with +, -, *, / to produce 24."
+      *prompt-iterative*
+      '((task text 100))
+      10000
+      (list
+        (make-step
+          '(think "I need to make 24 from 3, 6, 7. Let me try: (7 - 3) * 6 = 4 * 6 = 24. That works! In Scheme prefix notation: (* (- 7 3) 6)")
+          'think #t #f)
+        (make-step
+          '(eval (* (- 7 3) 6))
+          'eval #t "24"
+          "Expression evaluates to 24. Uses all three numbers.")
+        (make-step
+          '(submit 24)
+          'submit #t "Answer accepted: 24")))
+
+    ;; 41. Harder mathador (4 numbers → target)
+    (make-scenario "synth-mathador-4num"
+      "From the numbers [1, 3, 4, 9], combine them with +, -, *, / to produce 26."
+      *prompt-iterative*
+      '((task text 100))
+      10000
+      (list
+        (make-step
+          '(think "Need 26 from 1, 3, 4, 9. Let me try: (9 + 4) * (3 - 1) = 13 * 2 = 26. Yes! Scheme: (* (+ 9 4) (- 3 1))")
+          'think #t #f)
+        (make-step
+          '(eval (* (+ 9 4) (- 3 1)))
+          'eval #t "26"
+          "All four numbers used: 9+4=13, 3-1=2, 13*2=26.")
+        (make-step
+          '(submit 26)
+          'submit #t "Answer accepted: 26")))
+
+    ;; 42. Mathador with trial and error (teaches recovery from wrong attempt)
+    (make-scenario "synth-mathador-retry"
+      "From the numbers [2, 5, 6, 7, 7], combine them with +, -, *, / to produce 28."
+      *prompt-iterative*
+      '((task text 100))
+      10000
+      (list
+        (make-step
+          '(think "Need 28 from 2, 5, 6, 7, 7. First try: 7 * 7 = 49, too big. Maybe 7 * (6 - 2) = 28! But that doesn't use 5 and 7. Let me try: (7 + 7) * 2 = 28, and I haven't used 5, 6. That's OK if I don't need all numbers. Scheme: (* (+ 7 7) 2)")
+          'think #t #f)
+        (make-step
+          '(eval (* (+ 7 7) 2))
+          'eval #t "28"
+          "Confirmed: (7+7)*2 = 14*2 = 28.")
+        (make-step
+          '(submit 28)
+          'submit #t "Answer accepted: 28")))
+
+    ;; --- Competition Math ---
+
+    (make-scenario "synth-math-gcd"
+      "Find the greatest common divisor of 1071 and 462."
+      *prompt-competition-math*
+      '((task text 100))
+      5000
+      (list
+        (make-step
+          '(think "GCD of 1071 and 462. Can use Euclid's algorithm or just call gcd directly.")
+          'think #t #f)
+        (make-step
+          '(eval (gcd 1071 462))
+          'eval #t "21"
+          "gcd(1071, 462) = 21. Verified: 1071/21 = 51, 462/21 = 22.")
+        (make-step
+          '(submit 21)
+          'submit #t "Answer accepted: 21")))
+
+    (make-scenario "synth-math-modular"
+      "Find the remainder when 2^100 is divided by 7."
+      *prompt-competition-math*
+      '((task text 100))
+      8000
+      (list
+        (make-step
+          '(think "Need 2^100 mod 7. Fermat's little theorem: 2^6 ≡ 1 (mod 7) since gcd(2,7)=1. So 2^100 = 2^(6*16 + 4) = (2^6)^16 * 2^4 ≡ 1^16 * 16 ≡ 16 mod 7 ≡ 2.")
+          'think #t #f)
+        (make-step
+          '(eval (modulo (expt 2 100) 7))
+          'eval #t "2"
+          "Confirmed: 2^100 mod 7 = 2. Matches Fermat's little theorem prediction.")
+        (make-step
+          '(submit 2)
+          'submit #t "Answer accepted: 2")))
+
+    (make-scenario "synth-math-combinatorics"
+      "How many ways can 5 people sit in a row of 5 chairs?"
+      *prompt-competition-math*
+      '((task text 100))
+      5000
+      (list
+        (make-step
+          '(think "5 people in 5 chairs = 5! = 120. Straightforward factorial.")
+          'think #t #f)
+        (make-step
+          '(eval (apply * (iota 5 1)))
+          'eval #t "120"
+          "5! = 1*2*3*4*5 = 120.")
+        (make-step
+          '(submit 120)
+          'submit #t "Answer accepted: 120")))
+
+    (make-scenario "synth-math-quadratic"
+      "Find the positive root of x^2 - 5x + 6 = 0."
+      *prompt-competition-math*
+      '((task text 100))
+      8000
+      (list
+        (make-step
+          '(think "x^2 - 5x + 6 = 0. Factor: (x-2)(x-3) = 0. Roots are 2 and 3. Both positive. Larger is 3. Wait — it says 'positive root'. Both are positive. Need to re-read: 'the positive root'. If they mean the larger one, it's 3. Let me just compute both and report the larger.")
+          'think #t #f)
+        (make-step
+          '(begin
+             (store 'disc (- (* 5 5) (* 4 6)))
+             (store 'root1 (/ (+ 5 (sqrt (retrieve 'disc))) 2))
+             (store 'root2 (/ (- 5 (sqrt (retrieve 'disc))) 2)))
+          'begin #t "Stored disc=1, root1=3.0, root2=2.0"
+          "Discriminant = 25-24 = 1. Roots: (5+1)/2 = 3, (5-1)/2 = 2.")
+        (make-step
+          '(submit 3)
+          'submit #t "Answer accepted: 3")))
+
+    (make-scenario "synth-math-series"
+      "Find the sum of the first 100 positive integers."
+      *prompt-competition-math*
+      '((task text 100))
+      5000
+      (list
+        (make-step
+          '(think "Sum from 1 to 100 = n(n+1)/2 = 100*101/2 = 5050. Can also verify with apply +.")
+          'think #t #f)
+        (make-step
+          '(eval (/ (* 100 101) 2))
+          'eval #t "5050"
+          "Gauss formula: 100*101/2 = 5050.")
+        (make-step
+          '(submit 5050)
+          'submit #t "Answer accepted: 5050")))
+
+    (make-scenario "synth-math-prime-check"
+      "How many prime numbers are there between 10 and 30 (inclusive)?"
+      *prompt-competition-math*
+      '((task text 100))
+      8000
+      (list
+        (make-step
+          '(think "Primes between 10 and 30: 11, 13, 17, 19, 23, 29. That's 6. Let me verify by writing a primality checker.")
+          'think #t #f)
+        (make-step
+          '(eval
+             (let ([prime? (lambda (n)
+                     (and (> n 1)
+                          (let loop ([d 2])
+                            (cond [(> (* d d) n) #t]
+                                  [(zero? (modulo n d)) #f]
+                                  [else (loop (+ d 1))]))))])
+               (length (filter prime? (iota 21 10)))))
+          'eval #t "6"
+          "6 primes: 11, 13, 17, 19, 23, 29. Verified by trial division.")
+        (make-step
+          '(submit 6)
+          'submit #t "Answer accepted: 6")))
+
+    ;; --- Ranking/Top-K ---
+
+    (make-scenario "synth-rank-topk"
+      "Find the top 3 records by value where type is 'alpha' and region is 'north'. Report the sum of their values."
+      *prompt-ranking*
+      '((input chunks 50000))
+      10000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\nRECORD 0002 | type: beta | region: south | value: 88\n..."
+          "Data has RECORD format with type, region, value fields.")
+        (make-step
+          '(map-chunks 'input
+            "(let ([lines (split-lines *chunk*)])\n  (filter pair?\n    (map (lambda (line)\n      (if (and (string-contains? line \"type: alpha\")\n               (string-contains? line \"region: north\"))\n          (let ([v (extract-after line \"value: \")])\n            (if v (cons line (string->number v)) #f))\n          #f))\n      lines)))")
+          'map-chunks #t "((\"RECORD 0015 ...\" . 97) (\"RECORD 0042 ...\" . 85) ...)"
+          "Extracted (line . value) pairs for alpha+north records from all chunks.")
+        (make-step
+          '(begin
+             (store 'all (apply append (retrieve 'map-result)))
+             (store 'sorted-desc (list-sort (lambda (a b) (> (cdr a) (cdr b)))
+                                            (retrieve 'all)))
+             (store 'top3 (let ([s (retrieve 'sorted-desc)])
+                            (if (> (length s) 3)
+                                (list (first s) (second s) (third s))
+                                s))))
+          'begin #t "Stored all, sorted-desc, top3"
+          "Merged per-chunk results, sorted descending, took top 3.")
+        (make-step
+          '(eval (apply + (map cdr (retrieve 'top3))))
+          'eval #t "267"
+          "Sum of top 3 values: 97 + 85 + 85 = 267.")
+        (make-step
+          '(submit 267)
+          'submit #t "Answer accepted: 267")))
+
+    (make-scenario "synth-rank-median"
+      "Find the median value of all 'beta' records in the 'east' region."
+      *prompt-ranking*
+      '((input chunks 50000))
+      10000
+      (list
+        (make-step
+          '(peek 'input 300)
+          'peek #t "RECORD 0001 | type: alpha | region: north | value: 42\n..."
+          "Standard RECORD format. Need to filter beta+east.")
+        (make-step
+          '(map-chunks 'input
+            "(let ([lines (split-lines *chunk*)])\n  (filter number?\n    (map (lambda (line)\n      (if (and (string-contains? line \"type: beta\")\n               (string-contains? line \"region: east\"))\n          (let ([v (extract-after line \"value: \")])\n            (if v (string->number v) #f))\n          #f))\n      lines)))")
+          'map-chunks #t "(42 88 15 67 ...)"
+          "Extracted numeric values for beta+east records.")
+        (make-step
+          '(begin
+             (store 'values (apply append (retrieve 'map-result)))
+             (store 'sorted-vals (list-sort < (retrieve 'values)))
+             (store 'n (length (retrieve 'sorted-vals))))
+          'begin #t "Stored values, sorted-vals, n"
+          "Collected and sorted all beta+east values.")
+        (make-step
+          '(eval (let* ([vals (retrieve 'sorted-vals)]
+                        [n (retrieve 'n)]
+                        [mid (quotient n 2)])
+                   (if (odd? n)
+                       (list-ref vals mid)
+                       (/ (+ (list-ref vals (- mid 1))
+                             (list-ref vals mid))
+                          2))))
+          'eval #t "55"
+          "Median of sorted values. Even count → average of two middle values.")
+        (make-step
+          '(submit 55)
+          'submit #t "Answer accepted: 55")))
+
+    ;; --- Multi-hop QA ---
+
+    (make-scenario "synth-multihop-birth-year"
+      "In what year was the author of 'The Great Gatsby' born?"
+      *prompt-multi-hop-qa*
+      '((input chunks 5000))
+      8000
+      (list
+        (make-step
+          '(think "Need two facts: (1) who wrote The Great Gatsby, (2) when were they born. Let me grep for 'Great Gatsby' first.")
+          'think #t #f)
+        (make-step
+          '(grep 'input "Great Gatsby" 5)
+          'grep #t "The Great Gatsby is a novel by F. Scott Fitzgerald, published in 1925..."
+          "Found: The Great Gatsby was written by F. Scott Fitzgerald.")
+        (make-step
+          '(grep 'input "Fitzgerald" 5)
+          'grep #t "F. Scott Fitzgerald was born on September 24, 1896 in St. Paul, Minnesota..."
+          "Found: Fitzgerald born September 24, 1896.")
+        (make-step
+          '(submit 1896)
+          'submit #t "Answer accepted: 1896")))
+
+    (make-scenario "synth-multihop-population"
+      "What is the population of the capital of France?"
+      *prompt-multi-hop-qa*
+      '((input chunks 5000))
+      8000
+      (list
+        (make-step
+          '(grep 'input "capital of France" 5)
+          'grep #t "Paris is the capital and most populous city of France, situated on the Seine..."
+          "Capital of France = Paris.")
+        (make-step
+          '(grep 'input "Paris population" 5)
+          'grep #t "As of the 2021 census, Paris had a population of 2,165,423 within its administrative limits..."
+          "Paris population: 2,165,423.")
+        (make-step
+          '(submit 2165423)
+          'submit #t "Answer accepted: 2165423")))
+
+    (make-scenario "synth-multihop-comparison"
+      "Which city has more people: the birthplace of Mozart or the birthplace of Beethoven?"
+      *prompt-multi-hop-qa*
+      '((input chunks 8000))
+      10000
+      (list
+        (make-step
+          '(think "Need: (1) Mozart's birthplace, (2) Beethoven's birthplace, (3) population of each. Two-hop for each composer.")
+          'think #t #f)
+        (make-step
+          '(grep 'input "Mozart born" 5)
+          'grep #t "Wolfgang Amadeus Mozart was born on 27 January 1756 in Salzburg..."
+          "Mozart born in Salzburg.")
+        (make-step
+          '(grep 'input "Beethoven born" 5)
+          'grep #t "Ludwig van Beethoven was born on 17 December 1770 in Bonn..."
+          "Beethoven born in Bonn.")
+        (make-step
+          '(begin
+             (grep 'input "Salzburg population" 5)
+             (store 'salzburg-pop 157644))
+          'begin #t "Stored salzburg-pop=157644"
+          "Salzburg population ~157,644.")
+        (make-step
+          '(begin
+             (grep 'input "Bonn population" 5)
+             (store 'bonn-pop 336465))
+          'begin #t "Stored bonn-pop=336465"
+          "Bonn population ~336,465.")
+        (make-step
+          '(think "Bonn (336,465) > Salzburg (157,644). Beethoven's birthplace is more populous.")
+          'think #t #f)
+        (make-step
+          '(submit "Bonn")
+          'submit #t "Answer accepted: Bonn")))
+
+    ;; --- Science Reasoning ---
+
+    (make-scenario "synth-science-speed"
+      "A car travels 150 km in 2.5 hours. What is its average speed in km/h?"
+      *prompt-competition-math*
+      '((task text 100))
+      5000
+      (list
+        (make-step
+          '(think "Speed = distance / time = 150 / 2.5 = 60 km/h.")
+          'think #t #f)
+        (make-step
+          '(eval (/ 150 2.5))
+          'eval #t "60.0"
+          "150 km / 2.5 hours = 60 km/h.")
+        (make-step
+          '(submit 60)
+          'submit #t "Answer accepted: 60")))
+
+    (make-scenario "synth-science-density"
+      "A block of iron has mass 790 g and volume 100 cm^3. What is its density in g/cm^3?"
+      *prompt-competition-math*
+      '((task text 100))
+      5000
+      (list
+        (make-step
+          '(think "Density = mass / volume = 790 / 100 = 7.9 g/cm^3.")
+          'think #t #f)
+        (make-step
+          '(eval (/ 790 100))
+          'eval #t "79/10"
+          "790/100 = 79/10 = 7.9 g/cm^3. Exact fraction preserved.")
+        (make-step
+          '(submit 7.9)
+          'submit #t "Answer accepted: 7.9")))
+
+    (make-scenario "synth-science-energy"
+      "Calculate the kinetic energy of a 2 kg object moving at 10 m/s. Use KE = 0.5 * m * v^2."
+      *prompt-competition-math*
+      '((task text 100))
+      5000
+      (list
+        (make-step
+          '(think "KE = 0.5 * m * v^2 = 0.5 * 2 * 100 = 100 J.")
+          'think #t #f)
+        (make-step
+          '(eval (* 1/2 2 (expt 10 2)))
+          'eval #t "100"
+          "KE = 0.5 * 2 * 10^2 = 100 J. Used exact 1/2 fraction.")
+        (make-step
+          '(submit 100)
+          'submit #t "Answer accepted: 100")))
+
+    ;; --- Reading Comprehension (DROP-style numeric extraction) ---
+
+    (make-scenario "synth-drop-diff"
+      "How many more touchdowns did Team A score than Team B?"
+      *prompt-multi-hop-qa*
+      '((input chunks 5000))
+      8000
+      (list
+        (make-step
+          '(peek 'input 500)
+          'peek #t "Game Summary: In the first quarter, Team A scored a 14-yard rushing TD. Team B kicked a 32-yard field goal..."
+          "Game summary passage. Need to count TDs per team.")
+        (make-step
+          '(grep 'input "Team A" 10)
+          'grep #t "Team A scored a 14-yard rushing TD.\nTeam A scored on a 7-yard pass TD.\nTeam A kicked a 45-yard field goal.\nTeam A scored a 1-yard QB sneak TD."
+          "Team A: 3 TDs (rushing, pass, QB sneak) + 1 field goal.")
+        (make-step
+          '(grep 'input "Team B" 10)
+          'grep #t "Team B kicked a 32-yard field goal.\nTeam B scored a 28-yard interception return TD.\nTeam B kicked a 50-yard field goal."
+          "Team B: 1 TD (interception return) + 2 field goals.")
+        (make-step
+          '(think "Team A: 3 TDs. Team B: 1 TD. Difference: 3 - 1 = 2.")
+          'think #t #f)
+        (make-step
+          '(submit 2)
+          'submit #t "Answer accepted: 2")))
+
+    (make-scenario "synth-drop-percentage"
+      "What percent of the population were not Hispanic or Latino?"
+      *prompt-multi-hop-qa*
+      '((input chunks 5000))
+      8000
+      (list
+        (make-step
+          '(grep 'input "Hispanic" 5)
+          'grep #t "The racial makeup of the county was 89.2% White, 5.1% Black, 0.3% Native American. Hispanic or Latino of any race were 8.7% of the population."
+          "Hispanic or Latino = 8.7% of population.")
+        (make-step
+          '(eval (- 100 8.7))
+          'eval #t "91.3"
+          "100% - 8.7% = 91.3% were not Hispanic or Latino.")
+        (make-step
+          '(submit 91.3)
+          'submit #t "Answer accepted: 91.3")))
 
     ))
 

@@ -174,7 +174,7 @@
                          [sub-n (length sub)]
                          [sub-c (length (filter (lambda (r) (cdr (assq 'correct r))) sub))])
                     (display (format "  ~a: ~a/~a\n" subject sub-c sub-n))))
-                (sorted subjects string<?)))
+                (list-sort string<? subjects)))
 
             ;; Save results
             (call-with-port
