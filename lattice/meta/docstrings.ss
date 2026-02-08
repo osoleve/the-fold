@@ -1,7 +1,7 @@
 (doc 'module 'docstrings)
 (doc 'description "Extract ;;; docstrings from source files and associate them with function definitions for improved search indexing.")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 (doc 'note "Docstring format: ;;; function-name : type-signature followed by description lines, then (define (function-name args...) ...)")
 
 (doc 'section 'state)
@@ -9,27 +9,7 @@
 (doc *docstrings* 'description "Global docstring cache: symbol -> string")
 (define *docstrings* (make-hashtable symbol-hash eq?))
 
-(doc 'section 'file-parsing)
-
-(doc read-file-lines 'type (-> String (Maybe (List String))))
-(doc read-file-lines 'description "Read all lines from a file")
-(define (read-file-lines path)
-  (guard (e [else #f])
-         (call-with-input-file path
-                               (lambda (port)
-                                       (let loop ([lines '()])
-                                            (let ([line (get-line port)])
-                                                 (if (eof-object? line)
-                                                     (reverse lines)
-                                                     (loop (cons line lines)))))))))
-
-(doc extract-docstrings-from-file 'type (-> String (List (Pair Symbol String))))
-(doc extract-docstrings-from-file 'description "Parse a file and extract docstrings for defined functions")
-(define (extract-docstrings-from-file path)
-  (let ([lines (read-file-lines path)])
-       (if (not lines)
-           '()
-           (parse-docstrings lines))))
+(doc 'section 'pure-parsing)
 
 (doc parse-docstrings 'type (-> (List String) (List (Pair Symbol String))))
 (doc parse-docstrings 'description "Parse lines looking for docstring + define patterns")
@@ -63,21 +43,21 @@
 ;;; docstring-line? : String -> Boolean
 ;;; Check if line is a docstring (starts with ;;;)
 (define (docstring-line? line)
-  (let ([trimmed (string-trim-left line)])
+  (let ([trimmed (string-trim-left-doc line)])
        (and (>= (string-length trimmed) 3)
             (string=? (substring trimmed 0 3) ";;;"))))
 
 ;;; extract-docstring-text : String -> String
 ;;; Extract the text after ;;;
 (define (extract-docstring-text line)
-  (let* ([trimmed (string-trim-left line)]
+  (let* ([trimmed (string-trim-left-doc line)]
          [after-prefix (substring trimmed 3 (string-length trimmed))])
-        (string-trim-left after-prefix)))
+        (string-trim-left-doc after-prefix)))
 
 ;;; define-line? : String -> Boolean
 ;;; Check if line starts a define form
 (define (define-line? line)
-  (let ([trimmed (string-trim-left line)])
+  (let ([trimmed (string-trim-left-doc line)])
        (and (>= (string-length trimmed) 7)
             (string=? (substring trimmed 0 7) "(define"))))
 
@@ -86,10 +66,10 @@
 ;;; Handles both (define (name ...) and (define name ...)
 (define (extract-define-name line)
   (guard (e [else #f])
-         (let* ([trimmed (string-trim-left line)]
+         (let* ([trimmed (string-trim-left-doc line)]
                 ;; Skip "(define "
                 [after-define (substring trimmed 8 (string-length trimmed))]
-                [cleaned (string-trim-left after-define)])
+                [cleaned (string-trim-left-doc after-define)])
                (cond
                 ;; (define (name args...) ...)
                 [(and (> (string-length cleaned) 0)
@@ -130,9 +110,9 @@
                (loop (cdr rest)
                      (string-append result " " (car rest)))))))
 
-;;; string-trim-left : String -> String
-;;; Remove leading whitespace
-(define (string-trim-left str)
+;;; string-trim-left-doc : String -> String
+;;; Remove leading whitespace (module-local to avoid collision with source-loc's version)
+(define (string-trim-left-doc str)
   (let ([len (string-length str)])
        (let loop ([i 0])
             (if (>= i len)
@@ -141,61 +121,18 @@
                     (loop (+ i 1))
                     (substring str i len))))))
 
-(doc 'section 'directory-scanning)
+(doc 'section 'cache-population)
 
-(doc find-scheme-files 'type (-> String (List String)))
-(doc find-scheme-files 'description "Recursively find all .ss files in a directory")
-(define (find-scheme-files dir)
-  (guard (e [else '()])
-         (let ([entries (directory-list dir)])
-              (append-map (lambda (entry)
-                                  (let ([path (string-append dir "/" entry)])
-                                       (cond
-                                        ;; Skip hidden directories
-                                        [(and (> (string-length entry) 0)
-                                              (char=? (string-ref entry 0) #\.))
-                                         '()]
-                                        ;; Recurse into subdirectories
-                                        [(file-directory? path)
-                                         (find-scheme-files path)]
-                                        ;; Collect .ss files
-                                        [(string-ends-with-ss? entry)
-                                         (list path)]
-                                        [else '()])))
-                          entries))))
+;;; populate-docstrings! : (List (Pair Symbol String)) -> Void
+;;; Populate the cache from a list of (symbol . docstring) pairs.
+;;; Called from boundary orchestrator after I/O.
+(define (populate-docstrings! entries)
+  (for-each
+   (lambda (entry)
+           (hashtable-set! *docstrings* (car entry) (cdr entry)))
+   entries))
 
-;;; file-directory? : String -> Boolean
-(define (file-directory? path)
-  (guard (e [else #f])
-         (let ([entries (directory-list path)])
-              #t)))
-
-;;; string-ends-with-ss? : String -> Boolean
-(define (string-ends-with-ss? str)
-  (let ([len (string-length str)])
-       (and (>= len 3)
-            (string=? (substring str (- len 3) len) ".ss"))))
-
-(doc 'section 'public-api)
-
-(doc build-docstring-cache! 'type (-> Void))
-(doc build-docstring-cache! 'description "Build the global docstring cache from all lattice source files")
-(define (build-docstring-cache!)
-  (printf "Building docstring cache...\n")
-  (set! *docstrings* (make-hashtable symbol-hash eq?))
-  (let* ([files (find-scheme-files "lattice")]
-         [count 0])
-        (for-each
-         (lambda (path)
-                 (let ([docstrings (extract-docstrings-from-file path)])
-                      (for-each
-                       (lambda (entry)
-                               (hashtable-set! *docstrings* (car entry) (cdr entry))
-                               (set! count (+ count 1)))
-                       docstrings)))
-         files)
-        (printf "  Scanned ~a files, extracted ~a docstrings\n"
-                (length files) count)))
+(doc 'section 'cache-lookup)
 
 (doc get-docstring 'type (-> Symbol (Maybe String)))
 (doc get-docstring 'description "Get the docstring for a function")
@@ -214,6 +151,5 @@
 (doc 'section 'repl-interface)
 
 (meta-printf "docstrings.ss loaded.\n")
-(meta-printf "  (build-docstring-cache!)       - Build cache from sources\n")
 (meta-printf "  (get-docstring 'fn)            - Get docstring for function\n")
 (meta-printf "  (docstring-terms 'fn)          - Get search terms from docstring\n")

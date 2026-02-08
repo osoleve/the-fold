@@ -28,7 +28,7 @@
 (define *docs-available* #f)
 (define *docs-quiet* #t)  ; Suppress "Doc index built" message
 (guard (e [else (set! *docs-available* #f)])
-       (load "lattice/meta/docs.ss")
+       (load "boundary/meta/docs-io.ss")
        (set! *docs-available* #t))
 
 (doc lookup-symbol-info 'type '(-> String (U (Alist Symbol Any) #f)))

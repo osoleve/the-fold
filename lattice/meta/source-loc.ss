@@ -1,7 +1,7 @@
 (doc 'module 'source-loc)
 (doc 'description "Source location tracking for jump-to-definition workflows")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 
 (doc 'section 'state)
 
@@ -9,28 +9,8 @@
 (define *source-locations* (make-hashtable symbol-hash eq?))
 
 ;;; ====
-;;; File Parsing
+;;; Pure Parsing (operates on string data, no I/O)
 ;;; ====
-
-;;; read-file-lines : String -> (List String) | #f
-;;; Read all lines from a file
-(define (read-file-lines path)
-  (guard (e [else #f])
-         (call-with-input-file path
-                               (lambda (port)
-                                       (let loop ([lines '()])
-                                            (let ([line (get-line port)])
-                                                 (if (eof-object? line)
-                                                     (reverse lines)
-                                                     (loop (cons line lines)))))))))
-
-;;; extract-definitions-from-file : String -> (List (Symbol File Line))
-;;; Parse a file and extract all definitions with line numbers
-(define (extract-definitions-from-file path)
-  (let ([lines (read-file-lines path)])
-       (if (not lines)
-           '()
-           (parse-definitions-with-lines path lines))))
 
 ;;; parse-definitions-with-lines : String × (List String) -> (List (Symbol File Line))
 ;;; Parse lines tracking definitions and their line numbers
@@ -138,97 +118,8 @@
                     (substring str i len))))))
 
 ;;; ====
-;;; Directory Scanning
+;;; Cache Lookup (pure — reads from populated hashtable)
 ;;; ====
-
-;;; find-scheme-files-loc : String -> (List String)
-;;; Recursively find all .ss files in a directory
-(define (find-scheme-files-loc dir)
-  (guard (e [else '()])
-         (let ([entries (directory-list dir)])
-              (append-map (lambda (entry)
-                                  (let ([path (string-append dir "/" entry)])
-                                       (cond
-                                        ;; Skip hidden directories
-                                        [(and (> (string-length entry) 0)
-                                              (char=? (string-ref entry 0) #\.))
-                                         '()]
-                                        ;; Recurse into subdirectories
-                                        [(file-directory-loc? path)
-                                         (find-scheme-files-loc path)]
-                                        ;; Collect .ss files (skip test files)
-                                        [(and (string-ends-with-ss-loc? entry)
-                                              (not (string-prefix? "test-" entry)))
-                                         (list path)]
-                                        [else '()])))
-                          entries))))
-
-;;; file-directory-loc? : String -> Boolean
-(define (file-directory-loc? path)
-  (guard (e [else #f])
-         (let ([entries (directory-list path)])
-              #t)))
-
-;;; string-ends-with-ss-loc? : String -> Boolean
-(define (string-ends-with-ss-loc? str)
-  (let ([len (string-length str)])
-       (and (>= len 3)
-            (string=? (substring str (- len 3) len) ".ss"))))
-
-;;; string-prefix? : String × String -> Boolean
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-       (and (>= slen plen)
-            (string=? (substring str 0 plen) prefix))))
-
-;;; ====
-;;; Public API
-;;; ====
-
-;;; build-source-location-cache! : -> Void
-;;; Build the global source location cache from all lattice and core files
-;;; Skips if cache is already populated (e.g., loaded from disk cache)
-(define (build-source-location-cache!)
-  (when (zero? (hashtable-size *source-locations*))
-        (build-source-location-cache-fresh!)))
-
-;;; build-source-location-cache-fresh! : -> Void
-;;; Force rebuild of source location cache
-(define (build-source-location-cache-fresh!)
-  (printf "Building source location cache...\n")
-  (set! *source-locations* (make-hashtable symbol-hash eq?))
-  (let ([count 0])
-       ;; Scan lattice/
-       (for-each
-        (lambda (path)
-                (let ([defs (extract-definitions-from-file path)])
-                     (for-each
-                      (lambda (def)
-                              (let ([name (car def)]
-                                    [file (cadr def)]
-                                    [line (caddr def)])
-                                   ;; Only store first occurrence (don't override)
-                                   (unless (hashtable-ref *source-locations* name #f)
-                                           (hashtable-set! *source-locations* name (cons file line))
-                                           (set! count (+ count 1)))))
-                      defs)))
-        (find-scheme-files-loc "lattice"))
-       ;; Also scan core/
-       (for-each
-        (lambda (path)
-                (let ([defs (extract-definitions-from-file path)])
-                     (for-each
-                      (lambda (def)
-                              (let ([name (car def)]
-                                    [file (cadr def)]
-                                    [line (caddr def)])
-                                   (unless (hashtable-ref *source-locations* name #f)
-                                           (hashtable-set! *source-locations* name (cons file line))
-                                           (set! count (+ count 1)))))
-                      defs)))
-        (find-scheme-files-loc "core"))
-       (printf "  Indexed ~a definitions\n" count)))
 
 ;;; get-source-location : Symbol -> (File . Line) | #f
 ;;; Get the source location for a symbol
@@ -250,10 +141,18 @@
   (hashtable-size *source-locations*))
 
 ;;; ====
-;;; REPL Interface
+;;; Cache Population (called from boundary orchestrator)
 ;;; ====
 
-(meta-printf "source-loc.ss loaded.\n")
-(meta-printf "  (build-source-location-cache!)  - Build cache from sources\n")
-(meta-printf "  (get-source-location 'fn)       - Get (file . line) pair\n")
-(meta-printf "  (format-source-location 'fn)    - Get \"file:line\" string\n")
+;;; populate-source-locations! : (List (Symbol File Line)) -> Void
+;;; Populate the cache from a list of definition records.
+;;; Only stores first occurrence of each symbol.
+(define (populate-source-locations! defs)
+  (for-each
+   (lambda (def)
+           (let ([name (car def)]
+                 [file (cadr def)]
+                 [line (caddr def)])
+                (unless (hashtable-ref *source-locations* name #f)
+                        (hashtable-set! *source-locations* name (cons file line)))))
+   defs))

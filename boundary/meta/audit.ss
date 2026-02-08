@@ -1,6 +1,6 @@
 (doc 'module 'audit)
 (doc 'description "Manifest audit tool - detects gaps between source code definitions and manifest exports")
-(doc 'layer 'lattice)
+(doc 'layer 'boundary)
 (doc 'purity 'partial)
 
 (doc 'section 'source-file-analysis)

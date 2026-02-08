@@ -1,7 +1,7 @@
 (doc 'module 'xref)
 (doc 'description "Cross-reference tracking for function call relationships and impact analysis")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 
 (doc 'section 'state)
 
@@ -14,9 +14,7 @@
 ;;; Set of all known definitions (for filtering)
 (define *xref-known-defs* (make-eq-hashtable))
 
-;;; ====
-;;; Symbol Extraction
-;;; ====
+(doc 'section 'symbol-extraction)
 
 ;;; extract-symbols-from-sexp : SExp -> (List Symbol)
 ;;; Extract all symbols from an s-expression (excluding quoted data)
@@ -78,22 +76,7 @@
         (append-map extract-symbols-from-sexp sexp)])]
     [else '()]))
 
-;;; ====
-;;; File Parsing
-;;; ====
-
-;;; extract-xrefs-from-file : String -> (List (Symbol . (List Symbol)))
-;;; Parse a file and extract (definer . callees) pairs
-(define (extract-xrefs-from-file path)
-  (guard (e [else '()])
-    (call-with-input-file path
-      (lambda (port)
-        (let loop ([results '()])
-          (let ([sexp (read port)])
-            (if (eof-object? sexp)
-                results
-                (let ([xref (extract-xref-from-toplevel sexp)])
-                  (loop (if xref (cons xref results) results))))))))))
+(doc 'section 'toplevel-extraction)
 
 ;;; extract-xref-from-toplevel : SExp -> (Symbol . (List Symbol)) | #f
 ;;; Extract cross-reference info from a top-level form
@@ -136,113 +119,46 @@
                   (begin (hashtable-set! seen sym #t) #t)))
             lst)))
 
-;;; ====
-;;; Directory Scanning
-;;; ====
+(doc 'section 'cache-population)
 
-;;; find-scheme-files-xref : String -> (List String)
-(define (find-scheme-files-xref dir)
-  (guard (e [else '()])
-    (let ([entries (directory-list dir)])
-      (append-map (lambda (entry)
-                    (let ([path (string-append dir "/" entry)])
-                      (cond
-                        [(and (> (string-length entry) 0)
-                              (char=? (string-ref entry 0) #\.))
-                         '()]
-                        [(file-directory-xref? path)
-                         (find-scheme-files-xref path)]
-                        [(and (string-ends-with-ss-xref? entry)
-                              (not (string-prefix-xref? "test-" entry)))
-                         (list path)]
-                        [else '()])))
-                  entries))))
-
-(define (file-directory-xref? path)
-  (guard (e [else #f])
-    (directory-list path)
-    #t))
-
-(define (string-ends-with-ss-xref? str)
-  (let ([len (string-length str)])
-    (and (>= len 3)
-         (string=? (substring str (- len 3) len) ".ss"))))
-
-(define (string-prefix-xref? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-    (and (>= slen plen)
-         (string=? (substring str 0 plen) prefix))))
-
-;;; ====
-;;; Index Building
-;;; ====
-
-;;; build-xref-cache! : -> Void
-;;; Build cross-reference indices from source files
-(define (build-xref-cache!)
-  (printf "Building cross-reference cache...\n")
+;;; populate-xref-cache! : (List (Symbol . (List Symbol))) -> Void
+;;; Populate the cross-reference indices from pre-parsed xref entries.
+;;; Each entry is (definer-name . callees-list).
+;;; Called from boundary orchestrator after I/O.
+(define (populate-xref-cache! all-xrefs)
+  ;; Reset indices
   (set! *xref-callers* (make-hashtable symbol-hash eq?))
   (set! *xref-callees* (make-hashtable symbol-hash eq?))
   (set! *xref-known-defs* (make-eq-hashtable))
 
   ;; First pass: collect all definitions
-  (let ([def-count 0]
-        [all-xrefs '()])
-    ;; Collect definitions from lattice/
-    (for-each
-      (lambda (path)
-        (let ([xrefs (extract-xrefs-from-file path)])
-          (for-each
-            (lambda (xref)
-              (let ([name (car xref)])
-                (hashtable-set! *xref-known-defs* name #t)
-                (set! def-count (+ def-count 1))))
-            xrefs)
-          (set! all-xrefs (append xrefs all-xrefs))))
-      (find-scheme-files-xref "lattice"))
+  (for-each
+   (lambda (xref)
+     (hashtable-set! *xref-known-defs* (car xref) #t))
+   all-xrefs)
 
-    ;; Also collect from core/
-    (for-each
-      (lambda (path)
-        (let ([xrefs (extract-xrefs-from-file path)])
-          (for-each
-            (lambda (xref)
-              (let ([name (car xref)])
-                (hashtable-set! *xref-known-defs* name #t)
-                (set! def-count (+ def-count 1))))
-            xrefs)
-          (set! all-xrefs (append xrefs all-xrefs))))
-      (find-scheme-files-xref "core"))
+  ;; Second pass: build caller/callee indices
+  (for-each
+   (lambda (xref)
+     (let* ([caller (car xref)]
+            [all-refs (cdr xref)]
+            ;; Filter to only known definitions (not primitives)
+            [callees (filter (lambda (s)
+                               (and (not (eq? s caller))  ; No self-refs
+                                    (hashtable-ref *xref-known-defs* s #f)))
+                             all-refs)])
+       ;; Store callees for this function
+       (hashtable-set! *xref-callees* caller callees)
+       ;; Update callers for each callee
+       (for-each
+        (lambda (callee)
+          (let ([existing (hashtable-ref *xref-callers* callee '())])
+            (unless (memq caller existing)
+              (hashtable-set! *xref-callers* callee (cons caller existing)))))
+        callees)))
+   all-xrefs))
 
-    ;; Second pass: build caller/callee indices
-    (let ([edge-count 0])
-      (for-each
-        (lambda (xref)
-          (let* ([caller (car xref)]
-                 [all-refs (cdr xref)]
-                 ;; Filter to only known definitions (not primitives)
-                 [callees (filter (lambda (s)
-                                   (and (not (eq? s caller))  ; No self-refs
-                                        (hashtable-ref *xref-known-defs* s #f)))
-                                 all-refs)])
-            ;; Store callees for this function
-            (hashtable-set! *xref-callees* caller callees)
-            ;; Update callers for each callee
-            (for-each
-              (lambda (callee)
-                (let ([existing (hashtable-ref *xref-callers* callee '())])
-                  (unless (memq caller existing)
-                    (hashtable-set! *xref-callers* callee (cons caller existing))
-                    (set! edge-count (+ edge-count 1)))))
-              callees)))
-        all-xrefs)
-
-      (printf "  Indexed ~a definitions, ~a call edges\n" def-count edge-count))))
-
-;;; ====
-;;; Query API
-;;; ====
+(doc 'section 'query-api)
 
 ;;; xref-callers : Symbol -> (List Symbol)
 ;;; Get functions that call the given symbol
@@ -286,9 +202,7 @@
                   (set! result (cons current result))
                   (loop (append (cdr to-visit) (xref-callees current))))))))))
 
-;;; ====
-;;; Pretty Printing
-;;; ====
+(doc 'section 'pretty-printing)
 
 ;;; print-xref-callers : Symbol -> Void
 (define (print-xref-callers sym)
@@ -319,9 +233,7 @@
       '()
       (cons (car lst) (take-n-xref (- n 1) (cdr lst)))))
 
-;;; ====
-;;; Convenience Functions
-;;; ====
+(doc 'section 'convenience-functions)
 
 ;;; lxu : Symbol -> Void
 ;;; "Lattice Xref Uses" - quick lookup of callers
@@ -333,9 +245,7 @@
 (define (lxc sym)
   (print-xref-callees sym))
 
-;;; ====
-;;; Statistics
-;;; ====
+(doc 'section 'statistics)
 
 ;;; xref-stats : -> Void
 (define (xref-stats)
@@ -360,12 +270,9 @@
     (take-n-xref n
       (sort (lambda (a b) (> (cdr a) (cdr b))) counts))))
 
-;;; ====
-;;; REPL Interface
-;;; ====
+(doc 'section 'repl-interface)
 
 (meta-printf "xref.ss loaded.\n")
-(meta-printf "  (build-xref-cache!)       - Build call graph from sources\n")
 (meta-printf "  (lxu 'fn)                 - What calls this function?\n")
 (meta-printf "  (lxc 'fn)                 - What does this function call?\n")
 (meta-printf "  (xref-callers 'fn)        - Get caller list\n")

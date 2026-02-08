@@ -1,9 +1,11 @@
 (load "lattice/meta/search.ss")
 (load "lattice/meta/analytics.ss")
 (load "lattice/meta/inspect.ss")
-(load "lattice/meta/persist.ss")
-(load "lattice/meta/source-loc.ss")
+(load "boundary/meta/persist-io.ss")
+(load "boundary/meta/source-loc-io.ss")
+(load "boundary/meta/docstrings-io.ss")
 (load "boundary/meta/kg-io.ss")
+(load "boundary/meta/exports-io.ss")
 (load "boundary/meta/inspect-io.ss")
 (load "boundary/introspect/exports.ss")
 

@@ -2,7 +2,7 @@
 
 (doc 'module 'manifest-sync)
 (doc 'description "Compare manifest-declared exports with source file definitions")
-(doc 'layer 'lattice)
+(doc 'layer 'boundary)
 (doc 'purity 'partial)
 (doc 'note "Helps synchronize manifest.sexp with actual exports in source files")
 

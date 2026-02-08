@@ -1,10 +1,10 @@
 (load "core/base/prelude.ss")
 
 (doc 'module 'exports)
-(doc 'description "Extract exported symbols from source files using (doc 'export #t) annotations")
+(doc 'description "Extract exported symbols from S-expressions using (doc 'export #t) annotations")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
-(doc 'note "Scans source files for definitions marked with (doc 'export #t)")
+(doc 'purity 'total)
+(doc 'note "Pure pattern recognition on S-expressions. I/O orchestration in boundary/meta/exports-io.ss")
 
 ;;; ====
 ;;; Dependencies
@@ -14,22 +14,6 @@
 (define *exports-quiet*
   (and (top-level-bound? '*meta-quiet*)
        (top-level-value '*meta-quiet*)))
-
-;;; ====
-;;; File Reading
-;;; ====
-
-;;; read-all-sexps : String -> (List SExp) | #f
-;;; Read all S-expressions from a file
-(define (read-all-sexps-ex path)
-  (guard (e [else #f])
-    (call-with-input-file path
-      (lambda (port)
-        (let loop ([acc '()])
-          (let ([sexp (read port)])
-            (if (eof-object? sexp)
-                (reverse acc)
-                (loop (cons sexp acc)))))))))
 
 ;;; ====
 ;;; Pattern Recognition
@@ -146,188 +130,6 @@
       [else
        (loop (cdr sexps) acc)])))
 
-;;; extract-exports-from-file : String -> (List Symbol)
-;;; Extract all exported symbols from a source file
-(define (extract-exports-from-file path)
-  (let ([sexps (read-all-sexps-ex path)])
-    (if (not sexps)
-        '()
-        (extract-exports-from-sexps sexps))))
-
-;;; ====
-;;; Module Info Extraction
-;;; ====
-
-;;; extract-module-info : String -> (module description) | #f
-;;; Extract module name and description from a source file
-(define (extract-module-info path)
-  (let ([sexps (read-all-sexps-ex path)])
-    (if (not sexps)
-        #f
-        (let ([module-name #f]
-              [description #f])
-          (for-each
-           (lambda (sexp)
-             (when (and (pair? sexp)
-                        (eq? (car sexp) 'doc)
-                        (pair? (cdr sexp))
-                        (pair? (cadr sexp))
-                        (eq? (caadr sexp) 'quote))
-               (let ([tag (cadadr sexp)])
-                 (cond
-                   [(and (eq? tag 'module) (pair? (cddr sexp)))
-                    (set! module-name (caddr sexp))]
-                   [(and (eq? tag 'description) (pair? (cddr sexp)))
-                    (set! description (caddr sexp))]))))
-           sexps)
-          (if module-name
-              (list module-name description)
-              #f)))))
-
-;;; ====
-;;; Directory Scanning
-;;; ====
-
-;;; find-scheme-files : String -> (List String)
-;;; Find all .ss files under a directory
-(define (find-scheme-files-ex root)
-  (define (walk dir)
-    (guard (e [else '()])
-      (let ([entries (directory-list dir)])
-        (append-map (lambda (entry)
-                      (let ([path (string-append dir "/" entry)])
-                        (cond
-                          [(and (> (string-length entry) 3)
-                                (string=? ".ss" (substring entry
-                                                           (- (string-length entry) 3)
-                                                           (string-length entry)))
-                                (not (string-prefix? "test-" entry)))  ; Skip test files
-                           (list path)]
-                          [(and (file-directory? path)
-                                (not (char=? (string-ref entry 0) #\.)))
-                           (walk path)]
-                          [else '()])))
-                    entries))))
-  (if (file-directory? root)
-      (walk root)
-      (if (file-exists? root) (list root) '())))
-
-;;; string-prefix? : String × String -> Boolean
-(define (string-prefix? prefix str)
-  (let ([plen (string-length prefix)]
-        [slen (string-length str)])
-    (and (>= slen plen)
-         (string=? prefix (substring str 0 plen)))))
-
-;;; ====
-;;; Skill Export Scanning
-;;; ====
-
-;;; scan-skill-exports : String -> ((module . exports) ...)
-;;; Scan a skill directory and collect exports by module
-(define (scan-skill-exports skill-dir)
-  (let ([files (find-scheme-files-ex skill-dir)]
-        [results '()])
-    (for-each
-     (lambda (path)
-       (let ([exports (extract-exports-from-file path)]
-             [info (extract-module-info path)])
-         (when (and info (pair? exports))
-           (let ([module-name (car info)]
-                 [desc (cadr info)])
-             (set! results (cons (list module-name exports desc path) results))))))
-     files)
-    (reverse results)))
-
-;;; ====
-;;; Pretty Printing
-;;; ====
-
-;;; print-skill-exports : String -> Void
-;;; Print exports for a skill directory
-(define (print-skill-exports skill-dir)
-  (let ([results (scan-skill-exports skill-dir)])
-    (printf "Exports for ~a:~n" skill-dir)
-    (printf "~a~n" (make-string 60 #\-))
-    (for-each
-     (lambda (entry)
-       (let ([module (car entry)]
-             [exports (cadr entry)]
-             [desc (caddr entry)]
-             [path (cadddr entry)])
-         (printf "~n~a (~a):~n" module (basename path))
-         (when desc
-           (printf "  ~a~n" (truncate-string desc 70)))
-         (printf "  Exports: ~a~n" (map symbol->string exports))))
-     results)
-    (printf "~n~a~n" (make-string 60 #\-))
-    (printf "Total modules: ~a~n" (length results))
-    (printf "Total exports: ~a~n"
-            (apply + (map (lambda (e) (length (cadr e))) results)))))
-
-;;; basename : String -> String
-;;; Extract filename from path
-(define (basename path)
-  (let loop ([i (- (string-length path) 1)])
-    (cond
-      [(< i 0) path]
-      [(char=? (string-ref path i) #\/)
-       (substring path (+ i 1) (string-length path))]
-      [else (loop (- i 1))])))
-
-;;; truncate-string : String × Nat -> String
-(define (truncate-string str max-len)
-  (if (<= (string-length str) max-len)
-      str
-      (string-append (substring str 0 (- max-len 3)) "...")))
-
-;;; ====
-;;; Manifest Generation
-;;; ====
-
-;;; generate-exports-sexp : String -> SExp
-;;; Generate the exports section for a manifest
-(define (generate-exports-sexp skill-dir)
-  (let ([results (scan-skill-exports skill-dir)])
-    (cons 'exports
-          (append-map (lambda (entry)
-                        (let ([module (car entry)]
-                              [exports (cadr entry)])
-                          (cons (string->symbol (format ";; ~a" module))
-                                exports)))
-                      results))))
-
-;;; generate-modules-sexp : String -> SExp
-;;; Generate the modules section for a manifest
-(define (generate-modules-sexp skill-dir)
-  (let ([results (scan-skill-exports skill-dir)])
-    (cons 'modules
-          (map (lambda (entry)
-                 (let ([module (car entry)]
-                       [desc (or (caddr entry) "")]
-                       [path (cadddr entry)])
-                   (list module (basename path) desc)))
-               results))))
-
-;;; ====
-;;; Convenience Interface
-;;; ====
-
-;;; lef : String -> (List Symbol)
-;;; List exports from a file (similar to le but for any file)
-(define (lef path)
-  (let ([exports (extract-exports-from-file path)])
-    (if (null? exports)
-        (printf "No exports found in ~a~n" path)
-        (begin
-          (printf "Exports from ~a:~n" path)
-          (for-each (lambda (e) (printf "  ~a~n" e)) exports)))
-    exports))
-
-;;; le-skill : String -> Void
-;;; List exports for a skill directory (alias for print-skill-exports)
-(define le-skill print-skill-exports)
-
 ;;; ====
 ;;; Targeted Export Doc Detection
 ;;; ====
@@ -352,17 +154,11 @@
      sexps)
     (reverse exports)))
 
-;;; extract-all-exports-from-file : String -> (List Symbol)
-;;; Extract all exports (both contextual, following, and targeted) from a file
-(define (extract-all-exports-from-file path)
-  (let ([sexps (read-all-sexps-ex path)])
-    (if (not sexps)
-        '()
-        (let ([from-defines (extract-exports-from-sexps sexps)]
-              [targeted (find-targeted-exports sexps)])
-          (delete-duplicates (append from-defines targeted))))))
+;;; ====
+;;; Helpers
+;;; ====
 
-;;; delete-duplicates : (List α) -> (List α)
+;;; delete-duplicates : (List a) -> (List a)
 (define (delete-duplicates lst)
   (let loop ([lst lst] [seen '()] [acc '()])
     (cond
@@ -370,25 +166,21 @@
       [(member (car lst) seen) (loop (cdr lst) seen acc)]
       [else (loop (cdr lst) (cons (car lst) seen) (cons (car lst) acc))])))
 
-;;; ====
-;;; Full Manifest Generation
-;;; ====
+;;; basename : String -> String
+;;; Extract filename from path
+(define (basename path)
+  (let loop ([i (- (string-length path) 1)])
+    (cond
+      [(< i 0) path]
+      [(char=? (string-ref path i) #\/)
+       (substring path (+ i 1) (string-length path))]
+      [else (loop (- i 1))])))
 
-;;; scan-skill-all-exports : String -> ((module exports desc path) ...)
-;;; Scan skill directory, finding both contextual and targeted exports
-(define (scan-skill-all-exports skill-dir)
-  (let ([files (find-scheme-files-ex skill-dir)]
-        [results '()])
-    (for-each
-     (lambda (path)
-       (let ([exports (extract-all-exports-from-file path)]
-             [info (extract-module-info path)])
-         (when (pair? exports)
-           (let ([module-name (if info (car info) (path->module path))]
-                 [desc (if info (cadr info) "")])
-             (set! results (cons (list module-name exports desc path) results))))))
-     files)
-    (reverse results)))
+;;; truncate-string : String x Nat -> String
+(define (truncate-string str max-len)
+  (if (<= (string-length str) max-len)
+      str
+      (string-append (substring str 0 (- max-len 3)) "...")))
 
 ;;; path->module : String -> Symbol
 ;;; Extract module name from path (fallback when no doc 'module)
@@ -400,38 +192,11 @@
                    base)])
     (string->symbol name)))
 
-;;; generate-manifest-exports : String -> SExp
-;;; Generate (exports ...) section grouped by module
-(define (generate-manifest-exports skill-dir)
-  (let ([results (scan-skill-all-exports skill-dir)])
-    (cons 'exports
-          (map (lambda (entry)
-                 (cons (car entry)    ; module name
-                       (cadr entry))) ; exports list
-               results))))
-
-;;; generate-manifest-modules : String -> SExp
-;;; Generate (modules ...) section
-(define (generate-manifest-modules skill-dir)
-  (let ([results (scan-skill-all-exports skill-dir)])
-    (cons 'modules
-          (map (lambda (entry)
-                 (let ([module (car entry)]
-                       [desc (or (caddr entry) "")]
-                       [path (cadddr entry)])
-                   (list module (basename path) desc)))
-               results))))
-
 ;;; ====
-;;; Manifest Update (preserves metadata)
+;;; Manifest Structure Manipulation (pure — operates on S-expression data)
 ;;; ====
 
-;;; read-manifest-sexp : String -> SExp | #f
-(define (read-manifest-sexp path)
-  (guard (e [else #f])
-    (call-with-input-file path read)))
-
-;;; update-manifest-entry : SExp × Symbol × SExp -> SExp
+;;; update-manifest-entry : SExp x Symbol x SExp -> SExp
 ;;; Replace or add an entry in a manifest
 (define (update-manifest-entry manifest key new-value)
   (let ([found #f])
@@ -445,52 +210,11 @@
           (cons* (car manifest) (cadr manifest) updated)
           (cons* (car manifest) (cadr manifest) (append updated (list new-value)))))))
 
-;;; cons* : α × β × ... × (List γ) -> (List α β ... γ)
+;;; cons* : a x b x ... x (List c) -> (List a b ... c)
 (define (cons* . args)
   (if (null? (cdr args))
       (car args)
       (cons (car args) (apply cons* (cdr args)))))
-
-;;; update-manifest-from-source : String -> SExp | #f
-;;; Read existing manifest and update exports/modules from source
-(define (update-manifest-from-source skill-dir)
-  (let ([manifest-path (string-append skill-dir "/manifest.sexp")]
-        [new-exports (generate-manifest-exports skill-dir)]
-        [new-modules (generate-manifest-modules skill-dir)])
-    (let ([manifest (read-manifest-sexp manifest-path)])
-      (if (not manifest)
-          #f
-          (let* ([m1 (update-manifest-entry manifest 'exports new-exports)]
-                 [m2 (update-manifest-entry m1 'modules new-modules)])
-            m2)))))
-
-;;; ====
-;;; Manifest Comparison
-;;; ====
-
-;;; compare-manifest-exports : String -> Void
-;;; Compare manifest-declared exports vs source-defined exports
-(define (compare-manifest-exports skill-dir)
-  (let* ([manifest-path (string-append skill-dir "/manifest.sexp")]
-         [manifest (read-manifest-sexp manifest-path)])
-    (if (not manifest)
-        (printf "No manifest found at ~a~n" manifest-path)
-        (let* ([source-exports (scan-skill-all-exports skill-dir)]
-               [source-symbols (delete-duplicates (append-map cadr source-exports))]
-               [manifest-exports (manifest-exports-list manifest)]
-               [in-source-not-manifest (filter (lambda (s) (not (member s manifest-exports))) source-symbols)]
-               [in-manifest-not-source (filter (lambda (s) (not (member s source-symbols))) manifest-exports)])
-          (printf "Export comparison for ~a:~n" skill-dir)
-          (printf "  Source exports:   ~a~n" (length source-symbols))
-          (printf "  Manifest exports: ~a~n" (length manifest-exports))
-          (unless (null? in-source-not-manifest)
-            (printf "~n  In source but not manifest (~a):~n" (length in-source-not-manifest))
-            (for-each (lambda (s) (printf "    + ~a~n" s)) in-source-not-manifest))
-          (unless (null? in-manifest-not-source)
-            (printf "~n  In manifest but not source (~a):~n" (length in-manifest-not-source))
-            (for-each (lambda (s) (printf "    - ~a~n" s)) in-manifest-not-source))
-          (when (and (null? in-source-not-manifest) (null? in-manifest-not-source))
-            (printf "~n  ✓ Exports are in sync~n"))))))
 
 ;;; manifest-exports-list : SExp -> (List Symbol)
 ;;; Extract flat list of exports from manifest
@@ -511,10 +235,10 @@
                     (cdr exports-entry)))))
 
 ;;; ====
-;;; Pretty Print Manifest
+;;; Pretty Printing (formatter — writes to caller-supplied port)
 ;;; ====
 
-;;; pretty-print-manifest : SExp × Port -> Void
+;;; pretty-print-manifest : SExp x Port -> Void
 (define (pretty-print-manifest manifest port)
   (define (indent n) (make-string (* n 2) #\space))
 
@@ -591,21 +315,9 @@
    (cddr manifest))
   (fprintf port ")~n"))
 
-;;; write-manifest : String × SExp -> Void
-;;; Write manifest to file with pretty formatting
-(define (write-manifest path manifest)
-  (call-with-output-file path
-    (lambda (port)
-      (pretty-print-manifest manifest port))
-    'replace))
+;;; ====
+;;; REPL Interface
+;;; ====
 
-;;; sync-manifest : String -> Void
-;;; Update manifest file from source exports
-(define (sync-manifest skill-dir)
-  (let ([manifest (update-manifest-from-source skill-dir)])
-    (if (not manifest)
-        (printf "Could not read manifest for ~a~n" skill-dir)
-        (let ([path (string-append skill-dir "/manifest.sexp")])
-          (write-manifest path manifest)
-          (printf "Updated ~a~n" path)
-          (compare-manifest-exports skill-dir)))))
+(unless *exports-quiet*
+  (meta-printf "exports.ss loaded (pure pattern recognition).\n"))

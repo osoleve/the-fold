@@ -1,7 +1,7 @@
 (doc 'module 'type-search)
 (doc 'description "Type-aware search with filtering by type signatures")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 
 (doc 'section 'type-signature-utilities)
 

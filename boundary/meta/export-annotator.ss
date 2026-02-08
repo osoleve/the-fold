@@ -1,9 +1,9 @@
 (load "core/base/prelude.ss")
-(load "lattice/meta/manifest-sync.ss")
+(load "boundary/meta/manifest-sync.ss")
 
 (doc 'module 'export-annotator)
 (doc 'description "Add (doc 'export #t) annotations to functions declared in manifests")
-(doc 'layer 'lattice)
+(doc 'layer 'boundary)
 (doc 'purity 'partial)
 
 ;;; ====

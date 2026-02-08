@@ -7,7 +7,7 @@
 ;;; Suppress module load messages during tests
 (define *meta-quiet* #t)
 
-(load "lattice/meta/docs.ss")
+(load "boundary/meta/docs-io.ss")
 
 (display "\n====\n")
 (display "Doc Extraction Tests\n")

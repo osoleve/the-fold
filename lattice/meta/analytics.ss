@@ -3,7 +3,7 @@
 (doc 'module 'analytics)
 (doc 'description "Statistics, health checks, and coverage analysis for the skill lattice")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 
 (doc 'section 'overall-statistics)
 

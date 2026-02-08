@@ -1,18 +1,14 @@
 (doc 'module 'docs)
 (doc 'description "S-expression doc form extraction for search and inspection")
 (doc 'layer 'lattice)
-(doc 'purity 'partial)
+(doc 'purity 'total)
 
-(doc 'section 'dependencies)
+(doc 'section 'state)
 
 ;; Respect existing *meta-quiet* if set, otherwise default to #f
 (define *docs-quiet*
   (and (top-level-bound? '*meta-quiet*)
        (top-level-value '*meta-quiet*)))
-
-;;; ====
-;;; State
-;;; ====
 
 ;;; Doc index: list of (file line tag content target?)
 (define *doc-index* '())
@@ -20,25 +16,7 @@
 ;;; Initialization flag: distinguishes "not yet built" from "built but empty"
 (define *doc-index-built?* #f)
 
-;;; ====
-;;; File Reading
-;;; ====
-
-;;; read-all-sexps : String -> (List SExp) | #f
-;;; Read all S-expressions from a file
-(define (read-all-sexps path)
-  (guard (e [else #f])
-    (call-with-input-file path
-      (lambda (port)
-        (let loop ([acc '()])
-          (let ([sexp (read port)])
-            (if (eof-object? sexp)
-                (reverse acc)
-                (loop (cons sexp acc)))))))))
-
-;;; ====
-;;; Doc Form Extraction
-;;; ====
+(doc 'section 'pure-parsing)
 
 ;;; doc-form? : SExp -> Boolean
 ;;; Check if expression is a doc form
@@ -94,86 +72,20 @@
      (append-map (lambda (sub) (extract-docs-from-sexp sub line))
                  sexp)]))
 
-;;; extract-docs-from-file : String -> (List (file line tag content target?))
-;;; Extract all doc forms from a source file
-(define (extract-docs-from-file path)
-  (let ([sexps (read-all-sexps path)])
-    (if (not sexps)
-        '()
-        (let loop ([sexps sexps] [line 1] [acc '()])
-          (if (null? sexps)
-              acc
-              (let* ([sexp (car sexps)]
-                     [docs (extract-docs-from-sexp sexp line)]
-                     [tagged (map (lambda (d) (cons path d)) docs)])
-                (loop (cdr sexps)
-                      (+ line 1)  ; Approximate - real line tracking would need reader
-                      (append acc tagged))))))))
+(doc 'section 'cache-population)
 
-;;; ====
-;;; Indexing
-;;; ====
+;;; populate-doc-index! : (List (file line tag content target?)) -> Void
+;;; Populate the doc index from pre-parsed entries.
+;;; Called from boundary orchestrator after I/O.
+(define (populate-doc-index! entries)
+  (set! *doc-index* entries)
+  (set! *doc-index-built?* #t))
 
-;;; find-scheme-files : String -> (List String)
-;;; Find all .ss files under a directory
-(define (find-scheme-files root)
-  (define (walk dir)
-    (guard (e [else '()])
-      (let ([entries (directory-list dir)])
-        (append-map (lambda (entry)
-                      (let ([path (string-append dir "/" entry)])
-                        (cond
-                          [(and (> (string-length entry) 3)
-                                (string=? ".ss" (substring entry
-                                                           (- (string-length entry) 3)
-                                                           (string-length entry))))
-                           (list path)]
-                          [(and (file-directory? path)
-                                (not (char=? (string-ref entry 0) #\.)))
-                           (walk path)]
-                          [else '()])))
-                    entries))))
-  (if (file-directory? root)
-      (walk root)
-      (if (file-exists? root) (list root) '())))
-
-;;; build-doc-index! : -> Void
-;;; Build the doc index from the codebase
-;;; Prepends small doc lists to accumulator (O(docs-per-file) each, not O(total))
-;;; then reverses once at end for correct file order
-(define (build-doc-index!)
-  (let ([roots '("core" "lattice" "boundary")]
-        [acc '()])
-    (for-each
-     (lambda (root)
-       (let ([files (find-scheme-files root)])
-         (for-each
-          (lambda (file)
-            (let ([docs (extract-docs-from-file file)])
-              ;; Prepend docs to acc: O(|docs|) not O(|acc|)
-              ;; Old code did (append acc docs) which was O(|acc|) per file
-              (set! acc (append docs acc))))
-          files)))
-     roots)
-    (set! *doc-index* (reverse acc))
-    (set! *doc-index-built?* #t))
-  (unless *docs-quiet*
-    (printf "Doc index built: ~a entries~n" (length *doc-index*))))
-
-;;; ====
-;;; Search Functions
-;;; ====
-
-;;; ensure-doc-index! : -> Void
-;;; Build index if not yet built (handles empty index correctly)
-(define (ensure-doc-index!)
-  (unless *doc-index-built?*
-    (build-doc-index!)))
+(doc 'section 'query-api)
 
 ;;; lf-docs : Symbol -> (List Doc)
 ;;; Find all docs with a specific tag
 (define (lf-docs tag)
-  (ensure-doc-index!)
   (filter (lambda (doc)
             (eq? (caddr doc) tag))  ; doc = (file line tag content target?)
           *doc-index*))
@@ -181,7 +93,6 @@
 ;;; docs-for : Symbol -> (List Doc)
 ;;; Find all docs targeting a specific symbol
 (define (docs-for target)
-  (ensure-doc-index!)
   (filter (lambda (doc)
             (eq? (list-ref doc 4) target))  ; 5th element is target
           *doc-index*))
@@ -189,7 +100,6 @@
 ;;; doc-stats : -> (Alist Tag Nat)
 ;;; Count docs by tag
 (define (doc-stats)
-  (ensure-doc-index!)
   (let ([counts (make-hashtable equal-hash equal?)])  ; Use equal? for non-symbol tags
     (for-each
      (lambda (doc)
@@ -200,9 +110,7 @@
     (let-values ([(keys vals) (hashtable-entries counts)])
       (map cons (vector->list keys) (vector->list vals)))))
 
-;;; ====
-;;; Pretty Printing
-;;; ====
+(doc 'section 'pretty-printing)
 
 ;;; print-docs : (List Doc) -> Void
 ;;; Pretty print a list of docs
@@ -222,17 +130,10 @@
          (printf "  ~s~n" content))))
    docs))
 
-;;; ====
-;;; Convenience Aliases
-;;; ====
+(doc 'section 'convenience-aliases)
 
 ;;; Quick search aliases
 (define (lf-todo) (print-docs (lf-docs 'todo)))
 (define (lf-fixme) (print-docs (lf-docs 'fixme)))
 (define (lf-types) (print-docs (lf-docs 'type)))
 (define (lf-deprecated) (print-docs (lf-docs 'deprecated)))
-
-;;; Rebuild index (resets flag, forces fresh build)
-(define (doc-reindex!)
-  (set! *doc-index-built?* #f)
-  (build-doc-index!))

@@ -7,7 +7,7 @@
 ;;;   - lattice/meta/source-loc.ss
 
 (load "core/testing/test-framework.ss")
-(load "lattice/meta/source-loc.ss")
+(load "boundary/meta/source-loc-io.ss")
 
 ;;; ====
 ;;; Helper Tests
@@ -23,10 +23,10 @@
     (assert-equal "" (string-trim-left-loc ""))
     (assert-equal "" (string-trim-left-loc "   ")))
 
-  (define-test "string-prefix? works correctly"
-    (assert-true (string-prefix? "test-" "test-foo.ss"))
-    (assert-false (string-prefix? "test-" "foo.ss"))
-    (assert-true (string-prefix? "" "anything"))))
+  (define-test "string-starts-with? works correctly"
+    (assert-true (string-starts-with? "test-foo.ss" "test-"))
+    (assert-false (string-starts-with? "foo.ss" "test-"))
+    (assert-true (string-starts-with? "anything" ""))))
 
 ;;; ====
 ;;; Name Extraction Tests
@@ -83,7 +83,7 @@
     (assert-true (> (source-location-count) 0)))
 
   (define-test "can look up known function"
-    (let ([loc (get-source-location 'build-source-location-cache!)])
+    (let ([loc (get-source-location 'get-source-location)])
          (assert-true (pair? loc))
          (assert-true (string? (car loc)))
          (assert-true (integer? (cdr loc)))))
