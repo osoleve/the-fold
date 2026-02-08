@@ -178,7 +178,9 @@
     ;; Tiles
     "tiles/test-tiles.ss"
     "tiles/test-triangle.ss"
+    "tiles/test-pathfinding.ss"
     "tiles/test-visibility.ss"
+    "tiles/test-units.ss"
     "tiles/test-turns.ss"
     "tiles/test-topology-analysis.ss"
     ;; Simulation
