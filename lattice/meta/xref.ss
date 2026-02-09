@@ -1,3 +1,5 @@
+(load "lattice/data/sort.ss")
+
 (doc 'module 'xref)
 (doc 'description "Cross-reference tracking for function call relationships and impact analysis")
 (doc 'layer 'lattice)
@@ -268,7 +270,7 @@
             (set! counts (cons (cons sym (length callers)) counts)))))
       (hashtable-keys *xref-callers*))
     (take-n-xref n
-      (sort (lambda (a b) (> (cdr a) (cdr b))) counts))))
+      (sort-by (lambda (a b) (> (cdr a) (cdr b))) counts))))
 
 (doc 'section 'repl-interface)
 

@@ -3,6 +3,7 @@
 ;;; @requires prelude
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/data/heap.ss")
 
 (doc 'module 'kdtree)
@@ -124,7 +125,7 @@ linear-time median selection (median-of-medians); this implementation uses sorti
 (define (sort-by-axis points axis)
   (doc 'type '(-> (List Point) Nat (List Point)))
   (doc 'description "Sort points by coordinate along given axis")
-  (sort (lambda (p1 p2) (< (point-coord p1 axis) (point-coord p2 axis))) points))
+  (sort-by (lambda (p1 p2) (< (point-coord p1 axis) (point-coord p2 axis))) points))
 
 ;; Note: Uses take/drop from prelude.ss with signature (take n lst), (drop n lst)
 

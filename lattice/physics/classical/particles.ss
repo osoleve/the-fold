@@ -1,5 +1,6 @@
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/linalg/vec2.ss")
 (load "lattice/random/prng.ss")
 
@@ -525,9 +526,9 @@
 (doc 'oldest-particles 'type '(List Particle) × Number → (List Particle))
 (doc "Get the n oldest particles.")
 (define (oldest-particles particles n)
-  (take n (sort (lambda (a b)
-                        (> (particle-age a) (particle-age b)))
-                particles)))
+  (take n (sort-by (lambda (a b)
+                          (> (particle-age a) (particle-age b)))
+                  particles)))
 
 (doc 'section 'collision)
 

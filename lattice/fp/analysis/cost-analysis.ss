@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'cost-analysis)
 (doc 'description "Cost Estimation for Parallelization Heuristics
@@ -615,7 +616,7 @@ Returns: constant, linear, quadratic, recursive, unknown")
 (define (sort-by-cost entries)
   (doc 'type '(-> (List (Position Cost Expr)) (List (Position Cost Expr))))
   (doc 'description "Sort cost entries by cost, descending.")
-  (let ([sorted (sort (lambda (a b) (> (cadr a) (cadr b))) entries)])
+  (let ([sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) entries)])
        sorted))
 
 (doc 'section 'utility-functions)

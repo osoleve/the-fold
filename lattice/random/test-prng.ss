@@ -367,7 +367,7 @@
               ;; Shuffle should preserve all elements
               (let* ([lst '(1 2 3 4 5)]
                      [shuffled (with-random 42 (shuffle lst))])
-                    (assert-equal (sort < shuffled) (sort < lst))))
+                    (assert-equal (sort-by < shuffled) (sort-by < lst))))
             
             (define-test shuffle-different-seeds
               ;; Different seeds should give different orderings (usually)

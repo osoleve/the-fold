@@ -425,7 +425,7 @@
 ;;; T = Trigonometric
 ;;; E = Exponential (worst u choice)
 (define (sort-by-liate factors)
-  (sort (lambda (a b) (< (liate-priority a) (liate-priority b))) factors))
+  (sort-by (lambda (a b) (< (liate-priority a) (liate-priority b))) factors))
 
 ;;; liate-priority : Expr → Number
 (define (liate-priority expr)

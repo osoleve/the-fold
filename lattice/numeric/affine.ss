@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/numeric/interval.ss")
 
 (doc 'module 'affine)
@@ -43,7 +44,7 @@
   (doc 'description "Create an affine form from center and terms. Terms are (noise-id . coefficient) pairs.")
   ;; Filter out zero terms and sort by noise ID
   (let ([nonzero (filter (lambda (term) (not (zero? (cdr term)))) terms)])
-    (list 'affine x0 (sort (lambda (a b) (< (car a) (car b))) nonzero))))
+    (list 'affine x0 (sort-by (lambda (a b) (< (car a) (car b))) nonzero))))
 
 (define (affine? x)
   (doc 'export #t)

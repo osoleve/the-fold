@@ -1,3 +1,4 @@
+(load "lattice/data/sort.ss")
 (load "lattice/fp/symbolic/expr.ss")
 
 (doc 'module 'simplify)
@@ -101,7 +102,7 @@
         terms)
        ;; Rebuild terms from hashtable keys in deterministic order
        (let* ([keys (vector->list (hashtable-keys table))]
-              [sorted-keys (sort (lambda (a b) (< (expr-complexity a) (expr-complexity b))) keys)])
+              [sorted-keys (sort-by (lambda (a b) (< (expr-complexity a) (expr-complexity b))) keys)])
              (filter-map
               (lambda (key)
                       (let ([coef (hashtable-ref table key 0)])
@@ -181,7 +182,7 @@
         factors)
        ;; Rebuild factors in deterministic order (sorted by complexity)
        (let* ([keys (vector->list (hashtable-keys table))]
-              [sorted-keys (sort (lambda (a b) (< (expr-complexity a) (expr-complexity b))) keys)])
+              [sorted-keys (sort-by (lambda (a b) (< (expr-complexity a) (expr-complexity b))) keys)])
              (filter-map
               (lambda (key)
                       (let ([exp (simplify (hashtable-ref table key (num 0)))])
@@ -761,7 +762,7 @@
 (define (sort-by-complexity exprs)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Sort terms/factors by complexity (simplest first)")
-  (sort (lambda (a b) (< (expr-complexity a) (expr-complexity b))) exprs))
+  (sort-by (lambda (a b) (< (expr-complexity a) (expr-complexity b))) exprs))
 
 (define (expr-complexity expr)
   (doc 'type '(-> Expr Number))

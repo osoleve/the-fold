@@ -3,6 +3,7 @@
 ;;; @requires prelude linalg/vec geometry
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/geometry/geometry.ss")
 (load "lattice/data/heap.ss")
@@ -654,7 +655,7 @@
          [d12 (point2-distance p1 p2)]
          [d23 (point2-distance p2 p3)]
          [d31 (point2-distance p3 p1)])
-    (sort < (list d12 d23 d31))))
+    (sort-by < (list d12 d23 d31))))
 
 (doc tri2-aspect-ratio 'export #t)
 (doc tri2-aspect-ratio 'type '(-> Triangle2 Number))
@@ -675,7 +676,7 @@
          [angle-c (acos (/ (+ (* a a) (* b b) (- (* c c))) (* 2 a b)))]
          [angle-b (acos (/ (+ (* a a) (* c c) (- (* b b))) (* 2 a c)))]
          [angle-a (- 3.141592653589793 angle-b angle-c)])
-    (sort < (list angle-a angle-b angle-c))))
+    (sort-by < (list angle-a angle-b angle-c))))
 
 (doc tri2-min-angle 'export #t)
 (doc tri2-min-angle 'type '(-> Triangle2 Number))
@@ -750,9 +751,9 @@
                   (if (null? bad-tris)
                       tris
                       ;; Insert circumcenter of worst triangle
-                      (let* ([worst (car (sort (lambda (a b)
-                                                 (< (tri2-min-angle a) (tri2-min-angle b)))
-                                               bad-tris))]
+                      (let* ([worst (car (sort-by (lambda (a b)
+                                                    (< (tri2-min-angle a) (tri2-min-angle b)))
+                                                  bad-tris))]
                              [cc (tri2-circumcenter worst)]
                              [new-tris (delaunay-insert-point tris cc)])
                         (loop new-tris (+ iter 1)))))))]
@@ -1194,7 +1195,7 @@
                     ;; All triangles are small enough
                     (loop current-tris max-iters)
                     ;; Refine the largest triangle
-                    (let* ([worst (car (sort (lambda (a b) (> (tri2-area a) (tri2-area b))) large-tris))]
+                    (let* ([worst (car (sort-by (lambda (a b) (> (tri2-area a) (tri2-area b))) large-tris))]
                            [cc (tri2-circumcenter worst)])
                       (if (and cc (point-in-polygon? cc polygon))
                           ;; Insert circumcenter and re-filter (constraint + centroid checks)

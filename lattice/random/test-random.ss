@@ -189,7 +189,7 @@
             (define-test shuffle-preserves-elements
               (let* ([lst '(1 2 3 4 5)]
                      [shuffled (with-random 42 (shuffle lst))])
-                    (assert-equal (sort < shuffled) (sort < lst))))
+                    (assert-equal (sort-by < shuffled) (sort-by < lst))))
             
             (define-test shuffle-randomizes
               (let* ([lst '(1 2 3 4 5 6 7 8 9 10)]

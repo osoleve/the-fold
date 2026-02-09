@@ -3,6 +3,7 @@
 ;;; @requires prelude, heap
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/data/heap.ss")
 
 (doc 'module 'quadtree)
@@ -323,10 +324,10 @@ correct depth tracking when re-inserting existing points into child nodes.")
     (+ (* x-dist x-dist) (* y-dist y-dist))))
 
 (define (sort-by-bounds-dist children qx qy)
-  (sort (lambda (a b)
-          (< (bounds-min-dist-sq (quadtree-bounds a) qx qy)
-             (bounds-min-dist-sq (quadtree-bounds b) qx qy)))
-        (filter (lambda (c) (not (quadtree-empty? c))) children)))
+  (sort-by (lambda (a b)
+              (< (bounds-min-dist-sq (quadtree-bounds a) qx qy)
+                 (bounds-min-dist-sq (quadtree-bounds b) qx qy)))
+            (filter (lambda (c) (not (quadtree-empty? c))) children)))
 
 ;;; ============================================================
 ;;; K-Nearest Neighbors

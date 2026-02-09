@@ -3,6 +3,7 @@
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers geometry/mesh-gen
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/sparse.ss")
@@ -303,7 +304,7 @@
            (hashtable-set! boundary-set (car edge) #t)
            (hashtable-set! boundary-set (cdr edge) #t)))
        (hashtable-keys edge-counts))
-      (sort < (vector->list (hashtable-keys boundary-set))))))
+      (sort-by < (vector->list (hashtable-keys boundary-set))))))
 
 (doc apply-dirichlet-bc! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) FEMMesh Void))
 (doc apply-dirichlet-bc! 'description "Apply Dirichlet BC by elimination method (zeros row/col, sets diagonal to 1)")

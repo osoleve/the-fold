@@ -1,3 +1,5 @@
+(load "lattice/data/sort.ss")
+
 (doc 'module 'tiles/turns)
 (doc 'description "Turn-based game system: turn order, action points, phases, history")
 (doc 'layer 'lattice)
@@ -176,7 +178,7 @@
   (doc 'description "Calculate turn order based on unit initiative. Higher initiative goes first, ties broken by ID.")
   (doc 'type '(-> (List Unit) (List UnitId)))
   (let ([sorted
-         (sort (lambda (u1 u2)
+         (sort-by (lambda (u1 u2)
                        (let ([init1 (unit-get-prop u1 'initiative 0)]
                              [init2 (unit-get-prop u2 'initiative 0)])
                             (if (= init1 init2)

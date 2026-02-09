@@ -3,6 +3,7 @@
 ;;; @requires prelude
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'pagerank)
 (doc 'description "PageRank importance scoring using eigenvalue computation")
@@ -240,22 +241,9 @@
                          acc
                          (loop (+ i 1) (cons (cons i (vector-ref scores i)) acc))))])
         ;; Sort by score descending and take top k
-        (let ([sorted (sort (lambda (a b) (> (cdr a) (cdr b))) pairs)])
+        (let ([sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) pairs)])
              (if (<= k (length sorted))
                  (take k sorted)
                  sorted))))
 
 ;; take provided by prelude
-
-;;; sort : (a × a → Bool) × (List a) → (List a)
-;;; Simple insertion sort for small lists.
-(define (sort pred lst)
-  (if (null? lst)
-      '()
-      (insert pred (car lst) (sort pred (cdr lst)))))
-
-(define (insert pred x sorted)
-  (cond
-   [(null? sorted) (list x)]
-   [(pred x (car sorted)) (cons x sorted)]
-   [else (cons (car sorted) (insert pred x (cdr sorted)))]))

@@ -2,6 +2,7 @@
 ;;; @module format-iso
 ;;; @requires profunctor-optics
 
+(load "lattice/data/sort.ss")
 (load "lattice/fp/optics/profunctor-optics.ss")
 
 (doc 'module 'format-iso)
@@ -107,10 +108,10 @@ Useful for canonicalization before hashing.")
 (define iso-alist-keys-sorted
   (make-p-iso
    (lambda (alist)
-     (sort (lambda (a b)
-             (string<? (symbol->string (car a))
-                       (symbol->string (car b))))
-           alist))
+     (sort-by (lambda (a b)
+                (string<? (symbol->string (car a))
+                          (symbol->string (car b))))
+              alist))
    identity))  ; Sorting is idempotent, backward is identity
 
 (doc 'section 'numbers)

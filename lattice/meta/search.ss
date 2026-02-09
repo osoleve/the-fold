@@ -1,3 +1,4 @@
+(load "lattice/data/sort.ss")
 (load "lattice/meta/kg.ss")
 (load "lattice/meta/bm25.ss")
 (load "lattice/meta/docstrings.ss")
@@ -125,7 +126,7 @@
                           [module-results (search-with-context *module-index* query-terms k 'module)]
                           [export-results (search-with-context *export-index* query-terms k 'export)]
                           [all-results (append skill-results module-results export-results)]
-                          [sorted (sort (lambda (a b) (> (cadr a) (cadr b))) all-results)])
+                          [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-results)])
                          (take-at-most k sorted))]))))
 
 ;;; search-with-context : Index (List Symbol) Int Symbol -> (List SearchResult)
@@ -185,7 +186,7 @@
                                   #f)))
                  (kg-skills))]
                [all-matches (append skill-matches export-matches)]
-               [sorted (sort (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
+               [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
               (take-at-most k sorted))))
 
 ;;; lattice-find-substring : Symbol [Int] -> (List SearchResult)
@@ -212,7 +213,7 @@
                                   #f)))
                  (kg-skills))]
                [all-matches (append skill-matches export-matches)]
-               [sorted (sort (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
+               [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
               (take-at-most k sorted))))
 
 ;;; string-contains? : String String -> Bool
@@ -284,12 +285,12 @@
                                    #f)))
                  (kg-exports))]
                [all-matches (append skill-matches export-matches)]
-               [sorted (sort (lambda (a b)
-                                     (or (> (cdr a) (cdr b))
-                                         (and (= (cdr a) (cdr b))
-                                              (< (string-length (symbol->string (car a)))
-                                                 (string-length (symbol->string (car b)))))))
-                             all-matches)])
+               [sorted (sort-by (lambda (a b)
+                                       (or (> (cdr a) (cdr b))
+                                           (and (= (cdr a) (cdr b))
+                                                (< (string-length (symbol->string (car a)))
+                                                   (string-length (symbol->string (car b)))))))
+                               all-matches)])
               (take-at-most k sorted))))
 
 ;;; ====

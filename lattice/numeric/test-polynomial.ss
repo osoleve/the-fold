@@ -3,6 +3,7 @@
 ;;; Comprehensive tests for polynomial operations.
 
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/numeric/polynomial.ss")
 
 ;;; ====
@@ -184,7 +185,7 @@
 (let* ([original-roots (list 1 -2 3)]
        [p (poly-from-roots original-roots 1)]
        [found-roots (poly-roots p)]
-       [found-reals (sort < (map complex-real found-roots))])
+       [found-reals (sort-by < (map complex-real found-roots))])
       (test "from-roots round-trip count" 3 (length found-roots))
       ;; Check sum instead of individual roots (more stable)
       (test-approx "from-roots roots sum" 2.0 (apply + found-reals) 1e-4))

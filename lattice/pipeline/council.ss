@@ -1,3 +1,4 @@
+(load "lattice/data/sort.ss")
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")
@@ -341,7 +342,7 @@
       (let ([votes (result-votes result)])
            (if (null? votes)
                #f
-               (let* ([sorted (sort (lambda (a b) (> (cdr a) (cdr b))) votes)]
+               (let* ([sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) votes)]
                       [top (car sorted)]
                       [total (apply + (map cdr votes))])
                      (if (> (cdr top) (/ total 2))

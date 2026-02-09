@@ -28,7 +28,7 @@
   (let* ([limit (if (null? opts) 20 (car opts))]
          [callers (call-graph-callers sym)]
          [shown (if (> (length callers) limit)
-                    (take callers limit)
+                    (take limit callers)
                     callers)]
          [more (- (length callers) (length shown))])
         (display "\n")
@@ -57,7 +57,7 @@
   (let* ([limit (if (null? opts) 20 (car opts))]
          [callees (call-graph-callees sym)]
          [shown (if (> (length callees) limit)
-                    (take callees limit)
+                    (take limit callees)
                     callees)]
          [more (- (length callees) (length shown))])
         (display "\n")

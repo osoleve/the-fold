@@ -1,3 +1,4 @@
+(load "lattice/data/sort.ss")
 (load "lattice/meta/kg.ss")
 
 (doc 'module 'dag)
@@ -212,7 +213,7 @@
                           (set-cdr! entry (cons skill-name (cdr entry)))
                           (set! tier-map (cons (cons tier (list skill-name)) tier-map)))))
         (kg-skills))
-       (sort (lambda (a b) (< (car a) (car b))) tier-map)))
+       (sort-by (lambda (a b) (< (car a) (car b))) tier-map)))
 
 (doc lattice-depth 'type (-> Symbol Int))
 (doc lattice-depth 'description "Get the maximum dependency depth of a skill")
@@ -241,7 +242,7 @@
 (define (lattice-hubs . options)
   (let* ([k (if (pair? options) (car options) 10)]
          [impacts (map (lambda (s) (cons s (lattice-impact s))) (kg-skills))]
-         [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) impacts)])
+         [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) impacts)])
         (take-at-most k sorted)))
 
 ;;; lattice-breaking-change? : Symbol Symbol -> Bool

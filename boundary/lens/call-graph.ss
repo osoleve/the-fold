@@ -230,8 +230,10 @@
   (display "Building call graph...\n")
   (display "  Scanning core/...\n")
   (for-each process-file-for-calls (find-scheme-files "core"))
+  (display "  Scanning lattice/...\n")
+  (for-each process-file-for-calls (find-scheme-files "lattice"))
   (display "  Scanning boundary/...\n")
-  (for-each process-file-for-calls (find-scheme-files "shell"))
+  (for-each process-file-for-calls (find-scheme-files "boundary"))
   (display "  Scanning user/...\n")
   (for-each process-file-for-calls (find-scheme-files "user"))
   

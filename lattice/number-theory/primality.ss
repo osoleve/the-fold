@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/number-theory/modular.ss")
 
 (doc 'module 'primality)
@@ -153,9 +154,9 @@
            [remaining (car small-factor-result)]
            [small-factors (cdr small-factor-result)])
       (if (= remaining 1)
-          (sort < small-factors)
+          (sort-by < small-factors)
           ;; Use Pollard's rho for the remaining part
-          (sort < (append small-factors (pollard-rho-factorize remaining)))))]))
+          (sort-by < (append small-factors (pollard-rho-factorize remaining)))))]))
 
 ;;; extract-small-factors : Int × Int → (Int . (List Int))
 ;;; Extract prime factors up to limit from n.
@@ -282,7 +283,7 @@
   (if (< n 1)
       '()
       (let* ([pf (prime-factorization n)])
-        (sort < (generate-divisors pf)))))
+        (sort-by < (generate-divisors pf)))))
 
 ;;; generate-divisors : (List (Int . Int)) → (List Int)
 ;;; Generate all divisors from prime factorization.
