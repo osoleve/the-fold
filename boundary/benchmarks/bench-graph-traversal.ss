@@ -6,7 +6,7 @@
 (load "boundary/blocks/graph-traversal.ss")
 (load "boundary/tools/benchmark.ss")
 
-(doc 'module 'graph-algorithms-benchmarks)
+(doc 'module 'graph-traversal-benchmarks)
 (doc 'description "Comprehensive benchmarking suite for graph algorithms with varying graph sizes and structures, measuring execution time, memory usage, and scalability")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
