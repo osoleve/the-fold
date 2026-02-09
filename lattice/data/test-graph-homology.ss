@@ -4,7 +4,7 @@
 ;;; on various simple graphs.
 
 (source-directories (cons "core" (source-directories)))
-(load "lattice/data/graph-algorithms.ss")
+(load "lattice/data/graph-homology.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)

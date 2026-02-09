@@ -1,4 +1,4 @@
-;;; lattice/data/graph-algorithms.ss — Pure Graph Data Structures & Homology
+;;; lattice/data/graph-algorithms.ss — Pure Graph Data Structures
 ;;; @module graph-algorithms
 ;;; @requires prelude sort
 
@@ -6,26 +6,21 @@
 (load "lattice/data/sort.ss")
 
 (doc 'module 'graph-algorithms)
-(doc 'description "Pure graph data structures and homology-based cycle analysis.
-  Provides visited sets, queues, stacks, hash utilities, and algebraic topology
-  tools for analyzing graph structure via simplicial homology.")
+(doc 'description "Pure graph data structures: visited sets, queues, stacks, hash utilities, cycle utilities.
+  Composable building blocks for graph algorithms.")
 (doc 'layer 'lattice)
+(doc 'purity 'total)
 
 (doc 'note "DESIGN PRINCIPLES:
   - Pure functional — no I/O or store access
   - Efficient visited-set tracking to avoid cycles
-  - Composable data structures for graph algorithms
-  - Homology-based analysis via topology/homology.ss")
+  - Composable data structures for graph algorithms")
 
+(doc 'note "Homology-based cycle analysis lives in lattice/data/graph-homology.ss")
 (doc 'note "Store-dependent traversal and analysis functions (BFS, DFS, pathfinding,
   connected components, centrality, etc.) live in boundary/data/graph-traversal.ss")
 
 (load "lattice/data/collection-utils.ss")
-
-;;; Dependencies for homology-based analysis (Section 8)
-;;; Uses topology/homology.ss for Z_2 homology computation (canonical implementation)
-;;; All homology functions now use Z_2 arithmetic via this module
-(load "lattice/topology/homology.ss")
 
 (doc bytevector-hash 'type '(-> Bytevector Integer))
 (doc bytevector-hash 'description "Hash function for bytevectors (FNV-1a inspired)")
@@ -225,170 +220,12 @@
 
 
 ;;; ====
-;;; Section 8: Homology-Based Cycle Analysis
-;;; ====
-
-(doc 'section 'homology-based-cycle-analysis)
-(doc 'description "Algebraic topology tools for analyzing cycles in graphs using simplicial homology")
-(doc 'note "H_0 (0-th homology) captures connected components; H_1 (1st homology) captures independent cycles")
-(doc 'note "Betti numbers: beta_0 = number of connected components, beta_1 = number of independent cycles")
-(doc 'note "All homology functions use canonical Z_2 implementation from topology/homology.ss for exact mod-2 arithmetic")
-
-(doc graph->simplicial-complex 'type '(-> (List Edge) (List Vertex) SC))
-(doc graph->simplicial-complex 'description "Convert graph to 1-dimensional simplicial complex; vertices become 0-simplices, edges become 1-simplices")
-(doc graph->simplicial-complex 'note "Edge format: (v1 . v2) or (v1 v2) - both are supported")
-(define (graph->simplicial-complex edges vertices)
-  (let* ([vertex-simplices (map (lambda (v) (make-simplex (list v))) vertices)]
-         [edge-simplices (map (lambda (e)
-                                (let ([v1 (car e)]
-                                      [v2 (if (pair? (cdr e))
-                                              (cadr e)
-                                              (cdr e))])
-                                  (make-simplex (list v1 v2))))
-                              edges)])
-    (sc-from-simplices (append vertex-simplices edge-simplices))))
-
-;;; graph-adjacency->simplicial-complex : AdjList → SC
-;;; Convert adjacency list to simplicial complex.
-;;; AdjList format: ((vertex neighbor1 neighbor2 ...) ...)
-(define (graph-adjacency->simplicial-complex adj)
-  (let* ([vertices (map car adj)]
-         [edges '()])
-    (for-each
-     (lambda (entry)
-       (let ([v (car entry)]
-             [neighbors (cdr entry)])
-         (for-each
-          (lambda (n)
-            (when (< v n)
-              (set! edges (cons (cons v n) edges))))
-          neighbors)))
-     adj)
-    (graph->simplicial-complex edges vertices)))
-
-;;; --- Boundary Matrix Construction ---
-
-;;; build-boundary-matrix-1 : SC → Matrix
-;;; Build the boundary matrix ∂_1 : C_1 → C_0 for a 1-dimensional complex.
-;;; Rows correspond to 0-simplices (vertices), columns to 1-simplices (edges).
-(define (build-boundary-matrix-1 sc)
-  (let* ([vertices (sc-vertices sc)]
-         [edges (sc-edges sc)]
-         [n-vertices (length vertices)]
-         [n-edges (length edges)]
-         [vertex-index (make-hashtable equal-hash equal?)])
-    (let loop ([vs vertices] [i 0])
-      (unless (null? vs)
-        (hashtable-set! vertex-index (car vs) i)
-        (loop (cdr vs) (+ i 1))))
-    (let ([mat (make-matrix n-vertices n-edges 0)])
-      (let edge-loop ([es edges] [col 0])
-        (unless (null? es)
-          (let* ([edge (car es)]
-                 [vs (simplex-vertices edge)]
-                 [v0 (car vs)]
-                 [v1 (cadr vs)]
-                 [row0 (hashtable-ref vertex-index v0 #f)]
-                 [row1 (hashtable-ref vertex-index v1 #f)])
-            (when row0 (matrix-set! mat row0 col -1))
-            (when row1 (matrix-set! mat row1 col 1))
-            (edge-loop (cdr es) (+ col 1)))))
-      mat)))
-
-(doc graph-betti-numbers 'type '(-> (List Edge) (List Vertex) (Pair Nat Nat)))
-(doc graph-betti-numbers 'description "Compute Betti numbers using Z_2 homology: beta_0 (components), beta_1 (independent cycles)")
-(doc graph-betti-numbers 'note "Uses canonical Z_2 homology implementation from topology/homology.ss with exact mod-2 arithmetic")
-(define (graph-betti-numbers edges vertices)
-  (let ([sc (graph->simplicial-complex edges vertices)])
-    (if (null? edges)
-        (cons (length vertices) 0)
-        (let ([betti (sc-betti-numbers sc)])
-          (cons (if (pair? betti) (car betti) 0)
-                (if (and (pair? betti) (pair? (cdr betti)))
-                    (cadr betti)
-                    0))))))
-
-;;; graph-betti-numbers-from-adjacency : AdjList → (beta0 . beta1)
-;;; Compute Betti numbers from adjacency list representation.
-(define (graph-betti-numbers-from-adjacency adj)
-  (let* ([vertices (map car adj)]
-         [edges '()])
-    (for-each
-     (lambda (entry)
-       (let ([v (car entry)]
-             [neighbors (cdr entry)])
-         (for-each
-          (lambda (n)
-            (when (< v n)
-              (set! edges (cons (cons v n) edges))))
-          neighbors)))
-     adj)
-    (graph-betti-numbers edges vertices)))
-
-(doc cycle-basis-homology 'type '(-> (List Edge) (List Vertex) (List Cycle)))
-(doc cycle-basis-homology 'description "Compute basis for H_1 using Z_2 homology; returns fundamental cycles (number equals beta_1)")
-(doc cycle-basis-homology 'note "Algorithm: Build Z_2 boundary matrix, find null space via z2-null-space, convert to edge lists")
-(define (cycle-basis-homology edges vertices)
-  (let* ([sc (graph->simplicial-complex edges vertices)]
-         [n-edges (length edges)]
-         [edge-list (sc-edges sc)])
-    (if (= n-edges 0)
-        '()
-        (let* ([boundary-1 (sc-boundary-matrix sc 1)]
-               [null-basis (z2-null-space boundary-1)])
-          (map (lambda (null-vec)
-                 (edges-from-z2-null-vector null-vec edge-list))
-               null-basis)))))
-
-;;; edges-from-z2-null-vector : (List {0,1}) × (List Simplex) → (List Edge)
-;;; Convert a Z_2 null space vector to a list of edges.
-(define (edges-from-z2-null-vector coeffs edge-simplices)
-  (let loop ([cs coeffs] [edges edge-simplices] [result '()])
-    (if (or (null? cs) (null? edges))
-        (reverse result)
-        (let ([coeff (car cs)]
-              [edge (car edges)])
-          (if (= coeff 1)
-              (let* ([vs (simplex-vertices edge)]
-                     [v0 (car vs)]
-                     [v1 (cadr vs)])
-                (loop (cdr cs) (cdr edges) (cons (cons v0 v1) result)))
-              (loop (cdr cs) (cdr edges) result))))))
-
-;;; --- Convenience Functions ---
-
-;;; graph-euler-characteristic : (List Edge) × (List Vertex) → Integer
-;;; Compute Euler characteristic: χ = V - E
-(define (graph-euler-characteristic edges vertices)
-  (- (length vertices) (length edges)))
-
-;;; graph-cycle-rank : (List Edge) × (List Vertex) → Integer
-;;; Compute the cycle rank (cyclomatic number): beta_1 = E - V + beta_0
-(define (graph-cycle-rank edges vertices)
-  (let ([betti (graph-betti-numbers edges vertices)])
-    (cdr betti)))
-
-;;; graph-is-tree? : (List Edge) × (List Vertex) → Boolean
-;;; A graph is a tree iff it is connected (beta_0 = 1) and acyclic (beta_1 = 0).
-(define (graph-is-tree? edges vertices)
-  (let ([betti (graph-betti-numbers edges vertices)])
-    (and (= (car betti) 1)
-         (= (cdr betti) 0))))
-
-;;; graph-is-forest? : (List Edge) × (List Vertex) → Boolean
-;;; A graph is a forest iff it is acyclic (beta_1 = 0).
-(define (graph-is-forest? edges vertices)
-  (let ([betti (graph-betti-numbers edges vertices)])
-    (= (cdr betti) 0)))
-
-
-;;; ====
 ;;; Load Complete
 ;;; ====
 
-(printf "✓ Graph algorithms loaded (pure)
+(printf "✓ Graph algorithms loaded (pure data structures)
 ")
-(printf "  Data structures: visited-set, queue, stack, hash-utils
+(printf "  Data structures: visited-set, queue, stack, hash-utils, cycle-utils
 ")
-(printf "  Homology:        graph-betti-numbers, cycle-basis-homology, graph-is-tree?
+(printf "  See graph-homology.ss for Betti numbers, cycle basis, tree detection
 ")

@@ -1906,63 +1906,67 @@ sorted-list/c AND unique-list/c (both have list? base). Incompatible base types
          (lambda (x) (ormap (lambda (c) ((car c) x)) checks))
          (lambda (x) (ormap (lambda (c) (and ((car c) x) ((cdr c) x))) checks))))))
 
+;;; Common Invariant Predicates (named for introspection)
+
+(define sorted?
+  (lambda (lst)
+    (or (null? lst)
+        (null? (cdr lst))
+        (let loop ([prev (car lst)] [rest (cdr lst)])
+          (cond
+           [(null? rest) #t]
+           [(not (and (real? prev) (real? (car rest)))) #f]
+           [(<= prev (car rest))
+            (loop (car rest) (cdr rest))]
+           [else #f])))))
+
+(define strictly-sorted?
+  (lambda (lst)
+    (or (null? lst)
+        (null? (cdr lst))
+        (let loop ([prev (car lst)] [rest (cdr lst)])
+          (cond
+           [(null? rest) #t]
+           [(not (and (real? prev) (real? (car rest)))) #f]
+           [(< prev (car rest))
+            (loop (car rest) (cdr rest))]
+           [else #f])))))
+
+(define non-empty?
+  (lambda (lst) (not (null? lst))))
+
+(define unique-elements?
+  (lambda (lst)
+    (let loop ([seen '()] [rest lst])
+      (cond
+       [(null? rest) #t]
+       [(memq (car rest) seen) #f]
+       [else (loop (cons (car rest) seen) (cdr rest))]))))
+
 ;;; Common Invariants
 
 (doc sorted-list/c 'type 'Contract)
 (doc sorted-list/c 'description "Invariant contract for sorted lists (non-decreasing order).
 Elements must satisfy: a <= b <= c <= ... Use strictly-sorted-list/c for strict ordering.")
 (doc sorted-list/c 'export #t)
-(define sorted-list/c
-  (invariant/c
-   list?
-   (lambda (lst)
-     (or (null? lst)
-         (null? (cdr lst))
-         (let loop ([prev (car lst)] [rest (cdr lst)])
-           (cond
-            [(null? rest) #t]
-            [(not (and (real? prev) (real? (car rest)))) #f]
-            [(<= prev (car rest))
-             (loop (car rest) (cdr rest))]
-            [else #f]))))))
+(define sorted-list/c (invariant/c list? sorted?))
 
 (doc strictly-sorted-list/c 'type 'Contract)
 (doc strictly-sorted-list/c 'description "Invariant contract for strictly sorted lists (strictly increasing).
 Elements must satisfy: a < b < c < ... No duplicates allowed.")
 (doc strictly-sorted-list/c 'export #t)
-(define strictly-sorted-list/c
-  (invariant/c
-   list?
-   (lambda (lst)
-     (or (null? lst)
-         (null? (cdr lst))
-         (let loop ([prev (car lst)] [rest (cdr lst)])
-           (cond
-            [(null? rest) #t]
-            [(not (and (real? prev) (real? (car rest)))) #f]
-            [(< prev (car rest))
-             (loop (car rest) (cdr rest))]
-            [else #f]))))))
+(define strictly-sorted-list/c (invariant/c list? strictly-sorted?))
 
 (doc non-empty-list/c 'type 'Contract)
 (doc non-empty-list/c 'description "Invariant contract for non-empty lists.")
 (doc non-empty-list/c 'export #t)
-(define non-empty-list/c
-  (invariant/c list? (lambda (lst) (not (null? lst)))))
+(define non-empty-list/c (invariant/c list? non-empty?))
 
 (doc unique-list/c 'type 'Contract)
 (doc unique-list/c 'description "Invariant contract for lists with unique elements.
 Uses eq? for comparison via memq. O(n²) complexity - suitable for small lists.")
 (doc unique-list/c 'export #t)
-(define unique-list/c
-  (invariant/c
-   list?
-   (lambda (lst)
-     (let loop ([seen '()] [rest lst])
-       (cond
-        [(null? rest) #t]
-        [(memq (car rest) seen) #f]
-        [else (loop (cons (car rest) seen) (cdr rest))])))))
+(define unique-list/c (invariant/c list? unique-elements?))
 
 ;;; Invariant-Preserving Function Contracts
 
@@ -2012,10 +2016,23 @@ Useful for using invariants in contexts that expect flat contracts.")
 
 ;;; Display
 
+(define (predicate-display-name proc fallback)
+  (doc 'type (-> Procedure String String))
+  (doc 'description "Extract a displayable name from a procedure, falling back to the given string.")
+  (let ([name (#%$procedure-name proc)])
+    (cond
+     [(not name) fallback]
+     [(string? name) name]
+     [(symbol? name) (symbol->string name)]
+     [else fallback])))
+
 (define (invariant->string inv)
   (doc 'type (-> Contract String))
-  (doc 'description "Convert an invariant contract to a human-readable string.")
+  (doc 'description "Convert an invariant contract to a human-readable string.
+Introspects predicate names via Chez's procedure-name metadata when available.")
   (doc 'export #t)
   (if (invariant-contract? inv)
-      "(invariant/c <base> <property>)"
+      (let ([base-str (predicate-display-name (invariant-base-predicate inv) "<base>")]
+            [inv-str (predicate-display-name (invariant-predicate inv) "<property>")])
+        (string-append "(invariant/c " base-str " " inv-str ")"))
       "???"))

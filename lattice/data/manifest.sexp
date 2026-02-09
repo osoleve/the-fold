@@ -6,7 +6,7 @@
   (path "lattice/data")
   (purity total)
   (stability stable)
-  (fuel-bound "O(log n) for balanced structures, O((V+E) log V) for graph algorithms, O(n³) for homology")
+  (fuel-bound "O(log n) for balanced structures, O((V+E) log V) for graph algorithms, O(n³) for graph homology")
   (deps (fp))  ; collection-protocol depends on fp/protocol
 
   (description
@@ -41,7 +41,8 @@
    (queue "queue.ss" "FIFO queue with amortized O(1) ops")
    (set "set.ss" "Unordered collection with no duplicates")
    (dict "dict.ss" "Key-value dictionary/map operations")
-   (graph-algorithms "graph-algorithms.ss" "BFS, DFS, shortest paths, spanning trees, homology")
+   (graph-algorithms "graph-algorithms.ss" "Pure data structures: visited sets, queues, stacks, hash/cycle utilities")
+   (graph-homology "graph-homology.ss" "Homology-based cycle analysis: Betti numbers, cycle basis, tree/forest detection")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    (pagerank "pagerank.ss" "PageRank importance scoring")
    (graph-matrix "graph-matrix.ss" "Adjacency matrices, Dijkstra O((V+E) log V), Floyd-Warshall, graph metrics")

@@ -227,7 +227,7 @@
           (bbs-save-index-cache!))))))
 
 (define (bbs-index-update! id new-hash old-status new-status old-priority new-priority)
-  (doc 'type (-> String Bytevector Symbol Symbol Int Int Void))
+  (doc 'type (-> String Bytevector Symbol Symbol Symbol Symbol Void))
   (doc 'description "Update an issue in the index (handles status/priority changes)")
   ;; Update main index (O(1) hashtable update - replaces filter+cons)
   (hashtable-set! *bbs-issues* id new-hash)
@@ -243,7 +243,7 @@
       (hashtable-set! *bbs-by-status* new-status (cons id new-list))))
 
   ;; Update priority index if changed
-  (unless (= old-priority new-priority)
+  (unless (equal? old-priority new-priority)
     ;; Remove from old priority
     (let ([old-list (hashtable-ref *bbs-by-priority* old-priority '())])
       (hashtable-set! *bbs-by-priority* old-priority

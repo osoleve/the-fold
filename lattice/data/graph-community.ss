@@ -601,7 +601,7 @@
   - B_1 measures internal cycle structure (higher = more dense/redundant paths)
   - Quality metrics based on topological invariants")
 
-(load "lattice/data/graph-algorithms.ss")
+(load "lattice/data/graph-homology.ss")
 
 (doc community-induced-edges 'type '(-> Matrix (List Nat) (List Edge)))
 (doc community-induced-edges 'description "Extract edges within a community from adjacency matrix")

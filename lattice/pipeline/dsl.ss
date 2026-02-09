@@ -31,8 +31,8 @@
 (define (named-stage name stage)
   (make-stage name (stage-run-fn stage)))
 
-;;; stage* : Symbol -> Stage -> Stage
-;;; Alias for named-stage.
+(doc stage* 'type '(-> Symbol Stage Stage))
+(doc stage* 'description "Alias for named-stage")
 (define stage* named-stage)
 
 (doc 'section 'configuration-helpers)
@@ -42,32 +42,32 @@
 (define (config . pairs)
   pairs)
 
-;;; with-model : Symbol -> Stage -> Stage
-;;; Set default model for LLM stages.
+(doc 'type '(-> Symbol Stage Stage))
+(doc 'description "Set default model for LLM stages")
 (define (with-model model stage)
   (stage-local
    (lambda (ctx)
            (ctx-extend-env ctx (list (cons 'default-model model))))
    stage))
 
-;;; with-fuel : Nat -> Stage -> Stage
-;;; Set fuel limit.
+(doc 'type '(-> Nat Stage Stage))
+(doc 'description "Set fuel limit")
 (define (with-fuel fuel stage)
   (stage-local
    (lambda (ctx)
            (ctx-with-fuel ctx fuel))
    stage))
 
-;;; with-persona : Persona -> Stage -> Stage
-;;; Set persona for LLM stages.
+(doc 'type '(-> Persona Stage Stage))
+(doc 'description "Set persona for LLM stages")
 (define (with-persona persona stage)
   (stage-local
    (lambda (ctx)
            (ctx-with-persona ctx persona))
    stage))
 
-;;; with-env : Alist -> Stage -> Stage
-;;; Extend environment.
+(doc 'type '(-> Alist Stage Stage))
+(doc 'description "Extend environment")
 (define (with-env bindings stage)
   (stage-local
    (lambda (ctx)
@@ -81,13 +81,12 @@
 (doc 'description "Sequential composition (alias for >>>)")
 (define --> stage->>>)
 
-;;; <-- : Stage -> Stage -> Stage
-;;; Reverse sequential.
+(doc <-- 'type '(-> Stage Stage Stage))
+(doc <-- 'description "Reverse sequential composition")
 (define <-- stage-<<<)
 
-;;; pipe-into : a -> (a -> Stage) -> Stage
-;;; Pipe value into stage constructor.
-;;; Note: Cannot use |> as | is a special character in Scheme.
+(doc 'type '(-> a (-> a Stage) Stage))
+(doc 'description "Pipe value into stage constructor")
 (define (pipe-into value stage-fn)
   (stage-fn value))
 
@@ -101,23 +100,23 @@
            ;; Simple JSON-to-sexpr (interpreter provides real impl)
            (list 'json-parse s))))
 
-;;; to-json : Stage ctx Any String
-;;; Convert S-expression to JSON string.
+(doc to-json 'type '(Stage ctx Any String))
+(doc to-json 'description "Convert S-expression to JSON string")
 (define to-json
   (stage-arr
    (lambda (x)
            (list 'json-stringify x))))
 
-;;; split-lines : Stage ctx String (List String)
-;;; Split string into lines.
+(doc split-lines 'type '(Stage ctx String (List String)))
+(doc split-lines 'description "Split string into lines")
 (define split-lines
   (stage-arr
    (lambda (s)
            ;; Simple split (interpreter provides real impl)
            (list 'split-lines s))))
 
-;;; join-lines : Stage ctx (List String) String
-;;; Join list of strings with newlines.
+(doc join-lines 'type '(Stage ctx (List String) String))
+(doc join-lines 'description "Join list of strings with newlines")
 (define join-lines
   (stage-arr
    (lambda (lines)
@@ -130,30 +129,28 @@
 (define (on-success s1 s2)
   (stage->>> s1 s2))
 
-;;; on-failure : Stage -> Stage -> Stage
-;;; Run fallback if primary fails.
+(doc 'type '(-> Stage Stage Stage))
+(doc 'description "Run fallback if primary fails")
 (define (on-failure primary fallback)
   (stage-catch (lambda (err) fallback) primary))
 
-;;; try-all : List Stage -> Stage
-;;; Try stages in order until one succeeds.
+(doc 'type '(-> (List Stage) Stage))
+(doc 'description "Try stages in order until one succeeds")
 (define (try-all stages)
   (if (null? stages)
       (stage-fail 'all-failed "All stages failed")
       (on-failure (car stages)
                   (try-all (cdr stages)))))
 
-;;; retry : Nat -> Stage -> Stage
-;;; Retry stage up to n times on failure.
+(doc 'type '(-> Nat Stage Stage))
+(doc 'description "Retry stage up to n times on failure")
 (define (retry n stage)
   (if (= n 0)
       stage
       (on-failure stage (retry (- n 1) stage))))
 
-;;; with-retry-policy : RetryPolicy -> Stage -> Stage
-;;; Apply retry policy to stage.
-;;; Returns stage-retry result with delay for interpreter to handle,
-;;; since Core is pure and cannot perform IO like sleeping.
+(doc 'type '(-> RetryPolicy Stage Stage))
+(doc 'description "Apply retry policy to stage. Returns stage-retry result with delay for interpreter to handle, since Core is pure and cannot perform IO like sleeping.")
 (define (with-retry-policy policy stage)
   (let ([max-attempts (retry-max-attempts policy)]
         [delay-fn (retry-delay-fn policy)]
@@ -191,8 +188,8 @@
                                                               "unknown error")))]
                                          [else result])]))))))
 
-;;; gate : (a -> Boolean) -> Stage -> Stage
-;;; Only proceed if condition met.
+(doc 'type '(-> (-> a Boolean) Stage Stage))
+(doc 'description "Only proceed if condition met")
 (define (gate pred stage)
   (stage-if pred stage (stage-skip-with "Gate condition not met")))
 
@@ -211,13 +208,13 @@
                                         (loop (cdr items) (cons (stage-result-value r) results))
                                         r)))))))
 
-;;; filter-stage : (a -> Boolean) -> Stage ctx (List a) (List a)
-;;; Filter list by predicate.
+(doc 'type '(-> (-> a Boolean) (Stage ctx (List a) (List a))))
+(doc 'description "Filter list by predicate")
 (define (filter-stage pred)
   (stage-arr (lambda (items) (filter pred items))))
 
-;;; reduce-stage : (b -> a -> Stage ctx a b) -> b -> Stage ctx (List a) b
-;;; Reduce list with stage.
+(doc 'type '(-> (-> b a (Stage ctx a b)) b (Stage ctx (List a) b)))
+(doc 'description "Reduce list with stage")
 (define (reduce-stage f init)
   (make-stage 'reduce
               (lambda (ctx input)
@@ -229,13 +226,13 @@
                                         (loop (cdr items) (stage-result-value r))
                                         r)))))))
 
-;;; take-stage : Nat -> Stage ctx (List a) (List a)
-;;; Take first n elements.
+(doc 'type '(-> Nat (Stage ctx (List a) (List a))))
+(doc 'description "Take first n elements")
 (define (take-stage n)
   (stage-arr (lambda (items) (take n items))))
 
-;;; drop-stage : Nat -> Stage ctx (List a) (List a)
-;;; Drop first n elements.
+(doc 'type '(-> Nat (Stage ctx (List a) (List a))))
+(doc 'description "Drop first n elements")
 (define (drop-stage n)
   (stage-arr (lambda (items) (drop n items))))
 
@@ -254,21 +251,21 @@
        (stage-&&& (car stages)
                   (parallel (cdr stages))))))
 
-;;; race : List Stage -> Stage ctx a b
-;;; Return first successful result.
+(doc 'type '(-> (List Stage) (Stage ctx a b)))
+(doc 'description "Return first successful result")
 (define (race stages)
   (make-stage 'race
               (lambda (ctx input)
                       ;; Interpreter handles actual racing
                       (list 'stage-effect 'race stages input))))
 
-;;; all-of : List Stage -> Stage ctx a (List b)
-;;; All stages must succeed.
+(doc 'type '(-> (List Stage) (Stage ctx a (List b))))
+(doc 'description "All stages must succeed")
 (define (all-of stages)
   (stage-sequence stages))
 
-;;; any-of : List Stage -> Stage ctx a b
-;;; At least one stage must succeed.
+(doc any-of 'type '(-> (List Stage) (Stage ctx a b)))
+(doc any-of 'description "At least one stage must succeed")
 (define any-of race)
 
 (doc 'section 'fsm-pipeline-pattern)
@@ -306,7 +303,8 @@
                                                              result))]
                                                    [else result]))))))))))
 
-;;; find-transition : Symbol -> Alist -> Maybe Symbol
+(doc 'type '(-> Symbol Alist (Maybe Symbol)))
+(doc 'description "Find transition target for a given result type")
 (define (find-transition result-type transitions)
   (let ([entry (assq result-type transitions)])
        (if entry (cdr entry) #f)))
@@ -315,35 +313,35 @@
 ;;; Convenience Constructors
 ;;; ====
 
-;;; ask-llm : Symbol -> String -> Stage ctx String String
-;;; Simple LLM call.
+(doc ask-llm 'type '(-> Symbol String (Stage ctx String String)))
+(doc ask-llm 'description "Simple LLM call")
 (define ask-llm llm)
 
-;;; run-fold : String -> Stage ctx i Any
-;;; Run Fold expression.
+(doc run-fold 'type '(-> String (Stage ctx i Any)))
+(doc run-fold 'description "Run Fold expression")
 (define run-fold fold-eval)
 
-;;; run-shell : String -> Stage ctx i String
-;;; Run shell command.
+(doc run-shell 'type '(-> String (Stage ctx i String)))
+(doc run-shell 'description "Run shell command")
 (define run-shell shell)
 
-;;; post-to : Symbol -> String -> Stage ctx String Hash
-;;; Post to forum channel.
+(doc 'type '(-> Symbol String (Stage ctx String Hash)))
+(doc 'description "Post to forum channel")
 (define (post-to channel title-template)
   (make-stage 'post-to
               (lambda (ctx input)
                       (run-stage (forum-post channel title-template input) ctx input))))
 
-;;; fetch-url : String -> Stage ctx i String
-;;; Fetch URL content.
+(doc fetch-url 'type '(-> String (Stage ctx i String)))
+(doc fetch-url 'description "Fetch URL content")
 (define fetch-url http-get)
 
 ;;; ====
 ;;; Pipeline Composition Helpers
 ;;; ====
 
-;;; chain : Stage ... -> Stage
-;;; Chain multiple stages sequentially.
+(doc 'type '(-> Stage ... Stage))
+(doc 'description "Chain multiple stages sequentially")
 (define (chain . stages)
   (if (null? stages)
       stage-read
@@ -351,53 +349,52 @@
           (car stages)
           (stage->>> (car stages) (apply chain (cdr stages))))))
 
-;;; branch : (a -> Boolean) -> Stage -> Stage -> Stage
-;;; Branch based on predicate.
+(doc branch 'type '(-> (-> a Boolean) Stage Stage Stage))
+(doc branch 'description "Branch based on predicate")
 (define branch stage-if)
 
-;;; switch : List ((a -> Boolean) . Stage) -> Stage -> Stage
-;;; Multiple branches.
+(doc switch 'type '(-> (List (Pair (-> a Boolean) Stage)) Stage Stage))
+(doc switch 'description "Multiple branches")
 (define switch stage-case)
 
-;;; tap : (a -> ()) -> Stage
-;;; Side effect without changing value.
+(doc tap 'type '(-> (-> a Void) Stage))
+(doc tap 'description "Side effect without changing value")
 (define tap stage-tap)
 
 ;;; ====
 ;;; Logging Helpers
 ;;; ====
 
-;;; log : String -> Stage ctx a a
-;;; Log message.
+(doc log 'type '(-> String (Stage ctx a a)))
+(doc log 'description "Log message")
 (define log log-info)
 
-;;; debug : String -> Stage ctx a a
-;;; Debug log.
+(doc debug 'type '(-> String (Stage ctx a a)))
+(doc debug 'description "Debug log")
 (define debug log-debug)
 
-;;; warn : String -> Stage ctx a a
-;;; Warning log.
+(doc warn 'type '(-> String (Stage ctx a a)))
+(doc warn 'description "Warning log")
 (define warn log-warn)
 
 ;;; ====
 ;;; Checkpoint Helpers
 ;;; ====
 
-;;; save : Symbol -> Stage ctx a a
-;;; Save checkpoint.
+(doc save 'type '(-> Symbol (Stage ctx a a)))
+(doc save 'description "Save checkpoint")
 (define save checkpoint)
 
 ;;; ====
 ;;; RLM Convenience
 ;;; ====
 
-;;; ask-rlm : RlmConfig -> String -> Nat -> Stage ctx String Any
-;;; Run an RLM agent loop. Input is the task; output is the final answer.
-;;; Analogous to ask-llm but iterative with CAS-backed context.
+(doc ask-rlm 'type '(-> RlmConfig String Nat (Stage ctx String Any)))
+(doc ask-rlm 'description "Run an RLM agent loop. Input is the task; output is the final answer. Analogous to ask-llm but iterative with CAS-backed context.")
 (define ask-rlm rlm)
 
-;;; load : Symbol -> Stage ctx i Any
-;;; Load checkpoint.
+(doc load-checkpoint 'type '(-> Symbol (Stage ctx i Any)))
+(doc load-checkpoint 'description "Load checkpoint")
 (define load-checkpoint restore)
 
 ;;; ====
