@@ -343,11 +343,14 @@
                                          (symbol->string module-name)
                                          "/"
                                          (symbol->string name))])
-                 ;; Get doc annotations (internal for functions, external for aliases)
+                 ;; Get doc annotations: try internal first, fall back to external
                  (let-values ([(type desc notes)
-                               (if (function-define? form)
-                                   (extract-doc-annotations (cddr form))
-                                   (collect-external-docs rest name))])
+                               (if (alias-define? form)
+                                   (collect-external-docs rest name)
+                                   (let-values ([(t d n) (extract-doc-annotations (cddr form))])
+                                     (if (and (string=? t "") (string=? d ""))
+                                         (collect-external-docs rest name)
+                                         (values t d n))))])
                    (let* ([clean-sexp (strip-define-docs form)]
                           [answer (sexp->code-string clean-sexp)]
                           [entry (make-task-entry

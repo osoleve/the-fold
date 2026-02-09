@@ -335,6 +335,40 @@
       (assert-true (pair? (memq 'core/base/prelude.ss (task-entry-deps first)))))))
 
 ;; ====
+;; case-lambda handling
+;; ====
+
+(define *case-lambda-sexps*
+  '((define make-point
+      (case-lambda
+        ((x y)
+         (doc 'type '(-> Num Num Point))
+         (doc 'description "Make a 2D point")
+         (list x y))
+        ((x y z)
+         (doc 'type '(-> Num Num Num Point))
+         (doc 'description "Make a 3D point")
+         (list x y z))))))
+
+(test-group case-lambda-extraction
+
+  (define-test "case-lambda type extracted from first clause"
+    (let* ([entries (extract-defines *case-lambda-sexps* 'geom 'point 0)]
+           [entry (car entries)])
+      (assert-equal 'make-point (task-entry-name entry))
+      (assert-equal "(-> Num Num Point)" (task-entry-type entry))))
+
+  (define-test "case-lambda description extracted from first clause"
+    (let* ([entries (extract-defines *case-lambda-sexps* 'geom 'point 0)]
+           [entry (car entries)])
+      (assert-equal "Make a 2D point" (task-entry-desc entry))))
+
+  (define-test "case-lambda answer has no doc forms"
+    (let* ([entries (extract-defines *case-lambda-sexps* 'geom 'point 0)]
+           [entry (car entries)])
+      (assert-false (string-contains (task-entry-answer entry) "(doc '")))))
+
+;; ====
 ;; Difficulty scoring
 ;; ====
 
