@@ -13,11 +13,11 @@
 (define *captured-stdout* (standard-output-port))
 
 ;;; Change to project root if needed
-(let ([cwd (current-directory)])
-     (unless (file-exists? "core/base/prelude.ss")
-             ;; Try to find the project root
-             (when (file-exists? "/home/oso/the-fold/core/base/prelude.ss")
-                   (current-directory "/home/oso/the-fold"))))
+(unless (file-exists? "core/base/prelude.ss")
+  (let ([home (or (getenv "FOLD_ROOT")
+                  (format "~a/fold" (getenv "HOME")))])
+    (when (file-exists? (format "~a/core/base/prelude.ss" home))
+      (current-directory home))))
 
 ;;; Load and run the server
 (load "boundary/lsp/lsp-server.ss")

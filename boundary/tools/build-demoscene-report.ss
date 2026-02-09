@@ -8,7 +8,7 @@
 (load "lattice/dsl/markdown/html.ss")
 
 (define *report-source-dir* "docs/technical-report")
-(define *report-output-file* "/home/oso/fold/docs/technical-report-demo.html")
+(define *report-output-file* "docs/technical-report-demo.html")
 
 (define *chapter-map*
   '(("block-machine"    "03-the-block-machine.md")

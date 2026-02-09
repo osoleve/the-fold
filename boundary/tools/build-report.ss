@@ -15,7 +15,7 @@
 ;;; ============================================================
 
 (define *report-source-dir* "docs/technical-report")
-(define *report-output-file* "/home/oso/fold/docs/technical-report.html")
+(define *report-output-file* "docs/technical-report.html")
 (define *manifest-file* "docs/technical-report/manifest.sexp")
 
 ;;; ============================================================

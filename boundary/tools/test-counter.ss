@@ -196,7 +196,7 @@
   (doc 'export #t)
   (doc 'description "Generate test count report for directory")
   (doc 'param 'args "Optional: directory path (default: entire project)")
-  (let* ([dir (if (null? args) "/home/oso/fold" (car args))]
+  (let* ([dir (if (null? args) "." (car args))]
          [files (find-test-files dir)]
          [total 0])
     (display "Test Count Report\n")
@@ -206,7 +206,7 @@
         (let* ([result (count-tests-in-file file)]
                [count (car result)]
                [pattern (cdr result)]
-               [short-path (if (string-prefix? "/home/oso/fold/" file)
+               [short-path (if (string-prefix? "./" file)
                               (substring file 15 (string-length file))
                               file)])
           (set! total (+ total count))
@@ -218,7 +218,7 @@
 (define (tc-summary . args)
   (doc 'export #t)
   (doc 'description "Summarized test counts by directory")
-  (let* ([dir (if (null? args) "/home/oso/fold" (car args))]
+  (let* ([dir (if (null? args) "." (car args))]
          [files (find-test-files dir)]
          [by-dir (make-hashtable string-hash string=?)])
     ;; Group by parent directory
@@ -227,7 +227,7 @@
         (let* ([result (count-tests-in-file file)]
                [count (car result)]
                [parent (dirname file)]
-               [short-parent (if (string-prefix? "/home/oso/fold/" parent)
+               [short-parent (if (string-prefix? "./" parent)
                                 (substring parent 15 (string-length parent))
                                 parent)]
                [existing (hashtable-ref by-dir short-parent '(0 . 0))])
@@ -276,7 +276,7 @@
 (define (tc-drift . args)
   (doc 'export #t)
   (doc 'description "Show files where README.sexp count differs from actual")
-  (let* ([dir (if (null? args) "/home/oso/fold" (car args))]
+  (let* ([dir (if (null? args) "." (car args))]
          [test-files (find-test-files dir)]
          [drifts '()])
     ;; Build actual counts by module name
@@ -336,7 +336,7 @@
                     [module (list-ref drift 1)]
                     [documented (list-ref drift 2)]
                     [actual (list-ref drift 3)])
-                (let ([short-readme (if (string-prefix? "/home/oso/fold/" readme)
+                (let ([short-readme (if (string-prefix? "./" readme)
                                        (substring readme 15 (string-length readme))
                                        readme)])
                   (display (format "~a: ~a documented=~a actual=~a (~a~a)\n"

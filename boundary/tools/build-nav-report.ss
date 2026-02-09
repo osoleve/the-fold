@@ -12,7 +12,7 @@
 (doc 'section 'configuration)
 
 (define *report-source-dir* "docs/technical-report")
-(define *report-output-file* "/home/oso/fold/docs/technical-report-nav.html")
+(define *report-output-file* "docs/technical-report-nav.html")
 
 ;;; Chapter manifest mapping section IDs to filenames
 ;;; The section IDs match the nav links in report.html

@@ -82,7 +82,7 @@
      (context "Module loading")
      (suggestions "Check file path is correct"
                   "Verify file exists and is readable"
-                  "Use absolute paths: /home/oso/the-fold/path/to/file.ss"
+                  "Ensure paths are relative to the project root"
                   ,(lambda (msg)
                            (let ([filename (extract-filename msg)])
                                 (if filename
