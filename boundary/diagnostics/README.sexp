@@ -4,7 +4,7 @@
 
 ((name . diagnostics)
  (purpose . "Performance profiling, fuel analysis, and runtime diagnostics")
- (tier-access . shell)
+ (tier-access . boundary)
  (purity . impure)
 
  (description . "

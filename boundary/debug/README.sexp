@@ -4,7 +4,7 @@
 
 ((name . debug)
  (purpose . "Debugging tools, error formatting, and code analysis")
- (tier-access . shell)
+ (tier-access . boundary)
  (purity . impure)
 
  (description . "

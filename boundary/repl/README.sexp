@@ -4,7 +4,7 @@
 
 ((name . repl)
  (purpose . "REPL infrastructure, daemon, and session management")
- (tier-access . shell)
+ (tier-access . boundary)
  (purity . impure)
 
  (description . "

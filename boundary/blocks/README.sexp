@@ -4,7 +4,7 @@
 
 ((name . blocks)
  (purpose . "Block navigation, querying, and exploration tools")
- (tier-access . shell)
+ (tier-access . boundary)
  (purity . impure)
 
  (description . "

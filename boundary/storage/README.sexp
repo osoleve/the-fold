@@ -4,7 +4,7 @@
 
 ((name . storage)
  (purpose . "Content-addressed storage and identity persistence")
- (tier-access . shell)
+ (tier-access . boundary)
  (purity . impure)
 
  (description . "

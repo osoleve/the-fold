@@ -5,7 +5,7 @@
 
 (module provenance
   (path "boundary/provenance")
-  (layer shell)
+  (layer boundary)
 
   (description
    "Provenance tracking via optic instrumentation. Every traced optic

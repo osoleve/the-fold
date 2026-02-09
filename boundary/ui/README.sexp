@@ -4,13 +4,11 @@
   "Comprehensive UI toolkit for visual output including text rendering,
    SVG generation, turtle graphics, particle systems, animation, and
    data visualization. Supports color management, geometric transforms,
-   layout combinators, and layer composition. Used for rendering forum
-   visualizations, profiler output, and interactive graphics.")
+   layout combinators, and layer composition.")
  (modules
   ((animation.ss "Animation timeline and keyframe interpolation")
    (color.ss "Color representation and manipulation utilities")
    (easing.ss "Easing functions for smooth animation curves")
-   (forum-viz.ss "Forum activity visualization")
    (fuel-viz.ss "Fuel consumption visualization for bounded computation")
    (graphics-primitives.ss "Basic shape primitives: circles, rectangles, polygons")
    (graphics.ss "High-level graphics composition")

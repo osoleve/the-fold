@@ -4,7 +4,7 @@
 
 ((name . io)
  (purpose . "File system capabilities and data format handling")
- (tier-access . shell)
+ (tier-access . boundary)
  (purity . impure)
 
  (description . "

@@ -5,7 +5,7 @@
 
 (module reactive
   (path "boundary/reactive")
-  (layer shell)
+  (layer boundary)
 
   (description
    "Reactive state management via optic-based dependency tracking.
