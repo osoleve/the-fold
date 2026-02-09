@@ -114,7 +114,6 @@ Each skill ships a `manifest.sexp` declaring everything an agent (or human) need
 - **`boundary/`** — IO boundary: REPL, storage, diagnostics, tooling
 - **`user/`** — Applications, experiments, demos
 - **`docs/`** — Extended documentation
-- **`ops/`** — Deployment and operations
 
 ---
 

@@ -4,11 +4,9 @@
 ;;; Usage:
 ;;;   scheme --script docs/technical-report/assemble.ss           # Markdown only
 ;;;   scheme --script docs/technical-report/assemble.ss --html    # Also build HTML
-;;;   scheme --script docs/technical-report/assemble.ss --deploy  # Build + deploy to website
 ;;;
 ;;; Reads manifest.sexp, concatenates chapter files in order, writes output.
 ;;; With --html flag, also rebuilds the website HTML versions.
-;;; With --deploy flag, builds everything and deploys to /var/www/oso.rocks/
 
 (import (chezscheme))
 
@@ -19,8 +17,7 @@
 (define report-dir "docs/technical-report")
 (define manifest-file "docs/technical-report/manifest.sexp")
 (define output-file "docs/technical-report.md")
-(define deploy? (member "--deploy" (command-line-arguments)))
-(define build-html? (or deploy? (member "--html" (command-line-arguments))))
+(define build-html? (member "--html" (command-line-arguments)))
 
 ;;; ====
 ;;; S-expression Reader
@@ -107,21 +104,9 @@
   (display "HTML build complete.\n"))
 
 ;;; ====
-;;; Deployment
-;;; ====
-
-(define (deploy-to-website)
-  (display "\nDeploying to website...\n")
-  (let ([result (system "ops/scripts/deploy-report.sh --deploy-only 2>&1")])
-    (unless (zero? result)
-      (display "  Warning: deployment failed\n"))))
-
-;;; ====
 ;;; Entry Point
 ;;; ====
 
 (assemble-report)
 (when build-html?
   (build-html-reports))
-(when deploy?
-  (deploy-to-website))

@@ -613,11 +613,7 @@ The implementation tracks shadowing via `symbol-shadowed-in-form?` and filters r
 **Running the Server**:
 
 ```bash
-# Direct execution (for editors)
 scheme --script boundary/lsp/lsp-server.ss
-
-# Via ops script
-./ops/start-lsp.sh
 ```
 
 The server communicates over stdio using the LSP wire protocol (JSON-RPC 2.0 with Content-Length headers).

@@ -2763,7 +2763,7 @@ Tier 0 (Foundational):     linalg, data, algebra, random, numeric
 Tier 1 (Intermediate):     autodiff, geometry, diffgeo, query, fp, info, topology
          │                 Depend on Tier 0
          │                 diffgeo provides charts, tangent spaces, Lie groups, curvature, geodesics
-         │                 fp/optics provides composable data accessors (lenses, prisms, etc.)
+         │                 optics/ provides composable data accessors (lenses, prisms, etc.)
          ▼
 Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
@@ -3010,7 +3010,7 @@ The categorization uses naming conventions: `make-*` → constructors, `*?` → 
 - Enables Open/Closed Principle: extend behavior without modifying existing code
 - Used by physics lenses for polymorphic body access
 
-**Game Theory** (`fp/game/`):
+**Game Theory** (`game-theory/`):
 - **Cooperative games**: Coalition formation, Shapley value, core solutions
 - **Matching theory**: Stable marriage, hospital-residents, top trading cycles
 - **Voting theory**: Power indices (Shapley-Shubik, Banzhaf), weighted voting
@@ -3082,7 +3082,7 @@ The key insight: **all standard monads and comonads arise from adjunctions**, an
 
   This makes the categorical semantics of effect handling precise: handling IS counit application, with the handler viewed as an algebra over the effect signature.
 
-**Optics** (`fp/optics/`):
+**Optics** (`optics/`):
 
 A complete hierarchy of composable optics for principled data access and transformation:
 
@@ -3858,7 +3858,7 @@ This approach scales to large datasets where MCMC would be prohibitively slow.
 
 ### 7.8 Optics Tower
 
-The Fold includes a complete optics implementation (`lattice/fp/optics/`) providing composable data accessors for principled navigation and transformation of nested structures.
+The Fold includes a complete optics implementation (`lattice/optics/`) providing composable data accessors for principled navigation and transformation of nested structures.
 
 #### 7.8.1 The Optics Hierarchy
 
@@ -4079,7 +4079,7 @@ The traced optics module (`lattice/autodiff/traced-optics.ss`) bridges optics wi
 
 ### 7.9 Bidirectional Transformations
 
-The bidirectional transformations system (`lattice/fp/optics/bidirectional.ss`) extends the optics tower with reversible migrations, enabling schema evolution, format conversion, and CAS block migrations with automatic rollback.
+The bidirectional transformations system (`lattice/optics/bidirectional.ss`) extends the optics tower with reversible migrations, enabling schema evolution, format conversion, and CAS block migrations with automatic rollback.
 
 #### 7.9.1 Migration Type
 
@@ -6406,8 +6406,8 @@ Search by input or output type to find functions by signature:
  (lu-decompose 0.65 export (linalg decomp)))
 
 > (lfe 'shapley-value)
-((shapley-value exact export (fp/game coop-games))
- (shapley-shubik-index exact export (fp/game voting-games)))
+((shapley-value exact export (game-theory coop-games))
+ (shapley-shubik-index exact export (game-theory voting-games)))
 
 > (lfp 'vec)
 ((vec+ vec- vec* vec-dot vec-cross vec-norm vec-normalize ...))
@@ -6918,11 +6918,7 @@ The implementation tracks shadowing via `symbol-shadowed-in-form?` and filters r
 **Running the Server**:
 
 ```bash
-# Direct execution (for editors)
 scheme --script boundary/lsp/lsp-server.ss
-
-# Via ops script
-./ops/start-lsp.sh
 ```
 
 The server communicates over stdio using the LSP wire protocol (JSON-RPC 2.0 with Content-Length headers).
