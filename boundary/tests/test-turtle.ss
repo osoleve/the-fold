@@ -84,10 +84,10 @@
 (doc 'section 'load-turtle-modules)
 
 (display "Loading turtle modules...\n")
-(load "turtle-color.ss")
-(load "turtle-path.ss")
-(load "turtle.ss")
-(load "turtle-svg.ss")
+(load "boundary/ui/turtle-color.ss")
+(load "boundary/ui/turtle-path.ss")
+(load "boundary/ui/turtle.ss")
+(load "boundary/ui/turtle-svg.ss")
 (display "Modules loaded.\n")
 
 (doc 'section 'color-tests)

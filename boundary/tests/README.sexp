@@ -60,8 +60,7 @@
      test-timing.ss                - Timing utilities
      test-toolkit.ss               - Toolkit functions
      test-type-search.ss           - Type-driven function search
-     test-watch.ss                 - File watching
-     test-watch-integration.ss     - Watch integration")
+")
    (git-integration
     "test-git.ss                   - Git operations
      test-git-workflow.ss          - Git workflow helpers")
@@ -119,4 +118,4 @@
  (see-also ("core/test-framework.ss" "Test framework implementation")
             ("core/run-tests.ss" "Core test runner")
             ("boundary/examples/" "Example code with demonstrations")
-            ("INDEX.txt" "Detailed test index with categorization")))
+))

@@ -13,8 +13,7 @@
    (graphics-primitives-demo.ss "Graphics primitives showcase: lines, circles, fills")
    (scaffold-examples.ss "Code generation from templates with variable substitution")
    (string-utils-example.ss "String manipulation: split, join, trim, case conversion")
-   (universe-example.ss "Universe (environment) and state management patterns")
-   (watch-example.ss "File watching with auto-reload on changes")))
+   (universe-example.ss "Universe (environment) and state management patterns")))
  (categories
   ((command-system "commands-example.ss")
    (graphics-visual "demo-turtle.ss" "graphics-primitives-demo.ss")
@@ -22,7 +21,6 @@
    (performance "fuel-analysis-demo.ss")
    (scaffolding "scaffold-examples.ss")
    (persistence "universe-example.ss")
-   (watch-system "watch-example.ss")
    (experimental "core-playground.ss")))
  (usage
   "Load examples in REPL:
@@ -50,4 +48,4 @@
  (see-also ("boundary/tests/" "Full test suite with more code examples")
             ("boundary/tools/" "Developer tools used by examples")
             ("boundary/ui/" "Graphics and visualization subsystem")
-            ("INDEX.txt" "Detailed index with descriptions")))
+))
