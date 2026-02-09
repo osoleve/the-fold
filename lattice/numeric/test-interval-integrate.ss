@@ -155,7 +155,37 @@
                     (lambda (iv) (interval-mul iv iv))
                     0 1 tol 2000)])
       (assert-true (interval-encloses? result (/ 1.0 3)))
-      (assert-true (<= (interval-width result) tol)))))
+      (assert-true (<= (interval-width result) tol))))
+
+  ;; High subdivision count — exercises heap-based O(N log N) path
+  (define-test "adaptive handles 5000 subdivisions"
+    (let* ([tol 1e-10]
+           [result (interval-integrate-adaptive
+                    (lambda (iv) (interval-mul iv iv))
+                    0 1 tol 5000)])
+      (assert-true (interval-encloses? result (/ 1.0 3)))))
+
+  ;; Transcendental: ∫₀^π sin(x) dx = 2
+  ;; interval-sin has wide enclosures near extrema, so convergence is slow.
+  ;; 500 subs gets ~0.01 width. Verify enclosure and tightening.
+  (define-test "adaptive encloses sin integral"
+    (let* ([pi 3.141592653589793]
+           [result (interval-integrate-adaptive
+                    (lambda (iv) (interval-sin iv))
+                    0 pi 1e-2 500)])
+      (assert-true (interval-encloses? result 2.0))
+      (assert-true (<= (interval-width result) 1e-1))))
+
+  ;; Peaked function: ∫₀¹ 1/(1+25x²) dx ≈ 0.5493603...
+  ;; Adaptive should focus refinement near x=0 where the peak is
+  (define-test "adaptive handles peaked function (Runge)"
+    (let* ([f (lambda (iv)
+                (interval-recip
+                 (interval-add (interval-singleton 1)
+                               (interval-scale (interval-mul iv iv) 25))))]
+           [exact (/ (atan 5.0) 5.0)]
+           [result (interval-integrate-adaptive f 0 1 1e-4 1000)])
+      (assert-true (interval-encloses? result exact)))))
 
 ;;; ============================================================================
 ;;; Rigorous Integration Tests

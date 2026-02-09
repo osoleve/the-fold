@@ -15,6 +15,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/numeric/interval.ss")
+(load "lattice/data/heap.ss")
 
 (doc 'module 'interval-integrate)
 (doc 'description "Verified numerical integration with rigorous enclosure bounds.")
@@ -55,37 +56,59 @@ Returns an interval guaranteed to contain the true integral.")
 ;;; Adaptive Interval Integration
 ;;; ============================================================================
 ;;;
-;;; Refines the subdivision where the enclosure is widest. Starts with an
-;;; initial uniform subdivision, then repeatedly bisects the subinterval
+;;; Refines the subdivision where the enclosure is widest. Starts with a
+;;; single interval over [a,b], then repeatedly bisects the subinterval
 ;;; contributing the most uncertainty. This concentrates computational effort
 ;;; where it matters most.
 ;;;
-;;; The priority queue is implemented as a sorted list (sufficient for the
-;;; typical refinement depths used here).
+;;; Uses a max-heap (leftist heap with custom comparator) for O(log N)
+;;; extract-widest and insert. The running total is maintained incrementally
+;;; via scalar component tracking, avoiding the O(N) recomputation that
+;;; would be needed with interval-sub (which suffers the dependency problem).
+;;;
+;;; Total complexity: O(N log N) where N = number of refinement steps.
+
+;;; Comparator for adaptive integration heap entries.
+;;; Each entry is (contribution-interval . domain-interval).
+;;; Wider contributions get higher priority (extracted first).
+(define (adaptive-entry-wider? a b)
+  (>= (interval-width (car a))
+      (interval-width (car b))))
 
 (define (interval-integrate-adaptive f a b tolerance max-subdivisions)
   (doc 'type '(-> (-> Interval Interval) Real Real Real Int Interval))
   (doc 'description "Adaptively integrate f over [a,b] to within the given tolerance.
-Refines subdivisions where the enclosure is widest. Returns when the total
+Refines subdivisions where the enclosure is widest using a heap-based
+priority queue for O(N log N) total complexity. Returns when the total
 enclosure width is below tolerance or max-subdivisions is reached.")
   (doc 'export #t)
   (let* ([initial-iv (make-interval a b)]
          [f-iv (f initial-iv)]
          [h (- b a)]
          [initial-contrib (interval-scale f-iv h)]
-         ;; Each entry: (contribution-interval . domain-interval)
-         [initial-entries (list (cons initial-contrib initial-iv))])
-    (let loop ([entries initial-entries]
+         ;; Each heap entry: (contribution-interval . domain-interval)
+         [heap (heap-insert-by adaptive-entry-wider?
+                               (cons initial-contrib initial-iv)
+                               heap-empty)]
+         ;; Track sum components as raw floats for O(1) incremental update.
+         ;; total = [sum-lo, sum-hi] at all times.
+         [sum-lo (interval-lo initial-contrib)]
+         [sum-hi (interval-hi initial-contrib)])
+    (let loop ([heap heap]
+               [sum-lo sum-lo]
+               [sum-hi sum-hi]
                [n-subs 1])
-      (let* ([total (fold-left interval-add (interval-singleton 0)
-                                (map car entries))]
-             [w (interval-width total)])
+      (let ([w (- sum-hi sum-lo)])
         (if (or (<= w tolerance)
                 (>= n-subs max-subdivisions))
-            total
-            ;; Find entry with widest contribution and bisect it
-            (let* ([worst (find-widest-entry entries)]
-                   [rest (remove-entry worst entries)]
+            (make-interval sum-lo sum-hi)
+            ;; Pop widest entry and bisect
+            (let* ([worst (heap-value heap)]
+                   [heap (heap-delete-top-by adaptive-entry-wider? heap)]
+                   ;; Remove old contribution from running sums
+                   [sum-lo (- sum-lo (interval-lo (car worst)))]
+                   [sum-hi (- sum-hi (interval-hi (car worst)))]
+                   ;; Bisect domain
                    [dom (cdr worst)]
                    [mid-pt (interval-mid dom)]
                    [left-dom (make-interval (interval-lo dom) mid-pt)]
@@ -96,31 +119,21 @@ enclosure width is below tolerance or max-subdivisions is reached.")
                    [right-h (interval-width right-dom)]
                    [left-contrib (interval-scale left-f left-h)]
                    [right-contrib (interval-scale right-f right-h)]
-                   [new-entries (cons (cons left-contrib left-dom)
-                                     (cons (cons right-contrib right-dom)
-                                           rest))])
-              (loop new-entries (+ n-subs 1))))))))
-
-;;; find-widest-entry : List<(Interval . Interval)> → (Interval . Interval)
-;;; Find the entry whose contribution interval has the greatest width.
-(define (find-widest-entry entries)
-  (let loop ([rest (cdr entries)]
-             [best (car entries)]
-             [best-w (interval-width (car (car entries)))])
-    (if (null? rest)
-        best
-        (let ([w (interval-width (car (car rest)))])
-          (if (> w best-w)
-              (loop (cdr rest) (car rest) w)
-              (loop (cdr rest) best best-w))))))
-
-;;; remove-entry : Entry List<Entry> → List<Entry>
-;;; Remove the first occurrence of entry (by eq?) from entries.
-(define (remove-entry entry entries)
-  (cond
-   [(null? entries) '()]
-   [(eq? (car entries) entry) (cdr entries)]
-   [else (cons (car entries) (remove-entry entry (cdr entries)))]))
+                   ;; Add new contributions to running sums
+                   [sum-lo (+ sum-lo
+                              (interval-lo left-contrib)
+                              (interval-lo right-contrib))]
+                   [sum-hi (+ sum-hi
+                              (interval-hi left-contrib)
+                              (interval-hi right-contrib))]
+                   ;; Insert new entries into heap
+                   [heap (heap-insert-by adaptive-entry-wider?
+                                         (cons left-contrib left-dom)
+                                         heap)]
+                   [heap (heap-insert-by adaptive-entry-wider?
+                                         (cons right-contrib right-dom)
+                                         heap)])
+              (loop heap sum-lo sum-hi (+ n-subs 1))))))))
 
 ;;; ============================================================================
 ;;; Bisected Integration
