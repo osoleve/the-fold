@@ -283,11 +283,8 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 | `io/` | Low-level IO utilities | fs.ss, json.ss, process.ss |
 | `git/` | Git operations | git.ss, git-workflow.ss |
 | `tools/` | Developer utilities | edit.ss, refactor-toolkit.ss, autodoc.ss, capability-lens.ss |
-| `media/` | Creative tools | music-gen.ss, create-art.ss |
 | `ui/` | Graphics & display | graphics.ss, color.ss, layout.ss, layers.ss |
 | `tutorial/` | Tutorial system | tutorial.ss, interactive-tutorial.ss |
-| `discord/` | Discord bot integration | bot.js, bridge.js |
-| `mcp-server/` | MCP server integration | External tool access |
 | `lens/` | Code navigation lenses | call-graph.ss, navigator.ss, jump.ss |
 | `introspect/` | System introspection | complexity.ss, exports.ss, memory.ss, timing.ss |
 | `pipeline/` | Agent pipelines | workflow integration |
@@ -296,7 +293,6 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `migrations/` | Schema migrations | runner.ss (CAS tree migration), registry.ss (version graph) |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
-| `web/` | Web tools | fold-tui (Rust CAS terminal explorer) |
 | `tests/` | Boundary test suite | test-*.ss files |
 
 **Developer Tools:** Protocols (`lattice/fp/protocol.ss`), protocol bundles, refactoring toolkit (`boundary/tools/refactor-toolkit.ss`), and template DSL. Use `/dev-tools` skill for detailed API.

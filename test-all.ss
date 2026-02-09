@@ -677,7 +677,6 @@
 (define boundary-tests
   '("test-validate.ss"
     "test-block-index.ss"
-    "test-duckie-persist.ss"
     "test-string-utils.ss"))
 
 ;;; Boundary pipeline tests (RLM harness, no live infra required)

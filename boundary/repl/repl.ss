@@ -41,9 +41,6 @@ After loading, the REPL will:
 (load "boundary/git/git.ss")
 (load "boundary/repl/session-manager.ss")
 
-;; DUCKIE interaction
-(load "boundary/assistants/duckie-interact.ss")
-
 ;; Block navigation and exploration
 (load "boundary/blocks/block-navigator.ss")
 (load "boundary/blocks/block-explorer.ss")
@@ -140,13 +137,6 @@ After loading, the REPL will:
   (display "    (read-text-file (fs) path)     Read file as string\n")
   (display "    (write-text-file! (fs) p str)  Write string to file\n")
   (display "    (edit-file! (fs) path fn)      Transform file contents\n")
-  (display "\n")
-  (display "  DUCKIE:\n")
-  (display "    (to-duckie msg)        Talk to DUCKIE\n")
-  (display "    (duckie-greet)         Get a greeting from DUCKIE\n")
-  (display "    (duckie-farewell)      Say goodbye to DUCKIE\n")
-  (display "    (duckie-mood)          Check DUCKIE's mood\n")
-  (display "    (set-duckie-mood! m)   Change DUCKIE's mood\n")
   (display "\n")
   (display "  BLOCK EXPLORER:\n")
   (display "    (blocks)               Show CAS statistics and overview\n")

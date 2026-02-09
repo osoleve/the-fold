@@ -480,86 +480,6 @@
                     (stage-effect-payload result)))))
 
 ;;; ====
-;;; Discord Effects
-;;; ====
-
-(test-group "Discord Effects"
-  (define-test "discord-post produces effect"
-    (let* ([eff (discord-post 'engineering "Update" "Here is the update")]
-           [result (run-stage eff test-ctx "input")])
-      (assert-true (stage-effect? result))))
-
-  (define-test "discord-post effect type is discord"
-    (let* ([eff (discord-post 'engineering "Update" "Here is the update")]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal 'discord (stage-effect-type result))))
-
-  (define-test "discord-post has post payload"
-    (let* ([eff (discord-post 'engineering "Update" "Here is the update")]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal (list 'post 'engineering "Update" "Here is the update")
-                    (stage-effect-payload result))))
-
-  (define-test "discord-post-embed has post-embed payload"
-    (let* ([eff (discord-post-embed 'design '((title . "Embed") (description . "Test")))]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal (list 'post-embed 'design '((title . "Embed") (description . "Test")))
-                    (stage-effect-payload result))))
-
-  (define-test "discord-chat has chat payload"
-    (let* ([eff (discord-chat 'chat)]
-           [result (run-stage eff test-ctx "Hello!")])
-      (assert-equal (list 'chat 'chat)
-                    (stage-effect-payload result))))
-
-  (define-test "discord-reply has reply payload"
-    (let* ([eff (discord-reply "msg-123")]
-           [result (run-stage eff test-ctx "Reply content")])
-      (assert-equal (list 'reply "msg-123")
-                    (stage-effect-payload result))))
-
-  (define-test "discord-react has react payload"
-    (let* ([eff (discord-react "msg-123" ":thumbsup:")]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal (list 'react "msg-123" ":thumbsup:")
-                    (stage-effect-payload result))))
-
-  (define-test "discord-thread has thread payload"
-    (let* ([eff (discord-thread "msg-123" "Discussion Thread")]
-           [result (run-stage eff test-ctx "First message")])
-      (assert-equal (list 'thread "msg-123" "Discussion Thread")
-                    (stage-effect-payload result))))
-
-  (define-test "discord-dm has dm payload"
-    (let* ([eff (discord-dm "user-456")]
-           [result (run-stage eff test-ctx "DM content")])
-      (assert-equal (list 'dm "user-456")
-                    (stage-effect-payload result)))))
-
-;;; ====
-;;; Discord Await Effects
-;;; ====
-
-(test-group "Discord Await Effects"
-  (define-test "await-discord-mention has discord-mention payload"
-    (let* ([eff (await-discord-mention 'sentinel)]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal (list 'discord-mention 'sentinel)
-                    (stage-effect-payload result))))
-
-  (define-test "await-discord-reaction has discord-reaction payload"
-    (let* ([eff (await-discord-reaction "msg-123" ":fire:")]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal (list 'discord-reaction "msg-123" ":fire:")
-                    (stage-effect-payload result))))
-
-  (define-test "await-discord-reply has discord-reply payload"
-    (let* ([eff (await-discord-reply "msg-456")]
-           [result (run-stage eff test-ctx "input")])
-      (assert-equal (list 'discord-reply "msg-456")
-                    (stage-effect-payload result)))))
-
-;;; ====
 ;;; Effect Predicates
 ;;; ====
 
@@ -576,7 +496,6 @@
   (define bbs-eff (run-stage bbs-ready test-ctx "in"))
   (define git-eff (run-stage git-status test-ctx "in"))
   (define pipeline-eff (run-stage (invoke-pipeline 'p) test-ctx "in"))
-  (define discord-eff (run-stage (discord-chat 'ch) test-ctx "in"))
 
   (define-test "llm-effect? true for llm"
     (assert-true (llm-effect? llm-eff)))
@@ -644,14 +563,8 @@
   (define-test "pipeline-effect? true for pipeline"
     (assert-true (pipeline-effect? pipeline-eff)))
 
-  (define-test "pipeline-effect? false for discord"
-    (assert-equal #f (pipeline-effect? discord-eff)))
-
-  (define-test "discord-effect? true for discord"
-    (assert-true (discord-effect? discord-eff)))
-
-  (define-test "discord-effect? false for llm"
-    (assert-equal #f (discord-effect? llm-eff))))
+  (define-test "pipeline-effect? false for llm"
+    (assert-equal #f (pipeline-effect? llm-eff))))
 
 ;;; ====
 ;;; Template Expansion

@@ -13,7 +13,6 @@
      test-block-query-advanced.ss  - Advanced query features")
    (persistence-storage
     "test-store-api.ss             - Store API functionality
-     test-duckie-persist.ss        - DUCKIE persistence
      test-universe-serialize.ss    - Universe serialization")
    (filesystem-validation
     "test-fs.ss                    - Filesystem operations
