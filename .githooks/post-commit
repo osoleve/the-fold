@@ -361,10 +361,10 @@ EOF
 USED_REVIEWER=""
 if run_review_with_fallback "$OUTPUT_FILE"; then
     # Update the reviewer in the header
-    sed -i "s/\*\*Reviewer\*\*: (pending)/**Reviewer**: ${USED_REVIEWER} (automated post-commit hook)/" "$OUTPUT_FILE"
+    sed -i "s|\*\*Reviewer\*\*: (pending)|**Reviewer**: ${USED_REVIEWER} (automated post-commit hook)|" "$OUTPUT_FILE"
     echo -e "${GREEN}[post-commit]${NC} Review completed with $USED_REVIEWER"
 else
-    sed -i "s/\*\*Reviewer\*\*: (pending)/**Reviewer**: Failed (all models unavailable)/" "$OUTPUT_FILE"
+    sed -i "s|\*\*Reviewer\*\*: (pending)|**Reviewer**: Failed (all models unavailable)|" "$OUTPUT_FILE"
 fi
 
 echo "" >> "$OUTPUT_FILE"
