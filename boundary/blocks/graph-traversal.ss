@@ -1,4 +1,4 @@
-;;; boundary/data/graph-traversal.ss — Store-dependent graph traversal & analysis
+;;; boundary/blocks/graph-traversal.ss — Store-dependent graph traversal & analysis
 ;;; @module graph-traversal
 ;;; @requires graph-algorithms store-api
 

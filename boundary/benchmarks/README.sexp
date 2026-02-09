@@ -7,20 +7,20 @@
    generate statistical reports with mean, median, standard deviation, and
    percentiles.")
  (modules
-  ((graph-algorithms.ss "Benchmarks for graph algorithms across multiple structures and sizes:
+  ((bench-graph-traversal.ss "Benchmarks for graph algorithms across multiple structures and sizes:
                          - Chain, star, tree, cyclic, dense, sparse graphs
                          - Scalability testing (10, 50, 100, 500, 1000 nodes)
                          - Traversal, shortest path, topological sort, cycle detection
                          - Memory allocation tracking and performance comparison")))
  (usage
   "Load and run benchmarks in REPL:
-     (load \"boundary/benchmarks/graph-algorithms.ss\")
+     (load \"boundary/benchmarks/bench-graph-traversal.ss\")
      (run-all-benchmarks)          ; Complete suite
      (run-traversal-benchmarks)    ; Specific category
      (run-scalability-tests)       ; Test algorithm scaling
 
    Or execute directly:
-     scheme --script boundary/benchmarks/graph-algorithms.ss")
+     scheme --script boundary/benchmarks/bench-graph-traversal.ss")
  (dependencies (core/data/graph-algorithms boundary/tools/benchmark boundary/fs))
  (output
   "Benchmarks produce detailed reports including:

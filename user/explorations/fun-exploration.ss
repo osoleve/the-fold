@@ -2,7 +2,7 @@
 
 (load "boundary/repl/repl.ss")
 (load "lattice/data/graph-algorithms.ss")
-(load "boundary/data/graph-traversal.ss")
+(load "boundary/blocks/graph-traversal.ss")
 (load "boundary/ui/graph-export.ss")
 
 (printf "\n")

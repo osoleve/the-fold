@@ -283,7 +283,7 @@
                                                     tilt angle 0)))
             (iota n-frames))))
 
-;;; play-animation and loop-animation moved to boundary/sim/animation-io.ss
+;;; play-animation and loop-animation moved to boundary/ui/animation-io.ss
 ;;; (terminal I/O: display, flush, current-time busy-wait)
 
 ;;; ============================================================

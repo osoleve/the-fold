@@ -26,7 +26,7 @@
 ;;; Dependencies:
 ;;;   boundary/tools/index.ss (symbol index)
 ;;;   boundary/lens/navigator.ss (call graph)
-;;;   boundary/tools/refactor.ss (core transforms)
+;;;   boundary/tools/refactor.ss (AST-level transforms — rename, extract, inline, free-vars)
 
 ;;; ====
 ;;; Dependencies

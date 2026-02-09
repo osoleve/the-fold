@@ -6,7 +6,7 @@
 (load "boundary/io/fs.ss")
 (load "boundary/storage/store-api.ss")
 (load "lattice/data/graph-algorithms.ss")
-(load "boundary/data/graph-traversal.ss")
+(load "boundary/blocks/graph-traversal.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)

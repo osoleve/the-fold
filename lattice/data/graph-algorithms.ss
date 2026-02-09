@@ -18,7 +18,7 @@
 
 (doc 'note "Homology-based cycle analysis lives in lattice/data/graph-homology.ss")
 (doc 'note "Store-dependent traversal and analysis functions (BFS, DFS, pathfinding,
-  connected components, centrality, etc.) live in boundary/data/graph-traversal.ss")
+  connected components, centrality, etc.) live in boundary/blocks/graph-traversal.ss")
 
 (load "lattice/data/collection-utils.ss")
 
