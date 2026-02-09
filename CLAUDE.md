@@ -218,8 +218,11 @@ The lattice is a DAG of verified skills.
 | `physics/classical3d/` | Classical 3D physics |
 | `tiles/` | Board game SDK (hex, square, triangle) |
 | `sim/` | Simulation, dynamics |
+| `egraph/` | Equality saturation, cost-based extraction |
+| `ui/` | Layout combinators (pure) |
+| `ipc/` | Wire protocol (pure) |
 | `automata/` | State machines, DFA/NFA |
-| `pipeline/` | Agent workflows, council |
+| `pipeline/` | Agent workflows, RLM types, council |
 
 **Key Subsystems:** FP (monads, parsers, game theory, control systems), Optics, SAT/MaxSAT, CLP(FD), Statistics. Use `/lattice-api` skill for detailed API reference, or `(li 'skill)` / `(le 'skill)` for quick inspection.
 
@@ -281,7 +284,7 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 | `io/` | Low-level IO utilities | fs.ss, json.ss, process.ss |
 | `git/` | Git operations | git.ss, git-workflow.ss |
 | `tools/` | Developer utilities | edit.ss, refactor-toolkit.ss, autodoc.ss, capability-lens.ss |
-| `ui/` | Graphics & display | graphics.ss, color.ss, layout.ss, layers.ss |
+| `ui/` | Graphics & display | graphics.ss, color.ss, layers.ss, turtle.ss |
 | `tutorial/` | Tutorial system | tutorial.ss, interactive-tutorial.ss |
 | `lens/` | Code navigation lenses | call-graph.ss, navigator.ss, jump.ss |
 | `introspect/` | System introspection | complexity.ss, exports.ss, memory.ss, timing.ss |
@@ -290,7 +293,12 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 | `reactive/` | Reactive derivations | reactive.ss (optic dependency tracking) |
 | `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
 | `migrations/` | Schema migrations | runner.ss (CAS tree migration), registry.ss (version graph) |
+| `ffi/` | Rust FFI & acceleration | ffi-core.ss, bvh-ffi.ss, socket-ffi.ss, rust-accel/ |
+| `ipc/` | Socket IPC client | socket-client.ss |
+| `geometry/` | Geometry I/O wrappers | bvh-accel.ss, raymarch-accel.ss, obj-io.ss |
+| `meta/` | Lattice meta I/O orchestrators | exports-io.ss, xref-io.ss, docs-io.ss, persist-io.ss |
 | `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
+| `examples/` | Demo scripts | demo-turtle.ss, core-playground.ss |
 | `tests/` | Boundary test suite | test-*.ss files |
 
 **Developer Tools:** Protocols (`lattice/fp/protocol.ss`), protocol bundles, refactoring toolkit (`boundary/tools/refactor-toolkit.ss`), and template DSL. Use `/dev-tools` skill for detailed API.
