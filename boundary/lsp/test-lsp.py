@@ -11,7 +11,8 @@ import sys
 import os
 
 # Change to project root
-os.chdir("/home/oso/the-fold")
+project_root = os.environ.get("FOLD_ROOT", os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+os.chdir(project_root)
 
 def make_request(id, method, params=None):
     """Create an LSP request."""
@@ -66,7 +67,7 @@ def test_server():
         print("\n--- Test 1: Initialize ---")
         init_request = make_request(1, "initialize", {
             "processId": os.getpid(),
-            "rootUri": "file:///home/oso/the-fold",
+            "rootUri": f"file://{project_root}",
             "capabilities": {}
         })
         proc.stdin.write(encode_message(init_request))

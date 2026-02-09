@@ -97,7 +97,7 @@ Sessions are ephemeral unless named with `-s`:
 
 ### "Module not found" during require
 
-1. Check you're in project root: `pwd` should be `/home/oso/the-fold`
+1. Check you're in project root (where `core/`, `lattice/`, `boundary/` live)
 2. Verify module exists: `ls lattice/<module>/`
 3. Check for typos in module name
 

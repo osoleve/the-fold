@@ -277,9 +277,7 @@ hr {
     (printf "\n")
     (printf "  Writing output...\n")
     (write-file *report-output-file* page)
-    (printf "  Done! ~a bytes written.\n" (string-length page))
-    (printf "\n")
-    (printf "View at: https://oso.rocks/report-fold.html\n")))
+    (printf "  Done! ~a bytes written to ~a\n" (string-length page) *report-output-file*)))
 
 ;;; ============================================================
 ;;; CLI Entry Point

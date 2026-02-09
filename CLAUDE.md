@@ -404,7 +404,7 @@ Use `/troubleshooting` skill for file locations, daemon issues, and common probl
 ## Critical Reminders
 
 1. **Use `./fold` for REPL interaction** — It auto-starts the daemon and handles sessions
-2. **Load from project root** — All `(load ...)` paths are relative to `/home/oso/the-fold`
+2. **Load from project root** — All `(load ...)` paths are relative to the project root
 3. **Land the Plane** — A session is NOT complete until work is committed and pushed
 4. **Maintain The Fold** — Before you write a helper, ensure it doesn't already exist. Seek opportunities to simplify.
 

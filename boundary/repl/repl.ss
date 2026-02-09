@@ -329,7 +329,7 @@ After loading, the REPL will:
        (load "core/types/kinds.ss")
        (load "core/types/infer.ss")
        (load "core/types/annotate.ss")
-       (load "core/typed-eval.ss")
+       (load "core/lang/typed-eval.ss")
        ;; Note: cas.ss, parse.ss, validate.ss have internal loads
        ;; that conflict with repl.ss. Hash/block functions are already
        ;; available from block.ss and sha256.ss loaded by repl.ss.
