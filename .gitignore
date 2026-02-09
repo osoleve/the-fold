@@ -1,22 +1,22 @@
-# Local Claude settings
+# Claude Code
 .claude/settings.local.json
 .claude/*.local.md
 
-# Git worktrees
-.worktrees/
-
 # IDE
-.vscode/tasks.json
+.vscode/
 
-# Session files
+# Session and runtime state
+.fold/
 .fold-session
 .fold-repl/
 .fold-sessions/
+.bbs/counter
+.bbs/index.cache
+*.flock
 
-# Content store
-# Track objects/ for BBS durability (27MB, acceptable)
-# Track heads/bbs/ for issue pointers
-# Note: Must negate parent before children for git to see them
+# Content store (selective tracking)
+# Track objects/ for BBS durability and heads/bbs/ for issue pointers
+# Must negate parent before children for git to see them
 !.store/
 .store/*
 !.store/objects/
@@ -25,69 +25,40 @@
 .store/heads/flashmob/
 .store_archive/
 
-# Local CAS working directory
-.fold/
-
 # Build artifacts
 target/
-
-# Node.js (shell has some JS utilities)
 node_modules/
 package-lock.json
 dist/
 
+# Python
+*.pyc
+__pycache__/
+
 # Temporary files
-nul
 *.tmp
 .tmp-*
-
-# Archives
-archive/
-
-# BBS runtime state (counters, caches)
-.bbs/counter
-.bbs/index.cache
-
-# Flashmob runtime state
-.flashmob/
-
-# BBS lock files (runtime only)
-*.flock
-
-# Gateway runtime state
-state/
-
-# Coverage reports
-coverage.lcov
-.fold-users/
-
-# Agent runtime state
-agents/state/
-
-# Discord bot secrets
-.env.discord
-
-# Log files
-logs/*.log
-*.pyc
-.beads/
-
-# Generated training data (regenerate with gen-discovery.ss / sft-synth.ss)
-user/rlm/training/
-!user/rlm/training/*.py
-
-# Trained model weights (too large for git, regenerate with train-sft.py)
-user/rlm/models/
-
-# Generated QA reviews (post-commit hook output)
-docs/peer-review/
-
-# Incremental test cache (local, rebuilt on demand)
 .test-cache/
 
-# Visual artifacts
+# Logs
+*.log
+
+# Secrets
+.env.*
+
+# Generated outputs
+docs/peer-review/
+docs/*.html
+
+# Training artifacts (regenerate with scripts in user/rlm/)
+user/rlm/training/
+!user/rlm/training/*.py
+user/rlm/models/
+
+# Media artifacts
 user/creations/*.gif
 user/creations/*.mp4
 user/creations/*.txt
-user/demos/lorenz-butterfly-hq.mp4
-llama-spark-plugin/
+
+# Local plugins (not part of the repo)
+vllm-spark-plugin/
