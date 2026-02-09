@@ -142,9 +142,7 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 | `lattice/` | Skill lattice — verified library DAG (includes "stdlib") |
 | `boundary/` | Impure boundary — IO, validation, capabilities |
 | `user/` | Playground — experiments and demos |
-| `ops/` | Operational deployment (systemd, scripts) |
 | `docs/` | Documentation and policy |
-| `archives/` | Historical exports |
 
 **Note on Technical Report:** `docs/technical-report.md` is **generated** from chapter files in `docs/technical-report/`. Edit the chapter files (e.g., `00-abstract.md`, `06-the-module-system.md`), then run `scheme --script docs/technical-report/assemble.ss` to rebuild. Chapter order is defined in `docs/technical-report/manifest.sexp`.
 

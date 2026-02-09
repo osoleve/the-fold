@@ -132,7 +132,7 @@ Each skill ships a `manifest.sexp` declaring everything an agent (or human) need
 ```bash
 git clone https://github.com/osoleve/the-fold.git
 cd the-fold
-./setup-hooks.sh          # Runs tests before commit
+git config core.hooksPath .githooks   # Enable pre-commit tests
 ```
 
 See [CLAUDE.md](./CLAUDE.md) for development guidelines.
