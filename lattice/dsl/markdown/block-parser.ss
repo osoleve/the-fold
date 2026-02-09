@@ -25,24 +25,24 @@
 
 ;;; not-newline : Parser Char
 (define not-newline
-  (satisfy (lambda (c) (not (char=? c %newline-char)))
+  (parser-satisfy (lambda (c) (not (char=? c %newline-char)))
            "non-newline character"))
 
 ;;; rest-of-line : Parser String
 ;;; Parse the rest of the line (not including newline).
 (define rest-of-line
-  (parser-map list->string (many not-newline)))
+  (parser-map list->string (parser-many not-newline)))
 
 ;;; blank-line : Parser Unit
 ;;; Parse a blank line (whitespace only, then newline or eof).
 (define md-blank-line
-  (parser-then (many (one-of " \t"))
-               (parser-or (char %newline-char)
-                          eof)))
+  (parser-then (parser-many (parser-one-of " \t"))
+               (parser-or (parser-char %newline-char)
+                          parser-eof)))
 
 ;;; skip-blank-lines : Parser Unit
 (define md-skip-blank-lines
-  (many md-blank-line))
+  (parser-many md-blank-line))
 
 ;;; ============================================================
 ;;; Block Parsers
@@ -56,14 +56,14 @@
 ;;; md-heading : Parser AST
 ;;; Parse ATX-style heading: # Heading
 (define md-atx-heading
-  (parser-bind (some (char #\#))
+  (parser-bind (parser-some (parser-char #\#))
                (lambda (hashes)
                  (let ([level (min 6 (length hashes))])
-                   (parser-bind (many (one-of " \t"))
+                   (parser-bind (parser-many (parser-one-of " \t"))
                                 (lambda (_)
                                   (parser-bind rest-of-line
                                                (lambda (text)
-                                                 (parser-bind (parser-or (char %newline-char) eof)
+                                                 (parser-bind (parser-or (parser-char %newline-char) parser-eof)
                                                               (lambda (_)
                                                                 ;; Strip trailing hashes and spaces
                                                                 (let* ([trimmed (string-trim-right text)]
@@ -93,18 +93,18 @@
 ;;; Parse opening fence: ``` or ~~~, return (lang, fence-char).
 (define md-code-fence-open
   (parser-or
-   (parser-bind (string-parser "```")
+   (parser-bind (parser-string "```")
                 (lambda (_)
                   (parser-bind rest-of-line
                                (lambda (lang)
-                                 (parser-bind (char %newline-char)
+                                 (parser-bind (parser-char %newline-char)
                                               (lambda (_)
                                                 (parser-pure (cons (string-trim lang) #\`))))))))
-   (parser-bind (string-parser "~~~")
+   (parser-bind (parser-string "~~~")
                 (lambda (_)
                   (parser-bind rest-of-line
                                (lambda (lang)
-                                 (parser-bind (char %newline-char)
+                                 (parser-bind (parser-char %newline-char)
                                               (lambda (_)
                                                 (parser-pure (cons (string-trim lang) #\~))))))))))
 
@@ -140,7 +140,7 @@
             (let* ([code (substring input start-idx idx)]
                    [new-pos (fold-left advance-pos (state-pos state)
                                        (string->list code))]
-                   [new-state (make-state input idx new-pos)])
+                   [new-state (parser-make-state input idx new-pos)])
               (right (cons code new-state)))]
 
            [(and line-start
@@ -157,7 +157,7 @@
                    [consumed (substring input start-idx final-idx)]
                    [new-pos (fold-left advance-pos (state-pos state)
                                        (string->list consumed))]
-                   [new-state (make-state input final-idx new-pos)])
+                   [new-state (parser-make-state input final-idx new-pos)])
               (right (cons code new-state)))]
 
            [(char=? (string-ref input idx) %newline-char)
@@ -171,20 +171,20 @@
 ;;; md-blockquote-line : Parser String
 ;;; Parse a single blockquote line: > text
 (define md-blockquote-line
-  (parser-bind (char #\>)
+  (parser-bind (parser-char #\>)
                (lambda (_)
-                 (parser-bind (optional (char #\space) #\space)
+                 (parser-bind (parser-optional (parser-char #\space) #\space)
                               (lambda (_)
                                 (parser-bind rest-of-line
                                              (lambda (text)
-                                               (parser-bind (parser-or (char %newline-char) eof)
+                                               (parser-bind (parser-or (parser-char %newline-char) parser-eof)
                                                             (lambda (_)
                                                               (parser-pure text))))))))))
 
 ;;; md-blockquote : Parser AST
 ;;; Parse a blockquote block.
 (define md-blockquote-block
-  (parser-bind (some md-blockquote-line)
+  (parser-bind (parser-some md-blockquote-line)
                (lambda (lines)
                  (let* ([content (string-join lines "\n")]
                         [inlines (parse-inline-or-text content)])
@@ -195,20 +195,20 @@
 ;;; md-ul-marker : Parser Unit
 ;;; Parse unordered list marker: - or * or +
 (define md-ul-marker
-  (parser-bind (one-of "-*+")
+  (parser-bind (parser-one-of "-*+")
                (lambda (_)
-                 (parser-bind (some (one-of " \t"))
+                 (parser-bind (parser-some (parser-one-of " \t"))
                               (lambda (_)
                                 (parser-pure '()))))))
 
 ;;; md-ol-marker : Parser Unit
 ;;; Parse ordered list marker: 1. or 1)
 (define md-ol-marker
-  (parser-bind (some digit)
+  (parser-bind (parser-some parser-digit)
                (lambda (_)
-                 (parser-bind (one-of ".)")
+                 (parser-bind (parser-one-of ".)")
                               (lambda (_)
-                                (parser-bind (some (one-of " \t"))
+                                (parser-bind (parser-some (parser-one-of " \t"))
                                              (lambda (_)
                                                (parser-pure '()))))))))
 
@@ -217,7 +217,7 @@
 (define md-list-item-content
   (parser-bind rest-of-line
                (lambda (text)
-                 (parser-bind (parser-or (char %newline-char) eof)
+                 (parser-bind (parser-or (parser-char %newline-char) parser-eof)
                               (lambda (_)
                                 (parser-pure text))))))
 
@@ -243,13 +243,13 @@
 
 ;;; md-unordered-list : Parser AST
 (define md-unordered-list
-  (parser-bind (some md-ul-item)
+  (parser-bind (parser-some md-ul-item)
                (lambda (items)
                  (parser-pure (md-unordered-list items)))))
 
 ;;; md-ordered-list : Parser AST
 (define md-ordered-list
-  (parser-bind (some md-ol-item)
+  (parser-bind (parser-some md-ol-item)
                (lambda (items)
                  (parser-pure (md-ordered-list items)))))
 
@@ -299,11 +299,11 @@
 ;;; md-table-row-line : Parser String
 ;;; Parse a single table row line.
 (define md-table-row-line
-  (parser-bind (char #\|)
+  (parser-bind (parser-char #\|)
                (lambda (_)
                  (parser-bind rest-of-line
                               (lambda (text)
-                                (parser-bind (parser-or (char %newline-char) eof)
+                                (parser-bind (parser-or (parser-char %newline-char) parser-eof)
                                              (lambda (_)
                                                (parser-pure (string-append "|" text)))))))))
 
@@ -315,7 +315,7 @@
                  (parser-bind md-table-row-line
                               (lambda (sep-line)
                                 (if (separator-line? sep-line)
-                                    (parser-bind (many md-table-row-line)
+                                    (parser-bind (parser-many md-table-row-line)
                                                  (lambda (data-lines)
                                                    (let* ([header-cells (parse-table-row header-line)]
                                                           [header (map (lambda (c)
@@ -334,16 +334,16 @@
 ;;; md-hr : Parser AST
 ;;; Parse horizontal rule: ---, ***, ___
 (define md-hr-parser
-  (parser-bind (parser-or (try (parser-bind (count 3 (char #\-))
-                                             (lambda (_) (many (char #\-)))))
-                          (parser-or (try (parser-bind (count 3 (char #\*))
-                                                        (lambda (_) (many (char #\*)))))
-                                     (parser-bind (count 3 (char #\_))
-                                                  (lambda (_) (many (char #\_))))))
+  (parser-bind (parser-or (parser-try (parser-bind (parser-count 3 (parser-char #\-))
+                                             (lambda (_) (parser-many (parser-char #\-)))))
+                          (parser-or (parser-try (parser-bind (parser-count 3 (parser-char #\*))
+                                                        (lambda (_) (parser-many (parser-char #\*)))))
+                                     (parser-bind (parser-count 3 (parser-char #\_))
+                                                  (lambda (_) (parser-many (parser-char #\_))))))
                (lambda (_)
-                 (parser-bind (many (one-of " \t"))
+                 (parser-bind (parser-many (parser-one-of " \t"))
                               (lambda (_)
-                                (parser-bind (parser-or (char %newline-char) eof)
+                                (parser-bind (parser-or (parser-char %newline-char) parser-eof)
                                              (lambda (_)
                                                (parser-pure (md-hr)))))))))
 
@@ -352,26 +352,26 @@
 ;;; md-paragraph-line : Parser String
 ;;; Parse a line that's part of a paragraph.
 (define md-paragraph-line
-  (parser-bind (not-followed-by (choice (list (char #\#)
-                                               (string-parser "```")
-                                               (string-parser "~~~")
-                                               (char #\>)
-                                               (char #\|)  ; Table rows
+  (parser-bind (parser-not-followed-by (parser-choice (list (parser-char #\#)
+                                               (parser-string "```")
+                                               (parser-string "~~~")
+                                               (parser-char #\>)
+                                               (parser-char #\|)  ; Table rows
                                                md-ul-marker
                                                md-ol-marker
                                                md-hr-parser
-                                               eof)))
+                                               parser-eof)))
                (lambda (_)
-                 (parser-bind (some not-newline)
+                 (parser-bind (parser-some not-newline)
                               (lambda (chars)
-                                (parser-bind (parser-or (char %newline-char) eof)
+                                (parser-bind (parser-or (parser-char %newline-char) parser-eof)
                                              (lambda (_)
                                                (parser-pure (list->string chars)))))))))
 
 ;;; md-paragraph : Parser AST
 ;;; Parse a paragraph (one or more non-blank lines).
 (define md-paragraph-block
-  (parser-bind (some md-paragraph-line)
+  (parser-bind (parser-some md-paragraph-line)
                (lambda (lines)
                  (let* ([content (string-join lines " ")]
                         [inlines (parse-inline-or-text (string-trim content))])
@@ -384,13 +384,13 @@
 (define md-block-element
   (parser-then
    md-skip-blank-lines
-   (choice (list (try md-atx-heading)
-                 (try md-fenced-code-block)
-                 (try md-blockquote-block)
-                 (try md-hr-parser)
-                 (try md-table-block)
-                 (try md-unordered-list)
-                 (try md-ordered-list)
+   (parser-choice (list (parser-try md-atx-heading)
+                 (parser-try md-fenced-code-block)
+                 (parser-try md-blockquote-block)
+                 (parser-try md-hr-parser)
+                 (parser-try md-table-block)
+                 (parser-try md-unordered-list)
+                 (parser-try md-ordered-list)
                  md-paragraph-block))))
 
 ;;; Initialize md-block
@@ -401,11 +401,11 @@
 (define md-document-parser
   (parser-bind md-skip-blank-lines
                (lambda (_)
-                 (parser-bind (many md-block-element)
+                 (parser-bind (parser-many md-block-element)
                               (lambda (blocks)
                                 (parser-bind md-skip-blank-lines
                                              (lambda (_)
-                                               (parser-bind eof
+                                               (parser-bind parser-eof
                                                             (lambda (_)
                                                               (parser-pure (md-document blocks)))))))))))
 
@@ -416,7 +416,7 @@
 ;;; parse-markdown : String -> (Either Error AST)
 ;;; Parse a complete markdown document.
 (define (parse-markdown input)
-  (parse md-document-parser input))
+  (parser-parse md-document-parser input))
 
 ;;; parse-markdown-or-error : String -> AST
 ;;; Parse markdown, returning error document on failure.

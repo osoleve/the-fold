@@ -49,9 +49,9 @@
 ;;; SQL line comments start with --
 (define sql-line-comment
   (parser-then
-   (string-parser "--")
+   (parser-string "--")
    (parser-then
-    (many (satisfy (lambda (c) (not (char=? c (integer->char 10))))
+    (parser-many (parser-satisfy (lambda (c) (not (char=? c (integer->char 10))))
                    "non-newline"))
     (parser-pure '()))))
 
@@ -59,13 +59,13 @@
 ;;; SQL block comments /* ... */
 (define sql-block-comment
   (parser-then
-   (string-parser "/*")
-   (many-till any-char (string-parser "*/"))))
+   (parser-string "/*")
+   (parser-many-till parser-any-char (parser-string "*/"))))
 
 ;;; sql-whitespace : Parser ()
 ;;; Skip whitespace and comments
 (define sql-whitespace
-  (skip-many (choice (list space sql-line-comment sql-block-comment))))
+  (skip-many (parser-choice (list parser-space sql-line-comment sql-block-comment))))
 
 ;;; sql-lexeme : Parser a → Parser a
 ;;; Parse and consume trailing whitespace
@@ -87,13 +87,13 @@
       (parser-pure "")
       (make-parser
        (lambda (state)
-               (let* ([full-input (state-input state)]
-                      [idx (state-index state)]
+               (let* ([full-input (parser-state-input state)]
+                      [idx (parser-state-index state)]
                       [len (string-length str)]
                       [remaining (- (string-length full-input) idx)])
                      (if (< remaining len)
                          (left (make-parse-error
-                                (state-pos state)
+                                (parser-state-pos state)
                                 "unexpected end of input"
                                 (list str)))
                          (let ([prefix (substring full-input idx (+ idx len))])
@@ -102,12 +102,12 @@
                                          [new-pos (fold-left
                                                    (lambda (p i)
                                                            (advance-pos p (string-ref prefix i)))
-                                                   (state-pos state)
+                                                   (parser-state-pos state)
                                                    (iota len))]
-                                         [new-state (make-state full-input new-idx new-pos)])
+                                         [new-state (parser-make-state full-input new-idx new-pos)])
                                         (right (cons prefix new-state)))
                                   (left (make-parse-error
-                                         (state-pos state)
+                                         (parser-state-pos state)
                                          (string-append "expected \"" str "\"")
                                          (list str)))))))))))
 
@@ -127,10 +127,10 @@
 ;;; Parse SQL keyword (case-insensitive) with word boundary
 (define (sql-keyword kw)
   (sql-lexeme
-   (try
+   (parser-try
     (parser-bind (string-ci-parser kw)
                  (lambda (matched)
-                         (parser-bind (not-followed-by (parser-or alpha-num (char %underscore)))
+                         (parser-bind (parser-not-followed-by (parser-or parser-alpha-num (parser-char %underscore)))
                                       (lambda (_)
                                               (parser-pure matched))))))))
 
@@ -144,19 +144,19 @@
 
 ;;; sql-identifier-start : Parser Char
 (define sql-identifier-start
-  (parser-or letter (char %underscore)))
+  (parser-or parser-letter (parser-char %underscore)))
 
 ;;; sql-identifier-rest : Parser Char
 (define sql-identifier-rest
-  (parser-or alpha-num (char %underscore)))
+  (parser-or parser-alpha-num (parser-char %underscore)))
 
 ;;; sql-bare-identifier : Parser String
 ;;; Unquoted identifier (not a reserved word)
 (define sql-bare-identifier
-  (try
+  (parser-try
    (parser-bind sql-identifier-start
                 (lambda (first)
-                        (parser-bind (many sql-identifier-rest)
+                        (parser-bind (parser-many sql-identifier-rest)
                                      (lambda (rest)
                                              (let ([name (list->string (cons first rest))])
                                                   ;; Check if it's a reserved word
@@ -175,16 +175,16 @@
 ;;; sql-quoted-identifier : Parser String
 ;;; Double-quoted identifier (can contain reserved words, spaces)
 (define sql-quoted-identifier
-  (between (char %double-quote)
-           (char %double-quote)
+  (parser-between (parser-char %double-quote)
+           (parser-char %double-quote)
            (parser-map list->string
-                       (many (parser-or
+                       (parser-many (parser-or
                               ;; Escaped quote: "" (use try to backtrack if only one quote)
-                              (try (parser-then (char %double-quote)
-                                                (parser-then (char %double-quote)
+                              (parser-try (parser-then (parser-char %double-quote)
+                                                (parser-then (parser-char %double-quote)
                                                              (parser-pure %double-quote))))
                               ;; Regular character
-                              (satisfy (lambda (c) (not (char=? c %double-quote)))
+                              (parser-satisfy (lambda (c) (not (char=? c %double-quote)))
                                        "identifier character"))))))
 
 ;;; sql-identifier : Parser String
@@ -201,24 +201,24 @@
 ;;; Single-quoted string with '' for escaped quotes
 (define sql-string-literal
   (sql-lexeme
-   (between (char %single-quote)
-            (char %single-quote)
+   (parser-between (parser-char %single-quote)
+            (parser-char %single-quote)
             (parser-map list->string
-                        (many (parser-or
+                        (parser-many (parser-or
                                ;; Escaped quote: '' (use try to backtrack if only one quote)
-                               (try (parser-then (char %single-quote)
-                                                 (parser-then (char %single-quote)
+                               (parser-try (parser-then (parser-char %single-quote)
+                                                 (parser-then (parser-char %single-quote)
                                                               (parser-pure %single-quote))))
                                ;; Regular character
-                               (satisfy (lambda (c) (not (char=? c %single-quote)))
+                               (parser-satisfy (lambda (c) (not (char=? c %single-quote)))
                                         "string character")))))))
 
 ;;; sql-integer : Parser Integer
 (define sql-integer
   (sql-lexeme
-   (parser-bind (optional (one-of "+-") #\+)
+   (parser-bind (parser-optional (parser-one-of "+-") #\+)
                 (lambda (sign)
-                        (parser-bind (some digit)
+                        (parser-bind (parser-some parser-digit)
                                      (lambda (digits)
                                              (let ([n (string->number (list->string digits))])
                                                   (parser-pure (if (char=? sign #\-)
@@ -228,12 +228,12 @@
 ;;; sql-decimal : Parser Number
 (define sql-decimal
   (sql-lexeme
-   (parser-bind (optional (one-of "+-") #\+)
+   (parser-bind (parser-optional (parser-one-of "+-") #\+)
                 (lambda (sign)
-                        (parser-bind (some digit)
+                        (parser-bind (parser-some parser-digit)
                                      (lambda (int-part)
-                                             (parser-bind (optional (parser-then (char #\.)
-                                                                                 (some digit))
+                                             (parser-bind (parser-optional (parser-then (parser-char #\.)
+                                                                                 (parser-some parser-digit))
                                                                     '())
                                                           (lambda (frac-part)
                                                                   (let* ([int-str (list->string int-part)]
@@ -248,7 +248,7 @@
 ;;; sql-number : Parser Number
 ;;; Parse integer or decimal
 (define sql-number
-  (try sql-decimal))
+  (parser-try sql-decimal))
 
 ;;; sql-boolean : Parser Boolean
 (define sql-boolean
@@ -266,7 +266,7 @@
 ;;; sql-operator : String → Parser String
 ;;; Parse specific operator
 (define (sql-operator op)
-  (sql-lexeme (string-parser op)))
+  (sql-lexeme (parser-string op)))
 
 ;;; Comparison operators
 (define sql-eq (sql-operator "="))
@@ -290,11 +290,11 @@
 ;;; SQL Punctuation
 ;;; ====
 
-(define sql-lparen (sql-lexeme (char #\()))
-(define sql-rparen (sql-lexeme (char #\))))
-(define sql-comma (sql-lexeme (char #\,)))
-(define sql-semicolon (sql-lexeme (char #\;)))
-(define sql-dot (sql-lexeme (char #\.)))
+(define sql-lparen (sql-lexeme (parser-char #\()))
+(define sql-rparen (sql-lexeme (parser-char #\))))
+(define sql-comma (sql-lexeme (parser-char #\,)))
+(define sql-semicolon (sql-lexeme (parser-char #\;)))
+(define sql-dot (sql-lexeme (parser-char #\.)))
 
 ;;; ====
 ;;; Utility Parsers
@@ -302,15 +302,15 @@
 
 ;;; sql-parens : Parser a → Parser a
 (define (sql-parens p)
-  (between sql-lparen sql-rparen p))
+  (parser-between sql-lparen sql-rparen p))
 
 ;;; sql-comma-sep : Parser a → Parser (List a)
 (define (sql-comma-sep p)
-  (sep-by p sql-comma))
+  (parser-sep-by p sql-comma))
 
 ;;; sql-comma-sep1 : Parser a → Parser (List a)
 (define (sql-comma-sep1 p)
-  (sep-by1 p sql-comma))
+  (parser-sep-by1 p sql-comma))
 
 ;;; ====
 ;;; Token Record (for parser-dsl compatibility)

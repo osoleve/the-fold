@@ -45,7 +45,7 @@
   (parser-bind get-pos
                (lambda (start)
                        (parser-bind
-                        (choice (list
+                        (parser-choice (list
                                  (parser-map (lambda (n) (cons n 'number)) sql-number)
                                  (parser-map (lambda (s) (cons s 'string)) sql-string-literal)
                                  (parser-map (lambda (b) (cons b 'boolean)) sql-boolean)
@@ -64,7 +64,7 @@
                (lambda (start)
                        (parser-bind sql-identifier
                                     (lambda (first)
-                                            (parser-bind (optional (parser-then sql-dot sql-identifier) #f)
+                                            (parser-bind (parser-optional (parser-then sql-dot sql-identifier) #f)
                                                          (lambda (second)
                                                                  (parser-bind get-pos
                                                                               (lambda (end)
@@ -79,7 +79,7 @@
                (lambda (start)
                        (parser-or
                         ;; table.*
-                        (try (parser-bind sql-identifier
+                        (parser-try (parser-bind sql-identifier
                                           (lambda (table)
                                                   (parser-bind sql-dot
                                                                (lambda (_)
@@ -101,7 +101,7 @@
   (sql-lexeme
    (parser-or
     ;; Try aggregate functions first (they are reserved words)
-    (choice (map (lambda (kw) (try (string-ci-parser kw)))
+    (parser-choice (map (lambda (kw) (parser-try (string-ci-parser kw)))
                  '("COUNT" "SUM" "AVG" "MIN" "MAX" "UPPER" "LOWER" "LENGTH"
                    "COALESCE" "NULLIF" "CAST" "SUBSTRING" "TRIM" "ABS" "ROUND")))
     ;; Then regular identifiers
@@ -115,10 +115,10 @@
                                     (lambda (name)
                                             (parser-bind sql-lparen
                                                          (lambda (_)
-                                                                 (parser-bind (optional (parser-then (sql-keyword "DISTINCT") (parser-pure #t)) #f)
+                                                                 (parser-bind (parser-optional (parser-then (sql-keyword "DISTINCT") (parser-pure #t)) #f)
                                                                               (lambda (distinct?)
                                                                                       (parser-bind
-                                                                                       (choice (list
+                                                                                       (parser-choice (list
                                                                                                 (parser-then sql-star (parser-pure '(*)))
                                                                                                 (sql-comma-sep lazy-sql-expr)))
                                                                                        (lambda (args)
@@ -136,11 +136,11 @@
                (lambda (start)
                        (parser-bind (sql-keyword "CASE")
                                     (lambda (_)
-                                            (parser-bind (option-maybe (try lazy-sql-expr))
+                                            (parser-bind (parser-option-maybe (parser-try lazy-sql-expr))
                                                          (lambda (operand-maybe)
-                                                                 (parser-bind (some sql-when-clause)
+                                                                 (parser-bind (parser-some sql-when-clause)
                                                                               (lambda (when-clauses)
-                                                                                      (parser-bind (optional (parser-then (sql-keyword "ELSE") lazy-sql-expr) #f)
+                                                                                      (parser-bind (parser-optional (parser-then (sql-keyword "ELSE") lazy-sql-expr) #f)
                                                                                                    (lambda (else-clause)
                                                                                                            (parser-bind (sql-keyword "END")
                                                                                                                         (lambda (_)
@@ -189,7 +189,7 @@
 (define sql-exists-expr
   (parser-bind get-pos
                (lambda (start)
-                       (parser-bind (optional (parser-then (sql-keyword "NOT") (parser-pure #t)) #f)
+                       (parser-bind (parser-optional (parser-then (sql-keyword "NOT") (parser-pure #t)) #f)
                                     (lambda (not?)
                                             (parser-bind (sql-keyword "EXISTS")
                                                          (lambda (_)
@@ -203,17 +203,17 @@
 ;;; sql-paren-expr : Parser AST
 (define sql-paren-expr
   (parser-or
-   (try sql-subquery)
+   (parser-try sql-subquery)
    (sql-parens lazy-sql-expr)))
 
 ;;; sql-atom : Parser AST
 (define sql-atom
-  (choice (list
-           (try sql-case-expr)
-           (try sql-exists-expr)
-           (try sql-function-call)
+  (parser-choice (list
+           (parser-try sql-case-expr)
+           (parser-try sql-exists-expr)
+           (parser-try sql-function-call)
            sql-literal-expr
-           (try sql-paren-expr)
+           (parser-try sql-paren-expr)
            sql-column-ref)))
 
 ;;; ====
@@ -223,7 +223,7 @@
 ;;; sql-mul-expr : Parser AST
 (define sql-mul-expr
   (chainl1 sql-atom
-           (choice (list
+           (parser-choice (list
                     (parser-then sql-star
                                  (parser-pure (lambda (l r) (make-binary-op no-span '* l r))))
                     (parser-then sql-slash
@@ -234,7 +234,7 @@
 ;;; sql-add-expr : Parser AST
 (define sql-add-expr
   (chainl1 sql-mul-expr
-           (choice (list
+           (parser-choice (list
                     (parser-then sql-plus
                                  (parser-pure (lambda (l r) (make-binary-op no-span '+ l r))))
                     (parser-then sql-minus
@@ -244,7 +244,7 @@
 
 ;;; sql-comparison-op : Parser Symbol
 (define sql-comparison-op
-  (choice (list
+  (parser-choice (list
            (parser-then sql-eq (parser-pure '=))
            (parser-then sql-neq (parser-pure '<>))
            (parser-then sql-lte (parser-pure '<=))
@@ -273,7 +273,7 @@
                                      (lambda (start)
                                              (parser-bind (sql-keyword "IS")
                                                           (lambda (_)
-                                                                  (parser-bind (optional (parser-then (sql-keyword "NOT") (parser-pure #t)) #f)
+                                                                  (parser-bind (parser-optional (parser-then (sql-keyword "NOT") (parser-pure #t)) #f)
                                                                                (lambda (not?)
                                                                                        (parser-bind (sql-keyword "NULL")
                                                                                                     (lambda (_)
@@ -289,7 +289,7 @@
                (lambda (left)
                        (parser-or
                         ;; NOT BETWEEN
-                        (try (parser-bind get-pos
+                        (parser-try (parser-bind get-pos
                                           (lambda (start)
                                                   (parser-bind (sql-keyword "NOT")
                                                                (lambda (_)
@@ -331,7 +331,7 @@
   (sql-parens
    (parser-or
     ;; Try subquery first
-    (try lazy-sql-select)
+    (parser-try lazy-sql-select)
     ;; Otherwise a list of expressions
     (sql-comma-sep1 sql-between-expr))))
 
@@ -341,7 +341,7 @@
                (lambda (left)
                        (parser-or
                         ;; NOT IN
-                        (try (parser-bind get-pos
+                        (parser-try (parser-bind get-pos
                                           (lambda (start)
                                                   (parser-bind (sql-keyword "NOT")
                                                                (lambda (_)
@@ -381,7 +381,7 @@
                (lambda (left)
                        (parser-or
                         ;; NOT LIKE
-                        (try (parser-bind get-pos
+                        (parser-try (parser-bind get-pos
                                           (lambda (start)
                                                   (parser-bind (sql-keyword "NOT")
                                                                (lambda (_)
@@ -389,7 +389,7 @@
                                                                                     (lambda (_)
                                                                                             (parser-bind sql-in-expr
                                                                                                          (lambda (pattern)
-                                                                                                                 (parser-bind (optional (parser-then (sql-keyword "ESCAPE") sql-string-literal) #f)
+                                                                                                                 (parser-bind (parser-optional (parser-then (sql-keyword "ESCAPE") sql-string-literal) #f)
                                                                                                                               (lambda (escape)
                                                                                                                                       (parser-bind get-pos
                                                                                                                                                    (lambda (end)
@@ -404,7 +404,7 @@
                                                            (lambda (_)
                                                                    (parser-bind sql-in-expr
                                                                                 (lambda (pattern)
-                                                                                        (parser-bind (optional (parser-then (sql-keyword "ESCAPE") sql-string-literal) #f)
+                                                                                        (parser-bind (parser-optional (parser-then (sql-keyword "ESCAPE") sql-string-literal) #f)
                                                                                                      (lambda (escape)
                                                                                                              (parser-bind get-pos
                                                                                                                           (lambda (end)
@@ -422,8 +422,8 @@
                 (lambda (start)
                         ;; Only match NOT if it's NOT followed by LIKE, IN, BETWEEN, EXISTS
                         ;; Those are handled by their own expression parsers
-                        (parser-bind (try (parser-left (sql-keyword "NOT")
-                                                       (not-followed-by (choice (list
+                        (parser-bind (parser-try (parser-left (sql-keyword "NOT")
+                                                       (parser-not-followed-by (parser-choice (list
                                                                                  (sql-keyword "LIKE")
                                                                                  (sql-keyword "IN")
                                                                                  (sql-keyword "BETWEEN")
@@ -459,11 +459,11 @@
 ;;; sql-select-item : Parser AST
 (define sql-select-item
   (parser-or
-   (try sql-star-expr)
+   (parser-try sql-star-expr)
    (parser-bind lazy-sql-expr
                 (lambda (expr)
                         (parser-or
-                         (parser-bind (parser-then (optional (sql-keyword "AS") #f) sql-identifier)
+                         (parser-bind (parser-then (parser-optional (sql-keyword "AS") #f) sql-identifier)
                                       (lambda (alias)
                                               (parser-pure (make-alias no-span expr alias))))
                          (parser-pure expr))))))
@@ -474,7 +474,7 @@
                (lambda (start)
                        (parser-bind sql-identifier
                                     (lambda (table-name)
-                                            (parser-bind (optional (parser-then (optional (sql-keyword "AS") #f) sql-identifier) #f)
+                                            (parser-bind (parser-optional (parser-then (parser-optional (sql-keyword "AS") #f) sql-identifier) #f)
                                                          (lambda (alias)
                                                                  (parser-bind get-pos
                                                                               (lambda (end)
@@ -484,15 +484,15 @@
 ;;; sql-join-type : Parser Symbol
 ;;; Parses optional join type keyword before JOIN
 (define sql-join-type
-  (optional
-   (choice (list
+  (parser-optional
+   (parser-choice (list
             (parser-then (sql-keyword "INNER") (parser-pure 'inner))
             (parser-then (sql-keyword "LEFT")
-                         (parser-then (optional (sql-keyword "OUTER") #f) (parser-pure 'left)))
+                         (parser-then (parser-optional (sql-keyword "OUTER") #f) (parser-pure 'left)))
             (parser-then (sql-keyword "RIGHT")
-                         (parser-then (optional (sql-keyword "OUTER") #f) (parser-pure 'right)))
+                         (parser-then (parser-optional (sql-keyword "OUTER") #f) (parser-pure 'right)))
             (parser-then (sql-keyword "FULL")
-                         (parser-then (optional (sql-keyword "OUTER") #f) (parser-pure 'full)))
+                         (parser-then (parser-optional (sql-keyword "OUTER") #f) (parser-pure 'full)))
             (parser-then (sql-keyword "CROSS") (parser-pure 'cross))
             (parser-then (sql-keyword "NATURAL") (parser-pure 'natural))))
    'inner))
@@ -516,7 +516,7 @@
 (define sql-from-item
   (parser-bind sql-table-ref
                (lambda (first-table)
-                       (parser-bind (many sql-join-clause)
+                       (parser-bind (parser-many sql-join-clause)
                                     (lambda (joins)
                                             (parser-pure
                                              (fold-left
@@ -533,15 +533,15 @@
                (lambda (start)
                        (parser-bind lazy-sql-expr
                                     (lambda (expr)
-                                            (parser-bind (optional
-                                                          (choice (list
+                                            (parser-bind (parser-optional
+                                                          (parser-choice (list
                                                                    (parser-then (sql-keyword "ASC") (parser-pure 'asc))
                                                                    (parser-then (sql-keyword "DESC") (parser-pure 'desc))))
                                                           'asc)
                                                          (lambda (direction)
-                                                                 (parser-bind (optional
+                                                                 (parser-bind (parser-optional
                                                                                (parser-then (sql-keyword "NULLS")
-                                                                                            (choice (list
+                                                                                            (parser-choice (list
                                                                                                      (parser-then (sql-keyword "FIRST") (parser-pure 'first))
                                                                                                      (parser-then (sql-keyword "LAST") (parser-pure 'last)))))
                                                                                #f)
@@ -560,7 +560,7 @@
                                     (lambda (_)
                                             (parser-bind sql-integer
                                                          (lambda (limit)
-                                                                 (parser-bind (optional (parser-then (sql-keyword "OFFSET") sql-integer) #f)
+                                                                 (parser-bind (parser-optional (parser-then (sql-keyword "OFFSET") sql-integer) #f)
                                                                               (lambda (offset)
                                                                                       (parser-bind get-pos
                                                                                                    (lambda (end)
@@ -573,29 +573,29 @@
                (lambda (start)
                        (parser-bind (sql-keyword "SELECT")
                                     (lambda (_)
-                                            (parser-bind (optional (parser-then (sql-keyword "DISTINCT") (parser-pure #t)) #f)
+                                            (parser-bind (parser-optional (parser-then (sql-keyword "DISTINCT") (parser-pure #t)) #f)
                                                          (lambda (distinct?)
                                                                  (parser-bind (sql-comma-sep1 sql-select-item)
                                                                               (lambda (columns)
                                                                                       (parser-bind (parser-then (sql-keyword "FROM")
                                                                                                                 (sql-comma-sep1 sql-from-item))
                                                                                                    (lambda (from)
-                                                                                                           (parser-bind (optional (parser-then (sql-keyword "WHERE") lazy-sql-expr) #f)
+                                                                                                           (parser-bind (parser-optional (parser-then (sql-keyword "WHERE") lazy-sql-expr) #f)
                                                                                                                         (lambda (where)
-                                                                                                                                (parser-bind (optional
+                                                                                                                                (parser-bind (parser-optional
                                                                                                                                               (parser-then (sql-keyword "GROUP")
                                                                                                                                                            (parser-then (sql-keyword "BY")
                                                                                                                                                                         (sql-comma-sep1 lazy-sql-expr))) '())
                                                                                                                                              (lambda (group-by)
-                                                                                                                                                     (parser-bind (optional
+                                                                                                                                                     (parser-bind (parser-optional
                                                                                                                                                                    (parser-then (sql-keyword "HAVING") lazy-sql-expr) #f)
                                                                                                                                                                   (lambda (having)
-                                                                                                                                                                          (parser-bind (optional
+                                                                                                                                                                          (parser-bind (parser-optional
                                                                                                                                                                                         (parser-then (sql-keyword "ORDER")
                                                                                                                                                                                                      (parser-then (sql-keyword "BY")
                                                                                                                                                                                                                   (sql-comma-sep1 sql-order-item))) '())
                                                                                                                                                                                        (lambda (order-by)
-                                                                                                                                                                                               (parser-bind (option-maybe sql-limit-clause)
+                                                                                                                                                                                               (parser-bind (parser-option-maybe sql-limit-clause)
                                                                                                                                                                                                             (lambda (limit)
                                                                                                                                                                                                                     (parser-bind get-pos
                                                                                                                                                                                                                                  (lambda (end)
@@ -614,7 +614,7 @@
 ;;; sql-values-row : Parser (List AST)
 (define sql-values-row
   (sql-parens (sql-comma-sep1
-               (choice (list
+               (parser-choice (list
                         (parser-bind get-pos
                                      (lambda (start)
                                              (parser-bind (sql-keyword "DEFAULT")
@@ -634,10 +634,10 @@
                                                          (lambda (_)
                                                                  (parser-bind sql-identifier
                                                                               (lambda (table)
-                                                                                      (parser-bind (optional (sql-parens (sql-comma-sep1 sql-identifier)) '())
+                                                                                      (parser-bind (parser-optional (sql-parens (sql-comma-sep1 sql-identifier)) '())
                                                                                                    (lambda (columns)
                                                                                                            (parser-bind
-                                                                                                            (choice (list
+                                                                                                            (parser-choice (list
                                                                                                                      (parser-bind (sql-keyword "VALUES")
                                                                                                                                   (lambda (_)
                                                                                                                                           (parser-bind (sql-comma-sep1 sql-values-row)
@@ -682,7 +682,7 @@
                                                                               (lambda (_)
                                                                                       (parser-bind (sql-comma-sep1 sql-set-clause)
                                                                                                    (lambda (set-clauses)
-                                                                                                           (parser-bind (optional (parser-then (sql-keyword "WHERE") lazy-sql-expr) #f)
+                                                                                                           (parser-bind (parser-optional (parser-then (sql-keyword "WHERE") lazy-sql-expr) #f)
                                                                                                                         (lambda (where)
                                                                                                                                 (parser-bind get-pos
                                                                                                                                              (lambda (end)
@@ -704,7 +704,7 @@
                                                          (lambda (_)
                                                                  (parser-bind sql-identifier
                                                                               (lambda (table)
-                                                                                      (parser-bind (optional (parser-then (sql-keyword "WHERE") lazy-sql-expr) #f)
+                                                                                      (parser-bind (parser-optional (parser-then (sql-keyword "WHERE") lazy-sql-expr) #f)
                                                                                                    (lambda (where)
                                                                                                            (parser-bind get-pos
                                                                                                                         (lambda (end)
@@ -718,7 +718,7 @@
 ;;; sql-statement : Parser AST
 (define sql-statement
   (parser-then sql-whitespace
-               (choice (list
+               (parser-choice (list
                         sql-select
                         sql-insert
                         sql-update

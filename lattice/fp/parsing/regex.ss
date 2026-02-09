@@ -225,49 +225,49 @@
 (define (parse-escape)
   (doc 'type '(Parser Char))
   (parser-bind
-   (char #\\)
+   (parser-char #\\)
    (lambda (_)
      (parser-or
-      (parser-bind (char #\n) (lambda (_) (parser-pure #\newline)))
+      (parser-bind (parser-char #\n) (lambda (_) (parser-pure #\newline)))
       (parser-or
-       (parser-bind (char #\t) (lambda (_) (parser-pure #\tab)))
+       (parser-bind (parser-char #\t) (lambda (_) (parser-pure #\tab)))
        (parser-or
-        (parser-bind (char #\r) (lambda (_) (parser-pure #\return)))
+        (parser-bind (parser-char #\r) (lambda (_) (parser-pure #\return)))
         (parser-or
-         (parser-bind (char #\\) (lambda (_) (parser-pure #\\)))
+         (parser-bind (parser-char #\\) (lambda (_) (parser-pure #\\)))
          ;; Meta characters that need escaping
-         (one-of "*+?.|[]()^${}"))))))))
+         (parser-one-of "*+?.|[]()^${}"))))))))
 
 ;;; Literal character (not a metachar, or escaped)
 (define (parse-literal)
   (doc 'type '(Parser RegexAST))
   (parser-map regex-lit
               (parser-or (parse-escape)
-                         (satisfy (lambda (c)
+                         (parser-satisfy (lambda (c)
                                     (not (member c '(#\* #\+ #\? #\. #\| #\[ #\] #\( #\) #\\ #\^ #\$ #\{))))
                                   "literal character"))))
 
 ;;; Dot (any character)
 (define (parse-dot)
   (doc 'type '(Parser RegexAST))
-  (parser-bind (char #\.)
+  (parser-bind (parser-char #\.)
                (lambda (_) (parser-pure (regex-dot)))))
 
 ;;; Character class: [abc] or [^abc] or [a-z]
 (define (parse-class)
   (doc 'type '(Parser RegexAST))
   (parser-bind
-   (char #\[)
+   (parser-char #\[)
    (lambda (_)
      (parser-bind
-      (option-maybe (char #\^))
+      (parser-option-maybe (parser-char #\^))
       (lambda (neg-maybe)
         (let ([negated? (just? neg-maybe)])
           (parser-bind
-           (some (parse-class-item))
+           (parser-some (parse-class-item))
            (lambda (items)
              (parser-bind
-              (char #\])
+              (parser-char #\])
               (lambda (_)
                 ;; Flatten items (ranges expand to lists)
                 (let ([chars (flatten items)])
@@ -277,7 +277,7 @@
 (define (parse-class-item)
   (doc 'type '(Parser (List Char)))
   (parser-or
-   (try (parse-class-range))  ; Use try to backtrack if range fails after consuming start char
+   (parser-try (parse-class-range))  ; Use try to backtrack if range fails after consuming start char
    (parser-map list (parse-class-char))))
 
 ;;; Character inside a class (handles escapes and literal ']' at start)
@@ -285,7 +285,7 @@
   (doc 'type '(Parser Char))
   (parser-or
    (parse-escape)
-   (satisfy (lambda (c) (not (member c '(#\] #\\))))
+   (parser-satisfy (lambda (c) (not (member c '(#\] #\\))))
             "class character")))
 
 ;;; Character range: a-z (but not if dash is at start/end)
@@ -295,7 +295,7 @@
    (parse-class-char)
    (lambda (start)
      (parser-bind
-      (char #\-)
+      (parser-char #\-)
       (lambda (_)
         (parser-bind
          (parse-class-char)
@@ -311,13 +311,13 @@
 (define (parse-group)
   (doc 'type '(Parser RegexAST))
   (parser-bind
-   (char #\()
+   (parser-char #\()
    (lambda (_)
      (parser-bind
       (parse-regex)
       (lambda (expr)
         (parser-bind
-         (char #\))
+         (parser-char #\))
          (lambda (_)
            (parser-pure (regex-group expr)))))))))
 
@@ -325,21 +325,21 @@
 ;;; Wrapped in try for backtracking when used in choice with parse-group
 (define (parse-lookahead)
   (doc 'type '(Parser RegexAST))
-  (try
+  (parser-try
    (parser-bind
-    (char #\()
+    (parser-char #\()
     (lambda (_)
       (parser-bind
-       (char #\?)
+       (parser-char #\?)
        (lambda (_)
          (parser-bind
-          (one-of "=!")
+          (parser-one-of "=!")
           (lambda (type-char)
             (parser-bind
              (parse-regex)
              (lambda (inner)
                (parser-bind
-                (char #\))
+                (parser-char #\))
                 (lambda (_)
                   (parser-pure
                    (regex-lookahead inner (char=? type-char #\=)))))))))))))))
@@ -348,23 +348,23 @@
 (define (parse-anchor)
   (doc 'type '(Parser RegexAST))
   (parser-or
-   (parser-bind (char #\^) (lambda (_) (parser-pure (regex-anchor 'start))))
-   (parser-bind (char #\$) (lambda (_) (parser-pure (regex-anchor 'end))))))
+   (parser-bind (parser-char #\^) (lambda (_) (parser-pure (regex-anchor 'start))))
+   (parser-bind (parser-char #\$) (lambda (_) (parser-pure (regex-anchor 'end))))))
 
 ;;; Interval quantifier: {n}, {n,}, {,m}, {n,m}
 (define (parse-interval)
   (doc 'type '(Parser (Pair Nat (Option Nat))))
   (doc 'description "Parse interval quantifier, returns (min . max) where max=#f means unbounded")
   (parser-bind
-   (char #\{)
+   (parser-char #\{)
    (lambda (_)
      (parser-bind
-      (option-maybe natural)
+      (parser-option-maybe parser-natural)
       (lambda (min-maybe)
         (parser-or
          ;; Case: {n} - exact count (requires min to be present)
          (parser-bind
-          (char #\})
+          (parser-char #\})
           (lambda (_)
             (if (nothing? min-maybe)
                 (parser-fail "empty interval {} is invalid")
@@ -372,13 +372,13 @@
                   (parser-pure (cons n n))))))
          ;; Case: {n,}, {,m}, or {n,m}
          (parser-bind
-          (char #\,)
+          (parser-char #\,)
           (lambda (_)
             (parser-bind
-             (option-maybe natural)
+             (parser-option-maybe parser-natural)
              (lambda (max-maybe)
                (parser-bind
-                (char #\})
+                (parser-char #\})
                 (lambda (_)
                   (let ([min (if (nothing? min-maybe) 0 (from-just min-maybe))]
                         [max (if (nothing? max-maybe) #f (from-just max-maybe))])
@@ -390,7 +390,7 @@
 ;;; Atom: lookahead | group | class | anchor | dot | literal
 (define (parse-atom)
   (doc 'type '(Parser RegexAST))
-  (choice (list (parse-lookahead)  ; Must come before parse-group
+  (parser-choice (list (parse-lookahead)  ; Must come before parse-group
                 (parse-group)
                 (parse-class)
                 (parse-anchor)
@@ -401,7 +401,7 @@
 (define (parse-postfix-op)
   (doc 'type '(Parser (Union Char (Pair Nat (Option Nat)))))
   (parser-or
-   (one-of "*+?")
+   (parser-one-of "*+?")
    (parse-interval)))
 
 ;;; Apply a postfix operator to an expression
@@ -423,7 +423,7 @@
    (parse-atom)
    (lambda (atom)
      (parser-bind
-      (many (parse-postfix-op))
+      (parser-many (parse-postfix-op))
       (lambda (ops)
         (parser-pure (fold-left apply-postfix-op atom ops)))))))
 
@@ -431,7 +431,7 @@
 (define (parse-seq)
   (doc 'type '(Parser RegexAST))
   (parser-bind
-   (many (parse-postfix))
+   (parser-many (parse-postfix))
    (lambda (exprs)
      (parser-pure
       (cond
@@ -446,7 +446,7 @@
    (parse-seq)
    (lambda (first)
      (parser-bind
-      (many (parser-then (char #\|) (parse-seq)))
+      (parser-many (parser-then (parser-char #\|) (parse-seq)))
       (lambda (rest)
         (parser-pure
          (if (null? rest)
@@ -462,7 +462,7 @@
 (define (regex-parse str)
   (doc 'type '(-> String (Either ParseError RegexAST)))
   (doc 'description "Parse a regex string into an AST")
-  (parse (parser-left (parse-regex) eof) str))
+  (parser-parse (parser-left (parse-regex) parser-eof) str))
 
 ;;; ============================================================
 ;;; Section 4: Thompson's Construction

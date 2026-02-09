@@ -31,15 +31,15 @@
 
 ;;; Skip whitespace and comments
 (define whitespace
-  (many (parser-or space
-                   (parser-then (string-parser "//")
-                                (many-till any-char newline-char)))))
+  (parser-many (parser-or parser-space
+                   (parser-then (parser-string "//")
+                                (parser-many-till parser-any-char newline-char)))))
 
 ;;; Skip required whitespace
 (define whitespace1
-  (some (parser-or space
-                   (parser-then (string-parser "//")
-                                (many-till any-char newline-char)))))
+  (parser-some (parser-or parser-space
+                   (parser-then (parser-string "//")
+                                (parser-many-till parser-any-char newline-char)))))
 
 ;;; Lexeme: parser followed by whitespace
 (define (lexeme p)
@@ -47,18 +47,18 @@
 
 ;;; Symbol: parse a keyword/identifier followed by whitespace
 (define (symbol str)
-  (lexeme (string-parser str)))
+  (lexeme (parser-string str)))
 
 (doc 'section 'identifiers-and-strings)
 
 ;;; identifier-start : Parser Char
 (define identifier-start
-  (satisfy (lambda (c) (or (char-alphabetic? c) (char=? c #\_)))
+  (parser-satisfy (lambda (c) (or (char-alphabetic? c) (char=? c #\_)))
            "identifier start"))
 
 ;;; identifier-char : Parser Char
 (define identifier-char
-  (satisfy (lambda (c) (or (char-alphabetic? c)
+  (parser-satisfy (lambda (c) (or (char-alphabetic? c)
                            (char-numeric? c)
                            (char=? c #\_)
                            (char=? c #\-)))
@@ -69,7 +69,7 @@
   (lexeme
    (parser-bind identifier-start
                 (lambda (first)
-                        (parser-bind (many identifier-char)
+                        (parser-bind (parser-many identifier-char)
                                      (lambda (rest)
                                              (parser-pure (string->symbol (list->string (cons first rest))))))))))
 
@@ -77,20 +77,20 @@
 ;;; Parse a double-quoted string with escape sequences
 (define quoted-string
   (lexeme
-   (between (char #\")
-            (char #\")
+   (parser-between (parser-char #\")
+            (parser-char #\")
             (parser-map list->string
-                        (many (parser-or
+                        (parser-many (parser-or
                                ;; Escape sequences
-                               (parser-then (char #\\)
-                                            (choice
+                               (parser-then (parser-char #\\)
+                                            (parser-choice
                                              (list
-                                              (parser-map (lambda (_) #\newline) (char #\n))
-                                              (parser-map (lambda (_) #\tab) (char #\t))
-                                              (parser-map (lambda (_) #\") (char #\"))
-                                              (parser-map (lambda (_) #\\) (char #\\)))))
+                                              (parser-map (lambda (_) #\newline) (parser-char #\n))
+                                              (parser-map (lambda (_) #\tab) (parser-char #\t))
+                                              (parser-map (lambda (_) #\") (parser-char #\"))
+                                              (parser-map (lambda (_) #\\) (parser-char #\\)))))
                                ;; Regular characters
-                               (satisfy (lambda (c) (and (not (char=? c #\"))
+                               (parser-satisfy (lambda (c) (and (not (char=? c #\"))
                                                          (not (char=? c #\\))))
                                         "string character")))))))
 
@@ -116,53 +116,53 @@
 
 ;;; Actual guard parser (delayed to allow forward reference)
 (define (parse-guard-impl)
-  (choice
+  (parser-choice
    (list
     ;; and(g1, g2, ...)
     (parser-bind (symbol "and")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")")
-                                               (sep-by (parse-guard-impl) (symbol ",")))
+                         (parser-bind (parser-between (symbol "(") (symbol ")")
+                                               (parser-sep-by (parse-guard-impl) (symbol ",")))
                                       (lambda (guards)
                                               (parser-pure (cons 'and guards))))))
-    
+
     ;; or(g1, g2, ...)
     (parser-bind (symbol "or")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")")
-                                               (sep-by (parse-guard-impl) (symbol ",")))
+                         (parser-bind (parser-between (symbol "(") (symbol ")")
+                                               (parser-sep-by (parse-guard-impl) (symbol ",")))
                                       (lambda (guards)
                                               (parser-pure (cons 'or guards))))))
-    
+
     ;; not(g)
     (parser-bind (symbol "not")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")")
+                         (parser-bind (parser-between (symbol "(") (symbol ")")
                                                (parse-guard-impl))
                                       (lambda (g)
                                               (parser-pure (list 'not g))))))
-    
+
     ;; flag?(name)
     (parser-bind (symbol "flag?")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'flag? name))))))
-    
+
     ;; not-flag?(name)
     (parser-bind (symbol "not-flag?")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'not-flag? name))))))
-    
+
     ;; has-item?(name)
     (parser-bind (symbol "has-item?")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'has-item? name))))))
-    
+
     ;; var>=(name, value)
     (parser-bind (symbol "var>=")
                  (lambda (_)
@@ -174,7 +174,7 @@
                                                                                      (lambda (val)
                                                                                              (parser-then (symbol ")")
                                                                                                           (parser-pure (list 'var>= name val)))))))))))
-    
+
     ;; var<=(name, value)
     (parser-bind (symbol "var<=")
                  (lambda (_)
@@ -186,7 +186,7 @@
                                                                                      (lambda (val)
                                                                                              (parser-then (symbol ")")
                                                                                                           (parser-pure (list 'var<= name val)))))))))))
-    
+
     ;; var=(name, value)
     (parser-bind (symbol "var=")
                  (lambda (_)
@@ -198,10 +198,10 @@
                                                                                      (lambda (val)
                                                                                              (parser-then (symbol ")")
                                                                                                           (parser-pure (list 'var= name val)))))))))))
-    
+
     ;; true
     (parser-then (symbol "true") (parser-pure #t))
-    
+
     ;; false
     (parser-then (symbol "false") (parser-pure #f)))))
 
@@ -216,7 +216,7 @@
 ;;;   remove-item!(name)
 
 (define parse-effect
-  (choice
+  (parser-choice
    (list
     ;; set!(name, value)
     (parser-bind (symbol "set!")
@@ -229,7 +229,7 @@
                                                                                      (lambda (val)
                                                                                              (parser-then (symbol ")")
                                                                                                           (parser-pure (list 'set! name val)))))))))))
-    
+
     ;; inc!(name, delta)
     (parser-bind (symbol "inc!")
                  (lambda (_)
@@ -241,32 +241,32 @@
                                                                                      (lambda (delta)
                                                                                              (parser-then (symbol ")")
                                                                                                           (parser-pure (list 'inc! name delta)))))))))))
-    
+
     ;; flag!(name)
     (parser-bind (symbol "flag!")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'flag! name))))))
-    
+
     ;; unflag!(name)
     (parser-bind (symbol "unflag!")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'unflag! name))))))
-    
+
     ;; add-item!(name)
     (parser-bind (symbol "add-item!")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'add-item! name))))))
-    
+
     ;; remove-item!(name)
     (parser-bind (symbol "remove-item!")
                  (lambda (_)
-                         (parser-bind (between (symbol "(") (symbol ")") identifier)
+                         (parser-bind (parser-between (symbol "(") (symbol ")") identifier)
                                       (lambda (name)
                                               (parser-pure (list 'remove-item! name)))))))))
 
@@ -275,16 +275,16 @@
 ;;; parse-number : Parser Number
 (define parse-number
   (lexeme
-   (parser-bind (optional (char #\-) #f)
+   (parser-bind (parser-optional (parser-char #\-) #f)
                 (lambda (neg?)
-                        (parser-bind (some digit)
+                        (parser-bind (parser-some parser-digit)
                                      (lambda (digits)
                                              (let ([n (string->number (list->string digits))])
                                                   (parser-pure (if neg? (- n) n)))))))))
 
 ;;; parse-value : Parser Any
 (define parse-value
-  (choice
+  (parser-choice
    (list
     parse-number
     quoted-string
@@ -301,9 +301,9 @@
 ;;;   -> "label" => target [when: guard, do: effect]
 
 (define parse-choice-modifiers
-  (optional
-   (between (symbol "[") (symbol "]")
-            (sep-by
+  (parser-optional
+   (parser-between (symbol "[") (symbol "]")
+            (parser-sep-by
              (parser-or
               ;; when: guard
               (parser-bind (symbol "when:")
@@ -352,17 +352,17 @@
 (define parse-on-enter
   (parser-bind (symbol "on-enter")
                (lambda (_)
-                       (parser-bind (between (symbol "{") (symbol "}")
-                                             (sep-by parse-effect (optional (symbol ";") '())))
+                       (parser-bind (parser-between (symbol "{") (symbol "}")
+                                             (parser-sep-by parse-effect (parser-optional (symbol ";") '())))
                                     (lambda (effects)
                                             (parser-pure (cons 'on-enter effects)))))))
 
 (define parse-scene-body
   (parser-bind quoted-string
                (lambda (text)
-                       (parser-bind (many parse-on-enter)
+                       (parser-bind (parser-many parse-on-enter)
                                     (lambda (on-enters)
-                                            (parser-bind (many parse-choice)
+                                            (parser-bind (parser-many parse-choice)
                                                          (lambda (choices)
                                                                  ;; Flatten on-enter effects
                                                                  (let ([all-effects (append-map cdr on-enters)])
@@ -373,7 +373,7 @@
                (lambda (_)
                        (parser-bind identifier
                                     (lambda (name)
-                                            (parser-bind (between (symbol "{") (symbol "}") parse-scene-body)
+                                            (parser-bind (parser-between (symbol "{") (symbol "}") parse-scene-body)
                                                          (lambda (body)
                                                                  (let ([text (car body)]
                                                                        [on-enter (cadr body)]
@@ -400,9 +400,9 @@
                                             (parser-pure (list 'start name)))))))
 
 (define parse-chronicle-body
-  (parser-bind (optional parse-start-decl #f)
+  (parser-bind (parser-optional parse-start-decl #f)
                (lambda (start)
-                       (parser-bind (many parse-scene)
+                       (parser-bind (parser-many parse-scene)
                                     (lambda (scenes)
                                             (parser-pure (cons start scenes)))))))
 
@@ -411,7 +411,7 @@
                (lambda (_)
                        (parser-bind quoted-string
                                     (lambda (title)
-                                            (parser-bind (between (symbol "{") (symbol "}") parse-chronicle-body)
+                                            (parser-bind (parser-between (symbol "{") (symbol "}") parse-chronicle-body)
                                                          (lambda (body)
                                                                  (let ([start (car body)]
                                                                        [scenes (cdr body)])

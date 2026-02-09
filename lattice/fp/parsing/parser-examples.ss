@@ -23,18 +23,18 @@
 
 (doc 'section 'json-parser)
 
-(define json-null (parser-then (symbol "null") (parser-pure 'json-null)))
+(define json-null (parser-then (parser-symbol "null") (parser-pure 'json-null)))
 (doc json-null 'type '(Parser Symbol))
 (doc json-null 'description "Parse JSON null value")
 
 (define json-bool
   (parser-or
-   (parser-then (symbol "true") (parser-pure #t))
-   (parser-then (symbol "false") (parser-pure #f))))
+   (parser-then (parser-symbol "true") (parser-pure #t))
+   (parser-then (parser-symbol "false") (parser-pure #f))))
 (doc json-bool 'type '(Parser Boolean))
 (doc json-bool 'description "Parse JSON boolean value")
 
-(define json-number (lexeme decimal))
+(define json-number (parser-lexeme decimal))
 (doc json-number 'type '(Parser Number))
 (doc json-number 'description "Parse JSON number")
 
@@ -42,28 +42,28 @@
   (parser-or
    ;; Escape sequences
    (parser-then
-    (char %backslash)
-    (choice (list
-             (parser-then (char #\") (parser-pure #\"))
-             (parser-then (char %backslash) (parser-pure %backslash))
-             (parser-then (char #\/) (parser-pure #\/))
-             (parser-then (char %char-b) (parser-pure %backspace-ex))
-             (parser-then (char %char-f) (parser-pure %page-ex))
-             (parser-then (char %char-n) (parser-pure %newline-ex))
-             (parser-then (char %char-r) (parser-pure %return-ex))
-             (parser-then (char %char-t) (parser-pure %tab-ex)))))
+    (parser-char %backslash)
+    (parser-choice (list
+             (parser-then (parser-char #\") (parser-pure #\"))
+             (parser-then (parser-char %backslash) (parser-pure %backslash))
+             (parser-then (parser-char #\/) (parser-pure #\/))
+             (parser-then (parser-char %char-b) (parser-pure %backspace-ex))
+             (parser-then (parser-char %char-f) (parser-pure %page-ex))
+             (parser-then (parser-char %char-n) (parser-pure %newline-ex))
+             (parser-then (parser-char %char-r) (parser-pure %return-ex))
+             (parser-then (parser-char %char-t) (parser-pure %tab-ex)))))
    ;; Regular characters (not " or \)
-   (satisfy (lambda (c) (and (not (char=? c #\"))
+   (parser-satisfy (lambda (c) (and (not (char=? c #\"))
                              (not (char=? c %backslash))))
             "string character")))
 (doc json-string-char 'type '(Parser Char))
 (doc json-string-char 'description "Parse a single character inside a string (handling escapes)")
 
 (define json-string
-  (lexeme
-   (between (char #\")
-            (char #\")
-            (parser-map list->string (many json-string-char)))))
+  (parser-lexeme
+   (parser-between (parser-char #\")
+            (parser-char #\")
+            (parser-map list->string (parser-many json-string-char)))))
 (doc json-string 'type '(Parser String))
 (doc json-string 'description "Parse JSON string")
 
@@ -72,7 +72,7 @@
 (doc json-value 'description "Forward declaration for recursive parsers")
 
 (define json-array
-  (brackets (comma-sep (make-parser (lambda (s) (run-parser json-value s))))))
+  (parser-brackets (comma-sep (make-parser (lambda (s) (run-parser json-value s))))))
 (doc json-array 'type '(Parser (List JsonValue)))
 (doc json-array 'description "Parse JSON array")
 
@@ -80,19 +80,19 @@
   (parser-bind json-string
                (lambda (key)
                        (parser-then
-                        (symbol ":")
+                        (parser-symbol ":")
                         (parser-bind (make-parser (lambda (s) (run-parser json-value s)))
                                      (lambda (val)
                                              (parser-pure (cons key val))))))))
 (doc json-pair 'type '(Parser (Pair String JsonValue)))
 (doc json-pair 'description "Parse JSON object key-value pair")
 
-(define json-object (braces (comma-sep json-pair)))
+(define json-object (parser-braces (comma-sep json-pair)))
 (doc json-object 'type '(Parser (Alist String JsonValue)))
 (doc json-object 'description "Parse JSON object")
 
 (set! json-value
-      (choice (list json-null
+      (parser-choice (list json-null
                     json-bool
                     json-number
                     json-string
@@ -107,14 +107,14 @@
 (doc 'section 's-expression-parser)
 
 (define sexp-comment
-  (parser-then (char #\;)
-               (parser-then (many (satisfy (lambda (c) (not (char=? c %newline-ex)))
+  (parser-then (parser-char #\;)
+               (parser-then (parser-many (parser-satisfy (lambda (c) (not (char=? c %newline-ex)))
                                            "non-newline"))
                             (parser-pure '()))))
 (doc sexp-comment 'type '(Parser Unit))
 (doc sexp-comment 'description "Skip line comment")
 
-(define sexp-whitespace (many (parser-or space sexp-comment)))
+(define sexp-whitespace (parser-many (parser-or parser-space sexp-comment)))
 (doc sexp-whitespace 'type '(Parser (List α)))
 (doc sexp-whitespace 'description "Skip whitespace and comments")
 
@@ -124,7 +124,7 @@
 (doc sexp-lexeme 'description "Parse and consume trailing S-expression whitespace/comments")
 
 (define sexp-symbol-char
-  (satisfy (lambda (c)
+  (parser-satisfy (lambda (c)
                    (or (char-alphabetic? c)
                        (char-numeric? c)
                        (memv c '(#\+ #\- #\* #\/ #\< #\> #\= #\? #\! #\_ #\: #\. #\@))))
@@ -134,7 +134,7 @@
 
 (define sexp-symbol
   (sexp-lexeme
-   (parser-bind (some sexp-symbol-char)
+   (parser-bind (parser-some sexp-symbol-char)
                 (lambda (chars)
                         (let ([str (list->string chars)])
                              ;; Try to parse as number first
@@ -145,19 +145,19 @@
 
 (define sexp-string
   (sexp-lexeme
-   (between (char #\")
-            (char #\")
+   (parser-between (parser-char #\")
+            (parser-char #\")
             (parser-map list->string
-                        (many (parser-or
+                        (parser-many (parser-or
                                ;; Escaped characters
-                               (parser-then (char %backslash)
-                                            (choice (list
-                                                     (parser-then (char #\") (parser-pure #\"))
-                                                     (parser-then (char %backslash) (parser-pure %backslash))
-                                                     (parser-then (char %char-n) (parser-pure %newline-ex))
-                                                     (parser-then (char %char-t) (parser-pure %tab-ex)))))
+                               (parser-then (parser-char %backslash)
+                                            (parser-choice (list
+                                                     (parser-then (parser-char #\") (parser-pure #\"))
+                                                     (parser-then (parser-char %backslash) (parser-pure %backslash))
+                                                     (parser-then (parser-char %char-n) (parser-pure %newline-ex))
+                                                     (parser-then (parser-char %char-t) (parser-pure %tab-ex)))))
                                ;; Regular characters
-                               (satisfy (lambda (c) (not (char=? c #\")))
+                               (parser-satisfy (lambda (c) (not (char=? c #\")))
                                         "string character")))))))
 (doc sexp-string 'type '(Parser String))
 (doc sexp-string 'description "Parse S-expression string with escapes")
@@ -165,8 +165,8 @@
 (define sexp-boolean
   (sexp-lexeme
    (parser-or
-    (parser-then (string-parser "#t") (parser-pure #t))
-    (parser-then (string-parser "#f") (parser-pure #f)))))
+    (parser-then (parser-string "#t") (parser-pure #t))
+    (parser-then (parser-string "#f") (parser-pure #f)))))
 (doc sexp-boolean 'type '(Parser Boolean))
 (doc sexp-boolean 'description "Parse S-expression boolean")
 
@@ -175,15 +175,15 @@
 (doc sexp-value 'description "Forward declaration for recursive S-expressions")
 
 (define sexp-list
-  (between (sexp-lexeme (char #\())
-           (sexp-lexeme (char #\)))
-           (many (make-parser (lambda (s) (run-parser sexp-value s))))))
+  (parser-between (sexp-lexeme (parser-char #\())
+           (sexp-lexeme (parser-char #\)))
+           (parser-many (make-parser (lambda (s) (run-parser sexp-value s))))))
 (doc sexp-list 'type '(Parser (List SExp)))
 (doc sexp-list 'description "Parse S-expression list")
 
 ;;; sexp-quote : (Parser SExp)
 (define sexp-quote
-  (parser-bind (sexp-lexeme (char #\'))
+  (parser-bind (sexp-lexeme (parser-char #\'))
                (lambda (_)
                        (parser-bind (make-parser (lambda (s) (run-parser sexp-value s)))
                                     (lambda (val)
@@ -191,7 +191,7 @@
 
 ;;; sexp-quasiquote : (Parser SExp)
 (define sexp-quasiquote
-  (parser-bind (sexp-lexeme (char #\`))
+  (parser-bind (sexp-lexeme (parser-char #\`))
                (lambda (_)
                        (parser-bind (make-parser (lambda (s) (run-parser sexp-value s)))
                                     (lambda (val)
@@ -199,11 +199,11 @@
 
 ;;; sexp-unquote : (Parser SExp)
 (define sexp-unquote
-  (parser-bind (char #\,)
+  (parser-bind (parser-char #\,)
                (lambda (_)
                        (parser-or
                         ;; ,@expr (no whitespace allowed between , and @)
-                        (parser-bind (char #\@)
+                        (parser-bind (parser-char #\@)
                                      (lambda (_)
                                              (parser-bind (make-parser (lambda (s) (run-parser sexp-value s)))
                                                           (lambda (val)
@@ -218,7 +218,7 @@
 (set! sexp-value
       (parser-then
        sexp-whitespace
-       (choice (list sexp-boolean
+       (parser-choice (list sexp-boolean
                      sexp-string
                      sexp-quote
                      sexp-quasiquote
@@ -234,11 +234,11 @@
 (define (parse-sexps input)
   (doc 'type '(-> String (Either Error (List SExp))))
   (doc 'description "Parse multiple S-expressions")
-  (parse-all (parser-then sexp-whitespace (many sexp-value)) input))
+  (parse-all (parser-then sexp-whitespace (parser-many sexp-value)) input))
 
 (doc 'section 'arithmetic-parser)
 
-(define arith-number (lexeme decimal))
+(define arith-number (parser-lexeme decimal))
 (doc arith-number 'type '(Parser Number))
 (doc arith-number 'description "Parse arithmetic number")
 
@@ -256,7 +256,7 @@
 
 (define arith-atom
   (parser-or
-   (parens (make-parser (lambda (s) (run-parser arith-expr s))))
+   (parser-parens (make-parser (lambda (s) (run-parser arith-expr s))))
    arith-number))
 (doc arith-atom 'type '(Parser AST))
 (doc arith-atom 'description "Number or parenthesized expression")
@@ -265,7 +265,7 @@
 ;;; Unary minus.
 (define arith-unary
   (parser-or
-   (parser-bind (symbol "-")
+   (parser-bind (parser-symbol "-")
                 (lambda (_)
                         (parser-bind (make-parser (lambda (s) (run-parser arith-unary s)))
                                      (lambda (val)
@@ -288,15 +288,15 @@
 ;;; Initialize arith-factor (handles * /)
 (set! arith-factor
       (let ([mul-op (parser-or
-                     (parser-then (symbol "*") (parser-pure (lambda (a b) (list '* a b))))
-                     (parser-then (symbol "/") (parser-pure (lambda (a b) (list '/ a b)))))])
+                     (parser-then (parser-symbol "*") (parser-pure (lambda (a b) (list '* a b))))
+                     (parser-then (parser-symbol "/") (parser-pure (lambda (a b) (list '/ a b)))))])
            (chain-left1 arith-unary mul-op)))
 
 ;;; Initialize arith-term (handles + -)
 (set! arith-term
       (let ([add-op (parser-or
-                     (parser-then (symbol "+") (parser-pure (lambda (a b) (list '+ a b))))
-                     (parser-then (symbol "-") (parser-pure (lambda (a b) (list '- a b)))))])
+                     (parser-then (parser-symbol "+") (parser-pure (lambda (a b) (list '+ a b))))
+                     (parser-then (parser-symbol "-") (parser-pure (lambda (a b) (list '- a b)))))])
            (chain-left1 arith-factor add-op)))
 
 ;;; Initialize arith-expr
@@ -328,9 +328,9 @@
 
 (define ini-comment
   (parser-then
-   (one-of ";#")
+   (parser-one-of ";#")
    (parser-then
-    (many (satisfy (lambda (c) (not (char=? c %newline-ex))) "non-newline"))
+    (parser-many (parser-satisfy (lambda (c) (not (char=? c %newline-ex))) "non-newline"))
     (parser-pure '()))))
 (doc ini-comment 'type '(Parser Unit))
 (doc ini-comment 'description "Parse INI comment")
@@ -338,18 +338,18 @@
 ;;; ini-hspace : (Parser (List Char))
 ;;; Spaces and tabs (not newlines).
 (define ini-hspace
-  (many (one-of " 	")))
+  (parser-many (parser-one-of " 	")))
 
 ;;; ini-line-end : (Parser Unit)
 ;;; End of line: newline or eof (consumes newline if present).
 (define ini-line-end
-  (parser-or newline-char eof))
+  (parser-or newline-char parser-eof))
 
 ;;; ini-skip-line : (Parser Unit)
 ;;; Skip to end of line including newline.
 (define ini-skip-line
   (parser-then
-   (many (satisfy (lambda (c) (not (char=? c %newline-ex))) "non-newline"))
+   (parser-many (parser-satisfy (lambda (c) (not (char=? c %newline-ex))) "non-newline"))
    ini-line-end))
 
 ;;; ini-blank-or-comment : (Parser Char)
@@ -365,24 +365,24 @@
 
 ;;; ini-skip-blanks : (Parser (List α))
 (define ini-skip-blanks
-  (many ini-blank-or-comment))
+  (parser-many ini-blank-or-comment))
 
 ;;; ini-section-name : (Parser String)
 (define ini-section-name
   (parser-map list->string
-              (some (satisfy (lambda (c)
+              (parser-some (parser-satisfy (lambda (c)
                                      (and (not (char=? c #\]))
                                           (not (char=? c %newline-ex))))
                              "section name character"))))
 
 ;;; ini-section-header : (Parser String)
 (define ini-section-header
-  (between (char #\[) (char #\]) ini-section-name))
+  (parser-between (parser-char #\[) (parser-char #\]) ini-section-name))
 
 ;;; ini-key : (Parser String)
 (define ini-key
   (parser-map list->string
-              (some (satisfy (lambda (c)
+              (parser-some (parser-satisfy (lambda (c)
                                      (or (char-alphabetic? c)
                                          (char-numeric? c)
                                          (char=? c #\_)
@@ -405,7 +405,7 @@
                  (if (< last-non-ws 0)
                      ""
                      (list->string (take (+ last-non-ws 1) chars)))))
-   (many (satisfy (lambda (c) (not (char=? c %newline-ex))) "value character"))))
+   (parser-many (parser-satisfy (lambda (c) (not (char=? c %newline-ex))) "value character"))))
 
 ;;; ini-pair : (Parser (String × String))
 (define ini-pair
@@ -414,34 +414,34 @@
                        (parser-then
                         ini-hspace
                         (parser-then
-                         (char #\=)
+                         (parser-char #\=)
                          (parser-then
                           ini-hspace
                           (parser-bind ini-value
                                        (lambda (val)
                                                (parser-then
-                                                (parser-or newline-char eof)
+                                                (parser-or newline-char parser-eof)
                                                 (parser-pure (cons key val)))))))))))
 
 ;;; ini-section : (Parser (String × (Alist String String)))
 (define ini-section
-  (parser-bind (try (parser-then ini-skip-blanks ini-section-header))
+  (parser-bind (parser-try (parser-then ini-skip-blanks ini-section-header))
                (lambda (name)
                        (parser-then
-                        (parser-or newline-char eof)
-                        (parser-bind (many (try (parser-then ini-skip-blanks ini-pair)))
+                        (parser-or newline-char parser-eof)
+                        (parser-bind (parser-many (parser-try (parser-then ini-skip-blanks ini-pair)))
                                      (lambda (pairs)
                                              (parser-pure (cons name pairs))))))))
 
 ;;; ini-file : (Parser (List (String × (Alist String String))))
 (define ini-file
   (parser-then ini-skip-blanks
-               (parser-left (many ini-section) (parser-then ini-skip-blanks eof))))
+               (parser-left (parser-many ini-section) (parser-then ini-skip-blanks parser-eof))))
 
 (define (parse-ini input)
   (doc 'type '(-> String (Either Error INI)))
   (doc 'description "Parse INI configuration file")
-  (parse ini-file input))
+  (parser-parse ini-file input))
 
 (define (ini-get ini section key)
   (doc 'type '(-> INI String String (Option String)))
