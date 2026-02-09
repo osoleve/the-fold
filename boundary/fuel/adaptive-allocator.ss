@@ -1,11 +1,11 @@
-(load "lattice/fp/control-systems/kalman.ss")
+(load "lattice/control-systems/kalman.ss")
 (load "core/lang/eval.ss")
 
 (doc 'module 'adaptive-allocator)
 (doc 'description "Runtime-adaptive fuel allocation using Kalman filtering. Wraps the core evaluator to dynamically estimate and allocate fuel based on observed execution costs.")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'dependencies '(lattice/fp/control-systems/kalman core/lang/eval))
+(doc 'dependencies '(lattice/control-systems/kalman core/lang/eval))
 
 (doc 'note "Key insight: Instead of guessing fuel upfront, observe early iterations and refine estimates. Uses log-space Kalman filter for heavy-tailed cost distributions (execution costs often vary by orders of magnitude).")
 

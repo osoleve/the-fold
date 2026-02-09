@@ -1,5 +1,5 @@
 (load "lattice/pipeline/council.ss")
-(load "lattice/fp/game/voting.ss")
+(load "lattice/game-theory/voting.ss")
 
 (doc 'module 'pipeline/council-voting)
 (doc 'description "Voting Theory Integration for Councils. Extends council.ss with ranked-choice voting using voting.ss. Agents submit full preference rankings over proposals, and various aggregation rules (Schulze, Borda, Copeland, plurality) determine outcomes.")
@@ -7,7 +7,7 @@
 (doc 'purity 'total)
 (doc 'note "Effect interpretation happens in boundary/pipeline/interpreter.ss")
 (doc 'features "Ranked preference submission; Multiple voting rules (configurable); Condorcet winner detection; Strategic voting analysis")
-(doc 'dependencies '(lattice/pipeline/council.ss lattice/fp/game/voting.ss))
+(doc 'dependencies '(lattice/pipeline/council.ss lattice/game-theory/voting.ss))
 
 (doc 'section 'voting-rule-selection)
 

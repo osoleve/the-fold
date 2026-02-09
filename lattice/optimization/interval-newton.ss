@@ -513,4 +513,3 @@ See Hansen-Sengupta algorithm.")
         [f-deriv-iv interval-cos])
     (interval-find-all-roots f-iv f-deriv-iv (interval 0 10) 1e-10 1000)))
 
-(display "Interval Newton loaded. Use (find-root f-iv f-deriv-iv lo hi) or (interval-find-all-roots ...).\n")

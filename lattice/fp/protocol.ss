@@ -154,7 +154,6 @@ Introspection:
   - protocol-implementations : List types implementing a protocol
   - list-protocols       : List all protocols")
 
-(display "Protocol System loaded.\n")
 (display "  Define:    (define-protocol (name obj args...) \"doc\")\n")
 (display "  Implement: (implement-protocol! 'name 'type-tag fn)\n")
 (display "  Dispatch:  Automatic via (car obj) type tag\n")

@@ -290,8 +290,3 @@ Priority Collection:
 Introspection:
   coll-protocols     - List implemented protocols")
 
-(display "Collection Protocol loaded.\n")
-(display "  Core:     coll-empty?, coll-size, coll-fold, coll-to-list\n")
-(display "  Keyed:    keyed-lookup, keyed-insert, keyed-delete, keyed-contains?\n")
-(display "  Spatial:  spatial-nearest, spatial-knn, spatial-range, spatial-radius\n")
-(display "  Priority: prio-peek, prio-pop, prio-insert, prio-merge\n")

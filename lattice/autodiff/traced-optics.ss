@@ -1,6 +1,6 @@
 (load "core/base/prelude.ss")
 (load "core/autodiff/reverse-diff.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 
 (doc 'module 'traced-optics)

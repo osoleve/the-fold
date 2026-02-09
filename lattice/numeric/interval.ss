@@ -1282,4 +1282,3 @@
   (/ (sinh x) (cosh x)))
 
 ;;; Display load message
-(display "Interval arithmetic loaded. Use (make-interval lo hi) or (interval lo hi).\n")

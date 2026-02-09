@@ -173,4 +173,4 @@ scheme --script lattice/fp/clp/test-clp.ss
  (see-also . (
    "lattice/fp/meta/logic.ss"
    "lattice/optimization/manifest.sexp"
-   "lattice/data/graph-algorithms.ss")))
+   "lattice/data/graph/graph-algorithms.ss")))

@@ -1,5 +1,5 @@
-(load "lattice/fp/optics/bidirectional.ss")
-(load "lattice/fp/optics/schema.ss")
+(load "lattice/optics/bidirectional.ss")
+(load "lattice/optics/schema.ss")
 
 (doc 'module 'cache-migration)
 (doc 'description "Bidirectional cache format migrations for smooth upgrades")
@@ -219,4 +219,3 @@
 ;;; Introspection:
 ;;;   list-cache-migrations
 
-(display "Loaded: lattice/meta/cache-migration.ss\n")

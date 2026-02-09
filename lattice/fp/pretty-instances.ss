@@ -273,7 +273,6 @@
 ;;; Module Loading Message
 ;;; ====
 
-(display "pretty-instances.ss loaded.\n")
 (display "  Pretty instances for Vec2, Vec3, Matrix, Complex, Polynomial, Expr, Block.\n")
 (display "  Use (vec2-pretty v), (matrix-pretty m), (complex-pretty c), etc.\n")
 (display "  Use (expr-pretty e) for symbolic expressions with minimal parens.\n")

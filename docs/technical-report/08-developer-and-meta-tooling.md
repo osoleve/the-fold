@@ -101,8 +101,8 @@ Search by input or output type to find functions by signature:
  (lu-decompose 0.65 export (linalg decomp)))
 
 > (lfe 'shapley-value)
-((shapley-value exact export (fp/game coop-games))
- (shapley-shubik-index exact export (fp/game voting-games)))
+((shapley-value exact export (game-theory coop-games))
+ (shapley-shubik-index exact export (game-theory voting-games)))
 
 > (lfp 'vec)
 ((vec+ vec- vec* vec-dot vec-cross vec-norm vec-normalize ...))

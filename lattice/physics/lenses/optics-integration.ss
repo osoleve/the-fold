@@ -1,5 +1,5 @@
 (load "core/base/prelude.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "lattice/physics/lenses/lenses.ss")
 
 (doc 'module 'optics-integration)
@@ -379,7 +379,6 @@
 (doc 'note "Re-exports from lenses.ss: All physics lenses (body., rigid-body-*, particle-*, etc.)")
 (doc 'note "Re-exports from optics.ss: ^., ^?, ^.., .~, %~, & and all optic types")
 
-(display "optics-integration.ss loaded.\n")
 (display "  Composition: >>>\n")
 (display "  Traversals: bodies-each, particles-each, particles-alive\n")
 (display "  Affines: affine-rigid-angle, affine-particle-lifetime, etc.\n")

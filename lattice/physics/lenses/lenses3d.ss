@@ -3,7 +3,7 @@
 ;;; @requires prelude optics geometry-optics rigid-body3d quaternion protocol-bundle
 
 (load "core/base/prelude.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "lattice/fp/protocol-bundle.ss")        ; For open protocol system
 (load "lattice/geometry/geometry-optics.ss")  ; vec3 lenses
 (load "lattice/linalg/quaternion.ss")
@@ -652,7 +652,6 @@
 (doc 'note "Helpers: rotates3d?, apply-impulse-at-point3d (uses world-space inertia)")
 (doc 'note "Re-exports vec3 lenses from geometry-optics.ss")
 
-(display "lenses3d.ss loaded (with open protocol dispatch).\n")
 (display "  Quaternion:    quat-{w,x,y,z}-lens\n")
 (display "  RigidBody3D:   rigid-body-3d-{pos,vel,orientation,angular-vel}-lens\n")
 (display "                 rigid-body-3d-{mass,inertia}-lens\n")

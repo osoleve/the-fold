@@ -1,75 +1,36 @@
 (load "core/base/prelude.ss")
 
-(display "Loading BoardCraft SDK...
-")
-
 (doc 'module 'tiles/boardcraft)
 (doc 'description "BoardCraft SDK main loader - loads all tile game modules")
 (doc 'layer 'lattice)
 (doc 'purity 'partial)
 
 ;;; Core types and utilities
-(display "  Loading core.ss...
-")
 (load "lattice/tiles/core.ss")
 
 ;;; Square tiles
-(display "  Loading square.ss...
-")
 (load "lattice/tiles/square.ss")
 
 ;;; Hexagonal tiles
-(display "  Loading hex.ss...
-")
 (load "lattice/tiles/hex.ss")
 
 ;;; Triangular tiles
-(display "  Loading triangle.ss...
-")
 (load "lattice/tiles/triangle.ss")
 
 ;;; Pathfinding algorithms
-(display "  Loading pathfinding.ss...
-")
 (load "lattice/tiles/pathfinding.ss")
 
 ;;; Visibility and line of sight
-(display "  Loading visibility.ss...
-")
 (load "lattice/tiles/visibility.ss")
 
 ;;; Board rendering (ASCII art)
-(display "  Loading render.ss...
-")
 (load "lattice/tiles/render.ss")
 
 ;;; Unit/entity management
-(display "  Loading units.ss...
-")
 (load "lattice/tiles/units.ss")
 
 ;;; Turn-based game system
-(display "  Loading turns.ss...
-")
 (load "lattice/tiles/turns.ss")
-
-(display "BoardCraft SDK loaded successfully!
-")
-(display "Available tile shapes: square, hex, triangle
-")
-(display "Pathfinding: BFS, Dijkstra, A*
-")
-(display "Visibility: Line of sight, Field of view
-")
-(display "Rendering: ASCII art visualization
-")
-(display "Units: Placement, movement, visibility
-")
-(display "Turns: Turn order, action points, phases
-")
-(display "See lattice/tiles/README.ss for documentation.
-")
-(newline)
 
 (doc 'section 'quick-reference)
 
@@ -132,6 +93,6 @@
   (newline)
   (display "For full documentation:
 ")
-  (display "  (load \"lattice/tiles/README.ss\")
+  (display "  (load \"lattice/tiles/README.sexp\")
 ")
   (newline))

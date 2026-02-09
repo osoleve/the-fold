@@ -582,7 +582,6 @@ Cross-Validation:
   cv-score              K-fold CV for any model type
 ")
 
-(display "Statistics Model Protocol loaded.\n")
 (display "  Use (model-predict m X) for any model type\n")
 (display "  Use (model-summary m) for unified diagnostics\n")
 (display "  Use (cv-score fit-fn X y k) for cross-validation\n")

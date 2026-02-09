@@ -465,6 +465,5 @@ Derived Operations:
   scene-total-volume       Sum of shape volumes
 ")
 
-(display "Shape Protocol loaded.\n")
 (display "  Use (shape-intersect-ray shape ray) for any shape type\n")
 (display "  Use (scene-intersect-ray shapes ray) for scene traversal\n")

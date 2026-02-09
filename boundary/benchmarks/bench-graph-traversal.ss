@@ -2,7 +2,7 @@
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
 (load "boundary/storage/store-api.ss")
-(load "lattice/data/graph-algorithms.ss")
+(load "lattice/data/graph/graph-algorithms.ss")
 (load "boundary/blocks/graph-traversal.ss")
 (load "boundary/tools/benchmark.ss")
 

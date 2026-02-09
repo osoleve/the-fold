@@ -3,7 +3,7 @@
 ;;; Tests the homology-based community quality metrics from graph-community.ss
 
 (source-directories (cons "core" (source-directories)))
-(load "lattice/data/graph-community.ss")
+(load "lattice/data/graph/graph-community.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)

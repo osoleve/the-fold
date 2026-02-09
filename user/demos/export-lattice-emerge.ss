@@ -4,7 +4,7 @@
 
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
-(load "lattice/data/graph-render.ss")
+(load "lattice/data/graph/graph-render.ss")
 (load "lattice/meta/meta.ss")
 
 (display "=======================================================\n")

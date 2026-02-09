@@ -25,8 +25,8 @@ Key design principles:
 - Lawful abstractions verified via property-based testing")
 
   (keywords (functional-programming type-classes monads parsers
-             streams logic-programming game-theory symbolic-computation
-             units-of-measure control-systems term-rewriting))
+             streams logic-programming symbolic-computation
+             units-of-measure term-rewriting))
 
   (aliases (fp functional))
 
@@ -36,10 +36,13 @@ Key design principles:
 
 
   (exports
-   ;; FP is an umbrella skill. Import from sub-skills directly:
-   ;; - fp/optics: Complete optics tower (371 exports)
-   ;; - fp/game: Game theory (110 exports)
+   ;; FP is the protocol/abstraction layer. Import from sub-skills directly:
    ;; - fp/clp: Constraint logic programming (103 exports)
+   ;;
+   ;; Optics, game theory, and control systems are now top-level lattice skills:
+   ;; - lattice/optics/    (was fp/optics)
+   ;; - lattice/game-theory/ (was fp/game)
+   ;; - lattice/control-systems/ (was fp/control-systems)
    ;;
    ;; Source-annotated exports from fp root modules are minimal.
    ;; See lattice/fp/*/manifest.sexp for detailed exports.
@@ -111,22 +114,7 @@ Key design principles:
        "generic-zipper.ss" ; Type-theoretic zipper derivation
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
-    ((subdir "optics")
-     (description "Complete optics tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter")
-     (files (
-       "optics.ss")))     ; Unified optics with composition and operators
-
-    ((subdir "game")
-     (description "Game theory: normal form, cooperative games, matching, voting, fair division")
-     (files (
-       "normal-form.ss"   ; Normal form games, Nash equilibrium, IESDS
-       "coop-games.ss"    ; Cooperative games, Shapley value, core, bargaining
-       "matching.ss"      ; Two-sided matching, Gale-Shapley, assignment games
-       "voting.ss"        ; Social choice: plurality, Borda, Condorcet, Schulze
-       "voting-games.ss"  ; Bridge: voting rules to simple games, power indices
-       "fair-division.ss"))) ; Cake cutting, adjusted winner, EF1, maximin share
-
-    ((subdir "symbolic")
+((subdir "symbolic")
      (description "Symbolic computation and computer algebra")
      (files (
        "expr.ss"           ; Symbolic expression representation
@@ -141,21 +129,7 @@ Key design principles:
      (files (
        "units.ss")))       ; SI units, prefixes, dimension checking
 
-    ((subdir "control-systems")
-     (description "Control theory and dynamical systems")
-     (files (
-       "state-space.ss"       ; LTI state space models, controllability
-       "kalman.ss"            ; Kalman filter for state estimation
-       "discrete-control.ss"  ; Continuous-to-discrete conversion (c2d-zoh, c2d-tustin)
-       "stability.ss"         ; Stability analysis (Routh-Hurwitz, Lyapunov, Nyquist)
-       "z-transform.ss"       ; Discrete transfer functions (Z-domain)
-       "transfer-function.ss" ; Continuous transfer functions (S-domain)
-       "controller-design.ss" ; Controller synthesis (LQR, pole placement, PID tuning)
-       "digital-pid.ss"       ; Discrete PID with anti-windup and tuning rules
-       "tf-convert.ss"        ; State-space <-> transfer function conversion
-       "poly-algebra.ss")))   ; Polynomial algebra (GCD, simplification, coprimality)
-
-    ((subdir "analysis")
+((subdir "analysis")
      (description "Cost analysis and parallelization heuristics")
      (files (
        "cost-analysis.ss"))) ; Work estimation, hotspot detection

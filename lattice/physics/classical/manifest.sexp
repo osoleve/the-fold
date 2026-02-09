@@ -24,7 +24,8 @@
    )
 
   (modules
-   (integrators "integrators.ss" "Numerical integrators: Euler, Symplectic, Verlet, RK4")
+   (ode-integrators "ode-integrators.ss" "Generic ODE integrators: Euler, Midpoint, RK4, Symplectic Verlet, Leapfrog")
+   (integrators "integrators.ss" "2D physics integrators with vec2 support (wraps ode-integrators)")
    (rigid-body "rigid-body.ss" "2D rigid body with rotation and inertia")
    (collision-detection "collision-detection.ss" "AABB, circle, polygon collision with spatial hashing")
    (collision-response "collision-response.ss" "Impulse-based collision resolution with friction")

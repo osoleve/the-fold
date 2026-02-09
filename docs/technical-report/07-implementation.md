@@ -666,7 +666,7 @@ This approach scales to large datasets where MCMC would be prohibitively slow.
 
 ### 7.8 Optics Tower
 
-The Fold includes a complete optics implementation (`lattice/fp/optics/`) providing composable data accessors for principled navigation and transformation of nested structures.
+The Fold includes a complete optics implementation (`lattice/optics/`) providing composable data accessors for principled navigation and transformation of nested structures.
 
 #### 7.8.1 The Optics Hierarchy
 
@@ -887,7 +887,7 @@ The traced optics module (`lattice/autodiff/traced-optics.ss`) bridges optics wi
 
 ### 7.9 Bidirectional Transformations
 
-The bidirectional transformations system (`lattice/fp/optics/bidirectional.ss`) extends the optics tower with reversible migrations, enabling schema evolution, format conversion, and CAS block migrations with automatic rollback.
+The bidirectional transformations system (`lattice/optics/bidirectional.ss`) extends the optics tower with reversible migrations, enabling schema evolution, format conversion, and CAS block migrations with automatic rollback.
 
 #### 7.9.1 Migration Type
 

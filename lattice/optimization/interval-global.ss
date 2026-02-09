@@ -570,6 +570,5 @@ to enable aggressive pruning of other branches")
 ;;; Load message
 ;;; ============================================================================
 
-(display "Interval global optimization loaded.\n")
 (display "Use (interval-minimize f-interval box criteria [f-scalar]) for global minimization.\n")
 (display "Use (interval-minimize-with-gradient f-interval grad-fn box criteria) for monotonicity pruning.\n")

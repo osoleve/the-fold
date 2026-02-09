@@ -3505,9 +3505,6 @@ Complexity: O(m·n·p)
 Module: linalg/matrix
 ```
 
-**Block explorer TUI** (`boundary/web/fold-explorer/`):
-A Rust-based terminal UI for visualizing the content-addressed store. Navigate blocks by tag, search content, follow references to traverse the Merkle DAG, and analyze orphan or highly-referenced blocks. All untrusted content is sanitized before display to prevent terminal escape sequence injection.
-
 #### 7.5.5 LSP Integration
 
 The Language Server Protocol implementation (`boundary/lsp/`) provides IDE features with real type inference integration.

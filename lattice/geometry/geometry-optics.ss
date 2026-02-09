@@ -3,7 +3,7 @@
 ;;; @requires prelude optics geometry
 
 (load "core/base/prelude.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "lattice/geometry/geometry.ss")
 
 (doc 'module 'geometry-optics)
@@ -438,4 +438,3 @@
 (doc 'note "Convenience: translate-shape, scale-sphere, transform-triangle")
 (doc 'note "Re-exports optics operators: ^., ^?, ^.., .~, %~, &, >>>")
 
-(display "geometry-optics.ss loaded.\n")

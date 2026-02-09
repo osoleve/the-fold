@@ -3,7 +3,7 @@
 ;;; @requires prelude optics sample
 
 (load "core/base/prelude.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "lattice/dataset/sample.ss")
 
 (doc 'module 'jsonl)

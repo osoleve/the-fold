@@ -1,7 +1,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/numerical/integrators.ss")
+(load "lattice/physics/classical/ode-integrators.ss")
 
 
 (doc 'module 'integrators)

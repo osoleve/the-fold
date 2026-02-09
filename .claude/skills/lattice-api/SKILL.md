@@ -33,7 +33,7 @@ Regex→NFA compilation via Thompson's construction.
 (regex-accepts? "foo$" "foobar")  ; #f
 ```
 
-## Game Theory (`lattice/fp/game/`)
+## Game Theory (`lattice/game-theory/`)
 
 Rich set of ready-to-use algorithms for cooperative games, voting, matching, and fair division.
 
@@ -51,7 +51,7 @@ These are pure functions — import them into boundary code for applications lik
 ### Example: Shapley Value
 
 ```scheme
-(load "lattice/fp/game/coop-games.ss")
+(load "lattice/game-theory/coop-games.ss")
 
 ;; Define a cooperative game: 3 players, characteristic function
 (define game (make-coop-game 3
@@ -135,7 +135,7 @@ CDCL SAT solver with clause learning, Two-Watched Literals, VSIDS branching. Max
 (sat-model coloring-cnf)  ; => variable assignments
 ```
 
-## Optics (`lattice/fp/optics/`)
+## Optics (`lattice/optics/`)
 
 Complete optics tower for composable data access.
 
@@ -163,7 +163,7 @@ Complete optics tower for composable data access.
 ### Example: Nested Access
 
 ```scheme
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 
 ;; View nested position
 (^. body body-pos-lens)

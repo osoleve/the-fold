@@ -1,11 +1,11 @@
-(load "lattice/fp/optics/bidirectional.ss")
-(load "lattice/fp/optics/block-migration.ss")
+(load "lattice/optics/bidirectional.ss")
+(load "lattice/optics/block-migration.ss")
 
 (doc 'module 'migrations/registry)
 (doc 'description "Migration registry and version graph for managing schema evolution")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'dependencies '(lattice/fp/optics/bidirectional lattice/fp/optics/block-migration))
+(doc 'dependencies '(lattice/optics/bidirectional lattice/optics/block-migration))
 
 (doc 'note "A registry for managing migrations and computing migration paths: register migrations by name, build version graph, find shortest migration path, chain migrations automatically")
 (doc 'note "The registry maintains a directed graph where nodes are versions (symbols like v1, v2) and edges are migrations (from-version -> to-version)")

@@ -221,5 +221,4 @@
 ;;; Predicates:
 ;;;   custom-complex?
 
-(display "complex-bridge.ss loaded.\n")
 (display "  Use complex-compute for calculation, complex-store for serialization.\n")

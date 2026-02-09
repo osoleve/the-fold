@@ -580,7 +580,6 @@
 
 (doc 'section 'module)
 
-(display "Particle System loaded.\n")
 (display "  Create: (make-particle-system emitters particles forces)\n")
 (display "  Emitters: (make-simple-emitter pos rate), (make-fire-emitter pos)\n")
 (display "  Forces: (gravity-field g), (drag-field c), (attractor-field center s f)\n")

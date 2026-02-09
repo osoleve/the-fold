@@ -499,7 +499,6 @@
 
 (doc 'section 'print-help)
 
-(display "lenses.ss loaded (with open protocol dispatch).\n")
 (display "  Vec2:        vec2-x-lens, vec2-y-lens\n")
 (display "  RigidBody:   rigid-body-pos-lens, rigid-body-vel-lens\n")
 (display "               rigid-body-angle-lens, rigid-body-angular-vel-lens\n")

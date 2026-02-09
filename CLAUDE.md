@@ -202,7 +202,7 @@ The lattice is a DAG of verified skills.
 | `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
 | `autodiff/` | Reverse-mode AD, computational graphs, interval gradients, optics-based gradient |
 | `fp/` | Monads, parsers, streams, protocols, game theory, control systems |
-| `fp/optics/` | Complete optics tower (Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter) |
+| `optics/` | Complete optics tower (Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter) |
 | `fp/clp/` | Constraint logic programming (cKanren-style CLP(FD)) |
 | `query/` | Query DSL, SQL parser, patterns |
 | `dsl/` | Tagless final, chronicle, staging, template DSL |
@@ -367,7 +367,7 @@ Everything is built in-house. Exceptions require approval from Andy. This is an 
 
 These subsystems compose into a differentiable programming pipeline:
 
-1. **Optics** (`lattice/fp/optics/`) specify *what* to access and differentiate. The full tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter.
+1. **Optics** (`lattice/optics/`) specify *what* to access and differentiate. The full tower: Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter.
 2. **Traced optics** (`lattice/autodiff/traced-optics.ss`) integrate optics with autodiff. `lift-at-optic` traces only the optic's focus (the "pair of traced" pattern), enabling efficient gradient computation through optic-focused paths.
 3. **Autodiff** (`core/autodiff/`) provides forward-mode (dual numbers), reverse-mode (tape-based), and second-order (hyperdual numbers). The `Differentiable` type class unifies these.
 4. **E-graphs** (`lattice/egraph/`) enable equality saturation: the same computation can be extracted as different optimal forms depending on the cost model (`cuda-cost`, `cpu-cost`, `code-size-cost`). The same function yields different kernels for different hardware.

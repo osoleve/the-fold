@@ -13,7 +13,7 @@
 (load "core/base/prelude.ss")
 (load "user/creations/ascii-video.ss")
 (load "user/creations/ascii-video-export.ss")
-(load "lattice/fp/game/multi-winner.ss")
+(load "lattice/game-theory/multi-winner.ss")
 (load "boundary/ui/animation.ss")
 
 ;;; ============================================================================
@@ -346,7 +346,7 @@
     ;; Results summary
     (draw-box frame 10 18 60 10 "The Fold: Multi-Winner Voting")
     (draw-text frame 14 20 "Implemented: STV, PAV, SAV, Monroe, CC")
-    (draw-text frame 14 22 "lattice/fp/game/multi-winner.ss")
+    (draw-text frame 14 22 "lattice/game-theory/multi-winner.ss")
     (draw-text frame 14 24 "42 tests passing")
 
     ;; Scrolling credits effect

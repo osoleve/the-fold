@@ -1,4 +1,4 @@
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "boundary/provenance/provenance.ss")
 
 (doc 'module 'traced-optics)

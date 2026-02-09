@@ -325,7 +325,6 @@
 ;;; Load Message
 ;;; ============================================================
 
-(display "protocol-introspect.ss loaded.\n")
 (display "  Describe:   (pi 'protocol), (ti 'type-tag)\n")
 (display "  Matrix:     (pm), (protocol-matrix [types] [protos])\n")
 (display "  Graph:      (protocol-graph)\n")

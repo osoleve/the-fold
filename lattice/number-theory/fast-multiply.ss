@@ -697,4 +697,3 @@ Uses 2 recursive squares + 1 multiplication (vs 3 multiplications for general Ka
   (doc 'description "Get current algorithm thresholds: (karatsuba-threshold toom3-threshold).")
   (list *karatsuba-threshold* *toom3-threshold*))
 
-(display "Loaded: lattice/number-theory/fast-multiply.ss\n")

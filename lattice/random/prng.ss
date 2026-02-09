@@ -612,13 +612,3 @@
 
 ;; string-trim is provided by prelude
 
-;;; ============================================================================
-;;; Module Load Message
-;;; ============================================================================
-
-(display "prng.ss loaded (with protocol dispatch).\n")
-(display "  Generators:  make-pcg, make-splitmix, make-xorshift128\n")
-(display "  Protocols:   prng-next, prng-output-bits, prng-random, prng-split, prng-serialize\n")
-(display "  Random:      random-float, random-int-range, random-bool, random-bytes\n")
-(display "  Sampling:    random-element, shuffle, sample, weighted-choice\n")
-(display "  Extend:      (implement-protocol! 'prng-next 'my-gen my-next-fn)\n")

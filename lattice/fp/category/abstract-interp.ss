@@ -738,6 +738,5 @@
 ;;; Display
 ;;; ============================================================================
 
-(display "Abstract interpretation via Galois connections loaded.\n")
 (display "Domains: sign-domain, interval-domain, type-domain, reach-domain\n")
 (display "Galois connections: galois-signs, galois-intervals, galois-types, galois-reach\n")

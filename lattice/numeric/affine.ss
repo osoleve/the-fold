@@ -627,5 +627,4 @@
                               (affine-mul x acc)))))))
 
 ;;; Display load message
-(display "Affine arithmetic loaded. Use (affine-from-interval iv) to create affine forms.\n")
 

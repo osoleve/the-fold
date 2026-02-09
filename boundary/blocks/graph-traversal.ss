@@ -4,7 +4,7 @@
 
 (load "core/base/prelude.ss")
 (load "boundary/storage/store-api.ss")
-(load "lattice/data/graph-algorithms.ss")
+(load "lattice/data/graph/graph-algorithms.ss")
 
 (doc 'module 'graph-traversal)
 (doc 'description "Graph traversal and analysis over CAS block references.
@@ -14,7 +14,7 @@
 (doc 'purity 'impure)
 (doc 'note "These functions take an fs-capability as first argument for store access.
   Pure graph data structures (queue, stack, visited set, hash utilities) and
-  homology-based analysis live in lattice/data/graph-algorithms.ss.")
+  homology-based analysis live in lattice/data/graph/graph-algorithms.ss.")
 
 ;;; --- Block Reference Helpers ---
 

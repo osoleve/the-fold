@@ -17,10 +17,10 @@
 ;;;   - Coalition power analysis (Shapley value, power indices)
 
 ;;; Load dependencies
-(load "lattice/fp/game/normal-form.ss")
-(load "lattice/fp/game/coop-games.ss")
-(load "lattice/fp/game/fair-division.ss")
-(load "lattice/fp/game/voting.ss")
+(load "lattice/game-theory/normal-form.ss")
+(load "lattice/game-theory/coop-games.ss")
+(load "lattice/game-theory/fair-division.ss")
+(load "lattice/game-theory/voting.ss")
 (load "user/creations/evolutionary-dynamics.ss")
 
 ;;; ============================================================================

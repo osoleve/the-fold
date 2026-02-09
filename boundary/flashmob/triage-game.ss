@@ -1,11 +1,11 @@
 (load "boundary/flashmob/agents.ss")
-(load "lattice/fp/game/voting.ss")
-(load "lattice/fp/game/multi-winner.ss")
-(load "lattice/fp/game/coop-games.ss")
-(load "lattice/fp/game/voting-games.ss")
+(load "lattice/game-theory/voting.ss")
+(load "lattice/game-theory/multi-winner.ss")
+(load "lattice/game-theory/coop-games.ss")
+(load "lattice/game-theory/voting-games.ss")
 
 (doc 'module 'triage-game)
-(doc 'description "Game-Theoretic Triage Strategies using lattice/fp/game/ toolkit")
+(doc 'description "Game-Theoretic Triage Strategies using lattice/game-theory/ toolkit")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
 

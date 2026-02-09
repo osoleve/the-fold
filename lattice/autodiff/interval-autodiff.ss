@@ -495,6 +495,5 @@
 ;;; Display
 ;;; ============================================================================
 
-(display "Interval autodiff loaded.\n")
 (display "Use (interval-gradient f box) to compute interval gradient bounds.\n")
 (display "Use (monotonicity-info grad-ivs) to analyze monotonicity.\n")

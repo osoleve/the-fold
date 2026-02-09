@@ -1,4 +1,4 @@
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 
 (doc 'module 'optic-query)
 (doc 'description "Optic-Based Query Language")

@@ -19,7 +19,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 
 (doc 'module 'matrix-optics)
 (doc 'description "Optics for matrix operations - composable data access and autodiff support")

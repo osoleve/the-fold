@@ -84,7 +84,7 @@ Dependencies:
   '(;; Core directories (language kernel)
     "core/base" "core/blocks" "core/lang" "core/types" "core/util"
     ;; Lattice directories (skill tree)
-    "lattice/linalg" "lattice/data" "lattice/algebra" "lattice/random"
+    "lattice/linalg" "lattice/data" "lattice/data/graph" "lattice/algebra" "lattice/random"
     "lattice/numeric" "lattice/geometry" "lattice/autodiff" "lattice/diffgeo"
     "lattice/query" "lattice/dsl" "lattice/info"
     "lattice/physics/diff" "lattice/physics/diff3d"
@@ -92,9 +92,11 @@ Dependencies:
     "lattice/sim" "lattice/automata" "lattice/number-theory" "lattice/pipeline"
     ;; FP subdirectories
     "lattice/fp" "lattice/fp/control" "lattice/fp/numeric" "lattice/fp/parsing"
-    "lattice/fp/meta" "lattice/fp/data" "lattice/fp/game" "lattice/fp/symbolic"
-    "lattice/fp/measure" "lattice/fp/control-systems" "lattice/fp/rewrite"
+    "lattice/fp/meta" "lattice/fp/data" "lattice/fp/symbolic"
+    "lattice/fp/measure" "lattice/fp/rewrite"
     "lattice/fp/analysis" "lattice/fp/clp" "lattice/statistics"
+    ;; Extracted from fp/ to top-level
+    "lattice/optics" "lattice/game-theory" "lattice/control-systems"
     "lattice/meta" "lattice/crypto" "lattice/topology" "lattice/optimization"
     "lattice/physics/lenses"
     ;; Boundary directories
@@ -151,7 +153,7 @@ Dependencies:
  (register-module-path! 'set "lattice/data/set.ss")
  (register-module-path! 'dict "lattice/data/dict.ss")
  (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
- (register-module-path! 'graph-algorithms "lattice/data/graph-algorithms.ss")
+ (register-module-path! 'graph-algorithms "lattice/data/graph/graph-algorithms.ss")
  
  ;; Linalg layer
  (register-module-path! 'vec "lattice/linalg/vec.ss")

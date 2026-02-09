@@ -19,7 +19,7 @@
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/matrix.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 (load "lattice/autodiff/traced-optics.ss")
 (load "lattice/statistics/core/result-types.ss")
 

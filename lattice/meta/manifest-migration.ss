@@ -1,5 +1,5 @@
-(load "lattice/fp/optics/bidirectional.ss")
-(load "lattice/fp/optics/schema.ss")
+(load "lattice/optics/bidirectional.ss")
+(load "lattice/optics/schema.ss")
 
 (doc 'module 'manifest-migration)
 (doc 'description "Bidirectional manifest schema migrations for smooth evolution")
@@ -210,4 +210,3 @@
 ;;; Linting:
 ;;;   lint-manifest
 
-(display "Loaded: lattice/meta/manifest-migration.ss\n")

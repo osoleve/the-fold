@@ -317,7 +317,6 @@ Fold traversal order:
   Quadtree: spatial (SW -> SE -> NW -> NE)
 ")
 
-(display "Collection implementations loaded.\n")
 (display "  AVL:      Core + Keyed protocols\n")
 (display "  Heap:     Core + Priority protocols\n")
 (display "  KDTree:   Core + Spatial protocols\n")

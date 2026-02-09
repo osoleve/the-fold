@@ -45,7 +45,7 @@ and refines estimates using a log-space Kalman filter. Features:
 │    - State: [mean, variance]                                │
 │    - Predict/Update cycle                                   │
 │    - Log-space for heavy-tailed distributions               │
-│    lattice/fp/control-systems/kalman.ss                     │
+│    lattice/control-systems/kalman.ss                     │
 └─────────────────────────────────────────────────────────────┘
 ")
 
@@ -148,11 +148,11 @@ and refines estimates using a log-space Kalman filter. Features:
    ((file . "tests/test-adaptive-allocator.ss")
     (run . "scheme --script boundary/fuel/tests/test-adaptive-allocator.ss")
     (description . "Integration tests for allocator and HOFs"))
-   ((file . "../../lattice/fp/control-systems/test-kalman.ss")
-    (run . "scheme --script lattice/fp/control-systems/test-kalman.ss")
+   ((file . "../../lattice/control-systems/test-kalman.ss")
+    (run . "scheme --script lattice/control-systems/test-kalman.ss")
     (description . "Unit tests for Kalman filter math"))))
 
  (see-also . (
-   "lattice/fp/control-systems/kalman.ss"
+   "lattice/control-systems/kalman.ss"
    "lattice/fp/manifest.sexp"
    "core/lang/eval.ss")))

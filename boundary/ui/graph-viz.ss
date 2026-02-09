@@ -10,14 +10,14 @@
 
 (doc 'dependencies "boundary/ui/graph-export.ss (for hash->short, block->label)")
 (doc 'dependencies "boundary/storage/store-api.ss (for store-get, store-all-hashes)")
-(doc 'dependencies "lattice/data/graph-algorithms.ss (for traversal)")
+(doc 'dependencies "lattice/data/graph/graph-algorithms.ss (for traversal)")
 (doc 'dependencies "lattice/linalg/vec2.ss (for layout math)")
 (doc 'dependencies "boundary/ui/turtle.ss (for rendering)")
 
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec2.ss")
 (load "boundary/storage/store-api.ss")
-(load "lattice/data/graph-algorithms.ss")
+(load "lattice/data/graph/graph-algorithms.ss")
 (load "boundary/blocks/graph-traversal.ss")
 (load "boundary/ui/graph-export.ss")
 (load "boundary/ui/turtle-color.ss")

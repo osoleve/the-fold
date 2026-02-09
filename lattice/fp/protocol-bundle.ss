@@ -346,7 +346,6 @@
 ;;; Print Help
 ;;; ====
 
-(display "protocol-bundle.ss loaded.\n")
 (display "  Define:    (define-protocol-bundle name ((getter setter) label) ...)\n")
 (display "  Derive:    (derive-bundle! bundle 'type-tag prefix [(label get set) ...])\n")
 (display "  Implement: (implement-bundle! bundle 'type-tag (label get set) ...)\n")

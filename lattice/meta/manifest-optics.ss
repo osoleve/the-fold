@@ -1,4 +1,4 @@
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 
 (doc 'module 'manifest-optics)
 (doc 'description "Composable optics for accessing nested manifest structures")
@@ -259,7 +259,6 @@
 ;; REPL help (suppressed if *meta-quiet* is set)
 (when (not (and (top-level-bound? '*meta-quiet*)
                 (top-level-value '*meta-quiet*)))
-  (display "manifest-optics.ss loaded.\n")
   (display "  (alist-affine 'key)              - Affine for alist key\n")
   (display "  (manifest-field 'field)          - Affine for manifest field\n")
   (display "  (manifest-get manifest 'field)   - Get field with default\n")

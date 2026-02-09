@@ -32,7 +32,7 @@ This document provides algorithmic steps for agents operating within The Fold. N
 | Create issue | `(bbs-create "Title" 'priority 2)` |
 | List open issues | `(bbs-list)` |
 | Show unblocked work | `(bbs-ready)` |
-| Run tests | `scheme --script lattice/fp/optics/test-optics.ss` |
+| Run tests | `scheme --script lattice/optics/test-optics.ss` |
 
 ---
 
@@ -164,7 +164,7 @@ Optics provide composable, type-safe data access. The tower (most to least power
 **Example:**
 
 ```scheme
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 
 ;; Define a lens for a record field
 (define person-name-lens (lens (lambda (p) (person-name p))
@@ -583,7 +583,7 @@ History (branch: main, at index 5):
 
 ### 7.1 Game Theory Toolkit
 
-Ready-to-use algorithms in `lattice/fp/game/`:
+Ready-to-use algorithms in `lattice/game-theory/`:
 
 ```scheme
 ;; Cooperative games

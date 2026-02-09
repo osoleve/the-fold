@@ -214,4 +214,3 @@ formally encloses the true integral. ~2x slower than standard version.")
                  [contrib (interval-scale-rigorous f-iv h)])
             (loop (+ i 1) (interval-add-rigorous sum contrib))))))))
 
-(display "Interval integration loaded.\n")

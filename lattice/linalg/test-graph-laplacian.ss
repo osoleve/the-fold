@@ -9,7 +9,7 @@
 (load "lattice/linalg/matrix-decomp.ss")
 (load "lattice/linalg/matrix-eigen.ss")
 (load "lattice/linalg/sparse.ss")
-(load "lattice/data/graph-matrix.ss")
+(load "lattice/data/graph/graph-matrix.ss")
 (load "lattice/linalg/graph-laplacian.ss")
 
 (define tests-passed 0)

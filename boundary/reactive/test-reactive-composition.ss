@@ -5,7 +5,7 @@
 
 (load "core/testing/test-framework.ss")
 (load "boundary/reactive/reactive.ss")
-(load "lattice/fp/optics/optics.ss")
+(load "lattice/optics/optics.ss")
 
 ;;; Reset state before tests
 (set! *derivations* (make-hashtable symbol-hash eq?))

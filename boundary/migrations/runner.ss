@@ -1,11 +1,11 @@
 (load "core/blocks/cas.ss")
-(load "lattice/fp/optics/block-migration.ss")
+(load "lattice/optics/block-migration.ss")
 
 (doc 'module 'migrations/runner)
 (doc 'description "Execute migrations against the content-addressed store")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'dependencies '(core/blocks/cas lattice/fp/optics/block-migration))
+(doc 'dependencies '(core/blocks/cas lattice/optics/block-migration))
 
 (doc 'note "Handles single block migration, tree migration (bottom-up), memoization for DAG efficiency, and transaction-like semantics")
 (doc 'note "Key insight: In a Merkle DAG, if a child block changes, its hash changes. Parents must update their refs to new child hashes. We use bottom-up (post-order) traversal: 1) Migrate children first, 2) Update parent refs to new child hashes, 3) Migrate parent payload, 4) Store parent with updated refs")

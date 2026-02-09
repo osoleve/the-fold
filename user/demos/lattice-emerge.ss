@@ -5,7 +5,7 @@
 ;;;
 ;;; This is the demo file for the demoscene agent to convert to GIF.
 
-(load "lattice/data/graph-render.ss")
+(load "lattice/data/graph/graph-render.ss")
 (load "lattice/meta/meta.ss")
 
 (display "=======================================================\n")

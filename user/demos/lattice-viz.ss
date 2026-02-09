@@ -4,7 +4,7 @@
 ;;; Watch the nodes naturally organize themselves - tier 0 foundations spreading out,
 ;;; higher tiers clustering around their dependencies.
 
-(load "lattice/data/graph-render.ss")
+(load "lattice/data/graph/graph-render.ss")
 (load "lattice/meta/meta.ss")
 
 (display "=======================================================\n")

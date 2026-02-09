@@ -32,5 +32,4 @@ Usage:
                        m
                        (traced-body-inertia b)))))
 
-(display "traced-body-protocols.ss loaded.\n")
 (display "  TracedBody now works with body-pos-lens, body-vel-lens, body-mass-lens\n")

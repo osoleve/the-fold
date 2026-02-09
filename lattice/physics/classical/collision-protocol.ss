@@ -120,7 +120,6 @@
 
 (doc 'section 'print)
 
-(display "collision-protocol.ss loaded.\n")
 (display "  Protocols: col-inv-mass, col-inv-inertia, col-static?, col-pos, col-vel-at, col-apply-impulse\n")
 (display "  Check:     (collision-capable? 'type-tag)\n")
 (display "  Assert:    (assert-collision-capable! body)\n")

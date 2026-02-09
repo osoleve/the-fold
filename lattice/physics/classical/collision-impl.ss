@@ -113,6 +113,5 @@
 
 (doc 'section 'print)
 
-(display "collision-impl.ss loaded.\n")
 (display "  Collision protocols registered for: body-2d, rigid-body-2d, particle\n")
 (display "  Check with: (collision-capable? 'body-2d) => #t\n")

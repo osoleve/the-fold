@@ -16,7 +16,7 @@ Tier 0 (Foundational):     linalg, data, algebra, random, numeric
 Tier 1 (Intermediate):     autodiff, geometry, diffgeo, query, fp, info, topology
          │                 Depend on Tier 0
          │                 diffgeo provides charts, tangent spaces, Lie groups, curvature, geodesics
-         │                 fp/optics provides composable data accessors (lenses, prisms, etc.)
+         │                 optics/ provides composable data accessors (lenses, prisms, etc.)
          ▼
 Tier 2+ (Advanced):        physics/diff, physics/diff3d, physics/classical, sim, pipeline
                            Multiple dependencies, domain-specific
@@ -263,7 +263,7 @@ The categorization uses naming conventions: `make-*` → constructors, `*?` → 
 - Enables Open/Closed Principle: extend behavior without modifying existing code
 - Used by physics lenses for polymorphic body access
 
-**Game Theory** (`fp/game/`):
+**Game Theory** (`game-theory/`):
 - **Cooperative games**: Coalition formation, Shapley value, core solutions
 - **Matching theory**: Stable marriage, hospital-residents, top trading cycles
 - **Voting theory**: Power indices (Shapley-Shubik, Banzhaf), weighted voting
@@ -335,7 +335,7 @@ The key insight: **all standard monads and comonads arise from adjunctions**, an
 
   This makes the categorical semantics of effect handling precise: handling IS counit application, with the handler viewed as an algebra over the effect signature.
 
-**Optics** (`fp/optics/`):
+**Optics** (`optics/`):
 
 A complete hierarchy of composable optics for principled data access and transformation:
 
