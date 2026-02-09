@@ -227,6 +227,48 @@
      (test-approx "d/dx sin(x) at 0" 1 (derivative-at f 0) 0.0001))
 
 ;;; ====
+;;; Regression: derivative-at API contract (fold-zxwi)
+;;; ====
+;;; derivative-at requires f to use dual-* operations.
+;;; Native Scheme operators do not dispatch on dual numbers.
+;;; These tests document the contract and catch future confusion.
+
+(section "Regression: derivative-at API contract")
+
+;; derivative-at with dual-mul: f(x) = x*x, f'(x) = 2x
+(let ([f (lambda (x) (dual-mul x x))])
+     (test-approx "d/dx x*x at 3 (dual-mul)" 6 (derivative-at f 3) 0.0001)
+     (test-approx "d/dx x*x at -2 (dual-mul)" -4 (derivative-at f -2) 0.0001))
+
+;; Chain rule: f(x) = sin(cos(x)), f'(x) = -sin(x) * cos(cos(x))
+(let ([f (lambda (x) (dual-sin (dual-cos x)))])
+     ;; At x=0: sin(cos(0)) = sin(1) ≈ 0.8415
+     ;; f'(0) = -sin(0) * cos(cos(0)) = 0 * cos(1) = 0
+     (test-approx "d/dx sin(cos(x)) at 0" 0 (derivative-at f 0) 0.0001)
+     ;; At x=π/2: sin(cos(π/2)) = sin(0) = 0
+     ;; f'(π/2) = -sin(π/2) * cos(cos(π/2)) = -1 * cos(0) = -1
+     (let ([pi/2 (/ (* 4 (atan 1)) 2)])
+       (test-approx "d/dx sin(cos(x)) at π/2" -1.0 (derivative-at f pi/2) 0.0001)))
+
+;; Composed chain: f(x) = exp(sin(x)), f'(x) = cos(x) * exp(sin(x))
+(let ([f (lambda (x) (dual-exp (dual-sin x)))])
+     ;; At x=0: exp(sin(0)) = exp(0) = 1
+     ;; f'(0) = cos(0) * exp(sin(0)) = 1 * 1 = 1
+     (test-approx "d/dx exp(sin(x)) at 0" 1.0 (derivative-at f 0) 0.0001))
+
+;; Negative test: native * does NOT work with dual numbers
+;; This should raise an error because * can't multiply dual structures
+(let ([native-f (lambda (x) (* x x))])
+     (display "  native * raises error: ")
+     (guard (exn [#t (begin (set! passed (+ passed 1))
+                            (display "ok"))])
+       (derivative-at native-f 3)
+       ;; If we get here, * silently succeeded (should not happen)
+       (set! failed (+ failed 1))
+       (display "FAIL — native * should not work on duals"))
+     (newline))
+
+;;; ====
 ;;; Test extended-classes
 ;;; ====
 

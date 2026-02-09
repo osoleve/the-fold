@@ -362,6 +362,125 @@
 ;; Clean up
 (clear-declared-types!)
 
+;;; ====
+;;; type-ground? optimization (fold-zxwj)
+;;; ====
+(test-section "type-ground?")
+(test "Int is ground" #t (type-ground? 'Int))
+(test "Bool is ground" #t (type-ground? 'Bool))
+(test "String is ground" #t (type-ground? 'String))
+(test "(-> Int Bool) is ground" #t (type-ground? '(-> Int Bool)))
+(test "(-> Int (-> Bool String)) is ground" #t (type-ground? '(-> Int (-> Bool String))))
+(test "type var is not ground" #f (type-ground? 'a))
+(test "τ1 is not ground" #f (type-ground? 'τ1))
+(test "(-> a Int) is not ground" #f (type-ground? '(-> a Int)))
+(test "(-> Int b) is not ground" #f (type-ground? '(-> Int b)))
+(test "∀ is not ground" #f (type-ground? '(∀ (a) (-> a a))))
+(test "? is not ground" #f (type-ground? '?))
+(test "(? x) is not ground" #f (type-ground? '(? x)))
+
+;;; ====
+;;; Regression: Double-Application Unification (fold-zxwh)
+;;; ====
+;;; The inferencer had a bug where (fn (f) (fn (x) (f (f x)))) inferred
+;;; (-> (-> t3 t4) (-> t5 t4)) instead of (-> (-> a a) (-> a a)).
+;;; Fixed by applying accumulated substitution to type env in check-args.
+;;; These tests verify the fix holds.
+
+(test-section "Regression: Double-Application Unification")
+
+;; Helper: alpha-normalize a type for structural comparison.
+;; Renames type variables to a, b, c, ... in body-encounter order,
+;; then sorts the ∀ binding list alphabetically for deterministic comparison.
+(define (alpha-normalize-type t)
+  (let ([mapping '()]
+        [counter 0])
+    (define (get-canonical v)
+      (let ([found (assq v mapping)])
+        (if found
+            (cdr found)
+            (let ([name (string->symbol
+                          (string (integer->char (+ counter 97))))])
+              (set! mapping (cons (cons v name) mapping))
+              (set! counter (+ counter 1))
+              name))))
+    (define (walk t)
+      (cond
+       [(type-var? t) (get-canonical t)]
+       [(base-type? t) t]
+       [(not (pair? t)) t]
+       [(eq? (car t) '∀)
+        ;; Walk body FIRST so canonical names follow body-encounter order
+        (let* ([body (walk (caddr t))]
+               [canon-vars (map get-canonical (cadr t))]
+               [sorted (list-sort (lambda (a b)
+                                    (string<? (symbol->string a)
+                                              (symbol->string b)))
+                                  canon-vars)])
+          `(∀ ,sorted ,body))]
+       [else (map walk t)]))
+    (walk t)))
+
+(define (test-alpha name expected expr)
+  (display "  ")
+  (display name)
+  (display ": ")
+  (reset-fresh!)
+  (let ([result (typeof expr)])
+       (if (and (pair? result) (eq? (car result) 'error))
+           (begin
+            (display "✗ Error: ")
+            (display result))
+           (let ([norm (alpha-normalize-type result)])
+             (if (type=? expected norm)
+                 (display "✓")
+                 (begin
+                  (display "✗
+    expected: ")
+                  (display (type->string expected))
+                  (display "
+    got: ")
+                  (display (type->string norm))
+                  (display "
+    raw: ")
+                  (display (type->string result))))))
+       (newline)))
+
+;; Church numeral 2: f applied twice
+;; Type: ∀ a. (a → a) → (a → a)
+(test-alpha "Church 2" '(∀ (a) (-> (-> a a) (-> a a)))
+            '(fn (f) (fn (x) (f (f x)))))
+
+;; Church numeral 3: f applied three times
+;; Type: ∀ a. (a → a) → (a → a)
+(test-alpha "Church 3" '(∀ (a) (-> (-> a a) (-> a a)))
+            '(fn (f) (fn (x) (f (f (f x))))))
+
+;; Church numeral 4: f applied four times
+;; Type: ∀ a. (a → a) → (a → a)
+(test-alpha "Church 4" '(∀ (a) (-> (-> a a) (-> a a)))
+            '(fn (f) (fn (x) (f (f (f (f x)))))))
+
+;; Compose: (f ∘ g)(x) = f(g(x))
+;; Type: ∀ a b c. (b → c) → (a → b) → (a → c)
+;; Checks: 3 bound variables, and f's return type = overall return type
+(reset-fresh!)
+(let ([result (typeof '(fn (f) (fn (g) (fn (x) (f (g x))))))])
+     (test "compose is ∀" '∀ (car result))
+     (test "compose has 3 bound vars" 3 (length (cadr result))))
+
+;; Double-application with let-bound function
+;; let id = λx.x in (id (id 42)) should be Int
+(reset-fresh!)
+(let ([result (typeof '(let ((id (fn (x) x))) (id (id 42))))])
+     (test "let-bound double application" 'Int result))
+
+;; Applying a function to itself: (f (f x)) where f is let-bound
+;; let f = λx.x in λy.(f (f y))
+(test-alpha "let-bound self-compose"
+            '(∀ (a) (-> a a))
+            '(let ((f (fn (x) x))) (fn (y) (f (f y)))))
+
 (newline)
 (display "✓ All type inference tests complete.
 ")

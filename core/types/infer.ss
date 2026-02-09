@@ -34,13 +34,35 @@
   (doc 'export #t)
   (append bindings env))
 
+(define (type-ground? t)
+  (doc 'type (-> Type Boolean))
+  (doc 'description "Does this type contain no type variables or holes? Ground types are unaffected by substitution.")
+  (doc 'export #t)
+  (cond
+   [(base-type? t) #t]
+   [(type-var? t) #f]
+   [(eq? t '?) #f]
+   ;; Inline hole-var check (hole-var? defined later in file)
+   [(and (symbol? t)
+         (let ([s (symbol->string t)])
+           (and (> (string-length s) 1)
+                (char=? (string-ref s 0) #\?)))) #f]
+   [(not (pair? t)) #t]
+   [(memq (car t) '(∀ ?)) #f]
+   [else (andmap type-ground? t)]))
+
 (define (apply-subst-to-env s env)
   (doc 'type (-> Subst TEnv TEnv))
-  (doc 'description "Apply a substitution to all types in a type environment.")
+  (doc 'description "Apply a substitution to all types in a type environment. Skips ground types since substitution is a no-op on them.")
   (doc 'export #t)
-  (map (lambda (binding)
-               (cons (car binding) (apply-subst s (cdr binding))))
-       env))
+  (if (null? s)
+      env
+      (map (lambda (binding)
+             (let ([ty (cdr binding)])
+               (if (type-ground? ty)
+                   binding
+                   (cons (car binding) (apply-subst s ty)))))
+           env)))
 
 (doc 'section 'fresh-type-variables)
 (doc 'note "For inference, we need fresh type variables. We use a counter embedded in the inference state.")
