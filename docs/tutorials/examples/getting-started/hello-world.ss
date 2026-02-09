@@ -2,7 +2,7 @@
 ;;;
 ;;; The classic first program, demonstrating basic output.
 ;;;
-;;; Run with: scheme --script docs/examples/getting-started/hello-world.ss
+;;; Run with: scheme --script docs/tutorials/examples/getting-started/hello-world.ss
 
 ;;; ====
 ;;; Basic Output

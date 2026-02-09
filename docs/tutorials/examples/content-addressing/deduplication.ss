@@ -2,7 +2,7 @@
 ;;;
 ;;; Demonstrates automatic deduplication in content-addressed systems.
 ;;;
-;;; Run with: scheme --script docs/examples/content-addressing/deduplication.ss
+;;; Run with: scheme --script docs/tutorials/examples/content-addressing/deduplication.ss
 
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")

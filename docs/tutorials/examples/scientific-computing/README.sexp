@@ -49,7 +49,7 @@
      "Gradient and Hessian computation"
      "Chain rule via substitution"
      "Product expansion"))
-   (run "scheme --script docs/examples/scientific-computing/symbolic-calculus.ss"))
+   (run "scheme --script docs/tutorials/examples/scientific-computing/symbolic-calculus.ss"))
 
   ((file "polynomial-algebra.ss")
    (topic "Polynomial Algebra")
@@ -62,7 +62,7 @@
      "Multivariate polynomials with sparse representation"
      "Monomial orderings (lex, grlex, grevlex)"
      "Gröbner bases and ideal membership testing"))
-   (run "scheme --script docs/examples/scientific-computing/polynomial-algebra.ss")))
+   (run "scheme --script docs/tutorials/examples/scientific-computing/polynomial-algebra.ss")))
 
  (autodiff-modules-used
   ("lattice/autodiff/reverse-diff.ss" . "Reverse-mode (backprop) gradients")

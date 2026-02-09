@@ -2,7 +2,7 @@
 ;;;
 ;;; Higher-order functions are the power tools of functional programming.
 ;;;
-;;; Run with: scheme --script docs/examples/patterns/higher-order.ss
+;;; Run with: scheme --script docs/tutorials/examples/patterns/higher-order.ss
 
 ;;; ====
 ;;; map - Transform Every Element

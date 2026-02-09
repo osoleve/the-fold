@@ -3,7 +3,7 @@
 ;;; A curated collection of idiomatic examples demonstrating The Fold's
 ;;; content-addressable, homoiconic programming model.
 ;;;
-;;; Run any example with: scheme --script docs/examples/<category>/<file>.ss
+;;; Run any example with: scheme --script docs/tutorials/examples/<category>/<file>.ss
 
 (readme
  (title "The Fold Examples Gallery")
@@ -55,11 +55,11 @@
  (how-to-run
   "Each example can be run directly:
 
-     scheme --script docs/examples/getting-started/hello-world.ss
+     scheme --script docs/tutorials/examples/getting-started/hello-world.ss
 
    Or load interactively in the REPL:
 
-     (load \"docs/examples/getting-started/hello-world.ss\")")
+     (load \"docs/tutorials/examples/getting-started/hello-world.ss\")")
 
  (conventions
   ((file-structure "Each file is self-contained with all needed loads")
@@ -69,6 +69,5 @@
 
  (see-also
   ("docs/tutorials/" . "Step-by-step tutorials")
-  ("docs/lessons/" . "Deep dives on specific topics")
-  ("docs/language-reference.md" . "Language specification")
+  ("docs/technical-report.md" . "Technical report")
   ("user/" . "Playground with experiments and demos")))

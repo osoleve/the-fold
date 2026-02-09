@@ -2,7 +2,7 @@
 ;;;
 ;;; Vectors provide O(1) random access, unlike lists.
 ;;;
-;;; Run with: scheme --script docs/examples/data-structures/vectors.ss
+;;; Run with: scheme --script docs/tutorials/examples/data-structures/vectors.ss
 
 ;;; ====
 ;;; Creating Vectors

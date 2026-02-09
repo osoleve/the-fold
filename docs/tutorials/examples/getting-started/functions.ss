@@ -2,7 +2,7 @@
 ;;;
 ;;; Functions are the heart of functional programming.
 ;;;
-;;; Run with: scheme --script docs/examples/getting-started/functions.ss
+;;; Run with: scheme --script docs/tutorials/examples/getting-started/functions.ss
 
 ;;; ====
 ;;; Basic Function Definition

@@ -2,7 +2,7 @@
 ;;;
 ;;; The Fold supports standard Scheme numeric operations.
 ;;;
-;;; Run with: scheme --script docs/examples/getting-started/basic-math.ss
+;;; Run with: scheme --script docs/tutorials/examples/getting-started/basic-math.ss
 
 ;;; ====
 ;;; Basic Arithmetic

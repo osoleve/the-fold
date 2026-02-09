@@ -3,7 +3,7 @@
 ;;; Tail recursion = recursion that doesn't grow the stack.
 ;;; Scheme guarantees tail call optimization (TCO).
 ;;;
-;;; Run with: scheme --script docs/examples/patterns/tail-recursion.ss
+;;; Run with: scheme --script docs/tutorials/examples/patterns/tail-recursion.ss
 
 ;;; ====
 ;;; The Problem with Naive Recursion

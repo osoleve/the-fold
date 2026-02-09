@@ -2,7 +2,7 @@
 ;;;
 ;;; Pairs are the building block of lists; alists provide key-value storage.
 ;;;
-;;; Run with: scheme --script docs/examples/data-structures/pairs-and-alists.ss
+;;; Run with: scheme --script docs/tutorials/examples/data-structures/pairs-and-alists.ss
 
 ;;; ====
 ;;; Pairs (cons cells)

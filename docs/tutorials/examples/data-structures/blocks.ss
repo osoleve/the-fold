@@ -3,7 +3,7 @@
 ;;; In The Fold, everything is a Block: { tag, payload, refs[] }
 ;;; Blocks are content-addressed: their identity IS their cryptographic hash.
 ;;;
-;;; Run with: scheme --script docs/examples/data-structures/blocks.ss
+;;; Run with: scheme --script docs/tutorials/examples/data-structures/blocks.ss
 
 (load "core/blocks/block.ss")
 

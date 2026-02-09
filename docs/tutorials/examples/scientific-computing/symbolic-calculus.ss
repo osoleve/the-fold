@@ -1,9 +1,9 @@
-;;; docs/examples/scientific-computing/symbolic-calculus.ss
+;;; docs/tutorials/examples/scientific-computing/symbolic-calculus.ss
 ;;;
 ;;; Demonstrates symbolic computation: differentiation, simplification,
 ;;; and integration working together for calculus tasks.
 ;;;
-;;; Run: scheme --script docs/examples/scientific-computing/symbolic-calculus.ss
+;;; Run: scheme --script docs/tutorials/examples/scientific-computing/symbolic-calculus.ss
 
 (load "lattice/fp/symbolic/integrate.ss")
 

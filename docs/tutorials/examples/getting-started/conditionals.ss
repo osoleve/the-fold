@@ -2,7 +2,7 @@
 ;;;
 ;;; Making decisions in The Fold.
 ;;;
-;;; Run with: scheme --script docs/examples/getting-started/conditionals.ss
+;;; Run with: scheme --script docs/tutorials/examples/getting-started/conditionals.ss
 
 ;;; ====
 ;;; Boolean Values

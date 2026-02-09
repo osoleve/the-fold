@@ -2,7 +2,7 @@
 ;;;
 ;;; Build chains, trees, and graphs using content-addressed references.
 ;;;
-;;; Run with: scheme --script docs/examples/content-addressing/building-chains.ss
+;;; Run with: scheme --script docs/tutorials/examples/content-addressing/building-chains.ss
 
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")

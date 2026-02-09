@@ -319,4 +319,4 @@
    "core/README.sexp"
    "boundary/README.sexp"
    "CLAUDE.md"
-   "docs/language-reference.md")))
+   "docs/technical-report.md")))

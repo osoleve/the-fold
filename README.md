@@ -120,14 +120,9 @@ Each skill ships a `manifest.sexp` declaring everything an agent (or human) need
 
 ## Further Reading
 
-Start with the [two-page technical overview](./docs/technical-overview.md), then go where curiosity takes you:
-
 - [Technical report](./docs/technical-report.md) — comprehensive, academic-style
-- [Language reference](./docs/language-reference.md) — type system, parallel evaluation, rank-N polymorphism
 - [Normalization spec](./docs/normalization-v2.md) — the semantic normalization pipeline in detail
-- [Physics guide](./docs/physics-guide.md) — differentiable physics simulation
-- [Differential geometry guide](./docs/diffgeo-guide.md) — manifold computation
-- [Worked examples](./docs/examples/) — by domain
+- [Tutorials and guides](./docs/tutorials/) — physics, differential geometry, linear algebra, worked examples
 - [CLAUDE.md](./CLAUDE.md) — operational guide for working with The Fold
 
 ---

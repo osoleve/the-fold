@@ -3,7 +3,7 @@
 ;;; Scheme doesn't have built-in pattern matching like Haskell or ML,
 ;;; but you can achieve the same effect with predicates and destructuring.
 ;;;
-;;; Run with: scheme --script docs/examples/patterns/pattern-matching.ss
+;;; Run with: scheme --script docs/tutorials/examples/patterns/pattern-matching.ss
 
 ;;; ====
 ;;; The Pattern: Test + Destructure

@@ -2,7 +2,7 @@
 ;;;
 ;;; Lists are the fundamental data structure in Scheme/The Fold.
 ;;;
-;;; Run with: scheme --script docs/examples/data-structures/lists.ss
+;;; Run with: scheme --script docs/tutorials/examples/data-structures/lists.ss
 
 ;;; ====
 ;;; Creating Lists

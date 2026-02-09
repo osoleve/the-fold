@@ -1,9 +1,9 @@
-;;; docs/examples/scientific-computing/polynomial-algebra.ss
+;;; docs/tutorials/examples/scientific-computing/polynomial-algebra.ss
 ;;;
 ;;; Demonstrates polynomial algebra capabilities: univariate polynomials,
 ;;; division, GCD, interpolation, multivariate polynomials, and Gröbner bases.
 ;;;
-;;; Run: scheme --script docs/examples/scientific-computing/polynomial-algebra.ss
+;;; Run: scheme --script docs/tutorials/examples/scientific-computing/polynomial-algebra.ss
 
 (load "lattice/algebra/polynomial.ss")
 (load "lattice/algebra/multivariate.ss")

@@ -2,7 +2,7 @@
 ;;;
 ;;; Recursion is the natural way to process recursive data structures.
 ;;;
-;;; Run with: scheme --script docs/examples/patterns/recursion.ss
+;;; Run with: scheme --script docs/tutorials/examples/patterns/recursion.ss
 
 ;;; ====
 ;;; The Classic: Factorial

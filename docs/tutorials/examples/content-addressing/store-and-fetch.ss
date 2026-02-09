@@ -3,7 +3,7 @@
 ;;; The Fold stores everything by its cryptographic hash.
 ;;; Store a value, get back a hash. Use the hash to retrieve the value.
 ;;;
-;;; Run with: scheme --script docs/examples/content-addressing/store-and-fetch.ss
+;;; Run with: scheme --script docs/tutorials/examples/content-addressing/store-and-fetch.ss
 
 (load "core/blocks/block.ss")
 (load "core/blocks/cas.ss")
