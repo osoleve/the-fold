@@ -1,4 +1,4 @@
-;;; lattice/data/graph/graph-render.ss --- ASCII rendering for graph layouts
+;;; boundary/ui/graph-render.ss --- ASCII rendering for graph layouts
 ;;; @module graph-render
 ;;; @requires prelude graph-layout
 
@@ -7,8 +7,8 @@
 
 (doc 'module 'graph-render)
 (doc 'description "ASCII visualization of graph layouts with nodes, edges, and labels")
-(doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'layer 'boundary)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section: Frame Buffer
