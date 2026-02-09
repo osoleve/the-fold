@@ -270,7 +270,9 @@
                            [counts (vector->list count-vec)]
                            [pairs (map cons hashes counts)]
                            [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)]
-                           [top-n (take (min n (length sorted)) sorted)])
+                           ;; Filter out dangling refs (hashes not in store)
+                           [existing (filter (lambda (p) (fs-fetch fs (car p))) sorted)]
+                           [top-n (take (min n (length existing)) existing)])
 
                           (display "╔══════════════════════════════════════════════════════════════╗\n")
                           (display "║                   MOST POPULAR BLOCKS                        ║\n")

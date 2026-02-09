@@ -34,6 +34,14 @@
   (doc 'export #t)
   (append bindings env))
 
+(define (apply-subst-to-env s env)
+  (doc 'type (-> Subst TEnv TEnv))
+  (doc 'description "Apply a substitution to all types in a type environment.")
+  (doc 'export #t)
+  (map (lambda (binding)
+               (cons (car binding) (apply-subst s (cdr binding))))
+       env))
+
 (doc 'section 'fresh-type-variables)
 (doc 'note "For inference, we need fresh type variables. We use a counter embedded in the inference state.")
 
@@ -645,7 +653,11 @@
   (doc 'description "Check a list of arguments against expected types.")
   (if (null? args)
       `(ok ,s)
-      (let ([result (check (car args) (apply-subst s (car types)) env)])
+      ;; Apply current substitution to env so inner inference sees resolved types.
+      ;; Without this, double-application (f (f x)) fails to unify:
+      ;; inner (f x) re-infers f with fresh vars instead of seeing f's resolved type.
+      (let ([result (check (car args) (apply-subst s (car types))
+                           (apply-subst-to-env s env))])
            (if (eq? (car result) 'ok)
                (check-args (cdr args) (cdr types) (compose-subst (cadr result) s) env)
                result))))

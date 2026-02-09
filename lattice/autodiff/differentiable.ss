@@ -233,10 +233,16 @@
 
 ;;; These wrap the lower-level AD operations with type class dispatch.
 
-;;; derivative-at : (α → α) × Real → Real
+;;; derivative-at : (Dual → Dual) × Real → Real
+;;; Compute the derivative of f at x using forward-mode AD.
+;;; f must use dual arithmetic (dual-add, dual-mul, dual-sin, etc.)
+;;; since native Scheme operators (+, *, etc.) do not dispatch on dual numbers.
+;;;
+;;; Example:
+;;;   (derivative-at (lambda (x) (dual-mul x x)) 3.0)  => 6.0
+;;;   (derivative-at (lambda (x) (dual-add (dual-sin x) x)) 0.0)  => 2.0
 (define (derivative-at f x)
-  (let ([inst (cadr (resolve-differentiable 'Dual))])
-       (dual-deriv (f (dual-variable x)))))
+  (dual-deriv (f (dual-variable x))))
 
 ;;; gradient-at : (Real* → Traced) × (List Real) → (List Real)
 (define gradient-at gradient)  ; Re-export from reverse-diff.ss
