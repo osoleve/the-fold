@@ -11,4 +11,5 @@
     (task make-task task? task-done? task-result make-future future?
           future-done? future-result)
     (thread-pool make-thread-pool pool-start! pool-shutdown!
-                 cpu-count default-worker-count)))
+                 cpu-count default-worker-count)
+    (strategy-eval run-plan run-with-strategy)))

@@ -671,6 +671,9 @@
     "pipeline/tests/test-dsl.ss"
     ;; Dataset
     "dataset/test-dataset.ss"
+    ;; Parallel Strategies
+    "parallel/test-strategies.ss"
+    "parallel/test-patterns.ss"
     ))
 
 ;;; Boundary tests (validated, stable)
@@ -678,6 +681,10 @@
   '("test-validate.ss"
     "test-block-index.ss"
     "test-string-utils.ss"))
+
+;;; Boundary parallel tests (strategy execution, threading)
+(define boundary-parallel-tests
+  '("test-strategy-eval.ss"))
 
 ;;; Boundary pipeline tests (RLM harness, no live infra required)
 (define boundary-pipeline-tests
@@ -799,6 +806,9 @@
   (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
   (display "
 ")
+  (run-test-category "BOUNDARY PARALLEL TESTS" "boundary/parallel" boundary-parallel-tests)
+  (display "
+")
   (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests))
 
 (define (main args)
@@ -846,6 +856,9 @@ Working directory: " (current-directory) "
               (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
               (display "
 ")
+              (run-test-category "BOUNDARY PARALLEL TESTS" "boundary/parallel" boundary-parallel-tests)
+              (display "
+")
               (run-test-category "BOUNDARY PIPELINE TESTS" "boundary/pipeline" boundary-pipeline-tests)]
 
              [(quick)
@@ -856,7 +869,10 @@ Working directory: " (current-directory) "
               (run-test-category "LATTICE TESTS" "lattice" lattice-tests)
               (display "
 ")
-              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)]
+              (run-test-category "BOUNDARY TESTS" "boundary/tests" boundary-tests)
+              (display "
+")
+              (run-test-category "BOUNDARY PARALLEL TESTS" "boundary/parallel" boundary-parallel-tests)]
 
              [else
               (display (string-append "Unknown mode: " (symbol->string mode) "
