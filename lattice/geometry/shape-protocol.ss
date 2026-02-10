@@ -9,10 +9,12 @@
 ;;; @requires lattice/fp/protocol.ss
 ;;; @requires lattice/geometry/geometry.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/protocol.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/geometry/geometry.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'protocol)
+(require 'vec3)
+(require 'geometry)
 
 (doc 'module 'shape-protocol)
 (doc 'description "Unified protocol interface for geometric shapes")

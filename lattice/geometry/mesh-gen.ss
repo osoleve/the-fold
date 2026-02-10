@@ -2,11 +2,13 @@
 ;;; @module mesh-gen
 ;;; @requires prelude linalg/vec geometry
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/geometry/geometry.ss")
-(load "lattice/data/heap.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
+(require 'vec)
+(require 'geometry)
+(require 'heap)
 
 (doc 'module 'mesh-gen)
 (doc 'description "Mesh generation: Delaunay triangulation, quality metrics, and refinement")

@@ -8,7 +8,7 @@
 (require 'vec)
 (require 'matrix)
 (require 'matrix-solvers)
-(load "lattice/optimization/lp.ss")  ; lp not yet registered
+(require 'lp)
 
 (doc 'module 'coop-games)
 (doc 'description "Cooperative (Coalitional) Game Theory with transferable utility")

@@ -307,6 +307,38 @@ Dependencies:
  (register-module-path! 'control/tf-convert "lattice/control-systems/tf-convert.ss")
  (register-module-path! 'control/poly-algebra "lattice/control-systems/poly-algebra.ss")
 
+ ;; Optimization layer
+ (register-module-path! 'convergence "lattice/optimization/convergence.ss")
+ (register-module-path! 'line-search "lattice/optimization/line-search.ss")
+ (register-module-path! 'lp "lattice/optimization/lp.ss")
+ (register-module-path! 'ilp "lattice/optimization/ilp.ss")
+ (register-module-path! 'first-order "lattice/optimization/first-order.ss")
+ (register-module-path! 'newton "lattice/optimization/newton.ss")
+ (register-module-path! 'lbfgs "lattice/optimization/lbfgs.ss")
+ (register-module-path! 'optimize "lattice/optimization/optimize.ss")
+ (register-module-path! 'optic-first-order "lattice/optimization/optic-first-order.ss")
+ (register-module-path! 'poly-optimize "lattice/optimization/poly-optimize.ss")
+ (register-module-path! 'metaheuristic "lattice/optimization/metaheuristic.ss")
+ (register-module-path! 'interval-global "lattice/optimization/interval-global.ss")
+ (register-module-path! 'interval-newton "lattice/optimization/interval-newton.ss")
+ (register-module-path! 'interval-contract "lattice/optimization/interval-contract.ss")
+
+ ;; Geometry layer
+ (register-module-path! 'geometry "lattice/geometry/geometry.ss")
+ (register-module-path! 'bvh "lattice/geometry/bvh.ss")
+ (register-module-path! 'mesh-sdf "lattice/geometry/mesh-sdf.ss")
+ (register-module-path! 'mesh-topology "lattice/geometry/mesh-topology.ss")
+ (register-module-path! 'mesh-gen "lattice/geometry/mesh-gen.ss")
+ (register-module-path! 'convex-hull "lattice/geometry/convex-hull.ss")
+ (register-module-path! 'voronoi "lattice/geometry/voronoi.ss")
+ (register-module-path! 'obj-loader "lattice/geometry/obj-loader.ss")
+ (register-module-path! 'ascii-render "lattice/geometry/ascii-render.ss")
+ (register-module-path! 'raymarch "lattice/geometry/raymarch.ss")
+ (register-module-path! 'marching-cubes "lattice/geometry/marching-cubes.ss")
+ (register-module-path! 'octree "lattice/geometry/octree.ss")
+ (register-module-path! 'shape-protocol "lattice/geometry/shape-protocol.ss")
+ (register-module-path! 'geometry-optics "lattice/geometry/geometry-optics.ss")
+
  ;; Algebra
  (register-module-path! 'group "lattice/algebra/group.ss")
  (register-module-path! 'ring "lattice/algebra/ring.ss")

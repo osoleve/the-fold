@@ -2,7 +2,9 @@
 ;;; @module ilp
 ;;; @requires lp
 
-(load "lattice/optimization/lp.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'lp)
 
 (doc 'module 'ilp)
 (doc 'description "Integer linear programming with branch-and-bound and cutting planes")

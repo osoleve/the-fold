@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/interval.ss")
-(load "lattice/data/heap.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'interval)
+(require 'heap)
 
 (doc 'module 'interval-global)
 (doc 'description "Interval branch-and-bound global optimization with guaranteed bounds")

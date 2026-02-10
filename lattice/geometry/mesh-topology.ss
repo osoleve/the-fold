@@ -1,5 +1,7 @@
-(load "lattice/topology/homology.ss")
-(load "lattice/geometry/mesh-sdf.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'homology)
+(require 'mesh-sdf)
 
 (doc 'module 'mesh-topology)
 (doc 'description "Topological analysis of triangle meshes via simplicial complex conversion")

@@ -1,5 +1,7 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
 
 (doc 'module 'convergence)
 (doc 'description "Convergence criteria and stopping conditions for optimization algorithms")

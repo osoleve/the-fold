@@ -2,10 +2,12 @@
 ;;; @module voronoi
 ;;; @requires prelude geometry/mesh-gen geometry/convex-hull sort
 
-(load "core/base/prelude.ss")
-(load "lattice/geometry/mesh-gen.ss")
-(load "lattice/geometry/convex-hull.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'mesh-gen)
+(require 'convex-hull)
+(require 'sort)
 
 (doc 'module 'voronoi)
 (doc 'description "Voronoi diagram computation via Delaunay duality")

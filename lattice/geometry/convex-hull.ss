@@ -2,9 +2,11 @@
 ;;; @module convex-hull
 ;;; @requires prelude geometry/mesh-gen sort
 
-(load "core/base/prelude.ss")
-(load "lattice/geometry/mesh-gen.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'mesh-gen)
+(require 'sort)
 
 (doc 'module 'convex-hull)
 (doc 'description "Convex hull algorithms: Graham scan, Quickhull, and utilities")

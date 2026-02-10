@@ -1,5 +1,7 @@
-(load "core/base/prelude.ss")
-(load "lattice/geometry/geometry.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'geometry)
 
 (doc 'module 'obj-loader)
 (doc 'description "Wavefront OBJ file loader for triangle meshes")

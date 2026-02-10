@@ -2,7 +2,7 @@
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'vec)
-(load "lattice/geometry/geometry.ss")  ; geometry not yet registered
+(require 'geometry)
 (require 'chaos)
 
 (doc 'module 'attractor-render)

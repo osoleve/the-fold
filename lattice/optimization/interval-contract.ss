@@ -1,4 +1,6 @@
-(load "lattice/optimization/interval-global.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'interval-global)
 
 (doc 'module 'interval-contract)
 (doc 'description "Constraint contractors for interval optimization with constraint propagation")

@@ -2,9 +2,11 @@
 ;;; @module geometry-optics
 ;;; @requires prelude optics geometry
 
-(load "core/base/prelude.ss")
-(load "lattice/optics/optics.ss")
-(load "lattice/geometry/geometry.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'optics)
+(require 'geometry)
 
 (doc 'module 'geometry-optics)
 (doc 'description "Composable optics for geometric primitives. Provides lenses, traversals, and prisms for rays, planes, triangles, spheres, and bounding boxes.")

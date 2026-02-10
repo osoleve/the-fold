@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/geometry/geometry.ss")
-(load "lattice/geometry/bvh.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'geometry)
+(require 'bvh)
 
 (doc 'module 'mesh-sdf)
 (doc 'description "Mesh signed distance fields with BVH acceleration")

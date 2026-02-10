@@ -1,5 +1,7 @@
-(load "core/base/prelude.ss")
-(load "core/autodiff/reverse-diff.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'reverse-diff)
 
 (doc 'module 'line-search)
 (doc 'description "Line search strategies for finding step sizes in optimization")

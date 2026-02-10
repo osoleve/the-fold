@@ -2,11 +2,13 @@
 ;;; @module lp
 ;;; @requires prelude vec matrix matrix-decomp matrix-solvers
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-solvers)
 
 (doc 'module 'lp)
 (doc 'description "Linear programming using the revised simplex method")

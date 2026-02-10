@@ -1,5 +1,7 @@
-(load "lattice/numeric/interval.ss")
-(load "lattice/optimization/interval-global.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'interval)
+(require 'interval-global)
 
 (doc 'module 'interval-newton)
 (doc 'description "Interval Newton method for guaranteed root enclosure and existence proofs")

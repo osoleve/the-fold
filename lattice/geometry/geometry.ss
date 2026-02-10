@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/quaternion.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec3)
+(require 'matrix)
+(require 'quaternion)
 
 (doc 'module 'geometry)
 (doc 'description "Geometric primitives and transformations for graphics and physics")

@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/optimization/convergence.ss")
-(load "lattice/optimization/line-search.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'reverse-diff)
+(require 'convergence)
+(require 'line-search)
 
 (doc 'module 'lbfgs)
 (doc 'description "Limited-memory BFGS quasi-Newton method for large-scale optimization")

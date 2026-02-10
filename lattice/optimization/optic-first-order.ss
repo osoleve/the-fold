@@ -1,5 +1,7 @@
-(load "lattice/autodiff/traced-optics.ss")
-(load "lattice/optimization/first-order.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'traced-optics)
+(require 'first-order)
 
 (doc 'module 'optic-first-order)
 (doc 'description "Optic-based first-order optimization for structured parameters")

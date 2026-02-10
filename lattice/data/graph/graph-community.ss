@@ -41,7 +41,7 @@
   - connected-components: O(n + m) BFS")
 
 (require 'graph-matrix)
-(load "lattice/optimization/ilp.ss")
+(require 'ilp)
 
 (doc label-propagation 'type '(-> Matrix [Nat] [Nat] Vector))
 (doc label-propagation 'description "Detect communities using label propagation; nodes adopt most frequent neighbor label")

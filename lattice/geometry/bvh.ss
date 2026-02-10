@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/geometry/geometry.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'geometry)
+(require 'sort)
 
 (doc 'module 'bvh)
 (doc 'description "Bounding Volume Hierarchy for spatial acceleration")

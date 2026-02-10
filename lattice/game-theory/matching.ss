@@ -5,8 +5,8 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(load "lattice/optimization/lp.ss")   ; lp not yet registered
-(load "lattice/optimization/ilp.ss")  ; ilp not yet registered
+(require 'lp)
+(require 'ilp)
 (require 'coop-games)
 (require 'sort)
 

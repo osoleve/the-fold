@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/geometry/geometry.ss")
-(load "lattice/geometry/mesh-sdf.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'geometry)
+(require 'mesh-sdf)
 
 (doc 'module 'ascii-render)
 (doc 'description "ASCII art mesh renderer with BVH-accelerated ray casting and ANSI 256-color output")
