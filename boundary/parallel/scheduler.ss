@@ -33,6 +33,8 @@
     (await-with-helping task pool)))
 
 ;;; Work-helping await - run other tasks while waiting
+;;; Drains injection queue AND steals from deques to prevent deadlock
+;;; when nested par spawns tasks that no free worker can pick up.
 (define (await-with-helping task pool)
   (let loop ([backoff 1])
     (cond
@@ -45,23 +47,28 @@
                       (format "Task failed: ~a" (cdr p))))))
        (task-result task)]
       [else
-       ;; Try to help by running other tasks
-       (let ([workers (pool-workers pool)])
-         ;; Try to steal from any worker's deque
-         (let help-loop ([i 0])
-           (if (>= i (vector-length workers))
-               ;; No work found, backoff and retry
-               (begin
-                 (sleep (make-time 'time-duration (* backoff 1000000) 0))
-                 (loop (min (* backoff 2) 100)))
-               (let ([w (vector-ref workers i)])
-                 (let ([stolen (deque-steal! (worker-deque w))])
-                   (cond
-                     [(and stolen (not (eq? stolen 'empty)) (not (eq? stolen 'abort)))
-                      (run-task stolen)
-                      (loop 1)]  ; Reset backoff after work
-                     [else
-                      (help-loop (+ i 1))]))))))])))
+       ;; First: drain injection queue (critical for nested par)
+       (let ([injected (injection-queue-take-all! (pool-injection-queue pool))])
+         (if (not (null? injected))
+             (begin
+               (for-each run-task injected)
+               (loop 1))
+             ;; No injected tasks — try to steal from worker deques
+             (let ([workers (pool-workers pool)])
+               (let help-loop ([i 0])
+                 (if (>= i (vector-length workers))
+                     ;; No work found, backoff and retry
+                     (begin
+                       (sleep (make-time 'time-duration (* backoff 1000000) 0))
+                       (loop (min (* backoff 2) 100)))
+                     (let ([w (vector-ref workers i)])
+                       (let ([stolen (deque-steal! (worker-deque w))])
+                         (cond
+                           [(and stolen (not (eq? stolen 'empty)) (not (eq? stolen 'abort)))
+                            (run-task stolen)
+                            (loop 1)]
+                           [else
+                            (help-loop (+ i 1))]))))))))])))
 
 ;;; Pool management
 (define (pool-stats)

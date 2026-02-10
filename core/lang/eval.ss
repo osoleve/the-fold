@@ -317,6 +317,11 @@ If threading fails or times out, falls back to sequential.
 (doc *par-timeout-ms* 'export #t)
 (define *par-timeout-ms* 30000)
 
+(doc *par-backend* 'type '(Box (U #f (-> (-> Result) (-> Result) Result))))
+(doc *par-backend* 'description "Hook for alternative par backend (e.g., work-stealing pool). #f = use default threading.")
+(doc *par-backend* 'export #t)
+(define *par-backend* (box #f))
+
 (define (threading-available?)
   (doc 'type (-> Boolean))
   (doc 'description "Check if threading primitives are available.")
@@ -353,9 +358,16 @@ If threading fails or times out, falls back to sequential.
 (define (eval-par* a-expr b-expr env fuel ctx)
   (doc 'type (-> Expr Expr Env Fuel Context Result))
   (doc 'description "Parallel evaluation: (par a b). Evaluates a in background thread, b in main thread, returns b. Falls back to sequential if threading unavailable or fails.")
-  (if (and (threading-available?) (not (ctx-traced? ctx)))
-      (eval-par-parallel a-expr b-expr env fuel ctx)
-      (eval-par-sequential a-expr b-expr env fuel ctx)))
+  (let ([backend (unbox *par-backend*)])
+    (cond
+      [(and backend (not (ctx-traced? ctx)))
+       (backend
+         (lambda () (eval-core a-expr env fuel #f))
+         (lambda () (eval-core b-expr env fuel ctx)))]
+      [(and (threading-available?) (not (ctx-traced? ctx)))
+       (eval-par-parallel a-expr b-expr env fuel ctx)]
+      [else
+       (eval-par-sequential a-expr b-expr env fuel ctx)])))
 
 (define (eval-par-sequential a-expr b-expr env fuel ctx)
   (doc 'type (-> Expr Expr Env Fuel Context Result))
