@@ -2,8 +2,8 @@
 ;;; @module presentation
 ;;; @requires prelude layout
 
-(load "core/base/prelude.ss")
-(load "lattice/ui/layout.ss")
+(require 'prelude)
+(require 'layout)
 
 (doc 'module 'presentation)
 (doc 'description "Composable layout system for combining physics frames with textual context. Supports multiple output targets (plain text, ANSI, structured).")

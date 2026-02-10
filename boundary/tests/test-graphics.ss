@@ -1,5 +1,6 @@
 (doc 'note "Run from project root: scheme --script boundary/tests/test-graphics.ss")
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "core/base/prelude.ss")
 (load "core/blocks/block.ss")

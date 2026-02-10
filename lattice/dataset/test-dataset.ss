@@ -1,6 +1,7 @@
 ;;; lattice/dataset/test-dataset.ss — Tests for Dataset SDK
 ;;; Run with: scheme --script lattice/dataset/test-dataset.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/dataset/sample.ss")
 (load "lattice/dataset/parameter.ss")

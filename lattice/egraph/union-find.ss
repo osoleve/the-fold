@@ -1,3 +1,5 @@
+;;; @module egraph/union-find
+;;; @requires prelude
 ;;; lattice/egraph/union-find.ss — Disjoint Set (Union-Find) Data Structure
 ;;;
 ;;; Classic union-find with path compression and union by rank.
@@ -17,7 +19,7 @@
 ;;;
 ;;; This is Lattice code: pure operations where possible, mutation clearly marked.
 
-(load "core/base/prelude.ss")
+(require 'prelude)
 
 (doc 'module 'egraph/union-find)
 (doc 'description "Disjoint set data structure for e-class equivalence tracking")

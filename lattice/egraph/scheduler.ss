@@ -1,3 +1,5 @@
+;;; @module egraph/scheduler
+;;; @requires prelude egraph/saturation sort
 ;;; lattice/egraph/scheduler.ss — Rule Scheduling for Equality Saturation
 ;;;
 ;;; Intelligent rule scheduling improves saturation performance by:
@@ -12,9 +14,9 @@
 ;;;
 ;;; This is Lattice code: pure scheduling logic.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/saturation.ss")
-(load "lattice/data/sort.ss")
+(require 'prelude)
+(require 'egraph/saturation)
+(require 'sort)
 
 (doc 'module 'egraph/scheduler)
 (doc 'description "Rule scheduling strategies for equality saturation")

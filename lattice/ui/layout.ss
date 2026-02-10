@@ -1,3 +1,5 @@
+;;; @module layout
+;;; @requires prelude
 ;;; lattice/ui/layout.ss — Text Layout Primitives
 ;;;
 ;;; The canvas for DUCKIE — a 2D character framebuffer for ASCII/ANSI rendering.
@@ -17,7 +19,7 @@
 ;;;
 ;;; For advanced layering with transparency and z-ordering, see boundary/ui/layers.ss
 
-(load "core/base/prelude.ss")
+(require 'prelude)
 
 ;;; ====
 ;;; Data Structures

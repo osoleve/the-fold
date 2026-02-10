@@ -1,3 +1,4 @@
+;;; @module ipc-protocol
 ;;; lattice/ipc/protocol.ss — IPC Wire Protocol
 ;;;
 ;;; Pure functions for length-prefixed s-expression framing.

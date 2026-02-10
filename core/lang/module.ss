@@ -195,6 +195,23 @@ Dependencies:
  (register-module-path! 'statechart "lattice/automata/statechart.ss")
  (register-module-path! 'statechart-zipper "lattice/automata/statechart-zipper.ss")
 
+ ;; IPC
+ (register-module-path! 'ipc-protocol "lattice/ipc/protocol.ss")
+
+ ;; UI
+ (register-module-path! 'layout "lattice/ui/layout.ss")
+ (register-module-path! 'presentation "lattice/dataset/presentation.ss")
+
+ ;; E-graph
+ (register-module-path! 'egraph/union-find "lattice/egraph/union-find.ss")
+ (register-module-path! 'egraph/eclass "lattice/egraph/eclass.ss")
+ (register-module-path! 'egraph/egraph "lattice/egraph/egraph.ss")
+ (register-module-path! 'egraph/match "lattice/egraph/match.ss")
+ (register-module-path! 'egraph/saturation "lattice/egraph/saturation.ss")
+ (register-module-path! 'egraph/cost "lattice/egraph/cost.ss")
+ (register-module-path! 'egraph/extract "lattice/egraph/extract.ss")
+ (register-module-path! 'egraph/scheduler "lattice/egraph/scheduler.ss")
+
  ;; FP layers
  (register-module-path! 'sort "lattice/data/sort.ss")
  (register-module-path! 'combinators "lattice/fp/meta/combinators.ss")

@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "lattice/ui/layout.ss")
 (load "boundary/ui/layers.ss")
 

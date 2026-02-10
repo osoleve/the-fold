@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "lattice/ui/layout.ss")
 
 (doc 'module 'test-polygon-fill)

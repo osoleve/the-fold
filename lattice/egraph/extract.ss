@@ -1,3 +1,5 @@
+;;; @module egraph/extract
+;;; @requires prelude egraph/cost egraph/saturation
 ;;; lattice/egraph/extract.ss — Cost-Based E-Graph Extraction
 ;;;
 ;;; Extraction recovers a concrete term from an e-graph by choosing
@@ -11,9 +13,9 @@
 ;;;
 ;;; This is Lattice code: pure extraction logic.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/cost.ss")
-(load "lattice/egraph/saturation.ss")
+(require 'prelude)
+(require 'egraph/cost)
+(require 'egraph/saturation)
 
 (doc 'module 'egraph/extract)
 (doc 'description "Cost-based extraction from e-graphs")

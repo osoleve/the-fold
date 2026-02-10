@@ -1,3 +1,5 @@
+;;; @module egraph/eclass
+;;; @requires prelude egraph/union-find
 ;;; lattice/egraph/eclass.ss — E-Node and E-Class Representation
 ;;;
 ;;; E-nodes are operators applied to e-class IDs (not recursive terms).
@@ -11,8 +13,8 @@
 ;;;
 ;;; This is Lattice code: pure operations where possible, mutation clearly marked.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/union-find.ss")
+(require 'prelude)
+(require 'egraph/union-find)
 
 (doc 'module 'egraph/eclass)
 (doc 'description "E-node and e-class representation for e-graphs")

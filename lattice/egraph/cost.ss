@@ -1,3 +1,5 @@
+;;; @module egraph/cost
+;;; @requires prelude egraph/egraph sort
 ;;; lattice/egraph/cost.ss — Cost Models for E-Graph Extraction
 ;;;
 ;;; Cost models assign numeric costs to e-nodes, enabling extraction
@@ -9,9 +11,9 @@
 ;;;
 ;;; This is Lattice code: pure cost computation.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/egraph.ss")
-(load "lattice/data/sort.ss")
+(require 'prelude)
+(require 'egraph/egraph)
+(require 'sort)
 
 (doc 'module 'egraph/cost)
 (doc 'description "Cost models for e-graph extraction")

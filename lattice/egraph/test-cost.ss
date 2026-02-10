@@ -2,6 +2,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/egraph/test-cost.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/egraph/cost.ss")
 

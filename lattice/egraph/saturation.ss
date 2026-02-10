@@ -1,3 +1,5 @@
+;;; @module egraph/saturation
+;;; @requires prelude egraph/match
 ;;; lattice/egraph/saturation.ss — Equality Saturation Loop
 ;;;
 ;;; Equality saturation repeatedly applies rewrite rules until no new
@@ -16,8 +18,8 @@
 ;;;
 ;;; This is Lattice code: pure saturation logic with controlled effects.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/match.ss")
+(require 'prelude)
+(require 'egraph/match)
 
 (doc 'module 'egraph/saturation)
 (doc 'description "Equality saturation loop with resource management")

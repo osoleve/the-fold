@@ -1,3 +1,5 @@
+;;; @module egraph/match
+;;; @requires prelude egraph/egraph
 ;;; lattice/egraph/match.ss — Pattern Matching on E-Graphs
 ;;;
 ;;; Patterns are S-expressions with pattern variables (symbols starting with ?).
@@ -15,8 +17,8 @@
 ;;;
 ;;; This is Lattice code: pure operations, no mutation.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/egraph.ss")
+(require 'prelude)
+(require 'egraph/egraph)
 
 (doc 'module 'egraph/match)
 (doc 'description "Pattern matching on e-graphs for equality saturation")

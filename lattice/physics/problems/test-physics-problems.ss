@@ -1,6 +1,7 @@
 ;;; lattice/physics/problems/test-physics-problems.ss — Tests for Physics Problems
 ;;; Run with: scheme --script lattice/physics/problems/test-physics-problems.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/problems/templates/spatial.ss")
 

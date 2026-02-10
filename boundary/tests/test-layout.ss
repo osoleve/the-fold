@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/ui/layout.ss")
 

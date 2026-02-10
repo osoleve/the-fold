@@ -1,3 +1,5 @@
+;;; @module egraph/egraph
+;;; @requires prelude egraph/union-find egraph/eclass
 ;;; lattice/egraph/egraph.ss — E-Graph with Hashconsing and Rebuilding
 ;;;
 ;;; The e-graph is the central data structure for equality saturation.
@@ -19,9 +21,9 @@
 ;;;
 ;;; This is Lattice code: pure operations where possible, mutation clearly marked.
 
-(load "core/base/prelude.ss")
-(load "lattice/egraph/union-find.ss")
-(load "lattice/egraph/eclass.ss")
+(require 'prelude)
+(require 'egraph/union-find)
+(require 'egraph/eclass)
 
 (doc 'module 'egraph/egraph)
 (doc 'description "E-graph with hashconsing and rebuilding for equality saturation")

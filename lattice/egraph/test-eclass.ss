@@ -2,6 +2,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/egraph/test-eclass.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/egraph/eclass.ss")
 
