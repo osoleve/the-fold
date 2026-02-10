@@ -1,5 +1,6 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/crypto/elliptic-curve.ss")
+(require 'elliptic-curve)
 
 ;;; ============================================================================
 ;;; Elliptic Curve Tests

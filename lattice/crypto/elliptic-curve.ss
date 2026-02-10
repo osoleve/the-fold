@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/number-theory/modular.ss")
+;;; @module elliptic-curve
+;;; @requires prelude modular
+
+(require 'prelude)
+(require 'modular)
 
 (doc 'module 'elliptic-curve)
 (doc 'description "Elliptic curve arithmetic over prime fields for cryptography")

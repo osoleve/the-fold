@@ -1,4 +1,5 @@
 ;;; test-galois.ss — Tests for Galois field arithmetic
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/galois.ss")
 

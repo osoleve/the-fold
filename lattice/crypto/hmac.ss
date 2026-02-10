@@ -1,5 +1,8 @@
-(load "core/base/sha256.ss")
-(load "lattice/crypto/sha512.ss")
+;;; @module hmac
+;;; @requires sha256 sha512
+
+(require 'sha256)
+(require 'sha512)
 
 (doc 'module 'hmac)
 (doc 'description "Keyed-Hash Message Authentication Code (RFC 2104). Provides message authentication using any cryptographic hash function")

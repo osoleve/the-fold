@@ -2,8 +2,9 @@
 ;;;
 ;;; Comprehensive tests for modular arithmetic operations.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/number-theory/modular.ss")
+(require 'modular)
 
 (define (run-tests)
   (test-group "Basic Modular Operations"

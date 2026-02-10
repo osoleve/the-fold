@@ -167,6 +167,15 @@ Dependencies:
  (register-module-path! 'dft "lattice/numeric/dft.ss")
  (register-module-path! 'convolution "lattice/numeric/convolution.ss")
  
+ ;; Number theory layer
+ (register-module-path! 'modular "lattice/number-theory/modular.ss")
+
+ ;; Crypto layer
+ (register-module-path! 'sha512 "lattice/crypto/sha512.ss")
+ (register-module-path! 'blake2b "lattice/crypto/blake2b.ss")
+ (register-module-path! 'hmac "lattice/crypto/hmac.ss")
+ (register-module-path! 'elliptic-curve "lattice/crypto/elliptic-curve.ss")
+
  ;; FP layers
  (register-module-path! 'transcendental "lattice/fp/numeric/transcendental.ss")
  (register-module-path! 'monad "lattice/fp/control/monad.ss")

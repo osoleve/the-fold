@@ -1,3 +1,5 @@
+;;; @module sha512
+
 (doc 'module 'sha512)
 (doc 'description "SHA-512 hash function producing 64-byte (512-bit) digests (FIPS 180-4)")
 (doc 'note "Uses 64-bit arithmetic with explicit masking since Chez Scheme fixnums are 61 bits. Follows FIPS 180-4 specification exactly")

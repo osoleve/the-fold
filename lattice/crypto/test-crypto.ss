@@ -2,11 +2,12 @@
 ;;;
 ;;; Tests SHA-256, SHA-384, SHA-512, HMAC, and BLAKE2b with official test vectors.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "core/base/sha256.ss")
-(load "lattice/crypto/sha512.ss")
-(load "lattice/crypto/hmac.ss")
-(load "lattice/crypto/blake2b.ss")
+(require 'sha256)
+(require 'sha512)
+(require 'hmac)
+(require 'blake2b)
 
 ;;; Helper to convert string to bytevector
 (define (string->bv s)

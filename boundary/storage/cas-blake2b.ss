@@ -3,11 +3,14 @@
 ;;; Provides BLAKE2b-based hashing as an alternative to SHA-256 for CAS.
 ;;; ~5x faster for large blocks while maintaining cryptographic security.
 
-(load "core/base/prelude.ss")
-(load "core/blocks/block.ss")
-(load "core/blocks/cas.ss")
-(load "core/blocks/normalize.ss")
-(load "lattice/crypto/blake2b.ss")
+;;; @module cas-blake2b
+;;; @requires prelude block cas normalize blake2b
+
+(require 'prelude)
+(require 'block)
+(require 'cas)
+(require 'normalize)
+(require 'blake2b)
 
 (doc 'module 'cas-blake2b)
 (doc 'description "BLAKE2b alternative hashing for Content-Addressed Store")

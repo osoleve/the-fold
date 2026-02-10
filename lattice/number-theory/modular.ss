@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module modular
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'modular)
 (doc 'description "Foundational modular arithmetic for number theory and cryptography")

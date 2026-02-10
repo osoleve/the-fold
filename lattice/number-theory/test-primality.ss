@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for primality testing and integer factorization.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/number-theory/primality.ss")
 

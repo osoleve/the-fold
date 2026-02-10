@@ -1,6 +1,7 @@
 ;;; lattice/linalg/test-integer-matrix.ss — Tests for integer matrix normal forms
 ;;; Run: scheme --script lattice/linalg/test-integer-matrix.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/linalg/integer-matrix.ss")
 
