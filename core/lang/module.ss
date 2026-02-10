@@ -169,6 +169,8 @@ Dependencies:
  
  ;; Number theory layer
  (register-module-path! 'modular "lattice/number-theory/modular.ss")
+ (register-module-path! 'primality "lattice/number-theory/primality.ss")
+ (register-module-path! 'fast-multiply "lattice/number-theory/fast-multiply.ss")
 
  ;; Crypto layer
  (register-module-path! 'sha512 "lattice/crypto/sha512.ss")
@@ -176,7 +178,22 @@ Dependencies:
  (register-module-path! 'hmac "lattice/crypto/hmac.ss")
  (register-module-path! 'elliptic-curve "lattice/crypto/elliptic-curve.ss")
 
+ ;; Info layer
+ (register-module-path! 'entropy "lattice/info/entropy.ss")
+ (register-module-path! 'coding "lattice/info/coding.ss")
+ (register-module-path! 'channel-capacity "lattice/info/channel-capacity.ss")
+ (register-module-path! 'statistical-measures "lattice/info/statistical-measures.ss")
+ (register-module-path! 'epiplexity "lattice/info/epiplexity.ss")
+ (register-module-path! 'rate-distortion "lattice/info/rate-distortion.ss")
+
+ ;; Automata layer
+ (register-module-path! 'statechart "lattice/automata/statechart.ss")
+ (register-module-path! 'statechart-zipper "lattice/automata/statechart-zipper.ss")
+
  ;; FP layers
+ (register-module-path! 'sort "lattice/data/sort.ss")
+ (register-module-path! 'combinators "lattice/fp/meta/combinators.ss")
+ (register-module-path! 'tree-zipper "lattice/fp/data/tree-zipper.ss")
  (register-module-path! 'transcendental "lattice/fp/numeric/transcendental.ss")
  (register-module-path! 'monad "lattice/fp/control/monad.ss")
  (register-module-path! 'parser-combinators "lattice/fp/parsing/parser-combinators.ss"))

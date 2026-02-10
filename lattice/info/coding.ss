@@ -1,5 +1,8 @@
-(load "lattice/info/entropy.ss")
-(load "lattice/data/sort.ss")
+;;; @module coding
+;;; @requires entropy sort
+
+(require 'entropy)
+(require 'sort)
 
 (doc 'module 'coding)
 (doc 'description "Coding theory functions: Huffman, arithmetic, LZ78, RLE, and channel coding")

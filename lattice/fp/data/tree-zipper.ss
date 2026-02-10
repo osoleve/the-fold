@@ -1,3 +1,6 @@
+;;; @module tree-zipper
+;;; @requires prelude combinators
+
 (load "core/base/prelude.ss")
 (load "lattice/fp/meta/combinators.ss")
 

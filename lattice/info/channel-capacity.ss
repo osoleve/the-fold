@@ -1,4 +1,7 @@
-(load "lattice/info/entropy.ss")
+;;; @module channel-capacity
+;;; @requires entropy
+
+(require 'entropy)
 
 (doc 'module 'channel-capacity)
 (doc 'description "Channel capacity calculations for various channel models")

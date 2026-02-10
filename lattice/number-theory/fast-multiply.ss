@@ -1,6 +1,6 @@
 ;;; lattice/number-theory/fast-multiply.ss — Fast Multiplication Algorithms
 ;;; @module fast-multiply
-;;; @requires ()
+;;; @requires prelude
 ;;;
 ;;; Karatsuba and Toom-Cook multiplication for large integers.
 ;;; These algorithms work on "limb lists" - numbers represented as
@@ -11,7 +11,7 @@
 ;;;   Karatsuba:   O(n^1.585)  - crossover around 32-64 limbs
 ;;;   Toom-3:      O(n^1.465)  - crossover around 100+ limbs
 
-(load "core/base/prelude.ss")
+(require 'prelude)
 
 (doc 'module 'fast-multiply)
 (doc 'description "Fast multiplication algorithms: Karatsuba, Toom-Cook, and hybrid strategies")

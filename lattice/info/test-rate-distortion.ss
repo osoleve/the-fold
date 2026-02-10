@@ -2,9 +2,8 @@
 ;;;
 ;;; Tests rate-distortion theory functions.
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/info/rate-distortion.ss")
+(load "core/lang/module.ss")
+(require 'rate-distortion)
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)

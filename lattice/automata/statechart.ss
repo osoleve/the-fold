@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; @module statechart
+;;; @requires prelude combinators
+
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'statechart)
 (doc 'description "Hierarchical state machine (statechart) implementation following Harel's statechart semantics with extensions for simulation")

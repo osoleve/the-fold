@@ -2,8 +2,9 @@
 ;;;
 ;;; Comprehensive tests for information-theoretic quantities.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/info/entropy.ss")
+(require 'entropy)
 
 ;;; Helper for approximate equality tests
 (define (approx-equal? expected actual tolerance)

@@ -1,3 +1,6 @@
+;;; @module transcendental
+;;; @requires prelude
+
 (load "core/base/prelude.ss")
 
 (doc 'module 'transcendental)

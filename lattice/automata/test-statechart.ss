@@ -5,7 +5,8 @@
 ;; Load order matters: statechart.ss defines current-context which conflicts
 ;; with test-framework.ss's parameter. Load statechart first, save its version,
 ;; then load test-framework which will override it.
-(load "lattice/automata/statechart.ss")
+(load "core/lang/module.ss")
+(require 'statechart)
 
 ;; Save statechart's current-context before test-framework overwrites it
 (define statechart-current-context current-context)

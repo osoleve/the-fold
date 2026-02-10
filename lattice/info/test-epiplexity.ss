@@ -3,8 +3,9 @@
 ;;; Tests for prequential and requential epiplexity estimators.
 ;;; Uses the unified test framework.
 
-(load "core/test-framework.ss")
-(load "lattice/info/epiplexity.ss")
+(load "core/lang/module.ss")
+(load "core/testing/test-framework.ss")
+(require 'epiplexity)
 
 ;;; ====
 ;;; Approximate Equality Helper

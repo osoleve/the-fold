@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/info/entropy.ss")
-(load "lattice/fp/numeric/transcendental.ss")
+;;; @module statistical-measures
+;;; @requires prelude entropy transcendental
+
+(require 'prelude)
+(require 'entropy)
+(require 'transcendental)
 
 (doc 'module 'statistical-measures)
 (doc 'description "Statistical divergence measures for comparing probability distributions")

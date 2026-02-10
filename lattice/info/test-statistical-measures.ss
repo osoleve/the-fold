@@ -2,8 +2,9 @@
 ;;;
 ;;; Comprehensive test suite for statistical divergence measures.
 
-(load "core/test-framework.ss")
-(load "lattice/info/statistical-measures.ss")
+(load "core/lang/module.ss")
+(load "core/testing/test-framework.ss")
+(require 'statistical-measures)
 
 ;;; ====
 ;;; Helper Functions

@@ -2,8 +2,8 @@
 ;;;
 ;;; Tests coding theory functions: Huffman, arithmetic, LZ78, channel coding.
 
-(load "core/base/prelude.ss")
-(load "lattice/info/coding.ss")
+(load "core/lang/module.ss")
+(require 'coding)
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)

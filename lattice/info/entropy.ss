@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
+;;; @module entropy
+;;; @requires prelude transcendental
+
+(require 'prelude)
+(require 'transcendental)
 
 (doc 'module 'entropy)
 (doc 'description "Information-theoretic entropy and divergence measures")

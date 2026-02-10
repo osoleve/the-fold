@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/number-theory/modular.ss")
+;;; @module primality
+;;; @requires prelude sort modular
+
+(require 'prelude)
+(require 'sort)
+(require 'modular)
 
 (doc 'module 'primality)
 (doc 'description "Number-theoretic algorithms for primality testing and factorization")

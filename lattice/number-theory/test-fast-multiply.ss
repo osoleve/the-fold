@@ -5,8 +5,9 @@
 ;;;
 ;;; Run with: scheme --script lattice/number-theory/test-fast-multiply.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/number-theory/fast-multiply.ss")
+(require 'fast-multiply)
 
 ;;; ============================================================================
 ;;; Test Configuration

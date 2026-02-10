@@ -1,5 +1,8 @@
-(load "lattice/info/entropy.ss")
-(load "lattice/data/sort.ss")
+;;; @module rate-distortion
+;;; @requires entropy sort
+
+(require 'entropy)
+(require 'sort)
 
 (doc 'module 'rate-distortion)
 (doc 'description "Rate-distortion theory: compression vs fidelity tradeoff")

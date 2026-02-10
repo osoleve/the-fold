@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/info/entropy.ss")
-(load "lattice/info/statistical-measures.ss")
+;;; @module epiplexity
+;;; @requires prelude entropy statistical-measures
+
+(require 'prelude)
+(require 'entropy)
+(require 'statistical-measures)
 
 (doc 'module 'epiplexity)
 (doc 'description "Epiplexity measures: structural information extraction from data")

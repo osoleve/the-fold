@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/data/tree-zipper.ss")
+;;; @module statechart-zipper
+;;; @requires prelude combinators tree-zipper
+
+(require 'prelude)
+(require 'combinators)
+(require 'tree-zipper)
 
 (doc 'module 'statechart-zipper)
 (doc 'description "Efficient navigation and modification of statechart hierarchies using tree-zipper")

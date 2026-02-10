@@ -2,8 +2,8 @@
 ;;;
 ;;; Tests channel capacity calculations for various channel models.
 
-(load "core/base/prelude.ss")
-(load "lattice/info/channel-capacity.ss")
+(load "core/lang/module.ss")
+(require 'channel-capacity)
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)
