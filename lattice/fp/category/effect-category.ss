@@ -1,5 +1,8 @@
-(load "lattice/fp/category/free-algebra.ss")
-(load "lattice/fp/control/effects.ss")
+;;; @module effect-category
+;;; @requires free-algebra effects
+
+(require 'free-algebra)
+(require 'effects)
 
 (doc 'module 'effect-category)
 (doc 'description "Categorical Foundations for Algebraic Effects

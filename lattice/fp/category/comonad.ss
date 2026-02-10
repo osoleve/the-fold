@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
-(load "lattice/fp/category/adjunction.ss")
+;;; @module comonad
+;;; @requires prelude combinators templates adjunction
+
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
+(require 'adjunction)
 
 (doc 'module 'comonad)
 (doc 'description "Comonad Type Class and Instances

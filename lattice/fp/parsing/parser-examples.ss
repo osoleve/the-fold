@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/parsing/parser.ss")
+;;; @module parser-examples
+;;; @requires prelude parser
+
+(require 'prelude)
+(require 'parser)
 
 (doc 'module 'parser-examples)
 (doc 'description "Example Parsers Built with Combinators — Demonstrates building practical parsers using the parser combinator DSL. Shows common patterns and idioms.")

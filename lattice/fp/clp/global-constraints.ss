@@ -1,4 +1,7 @@
-(load "lattice/fp/clp/propagate.ss")
+;;; @module global-constraints
+;;; @requires propagate
+
+(require 'propagate)
 
 (doc 'module 'global-constraints)
 (doc 'description "Global Constraints for CLP(FD)")

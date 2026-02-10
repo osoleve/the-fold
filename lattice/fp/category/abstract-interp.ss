@@ -1,5 +1,8 @@
-(load "lattice/fp/category/adjunction.ss")
-(load "lattice/numeric/interval.ss")
+;;; @module abstract-interp
+;;; @requires adjunction interval
+
+(require 'adjunction)
+(require 'interval)
 
 (doc 'module 'abstract-interp)
 (doc 'description "Abstract Interpretation via Galois Connections. Provides domains and abstract semantics for static analysis: Signs⊣Embed, Intervals⊣Embed, Types⊣Erase, Reach⊣Concrete.")

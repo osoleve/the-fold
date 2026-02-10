@@ -1,8 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
-(load "lattice/fp/data/zipper.ss")
-(load "lattice/fp/data/tree-zipper.ss")
+;;; @module zipper-lens
+;;; @requires prelude combinators templates zipper tree-zipper
+
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
+(require 'zipper)
+(require 'tree-zipper)
 
 (doc 'module 'zipper-lens)
 (doc 'description "Zipper-Lens Integration - Connects zippers with the lens library for unified navigation and modification patterns. Provides lenses for zipper components and lens-like traversals for navigation.")

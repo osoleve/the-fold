@@ -23,9 +23,12 @@
 ;;;   - lattice/fp/parsing/parser.ss
 ;;;   - lattice/fp/parsing/fsm.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/parsing/parser.ss")
-(load "lattice/fp/parsing/fsm.ss")
+;;; @module regex
+;;; @requires prelude parser fsm
+
+(require 'prelude)
+(require 'parser)
+(require 'fsm)
 
 (doc 'module 'regex)
 (doc 'description "Regular expression compilation via Thompson's construction")

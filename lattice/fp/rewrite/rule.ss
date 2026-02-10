@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module rule
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'rule)
 (doc 'description "Rewrite Rule Data Structures

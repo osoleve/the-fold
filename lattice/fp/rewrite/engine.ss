@@ -23,10 +23,13 @@
 ;;;   - core/fp/rewrite/rule.ss
 ;;;   - core/fp/rewrite/trace.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/rewrite/rule.ss")
-(load "lattice/fp/rewrite/trace.ss")
-(load "lattice/fp/rewrite/sexp-zipper.ss")
+;;; @module engine
+;;; @requires prelude rule trace rewrite/sexp-zipper
+
+(require 'prelude)
+(require 'rule)
+(require 'trace)
+(require 'rewrite/sexp-zipper)
 
 (doc 'module 'engine)
 (doc 'description "Pattern matching and rewriting engine with strategy combinators")

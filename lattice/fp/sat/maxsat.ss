@@ -1,4 +1,7 @@
-(load "lattice/fp/sat/sat.ss")
+;;; @module maxsat
+;;; @requires sat
+
+(require 'sat)
 
 (doc 'module 'maxsat)
 (doc 'description "MaxSAT - Optimization extension to SAT solver")

@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/data/tree-zipper.ss")
-(load "lattice/fp/data/zipper-lens.ss")
+;;; @module rewrite/sexp-zipper
+;;; @requires prelude combinators tree-zipper zipper-lens
+
+(require 'prelude)
+(require 'combinators)
+(require 'tree-zipper)
+(require 'zipper-lens)
 
 (doc 'module 'rewrite/sexp-zipper)
 (doc 'description "Zipper for S-expressions")

@@ -1,7 +1,12 @@
-(load "core/base/prelude.ss")
-(load "core/autodiff/comp-graph.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/data/sort.ss")
+;;; @module profiling
+;;; @requires prelude comp-graph reverse-diff sort
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'comp-graph)
+(require 'reverse-diff)
+(require 'sort)
 
 (doc 'module 'profiling)
 (doc 'description "Performance Profiling for Autodiff - utilities for profiling and debugging autodiff performance")

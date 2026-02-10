@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module trace
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'trace)
 (doc 'description "Transformation Trace Structures

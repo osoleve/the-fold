@@ -1,5 +1,8 @@
-(load "lattice/fp/symbolic/diff.ss")
-(load "lattice/fp/symbolic/simplify.ss")
+;;; @module integrate
+;;; @requires diff simplify
+
+(require 'diff)
+(require 'simplify)
 
 (doc 'module 'integrate)
 (doc 'description "Compute antiderivatives symbolically")

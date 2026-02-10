@@ -1,10 +1,15 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
-(load "core/autodiff/comp-graph.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/autodiff/higher-order-diff.ss")
+;;; @module sparse-autodiff
+;;; @requires prelude vec matrix sparse comp-graph reverse-diff higher-order-diff
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'sparse)
+(require 'comp-graph)
+(require 'reverse-diff)
+(require 'higher-order-diff)
 
 (doc 'module 'sparse-autodiff)
 (doc 'description "Sparse Automatic Differentiation - efficient autodiff for large, sparse systems using sparse matrix representations (COO, CSR, CSC)")

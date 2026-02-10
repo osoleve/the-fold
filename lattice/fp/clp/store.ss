@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/logic.ss")
-(load "lattice/fp/clp/domain.ss")
+;;; @module store
+;;; @requires prelude logic domain
+
+(require 'prelude)
+(require 'logic)
+(require 'domain)
 
 (doc 'module 'store)
 (doc 'description "Constraint Store for CLP(FD)")

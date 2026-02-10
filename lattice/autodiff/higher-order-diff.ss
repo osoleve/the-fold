@@ -1,8 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "core/autodiff/comp-graph.ss")
-(load "core/autodiff/reverse-diff.ss")
+;;; @module higher-order-diff
+;;; @requires prelude vec matrix comp-graph reverse-diff
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'comp-graph)
+(require 'reverse-diff)
 
 (doc 'module 'higher-order-diff)
 (doc 'description "Higher-Order Differentiation - Jacobian, Hessian, and vector-product utilities for efficient higher-order derivative computation")

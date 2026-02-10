@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/data/stream.ss")
+;;; @module logic
+;;; @requires prelude combinators stream
+
+(require 'prelude)
+(require 'combinators)
+(require 'stream)
 
 (doc 'module 'logic)
 (doc 'description "Logic Variables Logic variables are placeholders that can be unified with values. Each variable has a unique identifier.")

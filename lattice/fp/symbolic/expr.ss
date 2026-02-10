@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module expr
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'expr)
 (doc 'description "Core symbolic expression data structures for computer algebra")

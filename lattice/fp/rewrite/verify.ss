@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "core/blocks/normalize.ss")
-(load "lattice/fp/rewrite/trace.ss")
+;;; @module verify
+;;; @requires prelude normalize trace
+
+(require 'prelude)
+(require 'normalize)
+(require 'trace)
 
 (doc 'module 'verify)
 (doc 'description "Equivalence Verification

@@ -1,5 +1,6 @@
 ;;; Test harness for differentiable.ss --- Differentiable Type Class
 
+(load "core/lang/module.ss")
 (load "lattice/autodiff/differentiable.ss")
 
 (define passed 0)

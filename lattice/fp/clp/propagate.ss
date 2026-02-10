@@ -1,4 +1,7 @@
-(load "lattice/fp/clp/fd-constraints.ss")
+;;; @module propagate
+;;; @requires fd-constraints
+
+(require 'fd-constraints)
 
 (doc 'module 'propagate)
 (doc 'description "AC-3 style arc consistency propagation engine. When a variable's domain changes, all constraints involving that variable are re-evaluated.")

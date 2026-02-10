@@ -1,9 +1,14 @@
-(load "core/base/prelude.ss")
-(load "core/types/kinds.ss")
-(load "core/types/infer.ss")
-(load "core/types/resolve.ss")
-(load "core/autodiff/comp-graph.ss")
-(load "core/autodiff/reverse-diff.ss")
+;;; @module differentiable
+;;; @requires prelude kinds infer resolve comp-graph reverse-diff
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'kinds)
+(require 'infer)
+(require 'resolve)
+(require 'comp-graph)
+(require 'reverse-diff)
 
 (doc 'module 'differentiable)
 (doc 'description "Differentiable Type Class - type class hierarchy for automatic differentiation")

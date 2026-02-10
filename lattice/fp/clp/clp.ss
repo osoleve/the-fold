@@ -1,5 +1,8 @@
-(load "lattice/fp/clp/global-constraints.ss")
-(load "lattice/fp/clp/label.ss")
+;;; @module clp
+;;; @requires global-constraints label
+
+(require 'global-constraints)
+(require 'label)
 
 (doc 'module 'clp)
 (doc 'description "Constraint Logic Programming Unified API - main entry point for CLP(FD)")

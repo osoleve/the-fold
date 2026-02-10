@@ -1,5 +1,8 @@
-(load "lattice/data/sort.ss")
-(load "lattice/fp/symbolic/expr.ss")
+;;; @module simplify
+;;; @requires sort expr
+
+(require 'sort)
+(require 'expr)
 
 (doc 'module 'simplify)
 (doc 'description "Comprehensive algebraic simplification for symbolic expressions")

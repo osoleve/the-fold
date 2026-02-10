@@ -1,5 +1,10 @@
-(load "core/base/prelude.ss")
-(load "core/autodiff/reverse-diff.ss")
+;;; @module traced-optics
+;;; @requires prelude reverse-diff
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'reverse-diff)
 (load "lattice/optics/optics.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 

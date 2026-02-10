@@ -1,6 +1,9 @@
-(load "lattice/fp/category/adjunction.ss")
-(load "lattice/fp/rewrite/rule.ss")
-(load "lattice/fp/rewrite/engine.ss")
+;;; @module free-algebra
+;;; @requires adjunction rule engine
+
+(require 'adjunction)
+(require 'rule)
+(require 'engine)
 
 (doc 'module 'free-algebra)
 (doc 'description "Free Algebras and Generalized Free ⊣ Forgetful

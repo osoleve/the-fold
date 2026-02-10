@@ -1,4 +1,7 @@
-(load "lattice/fp/category/adjunction.ss")
+;;; @module monad-derivation
+;;; @requires adjunction
+
+(require 'adjunction)
 
 (doc 'module 'monad-derivation)
 (doc 'description "Unified Monad Derivation from Adjunctions

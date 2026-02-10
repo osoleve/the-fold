@@ -1,4 +1,7 @@
-(load "lattice/fp/symbolic/expr.ss")
+;;; @module diff
+;;; @requires expr
+
+(require 'expr)
 
 (doc 'module 'diff)
 (doc 'description "Symbolic computation of derivatives for algebraic expressions")

@@ -1,5 +1,6 @@
 ;;; core/autodiff/test-profiling.ss --- Tests for Autodiff Profiling
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/autodiff/profiling.ss")
 

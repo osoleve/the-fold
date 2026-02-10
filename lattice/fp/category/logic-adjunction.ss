@@ -1,4 +1,7 @@
-(load "lattice/fp/category/adjunction.ss")
+;;; @module logic-adjunction
+;;; @requires adjunction
+
+(require 'adjunction)
 
 (doc 'module 'logic-adjunction)
 (doc 'description "Logical Connectives as Adjunctions

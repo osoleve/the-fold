@@ -5,6 +5,7 @@
 ;;; NOTE: Run from project root: scheme --script lattice/autodiff/test-symbolic-diff.ss
 
 (load "core/testing/test-framework.ss")
+(load "core/lang/module.ss")
 (load "lattice/autodiff/symbolic-diff.ss")
 
 ;;; Custom assertion for floating point comparisons

@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/rewrite/rule.ss")
+;;; @module goals
+;;; @requires prelude rule
+
+(require 'prelude)
+(require 'rule)
 
 (doc 'module 'goals)
 (doc 'description "Goal Types and Management for Proof Sketcher

@@ -1,5 +1,8 @@
-(load "lattice/fp/symbolic/expr.ss")
-(load "lattice/fp/symbolic/simplify.ss")
+;;; @module solve
+;;; @requires expr simplify
+
+(require 'expr)
+(require 'simplify)
 
 (doc 'module 'solve)
 (doc 'description "Solve equations symbolically")

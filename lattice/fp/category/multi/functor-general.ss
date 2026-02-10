@@ -1,4 +1,7 @@
-(load "lattice/fp/category/multi/category.ss")
+;;; @module functor-general
+;;; @requires multi-category
+
+(require 'multi-category)
 
 (doc 'module 'functor-general)
 (doc 'description "Inter-Category Functors

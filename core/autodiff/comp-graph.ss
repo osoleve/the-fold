@@ -16,7 +16,12 @@
 ;;; Dependencies:
 ;;;   - prelude.ss
 
-(load "core/base/prelude.ss")
+;;; @module comp-graph
+;;; @requires prelude
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 ;;; ====
 ;;; Node Types

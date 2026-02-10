@@ -1,7 +1,10 @@
-(load "lattice/fp/sat/cnf.ss")
-(load "lattice/fp/sat/assignment.ss")
-(load "lattice/fp/sat/watches.ss")
-(load "lattice/data/sort.ss")
+;;; @module solver
+;;; @requires cnf assignment watches sort
+
+(require 'cnf)
+(require 'assignment)
+(require 'watches)
+(require 'sort)
 
 (doc 'module 'solver)
 (doc 'description "CDCL SAT solver - Conflict-Driven Clause Learning")

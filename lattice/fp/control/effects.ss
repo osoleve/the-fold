@@ -2,9 +2,9 @@
 ;;; @module effects
 ;;; @requires prelude combinators continuation
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/control/continuation.ss")
+(require 'prelude)
+(require 'combinators)
+(require 'continuation)
 
 (doc 'module 'effects)
 (doc 'description "Algebraic effect handlers for The Fold. Provides structured side effect handling with effect signatures, effect handlers (deep and shallow), effect rows, and common effects (State, Reader, Writer, Exception, NonDet, Async).")

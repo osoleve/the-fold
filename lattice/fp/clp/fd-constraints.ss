@@ -1,4 +1,7 @@
-(load "lattice/fp/clp/store.ss")
+;;; @module fd-constraints
+;;; @requires store
+
+(require 'store)
 
 (doc 'module 'fd-constraints)
 (doc 'description "Finite Domain Arithmetic Constraints")

@@ -2,7 +2,7 @@
 ;;; @module adjunction-inter
 ;;; @requires nat-transform-indexed
 
-(load "lattice/fp/category/multi/nat-transform-indexed.ss")
+(require 'nat-transform-indexed)
 
 (doc 'module 'adjunction-inter)
 (doc 'description "Inter-Category Adjunctions

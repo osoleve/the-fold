@@ -2,8 +2,8 @@
 ;;; @module effect-adjunction
 ;;; @requires adjunction-inter free-algebra
 
-(load "lattice/fp/category/multi/adjunction-inter.ss")
-(load "lattice/fp/category/free-algebra.ss")
+(require 'adjunction-inter)
+(require 'free-algebra)
 
 (doc 'module 'effect-adjunction)
 (doc 'description "Effect Adjunctions with Correct Counit Semantics

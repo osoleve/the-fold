@@ -1,8 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/rewrite/trace.ss")
-(load "lattice/fp/rewrite/rule.ss")
-(load "lattice/fp/rewrite/engine.ss")
-(load "lattice/fp/rewrite/verify.ss")
+;;; @module rewrite/sketch
+;;; @requires prelude trace rule engine verify
+
+(require 'prelude)
+(require 'trace)
+(require 'rule)
+(require 'engine)
+(require 'verify)
 
 (doc 'module 'rewrite/sketch)
 (doc 'description "Proof Sketch Data Structures")

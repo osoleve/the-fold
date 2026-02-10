@@ -1,8 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
-(load "lattice/fp/category/adjunction.ss")
-(load "lattice/fp/category/comonad.ss")
+;;; @module state-store-adjunction
+;;; @requires prelude combinators templates adjunction comonad
+
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
+(require 'adjunction)
+(require 'comonad)
 
 (doc 'module 'state-store-adjunction)
 (doc 'description "State/Store Adjunction

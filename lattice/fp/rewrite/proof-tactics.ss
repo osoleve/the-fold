@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/rewrite/engine.ss")
-(load "lattice/fp/rewrite/laws.ss")
+;;; @module rewrite/proof-tactics
+;;; @requires prelude engine rewrite/laws
+
+(require 'prelude)
+(require 'engine)
+(require 'rewrite/laws)
 
 (doc 'module 'rewrite/proof-tactics)
 (doc 'description "Proof Tactics Wrapping Rewrite Strategies")

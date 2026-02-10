@@ -1,5 +1,8 @@
-(load "lattice/fp/sat/literal.ss")
-(load "lattice/data/sort.ss")
+;;; @module clause
+;;; @requires literal sort
+
+(require 'literal)
+(require 'sort)
 
 (doc 'module 'clause)
 (doc 'description "SAT clause representation - a disjunction of literals")

@@ -1,4 +1,7 @@
-(load "lattice/fp/category/monad-derivation.ss")
+;;; @module common-monads
+;;; @requires monad-derivation
+
+(require 'monad-derivation)
 
 (doc 'module 'common-monads)
 (doc 'description "Common Monads - Direct Construction

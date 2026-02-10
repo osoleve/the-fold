@@ -1,4 +1,7 @@
-(load "lattice/fp/category/multi/functor-general.ss")
+;;; @module nat-transform-indexed
+;;; @requires functor-general
+
+(require 'functor-general)
 
 (doc 'module 'nat-transform-indexed)
 (doc 'description "Indexed Natural Transformations

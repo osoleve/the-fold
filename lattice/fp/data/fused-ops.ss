@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/data/stream.ss")
+;;; @module fused-ops
+;;; @requires prelude stream
+
+(require 'prelude)
+(require 'stream)
 
 (doc 'module 'fused-ops)
 (doc 'description "Fused Operation Primitives - Efficient single-pass implementations of operations that fusion rules rewrite TO. These eliminate intermediate data structures by combining multiple traversals into one.")

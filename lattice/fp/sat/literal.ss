@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module literal
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'literal)
 (doc 'description "SAT literal representation - a variable with polarity")

@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/control/free.ss")
-(load "lattice/fp/control/effects.ss")
+;;; @module dsl
+;;; @requires prelude free effects
+
+(require 'prelude)
+(require 'free)
+(require 'effects)
 
 (doc 'module 'dsl)
 (doc 'description "Command/Instruction Definitions A DSL is defined by its instruction set. Each instruction has a tag, parameters, and a continuation. This follows the Free monad command pattern: (tag payload continuation)")

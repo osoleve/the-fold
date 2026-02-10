@@ -1,7 +1,10 @@
-(load "lattice/algebra/field.ss")
-(load "lattice/algebra/polynomial.ss")
-(load "lattice/fp/symbolic/expr.ss")
-(load "lattice/fp/symbolic/simplify.ss")
+;;; @module poly-canonical
+;;; @requires field algebra/polynomial expr simplify
+
+(require 'field)
+(require 'algebra/polynomial)
+(require 'expr)
+(require 'simplify)
 
 (doc 'module 'poly-canonical)
 (doc 'description "Integrate polynomial algebra with symbolic math for GCD-based simplification and partial fractions")

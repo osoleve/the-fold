@@ -1,4 +1,7 @@
-(load "lattice/fp/sat/literal.ss")
+;;; @module assignment
+;;; @requires literal
+
+(require 'literal)
 
 (doc 'module 'assignment)
 (doc 'description "SAT solver assignment tracking - partial variable assignments with decision levels")

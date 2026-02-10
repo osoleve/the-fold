@@ -1,5 +1,8 @@
-(load "lattice/fp/sat/clause.ss")
-(load "lattice/data/sort.ss")
+;;; @module cnf
+;;; @requires clause sort
+
+(require 'clause)
+(require 'sort)
 
 (doc 'module 'cnf)
 (doc 'description "CNF formula representation - conjunction of clauses")

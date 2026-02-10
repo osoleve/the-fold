@@ -1,8 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/numeric/dft.ss")
-(load "lattice/numeric/convolution.ss")
-(load "core/autodiff/reverse-diff.ss")
+;;; @module differentiable-signal
+;;; @requires prelude complex dft convolution reverse-diff
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'complex)
+(require 'dft)
+(require 'convolution)
+(require 'reverse-diff)
 
 (doc 'module 'differentiable-signal)
 (doc 'description "Differentiable Signal Processing - VJP (Vector-Jacobian Product) wrappers for signal processing operations, enabling gradients to flow through DFT, IDFT, and convolution")

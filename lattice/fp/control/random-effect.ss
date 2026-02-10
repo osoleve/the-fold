@@ -1,5 +1,8 @@
-(load "lattice/fp/control/effects.ss")
-(load "lattice/random/prng.ss")
+;;; @module random-effect
+;;; @requires effects prng
+
+(require 'effects)
+(require 'prng)
 
 (doc 'module 'random-effect)
 (doc 'description "The Random effect provides pure, reproducible random number generation within effectful computations, threading PRNG state implicitly.")

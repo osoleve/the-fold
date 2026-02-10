@@ -1,4 +1,7 @@
-(load "lattice/fp/sat/literal.ss")
+;;; @module watches
+;;; @requires literal
+
+(require 'literal)
 
 (doc 'module 'watches)
 (doc 'description "Two-Watched Literals (2WL) for efficient unit propagation")

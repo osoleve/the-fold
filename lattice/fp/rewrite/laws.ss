@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/rewrite/rule.ss")
-(load "lattice/fp/rewrite/engine.ss")
+;;; @module rewrite/laws
+;;; @requires prelude rule engine
+
+(require 'prelude)
+(require 'rule)
+(require 'engine)
 
 (doc 'module 'rewrite/laws)
 (doc 'description "Standard FP Law Library")

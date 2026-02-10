@@ -1,4 +1,7 @@
-(load "lattice/fp/clp/propagate.ss")
+;;; @module label
+;;; @requires propagate
+
+(require 'propagate)
 
 (doc 'module 'label)
 (doc 'description "Labeling Strategies for CLP(FD)")

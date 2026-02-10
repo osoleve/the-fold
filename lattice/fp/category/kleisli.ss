@@ -1,4 +1,7 @@
-(load "lattice/fp/category/monad-derivation.ss")
+;;; @module kleisli
+;;; @requires monad-derivation
+
+(require 'monad-derivation)
 
 (doc 'module 'kleisli)
 (doc 'description "Kleisli Categories

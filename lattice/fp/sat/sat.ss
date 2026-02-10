@@ -1,4 +1,7 @@
-(load "lattice/fp/sat/solver.ss")
+;;; @module sat
+;;; @requires solver
+
+(require 'solver)
 
 (doc 'module 'sat)
 (doc 'description "SAT Solver - Boolean Satisfiability with CDCL")

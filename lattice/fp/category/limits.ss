@@ -1,4 +1,7 @@
-(load "lattice/fp/category/logic-adjunction.ss")
+;;; @module limits
+;;; @requires logic-adjunction
+
+(require 'logic-adjunction)
 
 (doc 'module 'limits)
 (doc 'description "Limits and Colimits

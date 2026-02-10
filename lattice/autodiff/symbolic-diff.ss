@@ -1,4 +1,9 @@
-(load "lattice/fp/symbolic/diff.ss")
+;;; @module symbolic-diff
+;;; @requires diff reverse-diff
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'diff)
 
 (doc 'module 'symbolic-diff)
 (doc 'description "Symbolic-Autodiff Integration - bridges symbolic differentiation with automatic differentiation")
@@ -10,7 +15,7 @@
 (define sym-jacobian jacobian)
 (define sym-hessian hessian)
 
-(load "core/autodiff/reverse-diff.ss")
+(require 'reverse-diff)
 
 ;;; Restore autodiff functions with clear names
 (define autodiff-gradient gradient)

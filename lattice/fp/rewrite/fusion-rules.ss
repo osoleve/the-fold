@@ -24,10 +24,13 @@
 ;;;   - core/fp/rewrite/engine.ss
 ;;;   - core/fp/rewrite/laws.ss (for register-law!)
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/rewrite/rule.ss")
-(load "lattice/fp/rewrite/engine.ss")
-(load "lattice/fp/rewrite/laws.ss")
+;;; @module rewrite/fusion-rules
+;;; @requires prelude rule engine rewrite/laws
+
+(require 'prelude)
+(require 'rule)
+(require 'engine)
+(require 'rewrite/laws)
 
 (doc 'module 'rewrite/fusion-rules)
 (doc 'description "Fusion Rewrite Rules")
