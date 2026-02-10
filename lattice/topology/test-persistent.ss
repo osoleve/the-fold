@@ -1,7 +1,8 @@
 ;;; lattice/topology/test-persistent.ss — Tests for Persistent Homology
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/topology/persistent.ss")
+(require 'persistent)
 
 ;;; ============================================================
 ;;; Filtration Tests

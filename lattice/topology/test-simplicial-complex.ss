@@ -1,5 +1,6 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/topology/simplicial-complex.ss")
+(require 'simplicial-complex)
 
 (doc 'module 'test-simplicial-complex)
 (doc 'description "Comprehensive tests for simplicial complex data structures and operations")

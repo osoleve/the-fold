@@ -2,7 +2,7 @@
 ;;; @module persistent
 ;;; @requires homology simplicial-complex
 
-(load "lattice/topology/homology.ss")
+(require 'homology)
 
 (doc 'module 'persistent)
 (doc 'description "Persistent homology for topological data analysis")

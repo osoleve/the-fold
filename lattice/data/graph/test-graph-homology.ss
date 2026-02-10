@@ -3,6 +3,7 @@
 ;;; Tests graph->simplicial-complex, graph-betti-numbers, cycle-basis-homology
 ;;; on various simple graphs.
 
+(load "core/lang/module.ss")
 (source-directories (cons "core" (source-directories)))
 (load "lattice/data/graph/graph-homology.ss")
 

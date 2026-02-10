@@ -3,6 +3,7 @@
 ;;; Tests mesh-to-simplicial-complex conversion, Betti number computation,
 ;;; manifold validation, and genus detection.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/geometry/mesh-topology.ss")
 

@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/tiles/topology-analysis.ss")
 (load "lattice/tiles/square.ss")

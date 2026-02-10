@@ -1,4 +1,7 @@
-(load "lattice/topology/simplicial-complex.ss")
+;;; @module homology
+;;; @requires simplicial-complex
+
+(require 'simplicial-complex)
 
 (doc 'module 'homology)
 (doc 'description "Computes homology groups and Betti numbers for simplicial complexes")

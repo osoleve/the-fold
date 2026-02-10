@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the homology-based community quality metrics from graph-community.ss
 
+(load "core/lang/module.ss")
 (source-directories (cons "core" (source-directories)))
 (load "lattice/data/graph/graph-community.ss")
 

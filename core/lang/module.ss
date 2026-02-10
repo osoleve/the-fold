@@ -186,6 +186,11 @@ Dependencies:
  (register-module-path! 'epiplexity "lattice/info/epiplexity.ss")
  (register-module-path! 'rate-distortion "lattice/info/rate-distortion.ss")
 
+ ;; Topology layer
+ (register-module-path! 'simplicial-complex "lattice/topology/simplicial-complex.ss")
+ (register-module-path! 'homology "lattice/topology/homology.ss")
+ (register-module-path! 'persistent "lattice/topology/persistent.ss")
+
  ;; Automata layer
  (register-module-path! 'statechart "lattice/automata/statechart.ss")
  (register-module-path! 'statechart-zipper "lattice/automata/statechart-zipper.ss")

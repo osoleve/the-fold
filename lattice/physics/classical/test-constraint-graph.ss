@@ -1,6 +1,7 @@
 ;;; lattice/physics/classical/test-constraint-graph.ss — Tests for constraint graph analysis
 ;;; @requires test-framework constraint-graph constraints
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/classical/constraint-graph.ss")
 (load "lattice/physics/classical/constraints.ss")

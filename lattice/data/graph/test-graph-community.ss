@@ -6,6 +6,7 @@
 ;;; Run from project root: scheme --script lattice/data/test-graph-community.ss
 
 ;; graph-community.ss loads its own dependencies (graph-matrix, ilp, etc.)
+(load "core/lang/module.ss")
 (load "lattice/data/graph/graph-community.ss")
 
 ;;; ====

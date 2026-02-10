@@ -1,5 +1,6 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/topology/homology.ss")
+(require 'homology)
 
 (doc 'module 'test-homology)
 (doc 'description "Tests for Homology Computation")

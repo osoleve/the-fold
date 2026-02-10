@@ -1,5 +1,8 @@
-(load "lattice/data/set.ss")
-(load "lattice/data/sort.ss")
+;;; @module simplicial-complex
+;;; @requires set sort
+
+(require 'set)
+(require 'sort)
 
 (doc 'module 'simplicial-complex)
 (doc 'description "Core data structures for computational topology")
