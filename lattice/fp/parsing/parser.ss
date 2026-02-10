@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; lattice/fp/parsing/parser.ss — Parser Combinators
+;;; @module parser
+;;; @requires prelude combinators
+
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'parser)
 (doc 'description "Monadic Parser Combinators — A practical parser combinator library for building DSLs and parsers. Uses the Maybe and Either types from combinators.ss for results.")

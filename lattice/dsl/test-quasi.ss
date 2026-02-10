@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for quasiquote expansion and syntax templates.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/quasi.ss")
 

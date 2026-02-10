@@ -1,5 +1,6 @@
 ;;; fabric/stitches/fp/test-transcendental.ss — Tests for Transcendental Functions
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/transcendental.ss")
 

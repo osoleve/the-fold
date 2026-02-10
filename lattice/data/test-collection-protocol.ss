@@ -1,6 +1,7 @@
 ;;; lattice/data/test-collection-protocol.ss — Tests for Collection Protocol
 ;;; @module test-collection-protocol
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/data/collection-impl.ss")
 

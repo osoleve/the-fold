@@ -9,6 +9,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/optics/test-bidirectional.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optics/bidirectional.ss")
 (load "lattice/optics/format-iso.ss")

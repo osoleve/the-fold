@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests hole-focused navigation for template expressions.
 
+(load "core/lang/module.ss")
 (load "lattice/dsl/template/template-zipper.ss")
 (load "core/testing/test-framework.ss")
 

@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests: quantifier ranges {n,m}, anchors ^/$, lookahead (?=...)/(?!...)
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/parsing/regex.ss")
 

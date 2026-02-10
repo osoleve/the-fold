@@ -10,6 +10,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/fp/category/test-kleisli.ss
 
+(load "core/lang/module.ss")
 (load "lattice/fp/category/kleisli.ss")
 (load "lattice/fp/category/common-monads.ss")
 

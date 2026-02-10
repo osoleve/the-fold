@@ -6,6 +6,7 @@
 ;;;   scheme --script lattice/query/sql/test-dialect.ss
 
 (source-directories (cons "core" (cons "lattice" (source-directories))))
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/query/sql/sql.ss")
 (load "lattice/query/sql/dialect.ss")

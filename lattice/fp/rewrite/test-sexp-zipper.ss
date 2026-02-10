@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the zipper-based navigation for S-expressions.
 
+(load "core/lang/module.ss")
 (load "lattice/fp/rewrite/sexp-zipper.ss")
 (load "core/testing/test-framework.ss")
 

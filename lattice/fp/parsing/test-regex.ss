@@ -2,6 +2,7 @@
 ;;;
 ;;; Run: scheme --script lattice/fp/parsing/test-regex.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/parsing/regex.ss")
 

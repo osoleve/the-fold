@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for all optic types and their composition.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/templates.ss")
 (load "lattice/optics/optics.ss")

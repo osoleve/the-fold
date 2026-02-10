@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the complete CLP system with classic constraint problems.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/clp/clp.ss")
 

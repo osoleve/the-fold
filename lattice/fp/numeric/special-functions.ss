@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/fp/numeric/special-functions.ss — Special Functions
+;;; @module special-functions
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'special-functions)
 (doc 'description "Standard special functions for scientific computing")

@@ -10,6 +10,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/fp/category/test-monad-derivation.ss
 
+(load "core/lang/module.ss")
 (load "lattice/fp/category/monad-derivation.ss")
 
 ;;; ====

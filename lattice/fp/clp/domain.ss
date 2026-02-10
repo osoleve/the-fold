@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+;;; lattice/fp/clp/domain.ss — Finite Domains
+;;; @module domain
+;;; @requires prelude sort
+
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'domain)
 (doc 'description "Finite Domain Representation")

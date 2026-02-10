@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the cost estimation and parallelization heuristics.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/analysis/cost-analysis.ss")
 

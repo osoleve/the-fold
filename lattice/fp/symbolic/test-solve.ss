@@ -2,6 +2,7 @@
 ;;;
 ;;; Run: scheme --script lattice/fp/symbolic/test-solve.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/symbolic/solve.ss")
 

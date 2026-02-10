@@ -10,6 +10,7 @@
 ;;;
 ;;; Run with: scheme --script core/fp/rewrite/test-rewrite.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/rewrite/rule.ss")
 (load "lattice/fp/rewrite/trace.ss")

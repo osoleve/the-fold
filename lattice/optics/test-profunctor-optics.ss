@@ -7,6 +7,7 @@
 ;;;   - Conversions to/from concrete optics
 ;;;   - Composition and law verification
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optics/profunctor-optics.ss")
 

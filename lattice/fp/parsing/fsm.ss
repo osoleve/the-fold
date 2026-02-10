@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/data/sort.ss")
+;;; lattice/fp/parsing/fsm.ss — Finite State Machines
+;;; @module fsm
+;;; @requires prelude combinators sort
+
+(require 'prelude)
+(require 'combinators)
+(require 'sort)
 
 (doc 'module 'fsm)
 (doc 'description "Finite State Machine Library — A pure functional implementation of finite state machines supporting deterministic (DFA), non-deterministic (NFA), and epsilon-NFA automata.")

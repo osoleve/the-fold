@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
+;;; lattice/fp/category/natural-transform.ss — Natural Transformations
+;;; @module natural-transform
+;;; @requires prelude combinators templates
+
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
 
 (doc 'module 'natural-transform)
 (doc 'description "Natural Transformations

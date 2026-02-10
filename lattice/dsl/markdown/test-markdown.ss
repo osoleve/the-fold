@@ -2,6 +2,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/dsl/markdown/test-markdown.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/dsl/markdown/block-parser.ss")
 (load "lattice/dsl/markdown/html.ss")

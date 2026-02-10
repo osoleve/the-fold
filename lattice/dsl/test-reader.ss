@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for readtables, reader macros, and custom notation.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/reader.ss")
 

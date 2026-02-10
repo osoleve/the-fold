@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; lattice/fp/data/zipper.ss — List Zipper
+;;; @module zipper
+;;; @requires prelude combinators
+
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'zipper)
 (doc 'description "Functional Zippers - A zipper is a cursor into a data structure, enabling efficient local navigation and modification. This module implements list zippers with O(1) movement and modification at the focus point.")

@@ -8,6 +8,7 @@
 ;;;   - Bulk operations (map, filter, fold)
 ;;;   - Comonad operations
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/data/zipper.ss")
 

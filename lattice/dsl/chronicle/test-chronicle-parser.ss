@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for the parser combinator-based Chronicle parser.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/chronicle/chronicle-parser.ss")
 

@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests bidirectional cache format migrations.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/meta/cache-migration.ss")
 

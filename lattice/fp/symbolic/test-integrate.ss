@@ -2,6 +2,7 @@
 ;;;
 ;;; NOTE: Run from project root: scheme --script lattice/fp/symbolic/test-integrate.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/symbolic/integrate.ss")
 

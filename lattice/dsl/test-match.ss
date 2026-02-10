@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for decision tree compilation and pattern matching.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/match.ss")
 

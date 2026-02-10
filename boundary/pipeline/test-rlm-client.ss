@@ -3,6 +3,7 @@
 ;;; Tests provider configuration construction and response parsing.
 ;;; Does NOT make actual HTTP calls.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "boundary/pipeline/rlm-client.ss")
 

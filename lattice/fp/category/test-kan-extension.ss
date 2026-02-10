@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for Right Kan Extension, Left Kan Extension, and Codensity monad.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/category/kan-extension.ss")
 

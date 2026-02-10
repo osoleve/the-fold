@@ -1,4 +1,8 @@
-(load "lattice/fp/protocol.ss")
+;;; lattice/fp/protocol-introspect.ss — Protocol Introspection
+;;; @module protocol-introspect
+;;; @requires protocol
+
+(require 'protocol)
 
 (doc 'module 'protocol-introspect)
 (doc 'description "Protocol introspection and visualization tools. Provides reverse lookups (type → protocols), documentation storage, and ASCII visualization of protocol/type relationships.")

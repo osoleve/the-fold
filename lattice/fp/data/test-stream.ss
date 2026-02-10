@@ -2,6 +2,7 @@
 
 ;;; NOTE: Run from fabric/stitches directory
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/data/stream.ss")
 

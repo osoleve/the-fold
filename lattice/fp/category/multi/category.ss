@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/fp/category/multi/category.ss — Multi-Category
+;;; @module multi-category
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'multi-category)
 (doc 'description "Categories as First-Class Objects

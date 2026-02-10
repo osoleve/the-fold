@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for the narrative DSL.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/chronicle/chronicle.ss")
 

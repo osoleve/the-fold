@@ -3,6 +3,7 @@
 ;;; Comprehensive tests for lens operations on zippers and the
 ;;; connection between zipper navigation and lens composition.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/data/zipper-lens.ss")
 

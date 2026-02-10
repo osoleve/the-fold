@@ -3,6 +3,7 @@
 ;;; Verifies that manifest optics correctly access and modify
 ;;; nested alist structures like those in manifest.sexp files.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/meta/manifest-optics.ss")
 

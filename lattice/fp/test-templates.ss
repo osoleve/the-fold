@@ -3,6 +3,7 @@
 ;;; Comprehensive tests for monoids, foldables, functors,
 ;;; applicatives, lenses, and prisms.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/templates.ss")
 

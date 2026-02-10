@@ -2,8 +2,8 @@
 ;;; @module state
 ;;; @requires prelude combinators
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'state)
 (doc 'description "The State monad threads state through a computation without explicit passing, enabling pure composable stateful computations.")

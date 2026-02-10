@@ -1,4 +1,8 @@
-(load "lattice/fp/protocol.ss")
+;;; lattice/fp/protocol-bundle.ss — Protocol Bundles
+;;; @module protocol-bundle
+;;; @requires protocol
+
+(require 'protocol)
 
 (doc 'module 'protocol-bundle)
 (doc 'description "Bundle Data Structures A bundle is metadata describing a set of protocol pairs (getter/setter). Structure: (protocol-bundle name (slot ...)) Each slot: (bundle-slot getter-proto setter-proto label) make-protocol-bundle : Symbol × (List Slot) → Bundle")

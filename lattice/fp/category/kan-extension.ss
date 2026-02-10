@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
+;;; lattice/fp/category/kan-extension.ss — Kan Extensions
+;;; @module kan-extension
+;;; @requires prelude combinators templates
+
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
 
 (doc 'module 'kan-extension)
 (doc 'description "Kan Extensions

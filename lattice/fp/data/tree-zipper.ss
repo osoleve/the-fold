@@ -1,8 +1,8 @@
 ;;; @module tree-zipper
 ;;; @requires prelude combinators
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'tree-zipper)
 (doc 'description "Rose Tree Type A rose tree (multi-way tree) consists of a node value and a list of children (which are themselves trees). Tree a = Node a [Tree a] tree-tag : Symbol")

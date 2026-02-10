@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/fp/protocol.ss — Protocol Dispatch
+;;; @module protocol
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'protocol)
 (doc 'description "A lightweight dispatch mechanism allowing types to register implementations for generic operations (protocols). Enables the Open/Closed Principle: extend behavior without modifying existing code.")

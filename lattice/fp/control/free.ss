@@ -2,8 +2,8 @@
 ;;; @module free
 ;;; @requires prelude combinators
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'free)
 (doc 'description "Free Monad Representation Free f a is either: ('pure a)                    — A pure value ('free functor-value)        — A suspended computation Where functor-value is (f (Free f a))")

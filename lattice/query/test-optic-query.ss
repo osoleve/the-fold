@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive test suite for optic-based queries.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/query/optic-query.ss")
 

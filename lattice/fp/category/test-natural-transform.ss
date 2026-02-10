@@ -5,6 +5,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/fp/category/test-natural-transform.ss
 
+(load "core/lang/module.ss")
 (load "lattice/fp/category/natural-transform.ss")
 
 ;;; ====

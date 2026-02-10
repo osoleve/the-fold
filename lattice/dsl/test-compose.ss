@@ -5,6 +5,7 @@
 ;;; 2. Effect Composition
 ;;; 3. Tagless Composition
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/compose.ss")
 

@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests constraint store operations, domain integration, and unification.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/clp/store.ss")
 

@@ -7,6 +7,7 @@
 ;;; Full integration tests (actual IPC + LLM calls) belong in the
 ;;; benchmark suite, not here.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "boundary/pipeline/rlm2-drive.ss")
 

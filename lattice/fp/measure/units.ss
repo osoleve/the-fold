@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/fp/measure/units.ss — Physical Units
+;;; @module units
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'units)
 (doc 'description "Type-safe physical units using dimension types. Based on the SI system of units.")

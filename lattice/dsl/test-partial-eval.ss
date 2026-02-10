@@ -3,6 +3,7 @@
 ;;; Comprehensive tests for binding-time analysis, online/offline
 ;;; partial evaluation, and specialization.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/dsl/partial-eval.ss")
 

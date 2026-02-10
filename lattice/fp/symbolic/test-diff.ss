@@ -2,6 +2,7 @@
 ;;;
 ;;; NOTE: Run from project root: scheme --script core/fp/symbolic/test-diff.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/symbolic/diff.ss")
 

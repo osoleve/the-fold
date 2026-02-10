@@ -2,8 +2,8 @@
 ;;; @module templates
 ;;; @requires prelude combinators
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'templates)
 (doc 'description "Template generator for common FP patterns including: Monoids, Foldable, Traversable, Lenses, Functors, Applicatives")

@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/pipeline/stage.ss")
 (load "lattice/pipeline/context.ss")

@@ -1,7 +1,7 @@
 ;;; @module transcendental
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(require 'prelude)
 
 (doc 'module 'transcendental)
 (doc 'description "Transcendental functions with support for high-precision computation")

@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests comonad type class, Store, Env, Traced comonads, and law verification.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/templates.ss")  ; For monoid-sum, monoid-mempty, monoid-mappend
 (load "lattice/fp/category/comonad.ss")

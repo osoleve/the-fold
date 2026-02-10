@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the effect construction and predicates.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/pipeline/effects.ss")
 (load "lattice/pipeline/context.ss")

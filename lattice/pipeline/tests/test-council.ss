@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the council primitive for structured LLM deliberation.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/pipeline/council.ss")
 

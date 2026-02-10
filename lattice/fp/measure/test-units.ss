@@ -2,6 +2,7 @@
 ;;;
 ;;; NOTE: Run from project root: scheme --script core/fp/measure/test-units.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/measure/units.ss")
 

@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/fp/analysis/parallel-detect.ss — Parallel Opportunity Detection
+;;; @module parallel-detect
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'parallel-detect)
 (doc 'description "Parallelization Opportunity Detection

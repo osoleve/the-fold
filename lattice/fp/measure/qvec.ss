@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/measure/units.ss")
-(load "lattice/linalg/vec.ss")
+;;; lattice/fp/measure/qvec.ss — Unit-Aware Vectors
+;;; @module qvec
+;;; @requires prelude units vec
+
+(require 'prelude)
+(require 'units)
+(require 'vec)
 
 (doc 'module 'qvec)
 (doc 'description "Unit-aware vectors for physics computations. All elements share a common dimension.")

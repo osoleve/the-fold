@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+;;; lattice/fp/analysis/cost-analysis.ss — Cost Analysis
+;;; @module cost-analysis
+;;; @requires prelude sort
+
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'cost-analysis)
 (doc 'description "Cost Estimation for Parallelization Heuristics

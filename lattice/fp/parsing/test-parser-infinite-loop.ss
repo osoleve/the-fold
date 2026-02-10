@@ -1,5 +1,6 @@
 ;;; test-parser-infinite-loop.ss — Test for infinite loop bug fix
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/parsing/parser.ss")
 

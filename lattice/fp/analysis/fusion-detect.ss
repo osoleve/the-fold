@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/fp/analysis/fusion-detect.ss — Fusion Pattern Detection
+;;; @module fusion-detect
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'fusion-detect)
 (doc 'description "Static Fusion Pattern Detection

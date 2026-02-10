@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; lattice/fp/data/stream.ss — Lazy Streams
+;;; @module stream
+;;; @requires prelude combinators
+
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'stream)
 (doc 'description "Stream Type A stream is either: - stream-nil: the empty stream - (stream-cons head thunk): head value with lazy tail The thunk is a nullary procedure that, when called, produces")

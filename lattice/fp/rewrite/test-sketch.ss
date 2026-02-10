@@ -16,6 +16,7 @@
 ;;;
 ;;; Run with: scheme --script core/fp/rewrite/test-sketch.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 
 ;;; ====

@@ -9,6 +9,7 @@
 ;;;   5. Effect adjunctions with correct counit evaluation
 ;;;   6. Triangle identity verification
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/category/multi/effect-adjunction.ss")
 

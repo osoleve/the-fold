@@ -8,6 +8,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/fp/category/test-logic-adjunction.ss
 
+(load "core/lang/module.ss")
 (load "lattice/fp/category/logic-adjunction.ss")
 
 ;;; ====

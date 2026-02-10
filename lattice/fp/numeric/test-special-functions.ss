@@ -3,6 +3,7 @@
 ;;; Test suite for error functions, gamma functions, and related
 ;;; special mathematical functions.
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/fp/numeric/special-functions.ss")
 

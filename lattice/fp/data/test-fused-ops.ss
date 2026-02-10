@@ -5,6 +5,7 @@
 ;;;
 ;;; Run with: scheme --script core/fp/data/test-fused-ops.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/data/fused-ops.ss")
 

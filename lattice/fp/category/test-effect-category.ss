@@ -1,6 +1,7 @@
 ;;; Test suite for effect-category.ss
 ;;; Verifies the categorical foundations of algebraic effects
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/category/effect-category.ss")
 

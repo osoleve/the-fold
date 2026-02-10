@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the consolidated Result type operations.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/meta/result.ss")
 

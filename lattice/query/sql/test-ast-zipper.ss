@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests zipper-based navigation for SQL AST trees.
 
+(load "core/lang/module.ss")
 (load "lattice/query/sql/ast-zipper.ss")
 (load "core/testing/test-framework.ss")
 

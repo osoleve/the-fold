@@ -3,6 +3,7 @@
 ;;; Tests state constructors/accessors, action validation, parser (clean/fuzzy/garbage),
 ;;; and HUD rendering. All pure, no IO.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/pipeline/rlm2.ss")
 (load "lattice/pipeline/rlm2-parse.ss")

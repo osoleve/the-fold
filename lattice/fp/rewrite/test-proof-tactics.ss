@@ -2,6 +2,7 @@
 ;;;
 ;;; This is Core code: pure, total, assumes perfect input.
 
+(load "core/lang/module.ss")
 (load "lattice/fp/rewrite/proof-tactics.ss")
 (load "lattice/fp/rewrite/fusion-rules.ss")  ; Registers fusion laws for auto-laws
 (load "core/test-framework.ss")

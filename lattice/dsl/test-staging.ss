@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for staging annotations, code types, and staged computation.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/dsl/staging.ss")
 

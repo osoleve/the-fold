@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests domain representation, operations, and edge cases.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/clp/domain.ss")
 

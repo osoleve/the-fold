@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the user-facing pipeline DSL.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/pipeline/dsl.ss")
 

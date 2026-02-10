@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for rose tree zipper implementation.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/data/tree-zipper.ss")
 

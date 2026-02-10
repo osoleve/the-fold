@@ -1,5 +1,6 @@
 ;;; lattice/fp/category/test-state-store-adjunction.ss — Tests for State/Store Adjunction
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/category/state-store-adjunction.ss")
 

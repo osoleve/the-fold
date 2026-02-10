@@ -2,8 +2,8 @@
 ;;; @module continuation
 ;;; @requires prelude combinators
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'continuation)
 (doc 'description "The Continuation monad captures the rest of the computation as a first-class value, enabling powerful control flow patterns.")

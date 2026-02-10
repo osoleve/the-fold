@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for optics over The Fold's block system.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optics/block-optics.ss")
 

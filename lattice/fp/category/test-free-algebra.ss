@@ -10,6 +10,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/fp/category/test-free-algebra.ss
 
+(load "core/lang/module.ss")
 (load "lattice/fp/category/free-algebra.ss")
 (load "lattice/fp/category/monad-derivation.ss")
 

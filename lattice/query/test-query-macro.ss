@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the macro-based query language that compiles to optic-query primitives.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/query/query-macro.ss")
 

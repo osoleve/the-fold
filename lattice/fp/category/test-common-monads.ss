@@ -1,6 +1,7 @@
 ;;; lattice/fp/category/test-common-monads.ss — Tests for Maybe, Either, Reader monads
 ;;; Run with: scheme --script lattice/fp/category/test-common-monads.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/category/common-monads.ss")
 

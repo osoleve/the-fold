@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the parallel opportunity detection module.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/fp/analysis/parallel-detect.ss")
 

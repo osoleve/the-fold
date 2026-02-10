@@ -2,6 +2,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/fp/test-protocol.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/protocol.ss")
 

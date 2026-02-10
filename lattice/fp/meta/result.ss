@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; lattice/fp/meta/result.ss — Result Type Operations
+;;; @module result
+;;; @requires prelude combinators
+
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'result)
 (doc 'description "Result Type Operations — Consolidates the Result type pattern used throughout The Fold. Re-exports core operations from prelude.ss and adds utilities. Result α ε = (ok α) | (error ε). Core Result operations are in core/base/prelude.ss.")
