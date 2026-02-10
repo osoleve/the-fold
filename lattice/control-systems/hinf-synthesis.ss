@@ -23,14 +23,16 @@
 ;;; @requires lattice/control-systems/stability.ss
 ;;; @requires lattice/control-systems/controller-design.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-eigen.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/control-systems/state-space.ss")
-(load "lattice/control-systems/transfer-function.ss")
-(load "lattice/control-systems/stability.ss")
-(load "lattice/control-systems/controller-design.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-eigen)
+(require 'matrix-solvers)
+(require 'control/state-space)
+(require 'control/transfer-function)
+(require 'control/stability)
+(require 'control/controller-design)
 
 (doc 'module 'hinf-synthesis)
 (doc 'description "H-infinity controller synthesis via γ-iteration and Riccati equations")

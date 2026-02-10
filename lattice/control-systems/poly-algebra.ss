@@ -21,11 +21,13 @@
 ;;; establishes numeric polynomial functions), then using explicit accessors
 ;;; for algebra polynomials that don't collide.
 
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
 ;; Load transfer-function first (brings in numeric/polynomial.ss)
-(load "lattice/control-systems/transfer-function.ss")
+(require 'control/transfer-function)
 
 ;; Load field module (no conflicting names)
-(load "lattice/algebra/field.ss")
+(require 'field)
 
 (doc 'module 'poly-algebra)
 (doc 'description "Polynomial algebra integration for exact rational arithmetic in control systems")

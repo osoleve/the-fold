@@ -23,7 +23,9 @@
 ;;; Dependencies:
 ;;;   - core/base/prelude.ss
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'kalman)
 (doc 'description "Scalar Kalman filter for online estimation with log-space variant")

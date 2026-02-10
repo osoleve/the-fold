@@ -2,7 +2,9 @@
 ;;; @module mcdm
 ;;; @requires voting
 
-(load "lattice/game-theory/voting.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'voting)
 
 (doc 'module 'mcdm)
 (doc 'description "Multi-criteria decision making using social choice theory. Treats evaluation criteria as 'voters' that rank alternatives, then aggregates using voting rules. Connects optimization theory to social choice: instead of humans ranking candidates, we have metrics ranking implementations")

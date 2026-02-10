@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/geometry/geometry.ss")
-(load "lattice/sim/dynamics/chaos.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(load "lattice/geometry/geometry.ss")  ; geometry not yet registered
+(require 'chaos)
 
 (doc 'module 'attractor-render)
 (doc 'description "ASCII visualization of strange attractors with rotation, depth shading, and animation")

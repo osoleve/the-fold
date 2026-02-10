@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/data/tree-zipper.ss")
-(load "lattice/fp/data/zipper-lens.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
+(require 'tree-zipper)
+(require 'zipper-lens)
 
 (doc 'module 'ast-zipper)
 (doc 'description "Zipper for SQL AST Navigation")

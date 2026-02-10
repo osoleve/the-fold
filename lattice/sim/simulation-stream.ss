@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/data/stream.ss")
-(load "lattice/linalg/vec2.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'stream)
+(require 'vec2)
 
 (doc 'module 'simulation-stream)
 (doc 'description "Lazy Stream Abstraction for Simulations - bridges physics simulation state with lazy streams for infinite sequences of timesteps")

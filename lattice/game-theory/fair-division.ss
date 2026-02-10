@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/linalg/vec.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
+(require 'vec)
 
 (doc 'module 'fair-division)
 (doc 'description "Algorithms for fairly dividing divisible and indivisible goods. Covers cake cutting protocols, envy-free allocation, proportional division, and the adjusted winner procedure")

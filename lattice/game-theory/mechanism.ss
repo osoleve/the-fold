@@ -2,8 +2,10 @@
 ;;; @module mechanism
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'mechanism)
 (doc 'description "Mechanism design: auctions, incentive compatibility, VCG mechanisms")

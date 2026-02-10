@@ -1,11 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")  ;; Required for QR algorithm in matrix-eigen
-(load "lattice/linalg/matrix-eigen.ss")
-(load "lattice/linalg/svd.ss")            ;; For pseudoinverse in robust Newton
-(load "lattice/numeric/complex.ss")
-(load "lattice/sim/dynamics/ode-system.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-eigen)
+(require 'svd)
+(require 'complex)
+(require 'ode-system)
 
 (doc 'module 'stability)
 (doc 'description "Fixed point detection, linearization, eigenvalue analysis, and stability classification for continuous-time dynamical systems")

@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/control/free.ss")
-(load "lattice/linalg/vec2.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'free)
+(require 'vec2)
 
 (doc 'module 'physics-dsl)
 (doc 'description "Domain-specific language for physics simulations built on the Free monad. Separates simulation description from execution, enabling multiple interpreters: deterministic, stochastic, logging, and pure")

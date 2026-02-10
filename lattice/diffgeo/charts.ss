@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix-decomp.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'matrix)
+(require 'vec)
+(require 'matrix-decomp)
 
 (doc 'module 'charts)
 (doc 'description "Coordinate Charts and Atlases - Foundation for smooth manifold representation")

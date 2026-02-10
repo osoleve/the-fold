@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
 
 (doc 'module 'ode-system)
 (doc 'description "Pure implementation of continuous-time dynamical systems represented as systems of ordinary differential equations (ODEs). Supports autonomous and non-autonomous systems, vector field computation, phase portraits, and flow analysis")

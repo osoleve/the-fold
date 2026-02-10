@@ -1,6 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/random/prng.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'prng)
 
 (doc 'module 'discrete)
 (doc 'description "Pure implementation of discrete-time dynamical systems for simulation, analysis, and visualization. Supports both deterministic and stochastic transitions")

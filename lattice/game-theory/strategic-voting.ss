@@ -2,8 +2,10 @@
 ;;; @module strategic-voting
 ;;; @requires prelude voting
 
-(load "core/base/prelude.ss")
-(load "lattice/game-theory/voting.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'voting)
 
 (doc 'module 'strategic-voting)
 (doc 'description "Strategic voting equilibrium analysis: Nash equilibria in voting games, iterative best response dynamics, price of anarchy, and Gibbard-Satterthwaite demonstrations")

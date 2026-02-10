@@ -1,4 +1,6 @@
-(load "lattice/game-theory/voting.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'voting)
 
 (doc 'module 'multi-winner)
 (doc 'description "Proportional representation methods for selecting committees or diverse option sets. Implements Single Transferable Vote (STV) with Droop/Hare quotas, approval voting, Proportional Approval Voting (PAV), Monroe method, and Chamberlin-Courant method")

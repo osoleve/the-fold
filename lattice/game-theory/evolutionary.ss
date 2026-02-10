@@ -1,4 +1,6 @@
-(load "lattice/game-theory/normal-form.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'normal-form)
 
 (doc 'module 'evolutionary)
 (doc 'description "Evolutionary Game Theory: replicator dynamics, evolutionarily stable strategies (ESS), population games, and invasion dynamics")

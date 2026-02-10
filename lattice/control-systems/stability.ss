@@ -22,13 +22,15 @@
 ;;;   - lattice/control-systems/transfer-function.ss
 ;;;   - lattice/control-systems/state-space.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/numeric/polynomial.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-eigen.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/control-systems/transfer-function.ss")
-(load "lattice/control-systems/state-space.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'numeric/polynomial)
+(require 'matrix)
+(require 'matrix-eigen)
+(require 'matrix-solvers)
+(require 'control/transfer-function)
+(require 'control/state-space)
 
 (doc 'module 'stability)
 (doc 'description "Comprehensive stability analysis for LTI systems including Routh-Hurwitz, Lyapunov, Nyquist, and margin analysis")

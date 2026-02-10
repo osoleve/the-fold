@@ -1,4 +1,6 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'extensive-form)
 (doc 'description "Extensive form (sequential) games with game trees. Supports backward induction, subgame perfect equilibrium, information sets, and chance nodes.")

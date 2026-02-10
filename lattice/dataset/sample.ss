@@ -2,9 +2,11 @@
 ;;; @module sample
 ;;; @requires prelude optics
 
-(load "core/base/prelude.ss")
-(load "lattice/optics/optics.ss")
-(load "lattice/dataset/parameter.ss")  ; for prng-next-int
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'optics)
+(require 'parameter)
 
 (doc 'module 'sample)
 (doc 'description "Sample record type for visual reasoning datasets. Questions and answers are defined as lenses into simulation state, ensuring ground truth consistency by construction.")

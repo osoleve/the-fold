@@ -1,10 +1,12 @@
 ;;; lattice/dataset/parameter.ss — Parameter Ranges, Sampling, and Interpolation
 ;;; @module parameter
-;;; @requires prelude random
+;;; @requires prelude prng distributions
 
-(load "core/base/prelude.ss")
-(load "lattice/random/prng.ss")
-(load "lattice/random/distributions.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'prng)
+(require 'distributions)
 
 (doc 'module 'parameter)
 (doc 'description "Parameter specification for dataset generation. Supports ranges with constraints, multiple sampling strategies, and parameter interpolation for counterfactual generation.")

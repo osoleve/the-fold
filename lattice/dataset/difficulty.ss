@@ -2,7 +2,9 @@
 ;;; @module difficulty
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'difficulty)
 (doc 'description "Difficulty scoring for visual reasoning problems. Calibrates based on inference depth, visual complexity, temporal reasoning, and discretization requirements.")

@@ -2,8 +2,10 @@
 ;;; @module voting-games
 ;;; @requires voting coop-games
 
-(load "lattice/game-theory/voting.ss")
-(load "lattice/game-theory/coop-games.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'voting)
+(require 'coop-games)
 
 (doc 'module 'voting-games)
 (doc 'description "Bridge between voting theory and cooperative game theory. The key insight: voting rules induce simple games where coalitions are 'winning' if they can determine the election outcome")

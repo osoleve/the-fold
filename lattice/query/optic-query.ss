@@ -1,4 +1,6 @@
-(load "lattice/optics/optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'optics)
 
 (doc 'module 'optic-query)
 (doc 'description "Optic-Based Query Language")

@@ -146,6 +146,10 @@ Dependencies:
  ;; Query layer
  (register-module-path! 'query "lattice/query/query.ss")
  (register-module-path! 'query-dsl "lattice/query/query-dsl.ss")
+ (register-module-path! 'aho-corasick "lattice/query/aho-corasick.ss")
+ (register-module-path! 'optic-query "lattice/query/optic-query.ss")
+ (register-module-path! 'query-macro "lattice/query/query-macro.ss")
+ (register-module-path! 'ast-zipper "lattice/query/sql/ast-zipper.ss")
  
  ;; Data layer
  (register-module-path! 'stack "lattice/data/stack.ss")
@@ -250,6 +254,58 @@ Dependencies:
  ;; Automata layer
  (register-module-path! 'statechart "lattice/automata/statechart.ss")
  (register-module-path! 'statechart-zipper "lattice/automata/statechart-zipper.ss")
+
+ ;; Diffgeo layer
+ (register-module-path! 'charts "lattice/diffgeo/charts.ss")
+ (register-module-path! 'tangent "lattice/diffgeo/tangent.ss")
+ (register-module-path! 'curvature "lattice/diffgeo/curvature.ss")
+ (register-module-path! 'forms "lattice/diffgeo/forms.ss")
+ (register-module-path! 'symbolic-metrics "lattice/diffgeo/symbolic-metrics.ss")
+ (register-module-path! 'geodesics "lattice/diffgeo/geodesics.ss")
+ (register-module-path! 'lie-groups "lattice/diffgeo/lie-groups.ss")
+
+ ;; Sim layer
+ (register-module-path! 'ode-system "lattice/sim/dynamics/ode-system.ss")
+ (register-module-path! 'chaos "lattice/sim/dynamics/chaos.ss")
+ (register-module-path! 'sim/stability "lattice/sim/dynamics/stability.ss")
+ (register-module-path! 'sim/discrete "lattice/sim/dynamics/discrete.ss")
+ (register-module-path! 'bifurcation "lattice/sim/dynamics/bifurcation.ss")
+ (register-module-path! 'attractor-render "lattice/sim/dynamics/attractor-render.ss")
+ (register-module-path! 'simulation-stream "lattice/sim/simulation-stream.ss")
+
+ ;; Dataset layer
+ (register-module-path! 'difficulty "lattice/dataset/difficulty.ss")
+ (register-module-path! 'parameter "lattice/dataset/parameter.ss")
+ (register-module-path! 'distractor "lattice/dataset/distractor.ss")
+ (register-module-path! 'sample "lattice/dataset/sample.ss")
+
+ ;; Game theory layer
+ (register-module-path! 'normal-form "lattice/game-theory/normal-form.ss")
+ (register-module-path! 'extensive-form "lattice/game-theory/extensive-form.ss")
+ (register-module-path! 'voting "lattice/game-theory/voting.ss")
+ (register-module-path! 'mechanism "lattice/game-theory/mechanism.ss")
+ (register-module-path! 'fair-division "lattice/game-theory/fair-division.ss")
+ (register-module-path! 'coop-games "lattice/game-theory/coop-games.ss")
+ (register-module-path! 'matching "lattice/game-theory/matching.ss")
+ (register-module-path! 'strategic-voting "lattice/game-theory/strategic-voting.ss")
+ (register-module-path! 'voting-games "lattice/game-theory/voting-games.ss")
+ (register-module-path! 'mcdm "lattice/game-theory/mcdm.ss")
+ (register-module-path! 'multi-winner "lattice/game-theory/multi-winner.ss")
+ (register-module-path! 'evolutionary "lattice/game-theory/evolutionary.ss")
+ (register-module-path! 'physics-dsl "lattice/game-theory/physics-dsl.ss")
+
+ ;; Control systems layer
+ (register-module-path! 'control/state-space "lattice/control-systems/state-space.ss")
+ (register-module-path! 'control/transfer-function "lattice/control-systems/transfer-function.ss")
+ (register-module-path! 'control/stability "lattice/control-systems/stability.ss")
+ (register-module-path! 'control/controller-design "lattice/control-systems/controller-design.ss")
+ (register-module-path! 'control/discrete-control "lattice/control-systems/discrete-control.ss")
+ (register-module-path! 'control/hinf-synthesis "lattice/control-systems/hinf-synthesis.ss")
+ (register-module-path! 'control/kalman "lattice/control-systems/kalman.ss")
+ (register-module-path! 'control/digital-pid "lattice/control-systems/digital-pid.ss")
+ (register-module-path! 'control/z-transform "lattice/control-systems/z-transform.ss")
+ (register-module-path! 'control/tf-convert "lattice/control-systems/tf-convert.ss")
+ (register-module-path! 'control/poly-algebra "lattice/control-systems/poly-algebra.ss")
 
  ;; Algebra
  (register-module-path! 'group "lattice/algebra/group.ss")

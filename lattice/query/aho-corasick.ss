@@ -1,14 +1,15 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'queue)
+(require 'set)
+(require 'dict)
 
 (doc 'module 'aho-corasick)
 (doc 'description "Aho-Corasick Multi-Pattern String Matching")
 (doc 'note "Dogfooding new data structures: Queue for BFS, Dict for transitions")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-(load "lattice/data/queue.ss")
-(load "lattice/data/set.ss")
-(load "lattice/data/dict.ss")
 
 (doc 'note "State = (id Dict Set Nat) where Dict: Char -> Nat, Set of patterns, Nat is failure link")
 (define-record-type ac-state

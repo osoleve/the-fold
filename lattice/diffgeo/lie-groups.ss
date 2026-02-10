@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix-solvers.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'matrix)
+(require 'vec)
+(require 'matrix-solvers)
 
 (doc 'module 'lie-groups)
 (doc 'description "Lie Groups and Algebras - Rotation and transformation groups with their Lie algebras")

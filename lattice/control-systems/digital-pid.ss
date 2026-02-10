@@ -8,7 +8,9 @@
 ;;; Dependencies:
 ;;;   - core/base/prelude.ss
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'digital-pid)
 (doc 'description "Digital PID controller with anti-windup and derivative filtering")

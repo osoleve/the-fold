@@ -2,11 +2,13 @@
 ;;; @module matching
 ;;; @requires prelude lp ilp coop-games sort
 
-(load "core/base/prelude.ss")
-(load "lattice/optimization/lp.ss")
-(load "lattice/optimization/ilp.ss")
-(load "lattice/game-theory/coop-games.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(load "lattice/optimization/lp.ss")   ; lp not yet registered
+(load "lattice/optimization/ilp.ss")  ; ilp not yet registered
+(require 'coop-games)
+(require 'sort)
 
 (doc 'module 'matching)
 (doc 'description "Stable matching, assignment games, and optimal matching. Includes the Gale-Shapley deferred acceptance algorithm, bipartite assignment games with connections to cooperative game theory, and optimal assignment via linear programming")

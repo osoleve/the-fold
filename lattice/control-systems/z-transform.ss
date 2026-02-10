@@ -11,9 +11,11 @@
 ;;;   - lattice/numeric/polynomial.ss
 ;;;   - lattice/control-systems/discrete-control.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/numeric/polynomial.ss")
-(load "lattice/control-systems/discrete-control.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'numeric/polynomial)
+(require 'control/discrete-control)
 
 (doc 'module 'z-transform)
 (doc 'description "Discrete transfer functions in z-domain for discrete-time LTI systems")

@@ -12,11 +12,13 @@
 ;;;   - lattice/linalg/matrix.ss
 ;;;   - lattice/linalg/matrix-solvers.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/control-systems/state-space.ss")
-(load "lattice/control-systems/transfer-function.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-solvers)
+(require 'control/state-space)
+(require 'control/transfer-function)
 
 (doc 'module 'tf-convert)
 (doc 'description "Bidirectional conversion between state-space and transfer function representations")

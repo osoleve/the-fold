@@ -1,7 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/diffgeo/charts.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'matrix)
+(require 'vec)
+(require 'charts)
 
 (doc 'module 'tangent)
 (doc 'description "Tangent and Cotangent Spaces - Differential geometry structures for tangent vectors and differential forms")

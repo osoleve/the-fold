@@ -1,4 +1,6 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'normal-form)
 (doc 'description "Normal form (strategic) games with payoff matrices. Supports Nash equilibrium, dominated strategy elimination, mixed strategies, and best response dynamics.")

@@ -2,8 +2,10 @@
 ;;; @module voting
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'voting)
 (doc 'description "Social choice functions and voting rules for aggregating preferences. Covers positional rules (Borda, plurality), Condorcet methods (Copeland, Schulze), and related concepts")

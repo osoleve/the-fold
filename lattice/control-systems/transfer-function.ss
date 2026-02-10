@@ -11,8 +11,10 @@
 ;;;   - lattice/numeric/polynomial.ss
 ;;;   - lattice/numeric/complex.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/numeric/polynomial.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'numeric/polynomial)
 
 (doc 'module 'transfer-function)
 (doc 'description "Transfer function representation for LTI systems with frequency response analysis")

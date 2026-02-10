@@ -1,4 +1,6 @@
-(load "lattice/diffgeo/curvature.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'curvature)
 
 (doc 'module 'symbolic-metrics)
 (doc 'description "Exact symbolic metric derivatives for standard coordinate systems")

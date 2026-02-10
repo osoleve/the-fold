@@ -2,11 +2,13 @@
 ;;; @module coop-games
 ;;; @requires prelude vec matrix matrix-solvers lp
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/optimization/lp.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'matrix-solvers)
+(load "lattice/optimization/lp.ss")  ; lp not yet registered
 
 (doc 'module 'coop-games)
 (doc 'description "Cooperative (Coalitional) Game Theory with transferable utility")
