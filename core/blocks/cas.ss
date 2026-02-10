@@ -191,51 +191,65 @@
 
 (doc 'section 'in-memory-store)
 
+(doc *store-mutex* 'type 'Mutex)
+(doc *store-mutex* 'description "Guards all access to *store* and *pinned* hashtables.
+All public CAS functions acquire this lock. Compound operations
+(gc!, pin-tree!, etc.) hold it for the entire operation to prevent
+TOCTOU races. Non-recursive — internal helpers use raw hashtable
+ops to avoid nested acquisition.")
+(define *store-mutex* (make-mutex))
+
 (doc *store* 'type (Hashtable Bytevector Block))
-(doc *store* 'description "In-memory store hashtable. NOT thread-safe.")
+(doc *store* 'description "In-memory content-addressed store. Thread-safe via *store-mutex*.")
 (define *store* (make-hashtable equal-hash equal?))
 
 (doc *pinned* 'type (Hashtable Bytevector Boolean))
-(doc *pinned* 'description "Pinned hashes preserved during garbage collection.")
+(doc *pinned* 'description "Pinned hashes preserved during garbage collection. Thread-safe via *store-mutex*.")
 (define *pinned* (make-hashtable equal-hash equal?))
 
 (define (store! blk)
   (doc 'type (-> Block Bytevector))
-  (doc 'description "Store a block and return its hash.")
+  (doc 'description "Store a block and return its hash. Thread-safe.")
   (doc 'export #t)
   (let ([hash (hash-block blk)])
-       (hashtable-set! *store* hash blk)
-       hash))
+    (with-mutex *store-mutex*
+      (hashtable-set! *store* hash blk))
+    hash))
 
 (define (fetch hash)
   (doc 'type (-> Bytevector (Maybe Block)))
-  (doc 'description "Retrieve a block by its hash, or #f if not found.")
+  (doc 'description "Retrieve a block by its hash, or #f if not found. Thread-safe.")
   (doc 'export #t)
-  (hashtable-ref *store* hash #f))
+  (with-mutex *store-mutex*
+    (hashtable-ref *store* hash #f)))
 
 (define (stored? hash)
   (doc 'type (-> Bytevector Boolean))
-  (doc 'description "Check if a block with this hash exists.")
+  (doc 'description "Check if a block with this hash exists. Thread-safe.")
   (doc 'export #t)
-  (hashtable-contains? *store* hash))
+  (with-mutex *store-mutex*
+    (hashtable-contains? *store* hash)))
 
 (define (pin! hash)
   (doc 'type (-> Bytevector Void))
-  (doc 'description "Mark a hash as pinned (should not be garbage collected).")
+  (doc 'description "Mark a hash as pinned (should not be garbage collected). Thread-safe.")
   (doc 'export #t)
-  (hashtable-set! *pinned* hash #t))
+  (with-mutex *store-mutex*
+    (hashtable-set! *pinned* hash #t)))
 
 (define (pinned? hash)
   (doc 'type (-> Bytevector Boolean))
-  (doc 'description "Check if a hash is currently pinned.")
+  (doc 'description "Check if a hash is currently pinned. Thread-safe.")
   (doc 'export #t)
-  (hashtable-ref *pinned* hash #f))
+  (with-mutex *store-mutex*
+    (hashtable-ref *pinned* hash #f)))
 
 (define (unpin! hash)
   (doc 'type (-> Bytevector Void))
-  (doc 'description "Remove pin from a hash.")
+  (doc 'description "Remove pin from a hash. Thread-safe.")
   (doc 'export #t)
-  (hashtable-delete! *pinned* hash))
+  (with-mutex *store-mutex*
+    (hashtable-delete! *pinned* hash)))
 
 (doc 'section 'tree-operations)
 
@@ -272,116 +286,137 @@
 
 (define (pin-tree! hash)
   (doc 'type (-> Bytevector Nat))
-  (doc 'description "Pin a hash and all its transitive references. Returns number of blocks pinned.")
+  (doc 'description "Pin a hash and all its transitive references. Returns number of blocks pinned.
+Thread-safe: holds store lock for entire traversal to prevent TOCTOU with gc!.")
   (doc 'export #t)
-  (let* ([refs (collect-refs hash fetch)]
-         [count 0])
-        (for-each
-         (lambda (h)
-                 (unless (pinned? h)
-                         (pin! h)
-                         (set! count (+ count 1))))
-         refs)
-        count))
+  (with-mutex *store-mutex*
+    (let* ([refs (collect-refs hash (lambda (h) (hashtable-ref *store* h #f)))]
+           [count 0])
+      (for-each
+       (lambda (h)
+         (unless (hashtable-ref *pinned* h #f)
+           (hashtable-set! *pinned* h #t)
+           (set! count (+ count 1))))
+       refs)
+      count)))
 
 (define (unpin-tree! hash)
   (doc 'type (-> Bytevector Nat))
-  (doc 'description "Unpin a hash and all its transitive references. Returns number of blocks unpinned.")
+  (doc 'description "Unpin a hash and all its transitive references. Returns number of blocks unpinned.
+Thread-safe: holds store lock for entire traversal.")
   (doc 'export #t)
-  (let* ([refs (collect-refs hash fetch)]
-         [count 0])
-        (for-each
-         (lambda (h)
-                 (when (pinned? h)
-                       (unpin! h)
-                       (set! count (+ count 1))))
-         refs)
-        count))
+  (with-mutex *store-mutex*
+    (let* ([refs (collect-refs hash (lambda (h) (hashtable-ref *store* h #f)))]
+           [count 0])
+      (for-each
+       (lambda (h)
+         (when (hashtable-ref *pinned* h #f)
+           (hashtable-delete! *pinned* h)
+           (set! count (+ count 1))))
+       refs)
+      count)))
 
 (doc 'section 'garbage-collection)
 
 (define (gc!)
   (doc 'type (-> (Values Nat Nat)))
-  (doc 'description "Remove all unpinned blocks from store. Returns (collected-count remaining-count).")
+  (doc 'description "Remove all unpinned blocks from store. Returns (collected-count remaining-count).
+Thread-safe: holds store lock for entire gc pass.")
   (doc 'export #t)
-  (let ([to-remove '()]
-        [initial-count (store-count)])
-       ;; Collect unpinned hashes
-       (vector-for-each
-        (lambda (hash)
-                (unless (pinned? hash)
-                        (set! to-remove (cons hash to-remove))))
-        (hashtable-keys *store*))
-       ;; Remove them
-       (for-each
-        (lambda (hash)
-                (hashtable-delete! *store* hash))
-        to-remove)
-       (values (length to-remove) (store-count))))
+  (with-mutex *store-mutex*
+    (let ([to-remove '()])
+      ;; Collect unpinned hashes
+      (vector-for-each
+       (lambda (hash)
+         (unless (hashtable-ref *pinned* hash #f)
+           (set! to-remove (cons hash to-remove))))
+       (hashtable-keys *store*))
+      ;; Remove them
+      (for-each
+       (lambda (hash)
+         (hashtable-delete! *store* hash))
+       to-remove)
+      (values (length to-remove) (hashtable-size *store*)))))
 
 (define (gc-with-roots! roots)
   (doc 'type (-> (List Bytevector) (Values Nat Nat)))
-  (doc 'description "Collect blocks not reachable from root hashes. Returns (collected-count remaining-count).")
+  (doc 'description "Collect blocks not reachable from root hashes. Returns (collected-count remaining-count).
+Thread-safe: holds store lock for entire operation including pin save/restore.")
   (doc 'export #t)
-  ;; Save current pins
-  (let ([saved-pins (make-hashtable equal-hash equal?)])
-       (vector-for-each
-        (lambda (h)
-                (hashtable-set! saved-pins h #t))
-        (hashtable-keys *pinned*))
-       
-       ;; Clear all pins
-       (hashtable-clear! *pinned*)
-       
-       ;; Pin from roots
-       (for-each
-        (lambda (root)
-                (when (stored? root)
-                      (pin-tree! root)))
-        roots)
-       
-       ;; Run GC
-       (let-values ([(collected remaining) (gc!)])
-                   ;; Restore original pins for remaining blocks
-                   (vector-for-each
-                    (lambda (h)
-                            (when (hashtable-ref saved-pins h #f)
-                                  (pin! h)))
-                    (hashtable-keys *store*))
-                   (values collected remaining))))
+  (with-mutex *store-mutex*
+    ;; Save current pins
+    (let ([saved-pins (make-hashtable equal-hash equal?)])
+      (vector-for-each
+       (lambda (h) (hashtable-set! saved-pins h #t))
+       (hashtable-keys *pinned*))
+
+      ;; Clear all pins
+      (hashtable-clear! *pinned*)
+
+      ;; Pin from roots (inline pin-tree! to avoid nested lock)
+      (for-each
+       (lambda (root)
+         (when (hashtable-contains? *store* root)
+           (let ([refs (collect-refs root (lambda (h) (hashtable-ref *store* h #f)))])
+             (for-each
+              (lambda (h) (hashtable-set! *pinned* h #t))
+              refs))))
+       roots)
+
+      ;; Run GC (inline gc! to avoid nested lock)
+      (let ([to-remove '()])
+        (vector-for-each
+         (lambda (hash)
+           (unless (hashtable-ref *pinned* hash #f)
+             (set! to-remove (cons hash to-remove))))
+         (hashtable-keys *store*))
+        (for-each
+         (lambda (hash) (hashtable-delete! *store* hash))
+         to-remove)
+
+        ;; Restore original pins for remaining blocks
+        (vector-for-each
+         (lambda (h)
+           (when (hashtable-ref saved-pins h #f)
+             (hashtable-set! *pinned* h #t)))
+         (hashtable-keys *store*))
+        (values (length to-remove) (hashtable-size *store*))))))
 
 (define (gc-stats)
   (doc 'type (-> Alist))
-  (doc 'description "Return statistics about pinned vs unpinned blocks.")
+  (doc 'description "Return statistics about pinned vs unpinned blocks. Thread-safe.")
   (doc 'export #t)
-  (let ([total 0]
-        [pinned-count 0]
-        [unpinned-count 0])
-       (vector-for-each
-        (lambda (hash)
-                (set! total (+ total 1))
-                (if (pinned? hash)
-                    (set! pinned-count (+ pinned-count 1))
-                    (set! unpinned-count (+ unpinned-count 1))))
-        (hashtable-keys *store*))
-       `((total . ,total)
-         (pinned . ,pinned-count)
-         (unpinned . ,unpinned-count)
-         (gc-would-collect . ,unpinned-count))))
+  (with-mutex *store-mutex*
+    (let ([total 0]
+          [pinned-count 0]
+          [unpinned-count 0])
+      (vector-for-each
+       (lambda (hash)
+         (set! total (+ total 1))
+         (if (hashtable-ref *pinned* hash #f)
+             (set! pinned-count (+ pinned-count 1))
+             (set! unpinned-count (+ unpinned-count 1))))
+       (hashtable-keys *store*))
+      `((total . ,total)
+        (pinned . ,pinned-count)
+        (unpinned . ,unpinned-count)
+        (gc-would-collect . ,unpinned-count)))))
 
 (doc 'section 'store-statistics)
 
 (define (store-count)
   (doc 'type (-> Nat))
-  (doc 'description "Number of blocks in the store.")
+  (doc 'description "Number of blocks in the store. Thread-safe.")
   (doc 'export #t)
-  (hashtable-size *store*))
+  (with-mutex *store-mutex*
+    (hashtable-size *store*)))
 
 (define (store-hashes)
   (doc 'type (-> (List Bytevector)))
-  (doc 'description "All hashes in the store.")
+  (doc 'description "All hashes in the store. Thread-safe.")
   (doc 'export #t)
-  (vector->list (hashtable-keys *store*)))
+  (with-mutex *store-mutex*
+    (vector->list (hashtable-keys *store*))))
 
 (doc 'section 'convenience)
 

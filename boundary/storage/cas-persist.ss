@@ -95,48 +95,63 @@
 
 (define (hydrate-cas!)
   (doc 'type (-> Void Nat))
-  (doc 'description "Load all blocks from disk into the in-memory CAS")
+  (doc 'description "Load all blocks from disk into the in-memory CAS.
+Thread-safe: loads blocks from disk first, then bulk-inserts under lock.")
   (doc 'returns "Number of blocks loaded")
   (doc 'export #t)
   (if (not (file-directory? *cas-root*))
       0
-      (let ([count 0])
-           (for-each
-            (lambda (shard)
-                    (let ([shard-path (string-append *cas-root* "/" shard)])
-                         (when (file-directory? shard-path)
-                               (for-each
-                                (lambda (suffix)
-                                        (let* ([hash-hex (string-append shard suffix)]
-                                               [hash (hex->hash hash-hex)]
-                                               [blk (load-block hash)])
-                                              (when blk
-                                                    (hashtable-set! *store* hash blk)
-                                                    (set! count (+ count 1)))))
-                                (directory-list shard-path)))))
-            (directory-list *cas-root*))
-           count)))
+      ;; Phase 1: load from disk (no lock needed, only I/O)
+      (let ([loaded '()])
+        (for-each
+         (lambda (shard)
+           (let ([shard-path (string-append *cas-root* "/" shard)])
+             (when (file-directory? shard-path)
+               (for-each
+                (lambda (suffix)
+                  (let* ([hash-hex (string-append shard suffix)]
+                         [hash (hex->hash hash-hex)]
+                         [blk (load-block hash)])
+                    (when blk
+                      (set! loaded (cons (cons hash blk) loaded)))))
+                (directory-list shard-path)))))
+         (directory-list *cas-root*))
+        ;; Phase 2: bulk insert under lock
+        (with-mutex *store-mutex*
+          (for-each
+           (lambda (pair)
+             (hashtable-set! *store* (car pair) (cdr pair)))
+           loaded))
+        (length loaded))))
 
 (doc 'section 'store-with-persistence)
 
 (define (store-persistent! blk)
   (doc 'type (-> Block Bytevector))
-  (doc 'description "Store a block in both memory and disk")
+  (doc 'description "Store a block in both memory and disk. Thread-safe.
+Hash computation and disk write happen outside the lock.")
   (doc 'export #t)
   (let ([hash (hash-block blk)])
-       (hashtable-set! *store* hash blk)
-       (persist-block! hash blk)
-       hash))
+    (with-mutex *store-mutex*
+      (hashtable-set! *store* hash blk))
+    (persist-block! hash blk)
+    hash))
 
 (define (fetch-persistent hash)
   (doc 'type (-> Bytevector (Maybe Block)))
-  (doc 'description "Fetch a block, checking disk if not in memory")
+  (doc 'description "Fetch a block, checking disk if not in memory. Thread-safe.
+On cache miss, loads from disk and caches. Two threads may race to
+cache the same block — this is harmless since blocks are immutable
+(same hash = same content).")
   (doc 'export #t)
-  (or (hashtable-ref *store* hash #f)
-      (let ([blk (load-block hash)])
-           (when blk
-                 (hashtable-set! *store* hash blk))
-           blk)))
+  (let ([cached (with-mutex *store-mutex*
+                  (hashtable-ref *store* hash #f))])
+    (or cached
+        (let ([blk (load-block hash)])
+          (when blk
+            (with-mutex *store-mutex*
+              (hashtable-set! *store* hash blk)))
+          blk))))
 
 (doc 'section 'utilities)
 
@@ -144,7 +159,7 @@
   (doc 'type (-> Void Alist))
   (doc 'description "Get statistics about the CAS (memory and disk)")
   (doc 'export #t)
-  (let ([memory-count (hashtable-size *store*)]
+  (let ([memory-count (with-mutex *store-mutex* (hashtable-size *store*))]
         [disk-count (if (file-directory? *cas-root*)
                         (let ([count 0])
                              (for-each
