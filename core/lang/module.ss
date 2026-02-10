@@ -155,6 +155,31 @@ Dependencies:
  (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
  (register-module-path! 'graph-algorithms "lattice/data/graph/graph-algorithms.ss")
  (register-module-path! 'heap "lattice/data/heap.ss")
+ (register-module-path! 'avl-tree "lattice/data/avl-tree.ss")
+ (register-module-path! 'chase-lev-deque "lattice/data/chase-lev-deque.ss")
+ (register-module-path! 'collection-protocol "lattice/data/collection-protocol.ss")
+ (register-module-path! 'collection-impl "lattice/data/collection-impl.ss")
+ (register-module-path! 'kdtree "lattice/data/kdtree.ss")
+ (register-module-path! 'quadtree "lattice/data/quadtree.ss")
+ (register-module-path! 'graph-matrix "lattice/data/graph/graph-matrix.ss")
+ (register-module-path! 'graph-homology "lattice/data/graph/graph-homology.ss")
+ (register-module-path! 'graph-community "lattice/data/graph/graph-community.ss")
+ (register-module-path! 'graph-layout "lattice/data/graph/graph-layout.ss")
+ (register-module-path! 'pagerank "lattice/data/graph/pagerank.ss")
+ (register-module-path! 'centrality "lattice/data/graph/centrality.ss")
+
+ ;; Optics layer
+ (register-module-path! 'optics "lattice/optics/optics.ss")
+ (register-module-path! 'profunctor-optics "lattice/optics/profunctor-optics.ss")
+ (register-module-path! 'bidirectional "lattice/optics/bidirectional.ss")
+ (register-module-path! 'format-iso "lattice/optics/format-iso.ss")
+ (register-module-path! 'schema "lattice/optics/schema.ss")
+ (register-module-path! 'block-migration "lattice/optics/block-migration.ss")
+ (register-module-path! 'block-optics "lattice/optics/block-optics.ss")
+
+ ;; Parallel layer
+ (register-module-path! 'strategies "lattice/parallel/strategies.ss")
+ (register-module-path! 'patterns "lattice/parallel/patterns.ss")
 
  ;; Linalg layer
  (register-module-path! 'iteration "lattice/linalg/iteration.ss")
@@ -176,6 +201,7 @@ Dependencies:
  (register-module-path! 'dep-linalg "lattice/linalg/dep-linalg.ss")
  (register-module-path! 'graph-laplacian "lattice/linalg/graph-laplacian.ss")
  (register-module-path! 'quaternion "lattice/linalg/quaternion.ss")
+ (register-module-path! 'matrix-optics "lattice/linalg/matrix-optics.ss")
  
  ;; Numeric layer
  (register-module-path! 'complex "lattice/numeric/complex.ss")

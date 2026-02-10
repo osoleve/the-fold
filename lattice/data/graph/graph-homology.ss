@@ -2,8 +2,10 @@
 ;;; @module graph-homology
 ;;; @requires prelude topology/homology
 
-(load "core/base/prelude.ss")
-(load "lattice/topology/homology.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'homology)
 
 (doc 'module 'graph-homology)
 (doc 'description "Algebraic topology tools for analyzing cycles in graphs using simplicial homology.

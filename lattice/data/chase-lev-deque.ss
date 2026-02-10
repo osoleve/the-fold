@@ -2,7 +2,9 @@
 ;;; @module chase-lev-deque
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'chase-lev-deque)
 (doc 'description "Lock-free Chase-Lev work-stealing deque.

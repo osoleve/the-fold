@@ -2,9 +2,11 @@
 ;;; @module block-migration
 ;;; @requires block bidirectional format-iso
 
-(load "core/blocks/block.ss")
-(load "lattice/optics/bidirectional.ss")
-(load "lattice/optics/format-iso.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'block)
+(require 'bidirectional)
+(require 'format-iso)
 
 (doc 'module 'block-migration)
 (doc 'description "CAS Block-Specific Migrations

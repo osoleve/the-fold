@@ -2,9 +2,10 @@
 ;;; @module collection-utils
 ;;; @requires prelude block sha256
 
-(source-directories (cons "core" (source-directories)))
-(load "core/blocks/block.ss")
-(load "core/base/sha256.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'block)
+(require 'sha256)
 
 (doc 'module 'collection-utils)
 (doc 'description "Collection Utilities for Block Collections — Higher-order functions for working with block collections. Collections are blocks with multiple refs - this library provides functional programming primitives for transforming and querying them")

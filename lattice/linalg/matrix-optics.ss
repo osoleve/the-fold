@@ -17,9 +17,11 @@
 ;;;   (optic-gradient loss-fn (matrix-cell-lens 0 0) my-matrix)
 ;;;   => gradient of loss w.r.t. cell (0,0)
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/optics/optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'matrix)
+(require 'optics)
 
 (doc 'module 'matrix-optics)
 (doc 'description "Optics for matrix operations - composable data access and autodiff support")

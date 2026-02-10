@@ -2,7 +2,9 @@
 ;;; @module schema
 ;;; @requires profunctor-optics
 
-(load "lattice/optics/profunctor-optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'profunctor-optics)
 
 (doc 'module 'schema)
 (doc 'description "Field-Level Schema Operations DSL - Bidirectional operations for manipulating alist-based schemas")

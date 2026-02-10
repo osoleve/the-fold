@@ -1,5 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/analysis/cost-analysis.ss")
+;;; @module strategies
+;;; @requires prelude cost-analysis
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'cost-analysis)
 
 (doc 'module 'strategies)
 (doc 'description "Parallel Evaluation Strategies

@@ -2,8 +2,10 @@
 ;;; @module graph-community
 ;;; @requires prelude sort
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'graph-community)
 (doc 'description "Community detection and minimum spanning tree algorithms")
@@ -38,7 +40,7 @@
   - kruskal-mst: O(m log m) for sorting + O(m·α(n)) for union-find
   - connected-components: O(n + m) BFS")
 
-(load "lattice/data/graph/graph-matrix.ss")
+(require 'graph-matrix)
 (load "lattice/optimization/ilp.ss")
 
 (doc label-propagation 'type '(-> Matrix [Nat] [Nat] Vector))
@@ -601,7 +603,7 @@
   - B_1 measures internal cycle structure (higher = more dense/redundant paths)
   - Quality metrics based on topological invariants")
 
-(load "lattice/data/graph/graph-homology.ss")
+(require 'graph-homology)
 
 (doc community-induced-edges 'type '(-> Matrix (List Nat) (List Edge)))
 (doc community-induced-edges 'description "Extract edges within a community from adjacency matrix")

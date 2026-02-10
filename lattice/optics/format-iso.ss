@@ -2,8 +2,10 @@
 ;;; @module format-iso
 ;;; @requires profunctor-optics
 
-(load "lattice/data/sort.ss")
-(load "lattice/optics/profunctor-optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'sort)
+(require 'profunctor-optics)
 
 (doc 'module 'format-iso)
 (doc 'description "Standard Format Isomorphisms

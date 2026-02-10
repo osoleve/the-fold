@@ -2,8 +2,13 @@
 ;;; @module pagerank
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
+(require 'vec)
+(require 'matrix)
+(require 'graph-matrix)
 
 (doc 'module 'pagerank)
 (doc 'description "PageRank importance scoring using eigenvalue computation")

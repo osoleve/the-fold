@@ -2,8 +2,13 @@
 ;;; @module centrality
 ;;; @requires prelude sort
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
+(require 'vec)
+(require 'matrix)
+(require 'graph-matrix)
 
 (doc 'module 'centrality)
 (doc 'description "Graph centrality measures: eigenvector, Katz, closeness, and betweenness centrality")

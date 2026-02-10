@@ -2,8 +2,10 @@
 ;;; @module block-optics
 ;;; @requires block optics
 
-(load "core/blocks/block.ss")
-(load "lattice/optics/optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'block)
+(require 'optics)
 
 (doc 'module 'block-optics)
 (doc 'description "Optics for The Fold's Block System

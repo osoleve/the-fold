@@ -1,9 +1,11 @@
 ;;; lattice/data/collection-protocol.ss — Unified Collection Protocols
 ;;; @module collection-protocol
-;;; @requires prelude, protocol
+;;; @requires prelude protocol
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/protocol.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'protocol)
 
 (doc 'module 'collection-protocol)
 (doc 'description "Protocol-based interface for collections enabling generic algorithms.

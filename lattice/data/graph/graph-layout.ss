@@ -2,9 +2,11 @@
 ;;; @module graph-layout
 ;;; @requires prelude linalg/vec optics
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/optics/optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'optics)
 
 (doc 'module 'graph-layout)
 (doc 'description "Force-directed graph layout using Fruchterman-Reingold algorithm")

@@ -2,9 +2,11 @@
 ;;; @module optics
 ;;; @requires prelude combinators templates
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
 
 (doc 'module 'optics)
 (doc 'description "Comprehensive Optics Tower - A complete hierarchy of optics for composable data access")

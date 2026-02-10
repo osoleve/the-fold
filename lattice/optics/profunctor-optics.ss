@@ -2,10 +2,12 @@
 ;;; @module profunctor-optics
 ;;; @requires prelude combinators templates optics
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/fp/templates.ss")
-(load "lattice/optics/optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
+(require 'templates)
+(require 'optics)
 
 (doc 'module 'profunctor-optics)
 (doc 'description "Part 1: Profunctor Type Class A profunctor is a bifunctor that is contravariant in its first argument and covariant in its second: class Profunctor p where dimap :: (a' -> a) -> (b -> b') -> p a b -> p a' b'")

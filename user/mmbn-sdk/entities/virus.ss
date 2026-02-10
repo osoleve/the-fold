@@ -1,6 +1,6 @@
 ;;; user/mmbn-sdk/entities/virus.ss — Virus Enemies
 ;;; @module mmbn/virus
-;;; @requires entity, sprite-designer
+;;; @requires entity sprite-designer
 ;;; Load via: (load "user/mmbn-sdk/mmbn.ss")
 
 ;; Dependencies loaded by mmbn.ss

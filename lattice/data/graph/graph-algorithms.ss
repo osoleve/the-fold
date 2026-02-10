@@ -2,8 +2,10 @@
 ;;; @module graph-algorithms
 ;;; @requires prelude sort
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'graph-algorithms)
 (doc 'description "Pure graph data structures: visited sets, queues, stacks, hash utilities, cycle utilities.
@@ -20,7 +22,7 @@
 (doc 'note "Store-dependent traversal and analysis functions (BFS, DFS, pathfinding,
   connected components, centrality, etc.) live in boundary/blocks/graph-traversal.ss")
 
-(load "lattice/data/collection-utils.ss")
+(require 'collection-utils)
 
 (doc bytevector-hash 'type '(-> Bytevector Integer))
 (doc bytevector-hash 'description "Hash function for bytevectors (FNV-1a inspired)")

@@ -2,7 +2,9 @@
 ;;; @module avl-tree
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'avl-tree)
 (doc 'description "AVL Tree (Self-Balancing Binary Search Tree) — Purely functional AVL tree with O(log n) insert, delete, and lookup. Maintains balance invariant: |height(left) - height(right)| <= 1. AVL α = Empty | (Node height key value left right). Keys must be comparable with < (uses default ordering). For custom ordering, use avl-*-by functions with a comparator.")

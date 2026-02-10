@@ -1,6 +1,6 @@
 ;;; user/mmbn-sdk/entities/navi.ss — Player Navi Entity
 ;;; @module mmbn/navi
-;;; @requires entity, sprite-designer
+;;; @requires entity sprite-designer
 ;;; Load via: (load "user/mmbn-sdk/mmbn.ss")
 
 ;; Dependencies loaded by mmbn.ss

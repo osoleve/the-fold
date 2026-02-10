@@ -1,13 +1,15 @@
 ;;; lattice/data/collection-impl.ss — Protocol Implementations for Data Structures
 ;;; @module collection-impl
-;;; @requires collection-protocol, avl-tree, heap, kdtree, quadtree
+;;; @requires collection-protocol avl-tree heap kdtree quadtree
 
-(load "lattice/data/collection-protocol.ss")
-(load "lattice/data/avl-tree.ss")
-(load "lattice/data/heap.ss")
-(load "lattice/data/kdtree.ss")
-(load "lattice/data/quadtree.ss")
-(load "lattice/fp/meta/combinators.ss")  ; For just/nothing
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'collection-protocol)
+(require 'avl-tree)
+(require 'heap)
+(require 'kdtree)
+(require 'quadtree)
+(require 'combinators)  ; For just/nothing
 
 (doc 'module 'collection-impl)
 (doc 'description "Protocol implementations for lattice data structures.

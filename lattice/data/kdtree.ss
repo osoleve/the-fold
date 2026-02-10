@@ -2,9 +2,11 @@
 ;;; @module kdtree
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/data/heap.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
+(require 'heap)
 
 (doc 'module 'kdtree)
 (doc 'description "K-dimensional tree for efficient spatial queries on point sets.

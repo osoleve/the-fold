@@ -2,7 +2,13 @@
 ;;; @module graph-matrix
 ;;; @requires prelude vec matrix sparse heap
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'sparse)
+(require 'heap)
 
 (doc 'module 'graph-matrix)
 (doc 'description "Adjacency matrix graph representation for linear algebra graph algorithms")
@@ -13,10 +19,6 @@
   - Edge (i,j) means node i connects to node j
   - For weighted graphs, A[i,j] = weight of edge (i,j)
   - For unweighted graphs, A[i,j] = 1 if edge exists, 0 otherwise")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
-(load "lattice/data/heap.ss")
 
 (doc 'section 'edge-list-representation)
 (doc 'description "Edge lists are input format for graph construction: unweighted ((from to) ...) or weighted ((from to weight) ...)")

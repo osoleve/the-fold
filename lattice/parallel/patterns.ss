@@ -1,5 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/parallel/strategies.ss")
+;;; @module patterns
+;;; @requires prelude strategies
+
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'strategies)
 
 (doc 'module 'patterns)
 (doc 'description "Parallel Algorithm Skeletons

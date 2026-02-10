@@ -2,7 +2,9 @@
 ;;; @module queue
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'queue)
 (doc 'description "FIFO Queue")

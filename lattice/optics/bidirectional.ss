@@ -2,7 +2,9 @@
 ;;; @module bidirectional
 ;;; @requires profunctor-optics
 
-(load "lattice/optics/profunctor-optics.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'profunctor-optics)
 
 (doc 'module 'bidirectional)
 (doc 'description "Bidirectional Transformations via Optics

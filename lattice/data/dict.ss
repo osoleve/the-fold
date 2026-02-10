@@ -2,7 +2,9 @@
 ;;; @module dict
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'dict)
 (doc 'description "Key-Value Dictionary")

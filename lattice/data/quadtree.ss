@@ -1,10 +1,12 @@
 ;;; lattice/data/quadtree.ss — Quadtree for 2D Spatial Queries
 ;;; @module quadtree
-;;; @requires prelude, heap
+;;; @requires prelude heap
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/data/heap.ss")
+(unless (top-level-bound? 'require)
+  (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
+(require 'heap)
 
 (doc 'module 'quadtree)
 (doc 'description "Quadtree for efficient 2D spatial queries. Uniformly subdivides space into
