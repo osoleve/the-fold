@@ -1,6 +1,4 @@
 ;;; lattice/statistics/regression/traced-regression.ss — Traced Optics for Regression
-;;; @module traced-regression
-;;; @requires prelude matrix optics traced-optics result-types
 ;;;
 ;;; Integrates traced-optics with regression models for:
 ;;;   - Computing gradients of loss functions w.r.t. parameters
@@ -17,11 +15,14 @@
 ;;;     params-coef-lens
 ;;;     my-params)
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/optics/optics.ss")
-(load "lattice/autodiff/traced-optics.ss")
-(load "lattice/statistics/core/result-types.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-regression
+;;; @requires prelude matrix optics traced-optics result-types
+(require 'prelude)
+(require 'matrix)
+(require 'optics)
+(require 'traced-optics)
+(require 'result-types)
 
 (doc 'module 'traced-regression)
 (doc 'description "Traced optics integration for regression - gradients through parameter paths")

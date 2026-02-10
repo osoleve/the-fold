@@ -1,11 +1,14 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/core/summary-stats.ss")
-(load "lattice/statistics/core/diagnostics.ss")
-(load "lattice/statistics/hypothesis/distributions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module linear
+;;; @requires prelude matrix matrix-decomp matrix-solvers result-types summary-stats diagnostics stat/distributions
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-solvers)
+(require 'result-types)
+(require 'summary-stats)
+(require 'diagnostics)
+(require 'stat/distributions)
 
 (doc 'module 'linear)
 (doc 'description "Linear Regression — Ordinary Least Squares (OLS) and Weighted Least Squares (WLS)")

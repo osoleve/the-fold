@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tiles/core)
+
 (doc 'module 'tiles/triangle)
 (doc 'description "Triangular tile implementation with alternating up/down orientations")
 (doc 'layer 'lattice)

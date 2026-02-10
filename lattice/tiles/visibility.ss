@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tiles/core)
+
 (doc 'module 'tiles/visibility)
 (doc 'description "Line of sight and field of view algorithms for tile-based games")
 (doc 'layer 'lattice)

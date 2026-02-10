@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tiles/core)
+
 (doc 'module 'tiles/pathfinding)
 (doc 'description "Generic pathfinding algorithms: BFS, Dijkstra, A*")
 (doc 'layer 'lattice)

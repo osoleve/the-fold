@@ -1,36 +1,11 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude 'tiles/core 'tiles/square 'tiles/hex 'tiles/triangle
+         'pathfinding 'visibility 'tiles/render 'tiles/units 'turns)
 
 (doc 'module 'tiles/boardcraft)
 (doc 'description "BoardCraft SDK main loader - loads all tile game modules")
 (doc 'layer 'lattice)
 (doc 'purity 'partial)
-
-;;; Core types and utilities
-(load "lattice/tiles/core.ss")
-
-;;; Square tiles
-(load "lattice/tiles/square.ss")
-
-;;; Hexagonal tiles
-(load "lattice/tiles/hex.ss")
-
-;;; Triangular tiles
-(load "lattice/tiles/triangle.ss")
-
-;;; Pathfinding algorithms
-(load "lattice/tiles/pathfinding.ss")
-
-;;; Visibility and line of sight
-(load "lattice/tiles/visibility.ss")
-
-;;; Board rendering (ASCII art)
-(load "lattice/tiles/render.ss")
-
-;;; Unit/entity management
-(load "lattice/tiles/units.ss")
-
-;;; Turn-based game system
-(load "lattice/tiles/turns.ss")
 
 (doc 'section 'quick-reference)
 

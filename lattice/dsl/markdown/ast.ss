@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module markdown-ast
+;;; @requires prelude
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'markdown-ast)
 (doc 'description "Markdown Abstract Syntax Tree - Defines the AST types for parsed markdown documents. All nodes are tagged S-expressions for easy pattern matching")

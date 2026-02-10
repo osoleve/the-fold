@@ -1,9 +1,12 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/core/summary-stats.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module regularized
+;;; @requires prelude matrix matrix-decomp matrix-solvers result-types summary-stats
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-solvers)
+(require 'result-types)
+(require 'summary-stats)
 
 (doc 'module 'regularized)
 (doc 'description "Regularized Regression — Ridge, Lasso, and Elastic Net regression")

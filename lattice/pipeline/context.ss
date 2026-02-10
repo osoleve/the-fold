@@ -1,4 +1,5 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'pipeline/context)
 (doc 'description "Pipeline Context and State. Context is the read-only environment for pipeline execution. State is the mutable accumulator threaded through stages.")

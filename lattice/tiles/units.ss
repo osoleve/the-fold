@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tiles/core 'pathfinding 'visibility)
+
 (doc 'module 'tiles/units)
 (doc 'description "Unit/entity management: creation, placement, movement, visibility")
 (doc 'layer 'lattice)

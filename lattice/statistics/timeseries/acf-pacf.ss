@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/statistics/core/summary-stats.ss")
-(load "lattice/statistics/hypothesis/distributions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module acf-pacf
+;;; @requires prelude summary-stats stat/distributions
+(require 'prelude)
+(require 'summary-stats)
+(require 'stat/distributions)
 
 (doc 'module 'acf-pacf)
 (doc 'description "Autocorrelation Functions — ACF and PACF computation for time series")

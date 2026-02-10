@@ -1,5 +1,6 @@
-(load "lattice/pipeline/council.ss")
-(load "lattice/game-theory/voting.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'council)
+(require 'voting)
 
 (doc 'module 'pipeline/council-voting)
 (doc 'description "Voting Theory Integration for Councils. Extends council.ss with ranked-choice voting using voting.ss. Agents submit full preference rankings over proposals, and various aggregation rules (Schulze, Borda, Copeland, plurality) determine outcomes.")

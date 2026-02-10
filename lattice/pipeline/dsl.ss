@@ -1,7 +1,8 @@
-(load "lattice/pipeline/stage.ss")
-(load "lattice/pipeline/effects.ss")
-(load "lattice/pipeline/context.ss")
-(load "lattice/pipeline/council.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'pipeline/stage)
+(require 'pipeline/effects)
+(require 'pipeline/context)
+(require 'council)
 
 (doc 'module 'pipeline/dsl)
 (doc 'description "User-Facing Pipeline DSL. Provides a clean syntax for defining pipelines. Pipelines are still S-expressions (homoiconic) but with convenient constructors and combinators.")

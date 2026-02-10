@@ -1,5 +1,6 @@
-(load "lattice/pipeline/stage.ss")
-(load "lattice/pipeline/effects.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'pipeline/stage)
+(require 'pipeline/effects)
 
 (doc 'module 'pipeline/rlm2)
 (doc 'description "RLM v2 pure types: HUD state, action language, config, step records, and completion/loop detection. All types are tagged-list S-expressions suitable for CAS storage.")

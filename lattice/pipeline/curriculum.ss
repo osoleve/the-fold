@@ -1,6 +1,8 @@
 ;;; lattice/pipeline/curriculum.ss — RL Curriculum Extraction
 ;;; @module curriculum
 ;;; @requires prelude
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'curriculum)
 (doc 'description "Pure extraction logic for RL curriculum task-answer pairs from lattice source files. Walks S-expressions, accumulates available functions, and produces task-entry records.")

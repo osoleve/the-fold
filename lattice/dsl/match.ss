@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; @module dsl/match
+;;; @requires prelude combinators
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
 (load "core/types/pattern-check.ss")
 
 (doc 'module 'match)

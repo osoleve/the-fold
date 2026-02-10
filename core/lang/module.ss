@@ -479,7 +479,81 @@ Dependencies:
  (register-module-path! 'probability "lattice/random/probability.ss")
  (register-module-path! 'monte-carlo "lattice/random/monte-carlo.ss")
  (register-module-path! 'bayesian "lattice/random/bayesian.ss")
- (register-module-path! 'variational-inference "lattice/random/variational-inference.ss"))
+ (register-module-path! 'variational-inference "lattice/random/variational-inference.ss")
+
+ ;; Statistics core
+ (register-module-path! 'summary-stats "lattice/statistics/core/summary-stats.ss")
+ (register-module-path! 'result-types "lattice/statistics/core/result-types.ss")
+ (register-module-path! 'diagnostics "lattice/statistics/core/diagnostics.ss")
+ (register-module-path! 'design-matrix "lattice/statistics/core/design-matrix.ss")
+ (register-module-path! 'model-protocol "lattice/statistics/core/model-protocol.ss")
+
+ ;; Statistics hypothesis
+ (register-module-path! 'stat/distributions "lattice/statistics/hypothesis/distributions.ss")
+ (register-module-path! 't-test "lattice/statistics/hypothesis/t-test.ss")
+ (register-module-path! 'f-test "lattice/statistics/hypothesis/f-test.ss")
+ (register-module-path! 'chi-squared "lattice/statistics/hypothesis/chi-squared.ss")
+ (register-module-path! 'anova "lattice/statistics/hypothesis/anova.ss")
+
+ ;; Statistics regression
+ (register-module-path! 'families "lattice/statistics/regression/families.ss")
+ (register-module-path! 'link-functions "lattice/statistics/regression/link-functions.ss")
+ (register-module-path! 'linear "lattice/statistics/regression/linear.ss")
+ (register-module-path! 'regularized "lattice/statistics/regression/regularized.ss")
+ (register-module-path! 'glm "lattice/statistics/regression/glm.ss")
+ (register-module-path! 'traced-regression "lattice/statistics/regression/traced-regression.ss")
+
+ ;; Statistics timeseries
+ (register-module-path! 'differencing "lattice/statistics/timeseries/differencing.ss")
+ (register-module-path! 'exponential "lattice/statistics/timeseries/exponential.ss")
+ (register-module-path! 'forecast "lattice/statistics/timeseries/forecast.ss")
+ (register-module-path! 'acf-pacf "lattice/statistics/timeseries/acf-pacf.ss")
+ (register-module-path! 'ar "lattice/statistics/timeseries/ar.ss")
+ (register-module-path! 'ma "lattice/statistics/timeseries/ma.ss")
+ (register-module-path! 'ar-poly "lattice/statistics/timeseries/ar-poly.ss")
+
+ ;; DSL layer
+ (register-module-path! 'tagless "lattice/dsl/tagless.ss")
+ (register-module-path! 'quasi "lattice/dsl/quasi.ss")
+ (register-module-path! 'staging "lattice/dsl/staging.ss")
+ (register-module-path! 'dsl/reader "lattice/dsl/reader.ss")
+ (register-module-path! 'dsl/match "lattice/dsl/match.ss")
+ (register-module-path! 'dsl/compose "lattice/dsl/compose.ss")
+ (register-module-path! 'partial-eval "lattice/dsl/partial-eval.ss")
+ (register-module-path! 'chronicle "lattice/dsl/chronicle/chronicle.ss")
+ (register-module-path! 'chronicle-parser "lattice/dsl/chronicle/chronicle-parser.ss")
+ (register-module-path! 'tagless-chronicle "lattice/dsl/chronicle/tagless-chronicle.ss")
+ (register-module-path! 'dsl/template "lattice/dsl/template/template.ss")
+ (register-module-path! 'template-zipper "lattice/dsl/template/template-zipper.ss")
+ (register-module-path! 'markdown-ast "lattice/dsl/markdown/ast.ss")
+ (register-module-path! 'inline-parser "lattice/dsl/markdown/inline-parser.ss")
+ (register-module-path! 'block-parser "lattice/dsl/markdown/block-parser.ss")
+ (register-module-path! 'markdown-html "lattice/dsl/markdown/html.ss")
+
+ ;; Tiles layer
+ (register-module-path! 'tiles/core "lattice/tiles/core.ss")
+ (register-module-path! 'tiles/square "lattice/tiles/square.ss")
+ (register-module-path! 'tiles/hex "lattice/tiles/hex.ss")
+ (register-module-path! 'tiles/triangle "lattice/tiles/triangle.ss")
+ (register-module-path! 'pathfinding "lattice/tiles/pathfinding.ss")
+ (register-module-path! 'visibility "lattice/tiles/visibility.ss")
+ (register-module-path! 'tiles/render "lattice/tiles/render.ss")
+ (register-module-path! 'tiles/units "lattice/tiles/units.ss")
+ (register-module-path! 'turns "lattice/tiles/turns.ss")
+ (register-module-path! 'topology-analysis "lattice/tiles/topology-analysis.ss")
+ (register-module-path! 'boardcraft "lattice/tiles/boardcraft.ss")
+
+ ;; Pipeline layer
+ (register-module-path! 'pipeline/context "lattice/pipeline/context.ss")
+ (register-module-path! 'pipeline/stage "lattice/pipeline/stage.ss")
+ (register-module-path! 'pipeline/effects "lattice/pipeline/effects.ss")
+ (register-module-path! 'council "lattice/pipeline/council.ss")
+ (register-module-path! 'council-voting "lattice/pipeline/council-voting.ss")
+ (register-module-path! 'curriculum "lattice/pipeline/curriculum.ss")
+ (register-module-path! 'pipeline/dsl "lattice/pipeline/dsl.ss")
+ (register-module-path! 'rlm2 "lattice/pipeline/rlm2.ss")
+ (register-module-path! 'rlm2-hud "lattice/pipeline/rlm2-hud.ss")
+ (register-module-path! 'rlm2-parse "lattice/pipeline/rlm2-parse.ss"))
 
 ;;; clear-module-caches! : → Void
 ;;; Clear header cache (useful after file modifications).

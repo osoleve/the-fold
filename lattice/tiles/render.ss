@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tiles/core)
+
 (doc 'module 'tiles/render)
 (doc 'description "ASCII art rendering for tile-based boards")
 (doc 'layer 'lattice)

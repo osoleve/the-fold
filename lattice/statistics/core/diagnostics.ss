@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-solvers.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module diagnostics
+;;; @requires prelude matrix matrix-solvers
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-solvers)
 
 (doc 'module 'diagnostics)
 (doc 'description "Model Diagnostics — Diagnostic measures for regression models")

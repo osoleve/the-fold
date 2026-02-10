@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/dsl/quasi.ss")
+;;; @module staging
+;;; @requires prelude combinators quasi
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
+(require 'quasi)
 
 (doc 'module 'staging)
 (doc 'description "Multi-Stage Programming - Compile-time code generation with type safety")

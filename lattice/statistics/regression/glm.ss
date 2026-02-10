@@ -1,11 +1,14 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/regression/families.ss")
-(load "lattice/statistics/regression/link-functions.ss")
-(load "lattice/statistics/hypothesis/distributions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module glm
+;;; @requires prelude matrix matrix-decomp matrix-solvers result-types families link-functions stat/distributions
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-solvers)
+(require 'result-types)
+(require 'families)
+(require 'link-functions)
+(require 'stat/distributions)
 
 (doc 'module 'glm)
 (doc 'description "Generalized Linear Models — GLM fitting via Iteratively Reweighted Least Squares (IRLS)")

@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module tagless
+;;; @requires prelude
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'tagless)
 (doc 'description "Tagless Final DSL Pattern - Alternative to Free monads that avoids intermediate data structures")

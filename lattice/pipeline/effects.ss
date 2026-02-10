@@ -1,4 +1,5 @@
-(load "lattice/pipeline/stage.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'pipeline/stage)
 
 (doc 'module 'pipeline/effects)
 (doc 'description "Pipeline Effect Definitions. Effects are staged operations that require interpretation by the boundary. This module defines the effect types; boundary/pipeline/interpreter.ss provides the actual implementations.")

@@ -1,5 +1,5 @@
-(load "core/base/prelude.ss")
-(load "lattice/tiles/core.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude 'tiles/core)
 
 (doc 'module 'tiles/square)
 (doc 'description "Square Tile Implementation - Square tiles are the most common tile shape in board games. This module provides coordinate systems, neighbor calculations, and distance metrics for square-tiled boards.")

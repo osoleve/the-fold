@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
-(load "lattice/fp/numeric/special-functions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module stat/distributions
+;;; @requires prelude transcendental special-functions
+(require 'prelude)
+(require 'transcendental)
+(require 'special-functions)
 
 (doc 'module 'distributions)
 (doc 'description "Test Statistic Distributions — CDF and quantile functions for t, chi-squared, and F distributions")

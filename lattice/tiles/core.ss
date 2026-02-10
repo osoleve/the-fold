@@ -1,4 +1,5 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'tiles/core)
 (doc 'description "BoardCraft Core Types and Utilities - Common types, protocols, and utilities used across all tile shapes. This is the foundation that specific tile implementations build upon.")

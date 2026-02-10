@@ -1,5 +1,8 @@
-(load "lattice/algebra/field.ss")
-(load "lattice/algebra/polynomial.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module ar-poly
+;;; @requires field algebra/polynomial
+(require 'field)
+(require 'algebra/polynomial)
 
 (doc 'module 'ar-poly)
 (doc 'description "Polynomial Algebra for Time Series — Integrates polynomial.ss with time series modules")

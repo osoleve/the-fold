@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module families
+;;; @requires prelude transcendental
+(require 'prelude)
+(require 'transcendental)
 
 (doc 'module 'families)
 (doc 'description "GLM Families — Variance functions and deviance for GLM families")

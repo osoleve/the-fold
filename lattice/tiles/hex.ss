@@ -1,5 +1,5 @@
-(load "core/base/prelude.ss")
-(load "lattice/tiles/core.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude 'tiles/core)
 
 (doc 'module 'tiles/hex)
 (doc 'description "Hexagonal Tile Implementation - Hexagonal tiles are used in many strategy games and wargames. This module provides multiple coordinate systems, neighbor calculations, and distance metrics optimized for hexagonal grids.")

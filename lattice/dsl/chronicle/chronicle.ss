@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
-(load "lattice/dsl/quasi.ss")
+;;; @module chronicle
+;;; @requires prelude combinators quasi
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
+(require 'quasi)
 
 (doc 'module 'chronicle)
 (doc 'description "Chronicle: A Narrative DSL - Next-generation narrative engine")

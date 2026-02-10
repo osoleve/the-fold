@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; @module dsl/reader
+;;; @requires prelude combinators
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'reader)
 (doc 'description "Reader Extensions and Custom Notation - Domain-specific syntax via reader macros")

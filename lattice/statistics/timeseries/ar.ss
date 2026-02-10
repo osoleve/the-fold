@@ -1,10 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/core/summary-stats.ss")
-(load "lattice/statistics/timeseries/acf-pacf.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module ar
+;;; @requires prelude matrix matrix-decomp matrix-solvers result-types summary-stats acf-pacf
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-solvers)
+(require 'result-types)
+(require 'summary-stats)
+(require 'acf-pacf)
 
 (doc 'module 'ar)
 (doc 'description "Autoregressive Models — AR(p) model fitting and forecasting")

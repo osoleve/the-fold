@@ -4,15 +4,14 @@
 ;;; - Polymorphic prediction across model types
 ;;; - Unified diagnostics and summary statistics
 ;;; - Cross-validation and model comparison pipelines
-;;;
-;;; @requires lattice/fp/protocol.ss
-;;; @requires lattice/statistics/core/result-types.ss
-;;; @requires lattice/data/sort.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/protocol.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module model-protocol
+;;; @requires prelude protocol result-types sort
+(require 'prelude)
+(require 'protocol)
+(require 'result-types)
+(require 'sort)
 
 (doc 'module 'model-protocol)
 (doc 'description "Unified protocol interface for statistical models")

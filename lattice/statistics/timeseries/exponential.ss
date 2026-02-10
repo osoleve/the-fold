@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module exponential
+;;; @requires prelude
+(require 'prelude)
 
 (doc 'module 'exponential)
 (doc 'description "Exponential Smoothing — Simple, double, and triple (Holt-Winters) exponential smoothing")

@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/core/summary-stats.ss")
-(load "lattice/statistics/hypothesis/distributions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module f-test
+;;; @requires prelude result-types summary-stats stat/distributions
+(require 'prelude)
+(require 'result-types)
+(require 'summary-stats)
+(require 'stat/distributions)
 
 (doc 'module 'f-test)
 (doc 'description "F-Tests — F-tests for variance comparison and regression")

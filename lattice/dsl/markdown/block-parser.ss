@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/parsing/parser.ss")
-(load "lattice/dsl/markdown/ast.ss")
-(load "lattice/dsl/markdown/inline-parser.ss")
+;;; @module block-parser
+;;; @requires prelude parser markdown-ast inline-parser
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'parser)
+(require 'markdown-ast)
+(require 'inline-parser)
 
 (doc 'module 'markdown-block-parser)
 (doc 'description "Markdown Block Parser - Parses block-level markdown elements: headings, paragraphs, code blocks, lists, blockquotes, horizontal rules")

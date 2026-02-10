@@ -1,7 +1,5 @@
-(load "lattice/tiles/core.ss")
-(load "lattice/topology/simplicial-complex.ss")
-(load "lattice/topology/homology.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tiles/core 'simplicial-complex 'homology 'sort)
 
 (doc 'module 'tiles/topology-analysis)
 (doc 'description "Topological analysis of game boards using simplicial homology.

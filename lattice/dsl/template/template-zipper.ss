@@ -1,5 +1,8 @@
-(load "lattice/dsl/template/template.ss")
-(load "lattice/fp/rewrite/sexp-zipper.ss")
+;;; @module template-zipper
+;;; @requires dsl/template rewrite/sexp-zipper
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'dsl/template)
+(require 'rewrite/sexp-zipper)
 
 (doc 'module 'template-zipper)
 (doc 'description "Hole-Focused Navigation for Templates - Provides zipper-based navigation between holes in template expressions")

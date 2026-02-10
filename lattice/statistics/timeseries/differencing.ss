@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module differencing
+;;; @requires prelude
+(require 'prelude)
 
 (doc 'module 'differencing)
 (doc 'description "Time Series Differencing — Differencing and integration for time series")

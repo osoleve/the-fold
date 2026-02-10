@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module dsl/template
+;;; @requires prelude
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 
 (doc 'module 'template)
 (doc 'description "Grammar-Driven Code Construction - DSL for constructing S-expressions via EBNF-like production statements")

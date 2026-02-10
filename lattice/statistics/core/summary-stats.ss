@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module summary-stats
+;;; @requires prelude sort
+(require 'prelude)
+(require 'sort)
 
 (doc 'module 'summary-stats)
 (doc 'description "Descriptive Statistics — Basic statistical summary functions")

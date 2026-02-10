@@ -1,7 +1,8 @@
-(load "lattice/data/sort.ss")
-(load "lattice/pipeline/stage.ss")
-(load "lattice/pipeline/effects.ss")
-(load "lattice/pipeline/context.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'sort)
+(require 'pipeline/stage)
+(require 'pipeline/effects)
+(require 'pipeline/context)
 
 (doc 'module 'pipeline/council)
 (doc 'description "Multi-Model Council Primitive. Councils enable structured deliberation between multiple LLMs. Two modes: Sequential rounds (Models respond in turns, seeing prior responses), Parallel synthesis (Models respond independently, then synthesize)")

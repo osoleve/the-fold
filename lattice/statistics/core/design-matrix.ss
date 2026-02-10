@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/statistics/core/summary-stats.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module design-matrix
+;;; @requires prelude matrix summary-stats
+(require 'prelude)
+(require 'matrix)
+(require 'summary-stats)
 
 (doc 'module 'design-matrix)
 (doc 'description "Design Matrix Construction — Utilities for constructing design matrices for regression")

@@ -1,5 +1,8 @@
-(load "lattice/fp/parsing/parser.ss")
-(load "lattice/dsl/chronicle/chronicle.ss")
+;;; @module chronicle-parser
+;;; @requires parser chronicle
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'parser)
+(require 'chronicle)
 
 (doc 'module 'chronicle-parser)
 (doc 'description "Parser Combinator Parser for Chronicle - Demonstrates dogfooding by using the parser combinator library to parse a textual Chronicle DSL syntax")

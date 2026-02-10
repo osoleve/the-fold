@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module result-types
+;;; @requires prelude
+(require 'prelude)
 
 (doc 'module 'result-types)
 (doc 'description "Statistical Model Result Types — Extensible result structures for statistical models and tests")

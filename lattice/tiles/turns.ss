@@ -1,4 +1,5 @@
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'sort 'tiles/units)
 
 (doc 'module 'tiles/turns)
 (doc 'description "Turn-based game system: turn order, action points, phases, history")

@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/hypothesis/distributions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module chi-squared
+;;; @requires prelude matrix result-types stat/distributions
+(require 'prelude)
+(require 'matrix)
+(require 'result-types)
+(require 'stat/distributions)
 
 (doc 'module 'chi-squared)
 (doc 'description "Chi-Squared Tests — Goodness-of-fit and independence tests")

@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
-(load "lattice/fp/numeric/special-functions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module link-functions
+;;; @requires prelude transcendental special-functions
+(require 'prelude)
+(require 'transcendental)
+(require 'special-functions)
 
 (doc 'module 'link-functions)
 (doc 'description "GLM Link Functions — Link functions and their inverses for GLM")

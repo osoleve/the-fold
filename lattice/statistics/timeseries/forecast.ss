@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module forecast
+;;; @requires prelude
+(require 'prelude)
 
 (doc 'module 'forecast)
 (doc 'description "Forecasting Utilities — Forecast accuracy metrics and utilities")

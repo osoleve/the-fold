@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/core/summary-stats.ss")
-(load "lattice/statistics/timeseries/acf-pacf.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module ma
+;;; @requires prelude result-types summary-stats acf-pacf
+(require 'prelude)
+(require 'result-types)
+(require 'summary-stats)
+(require 'acf-pacf)
 
 (doc 'module 'ma)
 (doc 'description "Moving Average Models — MA(q) model fitting and forecasting")

@@ -1,4 +1,7 @@
-(load "lattice/dsl/tagless.ss")
+;;; @module tagless-chronicle
+;;; @requires tagless
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'tagless)
 
 (doc 'module 'tagless-chronicle)
 (doc 'description "Tagless Final Chronicle DSL - Demonstrates the tagless final pattern applied to the Chronicle narrative engine")

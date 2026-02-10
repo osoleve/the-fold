@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; @module quasi
+;;; @requires prelude combinators
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'combinators)
 
 (doc 'module 'quasi)
 (doc 'description "Quasiquotation and Syntax Templates - Pattern-based code generation for DSLs and macros")

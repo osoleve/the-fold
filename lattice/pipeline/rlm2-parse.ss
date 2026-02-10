@@ -1,4 +1,5 @@
-(load "lattice/pipeline/rlm2.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'rlm2)
 
 (doc 'module 'pipeline/rlm2-parse)
 (doc 'description "RLM v2 action parser: S-expression parsing with fuzzy fallback. Parses model text output into validated actions.")

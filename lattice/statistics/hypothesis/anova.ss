@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/statistics/core/result-types.ss")
-(load "lattice/statistics/core/summary-stats.ss")
-(load "lattice/statistics/hypothesis/distributions.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module anova
+;;; @requires prelude result-types summary-stats stat/distributions
+(require 'prelude)
+(require 'result-types)
+(require 'summary-stats)
+(require 'stat/distributions)
 
 (doc 'module 'anova)
 (doc 'description "Analysis of Variance — One-way and two-way ANOVA")

@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/dsl/staging.ss")
-(load "lattice/fp/meta/combinators.ss")
+;;; @module partial-eval
+;;; @requires prelude staging combinators
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'staging)
+(require 'combinators)
 
 (doc 'module 'partial-eval)
 (doc 'description "Partial Evaluation - Specialize code given partial inputs")

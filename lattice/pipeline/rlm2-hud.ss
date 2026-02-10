@@ -1,4 +1,5 @@
-(load "lattice/pipeline/rlm2.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'rlm2)
 
 (doc 'module 'pipeline/rlm2-hud)
 (doc 'description "RLM v2 HUD renderer: pure function from state to structured text. The HUD is the complete context the model reads — no conversation history, just current reality.")

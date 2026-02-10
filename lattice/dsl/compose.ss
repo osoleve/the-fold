@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/dsl/tagless.ss")
-(load "lattice/fp/control/free.ss")
-(load "lattice/fp/control/effects.ss")
+;;; @module dsl/compose
+;;; @requires prelude tagless free effects
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'tagless)
+(require 'free)
+(require 'effects)
 
 (doc 'module 'compose)
 (doc 'description "Modular DSL Composition - Enables combining independent DSLs without modification")
