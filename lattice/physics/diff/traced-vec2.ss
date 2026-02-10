@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "core/autodiff/reverse-diff.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-vec2
+;;; @requires prelude vec2 reverse-diff
+(require 'prelude)
+(require 'vec2)
+(require 'reverse-diff)
 
 (doc 'module 'traced-vec2)
 (doc 'description "Differentiable 2D Vector Operations

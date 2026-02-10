@@ -1,13 +1,11 @@
 ;;; lattice/physics/problems/simulation.ss — World Setup and Frame Capture
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module simulation
-;;; @requires prelude world ascii-renderer
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-;; world.ss loads: integrators (bodies), collision-detection (shapes),
-;; collision-response (materials), and other physics modules
-(load "lattice/physics/classical/world.ss")
-(load "lattice/physics/classical/ascii-renderer.ss")
+;;; @requires prelude vec2 world ascii-renderer
+(require 'prelude)
+(require 'vec2)
+(require 'world)
+(require 'ascii-renderer)
 
 (doc 'module 'simulation)
 (doc 'description "World setup and frame capture for physics problems. Bridges the Dataset SDK with the classical physics engine.")

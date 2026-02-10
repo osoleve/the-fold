@@ -1,9 +1,12 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/templates.ss")
-(load "lattice/fp/protocol-bundle.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/rigid-body.ss")
-(load "lattice/physics/classical/particles.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module lenses
+;;; @requires prelude templates protocol-bundle vec2 rigid-body particles
+(require 'prelude)
+(require 'templates)
+(require 'protocol-bundle)
+(require 'vec2)
+(require 'rigid-body)
+(require 'particles)
 
 (doc 'module 'lenses)
 (doc 'description "Lens library for functional access to physics state. Enables elegant composition of getters and setters for nested physics structures.")

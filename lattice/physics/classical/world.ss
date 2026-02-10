@@ -1,14 +1,15 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/integrators.ss")
-(load "lattice/physics/classical/collision-detection.ss")
-(load "lattice/physics/classical/collision-response.ss")
-(load "lattice/physics/classical/raycasting.ss")
-(load "lattice/physics/classical/constraints.ss")
-(load "lattice/physics/classical/constraint-solver.ss")
-(load "lattice/data/sort.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module world
+;;; @requires prelude vec2 integrators collision-detection collision-response raycasting constraints constraint-solver sort
+(require 'prelude)
+(require 'vec2)
+(require 'integrators)
+(require 'collision-detection)
+(require 'collision-response)
+(require 'raycasting)
+(require 'constraints)
+(require 'constraint-solver)
+(require 'sort)
 
 (doc 'module 'world)
 (doc 'description "2D physics world with collision detection and resolution")

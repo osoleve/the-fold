@@ -1,5 +1,8 @@
-(load "lattice/linalg/vec3.ss")
-(load "lattice/linalg/quaternion.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module rigid-body3d
+;;; @requires vec3 quaternion
+(require 'vec3)
+(require 'quaternion)
 
 (doc 'module 'rigid-body3d)
 (doc 'description "3D Rigid Body Dynamics - Defines the 3D rigid body data structure with: Position (Vec3) and linear velocity (Vec3), Orientation (Quaternion) and angular velocity (Vec3), Mass and inverse mass, Inertia tensor and inverse inertia tensor (3x3 matrices).")

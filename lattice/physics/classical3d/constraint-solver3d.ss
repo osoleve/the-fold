@@ -1,8 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/linalg/quaternion.ss")
-(load "lattice/physics/classical3d/rigid-body3d.ss")
-(load "lattice/physics/classical3d/constraints3d.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module constraint-solver3d
+;;; @requires prelude vec3 quaternion rigid-body3d constraints3d
+(require 'prelude)
+(require 'vec3)
+(require 'quaternion)
+(require 'rigid-body3d)
+(require 'constraints3d)
 
 (doc 'module 'constraint-solver3d)
 (doc 'description "3D Constraint Solvers - Sequential impulse solvers for 3D physics constraints: Distance constraint (1 DOF), Ball-socket joint (3 DOF constraint), Hinge joint (5 DOF constraint), Fixed joint (6 DOF constraint), Spring constraint (soft 1 DOF).")

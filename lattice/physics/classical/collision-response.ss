@@ -1,8 +1,9 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/integrators.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module collision-response
+;;; @requires prelude vec2 integrators
+(require 'prelude)
+(require 'vec2)
+(require 'integrators)
 
 (doc 'module 'collision-response)
 (doc 'description "Impulse-based collision resolution for 2D physics")

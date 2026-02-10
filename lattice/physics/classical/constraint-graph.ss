@@ -1,8 +1,9 @@
-;;; lattice/physics/classical/constraint-graph.ss — Graph-based constraint analysis
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module constraint-graph
-;;; @requires prelude constraints
-
-(load "core/base/prelude.ss")
+;;; @requires prelude simplicial-complex homology
+(require 'prelude)
+(require 'simplicial-complex)
+(require 'homology)
 
 (doc 'module 'constraint-graph)
 (doc 'description "Graph algorithms for physics constraint systems: islands, ordering, parallelization")
@@ -496,10 +497,6 @@ Constraints with the same color can be solved in parallel.")
 (doc 'section 'topology)
 (doc 'description "Topological analysis using homology to detect cycles and redundancy.
 B₁ > 0 indicates cyclic constraints (potential over-constraint or solver instability).")
-
-;; Load topology module for homology computation
-(load "lattice/topology/simplicial-complex.ss")
-(load "lattice/topology/homology.ss")
 
 (doc 'cg->simplicial-complex 'type '(-> ConstraintGraph SimplicialComplex))
 (doc 'cg->simplicial-complex 'description

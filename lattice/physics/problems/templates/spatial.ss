@@ -1,8 +1,8 @@
 ;;; lattice/physics/problems/templates/spatial.ss — Spatial Reasoning Problems
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module spatial
 ;;; @requires physics-problem
-
-(load "lattice/physics/problems/physics-problem.ss")
+(require 'physics-problem)
 
 (doc 'module 'spatial)
 (doc 'description "Spatial reasoning problem templates: size comparison, distance estimation, object counting. These are Tier 0 (direct observation) problems requiring no physics inference.")

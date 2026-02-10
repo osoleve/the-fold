@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/quaternion.ss")
-(load "lattice/physics/diff3d/traced-vec3.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-quaternion
+;;; @requires prelude quaternion traced-vec3
+(require 'prelude)
+(require 'quaternion)
+(require 'traced-vec3)
 
 (doc 'module 'traced-quaternion)
 (doc 'description "Differentiable Quaternion Operations - Traced quaternion operations for automatic differentiation through 3D rotations. A traced-quat is a quadruple of traced scalar values (w, x, y, z).")

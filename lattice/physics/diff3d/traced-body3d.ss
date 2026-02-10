@@ -1,8 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff3d/traced-vec3.ss")
-(load "lattice/physics/diff3d/traced-quaternion.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-body3d
+;;; @requires prelude vec3 reverse-diff traced-vec3 traced-quaternion
+(require 'prelude)
+(require 'vec3)
+(require 'reverse-diff)
+(require 'traced-vec3)
+(require 'traced-quaternion)
 
 (doc 'module 'traced-body3d)
 (doc 'description "Differentiable 3D Rigid Body State - Traced 3D rigid body state for automatic differentiation through physics. A traced body contains traced position, velocity, orientation (quaternion), and angular velocity. Mass and inertia tensor are constants.")

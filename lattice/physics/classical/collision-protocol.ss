@@ -1,30 +1,11 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module collision-protocol
+;;; @requires prelude protocol vec2
+(require 'prelude)
+(require 'protocol)
+(require 'vec2)
+
 (doc "lattice/physics/classical/collision-protocol.ss — Collision Response Protocols")
-
-(doc 'module 'collision-protocol)
-(doc 'description "Extensible collision response protocols")
-(doc 'layer 'lattice)
-(doc 'purity 'total)
-;;;
-(doc "Defines extensible protocols for collision response operations.")
-(doc "This enables polymorphic collision handling across body types without")
-(doc "scattered type checks.")
-;;;
-(doc "Protocols:")
-(doc "  - col-inv-mass      : Body → Number")
-(doc "  - col-inv-inertia   : Body → Number")
-(doc "  - col-static?       : Body → Boolean")
-(doc "  - col-pos           : Body → Vec2")
-(doc "  - col-vel-at        : Body × Vec2 → Vec2")
-(doc "  - col-apply-impulse : Body × Vec2 × Vec2 → Body")
-;;;
-(doc "Dependencies:")
-(doc "  - lattice/fp/protocol.ss")
-(doc "  - lattice/linalg/vec2.ss")
-
-(load "lattice/fp/protocol.ss")
-(load "lattice/linalg/vec2.ss")
-
 
 (doc 'module 'collision-protocol)
 (doc 'description "Extensible collision response protocols")

@@ -1,27 +1,13 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module collision-impl
+;;; @requires prelude collision-protocol integrators rigid-body particles
+(require 'prelude)
+(require 'collision-protocol)
+(require 'integrators)
+(require 'rigid-body)
+(require 'particles)
+
 (doc "lattice/physics/classical/collision-impl.ss — Collision Protocol Implementations")
-
-(doc 'module 'collision-impl)
-(doc 'description "Collision protocol implementations for standard body types")
-(doc 'layer 'lattice)
-(doc 'purity 'total)
-;;;
-(doc "Registers collision protocol implementations for standard body types:")
-(doc "  - body-2d      : Simple 2D body (no rotation)")
-(doc "  - rigid-body-2d : Full 2D rigid body with rotation")
-(doc "  - particle     : Lightweight particle (implicit unit mass)")
-;;;
-(doc "Dependencies:")
-(doc "  - collision-protocol.ss")
-(doc "  - integrators.ss (for Body2D)")
-(doc "  - rigid-body.ss (for RigidBody2D)")
-(doc "  - particles.ss (for Particle)")
-
-(load "lattice/physics/classical/collision-protocol.ss")
-(load "lattice/physics/classical/integrators.ss")
-(load "lattice/physics/classical/rigid-body.ss")
-(load "lattice/physics/classical/particles.ss")
-
 
 (doc 'module 'collision-impl)
 (doc 'description "Collision protocol implementations for standard body types")

@@ -1,9 +1,10 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/rigid-body.ss")
-(load "lattice/physics/classical/constraints.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module constraint-solver
+;;; @requires prelude vec2 rigid-body constraints
+(require 'prelude)
+(require 'vec2)
+(require 'rigid-body)
+(require 'constraints)
 
 (doc 'module 'constraint-solver)
 (doc 'description "Sequential impulse solvers for 2D physics constraints")

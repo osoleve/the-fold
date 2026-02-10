@@ -1,15 +1,15 @@
 ;;; lattice/physics/problems/physics-problem.ss — Physics Problem DSL
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module physics-problem
-;;; @requires prelude dataset simulation
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/dataset/sample.ss")
-(load "lattice/dataset/parameter.ss")
-(load "lattice/dataset/presentation.ss")
-(load "lattice/dataset/distractor.ss")
-(load "lattice/dataset/difficulty.ss")
-(load "lattice/physics/problems/simulation.ss")
+;;; @requires prelude vec2 sample parameter presentation distractor difficulty simulation
+(require 'prelude)
+(require 'vec2)
+(require 'sample)
+(require 'parameter)
+(require 'presentation)
+(require 'distractor)
+(require 'difficulty)
+(require 'simulation)
 
 (doc 'module 'physics-problem)
 (doc 'description "Physics problem DSL for defining and generating visual reasoning problems. Composes the Dataset SDK with classical physics simulation.")

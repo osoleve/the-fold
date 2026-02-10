@@ -1,8 +1,9 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/rigid-body.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module constraints
+;;; @requires prelude vec2 rigid-body
+(require 'prelude)
+(require 'vec2)
+(require 'rigid-body)
 
 (doc 'module 'constraints)
 (doc 'description "Constraint data structures for 2D physics joints")

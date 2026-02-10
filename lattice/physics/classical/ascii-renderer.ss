@@ -1,10 +1,11 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module ascii-renderer
+;;; @requires prelude vec2 world sort
+(require 'prelude)
+(require 'vec2)
 (load "user/creations/ascii-video.ss")
-(load "lattice/physics/classical/world.ss")
-(load "lattice/data/sort.ss")
-
+(require 'world)
+(require 'sort)
 
 (doc 'module 'ascii-renderer)
 (doc 'description "ASCII renderer for 2D physics worlds")

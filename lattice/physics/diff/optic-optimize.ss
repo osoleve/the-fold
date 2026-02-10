@@ -1,8 +1,11 @@
-(load "lattice/autodiff/traced-optics.ss")
-(load "lattice/physics/lenses/lenses.ss")
-(load "lattice/physics/diff/traced-body.ss")
-(load "lattice/physics/diff/traced-integrators.ss")
-(load "lattice/physics/diff/rollout.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module optic-optimize
+;;; @requires traced-optics lenses traced-body traced-integrators rollout
+(require 'traced-optics)
+(require 'lenses)
+(require 'traced-body)
+(require 'traced-integrators)
+(require 'rollout)
 
 (doc 'module 'optic-optimize)
 (doc 'description "Optic-Based Physics Optimization

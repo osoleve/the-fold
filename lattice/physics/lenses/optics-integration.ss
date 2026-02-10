@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/optics/optics.ss")
-(load "lattice/physics/lenses/lenses.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module optics-integration
+;;; @requires prelude optics lenses
+(require 'prelude)
+(require 'optics)
+(require 'lenses)
 
 (doc 'module 'optics-integration)
 (doc 'description "Integrates the physics lens library with the optics tower")

@@ -1,4 +1,7 @@
-(load "lattice/linalg/vec3.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module shapes3d
+;;; @requires vec3
+(require 'vec3)
 
 (doc 'module 'shapes3d)
 (doc 'description "3D Collision Shapes - Defines 3D shape primitives for collision detection: Sphere3D (center + radius), Box3D (center + half-extents, axis-aligned), AABB3D (min/max corners, axis-aligned bounding box).")

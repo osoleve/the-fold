@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff/traced-vec2.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module smooth-collision
+;;; @requires prelude vec2 reverse-diff traced-vec2
+(require 'prelude)
+(require 'vec2)
+(require 'reverse-diff)
+(require 'traced-vec2)
 
 (doc 'module 'smooth-collision)
 (doc 'description "Differentiable Collision Primitives

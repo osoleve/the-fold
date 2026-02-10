@@ -1,8 +1,9 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/ode-integrators.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module integrators
+;;; @requires prelude vec2 ode-integrators
+(require 'prelude)
+(require 'vec2)
+(require 'ode-integrators)
 
 (doc 'module 'integrators)
 (doc 'description "2D physics integration with vec2 support")
@@ -319,9 +320,6 @@
      (body-potential-energy body g y-ref)))
 
 (doc 'section 'rigid)
-
-(doc "Load rigid body module")
-(load "lattice/physics/classical/rigid-body.ss")
 
 
 (doc 'module 'integrators)

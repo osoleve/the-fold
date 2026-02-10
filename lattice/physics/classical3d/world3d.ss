@@ -1,10 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/linalg/quaternion.ss")
-(load "lattice/physics/classical3d/rigid-body3d.ss")
-(load "lattice/physics/classical3d/shapes3d.ss")
-(load "lattice/physics/classical3d/collision-detection3d.ss")
-(load "lattice/physics/classical3d/constraint-solver3d.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module world3d
+;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d constraint-solver3d
+(require 'prelude)
+(require 'vec3)
+(require 'quaternion)
+(require 'rigid-body3d)
+(require 'shapes3d)
+(require 'collision-detection3d)
+(require 'constraint-solver3d)
 
 (doc 'module 'world3d)
 (doc 'description "3D Physics World - The physics world coordinates all 3D physics components: Body management (add, remove, query), Collision detection (broad + narrow phase), Collision resolution (impulse + correction), Constraint solving, Integration (forces, velocity, position).")

@@ -1,9 +1,10 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/random/prng.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module particles
+;;; @requires prelude sort vec2 prng
+(require 'prelude)
+(require 'sort)
+(require 'vec2)
+(require 'prng)
 
 (doc 'module 'particles)
 (doc 'description "2D particle system with emitters and force fields")

@@ -1,10 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff/traced-vec2.ss")
-(load "lattice/physics/diff/traced-body.ss")
-(load "lattice/physics/diff/traced-integrators.ss")
-(load "lattice/physics/diff/rollout.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module physics/optimize
+;;; @requires prelude vec2 reverse-diff traced-vec2 traced-body traced-integrators rollout
+(require 'prelude)
+(require 'vec2)
+(require 'reverse-diff)
+(require 'traced-vec2)
+(require 'traced-body)
+(require 'traced-integrators)
+(require 'rollout)
 
 (doc 'module 'optimize)
 (doc 'description "Trajectory Optimization API

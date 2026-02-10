@@ -1,7 +1,8 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module collision-detection
+;;; @requires prelude vec2
+(require 'prelude)
+(require 'vec2)
 
 (doc 'module 'collision-detection)
 (doc 'description "2D Collision Detection with AABB, Circle, and SAT")

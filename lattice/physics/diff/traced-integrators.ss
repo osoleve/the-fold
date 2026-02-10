@@ -1,8 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff/traced-vec2.ss")
-(load "lattice/physics/diff/traced-body.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-integrators
+;;; @requires prelude vec2 reverse-diff traced-vec2 traced-body
+(require 'prelude)
+(require 'vec2)
+(require 'reverse-diff)
+(require 'traced-vec2)
+(require 'traced-body)
 
 (doc 'module 'traced-integrators)
 (doc 'description "Differentiable Physics Integration

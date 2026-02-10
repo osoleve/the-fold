@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module ode-integrators
+;;; @requires prelude
+(require 'prelude)
 
 (doc 'module 'ode-integrators)
 (doc 'description "Numerical integration (ODE solving) methods for physics and scientific computing")
@@ -8,13 +11,6 @@
 ;;;   - state, pos, vel are vectors (lists of numbers)
 ;;;   - t is time (number)
 ;;;   - dt is timestep (number)
-;;;
-;;; Dependencies:
-;;;   - prelude.ss
-;;;   - vec.ss
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
 
 ;;; ====
 ;;; Vector Operations for Integrators

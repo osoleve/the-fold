@@ -1,11 +1,14 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/linalg/quaternion.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff3d/traced-vec3.ss")
-(load "lattice/physics/diff3d/traced-quaternion.ss")
-(load "lattice/physics/diff3d/traced-body3d.ss")
-(load "lattice/physics/diff3d/traced-integrators3d.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module rollout3d
+;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d traced-integrators3d
+(require 'prelude)
+(require 'vec3)
+(require 'quaternion)
+(require 'reverse-diff)
+(require 'traced-vec3)
+(require 'traced-quaternion)
+(require 'traced-body3d)
+(require 'traced-integrators3d)
 
 (doc 'module 'rollout3d)
 (doc 'description "Multi-Step 3D Simulation with Checkpointing - Rollout functions for simulating 3D physics over multiple timesteps with gradient computation. Includes checkpointing for memory efficiency.")

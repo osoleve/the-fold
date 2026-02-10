@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module rigid-body
+;;; @requires prelude vec2
+(require 'prelude)
+(require 'vec2)
 
 (doc 'module 'rigid-body)
 (doc 'description "2D Rigid Body with rotation and moment of inertia")

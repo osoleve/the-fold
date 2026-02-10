@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/physics/classical3d/shapes3d.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module collision-detection3d
+;;; @requires prelude vec3 shapes3d
+(require 'prelude)
+(require 'vec3)
+(require 'shapes3d)
 
 (doc 'module 'collision-detection3d)
 (doc 'description "3D Collision Detection - Comprehensive collision detection for 3D physics including: AABB3D (Axis-Aligned Bounding Box), Sphere primitives, Box3D (oriented box), Broad phase (spatial hash).")

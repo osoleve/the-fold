@@ -1,4 +1,7 @@
-(load "lattice/physics/diff/traced-body.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-body-protocols
+;;; @requires traced-body
+(require 'traced-body)
 
 (doc 'module 'traced-body-protocols)
 (doc 'description "Protocol implementations for TracedBody

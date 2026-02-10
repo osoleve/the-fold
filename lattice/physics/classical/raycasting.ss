@@ -1,8 +1,9 @@
-
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec2.ss")
-(load "lattice/physics/classical/collision-detection.ss")
-
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module raycasting
+;;; @requires prelude vec2 collision-detection
+(require 'prelude)
+(require 'vec2)
+(require 'collision-detection)
 
 (doc 'module 'raycasting)
 (doc 'description "2D raycasting against shapes")

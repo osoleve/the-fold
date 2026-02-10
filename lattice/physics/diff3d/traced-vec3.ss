@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "core/autodiff/reverse-diff.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module traced-vec3
+;;; @requires prelude vec3 reverse-diff
+(require 'prelude)
+(require 'vec3)
+(require 'reverse-diff)
 
 (doc 'module 'traced-vec3)
 (doc 'description "Differentiable 3D Vector Operations - Traced vec3 operations for automatic differentiation through 3D physics. A traced-vec3 is a triple of traced scalar values, enabling gradient computation through vector arithmetic.")

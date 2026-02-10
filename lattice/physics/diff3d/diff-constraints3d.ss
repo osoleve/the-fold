@@ -1,9 +1,12 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff3d/traced-vec3.ss")
-(load "lattice/physics/diff3d/traced-quaternion.ss")
-(load "lattice/physics/diff3d/traced-body3d.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module diff-constraints3d
+;;; @requires prelude vec3 reverse-diff traced-vec3 traced-quaternion traced-body3d
+(require 'prelude)
+(require 'vec3)
+(require 'reverse-diff)
+(require 'traced-vec3)
+(require 'traced-quaternion)
+(require 'traced-body3d)
 
 (doc 'module 'diff-constraints3d)
 (doc 'description "Differentiable 3D Constraint Solver - Constraint system with gradient support using truncated unrolling. Implements soft constraint forces that enable differentiable simulation.")

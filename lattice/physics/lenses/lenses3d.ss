@@ -1,13 +1,12 @@
-;;; lattice/physics/lenses/lenses3d.ss — Optics for 3D Physics
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module lenses3d
-;;; @requires prelude optics geometry-optics rigid-body3d quaternion protocol-bundle
-
-(load "core/base/prelude.ss")
-(load "lattice/optics/optics.ss")
-(load "lattice/fp/protocol-bundle.ss")        ; For open protocol system
-(load "lattice/geometry/geometry-optics.ss")  ; vec3 lenses
-(load "lattice/linalg/quaternion.ss")
-(load "lattice/physics/classical3d/rigid-body3d.ss")
+;;; @requires prelude optics protocol-bundle geometry-optics quaternion rigid-body3d
+(require 'prelude)
+(require 'optics)
+(require 'protocol-bundle)
+(require 'geometry-optics)
+(require 'quaternion)
+(require 'rigid-body3d)
 
 (doc 'module 'lenses3d)
 (doc 'description "Optics for 3D physics state. Lenses for rigid-body-3d fields, quaternion components, and composed paths for deep access.")

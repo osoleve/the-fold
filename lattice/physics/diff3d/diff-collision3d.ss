@@ -1,10 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/physics/diff3d/traced-vec3.ss")
-(load "lattice/physics/diff3d/traced-body3d.ss")
-(load "lattice/physics/diff3d/traced-integrators3d.ss")
-(load "lattice/physics/diff3d/smooth-collision3d.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module diff-collision3d
+;;; @requires prelude vec3 reverse-diff traced-vec3 traced-body3d traced-integrators3d smooth-collision3d
+(require 'prelude)
+(require 'vec3)
+(require 'reverse-diff)
+(require 'traced-vec3)
+(require 'traced-body3d)
+(require 'traced-integrators3d)
+(require 'smooth-collision3d)
 
 (doc 'module 'diff-collision3d)
 (doc 'description "Differentiable 3D Collision Response - Impulse-based collision response with gradient support for 3D. Combines soft contact forces with rigid body dynamics.")

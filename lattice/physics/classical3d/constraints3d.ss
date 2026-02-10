@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
-(load "lattice/linalg/quaternion.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module constraints3d
+;;; @requires prelude vec3 quaternion
+(require 'prelude)
+(require 'vec3)
+(require 'quaternion)
 
 (doc 'module 'constraints3d)
 (doc 'description "3D Constraint Data Structures - Defines the base constraint types for 3D physics joints: Distance constraint (fixed distance between anchor points), Ball-socket joint (shared pivot point, 3 DOF removed), Hinge joint (shared pivot + aligned axis, 5 DOF removed), Fixed joint (no relative motion, 6 DOF removed), Spring constraint (soft distance with stiffness/damping).")
