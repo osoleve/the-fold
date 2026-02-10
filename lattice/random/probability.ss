@@ -1,9 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/control/state.ss")
-(load "lattice/random/prng.ss")
-(load "lattice/random/distributions.ss")
+;;; lattice/random/probability.ss — Probability Monad
+;;; @module probability
+;;; @requires prelude state prng distributions
 
-
+(require 'prelude)
+(require 'state)
+(require 'prng)
+(require 'distributions)
 
 (doc 'module 'probability)
 (doc 'description "Probability Monad")

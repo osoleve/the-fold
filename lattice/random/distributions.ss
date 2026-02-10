@@ -1,9 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/control/state.ss")
-(load "lattice/fp/numeric/transcendental.ss")
-(load "lattice/random/prng.ss")
+;;; lattice/random/distributions.ss — Probability Distributions
+;;; @module distributions
+;;; @requires prelude state transcendental prng
 
-
+(require 'prelude)
+(require 'state)
+(require 'transcendental)
+(require 'prng)
 
 (doc 'module 'distributions)
 (doc 'description "Probability Distributions")

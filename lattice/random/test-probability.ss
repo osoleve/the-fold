@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for probabilistic programming constructs.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/random/probability.ss")
 

@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/control/state.ss")
-(load "lattice/fp/protocol.ss")
+;;; lattice/random/prng.ss — Pseudorandom Number Generation
+;;; @module prng
+;;; @requires prelude state protocol
+
+(require 'prelude)
+(require 'state)
+(require 'protocol)
 
 (doc 'module 'prng)
 (doc 'description "Pseudorandom Number Generation — Pure, deterministic PRNGs using the State monad. All generators are fully reproducible given the same seed.")

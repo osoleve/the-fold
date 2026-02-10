@@ -3,6 +3,7 @@
 ;;; Comprehensive test suite for the variational inference module.
 ;;; Tests reparameterization, ELBO computation, gradient flow, and optimization.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/random/variational-inference.ss")
 

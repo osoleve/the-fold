@@ -1,8 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
-(load "lattice/random/distributions.ss")
+;;; lattice/random/bayesian.ss — Bayesian Inference
+;;; @module bayesian
+;;; @requires prelude transcendental distributions
 
-
+(require 'prelude)
+(require 'transcendental)
+(require 'distributions)
 
 (doc 'module 'bayesian)
 (doc 'description "Comprehensive Bayesian inference toolkit for The Fold.")

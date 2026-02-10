@@ -1,10 +1,12 @@
-(load "core/base/prelude.ss")
-(load "core/autodiff/reverse-diff.ss")
-(load "lattice/random/prng.ss")
-(load "lattice/random/distributions.ss")
-(load "lattice/random/bayesian.ss")
+;;; lattice/random/variational-inference.ss — Variational Inference Engine
+;;; @module variational-inference
+;;; @requires prelude reverse-diff prng distributions bayesian
 
-
+(require 'prelude)
+(require 'reverse-diff)
+(require 'prng)
+(require 'distributions)
+(require 'bayesian)
 
 (doc 'module 'variational-inference)
 (doc 'description "Variational Inference Engine")

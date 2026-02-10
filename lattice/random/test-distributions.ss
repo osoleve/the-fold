@@ -9,6 +9,7 @@
 ;;;
 ;;; This is a test file for core/random/distributions.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")

@@ -189,9 +189,9 @@
   (doc 'description "Binary choice")
   (choose (list a b)))
 
-(define (require pred)
+(define (amb-require pred)
   (doc 'type '(-> Bool (Cont (Maybe a) ())))
-  (doc 'description "Require a condition, fail if false")
+  (doc 'description "Require a condition in amb context, fail if false")
   (if pred
       (cont-return '())
       fail))

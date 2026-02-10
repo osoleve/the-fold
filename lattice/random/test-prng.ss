@@ -10,6 +10,7 @@
 ;;;
 ;;; This is a test file for core/random/prng.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/random/prng.ss")
 

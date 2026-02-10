@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests PRNG algorithms and probability distributions.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/random/prng.ss")
 (load "lattice/random/distributions.ss")

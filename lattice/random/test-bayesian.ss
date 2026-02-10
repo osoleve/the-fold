@@ -1,5 +1,6 @@
 ;;; Test harness for core/random/bayesian.ss -- Bayesian Inference Engine
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/random/bayesian.ss")
 

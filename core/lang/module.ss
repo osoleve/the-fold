@@ -260,7 +260,20 @@ Dependencies:
  (register-module-path! 'tree-zipper "lattice/fp/data/tree-zipper.ss")
  (register-module-path! 'transcendental "lattice/fp/numeric/transcendental.ss")
  (register-module-path! 'monad "lattice/fp/control/monad.ss")
- (register-module-path! 'parser-combinators "lattice/fp/parsing/parser-combinators.ss"))
+ (register-module-path! 'parser-combinators "lattice/fp/parsing/parser-combinators.ss")
+ (register-module-path! 'state "lattice/fp/control/state.ss")
+ (register-module-path! 'protocol "lattice/fp/protocol.ss")
+
+ ;; Autodiff layer
+ (register-module-path! 'reverse-diff "core/autodiff/reverse-diff.ss")
+
+ ;; Random layer
+ (register-module-path! 'prng "lattice/random/prng.ss")
+ (register-module-path! 'distributions "lattice/random/distributions.ss")
+ (register-module-path! 'probability "lattice/random/probability.ss")
+ (register-module-path! 'monte-carlo "lattice/random/monte-carlo.ss")
+ (register-module-path! 'bayesian "lattice/random/bayesian.ss")
+ (register-module-path! 'variational-inference "lattice/random/variational-inference.ss"))
 
 ;;; clear-module-caches! : → Void
 ;;; Clear header cache (useful after file modifications).

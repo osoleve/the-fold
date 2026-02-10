@@ -3,6 +3,7 @@
 ;;; Comprehensive test suite for Monte Carlo integration, sampling,
 ;;; MCMC, variance reduction, and convergence diagnostics.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/random/monte-carlo.ss")
 (load "lattice/data/sort.ss")
