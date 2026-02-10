@@ -38,39 +38,25 @@
 (define (worker-state-set! w s) (set-box! (list-ref w 4) s))
 
 ;;; Thread-safe injection queue for external submissions
-;;; Uses a simple lock-based queue since external submissions are infrequent
+;;; Uses a mutex since external submissions are infrequent
 (define (make-injection-queue)
   (list 'injection-queue
         (box '())      ; queue (list of tasks)
-        (box #f)))     ; lock (mutex simulation via CAS)
-
-(define (injection-queue-lock! q)
-  "Acquire lock using spinlock with CAS and yield on contention."
-  (let ([lock-box (caddr q)])
-    (let spin ()
-      (unless (box-cas! lock-box #f #t)
-        (thread-yield)  ; Don't burn CPU on contention
-        (spin)))))
-
-(define (injection-queue-unlock! q)
-  "Release lock."
-  (set-box! (caddr q) #f))
+        (make-mutex)))  ; mutex for thread safety
 
 (define (injection-queue-push! q task)
   "Thread-safe push to injection queue."
-  (injection-queue-lock! q)
-  (let ([queue-box (cadr q)])
-    (set-box! queue-box (cons task (unbox queue-box))))
-  (injection-queue-unlock! q))
+  (with-mutex (caddr q)
+    (let ([queue-box (cadr q)])
+      (set-box! queue-box (cons task (unbox queue-box))))))
 
 (define (injection-queue-take-all! q)
   "Atomically take all tasks from queue. Returns list (may be empty)."
-  (injection-queue-lock! q)
-  (let* ([queue-box (cadr q)]
-         [tasks (reverse (unbox queue-box))])  ; FIFO order
-    (set-box! queue-box '())
-    (injection-queue-unlock! q)
-    tasks))
+  (with-mutex (caddr q)
+    (let* ([queue-box (cadr q)]
+           [tasks (reverse (unbox queue-box))])  ; FIFO order
+      (set-box! queue-box '())
+      tasks)))
 
 ;;; Thread pool record
 (define (make-thread-pool num-workers)

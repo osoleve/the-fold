@@ -43,6 +43,37 @@
           (loop (- n 1))))
       (pool-shutdown! pool)
       (pool-wait-shutdown! pool)
-      (assert-equal 42 (unbox result-box)))))
+      (assert-equal 42 (unbox result-box))))
+
+  (define-test "injection queue handles concurrent submissions"
+    (let* ([pool (make-thread-pool 4)]
+           [counter (box 0)]
+           [lock (make-mutex)]
+           [n 200])
+      (pool-start! pool)
+      ;; Submit many tasks from multiple threads to stress the injection queue
+      (let ([submitters
+             (map (lambda (batch)
+                    (fork-thread
+                     (lambda ()
+                       (for-each
+                        (lambda (i)
+                          (pool-submit! pool
+                            (make-task (lambda ()
+                                         (with-mutex lock
+                                           (set-box! counter (+ 1 (unbox counter)))))
+                                       #f)))
+                        (iota 50)))))
+                  (iota 4))])
+        ;; Wait for submitters to finish
+        (for-each thread-join submitters))
+      ;; Wait for all tasks to complete
+      (let loop ([tries 500])
+        (when (and (> tries 0) (< (unbox counter) n))
+          (sleep (make-time 'time-duration 10000000 0))
+          (loop (- tries 1))))
+      (pool-shutdown! pool)
+      (pool-wait-shutdown! pool)
+      (assert-equal n (unbox counter)))))
 
 (run-all-tests)

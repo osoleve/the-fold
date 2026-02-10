@@ -25,15 +25,24 @@
                         (iota 100))])
       (assert-equal (iota 100) (map await futures))))
 
-  (define-test "error isolation"
-    (let ([results (parallel-invoke
-                    (lambda () 1)
-                    (lambda () (error 'test "boom"))
-                    (lambda () 3))])
-      (assert-equal 1 (car results))
-      (assert-true (and (pair? (cadr results))
-                        (eq? (car (cadr results)) 'error)))
-      (assert-equal 3 (caddr results)))))
+  (define-test "error in parallel-invoke propagates"
+    (assert-error
+      (lambda ()
+        (parallel-invoke
+         (lambda () 1)
+         (lambda () (error 'test "boom"))
+         (lambda () 3)))))
+
+  (define-test "error isolation with spawn/await"
+    (let* ([f1 (spawn (lambda () 1))]
+           [f2 (spawn (lambda () (error 'test "boom")))]
+           [f3 (spawn (lambda () 3))]
+           [r1 (await f1)]
+           [r3 (await f3)])
+      (assert-equal 1 r1)
+      (assert-equal 3 r3)
+      (assert-true (future-done? f2))
+      (assert-error (lambda () (await f2))))))
 
 (run-all-tests)
 
