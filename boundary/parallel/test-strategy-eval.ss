@@ -138,22 +138,30 @@
 
 (test-group "run-plan-race"
 
-  (define-test "race returns first to complete"
+  (define-test "race returns first to complete as one-element list"
     (let* ([reg (make-thunk-registry
                   (list (cons 'slow (make-sleeper 200 'slow))
                         (cons 'fast (lambda () 'fast))))]
            [plan (plan:race (list (make-thunk 'slow 100)
                                    (make-thunk 'fast 10)))]
            [result (run-plan plan reg)])
-      ;; Fast should win
-      (assert-equal 'fast result)))
+      ;; Fast should win, wrapped in list for composability
+      (assert-equal '(fast) result)))
 
   (define-test "race with single thunk"
     (let* ([reg (make-thunk-registry
                   (list (cons 'only (lambda () 'winner))))]
            [plan (plan:race (list (make-thunk 'only 10)))]
            [result (run-plan plan reg)])
-      (assert-equal 'winner result))))
+      (assert-equal '(winner) result)))
+
+  (define-test "race returning #f is distinguishable from no-result"
+    (let* ([reg (make-thunk-registry
+                  (list (cons 'falsy (lambda () #f))))]
+           [plan (plan:race (list (make-thunk 'falsy 10)))]
+           [result (run-plan plan reg)])
+      ;; #f is a legitimate result, must not be confused with error
+      (assert-equal '(#f) result))))
 
 (test-group "run-plan-pipe"
 
@@ -245,12 +253,12 @@
 
 (test-group "edge-cases"
 
-  (define-test "race with empty thunks returns void"
+  (define-test "race with empty thunks returns empty list"
     (let* ([reg (make-thunk-registry '())]
            [plan (plan:race '())]
            [result (run-plan plan reg)])
-      ;; Empty race should not deadlock, returns void
-      (assert-true (eq? (void) result))))
+      ;; Empty race should not deadlock, returns empty list
+      (assert-equal '() result)))
 
   (define-test "chunk with size 0 does not infinite loop"
     (let* ([reg (make-thunk-registry
@@ -270,6 +278,22 @@
       (assert-equal 1 (length results))
       ;; Result should be one of the thunk values
       (assert-true (pair? (memq (car results) '(alpha beta))))))
+
+  (define-test "tree with nested race sub-plan composes correctly"
+    (let* ([reg (make-thunk-registry
+                  (list (cons 'a (lambda () 'alpha))
+                        (cons 'b (lambda () 'beta))
+                        (cons 'fast (lambda () 'speedy))
+                        (cons 'slow (make-sleeper 200 'sluggish))))]
+           [plan (plan:tree 'merge
+                   (list (plan:seq (list (make-thunk 'a 10)
+                                          (make-thunk 'b 10)))
+                         (plan:race (list (make-thunk 'fast 10)
+                                            (make-thunk 'slow 100)))))]
+           [results (run-plan plan reg)])
+      ;; seq sub-plan returns '(alpha beta), race returns '(speedy)
+      ;; tree appends: '(alpha beta speedy)
+      (assert-equal '(alpha beta speedy) results)))
 
   (define-test "D&C non-divisible multi-element produces tree"
     (let* ([reg (make-thunk-registry

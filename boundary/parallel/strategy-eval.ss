@@ -103,16 +103,19 @@ sequential within each group. Clamps chunk-size to minimum 1.")
                        sub-plans)])
     (apply append (map await futures))))
 
+(define *race-no-result* (cons 'race 'sentinel))
+
 (define (run-plan-race plan registry)
-  (doc 'type '(-> Plan ThunkRegistry Any))
+  (doc 'type '(-> Plan ThunkRegistry (List Any)))
   (doc 'description "Speculative execution: spawn all, return first to complete.
 Other branches are left to exhaust their fuel naturally.
-Returns a single result (the winner), not a list.
-Empty race returns (void). If all thunks error, returns the first error.")
+Returns a one-element list containing the winner's result, matching
+the (List Any) contract of run-plan for composability with tree plans.
+Empty race returns '(). If all thunks error, re-raises the first error.")
   (let ([thunks (plan-thunks plan)])
     (if (null? thunks)
-        (void)
-        (let* ([result-box (box #f)]
+        '()
+        (let* ([result-box (box *race-no-result*)]
                [error-count (box 0)]
                [first-error (box #f)]
                [n (length thunks)]
@@ -145,20 +148,24 @@ Empty race returns (void). If all thunks error, returns the first error.")
           (with-mutex done-mutex
             (let loop ()
               (if (unbox done-flag)
-                  (if (unbox result-box)
-                      (unbox result-box)
+                  (if (not (eq? (unbox result-box) *race-no-result*))
+                      (list (unbox result-box))
                       ;; All errored — re-raise first error
                       (if (unbox first-error)
                           (raise (unbox first-error))
-                          (void)))
+                          '()))
                   (begin
                     (condition-wait done-cond done-mutex)
                     (loop)))))))))
 
 (define (run-plan-pipe plan registry)
   (doc 'type '(-> Plan ThunkRegistry (List Any)))
-  (doc 'description "Pipeline execution: stages run sequentially,
-thunks within each stage run in parallel.
+  (doc 'description "Barrier-synchronized pipeline: stages run sequentially,
+thunks within each stage run in parallel. Stage N completes before
+stage N+1 begins. Each stage's thunks are independent closures —
+there is no data flow between stages (thunks are pre-bound via registry).
+Use this when you need ordering guarantees between phases of work
+where each phase has internal parallelism.
 Returns results from the final stage.")
   (let loop ([stages (plan-stages plan)] [prev-results '()])
     (if (null? stages)
@@ -185,10 +192,7 @@ Returns a list of results in thunk order.")
          [plan (using strategy thunks fuel)]
          [registry (make-thunk-registry thunk-specs)]
          [result (run-plan plan registry)])
-    ;; Normalize: race returns scalar, wrap it for consistent list contract
-    (if (plan:race? plan)
-        (list result)
-        result)))
+    result))
 
 (doc 'section 'utilities)
 
