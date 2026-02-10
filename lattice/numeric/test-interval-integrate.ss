@@ -6,6 +6,7 @@
 ;;;   - Method comparison (midpoint tighter than naive)
 ;;;   - Known integrals (exact results for polynomials, transcendentals)
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/interval-integrate.ss")
 

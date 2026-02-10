@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/linalg/vec.ss")
+;;; lattice/numeric/dft.ss — DFT/FFT Implementation
+;;; @module dft
+;;; @requires prelude complex vec
+
+(require 'prelude)
+(require 'complex)
+(require 'vec)
 
 (doc 'module 'dft)
 (doc 'description "Comprehensive DFT/FFT implementation for signal processing, spectral analysis, and convolution operations")

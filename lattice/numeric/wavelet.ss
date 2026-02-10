@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
+;;; lattice/numeric/wavelet.ss — Wavelet Transforms
+;;; @module wavelet
+;;; @requires prelude vec
+
+(require 'prelude)
+(require 'vec)
 
 (doc 'module 'wavelet)
 (doc 'description "Wavelet transforms for multi-resolution signal analysis: Haar, Daubechies, DWT, IDWT, multi-resolution decomposition")

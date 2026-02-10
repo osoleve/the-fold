@@ -1,7 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/numeric/dft.ss")
-(load "lattice/linalg/vec.ss")
+;;; lattice/numeric/convolution.ss — Convolution and Correlation
+;;; @module convolution
+;;; @requires prelude complex dft vec
+
+(require 'prelude)
+(require 'complex)
+(require 'dft)
+(require 'vec)
 
 (doc 'module 'convolution)
 (doc 'description "Comprehensive convolution and correlation implementations for signal processing, filtering, template matching, and feature extraction")

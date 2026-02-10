@@ -1,6 +1,7 @@
 ;;; lattice/numeric/test-complex-bridge.ss — Tests for Complex Bridge
 ;;; Run with: scheme --script lattice/numeric/test-complex-bridge.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/complex-bridge.ss")
 

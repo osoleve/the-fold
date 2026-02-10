@@ -5,6 +5,7 @@
 ;;; 2. Tighter bounds vs interval arithmetic
 ;;; 3. Correctness of all operations
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/affine.ss")
 

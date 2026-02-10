@@ -1,6 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/numeric/interval.ss")
+;;; lattice/numeric/affine.ss — Affine Arithmetic
+;;; @module affine
+;;; @requires prelude sort interval
+
+(require 'prelude)
+(require 'sort)
+(require 'interval)
 
 (doc 'module 'affine)
 (doc 'description "Affine forms for tighter bounds via correlation tracking. Solves the dependency problem in interval arithmetic.")

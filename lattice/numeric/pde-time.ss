@@ -2,11 +2,11 @@
 ;;; @module pde-time
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
-(load "lattice/linalg/iterative-solvers.ss")
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'sparse)
+(require 'iterative-solvers)
 
 (doc 'module 'pde-time)
 (doc 'description "Time stepping schemes for PDEs: explicit, implicit, and adaptive methods")

@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests verifying correctness of interval operations.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/interval.ss")
 

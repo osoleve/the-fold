@@ -2,11 +2,11 @@
 ;;; @module spectral-pde
 ;;; @requires prelude linalg/vec linalg/matrix numeric/complex numeric/dft
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/numeric/dft.ss")
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'complex)
+(require 'dft)
 
 (doc 'module 'spectral-pde)
 (doc 'description "Spectral methods for PDEs: Fourier spectral (periodic), Chebyshev spectral (non-periodic), pseudospectral collocation")

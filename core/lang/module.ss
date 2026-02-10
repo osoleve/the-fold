@@ -154,7 +154,8 @@ Dependencies:
  (register-module-path! 'dict "lattice/data/dict.ss")
  (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
  (register-module-path! 'graph-algorithms "lattice/data/graph/graph-algorithms.ss")
- 
+ (register-module-path! 'heap "lattice/data/heap.ss")
+
  ;; Linalg layer
  (register-module-path! 'iteration "lattice/linalg/iteration.ss")
  (register-module-path! 'vec-common "lattice/linalg/vec-common.ss")
@@ -180,6 +181,21 @@ Dependencies:
  (register-module-path! 'complex "lattice/numeric/complex.ss")
  (register-module-path! 'dft "lattice/numeric/dft.ss")
  (register-module-path! 'convolution "lattice/numeric/convolution.ss")
+ (register-module-path! 'spectral-analysis "lattice/numeric/spectral-analysis.ss")
+ (register-module-path! 'numeric/polynomial "lattice/numeric/polynomial.ss")
+ (register-module-path! 'interpolate "lattice/numeric/interpolate.ss")
+ (register-module-path! 'signal-poly "lattice/numeric/signal-poly.ss")
+ (register-module-path! 'digital-filters "lattice/numeric/digital-filters.ss")
+ (register-module-path! 'wavelet "lattice/numeric/wavelet.ss")
+ (register-module-path! 'window-functions "lattice/numeric/window-functions.ss")
+ (register-module-path! 'pde-time "lattice/numeric/pde-time.ss")
+ (register-module-path! 'finite-diff "lattice/numeric/finite-diff.ss")
+ (register-module-path! 'spectral-pde "lattice/numeric/spectral-pde.ss")
+ (register-module-path! 'fem "lattice/numeric/fem.ss")
+ (register-module-path! 'complex-bridge "lattice/numeric/complex-bridge.ss")
+ (register-module-path! 'interval "lattice/numeric/interval.ss")
+ (register-module-path! 'affine "lattice/numeric/affine.ss")
+ (register-module-path! 'interval-integrate "lattice/numeric/interval-integrate.ss")
  
  ;; Number theory layer
  (register-module-path! 'modular "lattice/number-theory/modular.ss")

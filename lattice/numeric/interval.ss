@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/numeric/interval.ss — Verified Interval Arithmetic
+;;; @module interval
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'interval)
 (doc 'description "Verified numerical computation with rigorous bounds. Every operation guarantees the true mathematical result lies within the computed interval.")

@@ -1,6 +1,10 @@
-(load "lattice/algebra/field.ss")
-(load "lattice/algebra/polynomial.ss")
-(load "lattice/numeric/digital-filters.ss")
+;;; lattice/numeric/signal-poly.ss — Polynomial Algebra for Signal Processing
+;;; @module signal-poly
+;;; @requires field algebra/polynomial digital-filters
+
+(require 'field)
+(require 'algebra/polynomial)
+(require 'digital-filters)
 
 (doc 'module 'signal-poly)
 (doc 'description "Polynomial algebra for signal processing: exact filter analysis, stability analysis, filter simplification, deconvolution")

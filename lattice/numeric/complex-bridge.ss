@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
+;;; lattice/numeric/complex-bridge.ss — Complex Number Bridge
+;;; @module complex-bridge
+;;; @requires prelude complex
+
+(require 'prelude)
+(require 'complex)
 
 (doc 'module 'complex-bridge)
 (doc 'description "Bridge between native Chez complex and custom serializable complex numbers")

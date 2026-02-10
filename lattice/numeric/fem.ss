@@ -2,12 +2,12 @@
 ;;; @module fem
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers geometry/mesh-gen
 
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
-(load "lattice/linalg/iterative-solvers.ss")
+(require 'prelude)
+(require 'sort)
+(require 'vec)
+(require 'matrix)
+(require 'sparse)
+(require 'iterative-solvers)
 (load "lattice/geometry/mesh-gen.ss")
 
 (doc 'module 'fem)

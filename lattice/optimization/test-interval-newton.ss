@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/interval-newton.ss")
 (load "lattice/data/sort.ss")

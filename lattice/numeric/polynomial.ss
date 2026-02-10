@@ -1,10 +1,14 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-eigen.ss")
+;;; lattice/numeric/polynomial.ss — Numeric Polynomial Operations
+;;; @module numeric/polynomial
+;;; @requires prelude complex matrix matrix-decomp matrix-eigen
 
-(doc 'module 'polynomial)
+(require 'prelude)
+(require 'complex)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-eigen)
+
+(doc 'module 'numeric/polynomial)
 (doc 'description "Polynomial representation and operations for control theory, signal processing, and numerical analysis")
 (doc 'note "Polynomials represented with coefficients in descending power order: p(x) = a_n*x^n + ... + a_0 stored as #(a_n ... a_0)")
 (doc 'layer 'lattice)

@@ -1,5 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
+;;; lattice/numeric/complex.ss — Complex Number Arithmetic
+;;; @module complex
+;;; @requires prelude transcendental
+
+(require 'prelude)
+(require 'transcendental)
 
 (doc 'module 'complex)
 (doc 'description "Comprehensive complex number arithmetic for signal processing, quantum computing, and advanced mathematics")

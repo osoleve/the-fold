@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests constraint propagation integration with interval optimization.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/interval-contract.ss")
 

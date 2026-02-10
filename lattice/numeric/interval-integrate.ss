@@ -13,9 +13,13 @@
 ;;; All methods return intervals [lo, hi] such that:
 ;;;   lo <= ∫_a^b f(x) dx <= hi
 
-(load "core/base/prelude.ss")
-(load "lattice/numeric/interval.ss")
-(load "lattice/data/heap.ss")
+;;; lattice/numeric/interval-integrate.ss — Verified Interval Integration
+;;; @module interval-integrate
+;;; @requires prelude interval heap
+
+(require 'prelude)
+(require 'interval)
+(require 'heap)
 
 (doc 'module 'interval-integrate)
 (doc 'description "Verified numerical integration with rigorous enclosure bounds.")

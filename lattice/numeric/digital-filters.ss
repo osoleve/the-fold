@@ -1,8 +1,12 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/numeric/dft.ss")
-(load "lattice/numeric/convolution.ss")
-(load "lattice/linalg/vec.ss")
+;;; lattice/numeric/digital-filters.ss — Digital Filter Library
+;;; @module digital-filters
+;;; @requires prelude complex dft convolution vec
+
+(require 'prelude)
+(require 'complex)
+(require 'dft)
+(require 'convolution)
+(require 'vec)
 
 (doc 'module 'digital-filters)
 (doc 'description "Comprehensive digital filter library: FIR, IIR, Butterworth, Chebyshev, frequency response analysis, real-time filtering")

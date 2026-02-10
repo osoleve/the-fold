@@ -1,7 +1,6 @@
 ;;; fabric/stitches/test-complex.ss — Tests for Complex Numbers
 
-(load "core/base/prelude.ss")
-(load "lattice/fp/numeric/transcendental.ss")
+(load "core/lang/module.ss")
 (load "lattice/numeric/complex.ss")
 
 (define tests-passed 0)

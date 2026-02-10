@@ -1,9 +1,13 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-solvers.ss")
-(load "lattice/numeric/polynomial.ss")
+;;; lattice/numeric/interpolate.ss — Numerical Interpolation
+;;; @module interpolate
+;;; @requires prelude vec matrix matrix-decomp matrix-solvers numeric/polynomial
+
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'matrix-decomp)
+(require 'matrix-solvers)
+(require 'numeric/polynomial)
 
 (doc 'module 'interpolate)
 (doc 'description "Numerical interpolation, splines, Bezier curves, and curve fitting")

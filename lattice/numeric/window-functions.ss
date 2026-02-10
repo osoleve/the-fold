@@ -1,4 +1,8 @@
-(load "core/base/prelude.ss")
+;;; lattice/numeric/window-functions.ss — Window Functions for Signal Processing
+;;; @module window-functions
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'window-functions)
 (doc 'description "Window functions for signal processing: reduce spectral leakage, smooth signal boundaries for Fourier analysis")

@@ -6,6 +6,7 @@
 ;;;   - Monotonicity analysis
 ;;;   - Integration with interval global optimization
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/autodiff/interval-autodiff.ss")
 

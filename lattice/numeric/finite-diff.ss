@@ -2,10 +2,10 @@
 ;;; @module finite-diff
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/sparse.ss")
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'sparse)
 
 (doc 'module 'finite-diff)
 (doc 'description "Finite difference operators and PDE solvers: stencils for spatial derivatives, boundary conditions, and solvers for heat/wave/Laplace equations")

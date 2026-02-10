@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests the branch-and-bound global optimizer with various test functions.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/interval-global.ss")
 

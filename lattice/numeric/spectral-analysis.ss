@@ -1,7 +1,11 @@
-(load "core/base/prelude.ss")
-(load "lattice/numeric/complex.ss")
-(load "lattice/numeric/dft.ss")
-(load "lattice/numeric/window-functions.ss")
+;;; lattice/numeric/spectral-analysis.ss — Spectral Analysis Tools
+;;; @module spectral-analysis
+;;; @requires prelude complex dft window-functions
+
+(require 'prelude)
+(require 'complex)
+(require 'dft)
+(require 'window-functions)
 
 (doc 'module 'spectral-analysis)
 (doc 'description "Spectral analysis tools: STFT, spectrograms, PSD estimation, Welch's method, periodogram analysis")
