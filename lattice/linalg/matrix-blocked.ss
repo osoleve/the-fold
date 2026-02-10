@@ -2,6 +2,10 @@
 ;;; @module matrix-blocked
 ;;; @requires prelude vec matrix
 
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+
 (doc 'module 'matrix-blocked)
 (doc 'description "Cache-efficient blocked matrix algorithms: tiled multiply, tiled transpose, Strassen.")
 (doc 'layer 'lattice)

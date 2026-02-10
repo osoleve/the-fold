@@ -1,8 +1,7 @@
 ;;; lattice/linalg/test-matrix-blocked.ss — Tests for Blocked Matrix Algorithms
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-blocked.ss")
 
 (define (error-result? x)

@@ -2,6 +2,7 @@
 ;;;
 ;;; Verifies protocol dispatch for geometric shapes and scene operations.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/geometry/shape-protocol.ss")
 

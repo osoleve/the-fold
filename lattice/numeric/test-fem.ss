@@ -1,6 +1,7 @@
 ;;; lattice/numeric/test-fem.ss --- Tests for finite element method
 ;;; @requires fem test-framework
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/fem.ss")
 

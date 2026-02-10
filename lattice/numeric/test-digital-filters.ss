@@ -1,5 +1,6 @@
 ;;; Test harness for core/numeric/digital-filters.ss — Digital Filter Library
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/numeric/digital-filters.ss")
 

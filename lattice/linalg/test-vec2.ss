@@ -1,5 +1,6 @@
 ;;; fabric/stitches/test-vec2.ss — Tests for 2D Vector Math Library
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/linalg/vec2.ss")
 

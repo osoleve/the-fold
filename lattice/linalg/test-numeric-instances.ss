@@ -2,6 +2,7 @@
 
 ;;; NOTE: Run from project root
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/linalg/numeric-instances.ss")
 

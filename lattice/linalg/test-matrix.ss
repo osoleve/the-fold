@@ -1,7 +1,7 @@
 ;;; lattice/linalg/test-matrix.ss — Tests for Matrix Operations
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")
 
 ;; Helper for error-return functions

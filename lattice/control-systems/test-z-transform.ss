@@ -1,5 +1,6 @@
 ;;; lattice/control-systems/test-z-transform.ss — Discrete Transfer Function Tests
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/control-systems/z-transform.ss")
 

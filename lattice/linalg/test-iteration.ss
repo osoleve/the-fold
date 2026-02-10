@@ -2,6 +2,7 @@
 ;;;
 ;;; Verifies that iteration macros expand to equivalent code as hand-written loops.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/linalg/iteration.ss")
 

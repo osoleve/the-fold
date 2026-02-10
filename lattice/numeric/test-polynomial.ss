@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for polynomial operations.
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/data/sort.ss")
 (load "lattice/numeric/polynomial.ss")

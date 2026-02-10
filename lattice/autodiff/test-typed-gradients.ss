@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests dimension checking and type safety for gradient operations.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/autodiff/typed-gradients.ss")
 

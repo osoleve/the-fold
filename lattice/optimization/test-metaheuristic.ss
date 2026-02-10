@@ -1,6 +1,7 @@
 ;; Tests for metaheuristic optimization
 ;; Run: scheme --script lattice/optimization/test-metaheuristic.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/metaheuristic.ss")
 

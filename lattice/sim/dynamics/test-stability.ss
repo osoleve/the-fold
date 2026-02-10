@@ -9,6 +9,7 @@
 ;;;
 ;;; Run from project root: scheme --script core/dynamics/test-stability.ss
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/linalg/matrix.ss")

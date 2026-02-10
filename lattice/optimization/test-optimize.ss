@@ -9,6 +9,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/optimization/test-optimize.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/optimize.ss")
 

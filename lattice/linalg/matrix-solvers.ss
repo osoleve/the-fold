@@ -2,6 +2,11 @@
 ;;; @module matrix-solvers
 ;;; @requires prelude vec matrix matrix-decomp
 
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'matrix-decomp)
+
 (doc 'module 'matrix-solvers
      'description "Linear Equation Solvers
 

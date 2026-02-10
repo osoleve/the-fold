@@ -7,6 +7,7 @@
 ;;;   - γ-iteration and Riccati solving
 ;;;   - Full synthesis workflow
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/control-systems/hinf-synthesis.ss")
 

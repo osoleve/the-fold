@@ -1,6 +1,7 @@
 ;;; lattice/linalg/test-matrix-optics.ss — Tests for Matrix Optics
 ;;; @module test-matrix-optics
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/linalg/matrix-optics.ss")
 

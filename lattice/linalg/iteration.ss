@@ -2,7 +2,7 @@
 ;;; @module iteration
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(require 'prelude)
 
 (doc 'module 'iteration)
 (doc 'description "Vector and matrix iteration macros for linalg")

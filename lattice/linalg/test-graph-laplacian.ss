@@ -3,12 +3,7 @@
 ;;; Dependencies:
 ;;;   - graph-laplacian.ss and its dependencies
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-eigen.ss")
-(load "lattice/linalg/sparse.ss")
+(load "core/lang/module.ss")
 (load "lattice/data/graph/graph-matrix.ss")
 (load "lattice/linalg/graph-laplacian.ss")
 

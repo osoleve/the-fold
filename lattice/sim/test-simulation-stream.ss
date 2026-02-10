@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/sim/simulation-stream.ss")
 

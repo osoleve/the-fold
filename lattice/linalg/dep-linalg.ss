@@ -2,9 +2,9 @@
 ;;; @module dep-linalg
 ;;; @requires prelude vec matrix
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
 
 (doc 'module 'dep-linalg)
 (doc 'description "Dependent Linear Algebra — Dimension-safe wrappers for linalg operations. These use Pi types to track vector and matrix dimensions at type level.")

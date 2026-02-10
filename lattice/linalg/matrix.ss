@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
+;;; @module matrix
+;;; @requires prelude vec
+
+(require 'prelude)
+(require 'vec)
 
 (doc 'module 'matrix)
 (doc 'description "Core matrix operations for linear algebra")

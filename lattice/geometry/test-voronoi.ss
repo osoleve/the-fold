@@ -1,5 +1,6 @@
 ;;; lattice/geometry/test-voronoi.ss --- Tests for Voronoi diagrams
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/geometry/voronoi.ss")
 

@@ -2,6 +2,7 @@
 ;;;
 ;;; Verifies dimension-safe vector and matrix operations.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/linalg/dep-linalg.ss")
 (load "core/types/dep-types.ss")

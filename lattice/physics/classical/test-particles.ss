@@ -2,6 +2,7 @@
 
 ;;; NOTE: Run from project root: scheme --script lattice/physics/classical/test-particles.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/classical/particles.ss")
 

@@ -1,6 +1,7 @@
 ;;; lattice/geometry/test-geometry-optics.ss — Tests for Geometry Optics
 ;;; @module test-geometry-optics
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/geometry/geometry-optics.ss")
 

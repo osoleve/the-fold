@@ -1,5 +1,6 @@
 ;;; lattice/geometry/test-convex-hull.ss --- Tests for convex hull algorithms
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/geometry/convex-hull.ss")
 

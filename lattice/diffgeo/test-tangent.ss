@@ -2,6 +2,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/diffgeo/test-tangent.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/diffgeo/tangent.ss")
 

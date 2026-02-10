@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/lenses/lenses.ss")

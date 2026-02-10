@@ -2,9 +2,7 @@
 ;;;
 ;;; Run with: scheme --script core/linalg/test-sparse.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
+(load "core/lang/module.ss")
 (load "lattice/linalg/sparse.ss")
 
 ;;; ====

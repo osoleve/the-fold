@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/diffgeo/symbolic-metrics.ss")
 

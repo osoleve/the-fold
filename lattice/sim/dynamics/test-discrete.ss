@@ -2,6 +2,7 @@
 ;;;
 ;;; NOTE: Run from project root: scheme --script core/dynamics/test-discrete.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/sim/dynamics/discrete.ss")
 

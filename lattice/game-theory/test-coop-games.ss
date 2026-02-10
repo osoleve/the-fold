@@ -3,6 +3,7 @@
 ;;; Tests coalition operations, Shapley value, core stability,
 ;;; bargaining solutions, and game properties.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/game-theory/coop-games.ss")
 

@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests ILP solver with classic optimization problems.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/ilp.ss")
 

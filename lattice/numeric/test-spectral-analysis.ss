@@ -1,6 +1,7 @@
 ;;; lattice/numeric/test-spectral-analysis.ss — Tests for Spectral Analysis
 ;;; Run with: scheme --script lattice/numeric/test-spectral-analysis.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 
 ;; log10 is used by spectral-analysis.ss but not defined there (lives in digital-filters.ss).

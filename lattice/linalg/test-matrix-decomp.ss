@@ -3,8 +3,7 @@
 ;;; Comprehensive tests for LU, QR, and Cholesky decompositions
 ;;; with numerical stability checks.
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
+(load "core/lang/module.ss")
 (load "lattice/linalg/matrix-decomp.ss")
 
 (define tests-passed 0)

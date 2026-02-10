@@ -156,11 +156,25 @@ Dependencies:
  (register-module-path! 'graph-algorithms "lattice/data/graph/graph-algorithms.ss")
  
  ;; Linalg layer
+ (register-module-path! 'iteration "lattice/linalg/iteration.ss")
+ (register-module-path! 'vec-common "lattice/linalg/vec-common.ss")
  (register-module-path! 'vec "lattice/linalg/vec.ss")
+ (register-module-path! 'vec2 "lattice/linalg/vec2.ss")
+ (register-module-path! 'vec3 "lattice/linalg/vec3.ss")
  (register-module-path! 'matrix "lattice/linalg/matrix.ss")
  (register-module-path! 'matrix-decomp "lattice/linalg/matrix-decomp.ss")
  (register-module-path! 'matrix-solvers "lattice/linalg/matrix-solvers.ss")
+ (register-module-path! 'matrix-eigen "lattice/linalg/matrix-eigen.ss")
+ (register-module-path! 'svd "lattice/linalg/svd.ss")
  (register-module-path! 'sparse "lattice/linalg/sparse.ss")
+ (register-module-path! 'matrix-blocked "lattice/linalg/matrix-blocked.ss")
+ (register-module-path! 'matrix-blocked-decomp "lattice/linalg/matrix-blocked-decomp.ss")
+ (register-module-path! 'iterative-solvers "lattice/linalg/iterative-solvers.ss")
+ (register-module-path! 'integer-matrix "lattice/linalg/integer-matrix.ss")
+ (register-module-path! 'numeric-instances "lattice/linalg/numeric-instances.ss")
+ (register-module-path! 'dep-linalg "lattice/linalg/dep-linalg.ss")
+ (register-module-path! 'graph-laplacian "lattice/linalg/graph-laplacian.ss")
+ (register-module-path! 'quaternion "lattice/linalg/quaternion.ss")
  
  ;; Numeric layer
  (register-module-path! 'complex "lattice/numeric/complex.ss")

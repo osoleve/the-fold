@@ -1,5 +1,6 @@
 ;;; lattice/linalg/test-vec.ss — Tests for Vector Operations
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/linalg/vec.ss")
 

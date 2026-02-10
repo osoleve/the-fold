@@ -2,9 +2,9 @@
 ;;; @module numeric-instances
 ;;; @requires prelude vec matrix
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
 
 (doc 'module 'numeric-instances
      'description "Num/Fractional/Floating instances for Vec and Matrix

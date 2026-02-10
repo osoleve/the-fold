@@ -2,6 +2,11 @@
 ;;; @module matrix-eigen
 ;;; @requires prelude vec matrix matrix-decomp
 
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'matrix-decomp)
+
 (doc 'module 'matrix-eigen
      'description "Eigenvalue and Eigenvector Computation
 

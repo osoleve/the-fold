@@ -1,5 +1,6 @@
 ;;; fabric/stitches/numerical/test-integrators.ss — Tests for Numerical Integration
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/classical/ode-integrators.ss")
 

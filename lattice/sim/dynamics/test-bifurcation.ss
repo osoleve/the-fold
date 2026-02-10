@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/sim/dynamics/bifurcation.ss")
 

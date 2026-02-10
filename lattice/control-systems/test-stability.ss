@@ -1,5 +1,6 @@
 ;;; lattice/control-systems/test-stability.ss — Stability Analysis Tests
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/control-systems/stability.ss")
 

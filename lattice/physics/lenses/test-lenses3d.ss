@@ -1,6 +1,7 @@
 ;;; lattice/physics/lenses/test-lenses3d.ss — Tests for 3D Physics Lenses
 ;;; @module test-lenses3d
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/physics/lenses/lenses3d.ss")
 

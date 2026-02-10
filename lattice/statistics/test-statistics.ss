@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for the statistics skill.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 
 ;;; ====

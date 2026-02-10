@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for gradient computation through optic-focused paths.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/autodiff/traced-optics.ss")
 

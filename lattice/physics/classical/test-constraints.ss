@@ -8,6 +8,7 @@
 ;;;
 ;;; Run with: scheme --script user/physics/test-constraints.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/physics/classical/world.ss")
 

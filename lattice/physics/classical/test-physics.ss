@@ -9,6 +9,7 @@
 ;;;
 ;;; Or from project root (after adding source directory):
 ;;;   (source-directories (cons "core" (source-directories)))
+(load "core/lang/module.ss")
 ;;;   (load "lattice/physics/classical/test-physics.ss")
 
 ;;; Load dependencies using absolute paths from project root

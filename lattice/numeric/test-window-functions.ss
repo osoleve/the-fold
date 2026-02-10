@@ -2,6 +2,7 @@
 ;;;
 ;;; Test suite for window functions and spectral analysis.
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")

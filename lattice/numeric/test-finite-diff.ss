@@ -1,5 +1,6 @@
 ;;; lattice/numeric/test-finite-diff.ss — Tests for finite difference methods
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/finite-diff.ss")
 

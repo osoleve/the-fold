@@ -2,6 +2,7 @@
 ;;;
 ;;; NOTE: Run from project root: scheme --script core/fp/control-systems/test-state-space.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/control-systems/state-space.ss")
 

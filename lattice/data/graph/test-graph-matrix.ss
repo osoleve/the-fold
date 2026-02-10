@@ -3,6 +3,7 @@
 ;;; Run with: scheme --script core/data/test-graph-matrix.ss
 
 ;; graph-matrix.ss loads its own dependencies (prelude, vec, matrix, sparse, heap)
+(load "core/lang/module.ss")
 (load "lattice/data/graph/graph-matrix.ss")
 
 ;;; ====

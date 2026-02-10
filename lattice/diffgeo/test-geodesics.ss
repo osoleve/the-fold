@@ -7,6 +7,7 @@
 ;;;   - Parallel transport preserves norm
 ;;;   - Geodesic distance
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/diffgeo/geodesics.ss")
 

@@ -1,5 +1,6 @@
 ;;; lattice/control-systems/test-controller-design.ss — Controller Design Tests
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/control-systems/controller-design.ss")
 

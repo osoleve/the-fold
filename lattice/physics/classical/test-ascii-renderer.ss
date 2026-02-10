@@ -1,5 +1,6 @@
 ;;; user/physics/test-ascii-renderer.ss — Tests for ASCII Physics Renderer
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/physics/classical/ascii-renderer.ss")
 

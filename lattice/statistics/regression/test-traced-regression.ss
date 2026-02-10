@@ -1,6 +1,7 @@
 ;;; lattice/statistics/regression/test-traced-regression.ss — Tests for Traced Regression
 ;;; @module test-traced-regression
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/statistics/regression/traced-regression.ss")
 

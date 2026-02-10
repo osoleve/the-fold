@@ -2,10 +2,7 @@
 ;;;
 ;;; Comprehensive test suite for iterative linear system solvers.
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
+(load "core/lang/module.ss")
 (load "lattice/linalg/iterative-solvers.ss")
 
 (define tests-passed 0)

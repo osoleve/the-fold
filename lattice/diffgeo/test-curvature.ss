@@ -1,6 +1,7 @@
 ;;; lattice/diffgeo/test-curvature.ss — Tests for Curvature Computations
 ;;; Tests metric tensors, Christoffel symbols, Riemann tensor, and surface curvatures.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/diffgeo/curvature.ss")
 

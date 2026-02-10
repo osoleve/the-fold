@@ -10,6 +10,7 @@
 ;;;
 ;;; Run from project root: scheme --script core/dynamics/test-ode-system.ss
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/linalg/vec.ss")
 (load "lattice/sim/dynamics/ode-system.ss")

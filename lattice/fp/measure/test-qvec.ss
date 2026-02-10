@@ -2,6 +2,7 @@
 ;;;
 ;;; Run from project root: scheme --script lattice/fp/measure/test-qvec.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/measure/qvec.ss")
 

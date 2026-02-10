@@ -1,5 +1,6 @@
 ;;; lattice/control-systems/test-transfer-function.ss — Transfer Function Tests
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/control-systems/transfer-function.ss")
 

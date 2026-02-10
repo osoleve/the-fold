@@ -8,6 +8,7 @@
 ;;;
 ;;; Run: scheme --script core/fp/game/test-physics-dsl.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/game-theory/physics-dsl.ss")
 

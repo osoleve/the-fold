@@ -3,6 +3,7 @@
 ;;; Tests stable matching (Gale-Shapley), assignment games, and
 ;;; optimal assignment algorithms.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/game-theory/matching.ss")
 

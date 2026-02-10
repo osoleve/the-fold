@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/constraint-solver3d.ss")
 

@@ -1,5 +1,6 @@
 ;;; core/autodiff/test-higher-order-diff.ss --- Tests for Higher-Order Differentiation
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/autodiff/higher-order-diff.ss")
 

@@ -2,8 +2,8 @@
 ;;; @module vec2
 ;;; @requires prelude vec-common
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec-common.ss")
+(require 'prelude)
+(require 'vec-common)
 
 (doc 'module 'vec2)
 (doc 'description "Pure, functional 2D vector operations for physics and graphics")

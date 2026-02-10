@@ -1,6 +1,7 @@
 ;;; test-spectral-pde.ss — Tests for spectral PDE methods
 ;;; @requires test-framework spectral-pde
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/spectral-pde.ss")
 

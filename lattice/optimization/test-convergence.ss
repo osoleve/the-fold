@@ -1,6 +1,7 @@
 ;;; lattice/optimization/test-convergence.ss — Tests for Convergence Criteria
 ;;; Run with: scheme --script lattice/optimization/test-convergence.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/convergence.ss")
 

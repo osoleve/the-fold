@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/physics/diff3d/traced-quaternion.ss")
 

@@ -9,11 +9,7 @@
 ;;;
 ;;; Run from project root: scheme --script core/data/test-pagerank.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-eigen.ss")
+(load "core/lang/module.ss")
 (load "lattice/data/graph/graph-matrix.ss")
 (load "lattice/data/graph/pagerank.ss")
 

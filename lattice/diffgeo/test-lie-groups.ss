@@ -1,6 +1,7 @@
 ;;; lattice/diffgeo/test-lie-groups.ss — Tests for Lie Groups and Algebras
 ;;; @test lie-groups
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/diffgeo/lie-groups.ss")
 

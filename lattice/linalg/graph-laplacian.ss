@@ -2,7 +2,11 @@
 ;;; @module graph-laplacian
 ;;; @requires prelude matrix matrix-eigen graph-matrix sort
 
-(load "lattice/data/sort.ss")
+(require 'prelude)
+(require 'matrix)
+(require 'matrix-eigen)
+(require 'sparse)
+(require 'sort)
 
 (doc 'module 'graph-laplacian)
 (doc 'description "Laplacian matrices for spectral graph theory and analysis")

@@ -2,9 +2,7 @@
 ;;;
 ;;; Comprehensive tests for linear solvers, inversion, determinants, and least squares.
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
+(load "core/lang/module.ss")
 (load "lattice/linalg/matrix-solvers.ss")
 
 (define tests-passed 0)

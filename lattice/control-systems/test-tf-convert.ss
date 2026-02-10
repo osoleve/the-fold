@@ -1,5 +1,6 @@
 ;;; lattice/control-systems/test-tf-convert.ss — SS↔TF Conversion Tests
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/control-systems/tf-convert.ss")
 

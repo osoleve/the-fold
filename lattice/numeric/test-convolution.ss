@@ -1,5 +1,6 @@
 ;;; fabric/stitches/test-convolution.ss — Tests for Convolution and Correlation
 
+(load "core/lang/module.ss")
 (load "core/base/prelude.ss")
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")

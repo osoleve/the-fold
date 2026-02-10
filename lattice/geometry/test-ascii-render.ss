@@ -4,6 +4,7 @@
 ;;;
 ;;; Run: scheme --script core/geometry/test-ascii-render.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/geometry/ascii-render.ss")
 

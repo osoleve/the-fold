@@ -2,10 +2,7 @@
 ;;;
 ;;; Run with: scheme --script core/linalg/test-matrix-eigen.ss
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
+(load "core/lang/module.ss")
 (load "lattice/linalg/matrix-eigen.ss")
 
 ;;; ====

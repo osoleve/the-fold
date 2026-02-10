@@ -2,6 +2,7 @@
 ;;;
 ;;; Test suite for the simplex method implementation.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/optimization/lp.ss")
 

@@ -2,11 +2,7 @@
 ;;;
 ;;; Comprehensive test suite for SVD module.
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/linalg/matrix-decomp.ss")
-(load "lattice/linalg/matrix-eigen.ss")
+(load "core/lang/module.ss")
 (load "lattice/linalg/svd.ss")
 
 (define tests-passed 0)

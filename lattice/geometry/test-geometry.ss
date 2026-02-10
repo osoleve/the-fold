@@ -5,6 +5,7 @@
 ;;;
 ;;; Run: scheme --script core/geometry/test-geometry.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/geometry/geometry.ss")
 

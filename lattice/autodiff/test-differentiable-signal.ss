@@ -3,6 +3,7 @@
 ;;; Comprehensive tests for DFT/IDFT VJP, convolution gradients,
 ;;; and differentiable spectral operations.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/autodiff/differentiable-signal.ss")
 

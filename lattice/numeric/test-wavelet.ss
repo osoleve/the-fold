@@ -1,7 +1,6 @@
 ;;; core/numeric/test-wavelet.ss — Tests for Wavelet Transforms
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec.ss")
+(load "core/lang/module.ss")
 (load "lattice/numeric/wavelet.ss")
 
 (define tests-passed 0)

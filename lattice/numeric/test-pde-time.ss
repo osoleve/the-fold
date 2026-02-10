@@ -1,6 +1,7 @@
 ;;; lattice/numeric/test-pde-time.ss — Tests for PDE time stepping
 ;;; @requires test-framework pde-time
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/pde-time.ss")
 

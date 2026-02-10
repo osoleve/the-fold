@@ -3,6 +3,7 @@
 ;;; Verifies that the protocol system correctly dispatches to implementations
 ;;; for linear-model, glm-model, and ar-result types.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/linalg/matrix-decomp.ss")

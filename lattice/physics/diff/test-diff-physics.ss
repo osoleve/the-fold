@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/physics/diff/traced-vec2.ss")
 (load "lattice/physics/diff/traced-body.ss")

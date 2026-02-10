@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for sparse Jacobian, Hessian, and gradient computation.
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/autodiff/sparse-autodiff.ss")
 

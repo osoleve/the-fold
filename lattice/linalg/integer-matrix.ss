@@ -11,9 +11,9 @@
 ;;;
 ;;; This is Lattice code: pure, total, decomposes to Fold primitives.
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/matrix.ss")
-(load "lattice/number-theory/modular.ss")
+(require 'prelude)
+(require 'matrix)
+(require 'modular)
 
 (doc 'module 'integer-matrix)
 (doc 'description "Smith and Hermite normal forms for integer matrices")

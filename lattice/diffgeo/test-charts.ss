@@ -2,6 +2,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/diffgeo/test-charts.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/diffgeo/charts.ss")
 

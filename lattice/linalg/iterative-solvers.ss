@@ -2,6 +2,10 @@
 ;;; @module iterative-solvers
 ;;; @requires prelude vec matrix
 
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+
 (doc 'module 'iterative-solvers
      'description "Iterative Linear System Solvers
 

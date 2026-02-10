@@ -1,6 +1,7 @@
 ;;; lattice/geometry/test-mesh-gen.ss --- Tests for mesh generation and point location
 ;;; Run: scheme --script lattice/geometry/test-mesh-gen.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/geometry/mesh-gen.ss")
 

@@ -1,5 +1,6 @@
 ;;; lattice/data/test-graph-layout.ss --- Tests for graph layout algorithms
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/data/graph/graph-layout.ss")
 

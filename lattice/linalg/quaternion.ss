@@ -2,8 +2,8 @@
 ;;; @module quaternion
 ;;; @requires prelude vec3
 
-(load "core/base/prelude.ss")
-(load "lattice/linalg/vec3.ss")
+(require 'prelude)
+(require 'vec3)
 
 (doc 'module 'quaternion
      'description "Quaternion Math Library

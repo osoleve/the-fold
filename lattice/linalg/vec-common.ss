@@ -2,7 +2,7 @@
 ;;; @module vec-common
 ;;; @requires prelude
 
-(load "core/base/prelude.ss")
+(require 'prelude)
 
 (doc 'module 'vec-common)
 (doc 'description "Macros for generating dimension-specific vector operations")

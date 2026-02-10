@@ -2,6 +2,7 @@
 ;;;
 ;;; Run: scheme --script core/linalg/test-quaternion.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/linalg/quaternion.ss")
 

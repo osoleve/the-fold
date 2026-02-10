@@ -2,6 +2,7 @@
 ;;;
 ;;; Comprehensive tests for cake cutting, adjusted winner, and discrete division.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/game-theory/fair-division.ss")
 

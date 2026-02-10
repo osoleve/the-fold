@@ -2,6 +2,7 @@
 ;;;
 ;;; Run: scheme --script core/geometry/test-bvh.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/geometry/bvh.ss")
 

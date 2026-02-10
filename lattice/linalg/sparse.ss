@@ -2,7 +2,10 @@
 ;;; @module sparse
 ;;; @requires prelude vec matrix sort
 
-(load "lattice/data/sort.ss")
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+(require 'sort)
 
 (doc 'module 'sparse
      'description "Sparse Matrix Operations

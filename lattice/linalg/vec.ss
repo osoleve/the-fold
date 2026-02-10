@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/linalg/iteration.ss")
+;;; @module vec
+;;; @requires prelude iteration
+
+(require 'prelude)
+(require 'iteration)
 
 (doc 'module 'vec)
 (doc 'description "Core vector operations for linear algebra")

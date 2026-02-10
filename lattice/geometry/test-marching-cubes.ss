@@ -4,6 +4,7 @@
 ;;;
 ;;; Run: scheme --script core/geometry/test-marching-cubes.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/geometry/marching-cubes.ss")
 

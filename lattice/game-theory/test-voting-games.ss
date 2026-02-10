@@ -1,5 +1,6 @@
 ;;; lattice/game-theory/test-voting-games.ss — Tests for voting-games bridge module
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/game-theory/voting-games.ss")
 

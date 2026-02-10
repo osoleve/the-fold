@@ -1,3 +1,4 @@
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/physics/classical3d/rigid-body3d.ss")
 (load "lattice/physics/diff3d/optimize3d.ss")

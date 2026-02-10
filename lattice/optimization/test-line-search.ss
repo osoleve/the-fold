@@ -1,6 +1,7 @@
 ;;; lattice/optimization/test-line-search.ss — Tests for Line Search Methods
 ;;; Run with: scheme --script lattice/optimization/test-line-search.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/linalg/matrix.ss")
 (load "lattice/optimization/line-search.ss")

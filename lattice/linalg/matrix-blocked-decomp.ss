@@ -2,6 +2,10 @@
 ;;; @module matrix-blocked-decomp
 ;;; @requires prelude vec matrix
 
+(require 'prelude)
+(require 'vec)
+(require 'matrix)
+
 (doc 'module 'matrix-blocked-decomp)
 (doc 'description "Range-parameterized kernels extracted from LU and QR for parallel dispatch.")
 (doc 'layer 'lattice)
