@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for polynomial algebra integration with signal processing.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/numeric/signal-poly.ss")
 

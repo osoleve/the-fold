@@ -1,7 +1,10 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/field.ss")
-(load "lattice/algebra/polynomial.ss")
-(load "lattice/number-theory/primality.ss")  ; For factorize
+;;; @module galois
+;;; @requires prelude field algebra/polynomial primality
+
+(require 'prelude)
+(require 'field)
+(require 'algebra/polynomial)
+(require 'primality)
 
 (doc 'module 'galois)
 (doc 'description "Galois field (finite field) arithmetic: GF(p), GF(p^n), GF(2^n)")

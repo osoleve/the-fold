@@ -1,5 +1,8 @@
-(load "lattice/algebra/field.ss")
-(load "lattice/algebra/polynomial.ss")
+;;; @module poly-bridge
+;;; @requires field algebra/polynomial
+
+(require 'field)
+(require 'algebra/polynomial)
 
 (doc 'module 'poly-bridge)
 (doc 'description "Bridge between polynomial representations")

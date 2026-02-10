@@ -1,6 +1,7 @@
 ;;; lattice/algebra/test-ring-field.ss — Tests for Ring and Field Theory
 ;;; Run with: scheme --script lattice/algebra/test-ring-field.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/field.ss")  ; loads ring.ss transitively
 

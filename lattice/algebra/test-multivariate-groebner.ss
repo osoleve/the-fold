@@ -1,6 +1,7 @@
 ;;; lattice/algebra/test-multivariate-groebner.ss — Tests for Multivariate Polynomials and Gröbner Bases
 ;;; Run with: scheme --script lattice/algebra/test-multivariate-groebner.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/groebner.ss")  ; loads multivariate.ss, field.ss transitively
 

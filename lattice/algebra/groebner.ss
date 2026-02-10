@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/multivariate.ss")
+;;; @module groebner
+;;; @requires prelude multivariate
+
+(require 'prelude)
+(require 'multivariate)
 
 (doc 'module 'groebner)
 (doc 'description "Gröbner bases")

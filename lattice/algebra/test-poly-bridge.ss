@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for the unified polynomial bridge module.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 
 ;;; IMPORTANT: Load numeric/polynomial.ss BEFORE poly-bridge.ss

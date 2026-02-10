@@ -8,6 +8,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/optimization/test-poly-optimize.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/field.ss")
 (load "lattice/algebra/polynomial.ss")

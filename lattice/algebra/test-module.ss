@@ -1,6 +1,7 @@
 ;;; lattice/algebra/test-module.ss — Tests for module theory
 ;;; Run: scheme --script lattice/algebra/test-module.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/module.ss")
 

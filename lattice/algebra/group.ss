@@ -1,4 +1,7 @@
-(load "core/base/prelude.ss")
+;;; @module group
+;;; @requires prelude
+
+(require 'prelude)
 
 (doc 'module 'group)
 (doc 'description "Group theory library")

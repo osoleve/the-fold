@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/ring.ss")
+;;; @module field
+;;; @requires prelude ring
+
+(require 'prelude)
+(require 'ring)
 
 (doc 'module 'field)
 (doc 'description "Field theory library")

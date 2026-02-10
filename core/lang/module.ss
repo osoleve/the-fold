@@ -195,6 +195,18 @@ Dependencies:
  (register-module-path! 'statechart "lattice/automata/statechart.ss")
  (register-module-path! 'statechart-zipper "lattice/automata/statechart-zipper.ss")
 
+ ;; Algebra
+ (register-module-path! 'group "lattice/algebra/group.ss")
+ (register-module-path! 'ring "lattice/algebra/ring.ss")
+ (register-module-path! 'field "lattice/algebra/field.ss")
+ (register-module-path! 'algebra/polynomial "lattice/algebra/polynomial.ss")
+ (register-module-path! 'multivariate "lattice/algebra/multivariate.ss")
+ (register-module-path! 'groebner "lattice/algebra/groebner.ss")
+ (register-module-path! 'module-theory "lattice/algebra/module.ss")
+ (register-module-path! 'galois "lattice/algebra/galois.ss")
+ (register-module-path! 'field-ext "lattice/algebra/field-ext.ss")
+ (register-module-path! 'poly-bridge "lattice/algebra/poly-bridge.ss")
+
  ;; IPC
  (register-module-path! 'ipc-protocol "lattice/ipc/protocol.ss")
 

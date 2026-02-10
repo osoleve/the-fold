@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for univariate polynomials, multivariate polynomials, and Gröbner bases.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/polynomial.ss")
 (load "lattice/algebra/multivariate.ss")

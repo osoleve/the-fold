@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/field.ss")
+;;; @module algebra/polynomial
+;;; @requires prelude field
+
+(require 'prelude)
+(require 'field)
 
 (doc 'module 'polynomial)
 (doc 'description "Polynomial rings over fields")

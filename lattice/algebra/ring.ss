@@ -1,5 +1,8 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/group.ss")
+;;; @module ring
+;;; @requires prelude group
+
+(require 'prelude)
+(require 'group)
 
 (doc 'module 'ring)
 (doc 'description "Ring theory library")

@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/field.ss")
-(load "lattice/algebra/polynomial.ss")
+;;; @module field-ext
+;;; @requires prelude field algebra/polynomial
+
+(require 'prelude)
+(require 'field)
+(require 'algebra/polynomial)
 
 (doc 'module 'field-ext)
 (doc 'description "Algebraic field extensions over infinite fields (Q, R)")

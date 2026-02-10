@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for polynomial algebra integration with symbolic math.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/fp/symbolic/poly-canonical.ss")
 

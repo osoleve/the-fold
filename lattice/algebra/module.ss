@@ -1,5 +1,5 @@
 ;;; lattice/algebra/module.ss — Module Theory over Rings
-;;; @module module
+;;; @module module-theory
 ;;; @requires prelude ring
 ;;;
 ;;; Modules are generalizations of vector spaces where scalars come from
@@ -11,8 +11,8 @@
 ;;;
 ;;; This is Lattice code: pure, total, decomposes to Fold primitives.
 
-(load "core/base/prelude.ss")
-(load "lattice/algebra/ring.ss")
+(require 'prelude)
+(require 'ring)
 
 (doc 'module 'module-theory)
 (doc 'description "Module theory: generalizations of vector spaces over rings")

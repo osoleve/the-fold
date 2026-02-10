@@ -2,6 +2,7 @@
 ;;;
 ;;; Run: scheme --script core/algebra/test-group.ss
 
+(load "core/lang/module.ss")
 (load "core/test-framework.ss")
 (load "lattice/algebra/group.ss")
 

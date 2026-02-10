@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for polynomial algebra integration with time series.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/statistics/timeseries/ar-poly.ss")
 

@@ -1,6 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/algebra/field.ss")
-(load "lattice/data/sort.ss")
+;;; @module multivariate
+;;; @requires prelude field sort
+
+(require 'prelude)
+(require 'field)
+(require 'sort)
 
 (doc 'module 'multivariate)
 (doc 'description "Multivariate polynomial algebra")

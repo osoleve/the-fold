@@ -2,6 +2,7 @@
 ;;;
 ;;; Tests for exact polynomial operations on transfer functions.
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/control-systems/poly-algebra.ss")
 

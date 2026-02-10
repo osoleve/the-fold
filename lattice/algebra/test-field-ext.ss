@@ -9,6 +9,7 @@
 ;;;
 ;;; Run with: scheme --script lattice/algebra/test-field-ext.ss
 
+(load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
 (load "lattice/algebra/field-ext.ss")
 
