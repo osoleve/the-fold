@@ -1,6 +1,6 @@
 ;;; lattice/numeric/fem.ss --- Finite Element Method for 2D PDEs
 ;;; @module fem
-;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers geometry/mesh-gen
+;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen
 
 (require 'prelude)
 (require 'sort)
@@ -8,7 +8,7 @@
 (require 'matrix)
 (require 'sparse)
 (require 'iterative-solvers)
-(load "lattice/geometry/mesh-gen.ss")
+(require 'mesh-gen)
 
 (doc 'module 'fem)
 (doc 'description "Finite Element Method: P1 elements on triangular meshes for elliptic PDEs")
