@@ -1,16 +1,42 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module des/world
-;;; @requires prelude optics des/event state
+;;; @requires prelude optics des/event state avl-tree
 (require 'prelude)
 (require 'optics)
 (require 'des/event)
 (require 'state)
+(require 'avl-tree)
 
 (doc 'module 'des/world)
-(doc 'description "Discrete Event Simulation — world state container with optics. A DES world holds the simulation clock, an entity store (alist), the event queue, accumulated metrics, and RNG state. Lenses provide composable access into all fields.")
+(doc 'description "Discrete Event Simulation — world state container with optics. A DES world holds the simulation clock, entity and metric stores (AVL trees for O(log n) access), the event queue, and RNG state. Lenses provide composable access into all fields.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
+
+;;;---------------------------------------------------------------------------
+;;; Symbol comparator for AVL trees
+;;;---------------------------------------------------------------------------
+
+(define (symbol<? a b)
+  (doc 'type '(-> Symbol Symbol Boolean))
+  (string<? (symbol->string a) (symbol->string b)))
+
+;;;---------------------------------------------------------------------------
+;;; AVL-based symbol map helpers (internal)
+;;;---------------------------------------------------------------------------
+
+(define (sym-avl-lookup key tree)
+  (avl-lookup-by symbol<? key tree))
+
+(define (sym-avl-insert key value tree)
+  (avl-insert-by symbol<? key value tree))
+
+(define (sym-avl-delete key tree)
+  (avl-delete-by symbol<? key tree))
+
+(define (alist->sym-avl alist)
+  (fold-left (lambda (tree pair) (sym-avl-insert (car pair) (cdr pair) tree))
+             avl-empty alist))
 
 ;;;---------------------------------------------------------------------------
 ;;; World state
@@ -19,9 +45,14 @@
 (doc 'section 'world-state)
 
 (define (make-des-world clock entities event-queue metrics rng)
-  (doc 'type '(-> Number Alist EventQueue Alist Any DESWorld))
-  (doc 'description "Create a simulation world. Entities is an alist of (id . entity-data). Metrics is an alist of (name . value) for accumulators.")
+  (doc 'type '(-> Number AVL EventQueue AVL Any DESWorld))
+  (doc 'description "Create a simulation world. Entities and metrics are AVL trees (symbol-keyed). Use des-world for alist convenience constructor.")
   (list 'des-world clock entities event-queue metrics rng))
+
+(define (des-world clock entity-alist event-queue metric-alist rng)
+  (doc 'type '(-> Number Alist EventQueue Alist Any DESWorld))
+  (doc 'description "Convenience constructor: accepts alists for entities and metrics, converts to AVL trees internally.")
+  (make-des-world clock (alist->sym-avl entity-alist) event-queue (alist->sym-avl metric-alist) rng))
 
 (define (des-world? x)
   (doc 'type '(-> Any Boolean))
@@ -44,7 +75,7 @@
   (make-lens des-world-clock
              (lambda (t w) (make-des-world t (des-world-entities w) (des-world-queue w) (des-world-metrics w) (des-world-rng w)))))
 
-(doc 'type '(Lens DESWorld Alist))
+(doc 'type '(Lens DESWorld AVL))
 (define world-entities
   (make-lens des-world-entities
              (lambda (es w) (make-des-world (des-world-clock w) es (des-world-queue w) (des-world-metrics w) (des-world-rng w)))))
@@ -54,7 +85,7 @@
   (make-lens des-world-queue
              (lambda (q w) (make-des-world (des-world-clock w) (des-world-entities w) q (des-world-metrics w) (des-world-rng w)))))
 
-(doc 'type '(Lens DESWorld Alist))
+(doc 'type '(Lens DESWorld AVL))
 (define world-metrics
   (make-lens des-world-metrics
              (lambda (m w) (make-des-world (des-world-clock w) (des-world-entities w) (des-world-queue w) m (des-world-rng w)))))
@@ -65,45 +96,43 @@
              (lambda (r w) (make-des-world (des-world-clock w) (des-world-entities w) (des-world-queue w) (des-world-metrics w) r))))
 
 ;;;---------------------------------------------------------------------------
-;;; Entity operations (via entities alist)
+;;; Entity operations (AVL tree, O(log n))
 ;;;---------------------------------------------------------------------------
 
 (doc 'section 'entity-ops)
 
 (define (world-entity w id)
   (doc 'type '(-> DESWorld Symbol Any))
-  (doc 'description "Look up entity by id. Returns #f if not found.")
-  (let ([pair (assq id (des-world-entities w))])
-    (if pair (cdr pair) #f)))
+  (doc 'description "Look up entity by id. O(log n). Returns #f if not found.")
+  (sym-avl-lookup id (des-world-entities w)))
 
 (define (world-set-entity w id data)
   (doc 'type '(-> DESWorld Symbol Any DESWorld))
-  (doc 'description "Set or add entity. Replaces if id exists, appends if new.")
-  (let* ([es (des-world-entities w)]
-         [new-es (cons (cons id data)
-                       (filter (lambda (p) (not (eq? (car p) id))) es))])
-    (set-lens world-entities new-es w)))
+  (doc 'description "Set or add entity. O(log n).")
+  (set-lens world-entities
+            (sym-avl-insert id data (des-world-entities w))
+            w))
 
 (define (world-update-entity w id f)
   (doc 'type '(-> DESWorld Symbol (-> Any Any) DESWorld))
-  (doc 'description "Apply f to entity data. No-op if entity not found.")
+  (doc 'description "Apply f to entity data. No-op if entity not found. O(log n).")
   (let ([cur (world-entity w id)])
     (if cur (world-set-entity w id (f cur)) w)))
 
 (define (world-remove-entity w id)
   (doc 'type '(-> DESWorld Symbol DESWorld))
-  (doc 'description "Remove entity by id.")
-  (over world-entities
-        (lambda (es) (filter (lambda (p) (not (eq? (car p) id))) es))
-        w))
+  (doc 'description "Remove entity by id. O(log n).")
+  (set-lens world-entities
+            (sym-avl-delete id (des-world-entities w))
+            w))
 
 (define (world-entity-ids w)
   (doc 'type '(-> DESWorld (List Symbol)))
-  (map car (des-world-entities w)))
+  (avl-keys (des-world-entities w)))
 
 (define (world-entity-count w)
   (doc 'type '(-> DESWorld Nat))
-  (length (des-world-entities w)))
+  (avl-size (des-world-entities w)))
 
 ;;;---------------------------------------------------------------------------
 ;;; Event scheduling (convenience wrappers)
@@ -137,24 +166,23 @@
   (over world-queue (lambda (q) (eq-cancel-type type q)) w))
 
 ;;;---------------------------------------------------------------------------
-;;; Metrics (running accumulators)
+;;; Metrics (AVL tree, O(log n))
 ;;;---------------------------------------------------------------------------
 
 (doc 'section 'metrics)
 
 (define (world-metric w name)
   (doc 'type '(-> DESWorld Symbol Any))
-  (doc 'description "Get metric value. Returns 0 if not found.")
-  (let ([pair (assq name (des-world-metrics w))])
-    (if pair (cdr pair) 0)))
+  (doc 'description "Get metric value. O(log n). Returns 0 if not found.")
+  (let ([v (sym-avl-lookup name (des-world-metrics w))])
+    (if v v 0)))
 
 (define (world-set-metric w name value)
   (doc 'type '(-> DESWorld Symbol Any DESWorld))
-  (over world-metrics
-        (lambda (ms)
-          (cons (cons name value)
-                (filter (lambda (p) (not (eq? (car p) name))) ms)))
-        w))
+  (doc 'description "Set a metric value. O(log n).")
+  (set-lens world-metrics
+            (sym-avl-insert name value (des-world-metrics w))
+            w))
 
 (define (world-inc-metric w name)
   (doc 'type '(-> DESWorld Symbol DESWorld))

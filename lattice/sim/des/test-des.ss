@@ -5,10 +5,18 @@
 (require 'des/engine)
 (require 'des/schedule)
 (require 'des/replicate)
+(require 'queue)
+(require 'avl-tree)
 
 ;;;===========================================================================
 ;;; DES SDK Tests
 ;;;===========================================================================
+
+;; Shorthand: empty world with no entities/metrics
+(define (empty-world . args)
+  (let ([clock (if (null? args) 0 (car args))]
+        [rng (if (or (null? args) (null? (cdr args))) 'no-rng (cadr args))])
+    (make-des-world clock avl-empty eq-empty avl-empty rng)))
 
 ;;;---------------------------------------------------------------------------
 ;;; Event tests
@@ -38,7 +46,6 @@
            [q (eq-schedule q (make-des-event 1.0 'a '()))]
            [q (eq-schedule q (make-des-event 2.0 'c '()))])
       (assert-equal 3 (eq-size q))
-      ;; Earliest event should be first
       (assert-equal 'a (des-event-type (eq-next q)))))
 
   (define-test "event queue pop ordering"
@@ -81,28 +88,34 @@
 (test-group "des-world"
 
   (define-test "world construction"
-    (let ([w (make-des-world 0 '() eq-empty '() 'no-rng)])
+    (let ([w (empty-world)])
       (assert-true (des-world? w))
       (assert-equal 0 (des-world-clock w))
-      (assert-equal '() (des-world-entities w))))
+      (assert-equal 0 (world-entity-count w))))
+
+  (define-test "world construction from alists"
+    (let ([w (des-world 0 '((a . 1) (b . 2)) eq-empty '((x . 10)) 'no-rng)])
+      (assert-equal 1 (world-entity w 'a))
+      (assert-equal 2 (world-entity w 'b))
+      (assert-equal 10 (world-metric w 'x))))
 
   (define-test "world entity CRUD"
-    (let* ([w (make-des-world 0 '() eq-empty '() 'no-rng)]
+    (let* ([w (empty-world)]
            [w (world-set-entity w 'server '(idle))]
-           [w (world-set-entity w 'queue '())])
+           [w (world-set-entity w 'wait-queue '())])
       (assert-equal '(idle) (world-entity w 'server))
-      (assert-equal '() (world-entity w 'queue))
+      (assert-equal '() (world-entity w 'wait-queue))
       (assert-equal 2 (world-entity-count w))
       ;; Update
       (let ([w2 (world-update-entity w 'server (lambda (_) '(busy)))])
         (assert-equal '(busy) (world-entity w2 'server)))
       ;; Remove
-      (let ([w3 (world-remove-entity w 'queue)])
+      (let ([w3 (world-remove-entity w 'wait-queue)])
         (assert-equal 1 (world-entity-count w3))
-        (assert-false (world-entity w3 'queue)))))
+        (assert-false (world-entity w3 'wait-queue)))))
 
   (define-test "world metrics"
-    (let* ([w (make-des-world 0 '() eq-empty '() 'no-rng)]
+    (let* ([w (empty-world)]
            [w (world-set-metric w 'arrivals 0)]
            [w (world-inc-metric w 'arrivals)]
            [w (world-inc-metric w 'arrivals)]
@@ -110,15 +123,14 @@
       (assert-equal 5 (world-metric w 'arrivals))))
 
   (define-test "world scheduling convenience"
-    (let* ([w (make-des-world 10.0 '() eq-empty '() 'no-rng)]
+    (let* ([w (empty-world 10.0)]
            [w (world-schedule-at w 15.0 'tick '())]
            [w (world-schedule-after w 3.0 'check '())])
       (assert-equal 2 (eq-size (des-world-queue w)))
-      ;; Next event should be at 13.0 (10.0 + 3.0), before 15.0
       (assert-equal 13.0 (des-event-time (eq-next (des-world-queue w))))))
 
   (define-test "world lenses work with view/set-lens/over"
-    (let* ([w (make-des-world 0 '((a . 1)) eq-empty '() 'no-rng)]
+    (let* ([w (empty-world)]
            [t (view world-clock w)]
            [w2 (set-lens world-clock 42 w)])
       (assert-equal 0 t)
@@ -144,23 +156,22 @@
     (let* ([handlers (make-handler-table
                       'tick (lambda (w e) w))]
            [config (make-des-config handlers 100.0 1000)]
-           [w0 (make-des-world 0 '() eq-empty '() 'no-rng)]
+           [w0 (empty-world)]
            [w0 (world-schedule-at w0 5.0 'tick '())]
            [w1 (des-step config w0)])
       (assert-equal 5.0 (des-world-clock w1))))
 
   (define-test "step returns #f on empty queue"
     (let* ([config (make-des-config '() 100.0 1000)]
-           [w0 (make-des-world 0 '() eq-empty '() 'no-rng)])
+           [w0 (empty-world)])
       (assert-false (des-step config w0))))
 
   (define-test "step returns #f past stop-time"
     (let* ([config (make-des-config '() 10.0 1000)]
-           [w0 (make-des-world 0 '() eq-empty '() 'no-rng)]
+           [w0 (empty-world)]
            [w0 (world-schedule-at w0 20.0 'tick '())])
       (assert-false (des-step config w0))))
 
-  ;; Deterministic counter: each tick increments a counter and schedules next
   (define-test "deterministic simulation run"
     (let* ([tick-handler
             (lambda (w e)
@@ -171,7 +182,7 @@
                     w)))]
            [handlers (make-handler-table 'tick tick-handler)]
            [config (make-des-config handlers 100.0 1000)]
-           [w0 (make-des-world 0 '() eq-empty '() 'no-rng)]
+           [w0 (empty-world)]
            [w0 (world-schedule-at w0 1.0 'tick '())]
            [wf (des-run-final config w0)])
       (assert-equal 5 (world-metric wf 'ticks))
@@ -183,10 +194,9 @@
               (world-schedule-after w 1.0 'tick '()))]
            [handlers (make-handler-table 'tick tick-handler)]
            [config (make-des-config handlers 5.0 100)]
-           [w0 (make-des-world 0 '() eq-empty '() 'no-rng)]
+           [w0 (empty-world)]
            [w0 (world-schedule-at w0 1.0 'tick '())]
            [states (des-run-list config w0)])
-      ;; Should have states at t=1,2,3,4,5
       (assert-equal 5 (length states))
       (assert-equal 1.0 (des-world-clock (car states)))
       (assert-equal 5.0 (des-world-clock (list-ref states 4))))))
@@ -198,7 +208,7 @@
 (test-group "des-schedule"
 
   (define-test "schedule-periodic"
-    (let* ([w0 (make-des-world 0 '() eq-empty '() 'no-rng)]
+    (let* ([w0 (empty-world)]
            [w1 (schedule-periodic w0 2.0 'tick '() 3)]
            [events (eq-to-list (des-world-queue w1))])
       (assert-equal 3 (length events))
@@ -207,50 +217,40 @@
       (assert-equal 6.0 (des-event-time (caddr events)))))
 
   (define-test "schedule-at-times"
-    (let* ([w0 (make-des-world 0 '() eq-empty '() 'no-rng)]
+    (let* ([w0 (empty-world)]
            [w1 (schedule-at-times w0 '(10.0 5.0 15.0) 'check '())]
            [events (eq-to-list (des-world-queue w1))])
       (assert-equal 3 (length events))
-      ;; Should come out sorted
       (assert-equal 5.0 (des-event-time (car events)))))
 
   (define-test "schedule-after-exp uses RNG"
     (let* ([rng (make-pcg 42 1)]
-           [w0 (make-des-world 0 '() eq-empty '() rng)]
+           [w0 (empty-world 0 rng)]
            [w1 (schedule-after-exp w0 1.0 'arrive '())])
-      ;; Should have exactly one event scheduled
       (assert-equal 1 (eq-size (des-world-queue w1)))
-      ;; Event time should be > 0 (exponential is always positive)
       (assert-true (> (des-event-time (eq-next (des-world-queue w1))) 0))))
 
   (define-test "make-poisson-arrival-handler self-schedules"
-    (let* ([arrivals 0]
-           [on-arrive (lambda (w e)
+    (let* ([on-arrive (lambda (w e)
                         (world-inc-metric w 'arrivals))]
            [handler (make-poisson-arrival-handler 1.0 'arrive on-arrive)]
            [rng (make-pcg 42 1)]
-           [w0 (make-des-world 0 '() eq-empty '() rng)]
-           ;; Simulate: handler processes event and schedules next
+           [w0 (empty-world 0 rng)]
            [w1 (handler w0 (make-des-event 0 'arrive '()))])
       (assert-equal 1 (world-metric w1 'arrivals))
-      ;; Should have scheduled next arrival
       (assert-equal 1 (eq-size (des-world-queue w1))))))
 
 ;;;---------------------------------------------------------------------------
-;;; M/M/1 Queue — canonical DES example
+;;; M/M/1 Queue — canonical DES example (using Okasaki queue)
 ;;;---------------------------------------------------------------------------
 
 (test-group "mm1-queue"
 
-  ;; M/M/1: Poisson arrivals (rate λ), exponential service (rate μ)
-  ;; Single server, FIFO queue, infinite buffer
-  ;; Theoretical: utilization ρ = λ/μ, avg queue length = ρ²/(1-ρ)
-
-  (define mm1-arrival-rate 0.8)  ;; λ
-  (define mm1-service-rate 1.0)  ;; μ (must be > λ for stability)
+  (define mm1-arrival-rate 0.8)
+  (define mm1-service-rate 1.0)
 
   ;; Entity: server is '(idle) or '(busy customer-id)
-  ;; Entity: wait-queue is a list of customer-ids
+  ;; Entity: wait-queue is an Okasaki FIFO queue (amortized O(1) enqueue/dequeue)
 
   (define (mm1-handle-arrive w e)
     (let* ([customer-id (world-metric w 'next-id)]
@@ -265,25 +265,25 @@
               w))
           ;; Server busy: join queue
           (let* ([q (world-entity w 'wait-queue)]
-                 [w (world-set-entity w 'wait-queue (append q (list customer-id)))]
+                 [w (world-set-entity w 'wait-queue (queue-enqueue customer-id q))]
                  [w (world-set-metric w 'max-queue-length
                       (max (world-metric w 'max-queue-length)
-                           (+ 1 (length q))))])
+                           (queue-size (world-entity w 'wait-queue))))])
             w))))
 
   (define (mm1-handle-depart w e)
     (let* ([w (world-inc-metric w 'total-departures)]
            [q (world-entity w 'wait-queue)])
-      (if (null? q)
+      (if (queue-empty? q)
           ;; Queue empty: server goes idle
           (world-set-entity w 'server '(idle))
           ;; Serve next in queue
-          (let* ([next-customer (car q)]
-                 [w (world-set-entity w 'wait-queue (cdr q))])
-            (let-values ([(svc-time w) (world-run-random w (random-exponential mm1-service-rate))])
-              (let* ([w (world-set-entity w 'server (list 'busy next-customer))]
-                     [w (world-schedule-after w svc-time 'depart next-customer)])
-                w))))))
+          (let-values ([(rest-q next-customer) (queue-dequeue q)])
+            (let ([w (world-set-entity w 'wait-queue rest-q)])
+              (let-values ([(svc-time w) (world-run-random w (random-exponential mm1-service-rate))])
+                (let* ([w (world-set-entity w 'server (list 'busy next-customer))]
+                       [w (world-schedule-after w svc-time 'depart next-customer)])
+                  w)))))))
 
   (define mm1-arrive-handler
     (make-poisson-arrival-handler mm1-arrival-rate 'arrive mm1-handle-arrive))
@@ -294,14 +294,13 @@
      'depart mm1-handle-depart))
 
   (define (make-mm1-world rng)
-    (let* ([w (make-des-world 0 '() eq-empty '() rng)]
+    (let* ([w (empty-world 0 rng)]
            [w (world-set-entity w 'server '(idle))]
-           [w (world-set-entity w 'wait-queue '())]
+           [w (world-set-entity w 'wait-queue queue-empty)]
            [w (world-set-metric w 'total-arrivals 0)]
            [w (world-set-metric w 'total-departures 0)]
            [w (world-set-metric w 'max-queue-length 0)]
            [w (world-set-metric w 'next-id 1)]
-           ;; Seed first arrival
            [w (schedule-after-exp w mm1-arrival-rate 'arrive '())])
       w))
 
@@ -310,26 +309,19 @@
            [rng (make-pcg 42 1)]
            [w0 (make-mm1-world rng)]
            [wf (des-run-final config w0)])
-      ;; Should have processed some arrivals and departures
       (assert-true (> (world-metric wf 'total-arrivals) 0))
       (assert-true (> (world-metric wf 'total-departures) 0))
-      ;; Arrivals should be roughly λ * T = 0.8 * 100 = 80
       (assert-true (> (world-metric wf 'total-arrivals) 50))
       (assert-true (< (world-metric wf 'total-arrivals) 120))))
 
   (define-test "mm1 utilization approaches theoretical"
-    ;; ρ = λ/μ = 0.8/1.0 = 0.8
-    ;; Run long enough for the law of large numbers to kick in
     (let* ([config (make-des-config mm1-handlers 1000.0 100000)]
            [rng (make-pcg 12345 1)]
            [w0 (make-mm1-world rng)]
            [wf (des-run-final config w0)]
            [arrivals (world-metric wf 'total-arrivals)]
            [departures (world-metric wf 'total-departures)]
-           ;; Empirical throughput ≈ departures/arrivals
            [throughput (/ departures arrivals)])
-      ;; In steady state, almost all arrivals are eventually served
-      ;; (departures ≈ arrivals for long runs)
       (assert-true (> throughput 0.9)))))
 
 ;;;---------------------------------------------------------------------------
@@ -343,16 +335,14 @@
                       'tick (lambda (w e) (world-inc-metric w 'count)))]
            [config (make-des-config handlers 10.0 100)]
            [make-w (lambda (rng)
-                     (let ([w (make-des-world 0 '() eq-empty '() rng)])
+                     (let ([w (empty-world 0 rng)])
                        (schedule-periodic w 1.0 'tick '() 5)))]
            [finals (des-replicate config make-w 3 42)])
-      ;; All three should have count=5 (deterministic)
       (assert-equal 3 (length finals))
       (assert-equal 5 (world-metric (car finals) 'count))
       (assert-equal 5 (world-metric (cadr finals) 'count))))
 
   (define-test "replicate-summary computes stats"
-    ;; Use a stochastic handler: each tick adds a random amount
     (let* ([tick-handler
             (lambda (w e)
               (let-values ([(val w) (world-run-random w (random-exponential 1.0))])
@@ -360,10 +350,9 @@
            [handlers (make-handler-table 'tick tick-handler)]
            [config (make-des-config handlers 10.0 1000)]
            [make-w (lambda (rng)
-                     (let ([w (make-des-world 0 '() eq-empty '() rng)])
+                     (let ([w (empty-world 0 rng)])
                        (schedule-periodic w 0.1 'tick '() 50)))]
            [summary (des-replicate-summary config make-w 10 42 'total)])
-      ;; Should have mean, std-dev, etc.
       (assert-true (> (cdr (assq 'mean summary)) 0))
       (assert-equal 10 (cdr (assq 'n summary))))))
 
