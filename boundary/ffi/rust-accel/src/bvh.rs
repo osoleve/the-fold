@@ -98,10 +98,14 @@ pub fn bvh_from_bytes(data: &[u8]) -> Option<BVHHandle> {
     }
 
     // Parse nodes recursively starting from root (index 0)
-    let root = parse_node(data, nodes_start, node_size, &triangles, 0)?;
+    let root = parse_node(data, nodes_start, node_size, num_nodes, &triangles, 0, 0)?;
 
     Some(BVHHandle { root })
 }
+
+/// Maximum BVH parse depth to prevent stack overflow on crafted data.
+/// A balanced BVH of 2^64 nodes would only need depth 64.
+const MAX_PARSE_DEPTH: usize = 64;
 
 fn parse_triangle(data: &[u8], id: u32) -> Triangle {
     let p1 = Vec3::new(
@@ -140,9 +144,21 @@ fn parse_node(
     data: &[u8],
     nodes_start: usize,
     node_size: usize,
+    num_nodes: usize,
     triangles: &[Triangle],
     index: usize,
+    depth: usize,
 ) -> Option<BVHNode> {
+    // Depth limit prevents stack overflow on cyclic or pathologically deep data
+    if depth >= MAX_PARSE_DEPTH {
+        return None;
+    }
+
+    // Validate index against declared node count
+    if index >= num_nodes {
+        return None;
+    }
+
     let offset = nodes_start + index * node_size;
     if offset + node_size > data.len() {
         return None;
@@ -173,14 +189,32 @@ fn parse_node(
         let left_idx = u32::from_ne_bytes(node_data[56..60].try_into().unwrap()) as usize;
         let right_idx = u32::from_ne_bytes(node_data[60..64].try_into().unwrap()) as usize;
 
-        // Bounds check: prevent cycles and out-of-bounds indices
-        // Note: We don't know total node count here, but we can detect obvious issues
+        // Validate child indices: must be in bounds and not self-referential
+        if left_idx >= num_nodes || right_idx >= num_nodes {
+            return None;
+        }
         if left_idx == index || right_idx == index {
-            return None; // Self-referential node (would cause infinite recursion)
+            return None;
         }
 
-        let left = parse_node(data, nodes_start, node_size, triangles, left_idx)?;
-        let right = parse_node(data, nodes_start, node_size, triangles, right_idx)?;
+        let left = parse_node(
+            data,
+            nodes_start,
+            node_size,
+            num_nodes,
+            triangles,
+            left_idx,
+            depth + 1,
+        )?;
+        let right = parse_node(
+            data,
+            nodes_start,
+            node_size,
+            num_nodes,
+            triangles,
+            right_idx,
+            depth + 1,
+        )?;
 
         Some(BVHNode::Internal {
             bbox,
@@ -603,5 +637,56 @@ mod tests {
         let result = bvh_closest_point(&bvh, point, 2);
 
         assert!(matches!(result, FuelResult::OutOfFuel));
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_out_of_bounds_child() {
+        // Craft a minimal BVH with an internal node pointing to index 99
+        // when only 1 node exists. Should return None.
+        let mut data = vec![0u8; 16 + 64]; // header + 1 node, 0 triangles
+
+        // Header: magic
+        data[0..4].copy_from_slice(&0x42564801u32.to_ne_bytes());
+        // num_nodes = 1
+        data[4..8].copy_from_slice(&1u32.to_ne_bytes());
+        // num_tris = 0
+        data[8..12].copy_from_slice(&0u32.to_ne_bytes());
+
+        // Node at index 0: internal (type=0)
+        data[16] = 0; // type = internal
+                      // bbox bytes 8..56 (zeroed is fine)
+                      // left_idx = 99 (out of bounds)
+        data[16 + 56..16 + 60].copy_from_slice(&99u32.to_ne_bytes());
+        // right_idx = 0 (self-ref, but should fail on left first)
+        data[16 + 60..16 + 64].copy_from_slice(&0u32.to_ne_bytes());
+
+        assert!(bvh_from_bytes(&data).is_none());
+    }
+
+    #[test]
+    fn test_from_bytes_rejects_self_referential() {
+        // Internal node where left child points back to itself
+        let mut data = vec![0u8; 16 + 64 * 2 + 72]; // 2 nodes, 1 triangle
+
+        // Header
+        data[0..4].copy_from_slice(&0x42564801u32.to_ne_bytes());
+        data[4..8].copy_from_slice(&2u32.to_ne_bytes()); // 2 nodes
+        data[8..12].copy_from_slice(&1u32.to_ne_bytes()); // 1 triangle
+
+        // Node 0: internal, left=0 (self-ref), right=1
+        let n0 = 16;
+        data[n0] = 0; // internal
+        data[n0 + 56..n0 + 60].copy_from_slice(&0u32.to_ne_bytes()); // left=0 (self)
+        data[n0 + 60..n0 + 64].copy_from_slice(&1u32.to_ne_bytes()); // right=1
+
+        // Node 1: leaf, first_tri=0, tri_count=1
+        let n1 = 16 + 64;
+        data[n1] = 1; // leaf
+        data[n1 + 56..n1 + 60].copy_from_slice(&0u32.to_ne_bytes());
+        data[n1 + 60..n1 + 64].copy_from_slice(&1u32.to_ne_bytes());
+
+        // Triangle at offset 16 + 128 (zeroed coords is fine for this test)
+
+        assert!(bvh_from_bytes(&data).is_none());
     }
 }

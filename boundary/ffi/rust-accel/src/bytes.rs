@@ -148,8 +148,10 @@ pub extern "C" fn fold_bv_copy(
     }
 
     if !src_data.is_null() && !dst_data.is_null() && n > 0 {
+        // Use copy (not copy_nonoverlapping) because src and dst may alias
+        // the same Scheme bytevector — Scheme's bytevector-copy! allows overlap.
         unsafe {
-            std::ptr::copy_nonoverlapping(src_data, dst_data, n);
+            std::ptr::copy(src_data, dst_data, n);
         }
     }
 

@@ -141,8 +141,8 @@ impl ReactorState {
 // Global Reactor Handle
 // ====
 
-static mut REACTOR: Option<Arc<ReactorState>> = None;
-static mut REACTOR_THREAD: Option<thread::JoinHandle<()>> = None;
+static REACTOR: Mutex<Option<Arc<ReactorState>>> = Mutex::new(None);
+static REACTOR_THREAD: Mutex<Option<thread::JoinHandle<()>>> = Mutex::new(None);
 
 // ====
 // Background Thread
@@ -376,12 +376,18 @@ pub extern "C" fn fold_ipc_start(path_ptr: *const u8, path_len: usize, out: *mut
     let result = unsafe { &mut *out };
 
     // Check if already running
-    unsafe {
-        if REACTOR.is_some() {
+    let mut reactor_guard = match REACTOR.lock() {
+        Ok(g) => g,
+        Err(_) => {
             result.status = 1;
-            result.error_code = libc::EEXIST;
+            result.error_code = libc::EIO;
             return;
         }
+    };
+    if reactor_guard.is_some() {
+        result.status = 1;
+        result.error_code = libc::EEXIST;
+        return;
     }
 
     let path_slice = unsafe { std::slice::from_raw_parts(path_ptr, path_len) };
@@ -423,9 +429,9 @@ pub extern "C" fn fold_ipc_start(path_ptr: *const u8, path_len: usize, out: *mut
         reactor_thread(listener, state_clone);
     });
 
-    unsafe {
-        REACTOR = Some(state);
-        REACTOR_THREAD = Some(handle);
+    *reactor_guard = Some(state);
+    if let Ok(mut thread_guard) = REACTOR_THREAD.lock() {
+        *thread_guard = Some(handle);
     }
 
     result.status = 0;
@@ -443,17 +449,23 @@ pub extern "C" fn fold_ipc_stop(out: *mut StatusResult) {
     }
     let result = unsafe { &mut *out };
 
-    unsafe {
-        if let Some(ref state) = REACTOR {
+    // Signal shutdown
+    if let Ok(guard) = REACTOR.lock() {
+        if let Some(ref state) = *guard {
             state.running.store(false, Ordering::Relaxed);
         }
+    }
 
-        // Join the thread
-        if let Some(handle) = REACTOR_THREAD.take() {
+    // Join the thread (must drop reactor lock first to avoid deadlock)
+    if let Ok(mut thread_guard) = REACTOR_THREAD.lock() {
+        if let Some(handle) = thread_guard.take() {
             let _ = handle.join();
         }
+    }
 
-        REACTOR = None;
+    // Clear reactor state
+    if let Ok(mut guard) = REACTOR.lock() {
+        *guard = None;
     }
 
     result.status = 0;
@@ -484,14 +496,19 @@ pub extern "C" fn fold_ipc_poll(
     }
     let result = unsafe { &mut *out };
 
-    let state = unsafe {
-        match &REACTOR {
-            Some(s) => s,
+    let state = match REACTOR.lock() {
+        Ok(guard) => match guard.as_ref() {
+            Some(s) => Arc::clone(s),
             None => {
                 result.status = 2;
                 result.error_code = libc::ENOENT;
                 return;
             }
+        },
+        Err(_) => {
+            result.status = 2;
+            result.error_code = libc::EIO;
+            return;
         }
     };
 
@@ -561,14 +578,19 @@ pub extern "C" fn fold_ipc_send(
     }
     let result = unsafe { &mut *out };
 
-    let state = unsafe {
-        match &REACTOR {
-            Some(s) => s,
+    let state = match REACTOR.lock() {
+        Ok(guard) => match guard.as_ref() {
+            Some(s) => Arc::clone(s),
             None => {
                 result.status = 1;
                 result.error_code = libc::ENOENT;
                 return;
             }
+        },
+        Err(_) => {
+            result.status = 1;
+            result.error_code = libc::EIO;
+            return;
         }
     };
 
@@ -584,17 +606,18 @@ pub extern "C" fn fold_ipc_send(
             result.status = 1;
             result.error_code = libc::EIO;
         }
-    }
+    };
 }
 
 /// Get the current number of connected clients.
 #[no_mangle]
 pub extern "C" fn fold_ipc_client_count() -> u64 {
-    unsafe {
-        match &REACTOR {
+    match REACTOR.lock() {
+        Ok(guard) => match guard.as_ref() {
             Some(s) => s.client_count.load(Ordering::Relaxed),
             None => 0,
-        }
+        },
+        Err(_) => 0,
     }
 }
 
@@ -774,10 +797,27 @@ pub extern "C" fn fold_ipc_client_close(fd: i32, out: *mut StatusResult) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::{Read, Write};
+
+    /// Serializes tests that use the global REACTOR singleton.
+    /// cargo test runs in parallel; without this, tests race on start/stop.
+    static TEST_LOCK: Mutex<()> = Mutex::new(());
+
+    /// Counter to generate unique socket paths per test (PID alone isn't enough
+    /// when tests run sequentially within the same process).
+    static TEST_COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
     fn temp_sock_path() -> String {
-        format!("/tmp/fold-ipc-test-{}.sock", std::process::id())
+        let n = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+        format!("/tmp/fold-ipc-test-{}-{}.sock", std::process::id(), n)
+    }
+
+    /// Ensure reactor is stopped before/after test (defensive cleanup).
+    fn ensure_reactor_stopped() {
+        let mut status = StatusResult {
+            status: 0,
+            error_code: 0,
+        };
+        fold_ipc_stop(&mut status);
     }
 
     #[test]
@@ -846,6 +886,9 @@ mod tests {
 
     #[test]
     fn test_start_stop_reactor() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        ensure_reactor_stopped();
+
         let path = temp_sock_path();
         let path_bytes = path.as_bytes();
 
@@ -876,6 +919,9 @@ mod tests {
 
     #[test]
     fn test_client_connect_send_recv() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        ensure_reactor_stopped();
+
         let path = temp_sock_path();
         let path_bytes = path.as_bytes();
 
@@ -971,6 +1017,9 @@ mod tests {
 
     #[test]
     fn test_poll_empty() {
+        let _lock = TEST_LOCK.lock().unwrap();
+        ensure_reactor_stopped();
+
         let path = temp_sock_path();
         let path_bytes = path.as_bytes();
 
