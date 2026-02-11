@@ -251,6 +251,21 @@ Use namespaced form (`'dir/module`) when module names collide. The system warns 
 
 When creating new modules, prefer `(require ...)` chains over `(load ...)`. The module system tracks what's loaded and prevents redundant evaluation.
 
+**New module header pattern:**
+
+```scheme
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module my-module
+;;; @requires prelude vec2 rigid-body
+(require 'prelude)
+(require 'vec2)
+(require 'rigid-body)
+
+(doc 'module 'my-module)
+```
+
+The guarded bootstrap ensures `module.ss` loads exactly once. The `@module`/`@requires` annotations (space-separated, no commas) enable the reload system. All lattice modules follow this pattern — register new modules in `core/lang/module.ss` via `(register-module-path! 'name "path.ss")`. Use namespaced names (`'tiles/core`, `'physics/optimize`) when bare names collide.
+
 **Module Reloading:**
 
 ```scheme
