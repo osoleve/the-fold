@@ -23,7 +23,7 @@ pub extern "C" fn fold_sum5(
         result.fuel_out = 0;
         return;
     }
-    let val = ((((a + b) + c) + d) + e);
+    let val = (((a + b) + c) + d) + e;
     result.status = 1;
     result.value = val;
     result.fuel_out = fuel_in - COST;

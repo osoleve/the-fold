@@ -22,7 +22,7 @@ pub extern "C" fn fold_distance(
         result.fuel_out = 0;
         return;
     }
-    let val = ((((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1))).sqrt());
+    let val = (((x2 - x1) * (x2 - x1)) + ((y2 - y1) * (y2 - y1))).sqrt();
     result.status = 1;
     result.value = val;
     result.fuel_out = fuel_in - COST;

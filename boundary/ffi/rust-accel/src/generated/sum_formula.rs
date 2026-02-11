@@ -15,7 +15,7 @@ pub extern "C" fn fold_sum_formula(n: i64, fuel_in: u64, out: *mut I64Result) {
         result.fuel_out = 0;
         return;
     }
-    let val = ((n * (n + 1)) / 2);
+    let val = (n * (n + 1)) / 2;
     result.status = 1;
     result.value = val;
     result.fuel_out = fuel_in - COST;

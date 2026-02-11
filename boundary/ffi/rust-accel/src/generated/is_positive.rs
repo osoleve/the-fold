@@ -15,7 +15,7 @@ pub extern "C" fn fold_is_positive(x: i64, fuel_in: u64, out: *mut BoolResult) {
         result.fuel_out = 0;
         return;
     }
-    let val = (x > 0);
+    let val = x > 0;
     result.status = 1;
     result.value = if val { 1 } else { 0 };
     result.fuel_out = fuel_in - COST;

@@ -15,7 +15,7 @@ pub extern "C" fn fold_multiply_add(a: i64, b: i64, c: i64, fuel_in: u64, out: *
         result.fuel_out = 0;
         return;
     }
-    let val = ((a * b) + c);
+    let val = (a * b) + c;
     result.status = 1;
     result.value = val;
     result.fuel_out = fuel_in - COST;

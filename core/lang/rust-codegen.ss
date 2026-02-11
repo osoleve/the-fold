@@ -346,13 +346,13 @@
    [(not (pair? ir)) #f]
    [(eq? (car ir) 'R-Letrec) #t]
    [(eq? (car ir) 'R-Call)
-    (any ir-contains-letrec? (cddr ir))]
+    (ormap ir-contains-letrec? (cddr ir))]
    [(eq? (car ir) 'R-If)
     (or (ir-contains-letrec? (cadr ir))
         (ir-contains-letrec? (caddr ir))
         (ir-contains-letrec? (cadddr ir)))]
    [(eq? (car ir) 'R-Block)
-    (any ir-contains-letrec? (cdr ir))]
+    (ormap ir-contains-letrec? (cdr ir))]
    [(eq? (car ir) 'R-Let)
     (ir-contains-letrec? (caddr ir))]
    [(eq? (car ir) 'R-Lambda)
@@ -369,13 +369,13 @@
    [(not (pair? ir)) #f]
    [(eq? (car ir) 'R-FnCall) #t]
    [(eq? (car ir) 'R-Call)
-    (any ir-contains-fn-call? (cddr ir))]
+    (ormap ir-contains-fn-call? (cddr ir))]
    [(eq? (car ir) 'R-If)
     (or (ir-contains-fn-call? (cadr ir))
         (ir-contains-fn-call? (caddr ir))
         (ir-contains-fn-call? (cadddr ir)))]
    [(eq? (car ir) 'R-Block)
-    (any ir-contains-fn-call? (cdr ir))]
+    (ormap ir-contains-fn-call? (cdr ir))]
    [(eq? (car ir) 'R-Let)
     (ir-contains-fn-call? (caddr ir))]
    [(eq? (car ir) 'R-Lambda)
@@ -387,6 +387,34 @@
         (ir-contains-fn-call? (cadr (cddddr ir))))] ; in-expr
    [else #f]))
 
+;;; strip-outer-parens : String → String
+;;; If the string is wrapped in a matched pair of outer parentheses,
+;;; strip them. Uses a depth counter: walks chars, confirming that
+;;; the opening '(' at position 0 closes at position len-1 (not earlier).
+;;; Examples: "(x + y)" → "x + y", "(a) + (b)" → "(a) + (b)" (no strip).
+(define (strip-outer-parens s)
+  (let ([len (string-length s)])
+    (if (or (< len 2)
+            (not (char=? (string-ref s 0) #\())
+            (not (char=? (string-ref s (- len 1)) #\))))
+        s
+        ;; Walk from position 1, tracking depth starting at 1
+        ;; If depth hits 0 before the last char, the outer parens don't match
+        (let loop ([i 1] [depth 1])
+          (cond
+           [(= i (- len 1))
+            ;; Reached the closing position with depth 1 → matched
+            (if (= depth 1)
+                (substring s 1 (- len 1))
+                s)]
+           [(= depth 0) s]  ; closed early → not matching outer parens
+           [else
+            (let ([c (string-ref s i)])
+              (loop (+ i 1)
+                    (cond [(char=? c #\() (+ depth 1)]
+                          [(char=? c #\)) (- depth 1)]
+                          [else depth])))])))))
+
 ;;; emit-fueled-body : IR × Type → String
 ;;; Emit body code wrapped in catch_unwind for fuel-bounded recursion.
 ;;; Panics from fuel exhaustion are caught and converted to status=2.
@@ -394,7 +422,7 @@
   (let ([default-val (type->default-value ret-type)])
        (string-append
         "    let val = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n"
-        (format "        ~a\n" (rust-serialize body))
+        (format "        ~a\n" (strip-outer-parens (rust-serialize body)))
         "    })) {\n"
         "        Ok(v) => v,\n"
         "        Err(_) => {\n"
@@ -1162,8 +1190,8 @@
            [param-type (assq var-name params)])
           (and param-type (integer-type? (cadr param-type))))]
    [(eq? (car ir) 'R-Call)
-    (any (lambda (arg) (ir-contains-integer-var? arg params))
-         (cddr ir))]
+    (ormap (lambda (arg) (ir-contains-integer-var? arg params))
+           (cddr ir))]
    [(eq? (car ir) 'R-If)
     (or (ir-contains-integer-var? (cadr ir) params)
         (ir-contains-integer-var? (caddr ir) params)
@@ -1171,8 +1199,8 @@
    [(eq? (car ir) 'R-Let)
     (ir-contains-integer-var? (caddr ir) params)]
    [(eq? (car ir) 'R-Block)
-    (any (lambda (e) (ir-contains-integer-var? e params))
-         (cdr ir))]
+    (ormap (lambda (e) (ir-contains-integer-var? e params))
+           (cdr ir))]
    ;; Lambda: check body with extended params
    [(eq? (car ir) 'R-Lambda)
     (let ([lambda-params (cadr ir)]
@@ -1192,13 +1220,10 @@
              (ir-contains-integer-var? in-expr params)))]
    [else #f]))
 
-;;; any : (α → Boolean) × (List α) → Boolean
-;;; Return #t if predicate is true for any element.
-(define (any pred lst)
-  (cond
-   [(null? lst) #f]
-   [(pred (car lst)) #t]
-   [else (any pred (cdr lst))]))
+;;; Use prelude's ormap (aliased as any?) instead of local any.
+;;; The 4 call sites below (ir-contains-letrec?, ir-contains-fn-call?,
+;;; ir-contains-integer-var?, ir-collect-divisors) all used a local 'any'
+;;; that duplicated prelude's ormap. Replaced with ormap directly.
 
 ;;; ir-divisor->guard : (List α) × (List (Symbol × Symbol)) → (or String #f)
 ;;; Generate a guard expression for a divisor.
@@ -1288,7 +1313,7 @@
              ;; Generate body code - with fuel wrapping if needed
              [body-code (if has-letrec
                             (emit-fueled-body body ret-type)
-                            (format "    let val = ~a;\n" (rust-serialize body)))])
+                            (format "    let val = ~a;\n" (strip-outer-parens (rust-serialize body))))])
             (string-append
              ;; Result struct - compact for standalone compilation
              ;; In crate context, use: use fold_accel::{I64Result, F64Result, ...};
@@ -1352,7 +1377,7 @@
              ;; Generate body code - with fuel wrapping if needed
              [body-code (if has-letrec
                             (emit-fueled-body body ret-type)
-                            (format "    let val = ~a;\n" (rust-serialize body)))])
+                            (format "    let val = ~a;\n" (strip-outer-parens (rust-serialize body))))])
             (string-append
              ;; Module header with crate imports
              "//! Auto-generated by The Fold codegen - do not edit manually\n"

@@ -49,7 +49,7 @@
 
 (test-group rust-ir-serialization-functions
   (define-test "Simple function (i64)"
-    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_one(x: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_one(x: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x + 1;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn add_one ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1))) 1))))
 
 (test-group rust-ir-serialization-comparison
@@ -382,24 +382,24 @@
 
 (test-group rust-emit-with-auto-cost
   (define-test "Auto-computed cost (i64 add)"
-    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn auto_add(x: i64, y: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn auto_add(x: i64, y: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x + y;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn auto_add ((x i64) (y i64)) i64 (R-Call + (R-Var x) (R-Var y))))))
 
   (define-test "Auto-computed cost (f64 nested ops)"
-    (assert-equal "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn nested_ops(x: f64, y: f64, z: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = ((x * y) + z);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn nested_ops(x: f64, y: f64, z: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x * y) + z;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn nested_ops ((x f64) (y f64) (z f64)) f64 (R-Call + (R-Call * (R-Var x) (R-Var y)) (R-Var z))))))
 
   (define-test "Explicit cost override still works"
-    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn override_cost(x: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 999;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + 1);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn override_cost(x: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 999;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x + 1;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn override_cost ((x i64)) i64 (R-Call + (R-Var x) (R-Literal 1))) 999))))
 
 (test-group type-safe-code-generation
   (define-test "Bool function uses BoolResult"
-    (assert-equal "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn is_positive(x: i64, fuel_in: u64, out: *mut BoolResult) {\n    if (out as *const BoolResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x > 0);\n    result.status = 1;\n    result.value = if val { 1 } else { 0 };\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn is_positive(x: i64, fuel_in: u64, out: *mut BoolResult) {\n    if (out as *const BoolResult).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x > 0;\n    result.status = 1;\n    result.value = if val { 1 } else { 0 };\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn is_positive ((x i64)) bool (R-Call gt? (R-Var x) (R-Literal 0))))))
 
   (define-test "U64 function uses U64Result"
-    (assert-equal "#[repr(C)] pub struct U64Result { pub status: u8, pub value: u64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn double_unsigned(x: u64, fuel_in: u64, out: *mut U64Result) {\n    if (out as *const U64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x * 2);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct U64Result { pub status: u8, pub value: u64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn double_unsigned(x: u64, fuel_in: u64, out: *mut U64Result) {\n    if (out as *const U64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x * 2;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn double_unsigned ((x u64)) u64 (R-Call * (R-Var x) (R-Literal 2)))))))
 
 (test-group typed-literals
@@ -475,11 +475,11 @@
 
 (test-group i32-f32-function-emit
   (define-test "I32 function uses I32Result"
-    (assert-equal "#[repr(C)] pub struct I32Result { pub status: u8, pub value: i32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_small(x: i32, y: i32, fuel_in: u64, out: *mut I32Result) {\n    if (out as *const I32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x + y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I32Result { pub status: u8, pub value: i32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn add_small(x: i32, y: i32, fuel_in: u64, out: *mut I32Result) {\n    if (out as *const I32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x + y;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn add_small ((x i32) (y i32)) i32 (R-Call + (R-Var x) (R-Var y))))))
 
   (define-test "F32 function uses F32Result"
-    (assert-equal "#[repr(C)] pub struct F32Result { pub status: u8, pub value: f32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn mul_float(x: f32, y: f32, fuel_in: u64, out: *mut F32Result) {\n    if (out as *const F32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x * y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct F32Result { pub status: u8, pub value: f32, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn mul_float(x: f32, y: f32, fuel_in: u64, out: *mut F32Result) {\n    if (out as *const F32Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 1;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x * y;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn mul_float ((x f32) (y f32)) f32 (R-Call * (R-Var x) (R-Var y)))))))
 
 (test-group division-by-zero-protection
@@ -547,11 +547,11 @@
                   (emit-divisor-guards '((R-Var y)) '((x f64) (y f64)))))
 
   (define-test "I64 division emits guard"
-    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn safe_div(x: i64, y: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    // Division-by-zero protection\n    if y == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n    let val = (x / y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn safe_div(x: i64, y: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    // Division-by-zero protection\n    if y == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n    let val = x / y;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn safe_div ((x i64) (y i64)) i64 (R-Call / (R-Var x) (R-Var y))))))
 
   (define-test "F64 division no guard (Inf/NaN)"
-    (assert-equal "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn float_div(x: f64, y: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (x / y);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn float_div(x: f64, y: f64, fuel_in: u64, out: *mut F64Result) {\n    if (out as *const F64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 2;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = x / y;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn float_div ((x f64) (y f64)) f64 (R-Call / (R-Var x) (R-Var y)))))))
 
 (test-group ir-contains-integer-var-tests
@@ -583,7 +583,7 @@
                   (ir-divisor->guard '(R-Call + (R-Var y) (R-Var z)) '((x f64) (y f64) (z f64)))))
 
   (define-test "Complex i64 divisor emits guard"
-    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn div_by_sum(x: i64, y: i64, z: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 3;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    // Division-by-zero protection\n    if (y + z) == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n    let val = (x / (y + z));\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn div_by_sum(x: i64, y: i64, z: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 3;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    // Division-by-zero protection\n    if (y + z) == 0 {\n        result.status = 3;\n        result.fuel_out = fuel_in - COST;\n        return;\n    }\n    let val = x / (y + z);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn div_by_sum ((x i64) (y i64) (z i64)) i64
                                (R-Call / (R-Var x) (R-Call + (R-Var y) (R-Var z))))))))
 
@@ -675,7 +675,7 @@
                   (scheme->rust-ir '(* a b c))))
 
   (define-test "Full variadic add function"
-    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn sum5(a: i64, b: i64, c: i64, d: i64, e: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 4;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = ((((a + b) + c) + d) + e);\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
+    (assert-equal "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }\n\n#[no_mangle]\npub extern \"C\" fn sum5(a: i64, b: i64, c: i64, d: i64, e: i64, fuel_in: u64, out: *mut I64Result) {\n    if (out as *const I64Result).is_null() { return; }\n    let result = unsafe { &mut *out };\n    const COST: u64 = 4;\n    if fuel_in < COST {\n        result.status = 2;\n        result.fuel_out = 0;\n        return;\n    }\n    let val = (((a + b) + c) + d) + e;\n    result.status = 1;\n    result.value = val;\n    result.fuel_out = fuel_in - COST;\n}"
                   (rust-emit '(R-Fn sum5 ((a i64) (b i64) (c i64) (d i64) (e i64)) i64
                                (R-Call + (R-Var a) (R-Var b) (R-Var c) (R-Var d) (R-Var e)))))))
 

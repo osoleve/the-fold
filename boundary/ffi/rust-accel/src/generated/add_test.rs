@@ -15,7 +15,7 @@ pub extern "C" fn fold_add_test(a: i64, b: i64, fuel_in: u64, out: *mut I64Resul
         result.fuel_out = 0;
         return;
     }
-    let val = (a + b);
+    let val = a + b;
     result.status = 1;
     result.value = val;
     result.fuel_out = fuel_in - COST;
