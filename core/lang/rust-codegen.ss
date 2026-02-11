@@ -1114,13 +1114,13 @@
 ;;; Generate the inline struct definition for standalone compilation.
 (define (ret-type->result-struct-def ret-type)
   (case ret-type
-        [(i64) "#[repr(C)] pub struct I64Result { pub status: u8, pub value: i64, pub fuel_out: u64 }"]
-        [(f64) "#[repr(C)] pub struct F64Result { pub status: u8, pub value: f64, pub fuel_out: u64 }"]
-        [(bool) "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub fuel_out: u64 }"]
-        [(u64) "#[repr(C)] pub struct U64Result { pub status: u8, pub value: u64, pub fuel_out: u64 }"]
-        [(i32) "#[repr(C)] pub struct I32Result { pub status: u8, pub value: i32, pub fuel_out: u64 }"]
-        [(f32) "#[repr(C)] pub struct F32Result { pub status: u8, pub value: f32, pub fuel_out: u64 }"]
-        [else "#[repr(C)] pub struct TestResult { pub status: u8, pub value: f64, pub fuel_out: u64 }"]))
+        [(i64) "#[repr(C)] pub struct I64Result { pub status: u8, pub _pad: [u8; 7], pub value: i64, pub fuel_out: u64 }"]
+        [(f64) "#[repr(C)] pub struct F64Result { pub status: u8, pub _pad: [u8; 7], pub value: f64, pub fuel_out: u64 }"]
+        [(bool) "#[repr(C)] pub struct BoolResult { pub status: u8, pub value: u8, pub _pad: [u8; 6], pub fuel_out: u64 }"]
+        [(u64) "#[repr(C)] pub struct U64Result { pub status: u8, pub _pad: [u8; 7], pub value: u64, pub fuel_out: u64 }"]
+        [(i32) "#[repr(C)] pub struct I32Result { pub status: u8, pub _pad: [u8; 3], pub value: i32, pub fuel_out: u64 }"]
+        [(f32) "#[repr(C)] pub struct F32Result { pub status: u8, pub _pad: [u8; 3], pub value: f32, pub fuel_out: u64 }"]
+        [else "#[repr(C)] pub struct TestResult { pub status: u8, pub _pad: [u8; 7], pub value: f64, pub fuel_out: u64 }"]))
 
 ;;; ret-type->value-assignment : Symbol → String
 ;;; Generate the value assignment line based on return type.

@@ -254,6 +254,7 @@ mod tests {
     fn test_bv_hash_basic() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -269,6 +270,7 @@ mod tests {
     fn test_bv_hash_empty() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -283,6 +285,7 @@ mod tests {
     fn test_bv_hash_out_of_fuel() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -296,6 +299,7 @@ mod tests {
     fn test_bv_compare_less() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -311,6 +315,7 @@ mod tests {
     fn test_bv_compare_equal() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -326,6 +331,7 @@ mod tests {
     fn test_bv_compare_greater() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -341,6 +347,7 @@ mod tests {
     fn test_bv_compare_length_matters() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -356,6 +363,7 @@ mod tests {
     fn test_bv_copy_basic() {
         let mut result = BufferResult {
             status: 0,
+            _pad: [0; 7],
             bytes_written: 0,
             fuel_out: 0,
         };
@@ -380,6 +388,7 @@ mod tests {
     fn test_bv_copy_overflow() {
         let mut result = BufferResult {
             status: 0,
+            _pad: [0; 7],
             bytes_written: 0,
             fuel_out: 0,
         };
@@ -402,6 +411,7 @@ mod tests {
     fn test_bv_fill_basic() {
         let mut result = BufferResult {
             status: 0,
+            _pad: [0; 7],
             bytes_written: 0,
             fuel_out: 0,
         };
@@ -418,6 +428,7 @@ mod tests {
         let mut result = crate::BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let a = b"hello";
@@ -433,6 +444,7 @@ mod tests {
         let mut result = crate::BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let a = b"hello";
@@ -448,6 +460,7 @@ mod tests {
         let mut result = crate::BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let a = b"hello";

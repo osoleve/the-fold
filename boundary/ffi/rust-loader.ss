@@ -23,12 +23,14 @@
 (define-ftype i64-result-t
   (struct
    [status unsigned-8]     ; 1=success, 2=out-of-fuel, 3=runtime-error
+   [_pad   (array 7 unsigned-8)]  ; explicit padding for alignment
    [value  integer-64]     ; i64 result value
    [fuel   unsigned-64]))  ; remaining fuel
 
 (define-ftype f64-result-t
   (struct
    [status unsigned-8]
+   [_pad   (array 7 unsigned-8)]
    [value  double]
    [fuel   unsigned-64]))
 
@@ -36,11 +38,13 @@
   (struct
    [status unsigned-8]
    [value  unsigned-8]     ; 0=false, 1=true
+   [_pad   (array 6 unsigned-8)]
    [fuel   unsigned-64]))
 
 (define-ftype u64-result-t
   (struct
    [status unsigned-8]
+   [_pad   (array 7 unsigned-8)]
    [value  unsigned-64]
    [fuel   unsigned-64]))
 
@@ -48,6 +52,7 @@
 (define-ftype buffer-result-t
   (struct
    [status unsigned-8]          ; 1=success, 2=out-of-fuel, 3=error, 4=buffer-overflow
+   [_pad   (array 7 unsigned-8)]
    [bytes-written unsigned-64]  ; number of bytes written (usize)
    [fuel   unsigned-64]))
 

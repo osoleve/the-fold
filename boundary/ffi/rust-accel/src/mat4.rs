@@ -355,6 +355,7 @@ mod tests {
 
         let mut result = F64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0.0,
             fuel_out: 0,
         };

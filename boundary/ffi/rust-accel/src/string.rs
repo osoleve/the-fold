@@ -547,6 +547,7 @@ mod tests {
     fn test_levenshtein_same() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -561,6 +562,7 @@ mod tests {
     fn test_levenshtein_kitten_sitting() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -583,6 +585,7 @@ mod tests {
     fn test_levenshtein_empty() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -597,6 +600,7 @@ mod tests {
     fn test_levenshtein_single_diff() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -619,6 +623,7 @@ mod tests {
     fn test_levenshtein_out_of_fuel() {
         let mut result = U64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -634,6 +639,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let haystack = b"hello world";
@@ -656,6 +662,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let haystack = b"hello world";
@@ -678,6 +685,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let haystack = b"hello";
@@ -698,6 +706,7 @@ mod tests {
     fn test_str_index_of_found() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -720,6 +729,7 @@ mod tests {
     fn test_str_index_of_not_found() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -742,6 +752,7 @@ mod tests {
     fn test_str_last_index_of() {
         let mut result = I64Result {
             status: 0,
+            _pad: [0; 7],
             value: 0,
             fuel_out: 0,
         };
@@ -764,6 +775,7 @@ mod tests {
     fn test_str_upcase() {
         let mut result = BufferResult {
             status: 0,
+            _pad: [0; 7],
             bytes_written: 0,
             fuel_out: 0,
         };
@@ -787,6 +799,7 @@ mod tests {
     fn test_str_downcase() {
         let mut result = BufferResult {
             status: 0,
+            _pad: [0; 7],
             bytes_written: 0,
             fuel_out: 0,
         };
@@ -810,6 +823,7 @@ mod tests {
     fn test_str_upcase_overflow() {
         let mut result = BufferResult {
             status: 0,
+            _pad: [0; 7],
             bytes_written: 0,
             fuel_out: 0,
         };
@@ -832,6 +846,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let s = b"hello world";
@@ -854,6 +869,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let s = b"hello world";
@@ -876,6 +892,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let s = b"hello world";
@@ -898,6 +915,7 @@ mod tests {
         let mut result = BoolResult {
             status: 0,
             value: 0,
+            _pad: [0; 6],
             fuel_out: 0,
         };
         let s = b"hello world";

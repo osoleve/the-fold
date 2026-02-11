@@ -75,6 +75,7 @@
 (define-ftype test-result-t
   (struct
    [status unsigned-8]
+   [_pad   (array 7 unsigned-8)]
    [value  double]
    [fuel   unsigned-64]))
   (doc test-result-t 'description "C-compatible struct for test results matching Rust's #[repr(C)] TestResult")

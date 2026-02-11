@@ -31,6 +31,8 @@ pub use vec3::Vec3;
 pub struct TestResult {
     /// Status: 0=miss, 1=hit, 2=out-of-fuel
     pub status: u8,
+    /// Explicit padding (7 bytes for alignment to f64)
+    pub _pad: [u8; 7],
     /// Result value (for testing: just echo input doubled)
     pub value: f64,
     /// Remaining fuel
@@ -53,6 +55,8 @@ pub struct TestResult {
 pub struct I64Result {
     /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
     pub status: u8,
+    /// Explicit padding (7 bytes for alignment to i64)
+    pub _pad: [u8; 7],
     /// Result value (i64)
     pub value: i64,
     /// Remaining fuel
@@ -64,6 +68,8 @@ pub struct I64Result {
 pub struct F64Result {
     /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
     pub status: u8,
+    /// Explicit padding (7 bytes for alignment to f64)
+    pub _pad: [u8; 7],
     /// Result value (f64)
     pub value: f64,
     /// Remaining fuel
@@ -78,6 +84,8 @@ pub struct BoolResult {
     pub status: u8,
     /// Result value (0=false, 1=true)
     pub value: u8,
+    /// Explicit padding (6 bytes for alignment to u64)
+    pub _pad: [u8; 6],
     /// Remaining fuel
     pub fuel_out: u64,
 }
@@ -87,6 +95,8 @@ pub struct BoolResult {
 pub struct U64Result {
     /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
     pub status: u8,
+    /// Explicit padding (7 bytes for alignment to u64)
+    pub _pad: [u8; 7],
     /// Result value (u64)
     pub value: u64,
     /// Remaining fuel
@@ -98,6 +108,8 @@ pub struct U64Result {
 pub struct I32Result {
     /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
     pub status: u8,
+    /// Explicit padding (3 bytes for alignment to i32)
+    pub _pad: [u8; 3],
     /// Result value (i32)
     pub value: i32,
     /// Remaining fuel
@@ -109,6 +121,8 @@ pub struct I32Result {
 pub struct F32Result {
     /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
     pub status: u8,
+    /// Explicit padding (3 bytes for alignment to f32)
+    pub _pad: [u8; 3],
     /// Result value (f32)
     pub value: f32,
     /// Remaining fuel
@@ -125,6 +139,8 @@ pub struct F32Result {
 pub struct BufferResult {
     /// Status: 1=success, 2=out-of-fuel, 3=runtime-error, 4=buffer-overflow
     pub status: u8,
+    /// Explicit padding (7 bytes for alignment to usize)
+    pub _pad: [u8; 7],
     /// Number of bytes written to output buffer
     pub bytes_written: usize,
     /// Remaining fuel
@@ -174,6 +190,7 @@ mod tests {
     fn test_roundtrip_with_fuel() {
         let mut result = TestResult {
             status: 0,
+            _pad: [0; 7],
             value: 0.0,
             fuel_out: 0,
         };
@@ -189,6 +206,7 @@ mod tests {
     fn test_roundtrip_no_fuel() {
         let mut result = TestResult {
             status: 0,
+            _pad: [0; 7],
             value: 0.0,
             fuel_out: 0,
         };
