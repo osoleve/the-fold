@@ -223,7 +223,7 @@
          (if (eq? op rec-name)
              ;; Recursive call - add __fuel
              (let ([serialized-args (map (lambda (a) (rust-serialize-with-fuel a rec-name)) args)])
-                  (format "~a(~a, __fuel)"
+                  (format "~a(~a, __fuel)?"
                           rec-name
                           (string-join serialized-args ", ")))
              ;; Non-recursive call - serialize normally but recurse into args
@@ -416,21 +416,21 @@
                           [else depth])))])))))
 
 ;;; emit-fueled-body : IR × Type → String
-;;; Emit body code wrapped in catch_unwind for fuel-bounded recursion.
-;;; Panics from fuel exhaustion are caught and converted to status=2.
+;;; Emit body code with Option-based fuel propagation.
+;;; Recursive functions return Option<T>; fuel exhaustion returns None.
+;;; The outer match converts None to status=2 (out-of-fuel).
 (define (emit-fueled-body body ret-type)
-  (let ([default-val (type->default-value ret-type)])
-       (string-append
-        "    let val = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {\n"
-        (format "        ~a\n" (strip-outer-parens (rust-serialize body)))
-        "    })) {\n"
-        "        Ok(v) => v,\n"
-        "        Err(_) => {\n"
-        "            result.status = 2;\n"
-        "            result.fuel_out = 0;\n"
-        "            return;\n"
-        "        }\n"
-        "    };\n")))
+  (string-append
+   "    let val = match (\n"
+   (format "        ~a\n" (strip-outer-parens (rust-serialize body)))
+   "    ) {\n"
+   "        Some(v) => v,\n"
+   "        None => {\n"
+   "            result.status = 2;\n"
+   "            result.fuel_out = 0;\n"
+   "            return;\n"
+   "        }\n"
+   "    };\n"))
 
 ;;; type->default-value : Type → String
 ;;; Return the default value for a Rust type (used as fallback).
@@ -719,10 +719,11 @@
                   ret-type
                   (rust-serialize body)))]
 
-   ;; R-Letrec: Recursive function binding with fuel threading
+   ;; R-Letrec: Recursive function binding with Option-based fuel threading
    ;; Format: (R-Letrec name ((param type) ...) ret-type body in-expr)
-   ;; Emits fuel-aware version: fn takes __fuel param, panics on exhaustion
-   ;; The panic is caught by rust-emit's catch_unwind wrapper
+   ;; Emits fuel-aware version: fn returns Option<T>, None on fuel exhaustion.
+   ;; Recursive calls use ? for propagation. The outer emit-fueled-body
+   ;; matches Some/None instead of catch_unwind.
    [(eq? (car ir) 'R-Letrec)
     (let* ([name (cadr ir)]
            [params (caddr ir)]
@@ -734,9 +735,9 @@
            [params-with-fuel (if (null? param-strs)
                                  "__fuel: &mut u64"
                                  (string-append (string-join param-strs ", ") ", __fuel: &mut u64"))]
-           ;; Transform recursive calls in body to pass __fuel
+           ;; Transform recursive calls in body to pass __fuel (with ? propagation)
            [body-with-fuel (rust-serialize-with-fuel body name)])
-          (format "{ fn ~a(~a) -> ~a { if *__fuel == 0 { panic!(\"fuel\"); } *__fuel -= 1; ~a } ~a }"
+          (format "{ fn ~a(~a) -> Option<~a> { if *__fuel == 0 { return None; } *__fuel -= 1; Some(~a) } ~a }"
                   name
                   params-with-fuel
                   ret-type

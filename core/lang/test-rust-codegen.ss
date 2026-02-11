@@ -895,9 +895,9 @@
                                     (R-Call * (R-Var n) (R-Call fact (R-Call - (R-Var n) (R-Literal 1)))))
                                   (R-Var fact)))])
       (assert-true (if (and (string-contains code "fn fact(n: i64, __fuel: &mut u64)")
-                            (string-contains code "if *__fuel == 0 { panic!")
+                            (string-contains code "if *__fuel == 0 { return None; }")
                             (string-contains code "*__fuel -= 1")
-                            (string-contains code "fact((n - 1), __fuel)")) #t #f))))
+                            (string-contains code "fact((n - 1), __fuel)?")) #t #f))))
 
   (define-test "Letrec with two params"
     (let ([code (rust-serialize '(R-Letrec fib ((n i64) (acc i64)) i64
@@ -907,7 +907,7 @@
                                                 (R-Call + (R-Var acc) (R-Var n))))
                                   (R-Var fib)))])
       (assert-true (if (and (string-contains code "fn fib(n: i64, acc: i64, __fuel: &mut u64)")
-                            (string-contains code "fib((n - 1), (acc + n), __fuel)")) #t #f)))))
+                            (string-contains code "fib((n - 1), (acc + n), __fuel)?")) #t #f)))))
 
 (test-group scheme-ir-fn-fix
   (define-test "Scheme->IR typed lambda"
@@ -1042,18 +1042,19 @@
     (let ([code (rust-serialize '(R-Letrec loop ((x i64)) i64
                                   (R-Call loop (R-Var x))
                                   (R-Call loop (R-Literal 0))))])
-      (assert-true (if (and (string-contains code "if *__fuel == 0 { panic!")
+      (assert-true (if (and (string-contains code "if *__fuel == 0 { return None; }")
                             (string-contains code "*__fuel -= 1")) #t #f))))
 
   (define-test "Recursive calls pass __fuel"
     (let ([code (rust-serialize '(R-Letrec rec ((a i64) (b i64)) i64
                                   (R-Call + (R-Var a) (R-Call rec (R-Var b) (R-Literal 0)))
                                   (R-Call rec (R-Literal 1) (R-Literal 2))))])
-      (assert-true (if (string-contains code "rec(b, 0, __fuel)") #t #f))))
+      (assert-true (if (string-contains code "rec(b, 0, __fuel)?") #t #f))))
 
-  (define-test "emit-fueled-body wraps in catch_unwind"
+  (define-test "emit-fueled-body wraps in Option match"
     (let ([code (emit-fueled-body '(R-Literal 42) 'i64)])
-      (assert-true (if (and (string-contains code "std::panic::catch_unwind")
+      (assert-true (if (and (string-contains code "Some(v) => v")
+                            (string-contains code "None =>")
                             (string-contains code "result.status = 2")) #t #f)))))
 
 (test-group capturing-closures
