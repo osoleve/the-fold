@@ -272,6 +272,11 @@ Dependencies:
  (register-module-path! 'bifurcation "lattice/sim/dynamics/bifurcation.ss")
  (register-module-path! 'attractor-render "lattice/sim/dynamics/attractor-render.ss")
  (register-module-path! 'simulation-stream "lattice/sim/simulation-stream.ss")
+ (register-module-path! 'des/event "lattice/sim/des/event.ss")
+ (register-module-path! 'des/world "lattice/sim/des/world.ss")
+ (register-module-path! 'des/engine "lattice/sim/des/engine.ss")
+ (register-module-path! 'des/schedule "lattice/sim/des/schedule.ss")
+ (register-module-path! 'des/replicate "lattice/sim/des/replicate.ss")
 
  ;; Dataset layer
  (register-module-path! 'difficulty "lattice/dataset/difficulty.ss")
