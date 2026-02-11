@@ -36,6 +36,9 @@ const READ_BUF_SIZE: usize = 65536;
 /// epoll timeout in milliseconds (how often the thread checks for shutdown)
 const EPOLL_TIMEOUT_MS: i32 = 100;
 
+/// Maximum queued outbound frames before rejecting sends
+const MAX_OUTBOUND_QUEUE: usize = 4096;
+
 // ====
 // Per-Connection State
 // ====
@@ -429,9 +432,19 @@ pub extern "C" fn fold_ipc_start(path_ptr: *const u8, path_len: usize, out: *mut
         reactor_thread(listener, state_clone);
     });
 
-    *reactor_guard = Some(state);
-    if let Ok(mut thread_guard) = REACTOR_THREAD.lock() {
-        *thread_guard = Some(handle);
+    match REACTOR_THREAD.lock() {
+        Ok(mut thread_guard) => {
+            *reactor_guard = Some(state);
+            *thread_guard = Some(handle);
+        }
+        Err(_) => {
+            // Can't store thread handle — signal shutdown so thread exits cleanly
+            state.running.store(false, Ordering::Relaxed);
+            let _ = handle.join();
+            result.status = 1;
+            result.error_code = libc::EIO;
+            return;
+        }
     }
 
     result.status = 0;
@@ -598,6 +611,11 @@ pub extern "C" fn fold_ipc_send(
 
     match state.outbound.lock() {
         Ok(mut q) => {
+            if q.len() >= MAX_OUTBOUND_QUEUE {
+                result.status = 1;
+                result.error_code = libc::ENOBUFS;
+                return;
+            }
             q.push_back((client_id, frame));
             result.status = 0;
             result.error_code = 0;

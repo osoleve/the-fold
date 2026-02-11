@@ -9,15 +9,26 @@
 use crate::F64Result;
 
 /// Result struct for 4x4 matrix operations
-/// 16 f64 values in row-major order + status + fuel
+/// Fields ordered for natural alignment, explicit padding for FFI safety
 #[repr(C)]
 pub struct Mat4Result {
-    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
-    pub status: u8,
     /// Matrix values in row-major order (m00, m01, m02, m03, m10, ...)
     pub m: [f64; 16],
     /// Remaining fuel
     pub fuel_out: u64,
+    /// Status: 1=success, 2=out-of-fuel, 3=runtime-error
+    pub status: u8,
+    pub _pad: [u8; 7],
+}
+
+/// Result struct for vec4 operations (matrix-vector multiply)
+/// Fields ordered for natural alignment, explicit padding for FFI safety
+#[repr(C)]
+pub struct Vec4Result {
+    pub v: [f64; 4],
+    pub fuel_out: u64,
+    pub status: u8,
+    pub _pad: [u8; 7],
 }
 
 /// Fuel cost constants for mat4 operations
@@ -94,36 +105,31 @@ pub extern "C" fn fold_mat4_vec_mul(
     m: *const f64,
     v: *const f64,
     fuel_in: u64,
-    out: *mut [f64; 4],
-    fuel_out: *mut u64,
-    status: *mut u8,
+    out: *mut Vec4Result,
 ) {
-    if out.is_null() || m.is_null() || v.is_null() || fuel_out.is_null() || status.is_null() {
+    if out.is_null() || m.is_null() || v.is_null() {
         return;
     }
 
+    let result = unsafe { &mut *out };
+
     if fuel_in < cost::MAT4_VEC_MUL {
-        unsafe {
-            *status = 2;
-            *fuel_out = 0;
-        }
+        result.status = 2;
+        result.fuel_out = 0;
         return;
     }
 
     let m = unsafe { std::slice::from_raw_parts(m, 16) };
     let v = unsafe { std::slice::from_raw_parts(v, 4) };
-    let result = unsafe { &mut *out };
 
     // v'[i] = sum(j, M[i][j] * v[j])
-    result[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2] + m[3] * v[3];
-    result[1] = m[4] * v[0] + m[5] * v[1] + m[6] * v[2] + m[7] * v[3];
-    result[2] = m[8] * v[0] + m[9] * v[1] + m[10] * v[2] + m[11] * v[3];
-    result[3] = m[12] * v[0] + m[13] * v[1] + m[14] * v[2] + m[15] * v[3];
+    result.v[0] = m[0] * v[0] + m[1] * v[1] + m[2] * v[2] + m[3] * v[3];
+    result.v[1] = m[4] * v[0] + m[5] * v[1] + m[6] * v[2] + m[7] * v[3];
+    result.v[2] = m[8] * v[0] + m[9] * v[1] + m[10] * v[2] + m[11] * v[3];
+    result.v[3] = m[12] * v[0] + m[13] * v[1] + m[14] * v[2] + m[15] * v[3];
 
-    unsafe {
-        *status = 1;
-        *fuel_out = fuel_in - cost::MAT4_VEC_MUL;
-    }
+    result.status = 1;
+    result.fuel_out = fuel_in - cost::MAT4_VEC_MUL;
 }
 
 /// Batch matrix-vector multiply: transform N points through same matrix
@@ -297,9 +303,10 @@ mod tests {
         ];
 
         let mut result = Mat4Result {
-            status: 0,
             m: [0.0; 16],
             fuel_out: 0,
+            status: 0,
+            _pad: [0; 7],
         };
 
         fold_mat4_mul(test_matrix.as_ptr(), identity.as_ptr(), 1000, &mut result);
@@ -324,9 +331,10 @@ mod tests {
 
         // Expected: [[19,22],[43,50]] in top-left
         let mut result = Mat4Result {
-            status: 0,
             m: [0.0; 16],
             fuel_out: 0,
+            status: 0,
+            _pad: [0; 7],
         };
 
         fold_mat4_mul(a.as_ptr(), b.as_ptr(), 1000, &mut result);
@@ -361,9 +369,10 @@ mod tests {
     fn test_mat4_out_of_fuel() {
         let m: [f64; 16] = [0.0; 16];
         let mut result = Mat4Result {
-            status: 0,
             m: [0.0; 16],
             fuel_out: 0,
+            status: 0,
+            _pad: [0; 7],
         };
 
         fold_mat4_mul(m.as_ptr(), m.as_ptr(), 10, &mut result);

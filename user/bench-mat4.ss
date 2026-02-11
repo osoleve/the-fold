@@ -12,16 +12,17 @@
 ;;; Mat4 Rust FFI Binding
 ;;; ====
 
-;; Result struct: { status: u8, m: [f64; 16], fuel: u64 }
-;; Total size: 1 + 128 + 8 = 137 bytes (plus alignment padding)
+;; Result struct: { m: [f64; 16], fuel: u64, status: u8, _pad: [u8; 7] }
+;; Fields ordered for natural alignment (matches Rust #[repr(C)])
 (define-ftype mat4-result-t
   (struct
-   [status unsigned-8]
    [m0 double] [m1 double] [m2 double] [m3 double]
    [m4 double] [m5 double] [m6 double] [m7 double]
    [m8 double] [m9 double] [m10 double] [m11 double]
    [m12 double] [m13 double] [m14 double] [m15 double]
-   [fuel unsigned-64]))
+   [fuel unsigned-64]
+   [status unsigned-8]
+   [_pad (array 7 unsigned-8)]))
 
 ;; Load library
 (unless (accel-load!)

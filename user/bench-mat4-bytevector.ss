@@ -21,12 +21,13 @@
 
 (define-ftype mat4-result-t
   (struct
-   [status unsigned-8]
    [m0 double] [m1 double] [m2 double] [m3 double]
    [m4 double] [m5 double] [m6 double] [m7 double]
    [m8 double] [m9 double] [m10 double] [m11 double]
    [m12 double] [m13 double] [m14 double] [m15 double]
-   [fuel unsigned-64]))
+   [fuel unsigned-64]
+   [status unsigned-8]
+   [_pad (array 7 unsigned-8)]))
 
 ;;; ====
 ;;; FFI Bindings - Both Approaches

@@ -162,7 +162,7 @@ impl AABB {
         }
     }
 
-    /// Check if ray intersects AABB (fast version, no distances)
+    /// Check if ray intersects AABB (boolean only)
     #[inline]
     pub fn ray_hits(&self, origin: Vec3, inv_dir: Vec3) -> bool {
         self.intersect_ray_precomp(origin, inv_dir).is_some()
