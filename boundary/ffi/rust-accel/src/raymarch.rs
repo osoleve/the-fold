@@ -4,7 +4,7 @@
 //! Moves the entire raymarching loop to Rust for maximum performance.
 
 use crate::bvh::{BVHHandle, BVHNode};
-use crate::fuel::{self, costs, FuelResult};
+use crate::fuel::{self, costs};
 use crate::triangle::Triangle;
 use crate::vec3::Vec3;
 
@@ -86,16 +86,19 @@ pub struct ClosestPointWithTri {
     pub triangle: Triangle, // Store full triangle with embedded id
 }
 
-/// Find closest point on BVH surface with triangle
-/// Uses explicit stack instead of recursion to prevent stack overflow on deep BVHs
+/// Find closest point on BVH surface with triangle.
+/// Uses explicit stack instead of recursion to prevent stack overflow on deep BVHs.
+///
+/// Fuel is tracked solely via `&mut u64`. Returns None on fuel exhaustion,
+/// Some(None) on miss, Some(Some(hit)) on success.
 fn bvh_closest_point_with_index(
     handle: &BVHHandle,
     point: Vec3,
     fuel: &mut u64,
-) -> FuelResult<ClosestPointWithTri> {
+) -> Option<Option<ClosestPointWithTri>> {
     // Base cost for query
     if !fuel::deduct(fuel, costs::BASE_QUERY) {
-        return FuelResult::OutOfFuel;
+        return None; // out of fuel
     }
 
     let mut best: Option<ClosestPointWithTri> = None;
@@ -107,12 +110,12 @@ fn bvh_closest_point_with_index(
     while let Some(node) = stack.pop() {
         // Cost to visit this node
         if !fuel::deduct(fuel, costs::NODE_VISIT) {
-            return FuelResult::OutOfFuel;
+            return None;
         }
 
         // Cost to test AABB
         if !fuel::deduct(fuel, costs::AABB_TEST) {
-            return FuelResult::OutOfFuel;
+            return None;
         }
 
         // Early exit if AABB can't improve result
@@ -127,7 +130,7 @@ fn bvh_closest_point_with_index(
             BVHNode::Leaf { triangles, .. } => {
                 for tri in triangles.iter() {
                     if !fuel::deduct(fuel, costs::TRIANGLE_TEST) {
-                        return FuelResult::OutOfFuel;
+                        return None;
                     }
 
                     let (closest, dist) = tri.closest_point(point);
@@ -140,7 +143,7 @@ fn bvh_closest_point_with_index(
                         best = Some(ClosestPointWithTri {
                             point: closest,
                             distance: dist,
-                            triangle: *tri, // Triangle carries its own id
+                            triangle: *tri,
                         });
                     }
                 }
@@ -151,11 +154,9 @@ fn bvh_closest_point_with_index(
                 let right_dist = right.bbox().distance_to_point(point);
 
                 if left_dist <= right_dist {
-                    // Process left first, so push right first (LIFO)
                     stack.push(right);
                     stack.push(left);
                 } else {
-                    // Process right first, so push left first (LIFO)
                     stack.push(left);
                     stack.push(right);
                 }
@@ -163,37 +164,29 @@ fn bvh_closest_point_with_index(
         }
     }
 
-    match best {
-        Some(hit) => FuelResult::Ok(hit, *fuel),
-        None => FuelResult::Miss(*fuel),
-    }
+    Some(best)
 }
 
-/// Compute signed distance from point to mesh surface
-/// Uses standard convention: positive = outside, negative = inside
-fn mesh_sdf(handle: &BVHHandle, point: Vec3, fuel: &mut u64) -> FuelResult<(f64, u32)> {
-    match bvh_closest_point_with_index(handle, point, fuel) {
-        FuelResult::Ok(hit, remaining) => {
-            // Use the triangle directly - it carries its own stable id
+/// Compute signed distance from point to mesh surface.
+/// Uses standard convention: positive = outside, negative = inside.
+/// Fuel tracked solely via `&mut u64`. Returns None on fuel exhaustion.
+fn mesh_sdf(handle: &BVHHandle, point: Vec3, fuel: &mut u64) -> Option<(f64, u32)> {
+    match bvh_closest_point_with_index(handle, point, fuel)? {
+        Some(hit) => {
             let normal = hit.triangle.normal();
             let to_point = point - hit.point;
             let dot = normal.dot(to_point);
 
             // Standard SDF convention: positive outside, negative inside
             let signed_dist = if dot >= 0.0 {
-                hit.distance // Outside (point is on same side as normal)
+                hit.distance
             } else {
-                -hit.distance // Inside (point is opposite to normal)
+                -hit.distance
             };
 
-            *fuel = remaining;
-            FuelResult::Ok((signed_dist, hit.triangle.id), remaining)
+            Some((signed_dist, hit.triangle.id))
         }
-        FuelResult::Miss(remaining) => {
-            *fuel = remaining;
-            FuelResult::Ok((1e10, 0), remaining)
-        }
-        FuelResult::OutOfFuel => FuelResult::OutOfFuel,
+        None => Some((1e10, 0)), // No triangles in BVH
     }
 }
 
@@ -222,9 +215,9 @@ pub fn raymarch_mesh(
     while steps < max_steps && t < max_distance {
         let point = origin + dir * t;
 
-        // Query SDF (deducts fuel internally)
+        // Query SDF (deducts fuel via &mut fuel)
         match mesh_sdf(handle, point, &mut fuel) {
-            FuelResult::Ok((dist, tri_idx), _) => {
+            Some((dist, tri_idx)) => {
                 // Use abs(dist) to handle rays starting inside mesh
                 let step = dist.abs();
 
@@ -237,7 +230,6 @@ pub fn raymarch_mesh(
                     result.t = t;
                     result.steps = steps;
                     result.triangle_index = tri_idx;
-                    result.fuel_out = fuel;
 
                     // Compute normal at hit point
                     match compute_normal(handle, point, &mut fuel) {
@@ -249,7 +241,6 @@ pub fn raymarch_mesh(
                         None => {
                             // Out of fuel during normal computation
                             result.status = 2;
-                            result.fuel_out = 0;
                         }
                     }
 
@@ -260,12 +251,8 @@ pub fn raymarch_mesh(
                 t += step;
                 steps += 1;
             }
-            FuelResult::Miss(_) => {
-                // No triangles in BVH, step forward
-                t += threshold * 10.0;
-                steps += 1;
-            }
-            FuelResult::OutOfFuel => {
+            None => {
+                // Out of fuel
                 result.status = 2;
                 result.steps = steps;
                 result.fuel_out = 0;
@@ -292,34 +279,16 @@ fn compute_normal(handle: &BVHHandle, point: Vec3, fuel: &mut u64) -> Option<Vec
     let eps = 0.001;
 
     // +X and -X
-    let (dx_pos, _) = match mesh_sdf(handle, point + Vec3::new(eps, 0.0, 0.0), fuel) {
-        FuelResult::Ok((d, _), _) => (d, ()),
-        _ => return None,
-    };
-    let (dx_neg, _) = match mesh_sdf(handle, point - Vec3::new(eps, 0.0, 0.0), fuel) {
-        FuelResult::Ok((d, _), _) => (d, ()),
-        _ => return None,
-    };
+    let (dx_pos, _) = mesh_sdf(handle, point + Vec3::new(eps, 0.0, 0.0), fuel)?;
+    let (dx_neg, _) = mesh_sdf(handle, point - Vec3::new(eps, 0.0, 0.0), fuel)?;
 
     // +Y and -Y
-    let (dy_pos, _) = match mesh_sdf(handle, point + Vec3::new(0.0, eps, 0.0), fuel) {
-        FuelResult::Ok((d, _), _) => (d, ()),
-        _ => return None,
-    };
-    let (dy_neg, _) = match mesh_sdf(handle, point - Vec3::new(0.0, eps, 0.0), fuel) {
-        FuelResult::Ok((d, _), _) => (d, ()),
-        _ => return None,
-    };
+    let (dy_pos, _) = mesh_sdf(handle, point + Vec3::new(0.0, eps, 0.0), fuel)?;
+    let (dy_neg, _) = mesh_sdf(handle, point - Vec3::new(0.0, eps, 0.0), fuel)?;
 
     // +Z and -Z
-    let (dz_pos, _) = match mesh_sdf(handle, point + Vec3::new(0.0, 0.0, eps), fuel) {
-        FuelResult::Ok((d, _), _) => (d, ()),
-        _ => return None,
-    };
-    let (dz_neg, _) = match mesh_sdf(handle, point - Vec3::new(0.0, 0.0, eps), fuel) {
-        FuelResult::Ok((d, _), _) => (d, ()),
-        _ => return None,
-    };
+    let (dz_pos, _) = mesh_sdf(handle, point + Vec3::new(0.0, 0.0, eps), fuel)?;
+    let (dz_neg, _) = mesh_sdf(handle, point - Vec3::new(0.0, 0.0, eps), fuel)?;
 
     let gradient = Vec3::new(dx_pos - dx_neg, dy_pos - dy_neg, dz_pos - dz_neg);
 

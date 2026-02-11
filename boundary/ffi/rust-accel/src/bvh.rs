@@ -361,17 +361,16 @@ pub fn bvh_intersect_ray(
             return false;
         }
 
-        // Check if ray hits AABB
-        if !node.bbox().ray_hits(origin, inv_dir) {
-            return true; // Continue, just skip this subtree
-        }
+        // Single AABB test: miss check + distance in one call
+        let t_min = match node.bbox().intersect_ray_precomp(origin, inv_dir) {
+            Some((t, _)) => t,
+            None => return true, // Ray misses this subtree
+        };
 
         // Early exit if AABB entry is beyond best hit
-        if let Some((t_min, _)) = node.bbox().intersect_ray(origin, dir) {
-            if let Some((best_t, _)) = best {
-                if t_min >= *best_t {
-                    return true; // Can't improve
-                }
+        if let Some((best_t, _)) = best {
+            if t_min >= *best_t {
+                return true; // Can't improve
             }
         }
 
@@ -398,17 +397,21 @@ pub fn bvh_intersect_ray(
             }
             BVHNode::Internal { left, right, .. } => {
                 // Visit closer child first for better early termination
-                let left_t = left.bbox().intersect_ray(origin, dir).map(|(t, _)| t);
-                let right_t = right.bbox().intersect_ray(origin, dir).map(|(t, _)| t);
+                let left_t = left
+                    .bbox()
+                    .intersect_ray_precomp(origin, inv_dir)
+                    .map(|(t, _)| t);
+                let right_t = right
+                    .bbox()
+                    .intersect_ray_precomp(origin, inv_dir)
+                    .map(|(t, _)| t);
 
                 match (left_t, right_t) {
                     (Some(lt), Some(rt)) if rt < lt => {
-                        // Right is closer, visit it first
                         traverse(right, origin, dir, inv_dir, best, fuel)
                             && traverse(left, origin, dir, inv_dir, best, fuel)
                     }
                     _ => {
-                        // Left is closer or equal, visit it first
                         traverse(left, origin, dir, inv_dir, best, fuel)
                             && traverse(right, origin, dir, inv_dir, best, fuel)
                     }

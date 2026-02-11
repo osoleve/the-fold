@@ -117,7 +117,8 @@ impl AABB {
     }
 
     /// Ray-AABB intersection test
-    /// Returns (tmin, tmax) if intersects, None otherwise
+    /// Returns (tmin, tmax) if intersects, None otherwise.
+    /// Convenience wrapper that computes inv_dir internally.
     pub fn intersect_ray(&self, origin: Vec3, direction: Vec3) -> Option<(f64, f64)> {
         let inv_dir = Vec3::new(
             if direction.x.abs() > 1e-10 {
@@ -136,7 +137,14 @@ impl AABB {
                 f64::INFINITY
             },
         );
+        self.intersect_ray_precomp(origin, inv_dir)
+    }
 
+    /// Ray-AABB intersection with precomputed inverse direction
+    /// Returns (tmin, tmax) if intersects, None otherwise.
+    /// Avoids redundant division when inv_dir is already available.
+    #[inline]
+    pub fn intersect_ray_precomp(&self, origin: Vec3, inv_dir: Vec3) -> Option<(f64, f64)> {
         let t1 = (self.min.x - origin.x) * inv_dir.x;
         let t2 = (self.max.x - origin.x) * inv_dir.x;
         let t3 = (self.min.y - origin.y) * inv_dir.y;
@@ -157,17 +165,7 @@ impl AABB {
     /// Check if ray intersects AABB (fast version, no distances)
     #[inline]
     pub fn ray_hits(&self, origin: Vec3, inv_dir: Vec3) -> bool {
-        let t1 = (self.min.x - origin.x) * inv_dir.x;
-        let t2 = (self.max.x - origin.x) * inv_dir.x;
-        let t3 = (self.min.y - origin.y) * inv_dir.y;
-        let t4 = (self.max.y - origin.y) * inv_dir.y;
-        let t5 = (self.min.z - origin.z) * inv_dir.z;
-        let t6 = (self.max.z - origin.z) * inv_dir.z;
-
-        let tmin = t1.min(t2).max(t3.min(t4)).max(t5.min(t6));
-        let tmax = t1.max(t2).min(t3.max(t4)).min(t5.max(t6));
-
-        tmax >= tmin && tmax >= 0.0
+        self.intersect_ray_precomp(origin, inv_dir).is_some()
     }
 }
 
