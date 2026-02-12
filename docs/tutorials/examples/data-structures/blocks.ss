@@ -18,7 +18,7 @@ A Block has three parts:
 
   Block = { tag: Symbol, payload: Bytes, refs: [Hash] }
 
-  tag     - A symbol identifying the block type (lambda, if, cons, etc.)
+  tag     - A symbol identifying the block type (fn, if, cons, etc.)
   payload - Raw bytes: literals, encoded data
   refs    - Ordered list of hashes pointing to other blocks
 
@@ -119,7 +119,7 @@ This simple structure can represent ANY data or code.
    The system can introspect everything.
 
 5. SEMANTIC IDENTITY
-   (lambda (x) (+ x 1)) and (lambda (y) (+ y 1))
+   (fn (x) (+ x 1)) and (fn (y) (+ y 1))
    hash identically because variable names are normalized away.
 ")
 
@@ -132,8 +132,8 @@ This simple structure can represent ANY data or code.
 (display "
 Before hashing, The Fold normalizes variable names to de Bruijn indices.
 
-  (lambda (x) (+ x 1))  -->  (lambda (+ #0 1))
-  (lambda (y) (+ y 1))  -->  (lambda (+ #0 1))
+  (fn (x) (+ x 1))  -->  (fn (+ #0 1))
+  (fn (y) (+ y 1))  -->  (fn (+ #0 1))
 
 These produce the SAME hash because they ARE the same function.
 Variable names are presentation, not semantics.

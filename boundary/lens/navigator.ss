@@ -5,6 +5,7 @@
 
 (doc 'section 'module-loading)
 
+(load "boundary/tools/index.ss")
 (load "boundary/lens/call-graph.ss")
 (load "boundary/lens/test-finder.ss")
 (load "boundary/lens/dep-slice.ss")

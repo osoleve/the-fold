@@ -12,6 +12,7 @@
 (load "lattice/ipc/protocol.ss")
 
 (define *quiet* #t)
+(load "boundary/repl/error-context.ss")
 
 ;;; ====
 ;;; Content Addressing (same as repl-worker.ss)
@@ -177,7 +178,8 @@
   (let ([req-id (ipc-message-id msg)]
         [expr (ipc-message-get msg 'expr)])
     (guard (ex [else
-                ;; Eval error → send error frame
+                ;; Eval error → capture for (last-error), then send error frame
+                (capture-error! ex)
                 (let* ([err-str (format-condition ex)]
                        [err-msg (ipc-make-error req-id 'eval-error err-str)]
                        [frame (ipc-encode-frame err-msg)])

@@ -14,7 +14,7 @@
 
 ;;; Global index state
 (define *symbol-index* (make-eq-hashtable))  ; symbol -> entry
-(define *module-registry* (make-hashtable string-hash string=?))  ; path -> module-entry
+(define *index-module-registry* (make-hashtable string-hash string=?))  ; path -> module-entry
 (define *reverse-deps* (make-hashtable string-hash string=?))  ; path -> list of dependent paths
 
 ;;; ====
@@ -242,7 +242,7 @@
        (for-each
         (lambda (path)
                 (let ([entry (scan-module path)])
-                     (hashtable-set! *module-registry* path entry)
+                     (hashtable-set! *index-module-registry* path entry)
                      ;; Update reverse dependencies
                      (for-each
                       (lambda (loaded)
@@ -276,7 +276,7 @@
 (define (index-refresh!)
   ;; Clear existing index
   (hashtable-clear! *symbol-index*)
-  (hashtable-clear! *module-registry*)
+  (hashtable-clear! *index-module-registry*)
   (hashtable-clear! *reverse-deps*)
   ;; Scan all key directories
   (for-each (lambda (dir)
@@ -291,7 +291,7 @@
 ;;; Removes old entries and re-scans the file.
 (define (index-refresh-file! path)
   ;; 1. Get old module entry to find symbols to remove
-  (let ([old-entry (hashtable-ref *module-registry* path #f)])
+  (let ([old-entry (hashtable-ref *index-module-registry* path #f)])
     (when old-entry
       ;; Remove old symbol entries for this file
       (for-each
@@ -308,7 +308,7 @@
   ;; 2. Re-scan the file (if it still exists)
   (when (file-exists? path)
     (let ([entry (scan-module path)])
-      (hashtable-set! *module-registry* path entry)
+      (hashtable-set! *index-module-registry* path entry)
       ;; Update reverse dependencies
       (for-each
        (lambda (loaded)
@@ -391,7 +391,7 @@
 ;;; index-module : String → (Option ModuleEntry)
 ;;; Get module entry by path.
 (define (index-module path)
-  (hashtable-ref *module-registry* path #f))
+  (hashtable-ref *index-module-registry* path #f))
 
 ;;; index-exports : String → (List Symbol)
 ;;; Get symbols defined in module.
@@ -426,7 +426,7 @@
   (printf "  Symbols indexed: ~a
 " (hashtable-size *symbol-index*))
   (printf "  Modules scanned: ~a
-" (hashtable-size *module-registry*))
+" (hashtable-size *index-module-registry*))
   (display "
 "))
 
@@ -523,7 +523,7 @@
 (define (modules . args)
   (let* ([pattern (if (null? args) "" (car args))]
          [pattern-lower (string-downcase pattern)]
-         [keys (hashtable-keys *module-registry*)]
+         [keys (hashtable-keys *index-module-registry*)]
          [paths '()])
         (vector-for-each
          (lambda (path)
@@ -541,7 +541,7 @@
 " (length paths))
              (for-each
               (lambda (path)
-                      (let* ([mod (hashtable-ref *module-registry* path #f)]
+                      (let* ([mod (hashtable-ref *index-module-registry* path #f)]
                              [defs (cdr (assq 'defines mod))]
                              [loads (cdr (assq 'loads mod))])
                             (printf "  ~a

@@ -524,6 +524,20 @@ def check_syntax(filepath):
         print(f"{COLORS['red']}Error:{COLORS['reset']} File not found: {filepath}", file=sys.stderr)
         return 1
 
+    # Handle stdin paths: buffer to temp file since subprocess.run(input=...)
+    # redirects the child's stdin, making /dev/stdin read scheme_code instead
+    # of the original piped input.
+    if filepath in ("/dev/stdin", "-"):
+        import tempfile
+        content = sys.stdin.read()
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.ss', delete=False) as f:
+            f.write(content)
+            temp_path = f.name
+        try:
+            return check_syntax(temp_path)
+        finally:
+            os.unlink(temp_path)
+
     # Run scheme directly to check parens (no daemon needed)
     scheme_code = f'''
 (load "boundary/tools/paren-check.ss")

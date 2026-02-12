@@ -12,9 +12,9 @@
 (doc 'note "- Free variable analysis")
 
 (doc 'usage "
-  (try-normalize '(lambda (x) (+ x 1)))
-  (try-roundtrip '(lambda (x) x))
-  (hash-expr '(lambda (x) x))
+  (try-normalize '(fn (x) (+ x 1)))
+  (try-roundtrip '(fn (x) x))
+  (hash-expr '(fn (x) x))
   (try-free-vars '(+ x y))
   (try-block 'my-tag #vu8(1 2 3) '())
 ")
@@ -237,11 +237,11 @@
   (display "\n")
   
   ;; Normalization
-  (try-normalize '(lambda (x) (+ x 1)))
+  (try-normalize '(fn (x) (+ x 1)))
   (display "────────────────────────────────────────────────────────────────\n\n")
   
   ;; Hash comparison
-  (try-hash-compare '(lambda (x) x) '(lambda (y) y))
+  (try-hash-compare '(fn (x) x) '(fn (y) y))
   (display "────────────────────────────────────────────────────────────────\n\n")
   
   ;; Free variables
@@ -290,8 +290,8 @@
   (display "    (playground-help)            Show this help\n")
   (display "\n")
   (display "  Examples:\n")
-  (display "    (try-normalize '(lambda (x) (+ x 1)))\n")
-  (display "    (try-hash-compare '(lambda (x) x) '(lambda (y) y))\n")
+  (display "    (try-normalize '(fn (x) (+ x 1)))\n")
+  (display "    (try-hash-compare '(fn (x) x) '(fn (y) y))\n")
   (display "    (try-free-vars '(+ x y))\n")
   (display "    (try-block 'test (string->utf8 \"data\") '())\n")
   (display "\n"))
