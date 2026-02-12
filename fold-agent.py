@@ -665,7 +665,11 @@ Examples:
             code = sys.stdin.read()
 
     if not code:
-        print(json.dumps({"status": "error", "error": "No code provided"}))
+        if args.verbose or args.json:
+            print(json.dumps({"status": "error", "error": "No code provided"}))
+        else:
+            print(f"{COLORS['red']}Error:{COLORS['reset']} No code provided", file=sys.stderr)
+            sys.exit(1)
         return
 
     # Implicit parenthesization: wrap code in parens if needed
