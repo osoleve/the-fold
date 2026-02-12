@@ -119,10 +119,9 @@
                       [else stdout-str])])
         (cond
          [def-expr
-           (let ([addr (content-address def-expr)])
-             (if (> (string-length output) 0)
-                 (string-append output "\n" addr)
-                 addr))]
+           ;; Compute content-address for CAS but don't return it to user
+           (content-address def-expr)
+           output]
          [(and (eq? result (void)) (> (string-length output) 0))
           output]
          [(> (string-length output) 0)

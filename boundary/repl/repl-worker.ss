@@ -239,12 +239,10 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
                                    [else stdout-str])])
                          (values
                           (cond
-                           ;; Definition: return content-address of the definition expression
+                           ;; Definition: compute content-address for CAS, return only output
                            [def-expr
-                             (let ([addr (content-address def-expr)])
-                                  (if (> (string-length output) 0)
-                                      (string-append output "\n" addr)
-                                      addr))]
+                             (content-address def-expr)
+                             output]
                            ;; Only output, no meaningful return value
                            [(and (eq? result (void)) (> (string-length output) 0))
                             output]
