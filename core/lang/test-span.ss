@@ -56,7 +56,7 @@
 (test-group parser-state
             (define-test initial-state-basic
               (let ([st (initial-state "hello")])
-                   (assert-true (state? st))
+                   (assert-true (parse-state? st))
                    (assert-equal "hello" (state-input st))
                    (assert-equal 0 (state-offset st))
                    (assert-equal 1 (state-line st))
@@ -113,7 +113,7 @@
                     (assert-true (spanned-ok? result))
                     (assert-false (spanned-err? result))
                     (assert-equal 42 (spanned-value result))
-                    (assert-true (state? (spanned-state result)))
+                    (assert-true (parse-state? (spanned-state result)))
                     (assert-true (span? (spanned-span result)))))
             
             (define-test failure-construction
@@ -122,7 +122,7 @@
                     (assert-false (spanned-ok? result))
                     (assert-true (spanned-err? result))
                     (assert-equal "identifier" (spanned-expected result))
-                    (assert-true (state? (spanned-error-state result))))))
+                    (assert-true (parse-state? (spanned-error-state result))))))
 
 ;;; ====
 ;;; Primitive Parser Tests

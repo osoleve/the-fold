@@ -4,7 +4,7 @@
 ;;;
 ;;; Extends parse.ss with source location tracking for error reporting.
 ;;;
-;;; ParseState = (state input offset line column file)
+;;; ParseState = (parse-state input offset line column file)
 ;;; SpannedResult a = (ok value remaining-state start-span)
 ;;;                 | (err expected state)
 ;;;
@@ -25,15 +25,15 @@
 ;;; Parser State with Position Tracking
 ;;; ====
 
-;;; State = (state input offset line column file)
+;;; ParseState = (parse-state input offset line column file)
 
-;;; make-state : String × Nat × Nat × Nat × String → State
-(define (make-state input offset line column file)
-  (list 'state input offset line column file))
+;;; make-parse-state : String × Nat × Nat × Nat × String → ParseState
+(define (make-parse-state input offset line column file)
+  (list 'parse-state input offset line column file))
 
-;;; state? : α → Boolean
-(define (state? x)
-  (and (pair? x) (eq? (car x) 'state)))
+;;; parse-state? : α → Boolean
+(define (parse-state? x)
+  (and (pair? x) (eq? (car x) 'parse-state)))
 
 ;;; state-input : State → String
 (define (state-input s) (list-ref s 1))
@@ -50,7 +50,7 @@
 ;;; Create initial parser state from input.
 (define (initial-state input . file-arg)
   (let ([file (if (null? file-arg) "<input>" (car file-arg))])
-       (make-state input 0 1 1 file)))
+       (make-parse-state input 0 1 1 file)))
 
 ;;; state-span : State → Span
 ;;; Get current position as a zero-width span.
@@ -92,16 +92,16 @@
         [col (state-column s)]
         [file (state-file s)])
        (if (char=? char #\newline)
-           (make-state input
-                       (+ offset 1)
-                       (+ line 1)
-                       1
-                       file)
-           (make-state input
-                       (+ offset 1)
-                       line
-                       (+ col 1)
-                       file))))
+           (make-parse-state input
+                             (+ offset 1)
+                             (+ line 1)
+                             1
+                             file)
+           (make-parse-state input
+                             (+ offset 1)
+                             line
+                             (+ col 1)
+                             file))))
 
 ;;; ====
 ;;; Spanned Parse Results

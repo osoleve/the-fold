@@ -72,7 +72,7 @@
 
 (test-group parser-state
   (define-test "initial-state"
-    (assert-true (state? (initial-state "hello"))))
+    (assert-true (parse-state? (initial-state "hello"))))
 
   (define-test "state-input"
     (assert-equal "hello"

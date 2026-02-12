@@ -773,21 +773,23 @@ Dependencies:
                *module-search-dirs*)))
 
 ;;; check-module-collision : Symbol → Void
-;;; Warn if a simple module name has multiple matches.
-;;; No-op when manifest index is available (collisions handled at build time).
-;;; Legacy fallback for when manifest index is not initialized.
+;;; Warn if a simple module name has multiple matches in search directories.
+;;; Only fires once per module (require-one short-circuits on already-loaded).
 (define (check-module-collision name)
-  ;; Skip collision check when manifest index is available
-  ;; (collisions are detected and reported during index building)
-  (unless *manifest-module-index*
-          (let* ([name-str (symbol->string name)]
-                 [all-paths (find-all-module-paths name-str)])
-                (when (> (length all-paths) 1)
-                      (display (format "  ⚠ Warning: '~a' matches ~a files (using first):~%"
-                                       name (length all-paths)))
-                      (for-each (lambda (p) (display (format "      - ~a~%" p))) all-paths)
-                      (display (format "    Consider using namespaced form: (require '~a)~%"
-                                       (path->namespace (car all-paths))))))))
+  (let* ([name-str (symbol->string name)]
+         [all-paths (find-all-module-paths name-str)])
+        (when (> (length all-paths) 1)
+              (let ([resolved (module-name->path name)])
+                (display (format "  Warning: '~a' matches ~a files:~%" name (length all-paths)))
+                (for-each (lambda (p)
+                            (display (format "      ~a ~a~%"
+                                             (if (and resolved (string=? p resolved)) "*" " ")
+                                             p)))
+                          all-paths)
+                (display (format "    Consider: (require '~a)~%"
+                                 (if resolved
+                                     (path->namespace resolved)
+                                     (path->namespace (car all-paths)))))))))
 
 ;;; path->namespace : String → String
 ;;; Convert path like "lattice/diffgeo/charts.ss" to namespace "diffgeo/charts"
