@@ -1055,7 +1055,26 @@
     (let ([code (emit-fueled-body '(R-Literal 42) 'i64)])
       (assert-true (if (and (string-contains code "Some(v) => v")
                             (string-contains code "None =>")
-                            (string-contains code "result.status = 2")) #t #f)))))
+                            (string-contains code "result.status = 2")) #t #f))))
+
+  (define-test "Nested lambda is scope boundary — no fuel threading"
+    ;; A recursive call inside a nested lambda must NOT get ? or __fuel appended.
+    ;; The lambda doesn't return Option<T> and doesn't have __fuel in scope.
+    (let ([code (rust-serialize-with-fuel
+                  '(R-Lambda ((x i64)) i64 (R-Call fact (R-Var x)))
+                  'fact)])
+      ;; Should emit plain fact(x), NOT fact(x, __fuel)?
+      (assert-true (if (string-contains code "fact(x)") #t #f))
+      (assert-false (string-contains code "__fuel"))
+      (assert-false (string-contains code "?"))))
+
+  (define-test "Nested closure is scope boundary — no fuel threading"
+    (let ([code (rust-serialize-with-fuel
+                  '(R-Closure (env) ((x i64)) i64 (R-Call rec (R-Var x)))
+                  'rec)])
+      (assert-true (if (string-contains code "rec(x)") #t #f))
+      (assert-false (string-contains code "__fuel"))
+      (assert-false (string-contains code "?")))))
 
 (test-group capturing-closures
   (define-test "free-vars: literal"

@@ -265,28 +265,15 @@
    [(eq? (car ir) 'R-Let)
     (format "let ~a = ~a;" (cadr ir) (rust-serialize-with-fuel (caddr ir) rec-name))]
 
-   ;; R-Lambda: recurse into body (closure may call the recursive function)
+   ;; R-Lambda / R-Closure: scope boundary — do NOT recurse with fuel.
+   ;; Nested lambdas don't have __fuel in scope and don't return Option<T>,
+   ;; so appending ? to recursive calls inside them would be a type error.
+   ;; Delegate to plain rust-serialize.
    [(eq? (car ir) 'R-Lambda)
-    (let* ([params (cadr ir)]
-           [ret-type (caddr ir)]
-           [body (cadddr ir)]
-           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
-          (format "|~a| -> ~a { ~a }"
-                  (string-join param-strs ", ")
-                  ret-type
-                  (rust-serialize-with-fuel body rec-name)))]
+    (rust-serialize ir)]
 
-   ;; R-Closure: recurse into body with move semantics
    [(eq? (car ir) 'R-Closure)
-    (let* ([captures (cadr ir)]
-           [params (caddr ir)]
-           [ret-type (cadddr ir)]
-           [body (car (cddddr ir))]
-           [param-strs (map (lambda (p) (format "~a: ~a" (car p) (cadr p))) params)])
-          (format "move |~a| -> ~a { ~a }"
-                  (string-join param-strs ", ")
-                  ret-type
-                  (rust-serialize-with-fuel body rec-name)))]
+    (rust-serialize ir)]
 
    ;; R-FnCall: recurse into args for fuel threading
    [(eq? (car ir) 'R-FnCall)
