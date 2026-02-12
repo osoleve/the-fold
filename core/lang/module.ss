@@ -1263,6 +1263,48 @@ Dependencies:
   
   (display "\n"))
 
+;;; module-exports : Symbol → Void
+;;; Show all top-level defines exported by a module.
+;;; Reads the source file and extracts (define ...) forms.
+(define (module-exports name)
+  (let ([path (module-name->path name)])
+    (if (not path)
+        (display (format "  Module '~a' not found.\n" name))
+        (let ([port (open-input-file path)])
+          (display (format "\n  Exports of '~a' (~a):\n" name path))
+          (display "  ────────────────────────────────────────────────────────\n")
+          (let loop ([count 0])
+            (let ([form (guard (e [#t #!eof]) (read port))])
+              (cond
+                [(eof-object? form)
+                 (close-input-port port)
+                 (display (format "  ────────────────────────────────────────────────────────\n"))
+                 (display (format "  ~a exports\n\n" count))]
+                ;; (define (name args ...) body)
+                [(and (pair? form) (eq? (car form) 'define)
+                      (pair? (cdr form)) (pair? (cadr form)))
+                 (let ([fn-name (caadr form)]
+                       [args (cdadr form)])
+                   (display (format "    (~a ~a)\n" fn-name
+                                    (let fmt ([a args])
+                                      (cond
+                                        [(null? a) ""]
+                                        [(symbol? a) (format ". ~a" a)]
+                                        [(pair? a) (string-append
+                                                    (symbol->string (car a))
+                                                    (if (or (null? (cdr a)) (symbol? (cdr a)))
+                                                        (fmt (cdr a))
+                                                        (string-append " " (fmt (cdr a)))))]
+                                        [else ""])))))
+                 (loop (+ count 1))]
+                ;; (define name value)
+                [(and (pair? form) (eq? (car form) 'define)
+                      (pair? (cdr form)) (symbol? (cadr form)))
+                 (display (format "    ~a\n" (cadr form)))
+                 (loop (+ count 1))]
+                ;; Skip non-define forms (doc, load, require, etc.)
+                [else (loop count)])))))))
+
 ;;; list-registered-modules : Unit → (List Symbol)
 ;;; Return a list of all registered module names.
 (define (list-registered-modules)

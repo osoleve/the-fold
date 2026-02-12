@@ -207,6 +207,7 @@ After loading, the REPL will:
   (display "  MODULE SYSTEM:\n")
   (display "    (modules)              List all available modules\n")
   (display "    (module-info 'name)    Show module details (path, deps, status)\n")
+  (display "    (module-exports 'name) Show all defines exported by module\n")
   (display "    (require 'name)        Load a module with its dependencies\n")
   (display "    (module-stats)         Show loaded modules and timings\n")
   (display "    (module-graph)         Show dependency graph\n")
