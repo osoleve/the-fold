@@ -21,7 +21,7 @@
   (doc 'export #t)
   (let* ([hex (hash->hex hash)]
          [prefix (substring hex 0 2)]
-         [rest hex])
+         [rest (substring hex 2 (string-length hex))])
         (string-append store-path "/objects/" prefix "/" rest)))
 
 (define (hash->pin-path hash store-path)
@@ -205,7 +205,7 @@
                            (let ([prefix-path (string-append objects-path "/" prefix-dir)])
                                 (if (file-directory? prefix-path)
                                     (map (lambda (filename)
-                                                 (hex->hash filename))
+                                                 (hex->hash (string-append prefix-dir filename)))
                                          (directory-list prefix-path))
                                     '())))
                    (directory-list objects-path)))

@@ -107,7 +107,8 @@
         [error-port (open-output-string)])
     (let-values ([(result def-name def-expr)
                   (parameterize ([current-output-port output-port]
-                                 [current-error-port error-port])
+                                 [current-error-port error-port]
+                                 [*current-session-id* session-id])
                     (scheme-eval-string str))])
       (let* ([stdout-str (get-output-string output-port)]
              [stderr-str (get-output-string error-port)]

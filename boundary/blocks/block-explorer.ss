@@ -386,10 +386,11 @@
 
 (doc 'section 'additional-discovery)
 
-(define (bx-recent n)
-  (doc 'type (-> Nat Void))
-  (doc 'description "Show N most recent blocks (by hash lexicographic order - approximation)")
+(define (bx-recent . args)
+  (doc 'type (-> [Nat] Void))
+  (doc 'description "Show N most recent blocks (default 10, by hash lexicographic order)")
   (doc 'export #t)
+  (let ([n (if (null? args) 10 (car args))])
   (let* ([fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [sorted (list-sort
@@ -424,7 +425,7 @@
         (display "Commands:\n")
         (display "  (bx-view N)  - Explore block N\n")
         (display "  (bx-home)    - Return to home\n")
-        (newline)))
+        (newline))))
 
 (define (bx-by-tag tag)
   (doc 'type (-> Symbol Void))
