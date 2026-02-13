@@ -19,7 +19,7 @@
    (sat sat-solve sat-satisfiable? sat-model sat-help)
    (sat var neg implies iff)
    (sat at-most-one at-least-one exactly-one at-most-k at-least-k exactly-k sequential-at-most-k)
-   (sat graph-coloring n-queens-clauses n-queens-sat n-queens-solve graph-coloring-solve)
+   (sat graph-coloring n-queens-clauses n-queens-solve graph-coloring-solve)
    (cnf make-cnf cnf-from-lists cnf-empty cnf-clauses cnf-vars cnf->string cnf->dimacs)
    (clause make-clause clause-from-list clause-empty? clause-unit? clause->string)
    (literal pos-lit neg-lit lit-var lit-positive? lit-negative? lit-negate lit->string)

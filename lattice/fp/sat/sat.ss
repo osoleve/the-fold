@@ -243,8 +243,6 @@
         ;; Diagonals have at most one queen
         (queens-diagonal-constraints n var))))
 
-;; Backward-compatible alias
-(define n-queens-sat n-queens-clauses)
 
 (define (queens-diagonal-constraints n var)
   (doc 'type '(-> Nat (-> Nat Nat Literal) (List (List Literal))))
