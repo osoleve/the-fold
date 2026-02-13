@@ -291,8 +291,11 @@
 ;;; Cleanup
 ;;; ====
 
+(define (session-file-path session-id)
+  (string-append ".fold-sessions/" session-id ".session"))
+
 (define (cleanup-worker-files! session-id)
-  "Remove all worker metadata files for a session."
+  "Remove all worker metadata files for a session, including log and session file."
   (for-each
    (lambda (path)
            (when (file-exists? path)
@@ -302,7 +305,9 @@
          (heartbeat-path session-id)
          (lastreq-path session-id)
          (expires-path session-id)
-         (starting-path session-id))))
+         (starting-path session-id)
+         (log-path session-id)
+         (session-file-path session-id))))
 
 (define (cleanup-stale-workers!)
   "Kill workers with stale heartbeats (process died without cleanup)."
@@ -398,12 +403,41 @@
                                        (ensure-worker! session-id)))))
               files))))
 
+(define (cleanup-orphaned-sessions!)
+  "Remove .fold-sessions/ files with no corresponding worker.
+   Only deletes files older than *starting-timeout* to avoid racing with worker startup."
+  (let ([session-dir ".fold-sessions"]
+        [now (time-second (current-time))])
+       (when (file-exists? session-dir)
+             (for-each
+              (lambda (filename)
+                      (when (and (string? filename)
+                                 (> (string-length filename) 8)
+                                 (string=? (substring filename
+                                                      (- (string-length filename) 8)
+                                                      (string-length filename))
+                                           ".session"))
+                            (let* ([session-id (substring filename 0 (- (string-length filename) 8))]
+                                   [path (string-append session-dir "/" filename)]
+                                   [has-worker (or (file-exists? (pid-path session-id))
+                                                   (file-exists? (heartbeat-path session-id))
+                                                   (file-exists? (starting-path session-id)))]
+                                   [age (guard (e [else 0])
+                                               (- now (time-second
+                                                       (file-modification-time path))))])
+                                  (when (and (not has-worker)
+                                             (> age *starting-timeout*))
+                                    (when (file-exists? path)
+                                          (delete-file path))))))
+              (directory-list session-dir)))))
+
 (define (periodic-cleanup!)
   (let ([now (time-second (current-time))])
        (when (> (- now *last-cleanup*) *cleanup-interval*)
-             (cleanup-stale-workers!)    ; Dead processes (no heartbeat)
-             (cleanup-expired-workers!)  ; Expired workers (decay-based)
-             (cleanup-idle-workers!)     ; Legacy: idle workers without expiration
+             (cleanup-stale-workers!)       ; Dead processes (no heartbeat)
+             (cleanup-expired-workers!)     ; Expired workers (decay-based)
+             (cleanup-idle-workers!)        ; Legacy: idle workers without expiration
+             (cleanup-orphaned-sessions!)   ; Session files with no worker
              (set! *last-cleanup* now))))
 
 (define (daemon-loop)
