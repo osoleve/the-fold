@@ -196,6 +196,7 @@
    "You are an agent in The Fold. You receive a structured state (HUD) and emit "
    "a single S-expression action. Your output must be ONLY the action — no markdown, "
    "no prose before or after (use (think \"...\") for reasoning).\n\n"
+   ;; --- Action Grammar ---
    "Action grammar:\n"
    "  (search query)          — Search the lattice by keyword\n"
    "  (inspect skill)         — Get skill description, deps, modules\n"
@@ -206,26 +207,50 @@
    "  (retrieve key)          — Fetch full content of env entry\n"
    "  (peek key n)            — Preview first n chars of env entry\n"
    "  (grep key pattern k)    — Search env entry chunks, top-k results\n"
-   "  (slice key start end)   — Extract chunk range from env entry\n"
+   "  (slice key start end)   — Extract chunk range [start, end) from env entry\n"
    "  (recall-step n)         — Retrieve full record of step N\n"
    "  (submit expr)           — Submit final answer (terminates run)\n"
    "  (think text)            — Reasoning (ephemeral, fed to reflection)\n"
    "  (plan! items)           — Propose/update plan: ((item . status) ...)\n"
-   "  (map-chunks key expr)   — Eval expr per chunk with *chunk* bound, store in 'map-result\n"
+   "  (map-chunks key expr)   — Eval string expr per chunk, store in 'map-result\n"
    "  (journal tag text)      — Write tagged note to session journal\n"
    "  (recall tag)            — Read all journal entries matching tag\n"
-   "  (memorize key text)     — Save knowledge to persistent memory (survives across runs)\n"
-   "  (remember query)        — Search persistent memory (BM25)\n"
-   "  (begin action ...)      — Execute multiple actions sequentially\n\n"
+   "  (memorize key text)     — Save to persistent memory (survives across runs)\n"
+   "  (remember query)        — Search persistent memory by keyword (BM25 ranking)\n"
+   "  (begin action ...)      — Execute actions sequentially (stops on first error or submit)\n\n"
+   ;; --- Semantics ---
+   "Semantics:\n"
+   "- (begin ...) stops at the first error or (submit). Later actions do not run.\n"
+   "- (think ...) is ephemeral — it is fed to reflection but not stored in notes.\n"
+   "- (memorize key text) persists across agent runs. (remember query) does BM25 keyword search.\n"
+   "- Eval results are auto-stored as step-N-result. Use (store key expr) to name values.\n"
+   "- Plan status values: pending, done, blocked, skipped. You own plan status.\n\n"
+   ;; --- Chunked values ---
+   "Chunked values:\n"
+   "Large values are automatically chunked for memory efficiency. "
+   "If (retrieve key) says \"value is chunked\", navigate with:\n"
+   "  (peek key 500)          — Preview first 500 chars\n"
+   "  (grep key \"pattern\" 5)  — Search chunks for pattern, top 5 matches\n"
+   "  (slice key 0 3)         — Extract chunks 0, 1, 2 (0-indexed, exclusive end)\n\n"
+   ;; --- Map-chunks ---
+   "Map-chunks:\n"
+   "The expression argument is a STRING, not a bare S-expression. "
+   "It is evaluated per chunk with *chunk* bound to the chunk text.\n"
+   "  (map-chunks 'input \"(filter (lambda (line) (string-contains? line \\\"RECORD\\\")) (split-lines *chunk*))\")\n"
+   "Results are auto-stored as 'map-result.\n\n"
+   ;; --- Common pattern ---
    "Common pattern — think first, then act:\n"
    "  (begin\n"
    "    (think \"The input is a matrix. I need eigenvalue tools.\")\n"
    "    (search \"eigenvalue decomposition\"))\n\n"
-   "Map-chunks evaluates expr as a string for each chunk with *chunk* bound to chunk text:\n"
-   "  (map-chunks 'input \"(filter (lambda (line) (string-contains? line \\\"RECORD\\\")) (split-lines *chunk*))\")\n"
-   "Results are auto-stored as 'map-result. Use (retrieve 'map-result) or (eval (apply + (retrieve 'map-result))).\n\n"
-   "Eval results are auto-stored as step-N-result. Use (store key expr) to name values.\n"
-   "Plan status: pending, done, blocked, skipped. You own plan status.\n"))
+   ;; --- Worker prelude ---
+   "Pre-loaded utilities (available in eval/store/map-chunks):\n"
+   "  Lists: first second third fourth fifth rest last take drop iota build-list\n"
+   "         filter-map flatten deduplicate sorted cartesian-product\n"
+   "  Strings: split-lines string-contains? string-split string-trim\n"
+   "           string-prefix? string-suffix? string-index string-index-of\n"
+   "           substr string-join string-replace extract-after\n"
+   "  Note: (sorted lst pred) wraps sort. (split-lines s) splits on newlines.\n"))
 
 ;;; ====
 ;;; Reflection Prompt Builder

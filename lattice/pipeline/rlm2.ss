@@ -243,7 +243,7 @@
 ;;; Action Language
 ;;; ====
 ;;;
-;;; 18 forms + begin. Each is a tagged list.
+;;; 19 forms + begin. Each is a tagged list.
 ;;;
 ;;; (search query)           (inspect skill)        (exports skill)
 ;;; (load module)            (eval expr)            (store key expr)
