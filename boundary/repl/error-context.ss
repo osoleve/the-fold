@@ -120,18 +120,6 @@
            (pop-context!)
            result)))]))
 
-(doc string-join 'type "(List String) String -> String")
-(doc string-join 'description "Join strings with separator")
-(define (string-join lst sep)
-  (if (null? lst)
-      ""
-      (let loop ([rest (cdr lst)]
-                 [acc (car lst)])
-        (if (null? rest)
-            acc
-            (loop (cdr rest)
-                  (string-append acc sep (car rest)))))))
-
 (doc 'section 'startup)
 
 (unless (and (top-level-bound? '*quiet*) *quiet*)

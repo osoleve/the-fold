@@ -241,12 +241,6 @@
                                   (string-ref prefix i))
                           (loop (+ i 1))))))))
 
-;;; andmap : (A -> Bool) × (List A) -> Bool
-(define (andmap pred lst)
-  (or (null? lst)
-      (and (pred (car lst))
-           (andmap pred (cdr lst)))))
-
 ;;; ====
 ;;; Dead Code Detection
 ;;; ====
@@ -395,7 +389,7 @@
                      [reason (list-ref item 4)])
                     (printf "    ~a (~a:~a)\n      ~a\n"
                             sym file line reason)))
-       (take-up-to items 15)))
+       (take 15 items)))
   (when (> (length items) 15)
         (printf "    ... and ~a more\n" (- (length items) 15))))
 
@@ -603,7 +597,7 @@
                                                 (display "    (no direct callers found)\n")
                                                 (for-each
                                                  (lambda (c) (printf "    ~a\n" c))
-                                                 (take-up-to callers 10)))))))
+                                                 (take 10 callers)))))))
                          (begin
                           (display "  SAFE TO DELETE: No references found.\n\n")
                           (display "  To delete, remove the definition from:\n")
@@ -617,12 +611,6 @@
         [(null? defs) #f]
         [(eq? (caar defs) sym) (car defs)]
         [else (loop (cdr defs))])))
-
-;;; take-up-to : List × Nat -> List
-(define (take-up-to lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-up-to (cdr lst) (- n 1)))))
 
 ;;; ====
 ;;; Statistics and Reporting
@@ -643,7 +631,7 @@
         (for-each
          (lambda (def)
                  (printf "    ~a (~a:~a)\n" (car def) (cadr def) (caddr def)))
-         (take-up-to *unused-symbols* 10))
+         (take 10 *unused-symbols*))
         (when (> (length *unused-symbols*) 10)
               (printf "    ... and ~a more\n" (- (length *unused-symbols*) 10))))
   (display "\n"))

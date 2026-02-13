@@ -308,14 +308,6 @@
    (lambda (name op value) (format "~a ~a ~a" name op value))
    (lambda effects (string-join effects "; "))))
 
-;;; Helper for string-join (if not available)
-(define (string-join strings sep)
-  (if (null? strings)
-      ""
-      (fold-left (lambda (acc s) (string-append acc sep s))
-                 (car strings)
-                 (cdr strings))))
-
 (define (->string x)
   (if (string? x) x (format "~a" x)))
 

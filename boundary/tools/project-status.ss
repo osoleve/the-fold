@@ -345,7 +345,7 @@
                     (display "    Modified files:\n")
                     (for-each (lambda (f)
                                       (display (format "      - ~a\n" f)))
-                              (take-up-to 5 modified))
+                              (take 5 modified))
                     (when (> (length modified) 5)
                           (display (format "      ... and ~a more\n" (- (length modified) 5))))))
        (display "\n")
@@ -356,13 +356,6 @@
        (display (format "    Message: ~a\n" (cdr (assq 'last-commit-message status))))
        (display "\n")
        (display "+====+\n")))
-
-;;; take-up-to : Number x List -> List
-;;; Take up to n elements from a list.
-(define (take-up-to n lst)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 ;;; ====
 ;;; Quick Commands

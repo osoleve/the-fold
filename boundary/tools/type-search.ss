@@ -400,7 +400,7 @@
                      (set! suggestions
                            (cons (make-suggestion 'direct entry target-type)
                                  suggestions)))
-             (take-up-to direct 5)))
+             (take 5 direct)))
        
        ;; Composition matches - A -> B and B -> C when we want A -> C
        (when (and (pair? target-type)
@@ -423,7 +423,7 @@
                                                                      (list (car producers) entry)
                                                                      target-type)
                                                                     suggestions))))))))
-                    (take-up-to (search-by-return ret) 3))))
+                    (take 3 (search-by-return ret)))))
        
        suggestions))
 
@@ -432,12 +432,6 @@
   `((kind . ,kind)
     (data . ,data)
     (target . ,target)))
-
-;;; take-up-to : (List a) × Nat -> (List a)
-(define (take-up-to lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-up-to (cdr lst) (- n 1)))))
 
 ;;; ====
 ;;; REPL Interface
@@ -464,7 +458,7 @@
                     (begin
                      (printf "  Found ~a matches:\n\n" (length results))
                      (for-each display-search-result
-                               (take-up-to results 15))
+                               (take 15 results))
                      (when (> (length results) 15)
                            (printf "\n  ... and ~a more\n"
                                    (- (length results) 15))))))))
@@ -489,7 +483,7 @@
                     (begin
                      (printf "  Found ~a matches:\n\n" (length results))
                      (for-each display-search-result
-                               (take-up-to results 15)))))))
+                               (take 15 results)))))))
   (display "\n"))
 
 ;;; type-search-arg : String -> void
@@ -511,7 +505,7 @@
                     (begin
                      (printf "  Found ~a matches:\n\n" (length results))
                      (for-each display-search-result
-                               (take-up-to results 15)))))))
+                               (take 15 results)))))))
   (display "\n"))
 
 ;;; type-search-suggest : String -> void

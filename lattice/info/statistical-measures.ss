@@ -288,9 +288,3 @@
                 (map (lambda (_) (/ 1.0 n)) weights))
            (map (lambda (w) (/ w total)) weights))))
 
-(define (andmap pred lst)
-  (doc 'type '(-> (-> α Boolean) (List α) Boolean))
-  (doc 'description "Check if predicate holds for all elements")
-  (or (null? lst)
-      (and (pred (car lst))
-           (andmap pred (cdr lst)))))

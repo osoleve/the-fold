@@ -232,17 +232,17 @@
 (doc 'section 'helper-tests)
 
 (test-group helper-tests
-            (define-test take-up-to-normal-test
-              (assert-equal '(1 2 3) (take-up-to '(1 2 3 4 5) 3)))
-            
-            (define-test take-up-to-short-list-test
-              (assert-equal '(1 2) (take-up-to '(1 2) 5)))
-            
-            (define-test take-up-to-zero-test
-              (assert-equal '() (take-up-to '(1 2 3) 0)))
-            
-            (define-test take-up-to-empty-test
-              (assert-equal '() (take-up-to '() 5))))
+            (define-test take-normal-test
+              (assert-equal '(1 2 3) (take 3 '(1 2 3 4 5))))
+
+            (define-test take-short-list-test
+              (assert-equal '(1 2) (take 5 '(1 2))))
+
+            (define-test take-zero-test
+              (assert-equal '() (take 0 '(1 2 3))))
+
+            (define-test take-empty-test
+              (assert-equal '() (take 5 '()))))
 
 (doc 'section 'find-def-tests)
 

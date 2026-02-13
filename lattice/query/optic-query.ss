@@ -119,7 +119,7 @@
   (doc 'export #t)
   (make-fold
    (lambda (s)
-     (take-up-to n (^.. s optic)))))
+     (take n (^.. s optic)))))
 
 ;;; optic-skip : Optic s a × Nat → Fold s a
 ;;; Skip the first n targets.

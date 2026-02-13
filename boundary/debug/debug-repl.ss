@@ -115,7 +115,7 @@
                               (display (format "    ~a = ~a\n"
                                                (car binding)
                                                (truncate-expr-str (cdr binding) 40))))
-                      (take-up-to-repl 5 env))))
+                      (take 5 env))))
 
         (case status
               [(complete)
@@ -130,13 +130,6 @@
 
         (display "\n")
         (void)))
-
-(define (take-up-to-repl n lst)
-  (doc 'type '(-> Nat List List))
-  (doc 'description "Take up to n elements from list")
-  (if (or (zero? n) (null? lst))
-      '()
-      (cons (car lst) (take-up-to-repl (- n 1) (cdr lst)))))
 
 (doc 'section 'next-command)
 
@@ -310,7 +303,7 @@
   (doc 'description "Show execution trace (call stack)")
   (let* ([dbg (require-debugger!)]
          [trace (debugger-trace dbg)]
-         [recent (take-up-to-repl 15 trace)])
+         [recent (take 15 trace)])
 
         (display "\n")
         (display "  EXECUTION TRACE (most recent first)\n")

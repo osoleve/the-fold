@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+
 (define *sql-format-loaded* #t)
 
 (doc 'module 'sql-format)
@@ -572,11 +575,3 @@
 ;;; Utility Functions
 ;;; ====
 
-;;; string-join : (List String) × String → String
-(define (string-join strings delimiter)
-  (if (null? strings)
-      ""
-      (fold-left (lambda (acc s)
-                         (string-append acc delimiter s))
-                 (car strings)
-                 (cdr strings))))

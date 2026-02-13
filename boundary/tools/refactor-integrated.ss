@@ -1024,7 +1024,7 @@
                                 (ref-change-line-start c)
                                 (ref-change-old c)
                                 (ref-change-new c)))
-                (take-up-to changes 10))
+                (take 10 changes))
                (when (> (length changes) 10)
                      (printf "    ... and ~a more\n" (- (length changes) 10)))
                (display "\n  Use (refactor-apply!) to apply changes.\n\n"))])))

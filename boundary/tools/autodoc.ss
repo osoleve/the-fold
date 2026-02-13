@@ -633,7 +633,7 @@
                               [lbl (cdr (assq 'label ex))])
                              (when lbl (printf "    ; ~a\n" lbl))
                              (printf "    ~a → ~a\n" src exp)))
-                (take-up-to 5 examples))
+                (take 5 examples))
                (when (> (length examples) 5)
                      (printf "    ... and ~a more examples\n" (- (length examples) 5)))
                (display "\n"))
@@ -645,13 +645,7 @@
        
        (display "\n")))
 
-;;; take-up-to : Int (List a) → (List a)
-(define (take-up-to n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
-
-;;; ==== 
+;;; ====
 ;;; REPL Commands
 ;;; ==== 
 
@@ -669,7 +663,7 @@
                  (unless (null? suggestions)
                          (display "  Did you mean one of:\n")
                          (for-each (lambda (s) (printf "    ~a\n" s))
-                                   (take-up-to 5 suggestions))
+                                   (take 5 suggestions))
                          (display "\n"))))))) 
 
 ;;; doc-search : String → (List Symbol)

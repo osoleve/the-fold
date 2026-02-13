@@ -872,13 +872,7 @@
 ;;; p-fold-taking : Nat -> PFold (List a) a
 (define (p-fold-taking n)
   (doc 'export #t)
-  (make-p-fold (lambda (xs) (take-up-to-p n xs))))
-
-;;; take-up-to-p : Nat × List -> List (local helper)
-(define (take-up-to-p n xs)
-  (if (or (<= n 0) (null? xs))
-      '()
-      (cons (car xs) (take-up-to-p (- n 1) (cdr xs)))))
+  (make-p-fold (lambda (xs) (take n xs))))
 
 ;;; ====
 ;;; Conversions to Traversal/Fold

@@ -200,16 +200,6 @@
             [else
              (substring s 0 (+ i 1))])))))
 
-;;; string-join : (List String) String -> String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)] [acc (car strs)])
-        (if (null? rest)
-            acc
-            (loop (cdr rest)
-                  (string-append acc sep (car rest)))))))
-
 ;;; ====
 ;;; Output Functions
 ;;; ====

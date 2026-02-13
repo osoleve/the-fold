@@ -419,7 +419,7 @@
              (string-append "    Fields: " (render-symbol-list fields) "\n"))
          (if (null? fns)
              ""
-             (string-append "    Functions: " (render-symbol-list (take-up-to 5 fns))
+             (string-append "    Functions: " (render-symbol-list (take 5 fns))
                             (if (> (length fns) 5) " ..." "") "\n")))))
 
 ;;; render-symbol-list : (List Symbol) -> String
@@ -427,12 +427,6 @@
   (if (null? syms)
       "()"
       (string-join (map symbol->string syms) ", ")))
-
-;;; take-up-to : Nat x (List a) -> (List a)
-(define (take-up-to n lst)
-  (if (or (= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 ;;; render-relationships : (List Relationship) -> String
 (define (render-relationships rels)
@@ -446,7 +440,7 @@
                             "  " (symbol->string (car rel))
                             " --[" (symbol->string (cadr rel)) "]--> "
                             (symbol->string (caddr rel)) "\n"))
-                   (take-up-to 20 rels)))
+                   (take 20 rels)))
        (if (> (length rels) 20)
            (string-append "  ... and " (number->string (- (length rels) 20)) " more\n")
            ""))))

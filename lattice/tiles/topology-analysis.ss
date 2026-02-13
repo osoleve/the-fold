@@ -398,13 +398,7 @@ Useful for identifying the most valuable chokepoints to control.")
                               (> (weighted-bridge-weight a)
                                  (weighted-bridge-weight b)))
                             bridges)])
-    (take-up-to k sorted)))
-
-(define (take-up-to n lst)
-  (doc 'description "Take up to n elements from list (handles short lists)")
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
+    (take k sorted)))
 
 (doc 'section 'strategic-analysis)
 
@@ -446,7 +440,7 @@ Useful for identifying the most valuable chokepoints to control.")
                       (coord-x (car edge)) (coord-y (car edge))
                       (coord-x (cdr edge)) (coord-y (cdr edge))
                       s1 s2 w)))
-          (take-up-to max-show sorted))))
+          (take max-show sorted))))
     (printf "===============================~n")))
 
 (doc board-is-connected? 'export #t)

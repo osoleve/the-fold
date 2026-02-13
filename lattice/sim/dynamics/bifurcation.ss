@@ -1213,14 +1213,8 @@ Distinguishes saddle-node by checking wᵀ(∂f/∂p) (transversality condition)
                                   [coord-idx (if (= plane-axis 0) 1 0)])
                                  (map (lambda (pt)
                                               (cons param (vector-ref pt coord-idx)))
-                                      (take-up-to section n-crossings))))
+                                      (take n-crossings section))))
                    (iota param-steps))))
-
-(define (take-up-to lst n)
-  (doc 'type '(-> (List α) Nat (List α)))
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-up-to (cdr lst) (- n 1)))))
 
 ;;; ============================================================
 ;;; Section: Hopf Bifurcation Analysis

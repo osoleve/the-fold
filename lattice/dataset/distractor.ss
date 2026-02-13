@@ -370,7 +370,7 @@
 (define (make-symbolic-options correct all-choices rng)
   (doc 'export #t)
   (let* ([others (filter (lambda (c) (not (eq? c correct))) all-choices)]
-         [distractors (take-up-to 3 (shuffle-list others rng))]
+         [distractors (take 3 (shuffle-list others rng))]
          [all-values (cons correct distractors)]
          [shuffled (shuffle-list all-values rng)]
          [labels '(A B C D)]
@@ -397,8 +397,3 @@
           (loop (- i 1)))))
     (vector->list v)))
 
-;;; take-up-to : Nat × (List a) → (List a)
-(define (take-up-to n xs)
-  (if (or (<= n 0) (null? xs))
-      '()
-      (cons (car xs) (take-up-to (- n 1) (cdr xs)))))

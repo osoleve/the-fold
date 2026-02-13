@@ -2,6 +2,7 @@
 ;;; @module signal-poly
 ;;; @requires field algebra/polynomial digital-filters
 
+(require 'prelude)
 (require 'field)
 (require 'algebra/polynomial)
 (require 'digital-filters)
@@ -360,12 +361,6 @@
     (or (null? first-col)
         (let ([sign (if (> (car first-col) 0) 1 -1)])
           (andmap (lambda (x) (> (* x sign) 0)) first-col)))))
-
-;;; andmap : (α → Boolean) × (List α) → Boolean
-(define (andmap pred lst)
-  (or (null? lst)
-      (and (pred (car lst))
-           (andmap pred (cdr lst)))))
 
 ;;; ====
 ;;; Deconvolution via Polynomial Division

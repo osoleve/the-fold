@@ -448,7 +448,7 @@
 ;;; get-recent-watch-events : Debugger × Nat → (List WatchEvent)
 ;;; Get the N most recent watch events.
 (define (get-recent-watch-events d n)
-  (take-up-to-debug n (debugger-watch-events d)))
+  (take n (debugger-watch-events d)))
 
 ;; filter provided by prelude
 
@@ -633,13 +633,7 @@
          [sorted (list-sort (lambda (a b)
                                     (> (cadddr a) (cadddr b)))
                             fuel-trace)])
-        (take-up-to-debug n sorted)))
-
-;;; take-up-to-debug : Nat × (List α) → (List α)
-(define (take-up-to-debug n lst)
-  (if (or (zero? n) (null? lst))
-      '()
-      (cons (car lst) (take-up-to-debug (- n 1) (cdr lst)))))
+        (take n sorted)))
 
 ;;; fuel-summary : Debugger → Alist
 (define (fuel-summary d)

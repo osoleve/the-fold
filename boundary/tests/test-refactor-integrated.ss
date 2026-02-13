@@ -229,10 +229,10 @@
                           (assert-equal '(1 2 3) (take-n '(1 2 3) 5))  ; List shorter than n
                           (assert-equal '() (take-n '() 3)))
                         
-                        (define-test take-up-to-test
-                          (assert-equal '(1 2 3) (take-up-to '(1 2 3 4 5) 3))
-                          (assert-equal '() (take-up-to '(1 2 3) 0))
-                          (assert-equal '(1 2 3) (take-up-to '(1 2 3) 10))))
+                        (define-test take-test
+                          (assert-equal '(1 2 3) (take 3 '(1 2 3 4 5)))
+                          (assert-equal '() (take 0 '(1 2 3)))
+                          (assert-equal '(1 2 3) (take 10 '(1 2 3)))))
             
             (doc 'section 'state-tests)
 

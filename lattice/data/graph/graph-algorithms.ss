@@ -165,14 +165,6 @@
 
 ;;; --- List Utilities ---
 
-;;; take-up-to : (List A) Integer → (List A)
-;;; Take up to n elements from list.
-(define (take-up-to lst n)
-  (let loop ([l lst] [count n] [result '()])
-       (if (or (null? l) (<= count 0))
-           (reverse result)
-           (loop (cdr l) (- count 1) (cons (car l) result)))))
-
 ;;; path-length : (List Hash) → Integer
 ;;; Get length of a path (number of edges).
 (define (path-length path)

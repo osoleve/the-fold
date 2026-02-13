@@ -397,15 +397,7 @@
 (doc top-k-central 'description "Return top k nodes by centrality")
 (define (top-k-central scores k)
   (let ([ranked (rank-by-centrality scores)])
-       (take-up-to ranked k)))
-
-(doc take-up-to 'type '(-> (List a) Nat (List a)))
-(doc take-up-to 'description "Take up to n elements")
-(define (take-up-to lst n)
-  (let loop ([l lst] [count n] [acc '()])
-       (if (or (null? l) (<= count 0))
-           (reverse acc)
-           (loop (cdr l) (- count 1) (cons (car l) acc)))))
+       (take k ranked)))
 
 (doc centrality-correlation 'type '(-> Vec Vec Num))
 (doc centrality-correlation 'description "Compute Pearson correlation between two centrality measures; returns value in [-1, 1]")

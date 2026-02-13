@@ -693,17 +693,17 @@
   (and (tree? t1) (tree? t2)
        (equal? (tree-value t1) (tree-value t2))
        (= (length (tree-children t1)) (length (tree-children t2)))
-       (andmap tree-equal? (tree-children t1) (tree-children t2))))
+       (andmap* tree-equal? (tree-children t1) (tree-children t2))))
 
 ;;; tree-zipper-equal? : (TreeZipper a) x (TreeZipper a) -> Bool
 ;;; Check equality of two tree zippers.
 (define (tree-zipper-equal? z1 z2)
   (and (tree-equal? (tree-zipper-focus z1) (tree-zipper-focus z2))
        (= (length (tree-zipper-crumbs z1)) (length (tree-zipper-crumbs z2)))
-       (andmap (lambda (c1 c2)
+       (andmap* (lambda (c1 c2)
                  (and (equal? (crumb-value c1) (crumb-value c2))
-                      (andmap tree-equal? (crumb-left c1) (crumb-left c2))
-                      (andmap tree-equal? (crumb-right c1) (crumb-right c2))))
+                      (andmap* tree-equal? (crumb-left c1) (crumb-left c2))
+                      (andmap* tree-equal? (crumb-right c1) (crumb-right c2))))
                (tree-zipper-crumbs z1)
                (tree-zipper-crumbs z2))))
 
@@ -734,19 +734,20 @@
             (tree->string (zipper->tree z)))))
 
 ;;; ====
-;;; Helper: andmap
+;;; Helper: andmap* (variadic)
 ;;; ====
 
-;;; andmap : (a -> Bool) x (List a) -> Bool
+;;; andmap* : (a -> Bool) x (List a) -> Bool
 ;;; Check if predicate holds for all elements.
 ;;; Also works with two lists: (a x b -> Bool) x (List a) x (List b) -> Bool
-(define (andmap pred . lists)
+;;; Named andmap* to distinguish from prelude's single-list andmap.
+(define (andmap* pred . lists)
   (if (null? (car lists))
       #t
       (if (null? (cdr lists))
           ;; Single list version
           (and (pred (car (car lists)))
-               (andmap pred (cdr (car lists))))
+               (andmap* pred (cdr (car lists))))
           ;; Two list version
           (and (apply pred (map car lists))
-               (apply andmap pred (map cdr lists))))))
+               (apply andmap* pred (map cdr lists))))))

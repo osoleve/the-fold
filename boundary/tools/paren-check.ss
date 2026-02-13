@@ -1264,7 +1264,7 @@
             (printf "\n  Suggestion: Add ~a closer(s). Look for forms starting at:\n"
                     (length unclosed-stack))
             ;; Show the most likely culprits (outermost/earliest unclosed)
-            (let ([earliest (take-up-to 5 (reverse unclosed-stack))])
+            (let ([earliest (take 5 (reverse unclosed-stack))])
               (for-each
                 (lambda (o)
                   (if (opener-form o)
@@ -1278,12 +1278,6 @@
                               (type->open-char (opener-type o))
                               (+ (opener-col o) 1))))
                 earliest)))))))
-
-;;; take-up-to : Int (List a) -> (List a)
-(define (take-up-to n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 ;; string-join is provided by prelude
 

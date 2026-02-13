@@ -228,10 +228,3 @@
                 frame-strs))))
 
 ;; iota is provided by prelude
-
-;;; andmap : (a → Bool) × (List a) → Bool
-(define (andmap pred lst)
-  (cond
-    [(null? lst) #t]
-    [(pred (car lst)) (andmap pred (cdr lst))]
-    [else #f]))

@@ -715,14 +715,6 @@
             (regex-ast->string (regex-lookahead-expr ast)))]
    [else (format "unknown(~a)" ast)]))
 
-;;; Helper: string-join
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (fold-left (lambda (acc s) (string-append acc sep s))
-                 (car strs)
-                 (cdr strs))))
-
 ;;; ============================================================
 ;;; Exports Summary
 ;;; ============================================================

@@ -131,15 +131,6 @@
            (reverse acc)
            (loop (- n 1) (cdr xs) (cons (car xs) acc)))))
 
-;;; string-join : (List String) x String -> String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([rest (cdr strs)] [result (car strs)])
-           (if (null? rest)
-               result
-               (loop (cdr rest) (string-append result sep (car rest)))))))
-
 ;;; display-lzr-report : Report -> Void
 (define (display-lzr-report report)
   (display "\n")

@@ -150,16 +150,6 @@
           ""
           (string-append "\x1B;[" (string-join (reverse codes) ";") "m")))))
 
-;;; string-join : (List String) × String → String
-;;; Join strings with separator.
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (let loop ([strs (cdr strs)] [acc (car strs)])
-        (if (null? strs)
-            acc
-            (loop (cdr strs) (string-append acc sep (car strs)))))))
-
 ;;; ====
 ;;; Extended Document Type
 ;;; ====

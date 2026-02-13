@@ -343,7 +343,7 @@
                            ordered)]
          ;; Step 5: Apply limit
          [limited (if limit-n
-                      (take-up-to limit-n after-offset)
+                      (take limit-n after-offset)
                       after-offset)]
          ;; Step 6: Project if select clause exists
          [projected (if select-fn

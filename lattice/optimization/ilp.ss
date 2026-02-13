@@ -726,10 +726,3 @@ Empty list = pure LP, all indices = pure ILP")
   (let ([parts (map number->string (vector->list v))])
     (string-append "[" (string-join parts ", ") "]")))
 
-;;; string-join : List x String -> String
-(define (string-join strs sep)
-  (if (null? strs)
-      ""
-      (fold-left (lambda (acc s) (string-append acc sep s))
-                 (car strs)
-                 (cdr strs))))

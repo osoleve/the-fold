@@ -250,10 +250,10 @@
               (assert-true (any number? '(a b 3 c)))
               (assert-false (any number? '(a b c))))
             
-            (define-test take-up-to-test
-              (assert-equal '(1 2) (take-up-to '(1 2 3 4) 2))
-              (assert-equal '(1 2) (take-up-to '(1 2) 5))
-              (assert-equal '() (take-up-to '(1 2) 0))))
+            (define-test take-test
+              (assert-equal '(1 2) (take 2 '(1 2 3 4)))
+              (assert-equal '(1 2) (take 5 '(1 2)))
+              (assert-equal '() (take 0 '(1 2)))))
 
 (doc 'section 'suggestion-tests)
 
@@ -341,7 +341,7 @@
                    (assert-equal 'Nat (cdr (assq 'a env)))
                    (assert-equal 'Bool (cdr (assq 'b env))))))
 
-(doc 'note "Helper Functions Used in Tests: The module already defines 'any', 'last', 'butlast', 'take-up-to'")
+(doc 'note "Helper Functions Used in Tests: The module already defines 'any', 'last', 'butlast'; 'take' comes from prelude")
 
 (doc 'section 'run-tests)
 

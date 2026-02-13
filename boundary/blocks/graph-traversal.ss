@@ -315,7 +315,7 @@
                             all-hashes)]
          [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b)))
                             with-degrees)])
-        (take-up-to sorted n)))
+        (take n sorted)))
 
 ;;; find-roots : FSCap → (List Hash)
 ;;; Find all blocks with no incoming references.

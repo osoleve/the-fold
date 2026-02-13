@@ -191,14 +191,7 @@
   (doc 'export #t)
   (let* ([scores (approval-scores profile)]
          [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)])
-    (take-up-to num-seats (map car sorted))))
-
-;;; take-up-to : Nat × (List a) → (List a)
-;;; Take up to n elements from list.
-(define (take-up-to n lst)
-  (if (or (= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
+    (take num-seats (map car sorted))))
 
 (doc 'section 'pav)
 (doc 'note "PAV uses a diminishing returns scoring function to achieve proportionality.")
@@ -266,7 +259,7 @@
   (let* ([candidates (approval-profile-candidates profile)]
          [scores (map (lambda (c) (cons c (sav-score c profile))) candidates)]
          [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) scores)])
-    (take-up-to num-seats (map car sorted))))
+    (take num-seats (map car sorted))))
 
 (doc 'section 'monroe)
 (doc 'note "Monroe method assigns each voter to exactly one representative.")
@@ -451,7 +444,7 @@
 ;;; Convert ranked profile to approval profile by approving top k candidates.
 (define (profile->approval profile k)
   (doc 'export #t)
-  (map (lambda (ranking) (take-up-to k ranking)) profile))
+  (map (lambda (ranking) (take k ranking)) profile))
 
 ;;; approval->profile : ApprovalProfile → PreferenceProfile
 ;;; Convert approval profile to ranked profile (arbitrary order within approved).

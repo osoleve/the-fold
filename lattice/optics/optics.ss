@@ -645,13 +645,7 @@
 ;;; fold-taking : Nat → Fold (List a) a
 (define (fold-taking n)
   (doc 'export #t)
-  (make-fold (lambda (xs) (take-up-to n xs))))
-
-;;; take-up-to : Nat × List → List
-(define (take-up-to n xs)
-  (if (or (<= n 0) (null? xs))
-      '()
-      (cons (car xs) (take-up-to (- n 1) (cdr xs)))))
+  (make-fold (lambda (xs) (take n xs))))
 
 ;;; fold-dropping : Nat → Fold (List a) a
 (define (fold-dropping n)

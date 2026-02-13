@@ -304,8 +304,3 @@
 ;;; pi constant
 (define pi 3.141592653589793)
 
-;;; andmap : (a → Boolean) × (List a) → Boolean
-(define (andmap f lst)
-  (if (null? lst)
-      #t
-      (and (f (car lst)) (andmap f (cdr lst)))))

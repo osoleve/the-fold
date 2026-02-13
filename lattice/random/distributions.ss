@@ -333,12 +333,6 @@
 
 (define (positive? x) (> x 0))
 
-(define (andmap pred lst)
-  (cond
-   [(null? lst) #t]
-   [(pred (car lst)) (andmap pred (cdr lst))]
-   [else #f]))
-
 
 (doc 'section 'probability-density/mass-functions-pdf/pmf)
 

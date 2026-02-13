@@ -377,18 +377,12 @@
                 (newline)
                 ;; Save to history
                 (set! *proof-history*
-                      (take-up-to *max-proof-history*
+                      (take *max-proof-history*
                                   (cons *current-sketch* *proof-history*)))
                 (set! *current-sketch* #f)
                 (display "  Proof saved to history.\n")
                 (display "  Start a new proof with (sketch '(= lhs rhs)).\n")
                 (newline))))))
-
-;;; take-up-to : Nat x (List a) -> (List a)
-(define (take-up-to n lst)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 ;;; ====
 ;;; Show Command

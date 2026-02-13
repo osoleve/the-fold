@@ -487,15 +487,9 @@
                                      (number->string (cdr pair)) " dependent(s)\n")
                       acc))
           ""
-          (take-up-to 10 critical))
+          (take 10 critical))
          "\n")))
 
-;;; take-up-to : Nat x (List a) -> (List a)
-;;; Take up to n elements from list.
-(define (take-up-to n lst)
-  (if (or (= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 ;;; NOTE: string-contains? provided by core/prelude.ss
 

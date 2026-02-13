@@ -56,7 +56,7 @@
 (define (simple-approval-select agent-ids findings k)
   (let* ([counts (simple-approval-counts agent-ids findings)]
          [sorted (sort (lambda (a b) (> (cdr a) (cdr b))) counts)]
-         [top-k (take-up-to k sorted)])
+         [top-k (take k sorted)])
     (map car top-k)))
 
 (doc 'section 'borda-count-ranking)
@@ -189,7 +189,7 @@
              [borda-ranking (simple-borda-ranking findings rankings)]
              [selected (if (= k 0)
                           borda-ranking
-                          (take-up-to k borda-ranking))]
+                          (take k borda-ranking))]
              [consensus (simple-consensus-score findings rankings)]
              [credits (simple-proportional-credits agent-ids findings)]
              [power (simple-power-indices agent-ids)]
@@ -204,9 +204,3 @@
 
 (doc 'section 'utility-functions)
 
-;;; take-up-to : Int (List a) -> (List a)
-;;; Take up to n elements from list.
-(define (take-up-to n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))

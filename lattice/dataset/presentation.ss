@@ -486,17 +486,11 @@
        (let loop ([frames frame-elems] [rows '()])
          (if (null? frames)
              (layout-vstack (reverse rows))
-             (let ([row-frames (take-up-to 2 frames)]
+             (let ([row-frames (take 2 frames)]
                    [rest (drop-up-to 2 frames)])
                (loop rest
                      (cons (layout-hstack row-frames 1) rows)))))]
       [else (layout-vstack frame-elems)])))
-
-;;; take-up-to : Nat × (List a) → (List a)
-(define (take-up-to n xs)
-  (if (or (<= n 0) (null? xs))
-      '()
-      (cons (car xs) (take-up-to (- n 1) (cdr xs)))))
 
 ;;; drop-up-to : Nat × (List a) → (List a)
 (define (drop-up-to n xs)

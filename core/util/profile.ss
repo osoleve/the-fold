@@ -260,7 +260,7 @@
          [sorted (list-sort (lambda (a b)
                                     (> (cadr a) (cadr b)))
                             by-fn)]
-         [top (take-up-to n sorted)])
+         [top (take n sorted)])
         (map (lambda (entry)
                      (let ([name (car entry)]
                            [fuel (cadr entry)]
@@ -270,11 +270,6 @@
                                     (* 100.0 (/ fuel total)))
                                 calls)))
              top)))
-
-(define (take-up-to n lst)
-  (if (or (zero? n) (null? lst))
-      '()
-      (cons (car lst) (take-up-to (- n 1) (cdr lst)))))
 
 (doc 'section 'call-tree-rendering)
 
@@ -329,7 +324,7 @@
          [sorted (list-sort (lambda (a b)
                                     (> (path-fuel a) (path-fuel b)))
                             all-paths)])
-        (take-up-to n sorted)))
+        (take n sorted)))
 
 (doc 'section 'public-api)
 
