@@ -66,8 +66,18 @@
                 (printf "\nModules (~a):\n" (length modules))
                 (for-each
                  (lambda (mod)
-                         (let ([mod-name (car mod)])
-                              (printf "  - ~a\n" mod-name)))
+                         (let* ([mod-name (car mod)]
+                                [name-str (symbol->string mod-name)]
+                                [slash-pos (let loop ([i 0])
+                                             (cond
+                                               [(>= i (string-length name-str)) #f]
+                                               [(char=? (string-ref name-str i) #\/) i]
+                                               [else (loop (+ i 1))]))]
+                                [bare-name (if slash-pos
+                                               (substring name-str (+ slash-pos 1)
+                                                          (string-length name-str))
+                                               name-str)])
+                           (printf "  - ~a  (require '~a)\n" mod-name bare-name)))
                  modules))))))
 
 ;;; string-trim : String -> String

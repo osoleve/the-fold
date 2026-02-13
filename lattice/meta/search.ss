@@ -112,7 +112,9 @@
                    'all)]
          [query-terms (tokenize query)])
         (if (null? query-terms)
-            '()
+            ;; Tokenization yielded nothing (query has only special chars)
+            ;; Fall back to substring matching on raw names
+            (take-at-most k (lattice-find-substring (string->symbol query) k))
             (case type
                   [(skill skills)
                    (search-with-context *skill-index* query-terms k 'skill)]
