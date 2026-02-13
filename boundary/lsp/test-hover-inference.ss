@@ -142,6 +142,60 @@
     (assert-false (try-infer-type "nonexistent" "(define x 1)"))))
 
 ;;; ====
+;;; Forward Reference Tests
+;;; ====
+
+(test-group forward-references
+  ;; Basic forward reference: f uses g, but g is defined after f
+  (define-test forward-ref-basic
+    (let ([type (try-infer-type "f"
+                 "(define f (fn (x) (g x)))\n(define g (fn (y) (prim 'add y 1)))")])
+      (assert-true (if type #t #f))))
+
+  (define-test forward-ref-basic-type
+    (let ([type (try-infer-type "f"
+                 "(define f (fn (x) (g x)))\n(define g (fn (y) (prim 'add y 1)))")])
+      (assert-true (if (and type (string-contains? type "Int")) #t #f))))
+
+  ;; Forward-referenced function also gets a type
+  (define-test forward-ref-target-typed
+    (let ([type (try-infer-type "g"
+                 "(define f (fn (x) (g x)))\n(define g (fn (y) (prim 'add y 1)))")])
+      (assert-true (if (and type (string-contains? type "Int")) #t #f))))
+
+  ;; Backward reference still works (regression check)
+  (define-test backward-ref-still-works
+    (let ([type (try-infer-type "h"
+                 "(define g (fn (y) (prim 'add y 1)))\n(define h (fn (x) (g x)))")])
+      (assert-true (if (and type (string-contains? type "Int")) #t #f))))
+
+  ;; Forward reference to a constant
+  (define-test forward-ref-constant
+    (let ([type (try-infer-type "f"
+                 "(define f (fn () y))\n(define y 42)")])
+      (assert-true (if type #t #f))))
+
+  ;; Mixed declared and inferred types with forward refs
+  (define-test forward-ref-mixed-declared
+    (let ([type (try-infer-type "caller"
+                 "(define caller (fn (x) (helper x)))\n(define helper (fn (n) (prim 'add n 1)))")])
+      (assert-true (if (and type (string-contains? type "Int")) #t #f))))
+
+  ;; Multiple forward references in one definition
+  (define-test multiple-forward-refs
+    (let* ([content "(define use-both (fn (x) (prim 'add (inc x) (dec x))))\n(define inc (fn (n) (prim 'add n 1)))\n(define dec (fn (n) (prim 'sub n 1)))"]
+           [type (try-infer-type "use-both" content)])
+      (assert-true (if (and type (string-contains? type "Int")) #t #f))))
+
+  ;; Failed inference on one def doesn't break others
+  (define-test partial-failure-resilient
+    (let* ([content "(define good 42)\n(define bad (unknown-prim x))\n(define also-good #t)"]
+           [type-good (try-infer-type "good" content)]
+           [type-also-good (try-infer-type "also-good" content)])
+      (assert-equal "Int" type-good)
+      (assert-equal "Bool" type-also-good))))
+
+;;; ====
 ;;; Run Tests
 ;;; ====
 

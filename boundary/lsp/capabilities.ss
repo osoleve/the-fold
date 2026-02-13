@@ -195,36 +195,75 @@
          (list (cons name `(fn ,args ,body))))]
    [else '()]))
 
+(doc apply-subst-to-tenv 'type '(-> Subst TEnv TEnv))
+(doc apply-subst-to-tenv 'description "Apply a substitution to all types in a type environment")
+(define (apply-subst-to-tenv subst env)
+  (map (lambda (entry)
+         (cons (car entry) (apply-subst subst (cdr entry))))
+       env))
+
 (doc build-tenv-from-defs 'type '(-> (List (Pair Symbol Expr)) TEnv))
 (doc build-tenv-from-defs 'description "Build a type environment by inferring types for definitions")
-(doc build-tenv-from-defs 'note "Uses declared types from doc annotations when available, falls back to inference")
+(doc build-tenv-from-defs 'note "Two-pass inference: (1) seed all names with placeholder type variables, (2) infer against the full env so forward references resolve via unification. Generalization deferred to end.")
 (define (build-tenv-from-defs defs)
   (if (not *infer-available*)
       empty-tenv
       (begin
-        ;; Ensure doc types are loaded into type checker
         (load-doc-types-into-checker!)
-        (let loop ([defs defs] [env empty-tenv])
-          (if (null? defs)
-              env
-              (let* ([def (car defs)]
-                     [name (car def)]
-                     [init (cdr def)]
-                     ;; Check for declared type first
-                     [declared (lookup-declared-type name)])
-                (if declared
-                    ;; Use declared type directly
-                    (loop (cdr defs) (tenv-extend env name declared))
-                    ;; Fall back to inference
-                    (guard (e [else (loop (cdr defs) env)])
-                           (reset-fresh!)
-                           (let ([result (infer init env)])
-                             (if (eq? (car result) 'ok)
-                                 (let* ([type (cadr result)]
-                                        [s (caddr result)]
-                                        [gen-type (generalize env (apply-subst s type))])
-                                   (loop (cdr defs) (tenv-extend env name gen-type)))
-                                 (loop (cdr defs) env)))))))))))
+        (reset-fresh!)  ;; Once at the top — never inside the loop
+
+        ;; Pass 1: Build seed env with declared types or fresh placeholders
+        (let* ([seed-bindings
+                (map (lambda (def)
+                       (let* ([name (car def)]
+                              [declared (lookup-declared-type name)])
+                         (cons name (or declared (fresh-tvar)))))
+                     defs)]
+               [seed-env (tenv-extend* empty-tenv seed-bindings)])
+
+          ;; Pass 2: Infer each definition against full seed env, accumulate substitution
+          (let loop ([remaining defs]
+                     [placeholders (map cdr seed-bindings)]
+                     [subst empty-subst])
+            (if (null? remaining)
+                ;; Finalize: apply composed substitution, then generalize
+                (fold-left
+                 (lambda (env binding)
+                   (let* ([name (car binding)]
+                          [placeholder (cdr binding)]
+                          [final-type (apply-subst subst placeholder)]
+                          [gen-type (generalize empty-tenv final-type)])
+                     (tenv-extend env name gen-type)))
+                 empty-tenv
+                 seed-bindings)
+
+                (let* ([def (car remaining)]
+                       [name (car def)]
+                       [init (cdr def)]
+                       [placeholder (car placeholders)])
+                  ;; Declared types are already correct — skip inference
+                  (if (lookup-declared-type name)
+                      (loop (cdr remaining) (cdr placeholders) subst)
+                      ;; Infer and unify with placeholder
+                      (guard (e [else (loop (cdr remaining) (cdr placeholders) subst)])
+                             (let* ([current-env (apply-subst-to-tenv subst seed-env)]
+                                    [result (infer init current-env)])
+                               (if (eq? (car result) 'ok)
+                                   (let* ([inferred-type (cadr result)]
+                                          [s-infer (caddr result)]
+                                          [subst-1 (compose-subst s-infer subst)]
+                                          ;; Unify placeholder with inferred type
+                                          [t-ph (apply-subst subst-1 placeholder)]
+                                          [t-inf (apply-subst subst-1 inferred-type)]
+                                          [res-unify (unify t-ph t-inf)])
+                                     (if (eq? (car res-unify) 'ok)
+                                         (loop (cdr remaining)
+                                               (cdr placeholders)
+                                               (compose-subst (cadr res-unify) subst-1))
+                                         ;; Unification failed — keep going
+                                         (loop (cdr remaining) (cdr placeholders) subst-1)))
+                                   ;; Inference failed — skip
+                                   (loop (cdr remaining) (cdr placeholders) subst))))))))))))
 
 (doc try-infer-type 'type '(-> String String (U String #f)))
 (doc try-infer-type 'description "Try to infer the type of a symbol in the context of a document")
