@@ -442,4 +442,19 @@ Modules declare dependencies via header comments:
 
 The loader parses these to build the dependency graph automatically.
 
+**Macro-Generated Definitions**:
+
+When macros generate top-level definitions, the `@defines` annotation makes them
+visible to the symbol index and LSP:
+```scheme
+;;; @defines vec2 vec2? vec2-x vec2-y vec2->list list->vec2
+(generate-vec2-core
+ vec2 vec2? vec2-x vec2-y vec2->list list->vec2
+ vec2-zero vec2-one vec2-unit-x vec2-unit-y)
+```
+
+Without this annotation, macro-generated definitions are invisible to static
+tooling (lens-jump, hover, document symbols) since they only exist after
+macro expansion at runtime.
+
 ---

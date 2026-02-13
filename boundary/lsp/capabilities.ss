@@ -1153,11 +1153,12 @@
 (define (extract-definitions-deep content)
   (guard (e [else (extract-definitions content)])  ; Fallback to simple extraction
          (let ([port (open-input-string content)]
-               [len (string-length content)])
+               [len (string-length content)]
+               [annotation-syms (extract-defines-annotations content)])
               (let loop ([acc '()] [search-from 0])
                    (let ([sexp (read port)])
                         (if (eof-object? sexp)
-                            (reverse acc)
+                            (append (reverse acc) annotation-syms)
                             (let* ([end-pos (port-position-safe port)]
                                    ;; Find actual form start: scan for '(' from search-from
                                    [form-start (find-form-start content search-from)]
@@ -1166,6 +1167,45 @@
                                    [sym-nodes (extract-symbols-from-sexp sexp start-line end-line)])
                                   (loop (append (reverse sym-nodes) acc)
                                         end-pos))))))))
+
+;;; extract-defines-annotations : String → (List SymbolNode)
+;;; Scan raw content for ;;; @defines annotations and create symbol nodes.
+(define (extract-defines-annotations content)
+  (let ([port (open-input-string content)])
+    (let loop ([line-num 1] [acc '()])
+      (let ([line (get-line port)])
+        (if (eof-object? line)
+            acc
+            (let ([trimmed (string-trim line)])
+              (if (and (>= (string-length trimmed) 13)
+                       (string-starts-with? trimmed ";;; @defines "))
+                  (let* ([rest (substring trimmed 13 (string-length trimmed))]
+                         [names (split-annotation-names rest)]
+                         [nodes (map (lambda (name)
+                                       (list name 'function line-num line-num '()))
+                                     names)])
+                    (loop (+ line-num 1) (append acc nodes)))
+                  (loop (+ line-num 1) acc))))))))
+
+;;; split-annotation-names : String → (List String)
+;;; Split space-separated identifiers from @defines annotation.
+(define (split-annotation-names str)
+  (let ([len (string-length str)])
+    (let loop ([i 0] [start #f] [acc '()])
+      (cond
+       [(>= i len)
+        (reverse (if (and start (> i start))
+                     (cons (substring str start i) acc)
+                     acc))]
+       [(or (char=? (string-ref str i) #\space)
+            (char=? (string-ref str i) #\tab))
+        (if (and start (> i start))
+            (loop (+ i 1) #f (cons (substring str start i) acc))
+            (loop (+ i 1) #f acc))]
+       [(not start)
+        (loop (+ i 1) i acc)]
+       [else
+        (loop (+ i 1) start acc)]))))
 
 ;;; find-form-start : String × Int → Int
 ;;; Find the position of the next '(' starting from offset.

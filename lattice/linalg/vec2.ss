@@ -16,16 +16,19 @@
 
 
 (doc 'section 'core-type)
+;;; @defines vec2 vec2? vec2-x vec2-y vec2->list list->vec2 vec2-zero vec2-one vec2-unit-x vec2-unit-y
 (generate-vec2-core
  vec2 vec2? vec2-x vec2-y vec2->list list->vec2
  vec2-zero vec2-one vec2-unit-x vec2-unit-y)
 
 (doc 'section 'arithmetic)
+;;; @defines vec2-add vec2-sub vec2-neg vec2-mul vec2-div vec2-scale vec2-scale-inv
 (generate-vec2-arithmetic
  vec2 vec2-x vec2-y
  vec2-add vec2-sub vec2-neg vec2-mul vec2-div vec2-scale vec2-scale-inv)
 
 (doc 'section 'products-and-norms)
+;;; @defines vec2-dot vec2-magnitude-sq vec2-magnitude vec2-length vec2-distance-sq vec2-distance vec2-normalize vec2-unit vec2-set-magnitude
 (generate-vec2-products
  vec2 vec2-x vec2-y vec2-zero vec2-sub vec2-scale-inv
  vec2-dot vec2-magnitude-sq vec2-magnitude vec2-length
@@ -69,23 +72,27 @@
 
 
 (doc 'section 'interpolation)
+;;; @defines vec2-lerp vec2-slerp vec2-move-towards
 (generate-vec2-interpolation
  vec2 vec2-x vec2-y
  vec2-add vec2-sub vec2-scale vec2-normalize vec2-magnitude vec2-angle-between
  vec2-lerp vec2-slerp vec2-move-towards)
 
 (doc 'section 'projection)
+;;; @defines vec2-project vec2-reject vec2-reflect
 (generate-vec2-projection
  vec2 vec2-x vec2-y vec2-zero
  vec2-sub vec2-scale vec2-dot vec2-magnitude-sq
  vec2-project vec2-reject vec2-reflect)
 
 (doc 'section 'comparison)
+;;; @defines vec2-equal? vec2-nearly-equal? vec2-zero?
 (generate-vec2-comparison
  vec2-x vec2-y vec2-magnitude-sq
  vec2-equal? vec2-nearly-equal? vec2-zero?)
 
 (doc 'section 'utilities)
+;;; @defines vec2-min vec2-max vec2-clamp vec2-abs vec2-floor vec2-ceil vec2-round vec2-map vec2-fold vec2-sum vec2-product vec2-clamp-magnitude vec2-limit
 (generate-vec2-utilities
  vec2 vec2-x vec2-y vec2-magnitude-sq vec2-set-magnitude
  vec2-min vec2-max vec2-clamp vec2-abs vec2-floor vec2-ceil vec2-round

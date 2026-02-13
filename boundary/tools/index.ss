@@ -36,6 +36,7 @@
 ;;; index-extract-definitions : String × (List String) → (List Entry)
 ;;; Extract definition entries from file content.
 ;;; Accumulates consecutive ;;; comment lines for multi-line docstrings.
+;;; Recognizes ;;; @defines annotations for macro-generated definitions.
 (define (index-extract-definitions path lines)
   (let loop ([lines lines]
              [line-num 1]
@@ -46,6 +47,13 @@
            (let* ([line (car lines)]
                   [trimmed (string-trim line)])
                  (cond
+                  ;; @defines annotation — register macro-generated definitions
+                  [(and (>= (string-length trimmed) 13)
+                        (string-starts-with? trimmed ";;; @defines "))
+                   (let ([entries (parse-defines-annotation path line-num trimmed)])
+                     (loop (cdr lines) (+ line-num 1) '()
+                           (append (reverse entries) results)))]
+
                   ;; Docstring comment (;;; ...) - accumulate
                   [(and (>= (string-length trimmed) 4)
                         (string-starts-with? trimmed ";;; "))
@@ -122,6 +130,45 @@
                       #f
                       (extract-docstring prev-comment)))
                 #f))))
+
+;;; parse-defines-annotation : String × Nat × String → (List Entry)
+;;; Parse a ;;; @defines annotation and create entries for each name.
+;;; Format: ;;; @defines name1 name2 name3 ...
+(define (parse-defines-annotation path line-num line)
+  (let* ([rest (substring line 13 (string-length line))]  ; skip ";;; @defines "
+         [names (split-defines-names rest)])
+    (map (lambda (name-str)
+           (make-symbol-entry
+            (string->symbol name-str)
+            'define
+            path
+            line-num
+            #f
+            "macro-generated"))
+         names)))
+
+;;; split-defines-names : String → (List String)
+;;; Split space-separated identifiers from @defines annotation.
+(define (split-defines-names str)
+  (let ([len (string-length str)])
+    (let loop ([i 0] [start #f] [acc '()])
+      (cond
+       [(>= i len)
+        (reverse (if (and start (> i start))
+                     (cons (substring str start i) acc)
+                     acc))]
+       [(char-whitespace? (string-ref str i))
+        (if (and start (> i start))
+            (loop (+ i 1) #f (cons (substring str start i) acc))
+            (loop (+ i 1) #f acc))]
+       [(not start)
+        (loop (+ i 1) i acc)]
+       [else
+        (loop (+ i 1) start acc)]))))
+
+;;; char-whitespace? : Char → Boolean
+(define (char-whitespace? c)
+  (or (char=? c #\space) (char=? c #\tab)))
 
 ;;; find-name-end : String × Nat → (Option Nat)
 ;;; Find end of identifier in string.
