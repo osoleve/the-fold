@@ -918,14 +918,17 @@ Dependencies:
     (unless (string-contains? (symbol->string name) "/")
             (check-module-collision name))
     (let ([deps (hashtable-ref *module-deps* name '())])
-         ;; Push onto loading stack
-         (set! *loading-stack* (cons name *loading-stack*))
-         ;; Load dependencies first (may raise circular dependency error)
-         (for-each require-one deps)
-         ;; Then load this module
-         (load-module! name)
-         ;; Pop from loading stack
-         (set! *loading-stack* (cdr *loading-stack*)))]))
+         ;; Push/pop loading stack with dynamic-wind so failed loads
+         ;; don't poison the stack with stale "in-progress" entries
+         ;; (which would cause false circular-dependency errors on retry)
+         (dynamic-wind
+           (lambda () (set! *loading-stack* (cons name *loading-stack*)))
+           (lambda ()
+             ;; Load dependencies first (may raise circular dependency error)
+             (for-each require-one deps)
+             ;; Then load this module
+             (load-module! name))
+           (lambda () (set! *loading-stack* (cdr *loading-stack*)))))]))
 
 ;;; require : Symbol ... → Void
 ;;; Load one or more modules with their dependencies.

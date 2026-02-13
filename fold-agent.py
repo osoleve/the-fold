@@ -651,6 +651,7 @@ Examples:
     explicit_session = args.session
     code = " ".join(args.code) if args.code else None
     timeout = args.timeout
+    code_from_args = code is not None  # Track whether code came from CLI args
 
     if args.json:
         try:
@@ -673,12 +674,12 @@ Examples:
         print(json.dumps({"session": session_id, "source": source}))
         return
 
-    if not code:
-        # Try reading code from stdin if not in json mode and not arg
+    if not code and not code_from_args:
+        # Only try stdin when no CLI args were given (supports piping)
         if not sys.stdin.isatty():
             code = sys.stdin.read()
 
-    if not code:
+    if not code or not code.strip():
         if args.verbose or args.json:
             print(json.dumps({"status": "error", "error": "No code provided"}))
         else:

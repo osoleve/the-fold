@@ -55,7 +55,18 @@
 (define (format-error-detail e)
   (let ([lines '()])
     (when (message-condition? e)
-      (set! lines (cons (format "Message: ~a" (condition-message e)) lines)))
+      (let ([msg (condition-message e)]
+            [irr (if (irritants-condition? e) (condition-irritants e) '())])
+        ;; Apply irritants to message template when both are present,
+        ;; so "expected ~s, got ~s" renders as "expected 3, got 4"
+        ;; instead of showing raw format directives
+        (set! lines
+              (cons (format "Message: ~a"
+                            (if (null? irr)
+                                msg
+                                (guard (exn [else msg])
+                                  (apply format msg irr))))
+                    lines))))
     (when (who-condition? e)
       (set! lines (cons (format "Who: ~a" (condition-who e)) lines)))
     (when (irritants-condition? e)
