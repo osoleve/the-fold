@@ -193,7 +193,18 @@
            [type-good (try-infer-type "good" content)]
            [type-also-good (try-infer-type "also-good" content)])
       (assert-equal "Int" type-good)
-      (assert-equal "Bool" type-also-good))))
+      (assert-equal "Bool" type-also-good)))
+
+  ;; Mutual recursion: both functions reference each other
+  (define-test mutual-recursion-typed
+    (let* ([content (string-append
+                     "(define ping (fn (n) (if (prim 'eq n 0) 0 (pong (prim 'sub n 1)))))\n"
+                     "(define pong (fn (n) (if (prim 'eq n 0) 0 (ping (prim 'sub n 1)))))")]
+           [type-ping (try-infer-type "ping" content)]
+           [type-pong (try-infer-type "pong" content)])
+      ;; Both should get types (monomorphic is fine)
+      (assert-true (if type-ping #t #f))
+      (assert-true (if type-pong #t #f)))))
 
 ;;; ====
 ;;; Run Tests
