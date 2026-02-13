@@ -166,10 +166,6 @@
        [else
         (loop (+ i 1) start acc)]))))
 
-;;; char-whitespace? : Char → Boolean
-(define (char-whitespace? c)
-  (or (char=? c #\space) (char=? c #\tab)))
-
 ;;; find-name-end : String × Nat → (Option Nat)
 ;;; Find end of identifier in string.
 (define (find-name-end str start)
