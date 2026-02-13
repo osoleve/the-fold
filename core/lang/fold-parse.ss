@@ -211,7 +211,7 @@ Values:
             (list 'ok (spanned-value result))
             (let* ([state (spanned-error-state result)]
                    [expected (spanned-expected result)]
-                   [span (state-span state)])
+                   [span (parse-state-span state)])
                   (list 'error 'parse expected span)))))
 
 ;;; parse-fold-expr : String × String... → (Result SpannedExpr Error)
@@ -223,7 +223,7 @@ Values:
             (list 'ok (spanned-value result))
             (let* ([state (spanned-error-state result)]
                    [expected (spanned-expected result)]
-                   [span (state-span state)])
+                   [span (parse-state-span state)])
                   (list 'error 'parse expected span)))))
 
 ;;; ====

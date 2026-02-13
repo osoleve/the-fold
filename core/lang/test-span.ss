@@ -54,52 +54,52 @@
 ;;; ====
 
 (test-group parser-state
-            (define-test initial-state-basic
-              (let ([st (initial-state "hello")])
+            (define-test initial-parse-state-basic
+              (let ([st (initial-parse-state "hello")])
                    (assert-true (parse-state? st))
-                   (assert-equal "hello" (state-input st))
-                   (assert-equal 0 (state-offset st))
-                   (assert-equal 1 (state-line st))
-                   (assert-equal 1 (state-column st))
-                   (assert-equal "<input>" (state-file st))))
+                   (assert-equal "hello" (parse-state-input st))
+                   (assert-equal 0 (parse-state-offset st))
+                   (assert-equal 1 (parse-state-line st))
+                   (assert-equal 1 (parse-state-column st))
+                   (assert-equal "<input>" (parse-state-file st))))
             
-            (define-test initial-state-with-file
-              (let ([st (initial-state "hello" "test.scm")])
-                   (assert-equal "test.scm" (state-file st))))
+            (define-test initial-parse-state-with-file
+              (let ([st (initial-parse-state "hello" "test.scm")])
+                   (assert-equal "test.scm" (parse-state-file st))))
             
-            (define-test state-span-test
-              (let* ([st (initial-state "hello" "test.scm")]
-                     [sp (state-span st)])
+            (define-test parse-state-span-test
+              (let* ([st (initial-parse-state "hello" "test.scm")]
+                     [sp (parse-state-span st)])
                     (assert-equal "test.scm" (span-file sp))
                     (assert-equal 1 (span-line sp))
                     (assert-equal 1 (span-column sp))))
             
-            (define-test advance-state-regular-char
-              (let* ([st (initial-state "hello")]
-                     [st2 (advance-state st #\h)])
-                    (assert-equal "ello" (state-remaining-input st2))
-                    (assert-equal 1 (state-offset st2))
-                    (assert-equal 1 (state-line st2))
-                    (assert-equal 2 (state-column st2))))
+            (define-test advance-parse-state-regular-char
+              (let* ([st (initial-parse-state "hello")]
+                     [st2 (advance-parse-state st #\h)])
+                    (assert-equal "ello" (parse-state-remaining-input st2))
+                    (assert-equal 1 (parse-state-offset st2))
+                    (assert-equal 1 (parse-state-line st2))
+                    (assert-equal 2 (parse-state-column st2))))
             
-            (define-test advance-state-newline
-              (let* ([st (initial-state "a\nb")]
-                     [st2 (advance-state st #\a)]
-                     [st3 (advance-state st2 #\newline)])
-                    (assert-equal "b" (state-remaining-input st3))
-                    (assert-equal 2 (state-offset st3))
-                    (assert-equal 2 (state-line st3))
-                    (assert-equal 1 (state-column st3))))
+            (define-test advance-parse-state-newline
+              (let* ([st (initial-parse-state "a\nb")]
+                     [st2 (advance-parse-state st #\a)]
+                     [st3 (advance-parse-state st2 #\newline)])
+                    (assert-equal "b" (parse-state-remaining-input st3))
+                    (assert-equal 2 (parse-state-offset st3))
+                    (assert-equal 2 (parse-state-line st3))
+                    (assert-equal 1 (parse-state-column st3))))
             
-            (define-test advance-state-sequence
-              (let* ([st (initial-state "abc")]
-                     [st2 (advance-state st #\a)]
-                     [st3 (advance-state st2 #\b)]
-                     [st4 (advance-state st3 #\c)])
-                    (assert-equal "" (state-remaining-input st4))
-                    (assert-equal 3 (state-offset st4))
-                    (assert-equal 1 (state-line st4))
-                    (assert-equal 4 (state-column st4)))))
+            (define-test advance-parse-state-sequence
+              (let* ([st (initial-parse-state "abc")]
+                     [st2 (advance-parse-state st #\a)]
+                     [st3 (advance-parse-state st2 #\b)]
+                     [st4 (advance-parse-state st3 #\c)])
+                    (assert-equal "" (parse-state-remaining-input st4))
+                    (assert-equal 3 (parse-state-offset st4))
+                    (assert-equal 1 (parse-state-line st4))
+                    (assert-equal 4 (parse-state-column st4)))))
 
 ;;; ====
 ;;; Spanned Result Tests
@@ -107,8 +107,8 @@
 
 (test-group spanned-results
             (define-test success-construction
-              (let* ([st (initial-state "test")]
-                     [sp (state-span st)]
+              (let* ([st (initial-parse-state "test")]
+                     [sp (parse-state-span st)]
                      [result (spanned-success 42 st sp)])
                     (assert-true (spanned-ok? result))
                     (assert-false (spanned-err? result))
@@ -117,7 +117,7 @@
                     (assert-true (span? (spanned-span result)))))
             
             (define-test failure-construction
-              (let* ([st (initial-state "test")]
+              (let* ([st (initial-parse-state "test")]
                      [result (spanned-failure "identifier" st)])
                     (assert-false (spanned-ok? result))
                     (assert-true (spanned-err? result))
@@ -143,7 +143,7 @@
               (let ([result (run-spanned s-item "hello")])
                    (assert-true (spanned-ok? result))
                    (assert-equal #\h (spanned-value result))
-                   (assert-equal "ello" (state-remaining-input (spanned-state result)))))
+                   (assert-equal "ello" (parse-state-remaining-input (spanned-state result)))))
             
             (define-test s-item-failure
               (let ([result (run-spanned s-item "")])

@@ -35,62 +35,62 @@
 (define (parse-state? x)
   (and (pair? x) (eq? (car x) 'parse-state)))
 
-;;; state-input : State → String
-(define (state-input s) (list-ref s 1))
-;;; state-offset : State → Nat
-(define (state-offset s) (list-ref s 2))
-;;; state-line : State → Nat
-(define (state-line s) (list-ref s 3))
-;;; state-column : State → Nat
-(define (state-column s) (list-ref s 4))
-;;; state-file : State → String
-(define (state-file s) (list-ref s 5))
+;;; parse-state-input : State → String
+(define (parse-state-input s) (list-ref s 1))
+;;; parse-state-offset : State → Nat
+(define (parse-state-offset s) (list-ref s 2))
+;;; parse-state-line : State → Nat
+(define (parse-state-line s) (list-ref s 3))
+;;; parse-state-column : State → Nat
+(define (parse-state-column s) (list-ref s 4))
+;;; parse-state-file : State → String
+(define (parse-state-file s) (list-ref s 5))
 
-;;; initial-state : String [× String] → State
+;;; initial-parse-state : String [× String] → State
 ;;; Create initial parser state from input.
-(define (initial-state input . file-arg)
+(define (initial-parse-state input . file-arg)
   (let ([file (if (null? file-arg) "<input>" (car file-arg))])
        (make-parse-state input 0 1 1 file)))
 
-;;; state-span : State → Span
+;;; parse-state-span : State → Span
 ;;; Get current position as a zero-width span.
-(define (state-span s)
-  (make-span (state-file s)
-             (state-line s)
-             (state-column s)
-             (state-line s)
-             (state-column s)))
+(define (parse-state-span s)
+  (make-span (parse-state-file s)
+             (parse-state-line s)
+             (parse-state-column s)
+             (parse-state-line s)
+             (parse-state-column s)))
 
-;;; state-remaining : State → Nat
+;;; parse-state-remaining : State → Nat
 ;;; Number of characters remaining in input from current offset.
-(define (state-remaining s)
-  (- (string-length (state-input s)) (state-offset s)))
+(define (parse-state-remaining s)
+  (- (string-length (parse-state-input s)) (parse-state-offset s)))
 
-;;; state-remaining-input : State → String
+;;; parse-state-remaining-input : State → String
 ;;; Return the unconsumed portion of the input string.
 ;;; Note: This creates a new string; use sparingly (e.g., for debugging).
-(define (state-remaining-input s)
-  (substring (state-input s) (state-offset s) (string-length (state-input s))))
+(define (parse-state-remaining-input s)
+  (substring (parse-state-input s) (parse-state-offset s) (string-length (parse-state-input s))))
 
-;;; state-peek : State → Char
+;;; parse-state-peek : State → Char
 ;;; Return character at current offset (assumes not at end).
-(define (state-peek s)
-  (string-ref (state-input s) (state-offset s)))
+(define (parse-state-peek s)
+  (string-ref (parse-state-input s) (parse-state-offset s)))
 
-;;; state-empty? : State → Boolean
+;;; parse-state-empty? : State → Boolean
 ;;; Check if no more input remains.
-(define (state-empty? s)
-  (>= (state-offset s) (string-length (state-input s))))
+(define (parse-state-empty? s)
+  (>= (parse-state-offset s) (string-length (parse-state-input s))))
 
-;;; advance-state : State × Char → State
+;;; advance-parse-state : State × Char → State
 ;;; Advance state by one character, updating offset and line/column.
 ;;; Note: The original input string is retained; only offset changes.
-(define (advance-state s char)
-  (let ([input (state-input s)]
-        [offset (state-offset s)]
-        [line (state-line s)]
-        [col (state-column s)]
-        [file (state-file s)])
+(define (advance-parse-state s char)
+  (let ([input (parse-state-input s)]
+        [offset (parse-state-offset s)]
+        [line (parse-state-line s)]
+        [col (parse-state-column s)]
+        [file (parse-state-file s)])
        (if (char=? char #\newline)
            (make-parse-state input
                              (+ offset 1)
@@ -144,7 +144,7 @@
 ;;; run-spanned : SpannedParser a × String [× String] → SpannedResult a
 (define (run-spanned parser input . file-arg)
   (let ([file (if (null? file-arg) "<input>" (car file-arg))])
-       (parser (initial-state input file))))
+       (parser (initial-parse-state input file))))
 
 ;;; ====
 ;;; Primitive Spanned Parsers
@@ -154,7 +154,7 @@
 ;;; Always succeeds with value, zero-width span at current position.
 (define (s-pure value)
   (lambda (state)
-          (spanned-success value state (state-span state))))
+          (spanned-success value state (parse-state-span state))))
 
 ;;; s-fail : String → SpannedParser a
 ;;; Always fails with message.
@@ -166,33 +166,33 @@
 ;;; Consume one character.
 (define s-item
   (lambda (state)
-          (if (state-empty? state)
+          (if (parse-state-empty? state)
               (spanned-failure "any character" state)
-              (let* ([char (state-peek state)]
-                     [start-span (state-span state)]
-                     [next-state (advance-state state char)]
-                     [end-span (state-span next-state)])
+              (let* ([char (parse-state-peek state)]
+                     [start-span (parse-state-span state)]
+                     [next-state (advance-parse-state state char)]
+                     [end-span (parse-state-span next-state)])
                     (spanned-success char next-state (merge-spans start-span end-span))))))
 
 ;;; s-eof : SpannedParser Unit
 ;;; Succeed only at end of input.
 (define s-eof
   (lambda (state)
-          (if (state-empty? state)
-              (spanned-success '() state (state-span state))
+          (if (parse-state-empty? state)
+              (spanned-success '() state (parse-state-span state))
               (spanned-failure "end of input" state))))
 
 ;;; s-satisfy : (Char → Bool) × String → SpannedParser Char
 ;;; Consume a character if predicate holds.
 (define (s-satisfy pred label)
   (lambda (state)
-          (if (state-empty? state)
+          (if (parse-state-empty? state)
               (spanned-failure label state)
-              (let ([char (state-peek state)])
+              (let ([char (parse-state-peek state)])
                    (if (pred char)
-                       (let* ([start-span (state-span state)]
-                              [next-state (advance-state state char)]
-                              [end-span (state-span next-state)])
+                       (let* ([start-span (parse-state-span state)]
+                              [next-state (advance-parse-state state char)]
+                              [end-span (parse-state-span next-state)])
                              (spanned-success char next-state (merge-spans start-span end-span)))
                        (spanned-failure label state))))))
 
@@ -227,9 +227,9 @@
 (define (s-string target)
   (lambda (state)
           (let ([tlen (string-length target)]
-                [input (state-input state)]
-                [offset (state-offset state)])
-               (if (< (state-remaining state) tlen)
+                [input (parse-state-input state)]
+                [offset (parse-state-offset state)])
+               (if (< (parse-state-remaining state) tlen)
                    (spanned-failure target state)
                    ;; Compare character-by-character without creating substring
                    (let check-loop ([i 0])
@@ -238,8 +238,8 @@
                             (let advance-loop ([s state] [j 0])
                                  (if (= j tlen)
                                      (spanned-success target s
-                                                      (merge-spans (state-span state) (state-span s)))
-                                     (advance-loop (advance-state s (string-ref input (+ offset j)))
+                                                      (merge-spans (parse-state-span state) (parse-state-span s)))
+                                     (advance-loop (advance-parse-state s (string-ref input (+ offset j)))
                                                    (+ j 1))))
                             ;; Still checking
                             (if (char=? (string-ref input (+ offset i))
@@ -315,11 +315,11 @@
 ;;; s-many : SpannedParser a → SpannedParser (List a)
 (define (s-many parser)
   (lambda (state)
-          (let* ([start-span (state-span state)]
+          (let* ([start-span (parse-state-span state)]
                  [result (s-many-helper parser '() state)]
                  [values (car result)]
                  [end-state (cdr result)]
-                 [end-span (state-span end-state)])
+                 [end-span (parse-state-span end-state)])
                 (spanned-success values end-state (merge-spans start-span end-span)))))
 
 ;;; s-many1 : SpannedParser a → SpannedParser (List a)
@@ -431,6 +431,6 @@
   (if (spanned-err? result)
       (let* ([expected (spanned-expected result)]
              [state (spanned-error-state result)]
-             [loc (format-span (state-span state))])
+             [loc (format-span (parse-state-span state))])
             (string-append loc ": expected " expected))
       "no error"))

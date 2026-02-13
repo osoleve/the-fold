@@ -71,38 +71,38 @@
                   (format-span (make-span "test.ss" 1 5 2 10)))))
 
 (test-group parser-state
-  (define-test "initial-state"
-    (assert-true (parse-state? (initial-state "hello"))))
+  (define-test "initial-parse-state"
+    (assert-true (parse-state? (initial-parse-state "hello"))))
 
-  (define-test "state-input"
+  (define-test "parse-state-input"
     (assert-equal "hello"
-                  (state-input (initial-state "hello"))))
+                  (parse-state-input (initial-parse-state "hello"))))
 
-  (define-test "state-line initial"
+  (define-test "parse-state-line initial"
     (assert-equal 1
-                  (state-line (initial-state "hello"))))
+                  (parse-state-line (initial-parse-state "hello"))))
 
-  (define-test "state-column initial"
+  (define-test "parse-state-column initial"
     (assert-equal 1
-                  (state-column (initial-state "hello"))))
+                  (parse-state-column (initial-parse-state "hello"))))
 
-  (define-test "advance-state input"
-    (let ([s (advance-state (initial-state "ab") #\a)])
-      (assert-equal "b" (state-remaining-input s))))
+  (define-test "advance-parse-state input"
+    (let ([s (advance-parse-state (initial-parse-state "ab") #\a)])
+      (assert-equal "b" (parse-state-remaining-input s))))
 
-  (define-test "advance-state column"
-    (let ([s (advance-state (initial-state "ab") #\a)])
-      (assert-equal 2 (state-column s))))
+  (define-test "advance-parse-state column"
+    (let ([s (advance-parse-state (initial-parse-state "ab") #\a)])
+      (assert-equal 2 (parse-state-column s))))
 
-  (define-test "advance-state newline line"
-    (let* ([s (advance-state (initial-state "a\nb") #\a)]
-           [s2 (advance-state s #\newline)])
-      (assert-equal 2 (state-line s2))))
+  (define-test "advance-parse-state newline line"
+    (let* ([s (advance-parse-state (initial-parse-state "a\nb") #\a)]
+           [s2 (advance-parse-state s #\newline)])
+      (assert-equal 2 (parse-state-line s2))))
 
-  (define-test "advance-state newline column"
-    (let* ([s (advance-state (initial-state "a\nb") #\a)]
-           [s2 (advance-state s #\newline)])
-      (assert-equal 1 (state-column s2)))))
+  (define-test "advance-parse-state newline column"
+    (let* ([s (advance-parse-state (initial-parse-state "a\nb") #\a)]
+           [s2 (advance-parse-state s #\newline)])
+      (assert-equal 1 (parse-state-column s2)))))
 
 (test-group basic-parsers
   (define-test "s-item success"
@@ -111,7 +111,7 @@
 
   (define-test "s-item remaining"
     (let ([result (run-spanned s-item "abc")])
-      (assert-equal "bc" (state-remaining-input (spanned-state result)))))
+      (assert-equal "bc" (parse-state-remaining-input (spanned-state result)))))
 
   (define-test "s-item empty fails"
     (let ([result (run-spanned s-item "")])

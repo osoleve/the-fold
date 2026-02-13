@@ -520,7 +520,7 @@
 
 ;;; modules : String... → Void
 ;;; List all indexed modules, optionally filtered by pattern.
-(define (modules . args)
+(define (indexed-modules . args)
   (let* ([pattern (if (null? args) "" (car args))]
          [pattern-lower (string-downcase pattern)]
          [keys (hashtable-keys *index-module-registry*)]
@@ -623,9 +623,9 @@
 ")
   (display "  (where 'name)        - Symbol location
 ")
-  (display "  (modules)            - List all modules
+  (display "  (indexed-modules)    - List all indexed modules
 ")
-  (display "  (modules \"pattern\") - Filter modules
+  (display "  (indexed-modules \"pattern\") - Filter indexed modules
 ")
   (display "  (symbols \"path\")     - Symbols in module
 ")

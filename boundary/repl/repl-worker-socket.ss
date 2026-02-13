@@ -130,9 +130,9 @@
           (string-append output
                          (if (eq? result (void))
                              ""
-                             (string-append "\n=> " (format "~a" result))))]
+                             (string-append "\n=> " (format "~s" result))))]
          [(not (eq? result (void)))
-          (format "~a" result)]
+          (format "~s" result)]
          [else ""])))))
 
 ;;; ====
