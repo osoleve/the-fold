@@ -124,6 +124,38 @@
       ;; memq returns list tail, convert to boolean
       (assert-true (and (list? cycle) (if (memq 'self-dep cycle) #t #f))))))
 
+(test-group require-exception-safety
+  (define-test "failed load doesn't poison loading stack"
+    ;; Register a module pointing to a nonexistent file
+    (register-module-path! 'test-broken-mod "/tmp/this-file-does-not-exist-fold-test.ss")
+    (set! *loading-stack* '())
+    ;; First require: should fail with file-not-found
+    (guard (e [#t (void)])
+      (require 'test-broken-mod))
+    ;; Loading stack must be clean after failed load
+    (assert-equal '() *loading-stack*))
+
+  (define-test "second require after failure is not false circular dep"
+    ;; Same broken module, second attempt
+    (register-module-path! 'test-broken-mod2 "/tmp/this-file-does-not-exist-fold-test-2.ss")
+    (set! *loading-stack* '())
+    (guard (e [#t (void)])
+      (require 'test-broken-mod2))
+    ;; Second attempt should NOT raise "Circular dependency detected"
+    (let ([got-circular #f])
+      (guard (e [#t
+                 (when (message-condition? e)
+                   (when (string-contains? (condition-message e) "Circular")
+                     (set! got-circular #t)))])
+        (require 'test-broken-mod2))
+      (assert-false got-circular)))
+
+  (define-test "successful require still works after failed one"
+    ;; Prelude is already loaded, so this should be a no-op success
+    (set! *loading-stack* '())
+    (require 'prelude)
+    (assert-equal '() *loading-stack*)))
+
 ;;; ============================================================================
 ;;; Run all tests
 ;;; ============================================================================

@@ -680,7 +680,8 @@
 (define boundary-tests
   '("test-validate.ss"
     "test-block-index.ss"
-    "test-string-utils.ss"))
+    "test-string-utils.ss"
+    "test-error-context.ss"))
 
 ;;; Boundary parallel tests (strategy execution, threading)
 (define boundary-parallel-tests
