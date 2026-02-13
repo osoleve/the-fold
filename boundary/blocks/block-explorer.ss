@@ -2,9 +2,8 @@
   (syntax-rules ()
     [(_ args ...) (void)]))
 
-;; Ensure search limit is defined (may already be set by block-navigator.ss)
-(unless (top-level-bound? '*search-default-limit*)
-  (define *search-default-limit* 50))
+;; Search limit (same default as block-navigator.ss)
+(define *search-default-limit* 50)
 
 (doc 'module 'block-explorer)
 (doc 'description "Interactive Session-Based Block Explorer")
