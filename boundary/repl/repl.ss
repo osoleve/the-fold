@@ -260,9 +260,9 @@ After loading, the REPL will:
        (visualize-tree (fs) hash-prefix depth)))
 
 (doc search 'type '(-> String Void))
-(doc search 'description "Search blocks with relevance ranking")
-(define (search query)
-  (search-ranked (fs) query))
+(doc search 'description "Search blocks with relevance ranking. Optional second arg: result limit (default 50, #f for all).")
+(define (search query . args)
+  (apply search-ranked (fs) query args))
 
 (doc 'section 'interactive-block-explorer)
 (doc 'note "Functions loaded from boundary/blocks/block-explorer.ss")

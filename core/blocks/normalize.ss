@@ -54,7 +54,10 @@
    [(and (eq? (car expr) 'fn)
          (pair? (cdr expr))
          (pair? (cadr expr))
-         (symbol? (caadr expr)))
+         (symbol? (caadr expr))
+         (null? (cdadr expr))       ; exactly one parameter
+         (pair? (cddr expr))
+         (null? (cdddr expr)))      ; exactly one body form
     (let* ([var (caadr expr)]
            [body (caddr expr)]
            [new-env (norm-env-extend env var)])
@@ -78,7 +81,10 @@
    [(and (eq? (car expr) 'fix)
          (pair? (cdr expr))
          (pair? (cadr expr))
-         (symbol? (caadr expr)))
+         (symbol? (caadr expr))
+         (null? (cdadr expr))       ; exactly one binder
+         (pair? (cddr expr))
+         (null? (cdddr expr)))      ; exactly one body form
     (let* ([f (caadr expr)]
            [body (caddr expr)]
            [new-env (norm-env-extend env f)])
@@ -125,7 +131,10 @@
         (list expr))]
    [(not (pair? expr)) '()]
    [(eq? (car expr) 'quote) '()]
-   [(eq? (car expr) 'fn)
+   [(and (eq? (car expr) 'fn)
+         (pair? (cdr expr))
+         (pair? (cadr expr))
+         (null? (cdadr expr)))
     (let* ([var (caadr expr)]
            [body (caddr expr)])
           (free-vars-with-env body (norm-env-extend env var)))]
@@ -136,7 +145,10 @@
            [body (caddr expr)])
           (append (free-vars-with-env val env)
                   (free-vars-with-env body (norm-env-extend env var))))]
-   [(eq? (car expr) 'fix)
+   [(and (eq? (car expr) 'fix)
+         (pair? (cdr expr))
+         (pair? (cadr expr))
+         (null? (cdadr expr)))
     (let* ([f (caadr expr)]
            [body (caddr expr)])
           (free-vars-with-env body (norm-env-extend env f)))]

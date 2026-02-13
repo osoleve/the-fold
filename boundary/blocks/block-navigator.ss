@@ -329,11 +329,14 @@
 
 (doc 'section 'search)
 
-(define (search-ranked fs query)
+(define *search-default-limit* 50)
+
+(define (search-ranked fs query . args)
   (doc 'type (-> FS String Void))
-  (doc 'description "Search for blocks containing query string, ranked by relevance")
+  (doc 'description "Search for blocks containing query string, ranked by relevance. Optional limit arg (default 50, #f for all).")
   (doc 'export #t)
-  (let* ([all-hashes (fs-all-hashes fs)]
+  (let* ([limit (if (null? args) *search-default-limit* (car args))]
+         [all-hashes (fs-all-hashes fs)]
          [results '()])
 
         ;; Search all blocks
@@ -352,13 +355,19 @@
          all-hashes)
 
         ;; Sort by score descending
-        (let ([sorted (list-sort (lambda (a b) (> (caddr a) (caddr b))) results)])
+        (let* ([sorted (list-sort (lambda (a b) (> (caddr a) (caddr b))) results)]
+               [total (length sorted)]
+               [display-list (if (and limit (> total limit))
+                                 (take limit sorted)
+                                 sorted)])
              (display "╔══════════════════════════════════════════════════════════════╗\n")
              (display "║                      SEARCH RESULTS                          ║\n")
              (display "╚══════════════════════════════════════════════════════════════╝\n")
              (newline)
              (display (format "Query: \"~a\"\n" query))
-             (display (format "Found: ~a blocks\n\n" (length sorted)))
+             (if (and limit (> total limit))
+                 (display (format "Found: ~a blocks (showing top ~a)\n\n" total limit))
+                 (display (format "Found: ~a blocks\n\n" total)))
 
              (for-each
               (lambda (result)
@@ -373,7 +382,7 @@
                                              (block-tag blk)))
                             (display (format "     ~a\n" payload-preview))
                             (newline)))
-              sorted))))
+              display-list))))
 
 (define (bn-string-contains-ci? haystack needle)
   (doc 'type (-> String String Boolean))

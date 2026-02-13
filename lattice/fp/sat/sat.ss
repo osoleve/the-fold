@@ -225,10 +225,10 @@
                                       (range 0 num-colors))))
                     edges))))
 
-(define (n-queens-sat n)
+(define (n-queens-clauses n)
   (doc 'export #t)
   (doc 'type '(-> Nat (List (List Literal))))
-  (doc 'description "Encode N-Queens as SAT")
+  (doc 'description "Encode N-Queens as SAT clauses (CNF). Use with sat-solve or sat-model.")
   (doc 'note "Variable (row * n + col + 1) represents queen at (row, col)")
   (let ([var (lambda (r c) (+ (* r n) c 1))])
        (append
@@ -241,9 +241,12 @@
                             (at-most-one (map (lambda (r) (var r c)) (range 0 n))))
                     (range 0 n))
         ;; Diagonals have at most one queen
-        (queens-diagonal-constraints-sat n var))))
+        (queens-diagonal-constraints n var))))
 
-(define (queens-diagonal-constraints-sat n var)
+;; Backward-compatible alias
+(define n-queens-sat n-queens-clauses)
+
+(define (queens-diagonal-constraints n var)
   (doc 'type '(-> Nat (-> Nat Nat Literal) (List (List Literal))))
   (flatten
          (append
@@ -268,6 +271,20 @@
                (range 0 (- (* 2 n) 1))))))
 
 ;;; range, filter-map provided by prelude
+
+(doc 'section 'convenience-solvers)
+
+(define (n-queens-solve n)
+  (doc 'export #t)
+  (doc 'type '(-> Nat (Maybe (List (Pair VarId Bool)))))
+  (doc 'description "Solve N-Queens and return satisfying assignment, or #f if unsatisfiable.")
+  (sat-model (n-queens-clauses n)))
+
+(define (graph-coloring-solve edges num-nodes num-colors)
+  (doc 'export #t)
+  (doc 'type '(-> (List (Pair Nat Nat)) Nat Nat (Maybe (List (Pair VarId Bool)))))
+  (doc 'description "Solve graph coloring and return satisfying assignment, or #f if unsatisfiable.")
+  (sat-model (graph-coloring edges num-nodes num-colors)))
 
 (doc 'section 'utility)
 

@@ -114,8 +114,10 @@ CDCL SAT solver with clause learning, Two-Watched Literals, VSIDS branching. Max
 |----------|---------|
 | `sat-solve` | Check satisfiability, returns `'sat`, `'unsat`, or `'unknown` |
 | `sat-model` | Get satisfying assignment |
-| `graph-coloring` | Encode k-coloring as SAT |
-| `n-queens-sat` | Encode N-Queens as SAT |
+| `graph-coloring` | Encode k-coloring as SAT clauses |
+| `n-queens-clauses` | Encode N-Queens as SAT clauses |
+| `n-queens-solve` | Solve N-Queens (returns assignment or #f) |
+| `graph-coloring-solve` | Solve graph coloring (returns assignment or #f) |
 | `make-maxsat` | Create MaxSAT with hard/soft clauses |
 | `maxsat-solve` | Find minimum-cost assignment |
 | `min-vertex-cover` | Encode as MaxSAT |

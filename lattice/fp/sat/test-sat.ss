@@ -162,18 +162,18 @@
 
 (test-group "n-queens"
   (define-test "4-queens is satisfiable"
-    (let ([clauses (n-queens-sat 4)])
+    (let ([clauses (n-queens-clauses 4)])
       (assert-equal 'sat (sat-solve clauses))))
 
   (define-test "3-queens is unsatisfiable"
     ;; 3-queens has no solution
-    (let ([clauses (n-queens-sat 3)])
+    (let ([clauses (n-queens-clauses 3)])
       (assert-equal 'unsat (sat-solve clauses))))
 
   (define-test "8-queens is satisfiable (2WL perf test)"
     ;; 8-queens: 64 variables, ~1000 clauses
     ;; This tests 2WL performance - would be slow without it
-    (let ([clauses (n-queens-sat 8)])
+    (let ([clauses (n-queens-clauses 8)])
       (assert-equal 'sat (sat-solve clauses)))))
 
 (test-group "graph-coloring"

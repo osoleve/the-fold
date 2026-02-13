@@ -2,6 +2,10 @@
   (syntax-rules ()
     [(_ args ...) (void)]))
 
+;; Ensure search limit is defined (may already be set by block-navigator.ss)
+(unless (top-level-bound? '*search-default-limit*)
+  (define *search-default-limit* 50))
+
 (doc 'module 'block-explorer)
 (doc 'description "Interactive Session-Based Block Explorer")
 (doc 'layer 'boundary)
@@ -328,15 +332,16 @@
              (display "  (bx-home)    - Return to home\n")
              (newline))))
 
-(define (bx-search query)
+(define (bx-search query . args)
   (doc 'type (-> String Void))
-  (doc 'description "Search for blocks and display as numbered list")
+  (doc 'description "Search for blocks and display as numbered list. Optional limit arg (default 50, #f for all).")
   (doc 'export #t)
   (current-mode 'search)
   (navigation-history '())
   (current-block-hash #f)
 
-  (let* ([fs (fs)]
+  (let* ([limit (if (null? args) *search-default-limit* (car args))]
+         [fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [results '()])
 
@@ -354,14 +359,22 @@
                                         (set! results (cons (cons hash blk) results)))))))
          all-hashes)
 
+        (let* ([all-results (reverse results)]
+               [total (length all-results)]
+               [display-list (if (and limit (> total limit))
+                                 (take limit all-results)
+                                 all-results)])
+
         (display "╔══════════════════════════════════════════════════════════════╗\n")
         (display "║                     SEARCH RESULTS                           ║\n")
         (display "╚══════════════════════════════════════════════════════════════╝\n")
         (newline)
         (display (format "Query: \"~a\"\n" query))
-        (display (format "Found: ~a blocks\n\n" (length results)))
+        (if (and limit (> total limit))
+            (display (format "Found: ~a blocks (showing first ~a)\n\n" total limit))
+            (display (format "Found: ~a blocks\n\n" total)))
 
-        (let loop ([i 0] [result-list (reverse results)])
+        (let loop ([i 0] [result-list display-list])
              (when (not (null? result-list))
                    (let* ([entry (car result-list)]
                           [hash (car entry)]
@@ -375,14 +388,14 @@
                          (display (format "       ~a\n" preview))
                          (loop (+ i 1) (cdr result-list)))))
 
-        ;; Store in current list
-        (current-block-list (reverse results))
+        ;; Store all results for navigation (not just displayed ones)
+        (current-block-list all-results)
 
         (newline)
         (display "Commands:\n")
         (display "  (bx-view N)  - Explore block N\n")
         (display "  (bx-home)    - Return to home\n")
-        (newline)))
+        (newline))))
 
 (doc 'section 'additional-discovery)
 

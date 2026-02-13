@@ -40,9 +40,11 @@
 
   (examples
    (n-queens
-    ";; Solve 8-Queens"
-    "(sat-satisfiable? (n-queens-sat 8))  ; => #t"
-    "(sat-satisfiable? (n-queens-sat 3))  ; => #f (no solution)")
+    ";; Solve 8-Queens (convenience)"
+    "(n-queens-solve 8)                    ; => satisfying assignment or #f"
+    ";; Or two-step: generate clauses then solve"
+    "(sat-satisfiable? (n-queens-clauses 8))  ; => #t"
+    "(sat-satisfiable? (n-queens-clauses 3))  ; => #f (no solution)")
 
    (graph-coloring
     ";; 3-color a triangle (needs 3 colors)"
