@@ -357,20 +357,22 @@
                  (display (format "Found: ~a blocks (showing top ~a)\n\n" total limit))
                  (display (format "Found: ~a blocks\n\n" total)))
 
-             (for-each
-              (lambda (result)
-                      (let* ([hash (car result)]
-                             [blk (cadr result)]
-                             [score (caddr result)]
-                             [payload-preview (guard (e [else "[binary]"])
-                                                     (truncate-string (utf8->string (block-payload blk)) 60))])
-                            (display (format "[~a] ~a | ~a\n"
-                                             score
-                                             (short-hash (hash->hex hash))
-                                             (block-tag blk)))
-                            (display (format "     ~a\n" payload-preview))
-                            (newline)))
-              display-list))))
+             (let loop ([remaining display-list] [idx 1])
+               (unless (null? remaining)
+                 (let* ([result (car remaining)]
+                        [hash (car result)]
+                        [blk (cadr result)]
+                        [score (caddr result)]
+                        [payload-preview (guard (e [else "[binary]"])
+                                                (truncate-string (utf8->string (block-payload blk)) 60))])
+                   (display (format "~a. ~a | ~a  [score: ~a]\n"
+                                    idx
+                                    (short-hash (hash->hex hash))
+                                    (block-tag blk)
+                                    score))
+                   (display (format "   ~a\n" payload-preview))
+                   (newline)
+                   (loop (cdr remaining) (+ idx 1))))))))
 
 (define (bn-string-contains-ci? haystack needle)
   (doc 'type (-> String String Boolean))

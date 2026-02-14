@@ -935,8 +935,21 @@ Dependencies:
 
 ;;; require : Symbol ... → Void
 ;;; Load one or more modules with their dependencies.
+;;; Prints a one-liner for each freshly loaded module.
 (define (require . names)
-  (for-each require-one names))
+  (for-each
+   (lambda (name)
+     (let ([was-loaded (module-loaded? name)]
+           [loaded-before (length *load-order*)])
+       (require-one name)
+       (unless was-loaded
+         (let* ([time (or (module-load-time name) 0)]
+                [new-modules (- (length *load-order*) loaded-before)]
+                [new-deps (- new-modules 1)])
+           (if (> new-deps 0)
+               (display (format "  ~a loaded (~a deps, ~ams)\n" name new-deps time))
+               (display (format "  ~a loaded (~ams)\n" name time)))))))
+   names))
 
 ;;; ====
 ;;; Module Information
