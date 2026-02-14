@@ -68,16 +68,19 @@
 ;;; Display the definition location for a symbol.
 (define (jump-to-def sym)
   (let ([loc (jump-location sym)])
+    (display "\n")
+    (cond
+      [loc
+       (printf "  ~a defined at:\n" sym)
+       (display "  --------------------------------\n")
+       (printf "    ~a\n" (location->string loc))
        (display "\n")
-       (if loc
-           (begin
-            (printf "  ~a defined at:\n" sym)
-            (display "  --------------------------------\n")
-            (printf "    ~a\n" (location->string loc))
-            (display "\n")
-            ;; Show a preview of the definition
-            (show-definition-preview loc))
-           (printf "  Symbol '~a' not found in index.\n\n" sym))))
+       (show-definition-preview loc)]
+      [(and (top-level-bound? '*index-built?*) (not *index-built?*))
+       (printf "  Index has not been built.\n")
+       (printf "  Run (lens-rebuild!) to build the index, then try again.\n\n")]
+      [else
+       (printf "  Symbol '~a' not found in index.\n\n" sym)])))
 
 ;;; show-definition-preview : Location -> void
 ;;; Display a few lines around the definition.

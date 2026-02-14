@@ -16,6 +16,7 @@
 (define *symbol-index* (make-eq-hashtable))  ; symbol -> entry
 (define *index-module-registry* (make-hashtable string-hash string=?))  ; path -> module-entry
 (define *reverse-deps* (make-hashtable string-hash string=?))  ; path -> list of dependent paths
+(define *index-built?* #f)  ; Whether index has been populated
 
 ;;; ====
 ;;; File Scanning
@@ -318,6 +319,7 @@
 ;;; Rebuild the entire index.
 (define (index-refresh!)
   ;; Clear existing index
+  (set! *index-built?* #f)
   (hashtable-clear! *symbol-index*)
   (hashtable-clear! *index-module-registry*)
   (hashtable-clear! *reverse-deps*)
@@ -326,8 +328,14 @@
               (when (file-exists? dir)
                 (index-directory dir)))
             '("core" "lattice" "boundary" "user"))
+  (set! *index-built?* #t)
   (display "Index complete.\n")
   (index-stats))
+
+;;; index-built? : -> Bool
+;;; Whether the index has been populated via index-refresh!
+(define (index-built?)
+  *index-built?*)
 
 ;;; index-refresh-file! : String → Void
 ;;; Incrementally refresh index for a single file.

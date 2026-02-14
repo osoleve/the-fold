@@ -54,7 +54,14 @@
 ;;; lattice-save-cache! : -> Bool
 ;;; Save current KG state to cache file
 (define (lattice-save-cache!)
-  (guard (e [else (printf "Cache save failed: ~a\n" e) #f])
+  (guard (e [else
+             (let ([msg (guard (e2 [else (format "~a" e)])
+                          (if (irritants-condition? e)
+                              (apply format (condition-message e)
+                                     (condition-irritants e))
+                              (condition-message e)))])
+               (printf "Cache save failed: ~a\n" msg))
+             #f])
          (ensure-cache-dir!)
          (let* ([fingerprint (lattice-manifest-fingerprint)]
                 [cache-data (serialize-cache fingerprint)])

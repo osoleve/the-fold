@@ -272,12 +272,14 @@
 ;;; REPL Interface
 ;;; ====
 
-(meta-printf "kg.ss loaded.\n")
-(meta-printf "  (kg-build!)           - Build KG from manifests\n")
-(meta-printf "  (kg-ensure!)          - Build only if not initialized\n")
-(meta-printf "  (kg-skills)           - List all skills\n")
-(meta-printf "  (kg-skill 'name)      - Get skill block\n")
-(meta-printf "  (kg-modules 'name)    - Get skill modules\n")
-(meta-printf "  (kg-deps 'name)       - Get skill dependencies\n")
-(meta-printf "  (kg-uses 'name)       - Get skills that use this\n")
-(meta-printf "  (kg-stats)            - Get statistics\n")
+(unless (top-level-bound? '*kg-banner-shown*)
+  (meta-printf "kg.ss loaded.\n")
+  (meta-printf "  (kg-build!)           - Build KG from manifests\n")
+  (meta-printf "  (kg-ensure!)          - Build only if not initialized\n")
+  (meta-printf "  (kg-skills)           - List all skills\n")
+  (meta-printf "  (kg-skill 'name)      - Get skill block\n")
+  (meta-printf "  (kg-modules 'name)    - Get skill modules\n")
+  (meta-printf "  (kg-deps 'name)       - Get skill dependencies\n")
+  (meta-printf "  (kg-uses 'name)       - Get skills that use this\n")
+  (meta-printf "  (kg-stats)            - Get statistics\n"))
+(set-top-level-value! '*kg-banner-shown* #t)
