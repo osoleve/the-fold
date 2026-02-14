@@ -378,7 +378,7 @@ Dependencies:
  (register-module-path! 'combinators "lattice/fp/meta/combinators.ss")
  (register-module-path! 'tree-zipper "lattice/fp/data/tree-zipper.ss")
  (register-module-path! 'transcendental "lattice/fp/numeric/transcendental.ss")
- (register-module-path! 'parser-combinators "lattice/fp/parsing/parser-combinators.ss")
+ (register-module-path! 'parser-combinators "lattice/fp/parsing/parser.ss")
  (register-module-path! 'state "lattice/fp/control/state.ss")
  (register-module-path! 'protocol "lattice/fp/protocol.ss")
  (register-module-path! 'special-functions "lattice/fp/numeric/special-functions.ss")
@@ -615,7 +615,10 @@ Dependencies:
  ;; Physics problems
  (register-module-path! 'simulation "lattice/physics/problems/simulation.ss")
  (register-module-path! 'physics-problem "lattice/physics/problems/physics-problem.ss")
- (register-module-path! 'spatial "lattice/physics/problems/templates/spatial.ss"))
+ (register-module-path! 'spatial "lattice/physics/problems/templates/spatial.ss")
+
+ ;; Boundary modules
+ (register-module-path! 'boundary/bbs "boundary/bbs/bbs.ss"))
 
 ;;; clear-module-caches! : → Void
 ;;; Clear header cache (useful after file modifications).

@@ -65,10 +65,16 @@ Key features:
     iso-id iso-curried iso-flipped iso-swapped iso-reversed
     iso-assoc-list iso-maybe-either iso-cons
 
-    ;; Lens extensions
+    ;; Lens (base constructors from templates.ss + extensions)
+    make-lens lens? lens-getter lens-setter
+    view set-lens over lens-compose
+    lens-fst lens-snd lens-head lens-tail lens-nth lens-key
     lens-id
 
-    ;; Prism extensions
+    ;; Prism (base constructors from templates.ss + extensions)
+    make-prism prism? prism-match prism-build
+    preview review
+    prism-just prism-left prism-right
     prism-over prism-set prism-compose
     prism-id prism-nil prism-cons
 

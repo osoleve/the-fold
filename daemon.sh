@@ -124,9 +124,16 @@ case "$1" in
             for pidfile in .fold-repl/workers/*.pid; do
                 [ -e "$pidfile" ] || continue
                 WPID=$(cat "$pidfile")
-                kill "$WPID" 2>/dev/null || true
+                # Kill the process group to catch child scheme processes
+                kill -- -"$WPID" 2>/dev/null || kill "$WPID" 2>/dev/null || true
             done
         fi
+
+        # Fallback: kill any orphaned worker processes (no pidfile)
+        pkill -f "repl-worker-socket.ss" 2>/dev/null || true
+
+        # Clean up stale BBS lock files left by killed workers
+        rm -f .bbs/counter.lock .bbs/counter.lock.* 2>/dev/null
 
         echo "Daemon stopped."
         ;;
