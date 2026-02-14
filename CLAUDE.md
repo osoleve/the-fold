@@ -19,9 +19,9 @@ The long-term vision: a smaller, Fold-native model that's as capable as frontier
 ### Using ./fold (Recommended)
 
 ```bash
-./fold "+ 1 2"                     # Implicit parens: becomes (+ 1 2)
-./fold "bye"                       # Single-token commands work: becomes (bye)
-./fold -s dev "define x 10"        # Named session with -s flag
+./fold "(+ 1 2)"                   # Evaluate an expression
+./fold "(bye)"                     # Single-token commands
+./fold -s dev "(define x 10)"      # Named session with -s flag
 ./fold -s dev "(begin x)"          # Retrieve variable value from session
 ./fold --status                    # Check if daemon is running
 ./fold --sessions                  # List active worker sessions
@@ -29,21 +29,16 @@ The long-term vision: a smaller, Fold-native model that's as capable as frontier
 
 **Key features:**
 - **Auto-starts daemon** if not running (disable with `--no-auto-start`)
-- Implicit outer parentheses: `"+ 1 2"` becomes `(+ 1 2)` automatically
-- Single-token symbols auto-wrap: `"bye"` becomes `(bye)`
-- Literals stay unwrapped: `"42"` stays `42`, `"'(a b)"` stays `'(a b)`
+- Code is passed as-is — use explicit parentheses
 - **Sessions persist state** across invocations - variables, functions, and loaded modules are retained
-
-**Gotcha - Retrieving Variables:**
-Single-token auto-wrap means `./fold "x"` becomes `(x)`, which tries to *call* x. To retrieve a variable's value, wrap it: `./fold "(begin x)"` or `./fold "identity x"`.
 
 Returns result on stdout, errors to stderr with exit codes: 0=success, 1=error, 2=timeout.
 
 ### Session Cleanup
 
 ```bash
-./fold -s dev "bye"                # Logout and clean up session files
-./fold -s dev "who"                # Show current session info
+./fold -s dev "(bye)"              # Logout and clean up session files
+./fold -s dev "(who)"              # Show current session info
 ```
 
 ### Essential Commands
