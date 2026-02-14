@@ -66,10 +66,10 @@ case "$1" in
 
         if [ "$USE_LEGACY" = true ]; then
             echo "Starting REPL daemon (file-based) in background..."
-            nohup "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
+            setsid "$SCHEME_CMD" --script start-daemon.ss > .fold-repl/daemon.log 2>&1 &
         else
             echo "Starting REPL daemon (socket) in background..."
-            nohup "$SCHEME_CMD" --script start-daemon-socket.ss > .fold-repl/daemon.log 2>&1 &
+            setsid "$SCHEME_CMD" --script start-daemon-socket.ss > .fold-repl/daemon.log 2>&1 &
         fi
         echo $! > "$PID_FILE"
 
@@ -113,23 +113,22 @@ case "$1" in
 
         if [ -f "$PID_FILE" ]; then
             PID=$(cat "$PID_FILE")
-            kill "$PID" 2>/dev/null || true
+            # Kill the process group (daemon + all workers via setsid)
+            kill -- -"$PID" 2>/dev/null || kill "$PID" 2>/dev/null || true
+            # Wait briefly for clean shutdown (daemon-stop! closes ports)
+            for i in {1..10}; do
+                kill -0 "$PID" 2>/dev/null || break
+                sleep 0.2
+            done
+            # Force kill if still alive
+            kill -9 -- -"$PID" 2>/dev/null || true
             rm -f "$PID_FILE"
         fi
 
         # Clean up socket file
         rm -f .fold-repl/fold.sock
 
-        if [ -d ".fold-repl/workers" ]; then
-            for pidfile in .fold-repl/workers/*.pid; do
-                [ -e "$pidfile" ] || continue
-                WPID=$(cat "$pidfile")
-                # Kill the process group to catch child scheme processes
-                kill -- -"$WPID" 2>/dev/null || kill "$WPID" 2>/dev/null || true
-            done
-        fi
-
-        # Fallback: kill any orphaned worker processes (no pidfile)
+        # Fallback: kill any orphaned worker processes
         pkill -f "repl-worker-socket.ss" 2>/dev/null || true
 
         # Clean up stale BBS lock files left by killed workers
@@ -188,7 +187,7 @@ case "$1" in
             exit 1
         }
         export FOLD_SCHEME_CMD="$SCHEME_CMD"
-        exec "$SCHEME_CMD" --script start-daemon.ss
+        exec "$SCHEME_CMD" --script start-daemon-socket.ss
         ;;
 
     *)

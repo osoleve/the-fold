@@ -376,6 +376,10 @@
   (let ([now (time-second (current-time))])
     (when (> (- now *last-cleanup*) *cleanup-interval*)
       (cleanup-expired-sessions!)
+      ;; Check if ready file was removed (external shutdown signal)
+      (unless (file-exists? *ready-file*)
+        (display "  [shutdown] Ready file removed, initiating shutdown...\n")
+        (set! *daemon-running* #f))
       (set! *last-cleanup* now))))
 
 ;;; ====
@@ -459,7 +463,12 @@
   (display (format "Max:      ~a concurrent workers\n" *max-workers*))
   (display "Waiting for connections...\n\n")
 
-  ;; Install signal-like shutdown via ready file removal
+  ;; Signal handlers for clean shutdown
+  (register-signal-handler 2   ; SIGINT
+    (lambda (sig) (set! *daemon-running* #f)))
+  (register-signal-handler 15  ; SIGTERM
+    (lambda (sig) (set! *daemon-running* #f)))
+
   (daemon-loop)
 
   (daemon-stop!)
