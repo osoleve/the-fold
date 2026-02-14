@@ -426,14 +426,23 @@
                  [expired? (>= now (session-expires rec))]
                  [unresponsive? (> (- now (session-last-pong rec))
                                    *heartbeat-timeout*)])
-            (if (or expired? unresponsive?)
-                (begin
-                  (display (format "  [~a] Session '~a'\n"
-                                   (if unresponsive? "dead" "expire")
-                                   session-id))
-                  (shutdown-session! session-id rec)
-                  (loop (cdr remaining) kept))
-                (loop (cdr remaining) (cons entry kept))))))))
+            (cond
+             [unresponsive?
+              ;; Worker already confirmed dead — close ports immediately,
+              ;; don't waste time waiting for a shutdown-ack it can't send
+              (display (format "  [dead] Session '~a'\n" session-id))
+              (guard (ex [else #f]) (close-port (session-input-port rec)))
+              (guard (ex [else #f]) (close-port (session-output-port rec)))
+              (guard (ex [else #f]) (close-port (session-stderr-port rec)))
+              (clear-read-buffer! session-id)
+              (loop (cdr remaining) kept)]
+             [expired?
+              ;; Idle but healthy — attempt graceful shutdown handshake
+              (display (format "  [expire] Session '~a'\n" session-id))
+              (shutdown-session! session-id rec)
+              (loop (cdr remaining) kept)]
+             [else
+              (loop (cdr remaining) (cons entry kept))]))))))
 
 (define *last-ready-check* 0)
 
