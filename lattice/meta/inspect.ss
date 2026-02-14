@@ -107,18 +107,30 @@
 ;;; ====
 
 ;;; lattice-skill-exports : Symbol -> (List Symbol)
-;;; Get all exports from a skill
+;;; Get all exports from a skill.
+;;; Handles two manifest formats:
+;;;   Grouped: (exports (module sym1 sym2) (module sym3 sym4))
+;;;   Flat:    (exports sym1 sym2 sym3)
 (define (lattice-skill-exports skill-name)
   (let* ([data (kg-skill-data skill-name)]
          [exports-raw (if data
                           (cdr (or (assq 'exports data) '(exports . ())))
                           '())])
-        ;; Flatten export groups
-        (append-map (lambda (group)
-                            (if (and (pair? group) (list? group))
-                                (cdr group)  ; Skip module name
-                                '()))
-                    (if (list? exports-raw) exports-raw '()))))
+    (cond
+      [(not (list? exports-raw)) '()]
+      [(null? exports-raw) '()]
+      ;; Flat format: bare symbols directly under exports
+      [(symbol? (car exports-raw))
+       (filter symbol? exports-raw)]
+      ;; Grouped format: (module-name sym1 sym2 ...) per group
+      [else
+       (append-map (lambda (group)
+                     (cond
+                       [(and (pair? group) (list? group))
+                        (cdr group)]  ; Skip module name
+                       [(symbol? group) (list group)]  ; Stray bare symbol
+                       [else '()]))
+                   exports-raw)])))
 
 ;;; lattice-all-exports : -> (List (skill . (exports ...)))
 ;;; Get all exports grouped by skill
@@ -128,24 +140,36 @@
        (kg-skills)))
 
 ;;; lattice-exports-pretty : Symbol -> void
-;;; Pretty-print exports for a skill
+;;; Pretty-print exports for a skill.
+;;; Handles both grouped and flat manifest formats.
 (define (lattice-exports-pretty skill-name)
   (let ([data (kg-skill-data skill-name)])
-       (if (not data)
-           (printf "Skill not found: ~a\n" skill-name)
-           (let ([exports-raw (cdr (or (assq 'exports data) '(exports . ())))])
-                (printf "Exports for ~a\n" skill-name)
-                (printf "~a\n\n" (make-string 40 #\-))
-                (for-each
-                 (lambda (group)
-                         (when (and (pair? group) (list? group))
-                               (printf "~a:\n" (car group))
-                               (for-each
-                                (lambda (exp)
-                                        (printf "  ~a\n" exp))
-                                (cdr group))
-                               (printf "\n")))
-                 (if (list? exports-raw) exports-raw '()))))))
+    (if (not data)
+        (printf "Skill not found: ~a\n" skill-name)
+        (let ([exports-raw (cdr (or (assq 'exports data) '(exports . ())))])
+          (printf "Exports for ~a\n" skill-name)
+          (printf "~a\n\n" (make-string 40 #\-))
+          (cond
+            [(not (list? exports-raw)) (void)]
+            [(null? exports-raw) (printf "  (none)\n")]
+            ;; Flat format: bare symbols
+            [(symbol? (car exports-raw))
+             (for-each (lambda (exp)
+                         (when (symbol? exp)
+                           (printf "  ~a\n" exp)))
+                       exports-raw)
+             (printf "\n")]
+            ;; Grouped format
+            [else
+             (for-each
+              (lambda (group)
+                (when (and (pair? group) (list? group))
+                  (printf "~a:\n" (car group))
+                  (for-each
+                   (lambda (exp) (printf "  ~a\n" exp))
+                   (cdr group))
+                  (printf "\n")))
+              exports-raw)])))))
 
 ;;; ====
 ;;; Module Listing
