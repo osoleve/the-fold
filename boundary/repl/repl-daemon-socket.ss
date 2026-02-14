@@ -35,6 +35,11 @@
 
 (define *last-cleanup* (time-second (current-time)))
 
+;;; Crash-loop detection: track spawn timestamps per session
+(define *spawn-history* '())         ; alist of (session-id . (timestamp ...))
+(define *max-spawns-in-window* 5)    ; max spawns before backoff kicks in
+(define *spawn-window* 120)          ; window in seconds
+
 ;;; ====
 ;;; Session State
 ;;; ====
@@ -141,6 +146,43 @@
       "scheme"])))
 
 ;;; ====
+;;; Crash-Loop Detection
+;;; ====
+
+;;; record-spawn! : String → Void
+;;; Record a spawn event for crash-loop tracking.
+(define (record-spawn! session-id)
+  (let* ([now (time-second (current-time))]
+         [entry (assoc session-id *spawn-history*)])
+    (if entry
+        (set-cdr! entry (cons now (cdr entry)))
+        (set! *spawn-history*
+              (cons (cons session-id (list now)) *spawn-history*)))))
+
+;;; spawn-allowed? : String → Bool
+;;; Check whether spawning is allowed (not in crash loop).
+(define (spawn-allowed? session-id)
+  (let* ([now (time-second (current-time))]
+         [entry (assoc session-id *spawn-history*)]
+         [history (if entry (cdr entry) '())]
+         [recent (filter (lambda (t) (<= (- now t) *spawn-window*)) history)])
+    (< (length recent) *max-spawns-in-window*)))
+
+;;; prune-spawn-history! : → Void
+;;; Remove stale entries from spawn history.
+(define (prune-spawn-history!)
+  (let ([now (time-second (current-time))])
+    (set! *spawn-history*
+          (filter
+           (lambda (entry)
+             (let ([recent (filter (lambda (t) (<= (- now t) *spawn-window*))
+                                   (cdr entry))])
+               (when (pair? recent)
+                 (set-cdr! entry recent))
+               (pair? recent)))
+           *spawn-history*))))
+
+;;; ====
 ;;; Worker Management
 ;;; ====
 
@@ -151,26 +193,33 @@
     (display (format "WARNING: Invalid session-id rejected: ~s\n" session-id))
     (error 'spawn-worker! "Invalid session-id" session-id))
 
-  ;; Count active sessions
-  (when (>= (length *sessions*) *max-workers*)
+  (cond
+   ;; Max workers reached
+   [(>= (length *sessions*) *max-workers*)
     (display (format "WARNING: Max workers (~a) reached, rejecting session ~a\n"
                      *max-workers* session-id))
-    #f)
-
-  (let* ([scheme (scheme-command)]
-         [cmd (format "~a --script ~a ~a" scheme *worker-script* session-id)])
-    (guard (ex [else
-                (display (format "ERROR: Failed to spawn worker for ~a: ~a\n"
-                                 session-id
-                                 (if (message-condition? ex)
-                                     (condition-message ex)
-                                     "unknown error")))
-                #f])
-      (let-values ([(to-worker from-worker from-stderr worker-pid) (open-process-ports cmd)])
-        (let ([rec (make-session-record to-worker from-worker from-stderr worker-pid)])
-          (set! *sessions* (cons (cons session-id rec) *sessions*))
-          (display (format "  [spawn] Worker for session '~a' (pid ~a)\n" session-id worker-pid))
-          rec)))))
+    #f]
+   ;; Crash-loop detection
+   [(not (spawn-allowed? session-id))
+    (display (format "WARNING: Session '~a' in crash loop (~a spawns in ~as), rejecting\n"
+                     session-id *max-spawns-in-window* *spawn-window*))
+    #f]
+   [else
+    (let* ([scheme (scheme-command)]
+           [cmd (format "~a --script ~a ~a" scheme *worker-script* session-id)])
+      (guard (ex [else
+                  (display (format "ERROR: Failed to spawn worker for ~a: ~a\n"
+                                   session-id
+                                   (if (message-condition? ex)
+                                       (condition-message ex)
+                                       "unknown error")))
+                  #f])
+        (let-values ([(to-worker from-worker from-stderr worker-pid) (open-process-ports cmd)])
+          (let ([rec (make-session-record to-worker from-worker from-stderr worker-pid)])
+            (record-spawn! session-id)
+            (set! *sessions* (cons (cons session-id rec) *sessions*))
+            (display (format "  [spawn] Worker for session '~a' (pid ~a)\n" session-id worker-pid))
+            rec))))]))
 
 ;;; get-or-spawn-session! : String → session-record | #f
 (define (get-or-spawn-session! session-id)
@@ -363,14 +412,42 @@
 ;;; Worker Process Termination
 ;;; ====
 
+;;; PIDs awaiting SIGKILL escalation: ((pid . sigterm-time) ...)
+(define *killed-pids* '())
+(define *sigkill-delay* 5)  ; seconds after SIGTERM before escalating
+
 ;;; kill-worker-pid! : Fixnum → Void
 ;;; Send SIGTERM to a worker process by PID. Closing ports alone is
 ;;; insufficient if the worker is stuck in an infinite eval — it won't
 ;;; read EOF until the eval completes. SIGTERM terminates immediately.
+;;; Registers PID for SIGKILL escalation if SIGTERM doesn't work.
 (define (kill-worker-pid! pid)
   (when (and (fixnum? pid) (> pid 0))
     (guard (ex [else #f])
-      (system (format "kill -TERM ~a 2>/dev/null" pid)))))
+      (system (format "kill -TERM ~a 2>/dev/null" pid))
+      (set! *killed-pids*
+            (cons (cons pid (time-second (current-time)))
+                  *killed-pids*)))))
+
+;;; escalate-kills! : → Void
+;;; Check PIDs that received SIGTERM. If still alive after delay, SIGKILL.
+(define (escalate-kills!)
+  (let ([now (time-second (current-time))]
+        [kept '()])
+    (for-each
+     (lambda (entry)
+       (let ([pid (car entry)]
+             [kill-time (cdr entry)])
+         (if (> (- now kill-time) *sigkill-delay*)
+             ;; Enough time elapsed — check if still alive
+             (let ([alive? (= 0 (system (format "kill -0 ~a 2>/dev/null" pid)))])
+               (when alive?
+                 (display (format "  [SIGKILL] Escalating for pid ~a (SIGTERM ignored)\n" pid))
+                 (system (format "kill -KILL ~a 2>/dev/null" pid))))
+             ;; Not yet timed out — keep tracking
+             (set! kept (cons entry kept)))))
+     *killed-pids*)
+    (set! *killed-pids* kept)))
 
 ;;; ====
 ;;; Graceful Worker Shutdown
@@ -467,6 +544,8 @@
   (let ([now (time-second (current-time))])
     (when (> (- now *last-cleanup*) *cleanup-interval*)
       (cleanup-expired-sessions!)
+      (prune-spawn-history!)
+      (escalate-kills!)
       (set! *last-cleanup* now))
     ;; Check ready file every 2s (fallback if signal handler missed)
     (when (> (- now *last-ready-check*) 2)

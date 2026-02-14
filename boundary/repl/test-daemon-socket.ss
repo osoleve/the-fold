@@ -80,6 +80,78 @@
         (session-touch! rec)
         (assert-true (>= (session-expires rec) old-expires)))))
 
+  (define-test "session record has last-pong field"
+    (let ([rec (make-session-record 'fake-inp 'fake-outp 'fake-errp 12345)])
+      ;; last-pong should be initialized to current time
+      (let ([pong-time (session-last-pong rec)])
+        (assert-true (number? pong-time))
+        (assert-true (> pong-time 0)))
+      ;; update-pong! should advance the timestamp
+      (let ([old-pong (session-last-pong rec)])
+        (session-update-pong! rec)
+        (assert-true (>= (session-last-pong rec) old-pong)))))
+
+  (define-test "crash-loop detection allows initial spawns"
+    ;; Reset spawn history
+    (set! *spawn-history* '())
+    (assert-true (spawn-allowed? "test-crash"))
+    ;; Record a few spawns — should still be allowed
+    (record-spawn! "test-crash")
+    (record-spawn! "test-crash")
+    (record-spawn! "test-crash")
+    (assert-true (spawn-allowed? "test-crash"))
+    ;; Clean up
+    (set! *spawn-history* '()))
+
+  (define-test "crash-loop detection blocks after threshold"
+    (set! *spawn-history* '())
+    ;; Record max spawns
+    (let loop ([i 0])
+      (when (< i *max-spawns-in-window*)
+        (record-spawn! "test-crash")
+        (loop (+ i 1))))
+    ;; Should now be blocked
+    (assert-false (spawn-allowed? "test-crash"))
+    ;; Different session should still be allowed
+    (assert-true (spawn-allowed? "other-session"))
+    ;; Clean up
+    (set! *spawn-history* '()))
+
+  (define-test "crash-loop detection is per-session"
+    (set! *spawn-history* '())
+    ;; Exhaust one session's budget
+    (let loop ([i 0])
+      (when (< i *max-spawns-in-window*)
+        (record-spawn! "session-a")
+        (loop (+ i 1))))
+    (assert-false (spawn-allowed? "session-a"))
+    ;; session-b is unaffected
+    (assert-true (spawn-allowed? "session-b"))
+    (record-spawn! "session-b")
+    (assert-true (spawn-allowed? "session-b"))
+    ;; Clean up
+    (set! *spawn-history* '()))
+
+  (define-test "prune-spawn-history! removes stale entries"
+    (set! *spawn-history* '())
+    ;; Manually insert old timestamps
+    (let ([old-time (- (time-second (current-time)) (+ *spawn-window* 10))])
+      (set! *spawn-history*
+            (list (cons "stale-session" (list old-time old-time)))))
+    (assert-equal (length *spawn-history*) 1)
+    (prune-spawn-history!)
+    (assert-equal (length *spawn-history*) 0))
+
+  (define-test "SIGKILL tracking initialized empty"
+    (assert-true (list? *killed-pids*)))
+
+  (define-test "escalate-kills! handles empty list"
+    (let ([saved *killed-pids*])
+      (set! *killed-pids* '())
+      (escalate-kills!)  ; should not error
+      (assert-equal *killed-pids* '())
+      (set! *killed-pids* saved)))
+
   (define-test "route-message! handles ping with pong"
     ;; Start reactor so ipc-send! works
     (ipc-load!)
