@@ -372,15 +372,19 @@
                   (loop (cdr remaining) kept))
                 (loop (cdr remaining) (cons entry kept))))))))
 
+(define *last-ready-check* 0)
+
 (define (periodic-cleanup!)
   (let ([now (time-second (current-time))])
     (when (> (- now *last-cleanup*) *cleanup-interval*)
       (cleanup-expired-sessions!)
-      ;; Check if ready file was removed (external shutdown signal)
+      (set! *last-cleanup* now))
+    ;; Check ready file every 2s (fallback if signal handler missed)
+    (when (> (- now *last-ready-check*) 2)
+      (set! *last-ready-check* now)
       (unless (file-exists? *ready-file*)
         (display "  [shutdown] Ready file removed, initiating shutdown...\n")
-        (set! *daemon-running* #f))
-      (set! *last-cleanup* now))))
+        (set! *daemon-running* #f)))))
 
 ;;; ====
 ;;; Main Daemon Loop
