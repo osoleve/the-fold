@@ -40,15 +40,12 @@
 
 (doc capture-error! 'type "Condition -> Void")
 (doc capture-error! 'description "Store error with current context for later inspection")
-(doc capture-error! 'note "Only captures if no error is already stored OR if current context is deeper (preserves the context closest to the actual error)")
+(doc capture-error! 'note "Always captures the most recent error. Within a single eval, with-context guards capture at deeper levels before process-request!'s outer guard re-captures at top level.")
 (define (capture-error! e)
-  (when (or (not *last-error*)
-            (> (length (current-context))
-               (length (cadr *last-error*))))
-    (set! *last-error*
-          (list e
-                (current-context)
-                (current-time)))))
+  (set! *last-error*
+        (list e
+              (current-context)
+              (current-time))))
 
 (doc format-error-detail 'type "Condition -> String")
 (doc format-error-detail 'description "Format an error with all available details")
