@@ -232,24 +232,33 @@
 ;;; Request Routing Table
 ;;; ====
 
-;;; Maps req-id → client-id so responses go only to the originating client.
-;;; Entries are removed after forwarding the response.
+;;; Maps req-id → (client-id . timestamp) so responses go only to the
+;;; originating client. Entries are removed after forwarding the response.
+;;; Stale entries (orphaned by worker crash) are pruned during periodic cleanup.
 (define *request-routes* '())
+(define *route-stale-timeout* 300)  ; 5 min — any request older than this is orphaned
 
 (define (record-request-route! req-id client-id)
   (when req-id
     (set! *request-routes*
-          (cons (cons req-id client-id) *request-routes*))))
+          (cons (list req-id client-id (time-second (current-time)))
+                *request-routes*))))
 
 (define (lookup-request-route req-id)
   (and req-id
        (let ([entry (assoc req-id *request-routes*)])
-         (and entry (cdr entry)))))
+         (and entry (cadr entry)))))
 
 (define (remove-request-route! req-id)
   (when req-id
     (set! *request-routes*
           (filter (lambda (e) (not (equal? (car e) req-id)))
+                  *request-routes*))))
+
+(define (prune-stale-routes!)
+  (let ([now (time-second (current-time))])
+    (set! *request-routes*
+          (filter (lambda (e) (<= (- now (caddr e)) *route-stale-timeout*))
                   *request-routes*))))
 
 ;;; ====
@@ -567,6 +576,7 @@
     (when (> (- now *last-cleanup*) *cleanup-interval*)
       (cleanup-expired-sessions!)
       (prune-spawn-history!)
+      (prune-stale-routes!)
       (set! *last-cleanup* now))
     ;; SIGKILL escalation runs outside the 60s cleanup block.
     ;; *sigkill-delay* is 5s — must check more frequently than *cleanup-interval*.

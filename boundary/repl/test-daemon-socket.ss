@@ -127,6 +127,22 @@
     (assert-false (lookup-request-route #f))
     (set! *request-routes* '()))
 
+  (define-test "stale route pruning removes old entries"
+    (set! *request-routes* '())
+    ;; Insert a stale entry (timestamp far in the past)
+    (let ([old-time (- (time-second (current-time)) (+ *route-stale-timeout* 60))])
+      (set! *request-routes*
+            (list (list "stale-req" 99 old-time))))
+    ;; Also insert a fresh one
+    (record-request-route! "fresh-req" 42)
+    (assert-equal (length *request-routes*) 2)
+    (prune-stale-routes!)
+    ;; Only fresh survives
+    (assert-equal (length *request-routes*) 1)
+    (assert-equal (lookup-request-route "fresh-req") 42)
+    (assert-false (lookup-request-route "stale-req"))
+    (set! *request-routes* '()))
+
   (define-test "crash-loop detection allows initial spawns"
     ;; Reset spawn history
     (set! *spawn-history* '())
