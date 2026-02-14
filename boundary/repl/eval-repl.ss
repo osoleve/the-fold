@@ -212,6 +212,8 @@
   (display "  Examples:\n")
   (display "    (fold-eval (prim 'add 1 2))        ; => 3\n")
   (display "    (fold-type (fn (x) x))             ; Type: (a → a)\n")
+  (display "    (fold-eval ((fn (x) x) 42))        ; => 42 (juxtaposition)\n")
+  (display "    (fold-eval (call (fn (x) x) 42))   ; => 42 (explicit call)\n")
   (display "    (fold-parse \"(let ((x 1)) x)\")    ; Show AST\n")
   (display "    (fold-compile (if #t 1 0))         ; Full diagnostics\n")
   (display "\n"))

@@ -1259,45 +1259,95 @@ Dependencies:
   
   (display "\n"))
 
-;;; module-exports : Symbol → Void
+;;; module-runtime-syms : Symbol → (List Symbol)
+;;; Get all runtime symbols matching module prefix from oblist.
+(define (module-runtime-syms name)
+  (let* ([prefix (string-append (symbol->string name) "-")]
+         [prefix-len (string-length prefix)])
+    (sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+          (filter (lambda (s)
+                    (let ([str (symbol->string s)])
+                      (and (>= (string-length str) prefix-len)
+                           (string=? (substring str 0 prefix-len) prefix)
+                           (top-level-bound? s))))
+                  (oblist)))))
+
+;;; module-runtime-extras : Symbol × (List Symbol) → (List Symbol)
+;;; Get runtime symbols not in the source-level set.
+(define (module-runtime-extras name source-names)
+  (let ([runtime (module-runtime-syms name)])
+    (filter (lambda (s) (not (memq s source-names))) runtime)))
+
+;;; module-exports-runtime : Symbol → Void
+;;; Show only runtime symbols for a module.
+(define (module-exports-runtime name)
+  (if (not (module-loaded? name))
+      (display (format "  Module '~a' not loaded. Use (require '~a) first.\n" name name))
+      (let ([syms (module-runtime-syms name)])
+        (display (format "\n  Runtime exports of '~a' (~a symbols):\n" name (length syms)))
+        (display "  --------------------------------------------------------\n")
+        (for-each (lambda (s) (display (format "    ~a\n" s))) syms)
+        (display "  --------------------------------------------------------\n")
+        (display "\n"))))
+
+;;; module-exports : Symbol [Symbol] → Void
 ;;; Show top-level definitions exported by a module.
 ;;; Scans source for define, define-syntax, and define-record-type forms.
-;;; Also shows dependency info and runtime symbol count when available.
-(define (module-exports name)
-  (let ([path (module-name->path name)])
+;;; Optional mode argument:
+;;;   'all     — include macro-generated runtime symbols
+;;;   'runtime — show only runtime symbols (requires module to be loaded)
+;;; Default shows source-level exports with a count of runtime symbols.
+(define (module-exports name . mode-arg)
+  (let ([mode (if (null? mode-arg) 'source (car mode-arg))]
+        [path (module-name->path name)])
     (if (not path)
         (display (format "  Module '~a' not found.\n" name))
-        (let ([port (open-input-file path)])
-          (display (format "\n  Exports of '~a' (~a):\n" name path))
-          (display "  --------------------------------------------------------\n")
-          (let loop ([count 0] [has-macros #f])
-            (let ([form (guard (e [#t #!eof]) (read port))])
-              (cond
-                [(eof-object? form)
-                 (close-input-port port)
-                 (display "  --------------------------------------------------------\n")
-                 (display (format "  ~a source-level exports\n" count))
-                 ;; Show dependencies
-                 (let ([deps (hashtable-ref *module-deps* name '())])
-                   (unless (null? deps)
-                     (display (format "  Dependencies: ~a\n" deps))))
-                 ;; Runtime symbol count (if module is loaded)
-                 (when (module-loaded? name)
-                   (let* ([prefix (string-append (symbol->string name) "-")]
-                          [prefix-len (string-length prefix)]
-                          [runtime-syms
-                           (filter (lambda (s)
-                                     (let ([str (symbol->string s)])
-                                       (and (>= (string-length str) prefix-len)
-                                            (string=? (substring str 0 prefix-len) prefix)
-                                            (top-level-bound? s))))
-                                   (oblist))])
-                     (when (> (length runtime-syms) count)
-                       (display (format "  ~a runtime symbols matching ~a* (includes macro-generated)\n"
-                                        (length runtime-syms) name)))))
-                 (when has-macros
-                   (display "  Note: file contains macro calls that may generate additional exports\n"))
-                 (display "\n")]
+        (if (eq? mode 'runtime)
+            ;; Runtime-only mode: just list symbols from oblist
+            (module-exports-runtime name)
+            (let ([port (open-input-file path)])
+              (display (format "\n  Exports of '~a' (~a):\n" name path))
+              (display "  --------------------------------------------------------\n")
+              (let loop ([count 0] [has-macros #f] [source-names '()])
+                (let ([form (guard (e [#t #!eof]) (read port))])
+                  (cond
+                    [(eof-object? form)
+                     (close-input-port port)
+                     ;; Show macro-generated symbols when mode is 'all
+                     (let ([extra-count 0])
+                       (when (and (eq? mode 'all) has-macros (module-loaded? name))
+                         (let ([extra (module-runtime-extras name source-names)])
+                           (unless (null? extra)
+                             (display "  --- macro-generated ---\n")
+                             (for-each (lambda (s)
+                                         (display (format "    ~a\n" s)))
+                                       extra)
+                             (set! extra-count (length extra)))))
+                       (display "  --------------------------------------------------------\n")
+                       (display (format "  ~a source-level exports\n" count))
+                       (when (> extra-count 0)
+                         (display (format "  ~a macro-generated exports\n" extra-count))))
+                     ;; Show dependencies
+                     (let ([deps (hashtable-ref *module-deps* name '())])
+                       (unless (null? deps)
+                         (display (format "  Dependencies: ~a\n" deps))))
+                     ;; Runtime symbol count hint (source mode only)
+                     (when (and (eq? mode 'source) (module-loaded? name))
+                       (let* ([prefix (string-append (symbol->string name) "-")]
+                              [prefix-len (string-length prefix)]
+                              [runtime-syms
+                               (filter (lambda (s)
+                                         (let ([str (symbol->string s)])
+                                           (and (>= (string-length str) prefix-len)
+                                                (string=? (substring str 0 prefix-len) prefix)
+                                                (top-level-bound? s))))
+                                       (oblist))])
+                         (when (> (length runtime-syms) count)
+                           (display (format "  ~a runtime symbols matching ~a* (use 'all to list)\n"
+                                            (length runtime-syms) name)))))
+                     (when (and (eq? mode 'source) has-macros (not (module-loaded? name)))
+                       (display "  Note: load module first to see macro-generated exports\n"))
+                     (display "\n")]
                 ;; (define (name args ...) body)
                 [(and (pair? form) (eq? (car form) 'define)
                       (pair? (cdr form)) (pair? (cadr form)))
@@ -1314,22 +1364,22 @@ Dependencies:
                                                         (fmt (cdr a))
                                                         (string-append " " (fmt (cdr a)))))]
                                         [else ""])))))
-                 (loop (+ count 1) has-macros)]
+                 (loop (+ count 1) has-macros (cons (caadr form) source-names))]
                 ;; (define name value)
                 [(and (pair? form) (eq? (car form) 'define)
                       (pair? (cdr form)) (symbol? (cadr form)))
                  (display (format "    ~a\n" (cadr form)))
-                 (loop (+ count 1) has-macros)]
+                 (loop (+ count 1) has-macros (cons (cadr form) source-names))]
                 ;; (define-syntax name ...)
                 [(and (pair? form) (eq? (car form) 'define-syntax)
                       (pair? (cdr form)) (symbol? (cadr form)))
                  (display (format "    ~a [syntax]\n" (cadr form)))
-                 (loop (+ count 1) has-macros)]
+                 (loop (+ count 1) has-macros (cons (cadr form) source-names))]
                 ;; (define-record-type name ...)
                 [(and (pair? form) (eq? (car form) 'define-record-type)
                       (pair? (cdr form)) (symbol? (cadr form)))
                  (display (format "    ~a [record]\n" (cadr form)))
-                 (loop (+ count 1) has-macros)]
+                 (loop (+ count 1) has-macros (cons (cadr form) source-names))]
                 ;; Detect macro invocations that likely generate defines
                 ;; Pattern: bare (symbol args...) at top level where symbol
                 ;; contains "generate" or starts with known macro prefixes
@@ -1341,9 +1391,9 @@ Dependencies:
                                  (string=? (substring s 0 7) "define-")
                                  (not (memq (car form)
                                             '(define-syntax define-record-type)))))))
-                 (loop count #t)]
+                 (loop count #t source-names)]
                 ;; Skip other forms
-                [else (loop count has-macros)])))))))
+                [else (loop count has-macros source-names)]))))))))
 
 ;;; list-registered-modules : Unit → (List Symbol)
 ;;; Return a list of all registered module names.

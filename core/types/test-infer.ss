@@ -482,5 +482,45 @@
             '(let ((f (fn (x) x))) (fn (y) (f (f y)))))
 
 (newline)
+(display "Evaluator-Aligned Special Forms")
+(newline)
+
+;; call — explicit application, same semantics as juxtaposition
+(test-type "call identity"
+           'Int
+           '(call (fn (x) x) 42))
+
+(test-type "call with multi-arg"
+           'Int
+           '(call (fn (x y) (prim 'add x y)) 1 2))
+
+(test-type "call with let-bound fn"
+           'Int
+           '(let ((id (fn (x) x))) (call id 42)))
+
+;; par — evaluates both, returns type of second
+(test-type "par returns type of b"
+           'Bool
+           '(par 1 #t))
+
+(test-type "par with fns"
+           '(-> Int Int)
+           '(par 42 (fn (x) (prim 'add x 1))))
+
+;; pseq — evaluates sequentially, returns type of second
+(test-type "pseq returns type of b"
+           'Bool
+           '(pseq 1 #t))
+
+(test-type "pseq with different types"
+           'String
+           '(pseq #f "hello"))
+
+;; doc — always Unit
+(test-type "doc form is Unit"
+           'Unit
+           '(doc 'type 'Int))
+
+(newline)
 (display "✓ All type inference tests complete.
 ")

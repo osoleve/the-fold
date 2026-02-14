@@ -502,6 +502,37 @@
                            op)])
               (infer-prim op-sym (cddr expr) env)))]
    
+   ;; Explicit application: (call f arg ...)
+   [(eq? (car expr) 'call)
+    (infer-app (cadr expr) (cddr expr) env)]
+
+   ;; Parallel evaluation: (par a b) — evaluates both, returns b
+   [(eq? (car expr) 'par)
+    (let ([a-result (infer (cadr expr) env)])
+         (if (eq? (car a-result) 'ok)
+             (let ([b-result (infer (caddr expr) env)])
+                  (if (eq? (car b-result) 'ok)
+                      ;; Return type of b with composed substitutions
+                      `(ok ,(cadr b-result)
+                        ,(compose-subst (caddr b-result) (caddr a-result)))
+                      b-result))
+             a-result))]
+
+   ;; Sequential evaluation: (pseq a b) — evaluates a then b, returns b
+   [(eq? (car expr) 'pseq)
+    (let ([a-result (infer (cadr expr) env)])
+         (if (eq? (car a-result) 'ok)
+             (let ([b-result (infer (caddr expr) env)])
+                  (if (eq? (car b-result) 'ok)
+                      `(ok ,(cadr b-result)
+                        ,(compose-subst (caddr b-result) (caddr a-result)))
+                      b-result))
+             a-result))]
+
+   ;; Documentation form: (doc ...) — always Unit
+   [(eq? (car expr) 'doc)
+    `(ok Unit ,empty-subst)]
+
    [else `(error unsupported-expression ,expr)]))
 
 (doc 'section 'let-inference)
@@ -948,7 +979,7 @@
   (doc 'description "Check if a symbol is a special form.")
   (doc 'export #t)
   (and (symbol? s)
-       (memq s '(fn let fix if case prim quote :))))
+       (memq s '(fn let fix if case prim quote : call par pseq doc))))
 
 (doc 'section 'convenience-api)
 
