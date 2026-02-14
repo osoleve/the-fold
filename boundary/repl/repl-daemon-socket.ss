@@ -229,6 +229,30 @@
         (spawn-worker! session-id))))
 
 ;;; ====
+;;; Request Routing Table
+;;; ====
+
+;;; Maps req-id → client-id so responses go only to the originating client.
+;;; Entries are removed after forwarding the response.
+(define *request-routes* '())
+
+(define (record-request-route! req-id client-id)
+  (when req-id
+    (set! *request-routes*
+          (cons (cons req-id client-id) *request-routes*))))
+
+(define (lookup-request-route req-id)
+  (and req-id
+       (let ([entry (assoc req-id *request-routes*)])
+         (and entry (cdr entry)))))
+
+(define (remove-request-route! req-id)
+  (when req-id
+    (set! *request-routes*
+          (filter (lambda (e) (not (equal? (car e) req-id)))
+                  *request-routes*))))
+
+;;; ====
 ;;; Message Routing
 ;;; ====
 
@@ -245,10 +269,8 @@
              (let ([rec (get-or-spawn-session! session-id)])
                (if rec
                    (begin
-                     ;; Register this client with the session
-                     (let ([current-clients (session-client-ids rec)])
-                       (unless (memv client-id current-clients)
-                         (session-set-client-ids! rec (cons client-id current-clients))))
+                     ;; Record route so response goes back to this client
+                     (record-request-route! req-id client-id)
                      (session-touch! rec)
                      ;; Forward the request to the worker via stdin pipe
                      (guard (ex [else
@@ -398,13 +420,13 @@
                       ;; Worker acknowledged shutdown — don't forward
                       #f]
                      [else
-                      ;; Application message — forward to subscribed clients
-                      (let ([clients (session-client-ids rec)])
-                        (for-each
-                         (lambda (cid)
-                           (guard (ex [else #f])
-                             (ipc-send! cid frame)))
-                         clients))])))
+                      ;; Application message — route to originating client
+                      (let* ([resp-id (ipc-message-id msg)]
+                             [target (lookup-request-route resp-id)])
+                        (when target
+                          (guard (ex [else #f])
+                            (ipc-send! target frame))
+                          (remove-request-route! resp-id)))])))
                (loop)))))))
    *sessions*))
 
@@ -653,6 +675,12 @@
   (display (format "Workers:  ~a\n" *workers-dir*))
   (display (format "Max:      ~a concurrent workers\n" *max-workers*))
   (display "Waiting for connections...\n\n")
+
+  ;; Auto-reap child processes to prevent zombies.
+  ;; Workers spawned via open-process-ports become defunct after exit
+  ;; if not reaped. SIG_IGN on SIGCHLD tells the kernel to auto-reap.
+  (let ([c-signal (foreign-procedure "signal" (int uptr) uptr)])
+    (c-signal 17 1))  ; SIGCHLD=17, SIG_IGN=1
 
   ;; Signal handlers for clean shutdown
   (register-signal-handler 2   ; SIGINT

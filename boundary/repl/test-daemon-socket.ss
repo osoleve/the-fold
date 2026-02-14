@@ -91,6 +91,42 @@
         (session-update-pong! rec)
         (assert-true (>= (session-last-pong rec) old-pong)))))
 
+  (define-test "request routing table records and lookups"
+    (set! *request-routes* '())
+    ;; Record a route
+    (record-request-route! "req-001" 42)
+    (assert-equal (lookup-request-route "req-001") 42)
+    ;; Unknown req-id returns #f
+    (assert-false (lookup-request-route "req-999"))
+    ;; Remove route
+    (remove-request-route! "req-001")
+    (assert-false (lookup-request-route "req-001"))
+    ;; Clean up
+    (set! *request-routes* '()))
+
+  (define-test "request routing handles multiple concurrent requests"
+    (set! *request-routes* '())
+    (record-request-route! "req-a" 10)
+    (record-request-route! "req-b" 20)
+    (record-request-route! "req-c" 30)
+    (assert-equal (lookup-request-route "req-a") 10)
+    (assert-equal (lookup-request-route "req-b") 20)
+    (assert-equal (lookup-request-route "req-c") 30)
+    ;; Remove one, others persist
+    (remove-request-route! "req-b")
+    (assert-false (lookup-request-route "req-b"))
+    (assert-equal (lookup-request-route "req-a") 10)
+    (assert-equal (lookup-request-route "req-c") 30)
+    ;; Clean up
+    (set! *request-routes* '()))
+
+  (define-test "request routing ignores #f req-id"
+    (set! *request-routes* '())
+    (record-request-route! #f 42)
+    (assert-equal *request-routes* '())
+    (assert-false (lookup-request-route #f))
+    (set! *request-routes* '()))
+
   (define-test "crash-loop detection allows initial spawns"
     ;; Reset spawn history
     (set! *spawn-history* '())
