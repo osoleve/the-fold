@@ -7,9 +7,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT PATHFINDING DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; Helper
@@ -31,7 +31,7 @@
 ;;; ====
 
 (display "Example 1: BFS on 5×5 Square Grid\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define floor (make-tile 'floor '((walkable . #t))))
 (define square-board (make-square-board 5 5 floor))
@@ -55,7 +55,7 @@
 ;;; ====
 
 (display "Example 2: A* on Hexagonal Grid\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define hex-board (make-hex-board 'axial 3 floor))
 
@@ -79,7 +79,7 @@
 ;;; ====
 
 (display "Example 3: Dijkstra with Terrain\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define grass (make-tile 'grass '((walkable . #t) (cost . 1))))
 (define swamp (make-tile 'swamp '((walkable . #t) (cost . 3))))
@@ -104,9 +104,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 (display "Path finding works across all tile shapes:\n")
 (display "  ✓ Square tiles\n")

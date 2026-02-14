@@ -714,11 +714,11 @@
 ;;; ====
 
 (define (run-test-category category-name dir tests)
-  (display "────────────────────────────────────────────────────────────────
+  (display "----------------------------------------------------------------
 ")
   (display (string-append "  " category-name " (" dir "/)
 "))
-  (display "────────────────────────────────────────────────────────────────
+  (display "----------------------------------------------------------------
 ")
   (for-each (lambda (test) (run-test-file dir test)) tests))
 
@@ -735,11 +735,7 @@
          [duration (- (current-time-ms) total-start-time)])
         
         (display "
-╔══════════════════════════════════════════════════════════════╗
-")
-        (display "║                      FINAL SUMMARY                           ║
-")
-        (display "╚══════════════════════════════════════════════════════════════╝
+====================== FINAL SUMMARY ==========================
 
 ")
         
@@ -768,20 +764,9 @@
         
         (newline)
         (if (= failed 0)
+            (display "================ ALL TESTS PASSED =========================\n")
             (begin
-             (display "╔══════════════════════════════════════════════════════════════╗
-")
-             (display "║              ✓ ALL TESTS PASSED                              ║
-")
-             (display "╚══════════════════════════════════════════════════════════════╝
-"))
-            (begin
-             (display "╔══════════════════════════════════════════════════════════════╗
-")
-             (display "║              ✗ SOME TESTS FAILED                             ║
-")
-             (display "╚══════════════════════════════════════════════════════════════╝
-")
+             (display "=============== SOME TESTS FAILED =========================\n")
              (newline)
              (display "  Failed tests:
 ")
@@ -827,11 +812,7 @@
 
        (display "
 ")
-       (display "╔══════════════════════════════════════════════════════════════╗
-")
-       (display "║         THE FOLD — UNIFIED TEST SUITE                        ║
-")
-       (display "╚══════════════════════════════════════════════════════════════╝
+       (display "============= THE FOLD -- UNIFIED TEST SUITE ==================
 ")
        (display (string-append "
 Working directory: " (current-directory) "

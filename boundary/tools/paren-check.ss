@@ -107,10 +107,10 @@
          (display "Parenthesis Balance Report: ")
          (display path)
          (display "\n")
-         (display (make-string 60 #\─))
+         (display (make-string 60 #\-))
          (display "\n")
          (display "Line   Open Close  Balance  Preview\n")
-         (display (make-string 60 #\─))
+         (display (make-string 60 #\-))
          (display "\n")
          
          (for-each
@@ -145,7 +145,7 @@
                              (newline))))
           results)
          
-         (display (make-string 60 #\─))
+         (display (make-string 60 #\-))
          (display "\n")
          
          ;; Final summary
@@ -214,7 +214,7 @@
         (display "Diagnosis around line ")
         (display target-line)
         (display ":\n")
-        (display (make-string 70 #\─))
+        (display (make-string 70 #\-))
         (display "\n")
         
         (for-each
@@ -239,7 +239,7 @@
                             (newline))))
          results)
         
-        (display (make-string 70 #\─))
+        (display (make-string 70 #\-))
         (display "\n\n")))
 
 ;;; ====
@@ -1170,9 +1170,9 @@
 ;;; Print detailed location info for paren errors.
 (define (paren-locate path)
   (let ([errors (paren-errors path)])
-    (printf "\n~a\n" (make-string 70 #\─))
+    (printf "\n~a\n" (make-string 70 #\-))
     (printf "Paren Location Report: ~a\n" path)
-    (printf "~a\n\n" (make-string 70 #\─))
+    (printf "~a\n\n" (make-string 70 #\-))
 
     (if (null? errors)
         (printf "✓ All parentheses balanced!\n\n")
@@ -1195,7 +1195,7 @@
             errors)
           (printf "\n")))
 
-    (printf "~a\n" (make-string 70 #\─))))
+    (printf "~a\n" (make-string 70 #\-))))
 
 ;;; paren-ok? : String -> Boolean
 ;;; Quick check - returns #t if file has balanced parens.
@@ -1285,9 +1285,9 @@
 ;;; Analyze file and provide indentation-based suggestions for fixing imbalances.
 (define (paren-suggest path)
   (let-values ([(final-stack errors) (paren-stack-analyze path)])
-    (printf "\n~a\n" (make-string 70 #\─))
+    (printf "\n~a\n" (make-string 70 #\-))
     (printf "Paren Suggestion Report: ~a\n" path)
-    (printf "~a\n" (make-string 70 #\─))
+    (printf "~a\n" (make-string 70 #\-))
 
     (cond
       [(and (null? errors) (null? final-stack))
@@ -1330,7 +1330,7 @@
             ;; Balance is 0 but there are mismatch errors
             (printf "\n  Bracket types are mismatched.\n")]))])
 
-    (printf "\n~a\n" (make-string 70 #\─))))
+    (printf "\n~a\n" (make-string 70 #\-))))
 
 ;;; paren-summary : String -> void
 ;;; Quick summary with just the key info.

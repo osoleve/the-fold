@@ -339,7 +339,7 @@
    (lambda (return)
      (display "\n")
      (printf "  Move Preview: '~a' -> ~a\n" sym target-file)
-     (display "  ════════════════════════════════════════════════════════════════\n\n")
+     (display "  ================================================================\n\n")
 
      ;; Step 1: Find definition
      (display "  Step 1: Locating definition...\n")
@@ -409,7 +409,7 @@
                              cycle-check))
 
                  ;; Summary
-                 (display "\n  ────────────────────────────────────────────────────────────────\n")
+                 (display "\n  ----------------------------------------------------------------\n")
                  (display "  Summary:\n")
                  (printf "    Symbol:     ~a\n" sym)
                  (printf "    From:       ~a:~a\n" source-file line-start)
@@ -520,7 +520,7 @@
                 [boundary (car (cddddr *staged-move*))])
 
                (display "\n  Applying move operation...\n")
-               (display "  ────────────────────────────────\n\n")
+               (display "  --------------------------------\n\n")
 
                ;; PHASE 1: Validate paths
                (display "  Phase 1: Validating paths...\n")
@@ -706,7 +706,7 @@
       (let* ([last-op (car *move-undo-stack*)]
              [backups (cdr last-op)])
             (display "\n  Undoing last move operation...\n")
-            (display "  ────────────────────────────────\n\n")
+            (display "  --------------------------------\n\n")
 
             (for-each
              (lambda (backup)
@@ -729,7 +729,7 @@
 (define (refactor-move-status)
   (display "\n")
   (display "  Move Refactoring Status\n")
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   (if *staged-move*
       (let* ([info (car *staged-move*)]
              [sym (car info)]
@@ -753,7 +753,7 @@
 
 (display "\n")
 (display "  Move Refactoring Module Loaded\n")
-(display "  ────────────────────────────────\n")
+(display "  --------------------------------\n")
 (display "  Use (refactor-move-preview 'sym \"file\") to preview.\n")
 (display "  Use (refactor-move-apply!) to apply staged move.\n")
 (display "  Use (refactor-move-undo!) to undo last move.\n")

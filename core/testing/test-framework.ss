@@ -279,11 +279,7 @@
   (doc 'export #t)
   (parameterize ([current-context (make-test-context)])
     (display "
-╔══════════════════════════════════════════════════════════╗
-")
-    (display "║              Running Test Group                          ║
-")
-    (display "╚══════════════════════════════════════════════════════════╝
+================ Running Test Group ========================
 ")
     (run-group group-name)
     (print-summary)))
@@ -294,11 +290,7 @@
   (doc 'export #t)
   (parameterize ([current-context (make-test-context)])
     (display "
-╔══════════════════════════════════════════════════════════╗
-")
-    (display "║           Running All Registered Tests                   ║
-")
-    (display "╚══════════════════════════════════════════════════════════╝
+============= Running All Registered Tests =================
 ")
     (newline)
     (for-each (lambda (group-entry)
@@ -313,11 +305,7 @@
   (doc 'description "Print test run summary with machine-parseable result line.")
   (doc 'export #t)
   (newline)
-  (display "╔══════════════════════════════════════════════════════════╗
-")
-  (display "║                    TEST SUMMARY                          ║
-")
-  (display "╚══════════════════════════════════════════════════════════╝
+  (display "===================== TEST SUMMARY =========================
 ")
   (display "  Total:  ")
   (display (ctx-run))
@@ -353,11 +341,7 @@
   (doc 'export #t)
   (parameterize ([current-context (make-test-context)])
     (display "
-╔══════════════════════════════════════════════════════════╗
-")
-    (display "║           Running All Registered Tests                   ║
-")
-    (display "╚══════════════════════════════════════════════════════════╝
+============= Running All Registered Tests =================
 ")
     (newline)
     (for-each (lambda (group-entry)

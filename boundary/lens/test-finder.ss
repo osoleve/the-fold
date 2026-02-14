@@ -234,7 +234,7 @@
   (let ([tests (find-all-test-files)])
        (display "\n")
        (display "  Test Files in Codebase\n")
-       (display "  ────────────────────────────────\n")
+       (display "  --------------------------------\n")
        (printf "  Total: ~a test files\n\n" (length tests))
        (for-each
         (lambda (path)

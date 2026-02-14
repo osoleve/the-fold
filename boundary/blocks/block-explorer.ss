@@ -58,9 +58,7 @@
   (current-mode 'home)
   (current-block-hash #f)
 
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              INTERACTIVE BLOCK EXPLORER                     ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "================ INTERACTIVE BLOCK EXPLORER =================\n")
   (newline)
 
   ;; Show quick stats
@@ -95,9 +93,7 @@
                  (if (not blk)
                      ;; Block is missing from store
                      (begin
-                      (display "╔══════════════════════════════════════════════════════════════╗\n")
-                      (display "║                     MISSING BLOCK                            ║\n")
-                      (display "╚══════════════════════════════════════════════════════════════╝\n")
+                      (display "===================== MISSING BLOCK ========================\n")
                       (newline)
                       (display (format "Hash: ~a\n\n" (hash->hex hash)))
                       (display "This block is referenced but not present in the store.\n")
@@ -122,9 +118,7 @@
 (define (show-block-detail fs hash blk)
   (doc 'type (-> FS Bytevector Block Void))
   (doc 'description "Display a single block with navigation options")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                     BLOCK DETAILS                            ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "===================== BLOCK DETAILS =========================\n")
   (newline)
 
   ;; Show breadcrumb
@@ -143,10 +137,10 @@
   (let ([payload-text (guard (e [else "[binary data]"])
                              (utf8->string (block-payload blk)))])
        (display "Payload:\n")
-       (display "────────────────────────────────────────────────────────────────\n")
+       (display "----------------------------------------------------------------\n")
        (display (truncate-string payload-text 400))
        (newline)
-       (display "────────────────────────────────────────────────────────────────\n"))
+       (display "----------------------------------------------------------------\n"))
   (newline)
 
   ;; Show refs as numbered list
@@ -241,9 +235,7 @@
                            [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) pairs)]
                            [top-20 (take (min 20 (length sorted)) sorted)])
 
-                          (display "╔══════════════════════════════════════════════════════════════╗\n")
-                          (display "║                  MOST POPULAR BLOCKS                         ║\n")
-                          (display "╚══════════════════════════════════════════════════════════════╝\n")
+                          (display "================== MOST POPULAR BLOCKS ======================\n")
                           (newline)
                           (display "Blocks ranked by inbound references (top 20):\n\n")
 
@@ -302,9 +294,7 @@
                                        (not (hashtable-ref referenced hash #f)))
                                all-hashes)])
 
-             (display "╔══════════════════════════════════════════════════════════════╗\n")
-             (display "║                     ORPHAN BLOCKS                            ║\n")
-             (display "╚══════════════════════════════════════════════════════════════╝\n")
+             (display "===================== ORPHAN BLOCKS =========================\n")
              (newline)
              (display (format "Found ~a blocks with no inbound references:\n\n" (length orphans)))
 
@@ -364,9 +354,7 @@
                                  (take limit all-results)
                                  all-results)])
 
-        (display "╔══════════════════════════════════════════════════════════════╗\n")
-        (display "║                     SEARCH RESULTS                           ║\n")
-        (display "╚══════════════════════════════════════════════════════════════╝\n")
+        (display "===================== SEARCH RESULTS ========================\n")
         (newline)
         (display (format "Query: \"~a\"\n" query))
         (if (and limit (> total limit))
@@ -411,9 +399,7 @@
                   all-hashes)]
          [recent (take (min n (length sorted)) sorted)])
 
-        (display "╔══════════════════════════════════════════════════════════════╗\n")
-        (display "║                    RECENT BLOCKS                             ║\n")
-        (display "╚══════════════════════════════════════════════════════════════╝\n")
+        (display "==================== RECENT BLOCKS ==========================\n")
         (newline)
         (display (format "Showing ~a most recent blocks:\n\n" (length recent)))
 
@@ -451,11 +437,7 @@
                                 (and blk (eq? (block-tag blk) tag))))
                    all-hashes)])
 
-        (display "╔══════════════════════════════════════════════════════════════╗\n")
-        (display (format "║                    BLOCKS: ~a~a║\n"
-                         tag
-                         (make-string (max 0 (- 42 (string-length (symbol->string tag)))) #\space)))
-        (display "╚══════════════════════════════════════════════════════════════╝\n")
+        (display (format "==================== BLOCKS: ~a ====================\n" tag))
         (newline)
         (display (format "Found ~a blocks with tag '~a:\n\n" (length matches) tag))
 
@@ -492,9 +474,7 @@
   (doc 'type (-> Void))
   (doc 'description "Show all commands")
   (doc 'export #t)
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║            BLOCK EXPLORER COMMAND REFERENCE                  ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "============== BLOCK EXPLORER COMMAND REFERENCE ==============\n")
   (newline)
   (display "Starting:\n")
   (display "  (block-explorer (fs))  - Start the explorer\n")

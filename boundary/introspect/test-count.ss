@@ -104,9 +104,7 @@
   (doc 'export #t)
   (let ([summary (lattice-test-summary)]
         [grand-total 0])
-    (printf "\n╔══════════════════════════════════════════════════════════╗\n")
-    (printf "║           LATTICE TEST COUNT SUMMARY                     ║\n")
-    (printf "╚══════════════════════════════════════════════════════════╝\n\n")
+    (printf "\n======== LATTICE TEST COUNT SUMMARY ========================\n\n")
     (for-each
       (lambda (entry)
         (let ([skill (car entry)]
@@ -121,7 +119,7 @@
               (list-sort (lambda (a b) (> (cdr a) (cdr b))) files))
             (printf "\n"))))
       summary)
-    (printf "────────────────────────────────────────────────────────────\n")
+    (printf "------------------------------------------------------------\n")
     (printf "GRAND TOTAL: ~a tests\n" grand-total)
     grand-total))
 
@@ -379,7 +377,7 @@
                        (list-sort string<? skills))]
          [updated (filter cdr results)]
          [failed (filter (lambda (r) (not (cdr r))) results)])
-    (printf "\n────────────────────────────────────────────────────────────\n")
+    (printf "\n------------------------------------------------------------\n")
     (printf "Updated ~a README files\n" (length updated))
     (when (> (length failed) 0)
       (printf "Failed: ~a\n" (map car failed)))

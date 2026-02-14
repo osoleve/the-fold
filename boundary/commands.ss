@@ -78,9 +78,7 @@
 ;;; Display all registered commands with their short help text.
 (define (commands)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    REGISTERED COMMANDS                             │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- REGISTERED COMMANDS -----------------------------------------------\n")
   (display "\n")
   (let ([names (list-command-names)])
        (if (null? names)
@@ -107,9 +105,7 @@
       ;; General help
       (string-append
        "\n"
-       "  ┌────────────────────────────────────────────────────────────────────┐\n"
-       "  │                       THE FOLD — HELP                              │\n"
-       "  └────────────────────────────────────────────────────────────────────┘\n"
+       "  --- THE FOLD -- HELP -------------------------------------------------\n"
        "\n"
        "  The Fold is a content-addressed storage system. Use the commands\n"
        "  below to explore blocks and interact with the system.\n"
@@ -130,7 +126,7 @@
                 (string-append
                  "\n"
                  (format "  Command: ~a\n" cmd-name)
-                 "  ────────────────────────────────────────────────────────────\n"
+                 "  ------------------------------------------------------------\n"
                  (format "  ~a\n\n" (cdr (assq 'short-help cmd)))
                  (format "~a\n\n" (cdr (assq 'long-help cmd))))
                 (let ([suggestion (suggest-command cmd-name)])

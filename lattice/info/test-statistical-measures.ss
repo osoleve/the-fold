@@ -483,9 +483,7 @@
 ;;; ====
 
 (newline)
-(display "╔══════════════════════════════════════════════════════════╗\n")
-(display "║        Statistical Measures Test Suite                  ║\n")
-(display "╚══════════════════════════════════════════════════════════╝\n")
+(display "========= Statistical Measures Test Suite ==========\n")
 (newline)
 
 (exit-with-summary)

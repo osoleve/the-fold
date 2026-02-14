@@ -243,11 +243,7 @@
   (doc 'description "Run traversal benchmarks on different graph structures")
   (doc 'export #t)
   (display "
-╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║           GRAPH TRAVERSAL BENCHMARKS                          ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+=========== GRAPH TRAVERSAL BENCHMARKS ==============================
 ")
 
   (let ([fs (make-fs-capability ".store-bench")])
@@ -278,11 +274,7 @@
   (doc 'description "Run pathfinding benchmarks")
   (doc 'export #t)
   (display "
-╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║           PATHFINDING BENCHMARKS                              ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+=========== PATHFINDING BENCHMARKS ======================================
 ")
 
   (let ([fs (make-fs-capability ".store-bench")])
@@ -308,11 +300,7 @@
   (doc 'description "Run graph analysis benchmarks")
   (doc 'export #t)
   (display "
-╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║           GRAPH ANALYSIS BENCHMARKS                           ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+=========== GRAPH ANALYSIS BENCHMARKS ===================================
 ")
 
   (let ([fs (make-fs-capability ".store-bench")])
@@ -337,17 +325,13 @@
   (doc 'description "Test how algorithms scale with graph size")
   (doc 'export #t)
   (display "
-╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║           SCALABILITY TESTS                                   ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+=========== SCALABILITY TESTS ===============================================
 ")
 
   (display "
 Testing BFS traversal scaling on chain graphs:
 ")
-  (display "───────────────────────────────────────────────────────────────
+  (display "---------------------------------------------------------------
 ")
 
   (let ([sizes '(10 50 100 500)])
@@ -379,11 +363,7 @@ Testing BFS traversal scaling on chain graphs:
   (doc 'export #t)
   (display "
 ")
-  (display "╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║     COMPREHENSIVE GRAPH ALGORITHM BENCHMARK SUITE             ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+  (display "===== COMPREHENSIVE GRAPH ALGORITHM BENCHMARK SUITE ================
 ")
   (display "
 ")
@@ -397,11 +377,7 @@ Testing BFS traversal scaling on chain graphs:
 
   (display "
 ")
-  (display "╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║     BENCHMARK SUITE COMPLETE                                  ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+  (display "===== BENCHMARK SUITE COMPLETE ======================================
 ")
   (display "
 "))

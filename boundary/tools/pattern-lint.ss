@@ -25,7 +25,7 @@
   (let ([result (check-case-expr expr type-name)])
        (display "\n")
        (display "  Pattern Match Analysis\n")
-       (display "  ────────────────────────────────────────────\n")
+       (display "  --------------------------------------------\n")
        (cond
         [(assq 'error result)
          (printf "  Error: ~a\n" (cdr (assq 'error result)))]
@@ -65,7 +65,7 @@
          [missing (cdr (assq 'missing result))])
         (display "\n")
         (printf "  Missing Patterns for ~a\n" type-name)
-        (display "  ────────────────────────────────────────────\n")
+        (display "  --------------------------------------------\n")
         (if (null? missing)
             (display "  ✓ Patterns are exhaustive - no missing cases.\n")
             (begin
@@ -83,7 +83,7 @@
          [redundant (cdr (assq 'redundant result))])
         (display "\n")
         (printf "  Redundant Patterns for ~a\n" type-name)
-        (display "  ────────────────────────────────────────────\n")
+        (display "  --------------------------------------------\n")
         (if (null? redundant)
             (display "  ✓ No redundant patterns found.\n")
             (begin
@@ -104,7 +104,7 @@
   (let ([type-info (lookup-type-info type-name)])
        (display "\n")
        (printf "  Suggested Patterns for ~a\n" type-name)
-       (display "  ────────────────────────────────────────────\n")
+       (display "  --------------------------------------------\n")
        (if (not type-info)
            (printf "  Unknown type: ~a\n" type-name)
            (let ([ctors (type-constructors type-info)])
@@ -155,7 +155,7 @@
                 [cases (find-case-expressions port)])
                (display "\n")
                (printf "  Pattern Analysis: ~a\n" path)
-               (display "  ════════════════════════════════════════════\n")
+               (display "  ============================================\n")
                (printf "  Found ~a case expression(s)\n\n" (length cases))
                (for-each
                 (lambda (case-info)
@@ -192,7 +192,7 @@
 (define (pattern-help)
   (display "\n")
   (display "  Pattern Match Linting Commands\n")
-  (display "  ────────────────────────────────────────────\n")
+  (display "  --------------------------------------------\n")
   (display "  (check-match expr type)         - Analyze case expression\n")
   (display "  (missing-patterns pats type)    - Find uncovered cases\n")
   (display "  (redundant-patterns pats type)  - Find unreachable patterns\n")

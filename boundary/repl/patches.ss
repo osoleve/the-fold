@@ -186,9 +186,7 @@
 (doc patches 'description "List all available patches with status")
 (define (patches)
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    AVAILABLE PATCHES                        ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "==================== AVAILABLE PATCHES =======================\n\n")
 
   (let ([available (scan-patches)])
        (if (null? available)
@@ -223,32 +221,32 @@
            (display (format "  Patch '~a' not found.\n" name))
            (begin
             (display "\n")
-            (display (format "┌─ ~a " name))
+            (display (format "--- ~a " name))
             (when (patch-applied? name)
                   (display "[APPLIED] "))
-            (display "─────────────────────────────────────\n")
+            (display "-------------------------------------\n")
 
-            (display (format "│ ~a\n"
+            (display (format "  ~a\n"
                              (manifest-get manifest 'description "No description")))
-            (display (format "│ Version: ~a\n"
+            (display (format "  Version: ~a\n"
                              (manifest-get manifest 'version "unknown")))
 
             (let ([requires (manifest-get manifest 'requires '())])
                  (unless (null? requires)
-                         (display (format "│ Requires: ~a\n" requires))))
+                         (display (format "  Requires: ~a\n" requires))))
 
             (let ([provides (manifest-get manifest 'provides '())])
-                 (display (format "│ Provides: ~a functions\n" (length provides)))
+                 (display (format "  Provides: ~a functions\n" (length provides)))
                  (when (< (length provides) 20)
-                       (display (format "│   ~a\n" provides))))
+                       (display (format "    ~a\n" provides))))
 
             (let ([files (manifest-get manifest 'files '())])
-                 (display (format "│ Files: ~a\n" (length files)))
+                 (display (format "  Files: ~a\n" (length files)))
                  (for-each
-                  (lambda (f) (display (format "│   ~a\n" f)))
+                  (lambda (f) (display (format "    ~a\n" f)))
                   files))
 
-            (display "└────────────────────────────────────────────────────\n")))))
+            (display "----------------------------------------------------\n")))))
 
 (doc 'section 'convenience)
 

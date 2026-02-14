@@ -3,16 +3,16 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT TUTORIAL 1: HEXAGONAL BOARD BASICS\n")
-(display "═══════════════════════════════════════════════════════════════\n\n")
+(display "===============================================================\n\n")
 
 ;;; ====
 ;;; Part 1: Creating Hexagonal Boards
 ;;; ====
 
 (display "1. CREATING HEXAGONAL BOARDS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "BoardCraft supports hexagonal boards with different coordinate systems.\n")
 (display "Let's create a basic hex board using axial coordinates:\n\n")
@@ -31,7 +31,7 @@
 ;;; ====
 
 (display "2. COORDINATE SYSTEMS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "BoardCraft supports three coordinate systems for hexagons:\n\n")
 
@@ -69,7 +69,7 @@
 ;;; ====
 
 (display "3. FINDING NEIGHBORS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Each hexagon has 6 neighbors. Let's find them for the center hex (0,0):\n\n")
 
@@ -96,7 +96,7 @@
 ;;; ====
 
 (display "4. DISTANCE CALCULATIONS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Distance in hexagonal grids is measured in "hex steps":\n\n")
 
@@ -120,7 +120,7 @@
 ;;; ====
 
 (display "5. WORKING WITH TILES\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Hexagons can contain tile data. Let's create some tiles and place them:\n\n")
 
@@ -162,7 +162,7 @@
 ;;; ====
 
 (display "6. RING AND RANGE CALCULATIONS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "You can find all hexes within a certain distance (range) or at\n")
 (display "exactly a certain distance (ring):\n\n")
@@ -192,7 +192,7 @@
 ;;; ====
 
 (display "7. SUMMARY\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "✓ You've learned the basics of hexagonal boards!\n")
 (display "✓ You understand coordinate systems (axial, cubic, offset)\n")
@@ -208,6 +208,6 @@
 
 (display "Ready for more? Check out Tutorial 2: Unit Placement and Movement!\n")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Tutorial 1 Complete! You now understand hexagonal boards.\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")

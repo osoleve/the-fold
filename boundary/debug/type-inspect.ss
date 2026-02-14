@@ -82,9 +82,7 @@
 (define (type-inspect-with-env expr env)
   (doc 'type (-> Expr TEnv Void))
   (doc 'description "Infer and display type with a given environment")
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    TYPE INSPECTION                           ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n==================== TYPE INSPECTION =====================\n\n")
   
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
@@ -140,9 +138,7 @@
 (define (type-explain expr expected-type)
   (doc 'type (-> Expr Type Void))
   (doc 'description "Check if expression has expected type and explain why/why not")
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                   TYPE EXPLANATION                           ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n==================== TYPE EXPLANATION ====================\n\n")
   
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
@@ -197,9 +193,7 @@
 (define (type-visualize type)
   (doc 'type (-> Type Void))
   (doc 'description "Display a tree visualization of type structure")
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                  TYPE VISUALIZATION                          ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n=================== TYPE VISUALIZATION ====================\n\n")
   
   (display-type-tree type "" ""))
 
@@ -246,9 +240,7 @@
          (let* ([content (read-text-file fs file-path)]
                 [port (open-input-string content)])
                
-               (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-               (display "║                   FILE TYPE CHECK                            ║\n")
-               (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+               (display "\n==================== FILE TYPE CHECK =====================\n\n")
                (display (format "File: ~a\n\n" file-path))
                
                (let loop ([expr-num 1]
@@ -303,9 +295,7 @@
 (define (tenv-inspect env)
   (doc 'type (-> TEnv Void))
   (doc 'description "Show detailed information about a type environment")
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              TYPE ENVIRONMENT INSPECTION                     ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n============== TYPE ENVIRONMENT INSPECTION ===============\n\n")
   
   (display (format "Total bindings: ~a\n\n" (length env)))
   
@@ -327,9 +317,7 @@
 (define (type-check-expressions exprs)
   (doc 'type (-> (List Expr) Void))
   (doc 'description "Type-check a list of expressions and show results")
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              BATCH TYPE CHECKING                             ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n================= BATCH TYPE CHECKING ====================\n\n")
   
   (let loop ([remaining exprs]
              [expr-num 1]

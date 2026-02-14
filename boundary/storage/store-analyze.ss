@@ -95,9 +95,7 @@
   (doc 'type (-> FS Void))
   (doc 'description "Display store statistics")
   (doc 'export #t)
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                  STORE STATISTICS                            ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n============== STORE STATISTICS ================================\n\n")
 
   (let ([stats (compute-store-stats fs)])
        (let ([total-blocks (cdr (assq 'total-blocks stats))]
@@ -159,9 +157,7 @@
   (doc 'type (-> FS Void))
   (doc 'description "Show block size distribution with histogram")
   (doc 'export #t)
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              BLOCK SIZE DISTRIBUTION                         ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n============ BLOCK SIZE DISTRIBUTION ===========================\n\n")
 
   (let* ([store (fs-make-cas fs)]
          [all-hashes (cas-all-hashes store)]
@@ -240,9 +236,7 @@
   (doc 'type (-> FS Void))
   (doc 'description "Check store health and integrity")
   (doc 'export #t)
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                 STORE HEALTH CHECK                           ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n============= STORE HEALTH CHECK ===============================\n\n")
 
   (let* ([store (fs-make-cas fs)]
          [all-hashes (cas-all-hashes store)]
@@ -420,9 +414,7 @@
   (doc 'description "Analyze store growth patterns")
   (doc 'note "Requires historical data")
   (doc 'export #t)
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              STORE GROWTH ANALYSIS                           ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n============ STORE GROWTH ANALYSIS =============================\n\n")
 
   (let ([stats (compute-store-stats fs)])
        (let ([total-blocks (cdr (assq 'total-blocks stats))]

@@ -159,9 +159,7 @@
         [entries *history*])
        
        (display "\n")
-       (display "╔══════════════════════════════════════════════════════════════╗\n")
-       (display "║                    COMMAND HISTORY                           ║\n")
-       (display "╚══════════════════════════════════════════════════════════════╝\n")
+       (display "==================== COMMAND HISTORY =========================\n")
        (display "\n")
        
        (if (null? entries)
@@ -274,9 +272,7 @@
 (define (history-stats)
   "Show history statistics"
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                  HISTORY STATISTICS                          ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "================== HISTORY STATISTICS ========================\n")
   (display "\n")
   
   (let* ([total (length *history*)]
@@ -322,9 +318,7 @@
 (define (history-help)
   "Display help for history commands"
   (display "
-╔══════════════════════════════════════════════════════════════╗
-║                    HISTORY COMMANDS                          ║
-╚══════════════════════════════════════════════════════════════╝
+==================== HISTORY COMMANDS ========================
 
 VIEWING:
   (history-list [n])        Show last n entries (default: 10)

@@ -94,7 +94,7 @@
 
         (display "\n")
         (display (format "  Step #~a ~a\n" steps (status-symbol status)))
-        (display "  ────────────────────────────────────────────\n")
+        (display "  --------------------------------------------\n")
         (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
 
         (when (pair? fuel-trace)
@@ -148,7 +148,7 @@
 
              (display "\n")
              (display (format "  Step #~a ~a (stepped over)\n" steps (status-symbol status)))
-             (display "  ────────────────────────────────────────────\n")
+             (display "  --------------------------------------------\n")
              (display (format "  Expression: ~a\n" (truncate-expr-str expr 50)))
              (display (format "  Fuel: ~a used, ~a remaining ~a\n"
                               (debugger-fuel-used dbg*)
@@ -243,7 +243,7 @@
 
         (display "\n")
         (display "  ENVIRONMENT BINDINGS\n")
-        (display "  ────────────────────────────────────────────\n")
+        (display "  --------------------------------------------\n")
 
         (if (null? env)
             (display "  (empty environment)\n")
@@ -307,7 +307,7 @@
 
         (display "\n")
         (display "  EXECUTION TRACE (most recent first)\n")
-        (display "  ────────────────────────────────────────────\n")
+        (display "  --------------------------------------------\n")
 
         (if (null? trace)
             (display "  (no steps taken yet)\n")
@@ -409,7 +409,7 @@
          [env (debugger-env dbg)])
         (display "\n")
         (display "  WATCHED VARIABLES\n")
-        (display "  ────────────────────────────────────────────\n")
+        (display "  --------------------------------------------\n")
         (if (null? watches)
             (display "  (no watches set)\n")
             (for-each
@@ -450,7 +450,7 @@
            [explanation (explain-result dbg)])
           (display "\n")
           (display "  WHY DID WE GET THIS RESULT?\n")
-          (display "  ════════════════════════════════════════════\n\n")
+          (display "  ============================================\n\n")
           (display-explanation explanation 0)
           (display "\n")
           (void))]
@@ -461,7 +461,7 @@
           (if explanation
               (begin
                (display (format "  WHY DOES ~a HAVE THIS VALUE?\n" var))
-               (display "  ════════════════════════════════════════════\n\n")
+               (display "  ============================================\n\n")
                (display-explanation explanation 0))
               (display (format "  Variable ~a is not bound.\n" var)))
           (display "\n")
@@ -514,7 +514,7 @@
            [exported (export-trace dbg)])
           (display "\n")
           (display "  STRUCTURED TRACE EXPORT\n")
-          (display "  ════════════════════════════════════════════\n\n")
+          (display "  ============================================\n\n")
           (pretty-print-sexp exported 2)
           (display "\n")
           (void))]

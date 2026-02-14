@@ -289,7 +289,7 @@
        
        (display "\n")
        (printf "  Dead Code Analysis: ~a\n" dir)
-       (display "  ────────────────────────────────\n\n")
+       (display "  --------------------------------\n\n")
        
        ;; Reset state
        (set! *all-definitions* '())
@@ -339,9 +339,7 @@
                       
                       ;; Report results
                       (display "\n")
-                      (display "  ════════════════════════════════════════════════════════════\n")
-                      (display "                     DEAD CODE ANALYSIS RESULTS               \n")
-                      (display "  ════════════════════════════════════════════════════════════\n\n")
+                      (display "  === DEAD CODE ANALYSIS RESULTS =================================\n\n")
                       
                       ;; Report definitely dead
                       (report-confidence-level 'definitely-dead "DEFINITELY DEAD" "🔴"
@@ -365,7 +363,7 @@
                       
                       ;; Summary
                       (display "\n")
-                      (display "  ────────────────────────────────────────────────────────────\n")
+                      (display "  ------------------------------------------------------------\n")
                       (printf "  Summary: ~a definitely, ~a probably, ~a possibly dead\n"
                               (length definitely-dead)
                               (length probably-dead)
@@ -378,7 +376,7 @@
 (define (report-confidence-level level label icon desc items)
   (printf "\n  ~a ~a (~a)\n" icon label (length items))
   (printf "  ~a\n" desc)
-  (display "  ────────────────────────────────\n")
+  (display "  --------------------------------\n")
   (if (null? items)
       (display "    (none)\n")
       (for-each
@@ -403,7 +401,7 @@
             (display "    'definitely-dead, 'probably-dead, 'possibly-dead, 'low-usage\n\n"))
            (let ([items (cdr group)])
                 (printf "\n  ~a (~a items):\n" level (length items))
-                (display "  ────────────────────────────────\n")
+                (display "  --------------------------------\n")
                 (for-each
                  (lambda (item)
                          (printf "    ~a (~a:~a)\n      ~a\n"
@@ -570,7 +568,7 @@
 (define (dead-code-suggest-delete sym)
   (display "\n")
   (printf "  Safe-Delete Analysis: '~a'\n" sym)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Find definition
   (let ([def (find-def-in-list sym *all-definitions*)])
@@ -621,7 +619,7 @@
 (define (dead-code-stats)
   (display "\n")
   (display "  Dead Code Analysis Statistics\n")
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   (printf "  Total definitions analyzed: ~a\n" (length *all-definitions*))
   (printf "  Unique references found:    ~a\n" (hashtable-size *all-references*))
   (printf "  Unused definitions:         ~a\n" (length *unused-symbols*))
@@ -641,7 +639,7 @@
 (define (dead-code-file file)
   (display "\n")
   (printf "  Unused Local Bindings: ~a\n" file)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (let ([unused (find-unused-locals file)])
        (if (null? unused)
@@ -660,9 +658,7 @@
 ;;; dead-code-help : -> void
 (define (dead-code-help)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                  DEAD CODE DETECTION COMMANDS                      │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- DEAD CODE DETECTION COMMANDS --------------------------------\n")
   (display "\n")
   (display "  Global Analysis:\n")
   (display "    (dead-code-scan)              Scan entire codebase\n")
@@ -691,7 +687,7 @@
 
 (display "\n")
 (display "  Dead Code Detection Loaded\n")
-(display "  ────────────────────────────────\n")
+(display "  --------------------------------\n")
 (display "  Use (dead-code-help) for available commands.\n")
 (display "  Use (dead-code-scan) to analyze the codebase.\n")
 (display "\n")

@@ -110,9 +110,7 @@ After loading, the REPL will:
   (doc 'type '(-> Void))
   (doc 'description "Display comprehensive help text with all commands")
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                       AVAILABLE COMMANDS                           │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  ------------------- AVAILABLE COMMANDS --------------------\n")
   (display "\n")
   (display "  GIT:\n")
   (display "    (git-status)           Show git status\n")
@@ -215,7 +213,6 @@ After loading, the REPL will:
   (display "\n")
   (display "  MORE:\n")
   (display "    (load \"boundary/toolkit.ss\")           Dev tools (find-uses, deps-check)\n")
-  (display "    (load \"boundary/tutorial/tutorial.ss\") Interactive tutorials\n")
   (display "\n"))
 
 (doc help 'description "Command-based help integrating with command registry")

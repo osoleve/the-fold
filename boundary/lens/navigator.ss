@@ -34,7 +34,7 @@
          [more (- (length callers) (length shown))])
         (display "\n")
         (printf "  Callers of '~a':\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (null? callers)
             (display "    (no callers found)\n")
             (begin
@@ -63,7 +63,7 @@
          [more (- (length callees) (length shown))])
         (display "\n")
         (printf "  Callees of '~a':\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (null? callees)
             (display "    (no callees found)\n")
             (begin
@@ -90,7 +90,7 @@
   (let ([tests (find-tests-for sym)])
        (display "\n")
        (printf "  Tests for '~a':\n" sym)
-       (display "  ────────────────────────────────\n")
+       (display "  --------------------------------\n")
        (if (null? tests)
            (display "    (no tests found)\n")
            (for-each
@@ -124,7 +124,7 @@
          [layers (dep-slice-layers-up sym max-depth)])
         (display "\n")
         (printf "  Transitive Dependents of '~a':\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (null? layers)
             (display "    (no dependents found)\n")
             (for-each
@@ -151,7 +151,7 @@
          [layers (dep-slice-layers-down sym max-depth)])
         (display "\n")
         (printf "  Transitive Dependencies of '~a':\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (null? layers)
             (display "    (no dependencies found)\n")
             (for-each
@@ -182,7 +182,7 @@
          [paths (call-graph-path from to max-depth)])
         (display "\n")
         (printf "  Call Paths from '~a' to '~a':\n" from to)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (not paths)
             (printf "    (no path found within ~a steps)\n" max-depth)
             (let ([shown-paths (take paths 5)])
@@ -209,9 +209,7 @@
 ;;; Show overall lens navigation statistics.
 (define (lens-stats)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    LENS NAVIGATION STATISTICS                      │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- LENS NAVIGATION STATISTICS ----------------------------------------\n")
   (display "\n")
   
   ;; Call graph stats
@@ -234,7 +232,7 @@
 (define (lens-rebuild!)
   (display "\n")
   (display "  Rebuilding Lens Navigation Indices...\n")
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Rebuild symbol index if available
   (guard (e [else (void)])
@@ -257,9 +255,7 @@
 ;;; Show lens navigation quick reference.
 (define (lens-help)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                   LENS NAVIGATION COMMANDS                         │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- LENS NAVIGATION COMMANDS ------------------------------------------\n")
   (display "\n")
   (display "  Navigation:\n")
   (display "    (lens-jump 'symbol)          Jump to definition\n")
@@ -309,7 +305,7 @@
 
 (display "\n")
 (display "  Lens Navigation System Loaded\n")
-(display "  ────────────────────────────────\n")
+(display "  --------------------------------\n")
 (display "  Use (lens-help) for available commands.\n")
 (display "  Use (lens-rebuild!) to build indices.\n")
 (display "\n")

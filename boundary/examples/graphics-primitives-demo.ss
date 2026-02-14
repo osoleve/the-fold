@@ -8,15 +8,13 @@
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
 
-(display "╔════════════════════════════════════════════════════════════════╗\n")
-(display "║      GRAPHICS PRIMITIVES DEMONSTRATION                        ║\n")
-(display "╚════════════════════════════════════════════════════════════════╝\n\n")
+(display "====== GRAPHICS PRIMITIVES DEMONSTRATION ========================\n\n")
 
 (doc 'section 'line-drawing)
 
-(display "─────────────────────────────────────────────────────────────────\n")
+(display "-----------------------------------------------------------------\n")
 (display " 1. LINE DRAWING\n")
-(display "─────────────────────────────────────────────────────────────────\n\n")
+(display "-----------------------------------------------------------------\n\n")
 
 (display "Basic lines (horizontal, vertical, diagonal):\n")
 (let* ([canvas (make-canvas 40 15)]
@@ -37,9 +35,9 @@
 
 (doc 'section 'box-drawing)
 
-(display "\n─────────────────────────────────────────────────────────────────\n")
+(display "\n-----------------------------------------------------------------\n")
 (display " 2. ROUNDED BOXES\n")
-(display "─────────────────────────────────────────────────────────────────\n\n")
+(display "-----------------------------------------------------------------\n\n")
 
 (display "ASCII rounded corners:\n")
 (let* ([canvas (make-canvas 30 7)]
@@ -57,9 +55,9 @@
 
 (doc 'section 'circle-drawing)
 
-(display "\n─────────────────────────────────────────────────────────────────\n")
+(display "\n-----------------------------------------------------------------\n")
 (display " 3. CIRCLES\n")
-(display "─────────────────────────────────────────────────────────────────\n\n")
+(display "-----------------------------------------------------------------\n\n")
 
 (display "Circle outline (radius 8):\n")
 (let* ([canvas (make-canvas 30 19)]
@@ -79,9 +77,9 @@
 ;;; Gradient Fills
 ;;; ====
 
-(display "\n─────────────────────────────────────────────────────────────────\n")
+(display "\n-----------------------------------------------------------------\n")
 (display " 4. GRADIENT FILLS\n")
-(display "─────────────────────────────────────────────────────────────────\n\n")
+(display "-----------------------------------------------------------------\n\n")
 
 (display "Horizontal gradient (linear easing):\n")
 (let* ([canvas (make-canvas 60 8)]
@@ -115,9 +113,9 @@
 ;;; Combined Effects
 ;;; ====
 
-(display "\n─────────────────────────────────────────────────────────────────\n")
+(display "\n-----------------------------------------------------------------\n")
 (display " 5. COMBINED EFFECTS\n")
-(display "─────────────────────────────────────────────────────────────────\n\n")
+(display "-----------------------------------------------------------------\n\n")
 
 (display "Box with gradient fill:\n")
 (let* ([canvas (make-canvas 50 16)]
@@ -151,14 +149,14 @@
 
 (doc 'section 'summary)
 
-(display "\n╔════════════════════════════════════════════════════════════════╗\n")
-(display "║  All graphics primitives demonstrated successfully!           ║\n")
-(display "║                                                                ║\n")
-(display "║  Features:                                                     ║\n")
-(display "║   ✓ Line drawing (Bresenham's algorithm)                      ║\n")
-(display "║   ✓ Gradient lines with easing                                ║\n")
-(display "║   ✓ Rounded boxes (multiple styles)                           ║\n")
-(display "║   ✓ Circle outlines and filled circles                        ║\n")
-(display "║   ✓ Gradient fills (horizontal, vertical, radial)             ║\n")
-(display "║   ✓ Easing integration for smooth effects                     ║\n")
-(display "╚════════════════════════════════════════════════════════════════╝\n")
+(display "\n================================================================\n")
+(display "  All graphics primitives demonstrated successfully!\n")
+(display "\n")
+(display "  Features:\n")
+(display "   ✓ Line drawing (Bresenham's algorithm)\n")
+(display "   ✓ Gradient lines with easing\n")
+(display "   ✓ Rounded boxes (multiple styles)\n")
+(display "   ✓ Circle outlines and filled circles\n")
+(display "   ✓ Gradient fills (horizontal, vertical, radial)\n")
+(display "   ✓ Easing integration for smooth effects\n")
+(display "================================================================\n")

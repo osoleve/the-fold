@@ -42,7 +42,7 @@
   (doc 'note "Uses a separator line for visual distinction in plain text/markdown")
   (string-append
    title "\n"
-   (make-string (string-length title) #\─) "\n"
+   (make-string (string-length title) #\-) "\n"
    (if (null? content) "" (apply string-append content))
    "\n\n"))
 

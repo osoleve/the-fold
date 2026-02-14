@@ -384,9 +384,9 @@
 (doc 'section 'summary)
 
 (display "\n")
-(display "═══════════════════════════════════════════════════════\n")
+(display "=======================================================\n")
 (display "  ✓ All 21 tests passed!\n")
 (display "  ✓ Text Layout Primitives are operational.\n")
 (display "  ✓ Text Flow (wrapping, alignment) working.\n")
 (display "  ✓ DUCKIE has a window to appear in.\n")
-(display "═══════════════════════════════════════════════════════\n")
+(display "=======================================================\n")

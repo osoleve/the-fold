@@ -12,11 +12,7 @@
 (define (boardcraft-help)
   (doc 'description "Display BoardCraft SDK quick reference guide")
   (doc 'returns "Void - prints help text to stdout")
-  (display "╔══════════════════════════════════════════════════════════════╗
-")
-  (display "║  BOARDCRAFT SDK — Quick Reference                           ║
-")
-  (display "╚══════════════════════════════════════════════════════════════╝
+  (display "=============== BOARDCRAFT SDK -- Quick Reference ===============
 ")
   (newline)
   (display "SQUARE TILES:

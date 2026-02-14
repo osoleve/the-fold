@@ -146,7 +146,7 @@
         (printf "No exports found in ~a\n" filepath)
         (begin
           (printf "\nExports from ~a (~a symbols)\n" filepath (length symbols))
-          (printf "~a\n\n" (make-string 60 #\─))
+          (printf "~a\n\n" (make-string 60 #\-))
           (let ([groups (group-exports symbols)])
             (for-each
              (lambda (group)
@@ -159,7 +159,7 @@
                    (print-symbol-columns syms 3 25)
                    (newline))))
              groups))
-          (printf "~a\n" (make-string 60 #\─))))))
+          (printf "~a\n" (make-string 60 #\-))))))
 
 (define (category-label cat)
   (doc 'description "Convert category symbol to display label")

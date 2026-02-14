@@ -280,7 +280,7 @@
   (let ([effect (infer-effect expr)])
        (display "\n")
        (printf "  Effect: ~a\n" effect)
-       (display "  ────────────────────────────────────────────\n")
+       (display "  --------------------------------------------\n")
        (case effect
              [(pure)
               (display "  ✓ Expression is pure (no side effects).\n")]
@@ -304,7 +304,7 @@
   (let ([violations (lint-effects path 'pure)])
        (display "\n")
        (printf "  Effect Lint: ~a\n" path)
-       (display "  ════════════════════════════════════════════\n")
+       (display "  ============================================\n")
        (if (null? violations)
            (display "  ✓ All functions are pure.\n")
            (begin
@@ -325,7 +325,7 @@
   (let ([analysis (analyze-module-effects path)])
        (display "\n")
        (printf "  Module Effects: ~a\n" path)
-       (display "  ════════════════════════════════════════════\n")
+       (display "  ============================================\n")
        (cond
         [(and (pair? analysis) (assq 'error analysis))
          (printf "  Error: ~a\n" (cdr (assq 'error analysis)))]
@@ -355,7 +355,7 @@
 (define (check-core-purity)
   (display "\n")
   (display "  Core Purity Check\n")
-  (display "  ════════════════════════════════════════════\n")
+  (display "  ============================================\n")
   (let* ([core-files (find-scheme-files "core")]
          [results (map (lambda (f) (cons f (lint-effects f 'pure))) core-files)]
          [violations (filter (lambda (r) (pair? (cdr r))) results)])
@@ -429,7 +429,7 @@
 (define (effect-help)
   (display "\n")
   (display "  Effect Typing and Linting Commands\n")
-  (display "  ────────────────────────────────────────────\n")
+  (display "  --------------------------------------------\n")
   (display "  (effect-of expr)           - Show expression's effect\n")
   (display "  (lint-pure path)           - Check file for purity\n")
   (display "  (show-module-effects path) - Show all effects in module\n")

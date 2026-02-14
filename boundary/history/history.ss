@@ -83,7 +83,7 @@
         (begin
           (display (format "History (branch: ~a, at index ~a):\n"
                            current-branch current-index))
-          (display "─────────────────────────────────────────────────\n")
+          (display "-------------------------------------------------\n")
           (for-each
             (lambda (entry)
               (let* ([index (cdr (assq 'index entry))]
@@ -109,7 +109,7 @@
                                  cmd-display
                                  (if defined (format " → ~a" defined) "")))))
             entries)
-          (display "─────────────────────────────────────────────────\n")
+          (display "-------------------------------------------------\n")
           (display "[D]=definition [E]=effect [✗]=error\n")))))
 
 (define (jump target-index)
@@ -211,7 +211,7 @@
   (doc 'export #t)
   (display "\n")
   (display "  REPL History Commands\n")
-  (display "  ─────────────────────────────────────────────────\n")
+  (display "  -------------------------------------------------\n")
   (display "\n")
   (display "  UNDO/REDO:\n")
   (display "    (undo)              Undo last command\n")

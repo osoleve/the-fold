@@ -24,9 +24,7 @@
        (if (not blk)
            (display (format "Block not found: ~a\n" (hash->hex hash)))
            (begin
-            (display "╔══════════════════════════════════════════════════════════════╗\n")
-            (display "║                     BLOCK INFORMATION                        ║\n")
-            (display "╚══════════════════════════════════════════════════════════════╝\n")
+            (display "===================== BLOCK INFORMATION ======================\n")
             (display (format "Hash:    ~a\n" (hash->hex hash)))
             (display (format "Tag:     ~a\n" (block-tag blk)))
             (display (format "Payload: ~a bytes\n" (bytevector-length (block-payload blk))))
@@ -114,9 +112,7 @@
        (if (not hash)
            (display (format "No block found with prefix: ~a\n" hash-prefix))
            (begin
-            (display "╔══════════════════════════════════════════════════════════════╗\n")
-            (display "║                     BLOCK TREE VIEW                          ║\n")
-            (display "╚══════════════════════════════════════════════════════════════╝\n")
+            (display "===================== BLOCK TREE VIEW =======================\n")
             (newline)
             (display-tree fs hash "" max-depth 0 (make-eq-hashtable))
             (newline)))))
@@ -204,9 +200,7 @@
          all-hashes)
 
         ;; Display statistics
-        (display "╔══════════════════════════════════════════════════════════════╗\n")
-        (display "║                  BLOCK STORE STATISTICS                      ║\n")
-        (display "╚══════════════════════════════════════════════════════════════╝\n")
+        (display "================== BLOCK STORE STATISTICS ====================\n")
         (newline)
         (display (format "Total blocks:    ~a\n" total-blocks))
         (display (format "Total payload:   ~a bytes (~a KB)\n"
@@ -274,9 +268,7 @@
                            [existing (filter (lambda (p) (fs-fetch fs (car p))) sorted)]
                            [top-n (take (min n (length existing)) existing)])
 
-                          (display "╔══════════════════════════════════════════════════════════════╗\n")
-                          (display "║                   MOST POPULAR BLOCKS                        ║\n")
-                          (display "╚══════════════════════════════════════════════════════════════╝\n")
+                          (display "=================== MOST POPULAR BLOCKS =====================\n")
                           (newline)
                           (for-each
                            (lambda (pair)
@@ -312,9 +304,7 @@
         ;; Find orphans (blocks not in referenced set)
         (let ([orphans (filter (lambda (hash) (not (hashtable-ref referenced hash #f)))
                                all-hashes)])
-             (display "╔══════════════════════════════════════════════════════════════╗\n")
-             (display "║                      ORPHAN BLOCKS                           ║\n")
-             (display "╚══════════════════════════════════════════════════════════════╝\n")
+             (display "====================== ORPHAN BLOCKS ========================\n")
              (newline)
              (display (format "Found ~a orphan blocks (no inbound refs)\n\n" (length orphans)))
              (for-each
@@ -360,9 +350,7 @@
                [display-list (if (and limit (> total limit))
                                  (take limit sorted)
                                  sorted)])
-             (display "╔══════════════════════════════════════════════════════════════╗\n")
-             (display "║                      SEARCH RESULTS                          ║\n")
-             (display "╚══════════════════════════════════════════════════════════════╝\n")
+             (display "====================== SEARCH RESULTS =======================\n")
              (newline)
              (display (format "Query: \"~a\"\n" query))
              (if (and limit (> total limit))
@@ -424,9 +412,7 @@
        (if (not hash)
            (display (format "No block found with prefix: ~a\n" hash-prefix))
            (begin
-            (display "╔══════════════════════════════════════════════════════════════╗\n")
-            (display "║                     BLOCK LINEAGE                            ║\n")
-            (display "╚══════════════════════════════════════════════════════════════╝\n")
+            (display "===================== BLOCK LINEAGE =========================\n")
             (newline)
             (display-lineage fs hash 0 (make-eq-hashtable))
             (newline)))))

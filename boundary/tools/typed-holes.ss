@@ -689,7 +689,7 @@
        (printf "  Hole ~a : ~a\n"
                (or (hole-name hole) "?")
                (type->string type))
-       (display "  ────────────────────────────────────────────\n")
+       (display "  --------------------------------------------\n")
        (if (null? suggestions)
            (display "    No suggestions found.\n")
            (for-each display-suggestion (take-upto 10 suggestions)))
@@ -739,7 +739,7 @@
 (define (hole-help)
   (display "\n")
   (display "  Type-Driven Development with Holes\n")
-  (display "  ────────────────────────────────────────────\n")
+  (display "  --------------------------------------------\n")
   (display "  (hole-type expr)        - Show types for holes in expr\n")
   (display "  (hole-fits expr)        - Show available fits for holes\n")
   (display "  (hole-suggest expr)     - Ranked suggestions with synthesis\n")

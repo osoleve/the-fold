@@ -3,9 +3,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT TUTORIAL 1: SIMPLE HEXAGONAL BOARDS\n")
-(display "═══════════════════════════════════════════════════════════════\n\n")
+(display "===============================================================\n\n")
 
 (display "Welcome to BoardCraft! This tutorial introduces hexagonal boards.\n\n")
 
@@ -14,7 +14,7 @@
 ;;; ====
 
 (display "1. CREATING A HEXAGONAL BOARD\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Let's create a small hexagonal board with radius 2:\n\n")
 
@@ -29,7 +29,7 @@
 ;;; ====
 
 (display "2. WORKING WITH COORDINATES\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Axial coordinates use (q, r) where q is like column and r is like row.\n\n")
 
@@ -54,7 +54,7 @@
 ;;; ====
 
 (display "3. FINDING NEIGHBORS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Each hexagon has exactly 6 neighbors. Let's find them:\n\n")
 
@@ -76,7 +76,7 @@
 ;;; ====
 
 (display "4. DISTANCE CALCULATIONS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Distance is measured in "hex steps" - the minimum moves needed.\n\n")
 
@@ -96,7 +96,7 @@
 ;;; ====
 
 (display "5. RANGE AND RING CALCULATIONS\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Find all hexes within a certain distance (range):\n\n")
 
@@ -123,7 +123,7 @@
 ;;; ====
 
 (display "6. WORKING WITH TILES\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "Each hex can contain tile data. Let's create some tiles:\n\n")
 
@@ -153,7 +153,7 @@
 ;;; ====
 
 (display "7. SUMMARY\n")
-(display "───────────────────────────────────────────────────────────────\n\n")
+(display "---------------------------------------------------------------\n\n")
 
 (display "🎉 Congratulations! You've learned the basics of hexagonal boards:\n\n")
 (display "✓ How to create hexagonal boards\n")
@@ -171,6 +171,6 @@
 
 (display "Ready for Tutorial 2? We'll add units and movement!\n")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Tutorial 1 Complete! You understand hexagonal boards.\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")

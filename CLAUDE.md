@@ -300,7 +300,6 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 | `git/` | Git operations | git.ss, git-workflow.ss |
 | `tools/` | Developer utilities | edit.ss, refactor-toolkit.ss, autodoc.ss, capability-lens.ss |
 | `ui/` | Graphics & display | graphics.ss, color.ss, layers.ss, turtle.ss |
-| `tutorial/` | Tutorial system | tutorial.ss, interactive-tutorial.ss |
 | `lens/` | Code navigation lenses | call-graph.ss, navigator.ss, jump.ss |
 | `introspect/` | System introspection | complexity.ss, exports.ss, memory.ss, timing.ss |
 | `pipeline/` | Agent pipelines | workflow integration |

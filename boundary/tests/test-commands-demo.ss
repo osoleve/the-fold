@@ -7,20 +7,18 @@
 (doc 'purity 'partial)
 
 (display "\n")
-(display "╔═══════════════════════════════════════════════════════════════════╗\n")
-(display "║       THE FOLD — STRUCTURED REPL COMMAND SUBSYSTEM DEMO          ║\n")
-(display "╚═══════════════════════════════════════════════════════════════════╝\n")
+(display "===== THE FOLD -- STRUCTURED REPL COMMAND SUBSYSTEM DEMO ==========\n")
 (display "\n")
 
 (doc 'section 'command-discovery)
 (display "FEATURE 1: Command Discovery\n")
-(display "────────────────────────────────────────────────────────────────────\n")
+(display "--------------------------------------------------------------------\n")
 (display "The (commands) function lists all registered commands:\n\n")
 (commands)
 
 (doc 'section 'help-system)
 (display "\nFEATURE 2: Help System\n")
-(display "────────────────────────────────────────────────────────────────────\n")
+(display "--------------------------------------------------------------------\n")
 (display "General help with (help):\n")
 (help)
 
@@ -29,7 +27,7 @@
 
 (doc 'section 'command-routing)
 (display "\nFEATURE 3: Command Routing\n")
-(display "────────────────────────────────────────────────────────────────────\n")
+(display "--------------------------------------------------------------------\n")
 (display "Invoke commands via (cmd 'name args...):\n\n")
 (display "  (cmd 'version) => ")
 (let ([result (cmd 'version)])
@@ -37,7 +35,7 @@
 
 (doc 'section 'error-recovery)
 (display "\nFEATURE 4: Error Recovery\n")
-(display "────────────────────────────────────────────────────────────────────\n")
+(display "--------------------------------------------------------------------\n")
 (display "Unknown command with typo detection:\n")
 (display "  (cmd 'whoo) => ")
 (let ([result (cmd 'whoo)])
@@ -50,7 +48,7 @@
 
 (doc 'section 'dynamic-registration)
 (display "\nFEATURE 5: Dynamic Command Registration\n")
-(display "────────────────────────────────────────────────────────────────────\n")
+(display "--------------------------------------------------------------------\n")
 (display "Register new command at runtime:\n\n")
 
 (register-command!
@@ -78,15 +76,13 @@
 
 (doc 'section 'direct-functions)
 (display "\nFEATURE 6: Direct Convenience Functions\n")
-(display "────────────────────────────────────────────────────────────────────\n")
+(display "--------------------------------------------------------------------\n")
 (display "All registered commands also available as direct functions:\n\n")
 (display "  (version) =>\n    ")
 (version)
 
 (display "\n")
-(display "╔═══════════════════════════════════════════════════════════════════╗\n")
-(display "║                    DEMO COMPLETE                                  ║\n")
-(display "╚═══════════════════════════════════════════════════════════════════╝\n")
+(display "====================== DEMO COMPLETE ==============================\n")
 (display "\n")
 (display "Summary of features:\n")
 (display "  ✓ Command registry with register/unregister\n")

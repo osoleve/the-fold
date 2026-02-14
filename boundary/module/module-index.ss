@@ -136,7 +136,7 @@
   (doc 'export #t)
   (display "\n")
   (display "  Module Index Statistics\n")
-  (display "  ────────────────────────────────────────────────────────\n")
+  (display "  --------------------------------------------------------\n")
   (display (format "  Initialized: ~a\n" *manifest-index-initialized*))
   (display (format "  Simple modules: ~a\n" (hashtable-size *manifest-simple-index*)))
   (display (format "  Namespaced modules: ~a\n" (hashtable-size *manifest-namespaced-idx*)))

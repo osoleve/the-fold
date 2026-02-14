@@ -190,9 +190,7 @@
   (doc 'export #t)
   (let ([current (git-current-branch)]
         [status (git-status-summary)])
-       (display "╔══════════════════════════════════════════════════════════╗\n")
-       (display "║                    BRANCH INFO                           ║\n")
-       (display "╚══════════════════════════════════════════════════════════╝\n")
+       (display "================== BRANCH INFO ============================\n")
        (display "\n")
        (display (format "Current Branch: ~a\n" current))
        (display (format "Status: ~a\n" status))

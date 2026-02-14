@@ -218,9 +218,7 @@
         [h1 (if (string? hash1) (hex->hash hash1) hash1)]
         [h2 (if (string? hash2) (hex->hash hash2) hash2)])
 
-       (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-       (display "║                      BLOCK DIFF                              ║\n")
-       (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+       (display "\n====================== BLOCK DIFF ===========================\n\n")
 
        (let ([b1-result (fetch store h1)]
              [b2-result (fetch store h2)])
@@ -263,9 +261,7 @@
         [h1 (if (string? hash1) (hex->hash hash1) hash1)]
         [h2 (if (string? hash2) (hex->hash hash2) hash2)])
 
-       (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-       (display "║              NORMALIZED BLOCK DIFF                           ║\n")
-       (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+       (display "\n================ NORMALIZED BLOCK DIFF ======================\n\n")
 
        (let ([b1-result (fetch store h1)]
              [b2-result (fetch store h2)])
@@ -333,9 +329,7 @@
   (let ([store (fs-make-cas fs)]
         [hashes (map (lambda (h) (if (string? h) (hex->hash h) h)) hash-list)])
 
-       (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-       (display "║              MULTI-BLOCK COMPARISON                          ║\n")
-       (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+       (display "\n================ MULTI-BLOCK COMPARISON =====================\n\n")
 
        ;; Fetch all blocks
        (let ([blocks (map (lambda (h)

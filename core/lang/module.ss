@@ -999,11 +999,7 @@ Dependencies:
 ;;; Display loading statistics.
 (define (module-stats)
   (display "
-╔════════════════════════════════════════════════════════════╗
-")
-  (display "║                    MODULE STATISTICS                        ║
-")
-  (display "╚════════════════════════════════════════════════════════════╝
+==================== MODULE STATISTICS =====================
 
 ")
   
@@ -1031,11 +1027,7 @@ Dependencies:
 ;;; Display dependency graph.
 (define (module-graph)
   (display "
-╔════════════════════════════════════════════════════════════╗
-")
-  (display "║                   DEPENDENCY GRAPH                          ║
-")
-  (display "╚════════════════════════════════════════════════════════════╝
+==================== DEPENDENCY GRAPH ======================
 
 ")
   
@@ -1090,12 +1082,12 @@ Dependencies:
 (define (session-summary)
   (let ([info (session-info)])
     (printf "\nSession Summary\n")
-    (printf "───────────────────────────────────────\n")
+    (printf "---------------------------------------\n")
     (printf "  Loaded modules:    ~a\n" (cdr (assq 'module-count info)))
     (printf "  Total load time:   ~ams\n" (cdr (assq 'total-load-time-ms info)))
     (printf "  Cached headers:    ~a\n" (cdr (assq 'cached-headers info)))
     (printf "  Registered paths:  ~a\n" (cdr (assq 'registered-paths info)))
-    (printf "───────────────────────────────────────\n\n")))
+    (printf "---------------------------------------\n\n")))
 
 ;;; ====
 ;;; Convenience
@@ -1177,9 +1169,7 @@ Dependencies:
 ;;; Dynamically builds listing from *module-paths* registry.
 (define (modules)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    AVAILABLE MODULES                               │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --------------- AVAILABLE MODULES ---------------\n")
   (display "\n")
   
   (let* ([groups (group-modules-by-category)]
@@ -1224,8 +1214,8 @@ Dependencies:
 (define (module-info name)
   (display "\n")
   (display (format "  Module: ~a\n" name))
-  (display "  ────────────────────────────────────────────────────────\n")
-  
+  (display "  --------------------------------------------------------\n")
+
   ;; Path
   (let ([path (module-name->path name)])
        (if path
@@ -1276,13 +1266,13 @@ Dependencies:
         (display (format "  Module '~a' not found.\n" name))
         (let ([port (open-input-file path)])
           (display (format "\n  Exports of '~a' (~a):\n" name path))
-          (display "  ────────────────────────────────────────────────────────\n")
+          (display "  --------------------------------------------------------\n")
           (let loop ([count 0] [has-macros #f])
             (let ([form (guard (e [#t #!eof]) (read port))])
               (cond
                 [(eof-object? form)
                  (close-input-port port)
-                 (display "  ────────────────────────────────────────────────────────\n")
+                 (display "  --------------------------------------------------------\n")
                  (display (format "  ~a source-level exports\n" count))
                  ;; Show dependencies
                  (let ([deps (hashtable-ref *module-deps* name '())])
@@ -1366,9 +1356,7 @@ Dependencies:
 ;;;        Use namespaced form (require 'dir/module) to avoid ambiguity
 (define (module-collisions)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    MODULE COLLISIONS                               │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --------------- MODULE COLLISIONS ---------------\n")
   (display "\n")
   (display "  Known collisions (use namespaced form to disambiguate):\n\n")
 

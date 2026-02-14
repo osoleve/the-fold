@@ -10,9 +10,7 @@
 (define *quiet* #t)
 (load "boundary/repl/repl.ss")
 
-(display "\n╔═══════════════════════════════════════════════════════════════╗\n")
-(display "║     COMMAND SYSTEM VERIFICATION                               ║\n")
-(display "╚═══════════════════════════════════════════════════════════════╝\n\n")
+(display "\n=================== COMMAND SYSTEM VERIFICATION ===================\n\n")
 
 (display "✓ Command system loaded successfully\n\n")
 

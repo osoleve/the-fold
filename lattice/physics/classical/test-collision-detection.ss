@@ -42,9 +42,7 @@
   (assert-= (vec2-y actual) (vec2-y expected) tolerance))
 
 (display "
-══════════════════════════════════════════════════════════
-         2D COLLISION DETECTION TESTS
-══════════════════════════════════════════════════════════
+============== 2D COLLISION DETECTION TESTS ==============
 ")
 
 ;;; ====
@@ -413,7 +411,7 @@
 ;;; ====
 
 (display "
-══════════════════════════════════════════════════════════
+==========================================================
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

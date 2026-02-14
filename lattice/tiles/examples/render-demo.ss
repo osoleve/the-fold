@@ -8,9 +8,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT RENDERING DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -18,7 +18,7 @@
 ;;; ====
 
 (display "Example 1: Basic Square Board Rendering\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define floor (make-tile 'floor '()))
 (define wall (make-tile 'wall '()))
@@ -41,7 +41,7 @@
 ;;; ====
 
 (display "Example 2: Pathfinding Visualization\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define maze-board (make-square-board 12 8 floor))
 
@@ -88,7 +88,7 @@
 ;;; ====
 
 (display "Example 3: Field of View Visualization\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define fov-board (make-square-board 15 10 floor))
 
@@ -128,7 +128,7 @@
 ;;; ====
 
 (display "Example 4: Hexagonal Board Rendering\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define grass (make-tile 'grass '((walkable . #t))))
 (define water (make-tile 'water '((walkable . #f))))
@@ -152,7 +152,7 @@
 ;;; ====
 
 (display "Example 5: Hexagonal Pathfinding Visualization\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define hex-path-board (make-hex-board 'axial 4 grass))
 
@@ -190,9 +190,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 (display "Board rendering supports:\n")
 (display "  ✓ Square grids (rectangular layout)\n")

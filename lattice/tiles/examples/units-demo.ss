@@ -8,9 +8,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT UNIT MANAGEMENT DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -18,7 +18,7 @@
 ;;; ====
 
 (display "Example 1: Creating and Placing Units\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create a board
 (define floor (make-tile 'floor '((walkable . #t))))
@@ -97,7 +97,7 @@
 ;;; ====
 
 (display "Example 2: Unit Movement\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define warrior-start (game-get-unit-coord game 'w1))
 (define warrior-dest (square-coord 3 4))
@@ -136,7 +136,7 @@
 ;;; ====
 
 (display "Example 3: Unit Visibility\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define archer-pos (game-get-unit-coord game 'a1))
 (display "Archer at ")
@@ -182,7 +182,7 @@
 ;;; ====
 
 (display "Example 4: Team Filtering\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define player-units (game-units-by-team game 'player))
 (define enemy-units (game-units-by-team game 'enemy))
@@ -218,7 +218,7 @@
 ;;; ====
 
 (display "Example 5: Modifying Unit Properties\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define damaged-warrior (game-get-unit-at game (game-get-unit-coord game 'w1)))
 
@@ -245,7 +245,7 @@
 ;;; ====
 
 (display "Example 6: Units on Hexagonal Board\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define grass (make-tile 'grass '((walkable . #t))))
 (define hex-board (make-hex-board 'axial 4 grass))
@@ -289,9 +289,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 (display "Unit management features:\n")
 (display "  ✓ Create units with properties (HP, attack, movement, vision)\n")

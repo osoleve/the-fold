@@ -8,9 +8,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT VISIBILITY DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -18,7 +18,7 @@
 ;;; ====
 
 (display "Example 1: Line of Sight on Square Grid\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create a board with walls
 (define floor (make-tile 'floor '((walkable . #t) (blocks-vision . #f))))
@@ -63,7 +63,7 @@
 ;;; ====
 
 (display "Example 2: Field of View on Square Grid\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create a room with walls
 (define fov-board (make-square-board 12 12 floor))
@@ -111,7 +111,7 @@
 ;;; ====
 
 (display "Example 3: Line of Sight on Hexagonal Grid\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define hex-board (make-hex-board 'axial 6 floor))
 
@@ -152,7 +152,7 @@
 ;;; ====
 
 (display "Example 4: Field of View on Hexagonal Grid\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define hex-fov-board (make-hex-board 'axial 5 floor))
 
@@ -175,7 +175,7 @@
 ;;; ====
 
 (display "Example 5: Tactical Visibility (Finding Visible Enemies)\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define tactical-board (make-square-board 15 15 floor))
 
@@ -222,9 +222,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 (display "Visibility systems work across all tile shapes:\n")
 (display "  ✓ Line of sight checking\n")

@@ -4,11 +4,7 @@
 
 (display "
 ")
-(display "╔══════════════════════════════════════════════════════════════════╗
-")
-(display "║                   Error System Tests                              ║
-")
-(display "╚══════════════════════════════════════════════════════════════════╝
+(display "==================== Error System Tests ====================
 ")
 (display "
 ")
@@ -69,7 +65,7 @@
 
 (display "Error Construction
 ")
-(display "──────────────────
+(display "------------------
 ")
 
 (let ([err (make-error 'infer 'unbound-variable no-span 'x)])
@@ -90,7 +86,7 @@
 
 (display "Source Spans
 ")
-(display "────────────
+(display "------------
 ")
 
 (let ([s (make-span "test.ss" 10 5 10 15)])
@@ -111,7 +107,7 @@
 
 (display "Message Lookup
 ")
-(display "──────────────
+(display "--------------
 ")
 
 (test "infer unbound message" "Variable is not defined"
@@ -135,7 +131,7 @@
 
 (display "Error Formatting
 ")
-(display "────────────────
+(display "----------------
 ")
 
 (let* ([err (make-error 'infer 'unbound-variable no-span 'foo)]
@@ -160,7 +156,7 @@
 
 (display "Suggestions
 ")
-(display "───────────
+(display "-----------
 ")
 
 (let ([suggestion (get-suggestion 'infer 'unknown-primitive '(+))])
@@ -181,7 +177,7 @@
 
 (display "Edit Distance
 ")
-(display "─────────────
+(display "-------------
 ")
 
 (test "same string = 0" 0 (edit-distance "hello" "hello"))
@@ -200,7 +196,7 @@
 
 (display "Helper Functions
 ")
-(display "────────────────
+(display "----------------
 ")
 
 (let ([err (unbound-error 'myvar (make-span "file.ss" 1 1 1 5))])
@@ -220,7 +216,7 @@
 
 (display "String Split
 ")
-(display "────────────
+(display "------------
 ")
 
 (test "split simple" '("a" "b" "c") (string-split "a,b,c" #\,))
@@ -234,7 +230,7 @@
 ;;; Summary
 ;;; ====
 
-(display "────────────────────────────────────────────────────────
+(display "--------------------------------------------------------
 ")
 (display (format "  Total: ~a tests
 " (+ *pass* *fail*)))
@@ -242,7 +238,7 @@
 " *pass*))
 (display (format "  Failed: ~a
 " *fail*))
-(display "────────────────────────────────────────────────────────
+(display "--------------------------------------------------------
 ")
 
 (if (= *fail* 0)

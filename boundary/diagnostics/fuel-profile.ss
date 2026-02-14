@@ -21,9 +21,7 @@
   (doc 'param '(fuel "Fuel budget"))
   (doc 'returns "void - displays profile report")
 
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    FUEL PROFILE                              ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n==================== FUEL PROFILE ============================\n\n")
 
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
@@ -105,16 +103,14 @@
   (doc 'param '(base-fuel "Base fuel budget"))
   (doc 'returns "void - displays detailed profile")
 
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              DETAILED FUEL PROFILE                           ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n================ DETAILED FUEL PROFILE =======================\n\n")
 
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
 
   (display "Testing fuel levels:\n\n")
   (display "  Fuel    Status    Time (relative)\n")
-  (display "  ─────────────────────────────────\n")
+  (display "  ---------------------------------\n")
 
   (let ([levels (list
                  (quotient base-fuel 10)
@@ -146,9 +142,7 @@
   (doc 'param '(expr "Expression to analyze"))
   (doc 'returns "void - displays recommendation")
 
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              FUEL RECOMMENDATION                             ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n================ FUEL RECOMMENDATION ========================\n\n")
 
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
@@ -182,9 +176,7 @@
   (doc 'param '(fuel-levels "List of fuel budgets to compare"))
   (doc 'returns "void - displays comparison")
 
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                 FUEL COMPARISON                              ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n================= FUEL COMPARISON ============================\n\n")
 
   (display "Expression:\n")
   (display (format "  ~s\n\n" expr))
@@ -217,9 +209,7 @@
          (let* ([content (read-text-file fs file-path)]
                 [port (open-input-string content)])
 
-               (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-               (display "║                FILE FUEL ANALYSIS                            ║\n")
-               (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+               (display "\n================== FILE FUEL ANALYSIS ========================\n\n")
                (display (format "File: ~a\n" file-path))
                (display (format "Fuel budget: ~a\n\n" fuel))
 
@@ -230,7 +220,7 @@
                                        (read port))])
                          (cond
                           [(eof-object? expr)
-                           (display "\n═══════════════════════════════════════════════════════════\n")
+                           (display "\n===========================================================\n")
                            (display "Summary:\n")
                            (display (format "  Total expressions: ~a\n" (- expr-num 1)))
                            (display (format "  Total fuel used: ~a\n" total-fuel))

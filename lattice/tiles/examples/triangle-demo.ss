@@ -8,9 +8,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT TRIANGLE DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -18,7 +18,7 @@
 ;;; ====
 
 (display "Example 1: Triangle Coordinates\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define tri-up (triangle-coord 0 0 'up))
 (define tri-down (triangle-coord 0 0 'down))
@@ -36,7 +36,7 @@
 ;;; ====
 
 (display "Example 2: Flipping Orientation\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (display "Original: ")
 (display tri-up)
@@ -57,7 +57,7 @@
 ;;; ====
 
 (display "Example 3: Edge-Adjacent Neighbors\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define center-up (triangle-coord 2 2 'up))
 (display "Up triangle at (2,2):\n")
@@ -92,7 +92,7 @@
 ;;; ====
 
 (display "Example 4: Vertex-Adjacent Neighbors\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (let ([vertex-neighbors (triangle-neighbors-vertex center-up)])
      (display "Up triangle at (2,2) has ")
@@ -111,7 +111,7 @@
 ;;; ====
 
 (display "Example 5: All Neighbors (Edge + Vertex + Flip)\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (let ([all-neighbors (triangle-neighbors-all center-up)])
      (display "Triangle at (2,2,up) has ")
@@ -125,7 +125,7 @@
 ;;; ====
 
 (display "Example 6: Distance Between Triangles\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define t1 (triangle-coord 0 0 'up))
 (define t2 (triangle-coord 3 4 'down))
@@ -147,7 +147,7 @@
 ;;; ====
 
 (display "Example 7: Line Between Triangles\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define start (triangle-coord 0 0 'up))
 (define end (triangle-coord 3 3 'up))
@@ -171,7 +171,7 @@
 ;;; ====
 
 (display "Example 8: Triangles Within Range\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define origin (triangle-coord 2 2 'up))
 (display "Triangles within distance 1 of ")
@@ -195,7 +195,7 @@
 ;;; ====
 
 (display "Example 9: Create Triangular Board\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define floor-tile (make-tile 'floor '((walkable . #t))))
 (define board (make-triangle-board 4 4 floor-tile))
@@ -218,7 +218,7 @@
 ;;; ====
 
 (display "Example 10: Bounds Checking\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define in-bounds (triangle-coord 2 2 'up))
 (define out-bounds (triangle-coord 10 10 'down))
@@ -241,7 +241,7 @@
 ;;; ====
 
 (display "Example 11: 180° Rotation\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define original (triangle-coord 1 1 'up))
 (display "Original: ")
@@ -264,7 +264,7 @@
 ;;; ====
 
 (display "Example 12: Reflection\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define point (triangle-coord 1 1 'up))
 (display "Original: ")
@@ -289,7 +289,7 @@
 ;;; ====
 
 (display "Example 13: Alternating Orientation Pattern\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (display "Default orientations in a 3×3 grid:\n")
 (let loop-r ([r 0])
@@ -311,9 +311,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "\nTriangular boards are perfect for:\n")
 (display "  • TriHex-style games\n")
 (display "  • Tessellation puzzles\n")

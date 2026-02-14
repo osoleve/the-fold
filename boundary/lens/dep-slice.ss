@@ -176,7 +176,7 @@
         
         (display "\n")
         (printf "  Dependency Analysis: ~a\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (display "\n")
         (display "  Dependents (who uses this?):\n")
         (printf "    Direct:     ~a\n" (length direct-up))

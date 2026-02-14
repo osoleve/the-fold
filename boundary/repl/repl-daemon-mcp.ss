@@ -457,9 +457,7 @@
   (ensure-dirs!)
   (write-ready!)
   
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║          THE FOLD — SESSION BROKER STARTED                  ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "============= THE FOLD -- SESSION BROKER STARTED =============\n")
   (display (format "Sessions: ~a\n" *requests-dir*))
   (display (format "Output:   ~a\n" *responses-dir*))
   (display (format "Workers:  ~a\n" *workers-dir*))

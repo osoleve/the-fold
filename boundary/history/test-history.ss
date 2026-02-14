@@ -293,9 +293,7 @@
 (doc 'section 'run-tests)
 
 (display "\n")
-(display "═══════════════════════════════════════════════════════════\n")
-(display "              REPL History Module Test Suite                \n")
-(display "═══════════════════════════════════════════════════════════\n")
+(display "=========== REPL History Module Test Suite ================\n")
 (display "\n")
 
 (run-all-tests)

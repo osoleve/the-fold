@@ -104,9 +104,9 @@
    (lambda (cat-entry)
            (let ([category (car cat-entry)]
                  [description (cdr cat-entry)])
-                (display "─────────────────────────────────────────────────────────────────────────\n")
+                (display "-------------------------------------------------------------------------\n")
                 (display (format "  ~a: ~a\n" (category-name category) description))
-                (display "─────────────────────────────────────────────────────────────────────────\n")
+                (display "-------------------------------------------------------------------------\n")
                 
                 (let ([tools (filter (lambda (tool) (eq? (cadr tool) category))
                                      *toolkit-tools*)])

@@ -162,8 +162,8 @@
 (doc 'section 'test-summary)
 
 (display "\n")
-(display "═══════════════════════════════════════════\n")
+(display "===========================================\n")
 (display "  ✓ All color tests passed!\n")
 (display "  ✓ Color system is operational.\n")
 (display "  ✓ DUCKIE can see in color.\n")
-(display "═══════════════════════════════════════════\n")
+(display "===========================================\n")

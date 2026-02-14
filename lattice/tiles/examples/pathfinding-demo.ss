@@ -8,9 +8,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT PATHFINDING DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -18,7 +18,7 @@
 ;;; ====
 
 (display "Example 1: BFS on Square Grid (Chess-like)\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create a simple maze
 (define floor (make-tile 'floor '((walkable . #t))))
@@ -60,7 +60,7 @@
 ;;; ====
 
 (display "Example 2: Dijkstra with Variable Costs\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create terrain with different movement costs
 (define grass (make-tile 'grass '((walkable . #t) (cost . 1))))
@@ -103,7 +103,7 @@
 ;;; ====
 
 (display "Example 3: A* on Hexagonal Grid\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define hex-board (make-hex-board 'axial 5 floor))
 
@@ -142,7 +142,7 @@
 ;;; ====
 
 (display "Example 4: BFS on Triangular Grid\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define tri-board (make-triangle-board 5 5 floor))
 
@@ -178,7 +178,7 @@
 ;;; ====
 
 (display "Example 5: Reachability Analysis\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define reach-board (make-square-board 10 10 floor))
 (define reach-start (square-coord 5 5))
@@ -212,7 +212,7 @@
 ;;; ====
 
 (display "Example 6: Hex Maze Navigation\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (define maze-board (make-hex-board 'axial 4 floor))
 
@@ -250,9 +250,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 (display "Pathfinding works generically across all tile shapes:\n")
 (display "  ✓ Square tiles (4-way, 8-way movement)\n")

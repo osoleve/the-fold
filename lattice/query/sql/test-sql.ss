@@ -329,11 +329,7 @@
 ;;; ====
 
 (newline)
-(display "╔══════════════════════════════════════╗
-")
-(display "║        SQL DSL Test Summary          ║
-")
-(display "╚══════════════════════════════════════╝
+(display "========== SQL DSL Test Summary ===========
 ")
 (display (string-append "  Total:  " (number->string test-count) " tests
 "))

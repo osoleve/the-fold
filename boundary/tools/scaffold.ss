@@ -523,9 +523,7 @@
 ;;; Display comprehensive scaffolding help.
 (define (scaffold-help)
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════════════════╗\n")
-  (display "║                   SCAFFOLDING SYSTEM HELP                                ║\n")
-  (display "╚══════════════════════════════════════════════════════════════════════════╝\n")
+  (display "======================= SCAFFOLDING SYSTEM HELP ========================\n")
   (display "\n")
   (display "The scaffolding system generates boilerplate code from templates.\n")
   (display "\n")

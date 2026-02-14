@@ -217,9 +217,9 @@
 (define (run-test-category category-name dir test-files)
   (doc 'type "String × String × (List String) → Unit")
   (doc 'description "Run a category of tests (core, boundary, etc.)")
-  (display (bold "────────────────────────────────────────────────────────────────\n"))
+  (display (bold "----------------------------------------------------------------\n"))
   (display (bold (string-append "  " category-name " (" dir "/)\n")))
-  (display (bold "────────────────────────────────────────────────────────────────\n"))
+  (display (bold "----------------------------------------------------------------\n"))
   
   (if (null? test-files)
       (begin
@@ -310,12 +310,10 @@
 (define (print-header title)
   (doc 'type "String → Unit")
   (display "\n")
-  (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
-  (display (bold (string-append "║  THE FOLD — TEST RUNNER: " title)))
-  (let ([padding (- 62 (+ 27 (string-length title)))])
-       (display (make-string padding #\space)))
-  (display (bold "║\n"))
-  (display (bold "╚══════════════════════════════════════════════════════════════╝\n"))
+  (display (bold (string-append "===== THE FOLD -- TEST RUNNER: " title " ")))
+  (let ([padding (max 0 (- 62 (+ 31 (string-length title))))])
+       (display (bold (make-string padding #\=))))
+  (display (bold "\n"))
   (display (string-append "\nWorking directory: " (gray (current-directory)) "\n"))
   (display (string-append "Time: " (gray (date-time-string)) "\n\n")))
 
@@ -332,9 +330,7 @@
          [total (length *test-results*)]
          [duration (- (current-time-ms) *total-start-time*)])
         
-        (display (bold "\n╔══════════════════════════════════════════════════════════════╗\n"))
-        (display (bold "║                      SUMMARY                                 ║\n"))
-        (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
+        (display (bold "\n====================== SUMMARY =================================\n\n"))
         
         (display (string-append "  Test files:  " (bold (number->string total)) "\n"))
         (display (string-append "  " (green (string-append "Passed:      " (number->string passed))) "\n"))
@@ -362,17 +358,13 @@
         ;; Final verdict
         (if (= failed 0)
             (begin
-             (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
-             (display (bold "║  "))
+             (display (bold "===== "))
              (display (green "✓ ALL TESTS PASSED"))
-             (display (bold "                                          ║\n"))
-             (display (bold "╚══════════════════════════════════════════════════════════════╝\n")))
+             (display (bold " =============================================\n")))
             (begin
-             (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
-             (display (bold "║  "))
+             (display (bold "===== "))
              (display (red "✗ SOME TESTS FAILED"))
-             (display (bold "                                        ║\n"))
-             (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
+             (display (bold " ==========================================\n\n"))
              
              ;; List failed tests
              (display (red (bold "  Failed tests:\n")))
@@ -405,9 +397,7 @@
   (doc 'type "Unit → Unit")
   (doc 'description "Display all available test files organized by category")
   (display "\n")
-  (display (bold "╔══════════════════════════════════════════════════════════════╗\n"))
-  (display (bold "║              AVAILABLE TESTS                                 ║\n"))
-  (display (bold "╚══════════════════════════════════════════════════════════════╝\n\n"))
+  (display (bold "============== AVAILABLE TESTS =================================\n\n"))
   
   (display (bold (string-append "CORE TESTS (" (number->string (length *core-test-files*)) " files):\n")))
   (for-each

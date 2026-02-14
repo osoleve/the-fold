@@ -99,7 +99,7 @@
          [mod (if doc (protocol-doc-module doc) #f)])
     (string-append
       "Protocol: " (symbol->string proto-name) "\n"
-      (make-string 60 #\─) "\n"
+      (make-string 60 #\-) "\n"
       (if sig
           (string-append "Signature: " (format "~a" sig) "\n")
           "")
@@ -122,7 +122,7 @@
   (let ([protos (protocols-for-type type-tag)])
     (string-append
       "Type: " (symbol->string type-tag) "\n"
-      (make-string 60 #\─) "\n"
+      (make-string 60 #\-) "\n"
       "Implements (" (number->string (length protos)) " protocols):\n"
       (if (null? protos)
           "  (none)\n"
@@ -174,7 +174,7 @@
          [rows (map (lambda (p) (build-row p types type-col-width proto-col-width)) protos)])
     (string-append
       header
-      (make-string (+ proto-col-width (* type-col-width (length types))) #\─) "\n"
+      (make-string (+ proto-col-width (* type-col-width (length types))) #\-) "\n"
       (apply string-append rows))))
 
 ;;; build-header : (List Symbol) × Number × Number → String
@@ -271,7 +271,7 @@
 (define (print-protocol-stats)
   (let ([stats (protocol-stats)])
     (display "Protocol System Statistics\n")
-    (display (make-string 40 #\─))
+    (display (make-string 40 #\-))
     (newline)
     (for-each
       (lambda (pair)

@@ -184,9 +184,9 @@
                             ;; Choose corner characters based on style
                             [corners (case style-name
                                            [(ascii) '(#\/ #\\ #\\ #\/)]
-                                           [(light) '(#\╭ #\╮ #\╰ #\╯)]
-                                           [(heavy) '(#\┏ #\┓ #\┗ #\┛)]  ; Heavy doesn't have round
-                                           [(double) '(#\╔ #\╗ #\╚ #\╝)] ; Double doesn't have round
+                                           [(light) '(#\/ #\\ #\\ #\/)]
+                                           [(heavy) '(#\+ #\+ #\+ #\+)]
+                                           [(double) '(#\+ #\+ #\+ #\+)]
                                            [else '(#\+ #\+ #\+ #\+)])]
                             [tl (list-ref corners 0)]
                             [tr (list-ref corners 1)]
@@ -194,15 +194,15 @@
                             [br (list-ref corners 3)]
                             [hz (case style-name
                                       [(ascii) #\-]
-                                      [(light) #\─]
-                                      [(heavy) #\━]
-                                      [(double) #\═]
+                                      [(light) #\-]
+                                      [(heavy) #\=]
+                                      [(double) #\=]
                                       [else #\-])]
                             [vt (case style-name
                                       [(ascii) #\|]
-                                      [(light) #\│]
-                                      [(heavy) #\┃]
-                                      [(double) #\║]
+                                      [(light) #\|]
+                                      [(heavy) #\|]
+                                      [(double) #\|]
                                       [else #\|])])
                            ;; Draw corners
                            (canvas-set! canvas ox oy tl)

@@ -8,9 +8,9 @@
 
 (load "lattice/tiles/boardcraft.ss")
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT TURN SYSTEM DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -18,7 +18,7 @@
 ;;; ====
 
 (display "Example 1: Basic Turn Order\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create board and game
 (define floor (make-tile 'floor '((walkable . #t))))
@@ -64,7 +64,7 @@
 ;;; ====
 
 (display "Example 2: Spending Action Points\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (display "Warrior (u1) starts with ")
 (display (turn-actions-remaining turns 'u1))
@@ -92,7 +92,7 @@
 ;;; ====
 
 (display "Example 3: Advancing Turns\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (display "Current unit: ")
 (display (turn-current-unit turns))
@@ -118,7 +118,7 @@
 ;;; ====
 
 (display "Example 4: Turn Phases\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 (display "Current phase: ")
 (display (turn-current-phase turns))
@@ -145,7 +145,7 @@
 ;;; ====
 
 (display "Example 5: Turn History and Action Log\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Log some actions
 (define turns (turn-log-action turns 'move "Moved to (5,4)"))
@@ -172,7 +172,7 @@
 ;;; ====
 
 (display "Example 6: Initiative-Based Turn Order\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create units with initiative stats
 (define fast-unit (make-unit 'fast 'rogue 'player
@@ -202,7 +202,7 @@
 ;;; ====
 
 (display "Example 7: Complete Game Loop with Actions\n")
-(display "──────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------\n")
 
 ;;; Create fresh game with turns
 (define game-board (make-square-board 8 6 floor))
@@ -237,9 +237,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 (display "Turn system features:\n")
 (display "  ✓ Turn order management\n")

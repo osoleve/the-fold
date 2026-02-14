@@ -271,11 +271,7 @@
 ;;; ====
 
 (newline)
-(display "╔══════════════════════════════════════╗
-")
-(display "║    Dialect Translation Summary       ║
-")
-(display "╚══════════════════════════════════════╝
+(display "====== Dialect Translation Summary ========
 ")
 (display (string-append "  Total:  " (number->string test-count) " tests
 "))

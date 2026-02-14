@@ -46,11 +46,7 @@
 
 (doc 'section 'run-tests-in-dependency-order)
 
-(display "╔══════════════════════════════════════════════════════════╗
-")
-(display "║           The Fold — Core Test Suite                     ║
-")
-(display "╚══════════════════════════════════════════════════════════╝
+(display "=============== The Fold -- Core Test Suite ================
 ")
 (display (string-append "Working directory: " (current-directory) "
 "))
@@ -125,11 +121,7 @@
 (doc 'section 'summary)
 
 (newline)
-(display "╔══════════════════════════════════════════════════════════╗
-")
-(display "║                    TEST SUMMARY                          ║
-")
-(display "╚══════════════════════════════════════════════════════════╝
+(display "===================== TEST SUMMARY =========================
 ")
 (display (string-append "  Total:  " (number->string test-count) " test files
 "))

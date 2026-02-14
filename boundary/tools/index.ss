@@ -383,7 +383,7 @@
                   (length results)
                   (if (= 1 (length results)) "" "es")
                   pattern)
-          (display "  ────────────────────────────────\n")
+          (display "  --------------------------------\n")
           (for-each
            (lambda (e)
              (let ([name (cdr (assq 'name e))]
@@ -418,7 +418,7 @@
         (when sig
           (display " : ") (display sig))
         (display "\n")
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (printf "  ~a at ~a:~a\n" kind file line)
         (when doc
           (display "\n  ")
@@ -464,7 +464,7 @@
 ")
   (display "  Index Statistics
 ")
-  (display "  ────────────────────────────────
+  (display "  --------------------------------
 ")
   (printf "  Symbols indexed: ~a
 " (hashtable-size *symbol-index*))
@@ -658,7 +658,7 @@
 ")
   (display "  Index Browser Commands:
 ")
-  (display "  ───────────────────────────────────────────
+  (display "  -------------------------------------------
 ")
   (display "  (find \"pattern\")     - Search symbols
 ")

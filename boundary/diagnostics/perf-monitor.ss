@@ -322,9 +322,7 @@
 (define (monitor-status)
   "Display current performance metrics"
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║            PERFORMANCE MONITOR - STATUS                     ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "============== PERFORMANCE MONITOR - STATUS ==================\n")
   (display "\n")
   
   ;; Monitor state
@@ -342,9 +340,9 @@
        (if (null? samples)
            (display "No samples collected yet.\n")
            (let ([latest (car samples)])
-                (display "───────────────────────────────────────────────────────────\n")
+                (display "-----------------------------------------------------------\n")
                 (display " CURRENT METRICS\n")
-                (display "───────────────────────────────────────────────────────────\n")
+                (display "-----------------------------------------------------------\n")
                 
                 (when (perf-sample-memory-snapshot latest)
                       (let ([mem (perf-sample-memory-snapshot latest)])
@@ -369,9 +367,9 @@
   ;; Recent operations
   (let ([ops (monitor-operations)])
        (unless (null? ops)
-               (display "───────────────────────────────────────────────────────────\n")
+               (display "-----------------------------------------------------------\n")
                (display " RECENT OPERATIONS (last 5)\n")
-               (display "───────────────────────────────────────────────────────────\n")
+               (display "-----------------------------------------------------------\n")
                (for-each
                 (lambda (op)
                         (display (format "  ~a ~a ~a ~a\n"
@@ -387,9 +385,9 @@
   ;; Active alerts
   (let ([alerts (monitor-alerts)])
        (unless (null? alerts)
-               (display "───────────────────────────────────────────────────────────\n")
+               (display "-----------------------------------------------------------\n")
                (display " ACTIVE ALERTS\n")
-               (display "───────────────────────────────────────────────────────────\n")
+               (display "-----------------------------------------------------------\n")
                (for-each
                 (lambda (alert)
                         (display (format "  ⚠ ~a: ~a\n" (car alert) (cadr alert))))
@@ -399,9 +397,7 @@
 (define (monitor-history)
   "Display historical performance data"
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║            PERFORMANCE MONITOR - HISTORY                    ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "============== PERFORMANCE MONITOR - HISTORY =================\n")
   (display "\n")
   
   (let ([samples (reverse (monitor-samples))])  ; Oldest first
@@ -410,7 +406,7 @@
            (begin
             (display (format "Showing ~a samples:\n\n" (length samples)))
             (display "Time       Memory(MB)  Store(MB)  Blocks  Sessions  Ops\n")
-            (display "────────────────────────────────────────────────────────\n")
+            (display "--------------------------------------------------------\n")
             (for-each
              (lambda (sample)
                      (let* ([ts (format-timestamp-ns (perf-sample-timestamp-ns sample))]
@@ -431,9 +427,7 @@
 (define (monitor-summary)
   "Display summary statistics"
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║            PERFORMANCE MONITOR - SUMMARY                    ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "============== PERFORMANCE MONITOR - SUMMARY =================\n")
   (display "\n")
   
   (let ([ops (monitor-operations)])
@@ -482,9 +476,7 @@
 (define (perf-help)
   "Display help for performance monitor"
   (display "
-╔══════════════════════════════════════════════════════════════╗
-║          PERFORMANCE MONITOR - HELP                          ║
-╚══════════════════════════════════════════════════════════════╝
+============= PERFORMANCE MONITOR - HELP ====================
 
 CONTROL:
   (start-monitor!)          Start monitoring

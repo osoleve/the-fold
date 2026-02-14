@@ -163,9 +163,7 @@
 ;;; refactor-help-handler : -> void
 (define (refactor-help-handler)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    REFACTORING TOOLKIT                             │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  ------------------- REFACTORING TOOLKIT --------------------\n")
   (display "\n")
   (display "  Rename & Move:\n")
   (display "    (refactor 'rename 'old-name 'new-name)     Rename symbol globally\n")
@@ -226,7 +224,7 @@
 (define (refactor-deps-handler sym)
   (display "\n")
   (printf "  Dependency Analysis: ~a\n" sym)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
 
   ;; Try to get call graph info
   (guard (e [else (void)])
@@ -320,7 +318,7 @@
 
 (display "\n")
 (display "  Refactoring Toolkit Loaded\n")
-(display "  ────────────────────────────────\n")
+(display "  --------------------------------\n")
 (display "  Use (refactor 'help) for available commands.\n")
 (display "\n")
 (display "  Quick aliases:\n")

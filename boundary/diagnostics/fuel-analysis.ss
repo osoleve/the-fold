@@ -351,9 +351,7 @@
   (doc 'description "Pretty print fuel analysis results")
   (doc 'param '(analysis "Analysis alist"))
 
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              PRIMITIVE FUEL ANALYSIS                         ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n================ PRIMITIVE FUEL ANALYSIS =====================\n\n")
 
   (let ([total-fuel (cdr (assq 'total-fuel analysis))]
         [prim-calls (cdr (assq 'primitive-calls analysis))]
@@ -381,9 +379,7 @@
   (doc 'description "Pretty print complexity analysis results")
   (doc 'param '(analysis "Complexity analysis alist"))
 
-  (display "\n╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║            COMPLEXITY ANALYSIS                               ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n\n")
+  (display "\n================ COMPLEXITY ANALYSIS =========================\n\n")
 
   (let ([complexity (cdr (assq 'complexity analysis))]
         [samples (cdr (assq 'fuel-samples analysis))]
@@ -393,7 +389,7 @@
 
        (display "Fuel Samples:\n")
        (display "  Size       Fuel\n")
-       (display "  ────────────────\n")
+       (display "  ----------------\n")
        (for-each
         (lambda (sample)
                 (display (format "  ~a~a~a\n"

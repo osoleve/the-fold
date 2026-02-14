@@ -372,7 +372,7 @@
         (string-append
          "❌ ERROR
 "
-         "═══════════════════════════════════════════════════════════════
+         "===============================================================
 "
          base-error "
 "
@@ -487,11 +487,7 @@
   (doc 'description "Demonstrate the enhanced error system")
   (display "
 ")
-  (display "╔════════════════════════════════════════════════════════════╗
-")
-  (display "║         ENHANCED ERROR SYSTEM DEMONSTRATION               ║
-")
-  (display "╚════════════════════════════════════════════════════════════╝
+  (display "========= ENHANCED ERROR SYSTEM DEMONSTRATION ===========
 ")
   (display "
 ")

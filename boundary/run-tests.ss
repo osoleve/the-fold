@@ -54,11 +54,7 @@
 ;;; Run Shell Tests
 ;;; ====
 
-(display "╔══════════════════════════════════════════════════════════╗
-")
-(display "║           The Fold — Shell Test Suite                    ║
-")
-(display "╚══════════════════════════════════════════════════════════╝
+(display "========== The Fold -- Shell Test Suite =====================
 ")
 (display (string-append "Working directory: " (current-directory) "
 "))
@@ -81,11 +77,7 @@
 ;;; ====
 
 (newline)
-(display "╔══════════════════════════════════════════════════════════╗
-")
-(display "║                    TEST SUMMARY                          ║
-")
-(display "╚══════════════════════════════════════════════════════════╝
+(display "==================== TEST SUMMARY ==========================
 ")
 (display (string-append "  Total:  " (number->string test-count) " test files
 "))

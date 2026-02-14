@@ -442,7 +442,7 @@
 (define (type-search pattern-str)
   (display "\n")
   (printf "  Type Search: ~a\n" pattern-str)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Ensure index is loaded
   (unless (> (hashtable-size *symbol-index*) 0)
@@ -469,7 +469,7 @@
 (define (type-search-return type-str)
   (display "\n")
   (printf "  Functions returning: ~a\n" type-str)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (unless (> (hashtable-size *symbol-index*) 0)
           (index-refresh!))
@@ -491,7 +491,7 @@
 (define (type-search-arg type-str)
   (display "\n")
   (printf "  Functions taking: ~a\n" type-str)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (unless (> (hashtable-size *symbol-index*) 0)
           (index-refresh!))
@@ -513,7 +513,7 @@
 (define (type-search-suggest type-str)
   (display "\n")
   (printf "  Suggestions for constructing: ~a\n" type-str)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (unless (> (hashtable-size *symbol-index*) 0)
           (index-refresh!))
@@ -562,9 +562,7 @@
 ;;; type-search-help : -> void
 (define (type-search-help)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    TYPE-DRIVEN SEARCH COMMANDS                     │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- TYPE-DRIVEN SEARCH COMMANDS ---------------------------------\n")
   (display "\n")
   (display "  Basic Search:\n")
   (display "    (type-search \"(-> Nat Nat)\")        Functions Nat -> Nat\n")
@@ -602,7 +600,7 @@
 (define (type-search-stats)
   (display "\n")
   (display "  Type Search Statistics\n")
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (let ([total 0]
         [with-sig 0])
@@ -633,6 +631,6 @@
 
 (display "\n")
 (display "  Type-Driven Search Loaded\n")
-(display "  ────────────────────────────────\n")
+(display "  --------------------------------\n")
 (display "  Use (type-search-help) for available commands.\n")
 (display "\n")

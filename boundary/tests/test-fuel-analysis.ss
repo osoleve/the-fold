@@ -7,15 +7,15 @@
 (doc 'note "Test the fuel analysis tools to ensure they correctly track primitive operations and estimate complexity")
 
 (display "\n")
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "  FUEL ANALYSIS TESTS\n")
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "\n")
 
 (doc 'section 'test-simple-addition)
 
 (display "Test 1: Simple Addition\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (let ([result (analyze-fuel test-add 5)])
      (display (format "Input: (test-add 5)\n"))
@@ -32,7 +32,7 @@
 (doc 'section 'test-factorial-recursive)
 
 (display "Test 2: Factorial - Recursive Pattern\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (let ([result (analyze-fuel test-factorial 5)])
      (display (format "Input: (test-factorial 5)\n"))
@@ -57,7 +57,7 @@
 (doc 'section 'test-list-length-linear)
 
 (display "Test 3: Complexity Analysis - List Length\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (doc test-length 'description "List length using instrumented primitives")
 (define (test-length lst)
@@ -89,7 +89,7 @@
 (doc 'section 'test-constant-time)
 
 (display "Test 4: Complexity Analysis - Constant Time\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (doc test-car 'description "Constant time car operation")
 (define (test-car lst)
@@ -113,7 +113,7 @@
 (doc 'section 'test-multiple-primitive-types)
 
 (display "Test 5: Multiple Primitive Types\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (doc test-multi 'description "Function using various primitives")
 (define (test-multi x)
@@ -146,7 +146,7 @@
 (doc 'section 'test-fuel-cost-tiers)
 
 (display "Test 6: Fuel Cost Tiers\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (doc test-costs 'description "Test different cost tiers")
 (define (test-costs x)
@@ -173,7 +173,7 @@
 (doc 'section 'test-error-handling)
 
 (display "Test 7: Error Handling\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 
 (doc test-error 'description "Function that might error")
 (define (test-error x)
@@ -198,9 +198,9 @@
 
 (doc 'section 'summary)
 
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "  TEST SUITE COMPLETE\n")
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "\n")
 (display "All basic fuel analysis functionality has been tested.\n")
 (display "\n")

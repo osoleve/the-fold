@@ -6,9 +6,7 @@
 (load "boundary/io/fs.ss")
 (load "lattice/data/collection-utils.ss")
 
-(printf "\n╔════════════════════════════════════════════════════════════╗\n")
-(printf "║       COLLECTION UTILITIES TEST SUITE                      ║\n")
-(printf "╚════════════════════════════════════════════════════════════╝\n\n")
+(printf "\n=========== COLLECTION UTILITIES TEST SUITE ============\n\n")
 
 (define tests-passed 0)
 (define tests-failed 0)
@@ -56,7 +54,7 @@
 ;;; ====
 
 (printf "Testing General List Utilities:\n")
-(printf "─────────────────────────────────────\n")
+(printf "-------------------------------------\n")
 
 (test "foldr - identity with cons"
       '(1 2 3)
@@ -94,7 +92,7 @@
 ;;; ====
 
 (printf "Testing Core Collection Operations:\n")
-(printf "─────────────────────────────────────\n")
+(printf "-------------------------------------\n")
 
 (test "collection-size"
       3
@@ -123,7 +121,7 @@
 ;;; ====
 
 (printf "Testing Higher-Order Functions:\n")
-(printf "─────────────────────────────────────\n")
+(printf "-------------------------------------\n")
 
 (test "map-collection - tags"
       '(entity entity entity)
@@ -175,7 +173,7 @@
 ;;; ====
 
 (printf "Testing Collection Queries:\n")
-(printf "─────────────────────────────────────\n")
+(printf "-------------------------------------\n")
 
 (test "collection-find - found"
       'entity
@@ -227,7 +225,7 @@
 ;;; ====
 
 (printf "Testing Collection Transformation:\n")
-(printf "─────────────────────────────────────\n")
+(printf "-------------------------------------\n")
 
 (let-values ([(entities relations)
               (collection-partition fs
@@ -251,7 +249,7 @@
 ;;; ====
 
 (printf "Testing Collection Construction:\n")
-(printf "─────────────────────────────────────\n")
+(printf "-------------------------------------\n")
 
 (test "make-collection-from-blocks"
       2
@@ -285,9 +283,7 @@
 ;;; Summary
 ;;; ====
 
-(printf "╔════════════════════════════════════════════════════════════╗\n")
-(printf "║                    TEST RESULTS                             ║\n")
-(printf "╚════════════════════════════════════════════════════════════╝\n\n")
+(printf "==================== TEST RESULTS ======================\n\n")
 
 (printf "Tests passed: ~a\n" tests-passed)
 (printf "Tests failed: ~a\n" tests-failed)

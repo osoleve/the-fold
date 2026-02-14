@@ -601,10 +601,9 @@
         [mod (cdr (assq 'module entry))])
        
        (display "\n")
-       (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-       (printf  "  │  ~a~a\n" name
+       (printf  "  --- ~a~a " name
                (if (eq? vis 'private) " [internal]" ""))
-       (display "  └────────────────────────────────────────────────────────────────────┘\n")
+       (display "----------------------------------------------\n")
        (display "\n")
        
        (printf  "  Type: ~a    Category: ~a\n" kind cat)
@@ -689,7 +688,7 @@
   (let ([symbols (hashtable-ref *autodoc-categories* cat '())])
        (display "\n")
        (printf "  Category: ~a\n" cat)
-       (display "  ────────────────────────────────────────────────────────────\n\n")
+       (display "  ------------------------------------------------------------\n\n")
        (if (null? symbols)
            (display "  (no symbols in this category)\n")
            (begin
@@ -757,9 +756,7 @@
          (hashtable-keys *autodoc-registry*))
         
         (display "\n")
-        (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-        (display "  │                    AUTODOC STATISTICS                              │\n")
-        (display "  └────────────────────────────────────────────────────────────────────┘\n")
+        (display "  --- AUTODOC STATISTICS ------------------------------------------\n")
         (display "\n")
         (printf  "  Total symbols indexed:  ~a\n" total)
         (printf  "    Public:               ~a\n" public)

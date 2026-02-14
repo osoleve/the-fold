@@ -166,7 +166,7 @@
    [(sym fuel)
     (display "\n")
     (printf "  Flow Trace: ~a\n" sym)
-    (display "  ═══════════════════════════════════════════════════\n\n")
+    (display "  ===================================================\n\n")
     (let* ([visited (make-eq-hashtable)]
            [tree (build-flow-tree sym fuel visited)])
           (if tree
@@ -222,7 +222,7 @@
 (define (show-effects sym)
   (display "\n")
   (printf "  Effect Analysis: ~a\n" sym)
-  (display "  ═══════════════════════════════════════════════════\n\n")
+  (display "  ===================================================\n\n")
   (let* ([effect (get-symbol-effect sym)]
          [callees (call-graph-callees sym)]
          [callee-effects (map (lambda (c) (cons c (get-symbol-effect c))) callees)])
@@ -261,7 +261,7 @@
 (define (effect-boundary sym)
   (display "\n")
   (printf "  Effect Boundaries: ~a\n" sym)
-  (display "  ═══════════════════════════════════════════════════\n\n")
+  (display "  ===================================================\n\n")
   (let* ([effect (get-symbol-effect sym)]
          [callers (call-graph-callers sym)]
          [callees (call-graph-callees sym)])
@@ -314,7 +314,7 @@
    [(sym effect depth)
     (display "\n")
     (printf "  Call Slice: ~a (filter: ~a, depth: ~a)\n" sym effect depth)
-    (display "  ═══════════════════════════════════════════════════\n\n")
+    (display "  ===================================================\n\n")
     (let ([slices (call-slice-by-effect sym effect depth)])
          (if (null? slices)
              (printf "  No callees~a found.\n"
@@ -345,7 +345,7 @@
 (define (flow-inspector-help)
   (display "\n")
   (display "  Effect + Flow Inspector Commands\n")
-  (display "  ────────────────────────────────────────────\n")
+  (display "  --------------------------------------------\n")
   (display "  (trace-flow 'sym [fuel])  - Trace call paths with effects\n")
   (display "  (show-effects 'sym)       - Show effect analysis\n")
   (display "  (effect-boundary 'sym)    - Find effect transitions\n")

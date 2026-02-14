@@ -338,16 +338,16 @@
     (h . #\-) (v . #\|)))
 
 (define box-style-light
-  '((tl . #\┌) (tr . #\┐) (bl . #\└) (br . #\┘)
-    (h . #\─) (v . #\│)))
+  '((tl . #\+) (tr . #\+) (bl . #\+) (br . #\+)
+    (h . #\-) (v . #\|)))
 
 (define box-style-heavy
-  '((tl . #\┏) (tr . #\┓) (bl . #\┗) (br . #\┛)
-    (h . #\━) (v . #\┃)))
+  '((tl . #\+) (tr . #\+) (bl . #\+) (br . #\+)
+    (h . #\=) (v . #\|)))
 
 (define box-style-double
-  '((tl . #\╔) (tr . #\╗) (bl . #\╚) (br . #\╝)
-    (h . #\═) (v . #\║)))
+  '((tl . #\+) (tr . #\+) (bl . #\+) (br . #\+)
+    (h . #\=) (v . #\|)))
 
 (define (get-box-style style)
   (case style

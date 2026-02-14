@@ -451,9 +451,9 @@
   ;; Write ready sentinel with socket path
   (write-ready!)
 
-  (display "══════════════════════════════════════════════════════════════\n")
-  (display "  THE FOLD — SOCKET DAEMON STARTED\n")
-  (display "══════════════════════════════════════════════════════════════\n")
+  (display "==============================================================\n")
+  (display "  THE FOLD -- SOCKET DAEMON STARTED\n")
+  (display "==============================================================\n")
   (display (format "Socket:   ~a\n" *socket-path*))
   (display (format "Workers:  ~a\n" *workers-dir*))
   (display (format "Max:      ~a concurrent workers\n" *max-workers*))

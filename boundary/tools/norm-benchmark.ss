@@ -192,9 +192,9 @@
 (doc print-benchmark-results 'description "Pretty-print benchmark results with formatted tables")
 (define (print-benchmark-results results)
   (newline)
-  (display "═══════════════════════════════════════════════════════════\n")
+  (display "===========================================================\n")
   (display "         NORMALIZATION EQUIVALENCE BENCHMARK\n")
-  (display "═══════════════════════════════════════════════════════════\n")
+  (display "===========================================================\n")
   (newline)
 
   ;; Scope
@@ -209,24 +209,24 @@
      (display (format "Files scanned: ~a\n" (cdr (assq 'files results))))])
 
   (newline)
-  (display "───────────────────────────────────────────────────────────\n")
+  (display "-----------------------------------------------------------\n")
   (display "                    EXPRESSION COUNTS\n")
-  (display "───────────────────────────────────────────────────────────\n")
+  (display "-----------------------------------------------------------\n")
   (display (format "  Total expressions:     ~a\n" (cdr (assq 'total-expressions results))))
   (display (format "  Failed to normalize:   ~a\n" (cdr (assq 'failed-expressions results))))
 
   (newline)
-  (display "───────────────────────────────────────────────────────────\n")
+  (display "-----------------------------------------------------------\n")
   (display "                    UNIQUE HASHES\n")
-  (display "───────────────────────────────────────────────────────────\n")
+  (display "-----------------------------------------------------------\n")
   (display (format "  v0x00 (α-only):        ~a\n" (cdr (assq 'v0-unique-hashes results))))
   (display (format "  v0x01 (algebraic):     ~a\n" (cdr (assq 'v1-unique-hashes results))))
   (display (format "  v0x02 (full v2):       ~a\n" (cdr (assq 'v2-unique-hashes results))))
 
   (newline)
-  (display "───────────────────────────────────────────────────────────\n")
+  (display "-----------------------------------------------------------\n")
   (display "                  EQUIVALENCE DETECTION\n")
-  (display "───────────────────────────────────────────────────────────\n")
+  (display "-----------------------------------------------------------\n")
   (display (format "  v0→v1 reduction:       ~a (~,1f%)\n"
                    (cdr (assq 'v0-v1-reduction results))
                    (cdr (assq 'v0-v1-reduction-pct results))))
@@ -238,7 +238,7 @@
                    (cdr (assq 'total-reduction-pct results))))
 
   (newline)
-  (display "═══════════════════════════════════════════════════════════\n")
+  (display "===========================================================\n")
   (newline))
 
 (doc run-benchmark 'type (-> (Optional String) Void))

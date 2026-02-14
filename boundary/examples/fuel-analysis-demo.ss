@@ -10,15 +10,15 @@
 (doc 'note "3. Compare different algorithms")
 
 (display "\n")
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "  FUEL ANALYSIS DEMONSTRATION\n")
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "\n")
 
 (doc 'section 'example-1-simple-function)
 
 (display "Example 1: Analyzing a Simple Function\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 (display "\n")
 
 ;;; A function that computes (x + 5) * 2
@@ -34,7 +34,7 @@
 (doc 'section 'example-2-list-operations)
 
 (display "Example 2: Comparing List Operations\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 (display "\n")
 
 ;;; Get first element (constant time)
@@ -68,7 +68,7 @@
 (doc 'section 'example-3-recursive-sum)
 
 (display "Example 3: Recursive Sum\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 (display "\n")
 
 ;;; Sum using recursion
@@ -89,7 +89,7 @@
 ;;; ====
 
 (display "Example 4: Detecting Expensive Operations\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 (display "\n")
 
 ;;; A function that uses division (more expensive than addition)
@@ -108,7 +108,7 @@
 ;;; ====
 
 (display "Example 5: Algorithm Efficiency\n")
-(display "────────────────────────────────────────────────────────────────\n")
+(display "----------------------------------------------------------------\n")
 (display "\n")
 
 ;;; Count elements (linear)
@@ -138,9 +138,9 @@
 
 (doc 'section 'summary)
 
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "  KEY TAKEAWAYS\n")
-(display "════════════════════════════════════════════════════════════════\n")
+(display "================================================================\n")
 (display "\n")
 (display "1. Fuel costs are based on primitive operation complexity:\n")
 (display "   - Predicates (zero?, null?): 1 fuel\n")

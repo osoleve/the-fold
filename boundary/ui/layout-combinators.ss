@@ -557,9 +557,9 @@
          (define edge
            (case-lambda
             [(canvas start end)
-             (edge canvas start end 'straight #\─ #\│)]
+             (edge canvas start end 'straight #\- #\|)]
             [(canvas start end style)
-             (edge canvas start end style #\─ #\│)]
+             (edge canvas start end style #\- #\|)]
             [(canvas start end style h-char v-char)
              (let ([x0 (point-x start)]
                    [y0 (point-y start)]

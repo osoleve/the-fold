@@ -53,9 +53,7 @@
         (printf "  speedup strassen/naive: ~,2fx\n" (/ t-naive t-strassen)))
       (printf "  speedup parallel/naive: ~,2fx\n" (/ t-naive t-parallel)))))
 
-(printf "╔══════════════════════════════════════════════════════════╗\n")
-(printf "║         Blocked/Parallel Matrix Benchmarks               ║\n")
-(printf "╚══════════════════════════════════════════════════════════╝\n")
+(printf "======= Blocked/Parallel Matrix Benchmarks =========\n")
 (printf "\nWorker count: ~a\n" (pool-worker-count (ensure-pool!)))
 
 (for-each bench-mul-at-size '(32 64 128 256))

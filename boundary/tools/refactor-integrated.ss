@@ -114,7 +114,7 @@
 (define (refactor-rename-preview old-name new-name)
   (display "\n")
   (printf "  Preview: Rename '~a' to '~a'\n" old-name new-name)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Validate new name
   (when (string->number (symbol->string new-name))
@@ -537,7 +537,7 @@
 (define (refactor-rename-diagnostic sym)
   (display "\n")
   (printf "  Semantic Analysis: '~a'\n" sym)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (let ([sym-str (symbol->string sym)]
         [code-count 0]
@@ -579,7 +579,7 @@
         '("core" "shell" "user"))
        
        (display "\n")
-       (display "  ────────────────────────────────\n")
+       (display "  --------------------------------\n")
        (printf "  Files scanned: ~a\n" files-scanned)
        (printf "  Code occurrences (will rename):     ~a\n" code-count)
        (printf "  String occurrences (will skip):     ~a\n" string-count)
@@ -611,7 +611,7 @@
         (return))
   
   (display "\n  Applying refactoring changes...\n")
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Group changes by file
   (let ([file-groups (group-changes-by-file *pending-changes*)]
@@ -737,7 +737,7 @@
          [backups (cdr last)])
         
         (display "\n  Undoing last refactoring...\n")
-        (display "  ────────────────────────────────\n\n")
+        (display "  --------------------------------\n\n")
         
         ;; Restore each backed-up file
         (for-each
@@ -765,7 +765,7 @@
   (display "\n")
   (printf "  Preview: Reorder arguments of '~a'\n" func-name)
   (printf "  New order: ~a\n" new-order)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Find definition
   (let ([defs (find-all-definitions func-name)])
@@ -986,7 +986,7 @@
   (display "\n")
   (printf "  Mapped Rename: '~a' -> '~a'\n" old-name new-name)
   (printf "  Argument mapping: ~a\n" arg-map)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   ;; Validate arg-map
   (let ([old-arity (function-arity old-name)])
@@ -1112,7 +1112,7 @@
 (define (refactor-check-arity old-name new-name)
   (display "\n")
   (printf "  Signature Comparison: '~a' vs '~a'\n" old-name new-name)
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   
   (let ([old-sig (extract-function-signature old-name)]
         [new-sig (extract-function-signature new-name)])
@@ -1163,7 +1163,7 @@
 (define (refactor-preview-changes)
   (display "\n")
   (printf "  Pending Changes (~a):\n" (length *pending-changes*))
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   (if (null? *pending-changes*)
       (display "    (no pending changes)\n")
       (for-each
@@ -1182,7 +1182,7 @@
 (define (refactor-status)
   (display "\n")
   (display "  Refactoring Engine Status\n")
-  (display "  ────────────────────────────────\n\n")
+  (display "  --------------------------------\n\n")
   (printf "  Pending changes: ~a\n" (length *pending-changes*))
   (printf "  Undo stack depth: ~a\n" (length *refactor-undo-stack*))
   (display "\n"))
@@ -1191,9 +1191,7 @@
 ;;; Show available commands.
 (define (refactor-help)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │                    REFACTORING ENGINE COMMANDS                     │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- REFACTORING ENGINE COMMANDS ----------------------------------\n")
   (display "\n")
   (display "  Rename Operations:\n")
   (display "    (refactor-rename! 'old 'new)           Preview + prompt to apply\n")
@@ -1228,6 +1226,6 @@
 
 (display "\n")
 (display "  Integrated Refactoring Engine Loaded\n")
-(display "  ────────────────────────────────\n")
+(display "  --------------------------------\n")
 (display "  Use (refactor-help) for available commands.\n")
 (display "\n")

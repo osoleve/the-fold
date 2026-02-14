@@ -216,9 +216,7 @@ Stop:   Delete .fold-repl/ready or send (daemon-stop!)
   ;; Mark as ready
   (write-ready!)
   
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              THE FOLD — REPL DAEMON STARTED                  ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "============== THE FOLD -- REPL DAEMON STARTED ===============\n")
   (display (format "Watching: ~a\n" *request-file*))
   (display (format "Output:   ~a\n" *response-file*))
   (display "Waiting for requests...\n\n")

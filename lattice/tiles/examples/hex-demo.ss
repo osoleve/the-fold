@@ -9,9 +9,9 @@
 
 ;; take is provided by prelude (via boardcraft.ss)
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT HEX DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -19,7 +19,7 @@
 ;;; ====
 
 (display "Example 1: Hexagonal Coordinates\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define center (axial-coord 0 0))
 (display "Center hex: ")
@@ -41,7 +41,7 @@
 ;;; ====
 
 (display "Example 2: Distance Calculation\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define hex-a (axial-coord 0 0))
 (define hex-b (axial-coord 3 2))
@@ -62,7 +62,7 @@
 ;;; ====
 
 (display "Example 3: Line from A to B\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (let ([line (hex-line hex-a hex-b)])
      (display "Path: ")
@@ -79,7 +79,7 @@
 ;;; ====
 
 (display "Example 4: Range Calculation\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (display "Hexes within 2 steps of center:\n")
 (let ([hexes (hex-range center 2)])
@@ -100,7 +100,7 @@
 ;;; ====
 
 (display "Example 5: Ring at Distance 2\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (let ([ring (hex-ring center 2)])
      (display "  Count: ")
@@ -114,7 +114,7 @@
 ;;; ====
 
 (display "Example 6: Create Hex Board\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define floor-tile (make-tile 'floor '((walkable . #t))))
 (define board (make-hex-board 'axial 3 floor-tile))
@@ -131,7 +131,7 @@
 ;;; ====
 
 (display "Example 7: Coordinate Conversions\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define ax (axial-coord 2 1))
 (display "Axial: ")
@@ -167,7 +167,7 @@
 ;;; ====
 
 (display "Example 8: Hex Rotation\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define origin (axial-coord 0 0))
 (define point (axial-coord 2 0))
@@ -189,9 +189,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "\nHexagonal boards are perfect for:\n")
 (display "  • Strategy games (Civilization, Settlers of Catan)\n")
 (display "  • Wargames (Panzer General, Battle for Wesnoth)\n")

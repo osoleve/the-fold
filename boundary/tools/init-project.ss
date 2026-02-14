@@ -86,9 +86,7 @@
 ;;; SECURITY: Validates project name to prevent command injection.
 (define (init-project-interactive)
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║              THE FOLD PROJECT INITIALIZATION                 ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "================ THE FOLD PROJECT INITIALIZATION =================\n")
   (display "\n")
 
   (let* ([name (prompt "Project name")]
@@ -374,9 +372,7 @@
 ;;; display-completion : String → void
 (define (display-completion name)
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                  PROJECT CREATED                             ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "======================= PROJECT CREATED ============================\n")
   (display "\n")
   (display (format "Project '~a' created successfully!\n\n" name))
   (display "Next steps:\n")

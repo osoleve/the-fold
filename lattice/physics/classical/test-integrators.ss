@@ -28,9 +28,7 @@
   (assert-= (vec2-y actual) (vec2-y expected) tolerance))
 
 (display "
-══════════════════════════════════════════════════════════
-         2D PHYSICS INTEGRATION TESTS
-══════════════════════════════════════════════════════════
+============== 2D PHYSICS INTEGRATION TESTS ==============
 ")
 
 ;;; ====
@@ -312,7 +310,7 @@
 ;;; ====
 
 (display "
-══════════════════════════════════════════════════════════
+==========================================================
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

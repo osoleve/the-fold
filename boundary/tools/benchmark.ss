@@ -189,22 +189,18 @@
 (define (benchmark-report results)
   (display "
 ")
-  (display "╔═══════════════════════════════════════════════════════════════╗
-")
-  (display "║                    BENCHMARK RESULTS                          ║
-")
-  (display "╚═══════════════════════════════════════════════════════════════╝
+  (display "======================= BENCHMARK RESULTS ==========================
 ")
   (display "
 ")
   
   (for-each
    (lambda (result)
-           (display "───────────────────────────────────────────────────────────────
+           (display "---------------------------------------------------------------
 ")
            (display (format "  ~a
 " (benchmark-result-name result)))
-           (display "───────────────────────────────────────────────────────────────
+           (display "---------------------------------------------------------------
 ")
            (display (format "  Iterations:    ~a
 " (benchmark-result-iterations result)))
@@ -232,11 +228,11 @@
   
   ;; Comparison if multiple results
   (when (> (length results) 1)
-        (display "───────────────────────────────────────────────────────────────
+        (display "---------------------------------------------------------------
 ")
         (display "  COMPARISON (relative to fastest)
 ")
-        (display "───────────────────────────────────────────────────────────────
+        (display "---------------------------------------------------------------
 ")
         (let* ([fastest (find-fastest results)]
                [fastest-mean (benchmark-result-mean-ns fastest)])

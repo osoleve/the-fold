@@ -9,9 +9,9 @@
 
 ;; take is provided by prelude (via boardcraft.ss)
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  BOARDCRAFT CHESS DEMO\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (newline)
 
 ;;; ====
@@ -41,7 +41,7 @@
 ;;; ====
 
 (display "Example 1: Knight Movement\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 ;;; Knights move in an L-shape: 2 squares in one direction, 1 in perpendicular
 (define (knight-moves coord)
@@ -77,7 +77,7 @@
 ;;; ====
 
 (display "Example 2: Rook Movement\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 ;;; Rooks move orthogonally until blocked
 (define (rook-line coord direction)
@@ -109,7 +109,7 @@
 ;;; ====
 
 (display "Example 3: King Movement\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define king-pos (square-coord 0 0))
 (display "King at corner ")
@@ -133,7 +133,7 @@
 ;;; ====
 
 (display "Example 4: Distance Between Squares\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define a1 (square-coord 0 0))
 (define h8 (square-coord 7 7))
@@ -159,7 +159,7 @@
 ;;; ====
 
 (display "Example 5: Control Area\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define queen-pos (square-coord 4 4))
 (display "Queen at ")
@@ -177,7 +177,7 @@
 ;;; ====
 
 (display "Example 6: Line of Sight\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define from (square-coord 0 0))
 (define to (square-coord 7 5))
@@ -202,7 +202,7 @@
 ;;; ====
 
 (display "Example 7: Board State\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 ;;; Place some pieces
 (define board-with-pieces
@@ -228,7 +228,7 @@
 ;;; ====
 
 (display "Example 8: Ring Pattern\n")
-(display "──────────────────────────────────\n")
+(display "----------------------------------\n")
 
 (define center (square-coord 4 4))
 (display "Squares at exactly distance 2 from center:\n")
@@ -249,9 +249,9 @@
 ;;; Summary
 ;;; ====
 
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "  Demo Complete!\n")
-(display "═══════════════════════════════════════════════════════════════\n")
+(display "===============================================================\n")
 (display "\nSquare boards are perfect for:\n")
 (display "  • Chess, Checkers, Go\n")
 (display "  • Tactical RPGs (Fire Emblem, Final Fantasy Tactics)\n")

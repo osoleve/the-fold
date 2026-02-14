@@ -72,7 +72,7 @@
        (if loc
            (begin
             (printf "  ~a defined at:\n" sym)
-            (display "  ────────────────────────────────\n")
+            (display "  --------------------------------\n")
             (printf "    ~a\n" (location->string loc))
             (display "\n")
             ;; Show a preview of the definition
@@ -89,7 +89,7 @@
                 [start (max 0 (- line 1))]
                 [end (min (length lines) (+ line 4))])
                (display "  Preview:\n")
-               (display "  ────────────────────────────────\n")
+               (display "  --------------------------------\n")
                (do ([i start (+ i 1)])
                    ((>= i end))
                    (let ([line-content (list-ref lines i)]
@@ -141,7 +141,7 @@
          [refs (jump-refs sym)])
         (display "\n")
         (printf "  References to '~a':\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (null? refs)
             (display "    (no references found)\n")
             (for-each
@@ -169,7 +169,7 @@
                     (map (lambda (l) (cons 'test l)) (or test-locs '())))])
         (display "\n")
         (printf "  Locations for '~a':\n" sym)
-        (display "  ────────────────────────────────\n")
+        (display "  --------------------------------\n")
         (if (null? all-locs)
             (display "    (no locations found)\n")
             (let loop ([locs all-locs] [n 1])

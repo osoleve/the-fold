@@ -20,9 +20,7 @@
           (newline)))
 
 (display "
-══════════════════════════════════════════════════════════
-         TRACED EVALUATION INTEGRATION TESTS
-══════════════════════════════════════════════════════════
+=========== TRACED EVALUATION INTEGRATION TESTS ===========
 ")
 
 ;;; ====
@@ -468,7 +466,7 @@
 ;;; ====
 
 (display "
-══════════════════════════════════════════════════════════
+==========================================================
 ")
 (printf "Tests passed: ~a~n" *tests-passed*)
 (printf "Tests failed: ~a~n" *tests-failed*)

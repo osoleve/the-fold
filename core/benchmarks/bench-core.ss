@@ -14,9 +14,7 @@
 (load "core/blocks/cas.ss")
 (load "boundary/tools/benchmark.ss")
 
-(printf "\n╔═══════════════════════════════════════════════════════════════╗\n")
-(printf "║              CORE SYSTEM BENCHMARKS                           ║\n")
-(printf "╚═══════════════════════════════════════════════════════════════╝\n\n")
+(printf "\n=================== CORE SYSTEM BENCHMARKS ====================\n\n")
 
 ;;; ====
 ;;; Test Data
@@ -38,7 +36,7 @@
 ;;; Block Operation Benchmarks
 ;;; ====
 
-(printf "═══ Block Operations ═══\n\n")
+(printf "=== Block Operations ===\n\n")
 
 (define block-results
   (benchmark-compare
@@ -56,7 +54,7 @@
 ;;; CAS Operation Benchmarks
 ;;; ====
 
-(printf "\n═══ CAS Operations ═══\n\n")
+(printf "\n=== CAS Operations ===\n\n")
 
 ;; Pre-populate with some blocks for fetch benchmarks
 (define hash1 (store! small-block))
@@ -81,7 +79,7 @@
 ;;; Normalization Benchmarks
 ;;; ====
 
-(printf "\n═══ Normalization (S-expr → Canonical) ═══\n\n")
+(printf "\n=== Normalization (S-expr -> Canonical) ===\n\n")
 
 (define norm-results
   (benchmark-compare
@@ -96,7 +94,7 @@
 ;;; Expansion Benchmarks
 ;;; ====
 
-(printf "\n═══ Expansion (Canonical → S-expr) ═══\n\n")
+(printf "\n=== Expansion (Canonical -> S-expr) ===\n\n")
 
 ;; Pre-normalize for expansion tests
 (define norm-simple (normalize simple-expr))
@@ -116,7 +114,7 @@
 ;;; Round-trip Benchmarks
 ;;; ====
 
-(printf "\n═══ Round-trip Performance ═══\n\n")
+(printf "\n=== Round-trip Performance ===\n\n")
 
 (define roundtrip-results
   (benchmark-compare
@@ -136,7 +134,7 @@
 ;;; CAS Scalability Test
 ;;; ====
 
-(printf "\n═══ CAS Scalability ═══\n\n")
+(printf "\n=== CAS Scalability ===\n\n")
 (printf "Testing CAS fetch performance with increasing store size...\n\n")
 
 (define (test-cas-scale n)
@@ -166,9 +164,7 @@
 ;;; Summary
 ;;; ====
 
-(printf "\n╔═══════════════════════════════════════════════════════════════╗\n")
-(printf "║              BENCHMARK COMPLETE                               ║\n")
-(printf "╚═══════════════════════════════════════════════════════════════╝\n\n")
+(printf "\n==================== BENCHMARK COMPLETE =======================\n\n")
 
 (printf "Key Findings:\n")
 (printf "  - Block operations scale with payload size\n")

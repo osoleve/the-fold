@@ -471,39 +471,39 @@
        (if (not blk)
            (display (format "Block not found: ~a\n" (hash->hex hash)))
            (begin
-            (display "\n┌─────────────────────────────────────┐\n")
-            (display (format "│ Block: ~a...      │\n" (hash->short hash)))
-            (display "├─────────────────────────────────────┤\n")
-            (display (format "│ Tag: ~a\n" (block-tag blk)))
-            (display "│ Payload:\n")
+            (display "\n+-------------------------------------+\n")
+            (display (format "| Block: ~a...      |\n" (hash->short hash)))
+            (display "+-------------------------------------+\n")
+            (display (format "| Tag: ~a\n" (block-tag blk)))
+            (display "| Payload:\n")
             (let ([payload (block-payload blk)])
-                 (guard (e [else (display "│   [binary data]\n")])
+                 (guard (e [else (display "|   [binary data]\n")])
                         (let ([str (utf8->string payload)])
-                             (display (format "│   ~a\n"
+                             (display (format "|   ~a\n"
                                               (if (> (string-length str) 50)
                                                   (string-append (substring str 0 50) "...")
                                                   str))))))
-            (display "├─────────────────────────────────────┤\n")
+            (display "+-------------------------------------+\n")
             (let ([refs (block-refs blk)])
-                 (display (format "│ References: ~a\n" (vector-length refs)))
+                 (display (format "| References: ~a\n" (vector-length refs)))
                  (let loop ([i 0])
                       (when (< i (vector-length refs))
                             (let* ([ref-hash (vector-ref refs i)]
                                    [ref-blk (store-get fs ref-hash)]
                                    [ref-tag (if ref-blk (block-tag ref-blk) '?)])
-                                  (display (format "│   ~a. [~a] ~a...\n"
+                                  (display (format "|   ~a. [~a] ~a...\n"
                                                    i ref-tag (hash->short ref-hash))))
                             (loop (+ i 1)))))
-            (display "├─────────────────────────────────────┤\n")
+            (display "+-------------------------------------+\n")
             (let ([incoming (get-incoming-hashes fs hash)])
-                 (display (format "│ Referenced by: ~a\n" (length incoming)))
+                 (display (format "| Referenced by: ~a\n" (length incoming)))
                  (for-each (lambda (in-hash)
                                    (let* ([in-blk (store-get fs in-hash)]
                                           [in-tag (if in-blk (block-tag in-blk) '?)])
-                                         (display (format "│   [~a] ~a...\n"
+                                         (display (format "|   [~a] ~a...\n"
                                                           in-tag (hash->short in-hash)))))
                            (take (min 5 (length incoming)) incoming)))
-            (display "└─────────────────────────────────────┘\n")))))
+            (display "+-------------------------------------+\n")))))
 
 (doc 'section 'quick-visualization-commands)
 

@@ -263,9 +263,7 @@
 ;;; Display coverage report.
 (define (coverage-report report)
   (display "\n")
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║                    COVERAGE REPORT                           ║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display "======================== COVERAGE REPORT ===========================\n")
   (display "\n")
   
   ;; Summary
@@ -284,7 +282,7 @@
   
   ;; File-by-file breakdown
   (display "File Coverage:\n")
-  (display "───────────────────────────────────────────────────────────────\n")
+  (display "---------------------------------------------------------------\n")
   (for-each
    (lambda (file-cov)
            (let ([pct (file-coverage-percentage file-cov)]

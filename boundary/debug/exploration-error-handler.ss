@@ -129,9 +129,7 @@
 (define (demonstrate-error-formatting)
   (doc 'type '(-> void))
   (doc 'description "Show before/after comparison of error formatting")
-  (display "╔════════════════════════════════════════════════════════════╗\n")
-  (display "║        EXPLORATION ERROR FORMATTER DEMONSTRATION          ║\n")
-  (display "╚════════════════════════════════════════════════════════════╝\n\n")
+  (display "====== EXPLORATION ERROR FORMATTER DEMONSTRATION ========\n\n")
 
   (display "BEFORE (raw condition-message):\n")
   (guard (e (else

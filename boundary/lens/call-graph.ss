@@ -281,7 +281,7 @@
 (define (call-graph-stats)
   (display "\n")
   (display "  Call Graph Statistics\n")
-  (display "  ────────────────────────────────\n")
+  (display "  --------------------------------\n")
   (printf "  Functions indexed:    ~a\n" (hashtable-size *forward-calls*))
   (printf "  Unique call targets:  ~a\n" (hashtable-size *reverse-calls*))
   (let ([total-edges 0])

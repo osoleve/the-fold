@@ -509,51 +509,49 @@ Functions to verify the categorical laws hold for our effect encodings.")
 (doc 'section 'summary)
 (doc 'description "Summary: The Categorical Picture of Algebraic Effects
 
-╔═══════════════════════════════════════════════════════════════════════╗
-║                    CATEGORICAL FOUNDATIONS                             ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                        ║
-║  EFFECT SIGNATURE Σ                                                    ║
-║       │                                                                ║
-║       ▼                                                                ║
-║  POLYNOMIAL FUNCTOR ΣF(X) = Σᵢ Aᵢ × (Rᵢ → X)                          ║
-║       │                                                                ║
-║       ▼                                                                ║
-║  FREE MONAD Eff Σ = Free(ΣF)                                          ║
-║       │                                                                ║
-║       ▼                                                                ║
-║  ADJUNCTION: Free_Σ ⊣ Forgetful_Σ                                     ║
-║       │                                                                ║
-║       ├──── Unit η : X → Eff Σ X         (eff-return)                  ║
-║       └──── Counit ε : Eff Σ A → A       (handle with algebra A)       ║
-║                                                                        ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                        ║
-║  HANDLER h : ΣF-Algebra                                               ║
-║       │                                                                ║
-║       ├──── return-case : a → b          (pure operation)             ║
-║       └──── effect-cases : op → (payload → (resp → b) → b)            ║
-║                                                                        ║
-║  handle h : Eff Σ a → b                                               ║
-║       = unique algebra homomorphism from free algebra to h            ║
-║       = fold with algebra h                                           ║
-║       = instantiation of counit ε at algebra h                        ║
-║                                                                        ║
-╠═══════════════════════════════════════════════════════════════════════╣
-║                                                                        ║
-║  HANDLER COMPOSITION                                                   ║
-║       h₁(h₂(eff)) corresponds to adjunction composition               ║
-║       F₂∘F₁ ⊣ G₁∘G₂ (right adjoints reverse!)                         ║
-║                                                                        ║
-║  EFFECT ROWS                                                          ║
-║       row = object in functor category [Set, Set]                     ║
-║       row-extend = coproduct injection in [Set, Set]                  ║
-║                                                                        ║
-║  CONTINUATIONS                                                         ║
-║       k : Response → Eff e a is left Kan extension Lan_η              ║
-║       Universal property enables resume/abort/fork                    ║
-║                                                                        ║
-╚═══════════════════════════════════════════════════════════════════════╝")
+======================= CATEGORICAL FOUNDATIONS =======================
+
+  EFFECT SIGNATURE Σ
+       |
+       v
+  POLYNOMIAL FUNCTOR ΣF(X) = Σᵢ Aᵢ × (Rᵢ → X)
+       |
+       v
+  FREE MONAD Eff Σ = Free(ΣF)
+       |
+       v
+  ADJUNCTION: Free_Σ ⊣ Forgetful_Σ
+       |
+       ├──── Unit η : X → Eff Σ X         (eff-return)
+       └──── Counit ε : Eff Σ A → A       (handle with algebra A)
+
+=====================================================================
+
+  HANDLER h : ΣF-Algebra
+       |
+       ├──── return-case : a → b          (pure operation)
+       └──── effect-cases : op → (payload → (resp → b) → b)
+
+  handle h : Eff Σ a → b
+       = unique algebra homomorphism from free algebra to h
+       = fold with algebra h
+       = instantiation of counit ε at algebra h
+
+=====================================================================
+
+  HANDLER COMPOSITION
+       h₁(h₂(eff)) corresponds to adjunction composition
+       F₂∘F₁ ⊣ G₁∘G₂ (right adjoints reverse!)
+
+  EFFECT ROWS
+       row = object in functor category [Set, Set]
+       row-extend = coproduct injection in [Set, Set]
+
+  CONTINUATIONS
+       k : Response → Eff e a is left Kan extension Lan_η
+       Universal property enables resume/abort/fork
+
+=====================================================================")
 
 ;;; ====
 ;;; Exports

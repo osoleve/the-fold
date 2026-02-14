@@ -28,12 +28,9 @@
 (doc print-boxed 'type '(-> String String void))
 (doc print-boxed 'description "Print content in a nice box with a title")
 (define (print-boxed title content)
-  (display "╔══════════════════════════════════════════════════════════════╗\n")
-  (display "║ ")
-  (display title)
-  (display (make-string (max 0 (- 60 (string-length title))) #\space))
-  (display "║\n")
-  (display "╚══════════════════════════════════════════════════════════════╝\n")
+  (display (string-append "===== " title " "))
+  (display (make-string (max 0 (- 56 (string-length title))) #\=))
+  (display "\n")
   (display content)
   (display "\n"))
 
@@ -231,26 +228,26 @@
 ;;; Run a quick demo of all playground features.
 (define (playground-demo)
   (display "\n")
-  (display "════════════════════════════════════════════════════════════════\n")
+  (display "================================================================\n")
   (display "           CORE PLAYGROUND DEMO\n")
-  (display "════════════════════════════════════════════════════════════════\n")
+  (display "================================================================\n")
   (display "\n")
   
   ;; Normalization
   (try-normalize '(fn (x) (+ x 1)))
-  (display "────────────────────────────────────────────────────────────────\n\n")
+  (display "----------------------------------------------------------------\n\n")
   
   ;; Hash comparison
   (try-hash-compare '(fn (x) x) '(fn (y) y))
-  (display "────────────────────────────────────────────────────────────────\n\n")
+  (display "----------------------------------------------------------------\n\n")
   
   ;; Free variables
   (try-free-vars '(+ x y z))
-  (display "────────────────────────────────────────────────────────────────\n\n")
+  (display "----------------------------------------------------------------\n\n")
   
   ;; Block construction
   (try-block 'example (string->utf8 "Hello, Fold!") '())
-  (display "────────────────────────────────────────────────────────────────\n\n")
+  (display "----------------------------------------------------------------\n\n")
   
   (display "Demo complete! Try the commands yourself.\n")
   (display "Use (playground-help) for command reference.\n\n"))
@@ -259,9 +256,7 @@
 ;;; Show available playground commands.
 (define (playground-help)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────┐\n")
-  (display "  │              CORE PLAYGROUND COMMANDS                          │\n")
-  (display "  └────────────────────────────────────────────────────────────────┘\n")
+  (display "  --- CORE PLAYGROUND COMMANDS ------------------------------------------\n")
   (display "\n")
   (display "  NORMALIZATION:\n")
   (display "    (try-normalize expr)       Show de Bruijn form\n")

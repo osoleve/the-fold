@@ -74,8 +74,8 @@
 
 ;; Characters for different line directions
 (define *edge-chars*
-  '((horizontal . #\─)
-    (vertical . #\│)
+  '((horizontal . #\-)
+    (vertical . #\|)
     (diagonal-down . #\\)
     (diagonal-up . #\/)
     (cross . #\+)
@@ -87,8 +87,8 @@
   (let ([ax (abs dx)]
         [ay (abs dy)])
     (cond
-      [(< ay (* 0.3 ax)) #\─]   ; mostly horizontal
-      [(< ax (* 0.3 ay)) #\│]   ; mostly vertical
+      [(< ay (* 0.3 ax)) #\-]   ; mostly horizontal
+      [(< ax (* 0.3 ay)) #\|]   ; mostly vertical
       [(and (> dx 0) (> dy 0)) #\\]  ; down-right
       [(and (< dx 0) (< dy 0)) #\\]  ; up-left (same visual)
       [else #\/])))                   ; other diagonals

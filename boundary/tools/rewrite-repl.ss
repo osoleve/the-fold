@@ -29,7 +29,7 @@
 
 ;;; display-divider : → void
 (define (display-divider)
-  (display "────────────────────────────────────────────────────────────\n"))
+  (display "------------------------------------------------------------\n"))
 
 ;;; display-header : String → void
 (define (display-header title)
@@ -355,9 +355,7 @@
 ;;; rewrite-help : → void
 (define (rewrite-help)
   (display "\n")
-  (display "  ┌────────────────────────────────────────────────────────────────────┐\n")
-  (display "  │              EQUATIONAL REASONING ASSISTANT                        │\n")
-  (display "  └────────────────────────────────────────────────────────────────────┘\n")
+  (display "  --------------- EQUATIONAL REASONING ASSISTANT ---------------\n")
   (display "\n")
   (display "  Basic Commands:\n")
   (display "    (rewrite expr 'rule-name)       Apply a rule once\n")
