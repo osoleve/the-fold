@@ -432,15 +432,17 @@
   (let* ([limit (if (null? args) *search-default-limit* (car args))]
          [fs (fs)]
          [all-hashes (fs-all-hashes fs)]
-         [matches (filter
-                   (lambda (hash)
-                           (let ([blk (fs-fetch fs hash)])
-                                (and blk (eq? (block-tag blk) tag))))
-                   all-hashes)]
-         [total (length matches)]
+         ;; Single pass: fetch once, keep (hash . block) pairs
+         [matched-pairs
+          (filter-map (lambda (hash)
+                        (let ([blk (fs-fetch fs hash)])
+                          (and blk (eq? (block-tag blk) tag)
+                               (cons hash blk))))
+                      all-hashes)]
+         [total (length matched-pairs)]
          [display-list (if (> total limit)
-                           (take limit matches)
-                           matches)])
+                           (take limit matched-pairs)
+                           matched-pairs)])
 
         (display (format "==================== BLOCKS: ~a ====================\n" tag))
         (newline)
@@ -448,21 +450,19 @@
             (display (format "Found ~a blocks with tag '~a (showing first ~a):\n\n" total tag limit))
             (display (format "Found ~a blocks with tag '~a:\n\n" total tag)))
 
-        (let loop ([i 0] [hash-list display-list])
-             (when (not (null? hash-list))
-                   (let* ([hash (car hash-list)]
-                          [blk (fs-fetch fs hash)])
+        (let loop ([i 0] [pairs display-list])
+             (when (not (null? pairs))
+                   (let* ([pair (car pairs)]
+                          [hash (car pair)]
+                          [blk (cdr pair)])
                          (display (format "  [~a] ~a | ~a bytes\n"
                                           i
                                           (short-hash (hash->hex hash))
-                                          (if blk (bytevector-length (block-payload blk)) 0)))
-                         (loop (+ i 1) (cdr hash-list)))))
+                                          (bytevector-length (block-payload blk))))
+                         (loop (+ i 1) (cdr pairs)))))
 
         ;; Store ALL matches for navigation, not just displayed ones
-        (current-block-list
-         (map (lambda (hash)
-                      (cons hash (fs-fetch fs hash)))
-              matches))
+        (current-block-list matched-pairs)
 
         (newline)
         (when (> total limit)
