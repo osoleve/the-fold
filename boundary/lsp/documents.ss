@@ -440,18 +440,57 @@
 
 (doc inside-pipe-quoted? 'type '(-> String Int Boolean))
 (doc inside-pipe-quoted? 'description "Check if offset is inside a pipe-quoted symbol |...|")
-(doc inside-pipe-quoted? 'note "Counts unescaped pipes before offset - odd count means inside")
+(doc inside-pipe-quoted? 'note "Context-aware: skips | inside comments, strings, char literals, block comments")
 (define (inside-pipe-quoted? content offset)
   (let ([len (string-length content)])
-    (let loop ([i 0] [count 0])
+    (let loop ([i 0] [pipe-count 0] [in-string #f])
       (cond
-        [(>= i offset) (odd? count)]
-        [(>= i len) (odd? count)]
-        ;; Only count unescaped pipes
+        [(or (>= i offset) (>= i len)) (odd? pipe-count)]
+        ;; Inside string literal: track escape sequences and closing quote
+        [(and in-string (char=? (string-ref content i) #\\) (< (+ i 1) len))
+         (loop (+ i 2) pipe-count #t)]          ; skip escape
+        [(and in-string (char=? (string-ref content i) #\"))
+         (loop (+ i 1) pipe-count #f)]          ; end string
+        [in-string
+         (loop (+ i 1) pipe-count #t)]          ; continue in string
+        ;; Outside string: character literals, comments, strings, pipes
+        ;; Character literal #\x — skip 3 chars to avoid #\" starting string or #\| counting as pipe
+        [(and (char=? (string-ref content i) #\#)
+              (< (+ i 1) len)
+              (char=? (string-ref content (+ i 1)) #\\))
+         (loop (min (+ i 3) len) pipe-count #f)]
+        ;; Block comment #|...|#  (must check before bare | below)
+        [(and (char=? (string-ref content i) #\#)
+              (< (+ i 1) len)
+              (char=? (string-ref content (+ i 1)) #\|))
+         (let skip-block ([j (+ i 2)] [depth 1])
+           (cond
+             [(>= j len) (loop j pipe-count #f)]
+             [(= depth 0) (loop j pipe-count #f)]
+             [(and (char=? (string-ref content j) #\|)
+                   (< (+ j 1) len)
+                   (char=? (string-ref content (+ j 1)) #\#))
+              (skip-block (+ j 2) (- depth 1))]
+             [(and (char=? (string-ref content j) #\#)
+                   (< (+ j 1) len)
+                   (char=? (string-ref content (+ j 1)) #\|))
+              (skip-block (+ j 2) (+ depth 1))]
+             [else (skip-block (+ j 1) depth)]))]
+        ;; String literal start
+        [(char=? (string-ref content i) #\")
+         (loop (+ i 1) pipe-count #t)]
+        ;; Line comment — skip to newline
+        [(char=? (string-ref content i) #\;)
+         (let skip ([j (+ i 1)])
+           (cond
+             [(>= j len) (loop j pipe-count #f)]
+             [(char=? (string-ref content j) #\newline) (loop (+ j 1) pipe-count #f)]
+             [else (skip (+ j 1))]))]
+        ;; Actual pipe character (not in comment, string, or char literal)
         [(and (char=? (string-ref content i) #\|)
               (not (escaped-char? content i)))
-         (loop (+ i 1) (+ count 1))]
-        [else (loop (+ i 1) count)]))))
+         (loop (+ i 1) (+ pipe-count 1) #f)]
+        [else (loop (+ i 1) pipe-count #f)]))))
 
 (doc find-pipe-quoted-start 'type '(-> String Int Int))
 (doc find-pipe-quoted-start 'description "Find opening pipe of pipe-quoted symbol")
