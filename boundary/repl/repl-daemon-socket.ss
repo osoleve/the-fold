@@ -360,6 +360,19 @@
    *sessions*))
 
 ;;; ====
+;;; Worker Process Termination
+;;; ====
+
+;;; kill-worker-pid! : Fixnum → Void
+;;; Send SIGTERM to a worker process by PID. Closing ports alone is
+;;; insufficient if the worker is stuck in an infinite eval — it won't
+;;; read EOF until the eval completes. SIGTERM terminates immediately.
+(define (kill-worker-pid! pid)
+  (when (and (fixnum? pid) (> pid 0))
+    (guard (ex [else #f])
+      (system (format "kill -TERM ~a 2>/dev/null" pid)))))
+
+;;; ====
 ;;; Graceful Worker Shutdown
 ;;; ====
 
@@ -388,7 +401,9 @@
   (guard (ex [else #f]) (close-port (session-input-port rec)))
   (guard (ex [else #f]) (close-port (session-output-port rec)))
   (guard (ex [else #f]) (close-port (session-stderr-port rec)))
-  (clear-read-buffer! session-id))
+  (clear-read-buffer! session-id)
+  ;; SIGTERM in case worker is stuck in eval and didn't process shutdown frame
+  (kill-worker-pid! (session-pid rec)))
 
 ;;; ====
 ;;; Heartbeat
@@ -430,11 +445,13 @@
              [unresponsive?
               ;; Worker already confirmed dead — close ports immediately,
               ;; don't waste time waiting for a shutdown-ack it can't send
-              (display (format "  [dead] Session '~a'\n" session-id))
+              (display (format "  [dead] Session '~a' (pid ~a)\n"
+                               session-id (session-pid rec)))
               (guard (ex [else #f]) (close-port (session-input-port rec)))
               (guard (ex [else #f]) (close-port (session-output-port rec)))
               (guard (ex [else #f]) (close-port (session-stderr-port rec)))
               (clear-read-buffer! session-id)
+              (kill-worker-pid! (session-pid rec))
               (loop (cdr remaining) kept)]
              [expired?
               ;; Idle but healthy — attempt graceful shutdown handshake
@@ -479,7 +496,7 @@
      *sessions*))
   ;; 500ms grace period for workers to ack and exit
   (sleep (make-time 'time-duration 500000000 0))
-  ;; Close all worker connections
+  ;; Close all worker connections and SIGTERM any survivors
   (for-each
    (lambda (entry)
      (guard (ex [else #f])
@@ -488,7 +505,8 @@
        (close-port (session-output-port (cdr entry))))
      (guard (ex [else #f])
        (close-port (session-stderr-port (cdr entry))))
-     (clear-read-buffer! (car entry)))
+     (clear-read-buffer! (car entry))
+     (kill-worker-pid! (session-pid (cdr entry))))
    *sessions*)
   (set! *sessions* '())
   (clear-ready!)
