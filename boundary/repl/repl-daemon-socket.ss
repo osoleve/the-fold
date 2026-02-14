@@ -545,8 +545,12 @@
     (when (> (- now *last-cleanup*) *cleanup-interval*)
       (cleanup-expired-sessions!)
       (prune-spawn-history!)
-      (escalate-kills!)
       (set! *last-cleanup* now))
+    ;; SIGKILL escalation runs outside the 60s cleanup block.
+    ;; *sigkill-delay* is 5s — must check more frequently than *cleanup-interval*.
+    ;; No-op when *killed-pids* is empty (usual case).
+    (when (pair? *killed-pids*)
+      (escalate-kills!))
     ;; Check ready file every 2s (fallback if signal handler missed)
     (when (> (- now *last-ready-check*) 2)
       (set! *last-ready-check* now)
