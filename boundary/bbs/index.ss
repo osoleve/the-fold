@@ -97,8 +97,8 @@
 (define (string-set-equal? lst1 lst2)
   (doc 'type (-> (List String) (List String) Boolean))
   (doc 'description "Check if two lists contain the same strings (set equality)")
-  (let ([sorted1 (sort string<? lst1)]
-        [sorted2 (sort string<? lst2)])
+  (let ([sorted1 (list-sort string<? lst1)]
+        [sorted2 (list-sort string<? lst2)])
     (equal? sorted1 sorted2)))
 
 (define (bbs-load-index-cache!)

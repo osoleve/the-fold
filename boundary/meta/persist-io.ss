@@ -24,7 +24,7 @@
 ;;; Compute SHA256 of all manifest contents concatenated
 (define (lattice-manifest-fingerprint)
   (let* ([manifests (find-manifests "lattice")]
-         [sorted (sort string<? manifests)]
+         [sorted (list-sort string<? manifests)]
          [contents (map file->string sorted)]
          [combined (apply string-append contents)])
         (sha256-hex (string->utf8 combined))))

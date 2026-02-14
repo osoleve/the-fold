@@ -54,7 +54,7 @@
                     acc)])
           ;; Recursively check subdirectories (sorted for determinism)
           (guard (e [else acc])
-                 (let ([entries (sort string<? (directory-list dir))])
+                 (let ([entries (list-sort string<? (directory-list dir))])
                       (fold-left
                        (lambda (acc entry)
                                (let ([path (string-append dir "/" entry)])

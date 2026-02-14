@@ -100,7 +100,7 @@
                    (set! result (cons full result))])))
             entries))))
     (scan dir)
-    (sort string<? result)))
+    (list-sort string<? result)))
 
 (define (string-prefix? prefix str)
   (and (>= (string-length str) (string-length prefix))
@@ -238,7 +238,7 @@
     ;; Display
     (display "Test Summary by Directory\n")
     (display "=========================\n\n")
-    (let ([dirs (sort string<? (vector->list (hashtable-keys by-dir)))]
+    (let ([dirs (list-sort string<? (vector->list (hashtable-keys by-dir)))]
           [grand-total 0])
       (for-each
         (lambda (d)
