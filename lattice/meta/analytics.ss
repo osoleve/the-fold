@@ -1,4 +1,4 @@
-(load "lattice/meta/dag.ss")
+(unless (top-level-bound? 'lattice-deps) (load "lattice/meta/dag.ss"))
 
 (doc 'module 'analytics)
 (doc 'description "Statistics, health checks, and coverage analysis for the skill lattice")

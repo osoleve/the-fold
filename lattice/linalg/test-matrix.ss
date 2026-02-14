@@ -241,7 +241,7 @@
     (assert-false (matrix-symmetric? (matrix-from-lists '((1 2) (3 1))))))
 
   (define-test trace-2x2
-    (assert-equal 5 (trace (matrix-from-lists '((1 2) (3 4))))))
+    (assert-equal 5 (matrix-trace (matrix-from-lists '((1 2) (3 4))))))
 
   (define-test frobenius-norm-identity
     (assert-true (< (abs (- (frobenius-norm (matrix-identity 2)) (sqrt 2))) 1e-10))))

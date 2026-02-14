@@ -5,8 +5,8 @@
 ;;; Handles file reading, directory scanning, and manifest I/O for exports.
 ;;; Pure pattern recognition stays in lattice/meta/exports.ss.
 
-(load "boundary/meta/file-io.ss")
-(load "lattice/meta/exports.ss")
+(unless (top-level-bound? 'read-file-sexps) (load "boundary/meta/file-io.ss"))
+(unless (top-level-bound? 'extract-exports-from-sexps) (load "lattice/meta/exports.ss"))
 
 (doc 'module 'exports-io)
 (doc 'description "I/O layer for export scanning — file reading, directory walking, manifest sync")

@@ -246,7 +246,7 @@
     [(quotient? expr)
      (if (contains-var? (quot-denom expr) var-sym)
          (num 0)
-         (quotient (extract-coeff-impl (quot-numer expr) var-sym k)
+         (division (extract-coeff-impl (quot-numer expr) var-sym k)
                    (quot-denom expr)))]
 
     [else (num 0)]))
@@ -307,7 +307,7 @@
            #f)]       ; b = 0 with b ≠ 0, no solution
       ;; a ≠ 0: x = -b/a
       [else
-       (simplify (quotient (make-neg b) a))])))
+       (simplify (division (make-neg b) a))])))
 
 (doc 'section 'quadratic-solving)
 
@@ -325,10 +325,10 @@
                [disc (simplify (difference (power b (num 2))
                                            (product (num 4) (product a c))))]
                ;; -b / 2a
-               [neg-b-over-2a (simplify (quotient (make-neg b)
+               [neg-b-over-2a (simplify (division (make-neg b)
                                                   (product (num 2) a)))]
                ;; sqrt(disc) / 2a
-               [sqrt-disc-over-2a (simplify (quotient (sym-sqrt disc)
+               [sqrt-disc-over-2a (simplify (division (sym-sqrt disc)
                                                       (product (num 2) a)))])
           ;; Solutions: (-b ± √disc) / 2a
           (list (simplify (sum neg-b-over-2a sqrt-disc-over-2a))
@@ -349,34 +349,34 @@
                [a (list-ref coeffs 3)]   ; cubic
                ;; Convert to monic: divide by a
                ;; x³ + (b/a)x² + (c/a)x + (d/a) = 0
-               [b/a (simplify (quotient b a))]
-               [c/a (simplify (quotient c a))]
-               [d/a (simplify (quotient d a))]
+               [b/a (simplify (division b a))]
+               [c/a (simplify (division c a))]
+               [d/a (simplify (division d a))]
                ;; Substitute x = t - b/(3a) to get depressed cubic t³ + pt + q = 0
                ;; p = c/a - b²/(3a²)
                ;; q = d/a - bc/(3a²) + 2b³/(27a³)
-               [b2/3a2 (simplify (quotient (power b/a (num 2)) (num 3)))]
+               [b2/3a2 (simplify (division (power b/a (num 2)) (num 3)))]
                [p (simplify (difference c/a b2/3a2))]
                [q (simplify (sum (difference d/a
-                                             (quotient (product b/a c/a) (num 3)))
-                                 (quotient (product (num 2) (power b/a (num 3)))
+                                             (division (product b/a c/a) (num 3)))
+                                 (division (product (num 2) (power b/a (num 3)))
                                            (num 27))))]
                ;; Cardano: t = ∛(-q/2 + √Δ) + ∛(-q/2 - √Δ)
                ;; where Δ = q²/4 + p³/27
-               [disc-inner (simplify (sum (quotient (power q (num 2)) (num 4))
-                                          (quotient (power p (num 3)) (num 27))))]
+               [disc-inner (simplify (sum (division (power q (num 2)) (num 4))
+                                          (division (power p (num 3)) (num 27))))]
                [sqrt-disc (sym-sqrt disc-inner)]
-               [neg-q/2 (simplify (quotient (make-neg q) (num 2)))]
+               [neg-q/2 (simplify (division (make-neg q) (num 2)))]
                ;; The cube root arguments
                [u-arg (simplify (sum neg-q/2 sqrt-disc))]
                [v-arg (simplify (difference neg-q/2 sqrt-disc))]
                ;; Principal cube roots
-               [cbrt-u (power u-arg (quotient (num 1) (num 3)))]
-               [cbrt-v (power v-arg (quotient (num 1) (num 3)))]
+               [cbrt-u (power u-arg (division (num 1) (num 3)))]
+               [cbrt-v (power v-arg (division (num 1) (num 3)))]
                ;; Cube roots of unity: ω = (-1 + i√3)/2, ω² = (-1 - i√3)/2
                ;; For symbolic output, represent as primitive roots
-               [omega (quotient (sum (num -1) (product (var 'i) (sym-sqrt (num 3)))) (num 2))]
-               [omega2 (quotient (difference (num -1) (product (var 'i) (sym-sqrt (num 3)))) (num 2))]
+               [omega (division (sum (num -1) (product (var 'i) (sym-sqrt (num 3)))) (num 2))]
+               [omega2 (division (difference (num -1) (product (var 'i) (sym-sqrt (num 3)))) (num 2))]
                ;; Three roots of depressed cubic:
                ;; t₁ = cbrt(u) + cbrt(v)           [principal roots]
                ;; t₂ = ω·cbrt(u) + ω²·cbrt(v)     [first rotation]
@@ -385,7 +385,7 @@
                [t2 (simplify (sum (product omega cbrt-u) (product omega2 cbrt-v)))]
                [t3 (simplify (sum (product omega2 cbrt-u) (product omega cbrt-v)))]
                ;; Shift back: x = t - b/(3a)
-               [shift (simplify (quotient b/a (num 3)))]
+               [shift (simplify (division b/a (num 3)))]
                [x1 (simplify (difference t1 shift))]
                [x2 (simplify (difference t2 shift))]
                [x3 (simplify (difference t3 shift))])
@@ -444,7 +444,7 @@
          ;; Negation stays as negation
          (make-neg (diff-to-sum (diff-left expr))))]
     [(quotient? expr)
-     (quotient (diff-to-sum (quot-numer expr))
+     (division (diff-to-sum (quot-numer expr))
                (diff-to-sum (quot-denom expr)))]
     [(power? expr)
      (power (diff-to-sum (pow-base expr))
@@ -457,9 +457,13 @@
   (doc 'type '(-> Equation Symbol (Maybe (U (List Expr) Expr Symbol))))
   (doc 'description "Solve equation for given variable")
   (doc 'note "Returns list of solutions, single solution, 'infinite, or #f; auto-expands factored forms")
-  (let* ([expr (if (equation? eq)
-                   (equation->expr eq)
-                   eq)]  ; Allow passing expression directly (assumed = 0)
+  (let* ([normalized (if (equation? eq)
+                         (make-equation (normalize-expr (equation-lhs eq))
+                                        (normalize-expr (equation-rhs eq)))
+                         (normalize-expr eq))]
+         [expr (if (equation? normalized)
+                   (equation->expr normalized)
+                   normalized)]
          ;; Convert differences to sums so expand can distribute
          [as-sums (diff-to-sum expr)]
          ;; Expand factored products before solving
@@ -563,7 +567,7 @@
     (map (lambda (row idx)
            (if (<= idx pivot-col)
                row
-               (let ([factor (simplify (quotient (list-ref row pivot-col) pivot-val))])
+               (let ([factor (simplify (division (list-ref row pivot-col) pivot-val))])
                  (map (lambda (a b)
                         (simplify (difference a (product factor b))))
                       row pivot-row))))
@@ -593,7 +597,7 @@
                                  acc)))
                          (num 0)
                          (map cons (iota n) (iota n)))]
-                       [solution (simplify (quotient (difference rhs sum-of-known) pivot))])
+                       [solution (simplify (division (difference rhs sum-of-known) pivot))])
                   (loop (- row 1)
                         (cons (cons (list-ref vars row) solution) solutions)))))))))
 
@@ -611,7 +615,7 @@
                      (subst (diff-right expr) var-sym val))
          (make-neg (subst (diff-left expr) var-sym val)))]
     [(quotient? expr)
-     (quotient (subst (quot-numer expr) var-sym val)
+     (division (subst (quot-numer expr) var-sym val)
                (subst (quot-denom expr) var-sym val))]
     [(power? expr)
      (power (subst (pow-base expr) var-sym val)

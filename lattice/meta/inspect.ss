@@ -1,5 +1,5 @@
-(load "lattice/meta/kg.ss")      ; Explicit: uses kg-initialized?, kg-skill-data, etc.
-(load "lattice/meta/dag.ss")
+(unless (top-level-bound? 'kg-build!) (load "lattice/meta/kg.ss"))
+(unless (top-level-bound? 'lattice-deps) (load "lattice/meta/dag.ss"))
 
 (doc 'module 'inspect)
 (doc 'description "Skill introspection providing detailed information for agent consumption")
@@ -384,11 +384,13 @@
 ;;; REPL Interface
 ;;; ====
 
-(meta-printf "inspect.ss loaded.\n")
-(meta-printf "  (lattice-describe 'skill)     - Full description\n")
-(meta-printf "  (lattice-skill-exports 'skill) - Export list\n")
-(meta-printf "  (lattice-modules-detail 'skill) - Module details\n")
-(meta-printf "  (lattice-source 'export)      - Source location\n")
-(meta-printf "  (lattice-info 'skill)         - Structured info\n")
-(meta-printf "  (lattice-summary)             - All skills summary\n")
-(meta-printf "  (li 'skill), (le 'skill)      - Quick inspection\n")
+(unless (top-level-bound? '*inspect-banner-shown*)
+  (meta-printf "inspect.ss loaded.\n")
+  (meta-printf "  (lattice-describe 'skill)     - Full description\n")
+  (meta-printf "  (lattice-skill-exports 'skill) - Export list\n")
+  (meta-printf "  (lattice-modules-detail 'skill) - Module details\n")
+  (meta-printf "  (lattice-source 'export)      - Source location\n")
+  (meta-printf "  (lattice-info 'skill)         - Structured info\n")
+  (meta-printf "  (lattice-summary)             - All skills summary\n")
+  (meta-printf "  (li 'skill), (le 'skill)      - Quick inspection\n"))
+(set-top-level-value! '*inspect-banner-shown* #t)

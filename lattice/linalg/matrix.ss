@@ -327,9 +327,9 @@
        (and (matrix-square? m)
             (matrix-approx-equal? m (matrix-transpose m) tol))))
 
-;;; trace : Matrix Num → Num
+;;; matrix-trace : Matrix Num → Num
 ;;; Sum of diagonal elements.
-(define (trace m)
+(define (matrix-trace m)
   (vec-sum (matrix-diagonal m)))
 
 ;;; frobenius-norm : Matrix Num → Num

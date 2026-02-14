@@ -116,11 +116,11 @@
             
             (define-test quotient-one
               ;; x / 1 = x
-              (assert-equal (var 'x) (quotient (var 'x) (num 1))))
+              (assert-equal (var 'x) (division (var 'x) (num 1))))
             
             (define-test quotient-self
               ;; x / x = 1
-              (assert-equal (num 1) (quotient (var 'x) (var 'x))))
+              (assert-equal (num 1) (division (var 'x) (var 'x))))
             
             (define-test power-zero-exp
               ;; x^0 = 1

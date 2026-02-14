@@ -1,7 +1,7 @@
-(load "lattice/data/sort.ss")
-(load "lattice/meta/kg.ss")
-(load "lattice/meta/bm25.ss")
-(load "lattice/meta/docstrings.ss")
+(unless (top-level-bound? 'sort-by) (load "lattice/data/sort.ss"))
+(unless (top-level-bound? 'kg-build!) (load "lattice/meta/kg.ss"))
+(unless (top-level-bound? 'bm25-create) (load "lattice/meta/bm25.ss"))
+(unless (top-level-bound? 'get-docstring) (load "lattice/meta/docstrings.ss"))
 
 (doc 'module 'search)
 (doc 'description "Unified search interface for the skill lattice. Integrates BM25 with the knowledge graph for ranked results.")

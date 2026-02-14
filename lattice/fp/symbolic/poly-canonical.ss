@@ -209,7 +209,7 @@
                   expr  ; Already in lowest terms
                   (let* ([numer-reduced (poly-div numer-poly gcd-poly)]
                          [denom-reduced (poly-div denom-poly gcd-poly)])
-                    (quotient (polynomial->expr numer-reduced var-sym)
+                    (division (polynomial->expr numer-reduced var-sym)
                               (polynomial->expr denom-reduced var-sym)))))))))
 
 (doc 'section 'partial-fractions)
@@ -259,7 +259,7 @@
 
 ;;; poly-divide-expr : Expr × Expr × Symbol → (Expr . Expr)
 ;;; Polynomial division: numer = quotient * denom + remainder.
-;;; Returns (quotient . remainder) as symbolic expressions.
+;;; Returns (division . remainder) as symbolic expressions.
 ;;; Returns (#f . #f) if inputs are not polynomials or denominator is zero.
 (define (poly-divide-expr numer-expr denom-expr var-sym)
   (let* ([numer-poly (expr->polynomial numer-expr var-sym Q-field-sym)]

@@ -1,4 +1,4 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'filter-map) (load "core/base/prelude.ss"))
 
 (doc 'module 'exports)
 (doc 'description "Quick export discovery for files without requiring manifest.sexp")

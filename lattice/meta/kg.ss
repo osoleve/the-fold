@@ -1,7 +1,7 @@
-(load "core/base/prelude.ss")
-(load "core/base/sha256.ss")
-(load "core/blocks/block.ss")
-(load "lattice/meta/manifest.ss")
+(unless (top-level-bound? 'filter-map) (load "core/base/prelude.ss"))
+(unless (top-level-bound? 'sha256) (load "core/base/sha256.ss"))
+(unless (top-level-bound? 'make-block) (load "core/blocks/block.ss"))
+(unless (top-level-bound? 'read-manifest) (load "lattice/meta/manifest.ss"))
 
 (doc 'module 'kg)
 (doc 'description "Lattice knowledge graph builder from manifest files")

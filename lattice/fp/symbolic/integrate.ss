@@ -48,7 +48,7 @@
         
         ;; ∫ x dx = x^2/2
         [(and (var? expr) (eq? (var-name expr) var-sym))
-         (quotient (power x (num 2)) (num 2))]
+         (division (power x (num 2)) (num 2))]
         
         ;; ∫ y dx = y*x (y is different variable)
         [(and (var? expr) (not (eq? (var-name expr) var-sym)))
@@ -97,8 +97,8 @@
         ;; ∫ sqrt(x) dx = (2/3)*x^(3/2)
         [(and (app? expr) (eq? (app-fn expr) 'sqrt)
               (var? (app-arg expr)) (eq? (var-name (app-arg expr)) var-sym))
-         (product (quotient (num 2) (num 3))
-                  (power x (quotient (num 3) (num 2))))]
+         (product (division (num 2) (num 3))
+                  (power x (division (num 3) (num 2))))]
         
         ;; ∫ 1/sqrt(1-x^2) dx = asin(x)
         [(is-arcsin-integrand? expr var-sym)
@@ -236,13 +236,13 @@
              (sym-log (make-app 'abs base))
              ;; ∫ x^n dx = x^(n+1)/(n+1)
              (let ([new-exp (sum exp (num 1))])
-                  (quotient (power base new-exp) new-exp)))]
+                  (division (power base new-exp) new-exp)))]
         
         ;; a^x where a is constant
         [(and (not (contains-var? base var-sym))
               (var? exp) (eq? (var-name exp) var-sym))
          ;; ∫ a^x dx = a^x / ln(a)
-         (quotient expr (sym-log base))]
+         (division expr (sym-log base))]
         
         ;; (ax+b)^n
         [(and (num? exp)
@@ -252,9 +252,9 @@
                 [new-exp (sum exp (num 1))])
                (if (and (num? exp) (= (num-val exp) -1))
                    ;; ∫ 1/(ax+b) dx = ln|ax+b| / a
-                   (quotient (sym-log (make-app 'abs base)) a)
+                   (division (sym-log (make-app 'abs base)) a)
                    ;; ∫ (ax+b)^n dx = (ax+b)^(n+1) / (a*(n+1))
-                   (quotient (power base new-exp)
+                   (division (power base new-exp)
                              (product a new-exp))))]
         
         [else #f])))
@@ -269,7 +269,7 @@
         [(not (contains-var? denom var-sym))
          (let ([int-numer (integrate-internal numer var-sym (+ depth 1))])
               (if int-numer
-                  (quotient int-numer denom)
+                  (division int-numer denom)
                   #f))]
         
         ;; c/(ax+b) = (c/a) * ln|ax+b|
@@ -277,7 +277,7 @@
               (linear-in? denom var-sym))
          (let* ([coeffs (linear-coefficients denom var-sym)]
                 [a (car coeffs)])
-               (quotient (product numer (sym-log (make-app 'abs denom))) a))]
+               (division (product numer (sym-log (make-app 'abs denom))) a))]
         
         ;; f'(x)/f(x) = ln|f(x)|
         [(let ([d-denom (deriv denom var-sym)])
@@ -505,10 +505,10 @@
              (if (and (num? det) (= (num-val det) 0))
                  #f  ;; Degenerate case
                  ;; FIX: Coefficients were swapped - A = -a/det, B = c/det
-                 (let ([A (quotient (make-neg a) det)]
-                       [B (quotient c det)])
-                      (sum (quotient (product A (sym-log (make-app 'abs f1))) a)
-                           (quotient (product B (sym-log (make-app 'abs f2))) c)))))))
+                 (let ([A (division (make-neg a) det)]
+                       [B (division c det)])
+                      (sum (division (product A (sym-log (make-app 'abs f1))) a)
+                           (division (product B (sym-log (make-app 'abs f2))) c)))))))
 
 ;;; ====
 ;;; Helper Functions

@@ -108,7 +108,7 @@
     (assert-false (polynomial-expr? (sym-sin (var 'x)) 'x)))
 
   (define-test "x^(1/2) is not polynomial"
-    (assert-false (polynomial-expr? (power (var 'x) (quotient (num 1) (num 2))) 'x))))
+    (assert-false (polynomial-expr? (power (var 'x) (division (num 1) (num 2))) 'x))))
 
 ;;; ====
 ;;; Test: GCD-Based Simplification
@@ -120,7 +120,7 @@
     (let* ([x (var 'x)]
            [numer (difference (power x (num 2)) (num 1))]  ; x^2 - 1
            [denom (difference x (num 1))]                   ; x - 1
-           [expr (quotient numer denom)]
+           [expr (division numer denom)]
            [simplified (simplify-rational expr 'x)])
       ;; Result should have lower degree
       (if (quotient? simplified)
@@ -132,7 +132,7 @@
     (let* ([x (var 'x)]
            [numer (sum x (num 1))]
            [denom (sum (power x (num 2)) (num 1))]
-           [expr (quotient numer denom)]
+           [expr (division numer denom)]
            [simplified (simplify-rational expr 'x)])
       ;; Should remain a quotient with same degrees
       (assert-true (quotient? simplified)))))

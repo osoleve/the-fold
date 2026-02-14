@@ -57,7 +57,7 @@
                    (assert-equal 0 (num-val result))))
             
             (define-test simplify-x-over-x
-              (let ([result (simplify (quotient (var 'x) (var 'x)))])
+              (let ([result (simplify (division (var 'x) (var 'x)))])
                    (assert-true (num? result))
                    (assert-equal 1 (num-val result))))
             
@@ -164,7 +164,7 @@
                    (assert-equal 1 (num-val result))))
             
             (define-test sin-over-cos-is-tan
-              (let ([result (simplify-trig (quotient (sym-sin (var 'x))
+              (let ([result (simplify-trig (division (sym-sin (var 'x))
                                                      (sym-cos (var 'x))))])
                    (assert-true (app? result))
                    (assert-equal 'tan (app-fn result))))
@@ -216,17 +216,17 @@
 
 (test-group quotient-simplify
             (define-test zero-over-x
-              (let ([result (simplify (quotient (num 0) (var 'x)))])
+              (let ([result (simplify (division (num 0) (var 'x)))])
                    (assert-true (num? result))
                    (assert-equal 0 (num-val result))))
             
             (define-test x-over-one
-              (let ([result (simplify (quotient (var 'x) (num 1)))])
+              (let ([result (simplify (division (var 'x) (num 1)))])
                    (assert-true (var? result))
                    (assert-equal 'x (var-name result))))
             
             (define-test six-over-three
-              (let ([result (simplify (quotient (num 6) (num 3)))])
+              (let ([result (simplify (division (num 6) (num 3)))])
                    (assert-true (num? result))
                    (assert-equal 2 (num-val result)))))
 

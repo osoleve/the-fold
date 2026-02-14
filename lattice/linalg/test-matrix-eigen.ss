@@ -121,7 +121,7 @@
 (let* ([a (matrix-from-lists '((4 2)
                                (2 4)))]
        [eigenvalues (qr-algorithm a)]
-       [tr (trace a)])
+       [tr (matrix-trace a)])
       ;; Eigenvalues are 6 and 2, sum should be 8
       (test-approx "QR algorithm: eigenvalue sum = trace" tr (vec-sum eigenvalues) 1e-4))
 
@@ -147,7 +147,7 @@
                                (1 4 1)
                                (0 1 4)))]
        [eigenvalues (qr-algorithm-shifted a)]
-       [tr (trace a)])
+       [tr (matrix-trace a)])
       (if (vector? eigenvalues)
           (test-approx "QR algorithm: 3x3 eigenvalue sum = trace" tr (vec-sum eigenvalues) 1e-3)
           (test "QR algorithm: 3x3 non-singular matrix" #t (vector? eigenvalues))))
@@ -239,7 +239,7 @@
                                (0 1 2)))]
        [result (symmetric-eigen a)]
        [eigenvalues (car result)]
-       [tr (trace a)])
+       [tr (matrix-trace a)])
       ;; Sum of eigenvalues = trace = 6
       (test-approx "Symmetric eigen: 3x3 eigenvalue sum = trace" tr (vec-sum eigenvalues) 1e-4))
 

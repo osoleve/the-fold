@@ -282,23 +282,23 @@
                        (if (integer? ratio)
                            (make-product-from-list
                             (cons (num ratio) (cdr factors)))
-                           (quotient numer denom)))
-                 (quotient numer denom))))]
+                           (division numer denom)))
+                 (division numer denom))))]
    ;; (a*x)/(b*x) = a/b (cancel common factors)
    [(and (product? numer) (product? denom))
     (let ([simplified (cancel-common-factors
                        (product-factors numer)
                        (product-factors denom))])
          (if simplified
-             (quotient (make-product-from-list (car simplified))
+             (division (make-product-from-list (car simplified))
                        (make-product-from-list (cadr simplified)))
-             (quotient numer denom)))]
+             (division numer denom)))]
    ;; x^a / x^b = x^(a-b)
    [(and (power? numer) (power? denom)
          (expr=? (pow-base numer) (pow-base denom)))
     (power (pow-base numer)
            (simplify (difference (pow-exp numer) (pow-exp denom))))]
-   [else (quotient numer denom)]))
+   [else (division numer denom)]))
 
 (define (cancel-common-factors numer-factors denom-factors)
   (doc 'type '(-> (List Expr) (List Expr) (Maybe (Pair (List Expr) (List Expr)))))
@@ -454,7 +454,7 @@
         (make-neg (expand-once (diff-left expr))))]
    
    [(quotient? expr)
-    (quotient (expand-once (quot-numer expr))
+    (division (expand-once (quot-numer expr))
               (expand-once (quot-denom expr)))]
    
    [(power? expr)
@@ -585,10 +585,10 @@
     (let ([remaining (find-and-remove factor (product-factors term))])
          (if remaining
              (make-product-from-list remaining)
-             (quotient term factor)))]
+             (division term factor)))]
    [(and (num? factor) (num? term))
     (num (/ (num-val term) (num-val factor)))]
-   [else (quotient term factor)]))
+   [else (division term factor)]))
 
 (doc 'section 'trigonometric-identities)
 
@@ -646,7 +646,7 @@
                   (eq? (app-fn denom) 'cos)
                   (expr=? (app-arg numer) (app-arg denom)))
              (make-app 'tan (app-arg numer))
-             (quotient numer denom)))]
+             (division numer denom)))]
    
    [(app? expr)
     (make-app (app-fn expr) (simplify-trig-once (app-arg expr)))]
@@ -750,7 +750,7 @@
         (make-neg (to-canonical (diff-left expr))))]
    
    [(quotient? expr)
-    (quotient (to-canonical (quot-numer expr))
+    (division (to-canonical (quot-numer expr))
               (to-canonical (quot-denom expr)))]
    
    [(power? expr)

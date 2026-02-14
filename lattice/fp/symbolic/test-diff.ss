@@ -127,7 +127,7 @@
 (test-group quotient-rule
             (define-test quotient-constant-numerator
               ;; d/dx[1/x] = -1/x^2
-              (let ([result (deriv (quotient (num 1) (var 'x)) 'x)])
+              (let ([result (deriv (division (num 1) (var 'x)) 'x)])
                    ;; Should be a quotient
                    (assert-true (quotient? result))
                    ;; Numerator should be negative
@@ -136,7 +136,7 @@
             
             (define-test quotient-x-over-constant
               ;; d/dx[x/5] = 1/5 = 5/25 (from quotient rule)
-              (let ([result (deriv (quotient (var 'x) (num 5)) 'x)])
+              (let ([result (deriv (division (var 'x) (num 5)) 'x)])
                    (assert-true (quotient? result))
                    (let ([numer (quot-numer result)]
                          [denom (quot-denom result)])
@@ -151,7 +151,7 @@
               ;; d/dx[x^2/x] should give (2x*x - x^2*1)/x^2
               (let* ([x (var 'x)]
                      [x2 (power x (num 2))]
-                     [result (deriv (quotient x2 x) 'x)])
+                     [result (deriv (division x2 x) 'x)])
                     (assert-true (quotient? result)))))
 
 ;;; ====
@@ -505,7 +505,7 @@
               ;; d/dx[(x^2 + 1)/(x - 1)]
               (let* ([numer (sum (power (var 'x) (num 2)) (num 1))]
                      [denom (difference (var 'x) (num 1))]
-                     [rat (quotient numer denom)]
+                     [rat (division numer denom)]
                      [result (deriv rat 'x)])
                     ;; Result should be a quotient (from quotient rule)
                     (assert-true (quotient? result))))

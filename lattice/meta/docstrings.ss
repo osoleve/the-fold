@@ -150,6 +150,8 @@
 
 (doc 'section 'repl-interface)
 
-(meta-printf "docstrings.ss loaded.\n")
-(meta-printf "  (get-docstring 'fn)            - Get docstring for function\n")
-(meta-printf "  (docstring-terms 'fn)          - Get search terms from docstring\n")
+(unless (top-level-bound? '*docstrings-banner-shown*)
+  (meta-printf "docstrings.ss loaded.\n")
+  (meta-printf "  (get-docstring 'fn)            - Get docstring for function\n")
+  (meta-printf "  (docstring-terms 'fn)          - Get search terms from docstring\n"))
+(set-top-level-value! '*docstrings-banner-shown* #t)

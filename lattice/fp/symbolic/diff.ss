@@ -80,11 +80,11 @@
         ;; Unary negation: d/dx[-f] = -f'
         (make-neg (deriv (diff-left expr) var-sym)))]
 
-   ;; d/dx[f / g] = (f' * g - f * g') / g^2 (quotient rule)
+   ;; d/dx[f / g] = (f' * g - f * g') / g^2 (division rule)
    [(quotient? expr)
     (let ([f (quot-numer expr)]
           [g (quot-denom expr)])
-         (quotient
+         (division
           (difference (product (deriv f var-sym) g)
                       (product f (deriv g var-sym)))
           (power g (num 2))))]
@@ -111,7 +111,7 @@
           [else
            (product expr
                     (sum (product (deriv g var-sym) (sym-log f))
-                         (product g (quotient (deriv f var-sym) f))))]))]
+                         (product g (division (deriv f var-sym) f))))]))]
 
    ;; d/dx[fn(u)] = fn'(u) * u' (chain rule)
    [(app? expr)
@@ -132,25 +132,25 @@
         ;; d/du[cos(u)] = -sin(u)
         [(cos) (make-neg (sym-sin arg))]
         ;; d/du[tan(u)] = sec^2(u) = 1/cos^2(u)
-        [(tan) (quotient (num 1) (power (sym-cos arg) (num 2)))]
+        [(tan) (division (num 1) (power (sym-cos arg) (num 2)))]
         ;; d/du[exp(u)] = exp(u)
         [(exp) (sym-exp arg)]
         ;; d/du[log(u)] = 1/u
-        [(log) (quotient (num 1) arg)]
+        [(log) (division (num 1) arg)]
         ;; d/du[sqrt(u)] = 1/(2*sqrt(u))
-        [(sqrt) (quotient (num 1) (product (num 2) (sym-sqrt arg)))]
+        [(sqrt) (division (num 1) (product (num 2) (sym-sqrt arg)))]
         ;; d/du[asin(u)] = 1/sqrt(1-u^2)
-        [(asin) (quotient (num 1) (sym-sqrt (difference (num 1) (power arg (num 2)))))]
+        [(asin) (division (num 1) (sym-sqrt (difference (num 1) (power arg (num 2)))))]
         ;; d/du[acos(u)] = -1/sqrt(1-u^2)
-        [(acos) (make-neg (quotient (num 1) (sym-sqrt (difference (num 1) (power arg (num 2))))))]
+        [(acos) (make-neg (division (num 1) (sym-sqrt (difference (num 1) (power arg (num 2))))))]
         ;; d/du[atan(u)] = 1/(1+u^2)
-        [(atan) (quotient (num 1) (sum (num 1) (power arg (num 2))))]
+        [(atan) (division (num 1) (sum (num 1) (power arg (num 2))))]
         ;; d/du[sinh(u)] = cosh(u)
         [(sinh) (make-app 'cosh arg)]
         ;; d/du[cosh(u)] = sinh(u)
         [(cosh) (make-app 'sinh arg)]
         ;; d/du[tanh(u)] = sech^2(u) = 1/cosh^2(u)
-        [(tanh) (quotient (num 1) (power (make-app 'cosh arg) (num 2)))]
+        [(tanh) (division (num 1) (power (make-app 'cosh arg) (num 2)))]
         ;; Unknown function: return symbolic derivative
         [else (make-app 'D (make-app fn arg))]))
 

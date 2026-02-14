@@ -73,7 +73,7 @@
                    (assert-equal 'exp (app-fn result))))
             
             (define-test integrate-one-over-x
-              (let ([result (integrate (quotient (num 1) (var 'x)) 'x)])
+              (let ([result (integrate (division (num 1) (var 'x)) 'x)])
                    (assert-true (truthy? result))
                    (assert-true (app? result))
                    (assert-equal 'log (app-fn result))))

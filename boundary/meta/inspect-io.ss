@@ -1,6 +1,6 @@
-(load "lattice/meta/inspect.ss")
-(load "boundary/meta/exports-io.ss")
-(load "boundary/io/process.ss")
+(unless (top-level-bound? 'lattice-describe) (load "lattice/meta/inspect.ss"))
+(unless (top-level-bound? 'scan-skill-exports) (load "boundary/meta/exports-io.ss"))
+(unless (top-level-bound? 'shell-capture) (load "boundary/io/process.ss"))
 
 (doc 'module 'inspect-io)
 (doc 'description "I/O layer for skill inspection — test discovery, execution, and export verification")

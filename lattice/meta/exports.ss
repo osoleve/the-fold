@@ -1,4 +1,4 @@
-(load "core/base/prelude.ss")
+(unless (top-level-bound? 'filter-map) (load "core/base/prelude.ss"))
 
 (doc 'module 'exports)
 (doc 'description "Extract exported symbols from S-expressions using (doc 'export #t) annotations")

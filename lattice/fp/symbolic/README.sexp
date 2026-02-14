@@ -12,7 +12,7 @@
     (sum "Smart sum constructor: (sum e1 e2)")
     (product "Smart product constructor: (product e1 e2)")
     (difference "Smart difference constructor: (difference e1 e2)")
-    (quotient "Smart quotient constructor: (quotient e1 e2)")
+    (division "Smart quotient constructor: (division e1 e2)")
     (power "Smart power constructor: (power base exp)")
     (make-neg "Negation: (make-neg e)")
     (make-app "Function application: (make-app 'sin e)")

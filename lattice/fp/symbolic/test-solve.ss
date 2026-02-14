@@ -313,6 +313,40 @@
 ;;; Factored Polynomial Tests (expand before solving)
 ;;; ====
 
+;;; ====
+;;; Raw S-expression Input Tests (fold-zxyb)
+;;; ====
+
+(test-group raw-sexp-tests
+
+  (define-test raw-sexp-linear
+    ;; (solve-for '(+ (* 2 x) -4) 'x) should return 2
+    (let ([sol (solve-for '(+ (* 2 x) -4) 'x)])
+      (assert-true (num? sol))
+      (assert-equal 2 (num-val sol))))
+
+  (define-test raw-sexp-quadratic
+    ;; x² - 5x + 6 = 0 → x = 2, 3
+    (let ([sols (solve '(+ (^ x 2) (+ (* -5 x) 6)) 'x)])
+      (assert-true (list? sols))
+      (assert-equal 2 (length sols))))
+
+  (define-test raw-sexp-equation
+    ;; 2x = 6 → x = 3
+    (let ([sol (solve-for '(= (* 2 x) 6) 'x)])
+      (assert-true (num? sol))
+      (assert-equal 3 (num-val sol))))
+
+  (define-test raw-sexp-just-variable
+    ;; x + 5 = 0 → x = -5
+    (let ([sol (solve-for '(+ x 5) 'x)])
+      (assert-true (num? sol))
+      (assert-equal -5 (num-val sol)))))
+
+;;; ====
+;;; Factored Polynomial Tests (expand before solving)
+;;; ====
+
 (test-group factored-tests
 
   (define-test factored-quadratic

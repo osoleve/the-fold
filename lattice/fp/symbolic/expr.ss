@@ -111,7 +111,7 @@
    ;; Default
    [else (list '- e1 e2)]))
 
-(define (quotient e1 e2)
+(define (division e1 e2)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Create quotient with basic simplifications")
   (cond
@@ -482,7 +482,7 @@
                     (subst (diff-right expr) var-sym val))
         (make-neg (subst (diff-left expr) var-sym val)))]
    [(quotient? expr)
-    (quotient (subst (quot-numer expr) var-sym val)
+    (division (subst (quot-numer expr) var-sym val)
               (subst (quot-denom expr) var-sym val))]
    [(power? expr)
     (power (subst (pow-base expr) var-sym val)
@@ -490,6 +490,54 @@
    [(app? expr)
     (make-app (app-fn expr) (subst (app-arg expr) var-sym val))]
    [else expr]))
+
+(doc 'section 'normalization)
+
+(define (normalize-expr e)
+  (doc 'type '(-> Any Expr))
+  (doc 'description "Convert raw S-expression to tagged Expr form")
+  (doc 'note "Allows (+ (* 2 x) -4) instead of (sum (product (num 2) (var 'x)) (num -4))")
+  (cond
+   ;; Already tagged atoms
+   [(num? e) e]
+   [(var? e) e]
+   ;; Raw atoms
+   [(number? e) (num e)]
+   [(symbol? e) (var e)]
+   ;; Compound expressions with operator tags
+   [(and (pair? e) (eq? (car e) '+))
+    (make-sum (map normalize-expr (cdr e)))]
+   [(and (pair? e) (eq? (car e) '*))
+    (make-product (map normalize-expr (cdr e)))]
+   [(and (pair? e) (eq? (car e) '-))
+    (if (= (length e) 3)
+        (difference (normalize-expr (cadr e))
+                    (normalize-expr (caddr e)))
+        (make-neg (normalize-expr (cadr e))))]
+   [(and (pair? e) (eq? (car e) '/))
+    (division (normalize-expr (cadr e))
+              (normalize-expr (caddr e)))]
+   [(and (pair? e) (eq? (car e) '^))
+    (power (normalize-expr (cadr e))
+           (normalize-expr (caddr e)))]
+   ;; Function application (sin, cos, etc.)
+   [(and (pair? e) (symbol? (car e))
+         (= (length e) 2))
+    (make-app (car e) (normalize-expr (cadr e)))]
+   ;; Already a well-formed compound expr — normalize children
+   [(sum? e) (make-sum (map normalize-expr (sum-terms e)))]
+   [(product? e) (make-product (map normalize-expr (product-factors e)))]
+   [(difference? e)
+    (if (diff-right e)
+        (difference (normalize-expr (diff-left e))
+                    (normalize-expr (diff-right e)))
+        (make-neg (normalize-expr (diff-left e))))]
+   [(quotient? e) (division (normalize-expr (quot-numer e))
+                             (normalize-expr (quot-denom e)))]
+   [(power? e) (power (normalize-expr (pow-base e))
+                       (normalize-expr (pow-exp e)))]
+   [(app? e) (make-app (app-fn e) (normalize-expr (app-arg e)))]
+   [else e]))
 
 (doc 'section 'display)
 
