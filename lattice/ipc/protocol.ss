@@ -154,6 +154,14 @@
 ;;; ipc-make-ready : → Alist
 (define (ipc-make-ready) '((type . ready)))
 
+;;; ipc-make-shutdown : → Alist
+;;; Request worker to shut down cleanly.
+(define (ipc-make-shutdown) '((type . shutdown)))
+
+;;; ipc-make-shutdown-ack : → Alist
+;;; Worker acknowledges shutdown and is exiting.
+(define (ipc-make-shutdown-ack) '((type . shutdown-ack)))
+
 ;;; ====
 ;;; Message Accessors
 ;;; ====

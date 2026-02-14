@@ -220,20 +220,26 @@
 (define (worker-loop session-id)
   (let ([frame (read-frame-stdin)])
     (when frame
-      (guard (ex [else
-                  ;; Decode error — skip this frame
-                  (display (format "Worker ~a: decode error\n" session-id)
-                           (current-error-port))])
-        (let ([msg (ipc-decode-frame frame)])
-          (case (ipc-message-type msg)
-            [(request)
-             (process-request! session-id msg)]
-            [(ping)
-             (write-frame-stdout (ipc-encode-frame (ipc-make-pong)))]
-            [else
-             ;; Unknown message type — ignore
-             #f])))
-      (worker-loop session-id))))
+      (let ([continue?
+             (guard (ex [else
+                         ;; Decode error — skip this frame
+                         (display (format "Worker ~a: decode error\n" session-id)
+                                  (current-error-port))
+                         #t])
+               (let ([msg (ipc-decode-frame frame)])
+                 (case (ipc-message-type msg)
+                   [(request)
+                    (process-request! session-id msg)
+                    #t]
+                   [(ping)
+                    (write-frame-stdout (ipc-encode-frame (ipc-make-pong)))
+                    #t]
+                   [(shutdown)
+                    (write-frame-stdout (ipc-encode-frame (ipc-make-shutdown-ack)))
+                    #f]  ; stop looping
+                   [else #t])))])
+        (when continue?
+          (worker-loop session-id))))))
 
 ;;; ====
 ;;; Startup
@@ -254,7 +260,16 @@
     ;; protocol clean — many modules print load banners on stdout.
     (parameterize ([current-output-port (current-error-port)])
       (load "boundary/repl/repl.ss"))
-    ;; Run the frame-based worker loop
-    (worker-loop session-id)))
+    ;; Run the frame-based worker loop with structured cleanup.
+    ;; dynamic-wind ensures flush on any exit path: normal return,
+    ;; shutdown frame, EOF, or uncaught exception.
+    (dynamic-wind
+      (lambda () #f)
+      (lambda () (worker-loop session-id))
+      (lambda ()
+        (guard (ex [else #f])
+          (flush-output-port *stdout-binary*))
+        (display (format "Worker ~a exiting.\n" session-id)
+                 (current-error-port))))))
 
 (start-socket-worker!)

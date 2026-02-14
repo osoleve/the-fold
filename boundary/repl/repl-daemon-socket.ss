@@ -30,6 +30,8 @@
 (define *cleanup-interval* 60)        ; 1 minute between cleanups
 (define *idle-timeout* 600)           ; 10 min without request
 (define *max-workers* 50)
+(define *heartbeat-interval* 30)      ; 30s between pings
+(define *heartbeat-timeout* 90)       ; 90s without pong = dead worker
 
 (define *last-cleanup* (time-second (current-time)))
 
@@ -38,7 +40,7 @@
 ;;; ====
 
 ;;; Session entry: (session-id . session-record)
-;;; session-record: (input-port output-port stderr-port pid client-ids last-request expires)
+;;; session-record: (input-port output-port stderr-port pid client-ids last-request expires last-pong)
 ;;; NOTE: stderr-port MUST be stored to prevent GC from closing the pipe fd.
 ;;; If GC collects an unreferenced port, Chez closes the fd, the worker gets
 ;;; SIGPIPE when writing to stderr, and dies silently during init.
@@ -46,7 +48,7 @@
 
 (define (make-session-record inp outp errp pid)
   (let ([now (time-second (current-time))])
-    (list inp outp errp pid '() now (+ now 600))))
+    (list inp outp errp pid '() now (+ now 600) now)))
 
 (define (session-input-port rec) (list-ref rec 0))
 (define (session-output-port rec) (list-ref rec 1))
@@ -55,6 +57,10 @@
 (define (session-client-ids rec) (list-ref rec 4))
 (define (session-last-request rec) (list-ref rec 5))
 (define (session-expires rec) (list-ref rec 6))
+(define (session-last-pong rec) (list-ref rec 7))
+
+(define (session-update-pong! rec)
+  (set-car! (list-tail rec 7) (time-second (current-time))))
 
 (define (session-set-client-ids! rec ids)
   (set-car! (list-tail rec 4) ids))
@@ -318,7 +324,8 @@
 
 ;;; check-worker-outputs! : → Void
 ;;; Non-blocking poll of all worker output ports.
-;;; Reads complete frames and routes responses to subscribed clients.
+;;; Reads complete frames, intercepts daemon-internal messages (pong, shutdown-ack),
+;;; and routes application responses to subscribed clients.
 (define (check-worker-outputs!)
   (for-each
    (lambda (entry)
@@ -331,19 +338,77 @@
          (let loop ()
            (let ([frame (read-frame-from-port outp session-id)])
              (when frame
-               ;; Decode to get message type for routing
                (let ([msg (guard (ex [else #f])
                             (ipc-decode-frame frame))])
                  (when msg
-                   ;; Send response to all subscribed clients
-                   (let ([clients (session-client-ids rec)])
-                     (for-each
-                      (lambda (cid)
-                        (guard (ex [else #f])
-                          (ipc-send! cid frame)))
-                      clients))))
+                   (case (ipc-message-type msg)
+                     [(pong)
+                      ;; Heartbeat response — update timestamp, don't forward
+                      (session-update-pong! rec)]
+                     [(shutdown-ack)
+                      ;; Worker acknowledged shutdown — don't forward
+                      #f]
+                     [else
+                      ;; Application message — forward to subscribed clients
+                      (let ([clients (session-client-ids rec)])
+                        (for-each
+                         (lambda (cid)
+                           (guard (ex [else #f])
+                             (ipc-send! cid frame)))
+                         clients))])))
                (loop)))))))
    *sessions*))
+
+;;; ====
+;;; Graceful Worker Shutdown
+;;; ====
+
+;;; shutdown-session! : String × SessionRecord → Void
+;;; Send shutdown frame, wait briefly for ack, then close ports.
+(define (shutdown-session! session-id rec)
+  ;; Send shutdown frame
+  (guard (ex [else #f])
+    (let ([frame (ipc-encode-frame (ipc-make-shutdown))])
+      (put-bytevector (session-input-port rec) frame)
+      (flush-output-port (session-input-port rec))))
+  ;; Poll up to 500ms for shutdown-ack
+  (let loop ([attempts 0])
+    (when (< attempts 5)
+      (let ([frame (read-frame-from-port (session-output-port rec) session-id)])
+        (if frame
+            (let ([msg (guard (ex [else #f]) (ipc-decode-frame frame))])
+              (unless (and msg (eq? (ipc-message-type msg) 'shutdown-ack))
+                ;; Not the ack — keep waiting
+                (sleep (make-time 'time-duration 100000000 0))
+                (loop (+ attempts 1))))
+            (begin
+              (sleep (make-time 'time-duration 100000000 0))
+              (loop (+ attempts 1)))))))
+  ;; Close ports regardless
+  (guard (ex [else #f]) (close-port (session-input-port rec)))
+  (guard (ex [else #f]) (close-port (session-output-port rec)))
+  (guard (ex [else #f]) (close-port (session-stderr-port rec)))
+  (clear-read-buffer! session-id))
+
+;;; ====
+;;; Heartbeat
+;;; ====
+
+(define *last-heartbeat* 0)
+
+;;; send-heartbeats! : → Void
+;;; Ping all workers. Track unresponsive ones for cleanup.
+(define (send-heartbeats!)
+  (let ([now (time-second (current-time))])
+    (when (> (- now *last-heartbeat*) *heartbeat-interval*)
+      (set! *last-heartbeat* now)
+      (let ([ping-frame (ipc-encode-frame (ipc-make-ping))])
+        (for-each
+         (lambda (entry)
+           (guard (ex [else #f])
+             (put-bytevector (session-input-port (cdr entry)) ping-frame)
+             (flush-output-port (session-input-port (cdr entry)))))
+         *sessions*)))))
 
 ;;; ====
 ;;; Session Cleanup
@@ -357,18 +422,16 @@
           (set! *sessions* (reverse kept))
           (let* ([entry (car remaining)]
                  [session-id (car entry)]
-                 [rec (cdr entry)])
-            (if (>= now (session-expires rec))
+                 [rec (cdr entry)]
+                 [expired? (>= now (session-expires rec))]
+                 [unresponsive? (> (- now (session-last-pong rec))
+                                   *heartbeat-timeout*)])
+            (if (or expired? unresponsive?)
                 (begin
-                  (display (format "  [expire] Session '~a' expired\n" session-id))
-                  ;; Close worker ports and clean up read buffer
-                  (guard (ex [else #f])
-                    (close-port (session-input-port rec)))
-                  (guard (ex [else #f])
-                    (close-port (session-output-port rec)))
-                  (guard (ex [else #f])
-                    (close-port (session-stderr-port rec)))
-                  (clear-read-buffer! session-id)
+                  (display (format "  [~a] Session '~a'\n"
+                                   (if unresponsive? "dead" "expire")
+                                   session-id))
+                  (shutdown-session! session-id rec)
                   (loop (cdr remaining) kept))
                 (loop (cdr remaining) (cons entry kept))))))))
 
@@ -394,9 +457,19 @@
 
 (define (daemon-stop!)
   (set! *daemon-running* #f)
-  ;; Stop the reactor
+  ;; Stop the reactor first — no new client messages
   (guard (ex [else #f])
     (ipc-reactor-stop!))
+  ;; Send shutdown to all workers, then wait briefly for acks
+  (let ([shutdown-frame (ipc-encode-frame (ipc-make-shutdown))])
+    (for-each
+     (lambda (entry)
+       (guard (ex [else #f])
+         (put-bytevector (session-input-port (cdr entry)) shutdown-frame)
+         (flush-output-port (session-input-port (cdr entry)))))
+     *sessions*))
+  ;; 500ms grace period for workers to ack and exit
+  (sleep (make-time 'time-duration 500000000 0))
   ;; Close all worker connections
   (for-each
    (lambda (entry)
@@ -405,7 +478,8 @@
      (guard (ex [else #f])
        (close-port (session-output-port (cdr entry))))
      (guard (ex [else #f])
-       (close-port (session-stderr-port (cdr entry)))))
+       (close-port (session-stderr-port (cdr entry))))
+     (clear-read-buffer! (car entry)))
    *sessions*)
   (set! *sessions* '())
   (clear-ready!)
@@ -432,10 +506,13 @@
     ;; 2. Check worker outputs (non-blocking)
     (check-worker-outputs!)
 
-    ;; 3. Periodic maintenance
+    ;; 3. Heartbeat pings
+    (send-heartbeats!)
+
+    ;; 4. Periodic maintenance
     (periodic-cleanup!)
 
-    ;; 4. Small sleep to avoid busy-wait (2ms)
+    ;; 5. Small sleep to avoid busy-wait (2ms)
     (sleep (make-time 'time-duration *poll-interval-ns* 0))
 
     (daemon-loop)))

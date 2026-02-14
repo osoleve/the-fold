@@ -65,6 +65,18 @@
            [decoded (ipc-decode-frame frame)])
       (assert-equal (ipc-message-type decoded) 'ready)))
 
+  (define-test "encode-decode round-trip: shutdown/shutdown-ack"
+    (let* ([shutdown (ipc-make-shutdown)]
+           [ack (ipc-make-shutdown-ack)]
+           [s-frame (ipc-encode-frame shutdown)]
+           [a-frame (ipc-encode-frame ack)]
+           [s-decoded (ipc-decode-frame s-frame)]
+           [a-decoded (ipc-decode-frame a-frame)])
+      (assert-equal (ipc-message-type s-decoded) 'shutdown)
+      (assert-equal (ipc-message-type a-decoded) 'shutdown-ack)
+      (assert-true (ipc-valid-message? shutdown))
+      (assert-true (ipc-valid-message? ack))))
+
   ;;; ====
   ;;; Frame structure
   ;;; ====
