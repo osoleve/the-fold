@@ -204,6 +204,58 @@
       (assert-equal *killed-pids* '())
       (set! *killed-pids* saved)))
 
+  (define-test "eval-timeout config exists"
+    (assert-true (number? *eval-timeout*))
+    (assert-true (> *eval-timeout* *heartbeat-timeout*)))
+
+  (define-test "idle worker uses heartbeat timeout"
+    ;; Simulate idle worker: last-pong is recent, last-request is older
+    (let ([rec (make-session-record 'fake-inp 'fake-outp 'fake-errp 12345)])
+      ;; Pong is recent → worker is alive and idle
+      (session-update-pong! rec)
+      (let* ([now (time-second (current-time))]
+             [since-pong (- now (session-last-pong rec))]
+             [since-request (- now (session-last-request rec))]
+             [eval-in-flight? (< since-request since-pong)])
+        ;; Both are recent, so eval-in-flight? could be either way
+        ;; Key assertion: not unresponsive
+        (assert-false (if eval-in-flight?
+                          (> since-request *eval-timeout*)
+                          (> since-pong *heartbeat-timeout*))))))
+
+  (define-test "busy worker uses eval timeout"
+    ;; Simulate busy worker: request sent recently, pong is old
+    (let ([rec (make-session-record 'fake-inp 'fake-outp 'fake-errp 12345)])
+      ;; Manually set last-pong to far past (simulate no pong during eval)
+      (set-car! (list-tail rec 7)
+                (- (time-second (current-time)) 120))  ; 120s ago
+      ;; Touch to update last-request to now (simulates forwarding request)
+      (session-touch! rec)
+      (let* ([now (time-second (current-time))]
+             [since-pong (- now (session-last-pong rec))]
+             [since-request (- now (session-last-request rec))]
+             [eval-in-flight? (< since-request since-pong)])
+        ;; Request is more recent than pong → in-flight
+        (assert-true eval-in-flight?)
+        ;; Should NOT be unresponsive (request just sent)
+        (assert-false (> since-request *eval-timeout*)))))
+
+  (define-test "stuck eval eventually times out"
+    ;; Simulate worker stuck: both request and pong are very old
+    (let ([rec (make-session-record 'fake-inp 'fake-outp 'fake-errp 12345)])
+      (let ([old-time (- (time-second (current-time)) (+ *eval-timeout* 60))])
+        ;; Set both timestamps to far past
+        (set-car! (list-tail rec 5) old-time)   ; last-request
+        (set-car! (list-tail rec 7) (- old-time 30)))  ; last-pong even older
+      (let* ([now (time-second (current-time))]
+             [since-pong (- now (session-last-pong rec))]
+             [since-request (- now (session-last-request rec))]
+             [eval-in-flight? (< since-request since-pong)])
+        ;; Request is more recent than pong → in-flight
+        (assert-true eval-in-flight?)
+        ;; But request is older than eval-timeout → unresponsive
+        (assert-true (> since-request *eval-timeout*)))))
+
   (define-test "route-message! handles ping with pong"
     ;; Start reactor so ipc-send! works
     (ipc-load!)

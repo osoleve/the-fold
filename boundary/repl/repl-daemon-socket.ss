@@ -26,12 +26,11 @@
 (define *worker-script* "boundary/repl/repl-worker-socket.ss")
 
 (define *poll-interval-ns* 2000000)   ; 2ms — not 100ms like file polling
-(define *worker-timeout* 600)         ; 10 min without heartbeat
 (define *cleanup-interval* 60)        ; 1 minute between cleanups
-(define *idle-timeout* 600)           ; 10 min without request
 (define *max-workers* 50)
 (define *heartbeat-interval* 30)      ; 30s between pings
-(define *heartbeat-timeout* 90)       ; 90s without pong = dead worker
+(define *heartbeat-timeout* 90)       ; 90s without pong = dead idle worker
+(define *eval-timeout* 600)           ; 10 min — max eval time before force-kill
 
 (define *last-cleanup* (time-second (current-time)))
 
@@ -73,13 +72,9 @@
 (define (session-touch! rec)
   (let ([now (time-second (current-time))])
     (set-car! (list-tail rec 5) now)
-    ;; Decay-based expiration extension
-    (let* ([current-expires (session-expires rec)]
-           [remaining (max 0 (- current-expires now))]
-           [decay (max 0.1 (- 1.0 (/ (exact->inexact remaining) 3600.0)))]
-           [extension (inexact->exact (floor (* 600 decay)))]
-           [new-expires (+ now (max extension 600))])
-      (set-car! (list-tail rec 6) new-expires))))
+    ;; Extend expiration by 600s from now on each request.
+    ;; Sessions live as long as they're active.
+    (set-car! (list-tail rec 6) (+ now 600))))
 
 ;;; ====
 ;;; Input Validation
@@ -415,6 +410,15 @@
        (guard (ex [else
                    ;; Worker output error — session may be dead
                    #f])
+         ;; Drain stderr to prevent pipe backpressure deadlock.
+         ;; Workers write startup banners and error diagnostics to stderr.
+         ;; If the 64KB pipe buffer fills, the worker blocks on write.
+         (let ([stderr-data (read-available-bytes (session-stderr-port rec))])
+           (when stderr-data
+             (guard (ex [else #f])
+               (display (format "  [stderr:~a] ~a\n"
+                                session-id (utf8->string stderr-data))))))
+         ;; Read stdout frames
          (let loop ()
            (let ([frame (read-frame-from-port outp session-id)])
              (when frame
@@ -547,14 +551,25 @@
                  [session-id (car entry)]
                  [rec (cdr entry)]
                  [expired? (>= now (session-expires rec))]
-                 [unresponsive? (> (- now (session-last-pong rec))
-                                   *heartbeat-timeout*)])
+                 ;; Two-tier timeout: idle workers must pong within 90s.
+                 ;; Busy workers (eval in-flight) get up to 10 min.
+                 ;; "In-flight" = request forwarded more recently than last pong,
+                 ;; meaning the worker hasn't had a chance to process the ping.
+                 [since-pong (- now (session-last-pong rec))]
+                 [since-request (- now (session-last-request rec))]
+                 [eval-in-flight? (< since-request since-pong)]
+                 [unresponsive? (if eval-in-flight?
+                                    (> since-request *eval-timeout*)
+                                    (> since-pong *heartbeat-timeout*))])
             (cond
              [unresponsive?
               ;; Worker already confirmed dead — close ports immediately,
               ;; don't waste time waiting for a shutdown-ack it can't send
-              (display (format "  [dead] Session '~a' (pid ~a)\n"
-                               session-id (session-pid rec)))
+              (display (format "  [dead] Session '~a' (pid ~a, ~a)\n"
+                               session-id (session-pid rec)
+                               (if eval-in-flight?
+                                   (format "eval timed out after ~as" (inexact->exact (floor since-request)))
+                                   (format "no pong for ~as" (inexact->exact (floor since-pong))))))
               (guard (ex [else #f]) (close-port (session-input-port rec)))
               (guard (ex [else #f]) (close-port (session-output-port rec)))
               (guard (ex [else #f]) (close-port (session-stderr-port rec)))
