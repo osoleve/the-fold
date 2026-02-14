@@ -300,7 +300,7 @@
 (define (env-extend env name val)
   (cons (cons name val) env))
 
-(define (env-lookup env name)
+(define (nbe-env-lookup env name)
   (let ([entry (assq name env)])
        (if entry
            (cdr entry)
@@ -322,7 +322,7 @@
    [(symbol? expr)
     (if (base-type? expr)
         (V-base expr)
-        (env-lookup env expr))]
+        (nbe-env-lookup env expr))]
    
    ;; Literals
    [(number? expr) (V-base expr)]
@@ -1382,7 +1382,7 @@
        [(symbol? expr)
         (if (base-type? expr)
             (values (V-base expr) (- fuel 1))
-            (values (env-lookup env expr) (- fuel 1)))]
+            (values (nbe-env-lookup env expr) (- fuel 1)))]
 
        ;; Literals
        [(number? expr)

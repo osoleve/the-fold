@@ -308,4 +308,4 @@
   (display "  (exactly-k vars k)              ; Exactly k true\n\n")
   (display "Problems:\n")
   (display "  (graph-coloring edges nodes colors)  ; Graph coloring\n")
-  (display "  (n-queens-sat n)                     ; N-Queens puzzle\n"))
+  (display "  (n-queens-solve n)                   ; N-Queens puzzle\n"))

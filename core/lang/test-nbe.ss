@@ -128,12 +128,12 @@
     (let ([env1 (env-extend nbe-empty-env 'x (V-base 10))])
       (assert-equal '((x . (V-base 10))) env1)))
 
-  (define-test "env-lookup finds binding"
+  (define-test "nbe-env-lookup finds binding"
     (let ([env1 (env-extend nbe-empty-env 'x (V-base 10))])
-      (assert-equal (V-base 10) (env-lookup env1 'x))))
+      (assert-equal (V-base 10) (nbe-env-lookup env1 'x))))
 
-  (define-test "env-lookup unknown becomes neutral"
-    (let ([unknown (env-lookup nbe-empty-env 'y)])
+  (define-test "nbe-env-lookup unknown becomes neutral"
+    (let ([unknown (nbe-env-lookup nbe-empty-env 'y)])
       (assert-true (V-neutral? unknown)))))
 
 (test-group basic-evaluation
