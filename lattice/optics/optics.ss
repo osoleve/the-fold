@@ -1079,15 +1079,11 @@
       [(and (eq? t1 'iso) (eq? t2 'affine))
        (affine-compose (lens->affine (iso->lens outer)) inner)]
 
-      ;; Traversal compositions
-      [(or (eq? t1 'traversal) (eq? t2 'traversal))
-       (traversal-compose (->traversal outer) (->traversal inner))]
-
-      ;; Fold compositions (read-only)
+      ;; Fold compositions (read-only) — before traversal to catch traversal+getter etc.
       [(or (eq? t1 'fold) (eq? t2 'fold))
        (fold-compose (->fold outer) (->fold inner))]
 
-      ;; Getter compositions
+      ;; Getter compositions — before traversal (getter is read-only, meet is fold)
       [(and (eq? t1 'getter) (eq? t2 'getter))
        (getter-compose outer inner)]
       [(eq? t1 'getter)
@@ -1095,7 +1091,7 @@
       [(eq? t2 'getter)
        (fold-compose (->fold outer) (getter->fold inner))]
 
-      ;; Setter compositions
+      ;; Setter compositions — before traversal (setter is write-only, meet is setter)
       [(and (eq? t1 'setter) (eq? t2 'setter))
        (setter-compose outer inner)]
       [(eq? t1 'setter)
@@ -1108,6 +1104,11 @@
        (setter-compose (grate->setter outer) inner)]
       [(and (eq? t1 'setter) (eq? t2 'grate))
        (setter-compose outer (grate->setter inner))]
+
+      ;; Traversal compositions — after fold/getter/setter so read/write-only optics
+      ;; find their correct meet type instead of failing on ->traversal conversion
+      [(or (eq? t1 'traversal) (eq? t2 'traversal))
+       (traversal-compose (->traversal outer) (->traversal inner))]
 
       ;; Default: convert to traversals
       [else
@@ -1134,10 +1135,13 @@
     [(prism) (prism->traversal o)]
     [(affine) (affine->traversal o)]
     [(iso) (lens->traversal (iso->lens o))]
-    [(fold) (error '->traversal "Cannot convert fold to traversal (read-only)")]
-    [(getter) (error '->traversal "Cannot convert getter to traversal (read-only)")]
-    [(setter) (error '->traversal "Cannot convert setter to traversal (write-only)")]
-    [else (error '->traversal "Unknown optic type")]))
+    [(fold) (error '->traversal
+                   "Cannot convert fold to traversal (read-only). Use ->fold and fold-compose instead")]
+    [(getter) (error '->traversal
+                     "Cannot convert getter to traversal (read-only). Use getter->fold and fold-compose instead")]
+    [(setter) (error '->traversal
+                     "Cannot convert setter to traversal (write-only). Use ->setter and setter-compose instead")]
+    [else (error '->traversal "Unknown optic type" (optic-type o))]))
 
 ;;; ->fold : Optic → Fold
 (define (->fold o)
@@ -1150,8 +1154,8 @@
     [(traversal) (traversal->fold o)]
     [(affine) (traversal->fold (affine->traversal o))]
     [(iso) (lens->fold (iso->lens o))]
-    [(setter) (error '->fold "Cannot convert setter to fold (write-only)")]
-    [else (error '->fold "Unknown optic type")]))
+    [(setter) (error '->fold "Cannot convert setter to fold (write-only). Setters can only compose with write-capable optics via ->setter")]
+    [else (error '->fold "Unknown optic type" (optic-type o))]))
 
 ;;; ->setter : Optic → Setter
 (define (->setter o)
@@ -1164,9 +1168,9 @@
     [(grate) (grate->setter o)]
     [(prism) (traversal->setter (prism->traversal o))]
     [(affine) (traversal->setter (affine->traversal o))]
-    [(fold) (error '->setter "Cannot convert fold to setter (read-only)")]
-    [(getter) (error '->setter "Cannot convert getter to setter (read-only)")]
-    [else (error '->setter "Unknown optic type")]))
+    [(fold) (error '->setter "Cannot convert fold to setter (read-only). Folds can only compose with read-capable optics via ->fold")]
+    [(getter) (error '->setter "Cannot convert getter to setter (read-only). Use getter->fold and fold-compose for read-only composition")]
+    [else (error '->setter "Unknown optic type" (optic-type o))]))
 
 ;;; iso->lens : Iso s t a b → Lens s t a b
 (define (iso->lens iso)

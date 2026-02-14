@@ -83,24 +83,47 @@
      [irritants (format "error: ~s" irritants)]
      [else "unknown error"])))
 
+(define (suggest-for-unbound sym)
+  (guard (ex [else ""])
+    (if (and (top-level-bound? 'lattice-export-source)
+             (top-level-bound? 'kg-initialized?)
+             (kg-initialized?))
+        (let ([skill (lattice-export-source sym)])
+          (if skill
+              (format "\n  Hint: exported by '~a' skill. Try: (li '~a) to find the module"
+                      skill skill)
+              ""))
+        "")))
+
 (define (format-condition e)
-  (if (condition? e)
-      (guard (e2 [else (condition->string e)])
-        (if (message-condition? e)
-            (let ([template (condition-message e)]
-                  [irritants (if (irritants-condition? e)
-                                 (condition-irritants e)
-                                 '())])
-              (if (null? irritants)
-                  template
-                  (guard (e3 [else
-                              (let ([who (and (who-condition? e) (condition-who e))])
-                                (if who
-                                    (format "~a: ~a ~s" who template irritants)
-                                    (format "~a ~s" template irritants)))])
-                    (apply format template irritants))))
-            (condition->string e)))
-      (format "~a" e)))
+  (let ([base-msg
+         (if (condition? e)
+             (guard (e2 [else (condition->string e)])
+               (if (message-condition? e)
+                   (let ([template (condition-message e)]
+                         [irritants (if (irritants-condition? e)
+                                        (condition-irritants e)
+                                        '())])
+                     (if (null? irritants)
+                         template
+                         (guard (e3 [else
+                                     (let ([who (and (who-condition? e) (condition-who e))])
+                                       (if who
+                                           (format "~a: ~a ~s" who template irritants)
+                                           (format "~a ~s" template irritants)))])
+                           (apply format template irritants))))
+                   (condition->string e)))
+             (format "~a" e))])
+    ;; Enrich "not bound" errors with lattice suggestions
+    (if (and (condition? e)
+             (message-condition? e)
+             (string=? (condition-message e) "variable ~:s is not bound")
+             (irritants-condition? e)
+             (pair? (condition-irritants e)))
+        (let* ([raw-sym (car (condition-irritants e))]
+               [sym (string->symbol (symbol->string raw-sym))])
+          (string-append base-msg (suggest-for-unbound sym)))
+        base-msg)))
 
 (define (scheme-eval-and-capture session-id str)
   (let ([output-port (open-output-string)]

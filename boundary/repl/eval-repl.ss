@@ -103,7 +103,11 @@
 
 (doc fold-type 'description "Type-check an expression")
 (define-syntax fold-type
-  (syntax-rules ()
+  (syntax-rules (quote)
+                [(_ (quote expr))
+                 (begin
+                   (display "  Note: fold-type already quotes its argument. Stripping extra quote.\n")
+                   (fold-type-string (format "~s" 'expr)))]
                 [(_ expr)
                  (fold-type-string (format "~s" 'expr))]))
 
@@ -130,7 +134,15 @@
 
 (doc fold-eval 'description "Evaluate an expression")
 (define-syntax fold-eval
-  (syntax-rules ()
+  (syntax-rules (quote)
+                [(_ (quote expr))
+                 (begin
+                   (display "  Note: fold-eval already quotes its argument. Stripping extra quote.\n")
+                   (fold-eval-string (format "~s" 'expr)))]
+                [(_ (quote expr) fuel)
+                 (begin
+                   (display "  Note: fold-eval already quotes its argument. Stripping extra quote.\n")
+                   (fold-eval-string (format "~s" 'expr) fuel))]
                 [(_ expr)
                  (fold-eval-string (format "~s" 'expr))]
                 [(_ expr fuel)
@@ -175,7 +187,11 @@
 
 (doc fold-compile 'description "Full pipeline with diagnostics")
 (define-syntax fold-compile
-  (syntax-rules ()
+  (syntax-rules (quote)
+                [(_ (quote expr))
+                 (begin
+                   (display "  Note: fold-compile already quotes its argument. Stripping extra quote.\n")
+                   (fold-compile-string (format "~s" 'expr)))]
                 [(_ expr)
                  (fold-compile-string (format "~s" 'expr))]))
 

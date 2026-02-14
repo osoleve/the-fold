@@ -161,6 +161,35 @@
                (list (car mod-entry) 1.0 'module `((name . ,(car mod-entry)))))]
    [else #f]))
 
+;;; lattice-export-source : Symbol -> Symbol | #f
+;;; Find which skill exports a given symbol. Returns the skill name.
+(define (lattice-export-source sym)
+  (let loop ([skills (kg-skills)])
+    (if (null? skills) #f
+        (let* ([skill-name (car skills)]
+               [data (kg-skill-data skill-name)]
+               [exports-raw (if data
+                                (let ([e (assq 'exports data)])
+                                  (if e (cdr e) '()))
+                                '())])
+          (cond
+           [(not (list? exports-raw)) (loop (cdr skills))]
+           [(null? exports-raw) (loop (cdr skills))]
+           ;; Flat format: (sym1 sym2 ...)
+           [(symbol? (car exports-raw))
+            (if (memq sym exports-raw)
+                skill-name
+                (loop (cdr skills)))]
+           ;; Grouped or nested flat: ((module sym1 sym2) ...) or ((sym1 sym2 ...))
+           [else
+            (let group-loop ([groups exports-raw])
+              (if (null? groups)
+                  (loop (cdr skills))
+                  (let ([group (car groups)])
+                    (if (and (pair? group) (memq sym group))
+                        skill-name
+                        (group-loop (cdr groups))))))])))))
+
 ;;; lattice-find-prefix : Symbol [Int] -> (List SearchResult)
 ;;; Find all exports/skills/modules whose names start with prefix
 (define (lattice-find-prefix prefix-sym . options)
