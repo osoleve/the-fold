@@ -425,23 +425,30 @@
         (display "  (bx-home)    - Return to home\n")
         (newline))))
 
-(define (bx-by-tag tag)
-  (doc 'type (-> Symbol Void))
-  (doc 'description "Show all blocks with a specific tag")
+(define (bx-by-tag tag . args)
+  (doc 'type (-> Symbol [Nat] Void))
+  (doc 'description "Show blocks with a specific tag (default limit 50, pass number to change)")
   (doc 'export #t)
-  (let* ([fs (fs)]
+  (let* ([limit (if (null? args) *search-default-limit* (car args))]
+         [fs (fs)]
          [all-hashes (fs-all-hashes fs)]
          [matches (filter
                    (lambda (hash)
                            (let ([blk (fs-fetch fs hash)])
                                 (and blk (eq? (block-tag blk) tag))))
-                   all-hashes)])
+                   all-hashes)]
+         [total (length matches)]
+         [display-list (if (> total limit)
+                           (take limit matches)
+                           matches)])
 
         (display (format "==================== BLOCKS: ~a ====================\n" tag))
         (newline)
-        (display (format "Found ~a blocks with tag '~a:\n\n" (length matches) tag))
+        (if (> total limit)
+            (display (format "Found ~a blocks with tag '~a (showing first ~a):\n\n" total tag limit))
+            (display (format "Found ~a blocks with tag '~a:\n\n" total tag)))
 
-        (let loop ([i 0] [hash-list matches])
+        (let loop ([i 0] [hash-list display-list])
              (when (not (null? hash-list))
                    (let* ([hash (car hash-list)]
                           [blk (fs-fetch fs hash)])
@@ -451,14 +458,18 @@
                                           (if blk (bytevector-length (block-payload blk)) 0)))
                          (loop (+ i 1) (cdr hash-list)))))
 
+        ;; Store ALL matches for navigation, not just displayed ones
         (current-block-list
          (map (lambda (hash)
                       (cons hash (fs-fetch fs hash)))
               matches))
 
         (newline)
+        (when (> total limit)
+          (display (format "  ... ~a more blocks. Use (bx-by-tag '~a ~a) to see more.\n\n"
+                           (- total limit) tag (* limit 2))))
         (display "Commands:\n")
-        (display "  (bx-view N)  - Explore block N\n")
+        (display "  (bx-view N)  - Explore block N (works for all blocks, not just displayed)\n")
         (display "  (bx-home)    - Return to home\n")
         (newline)))
 

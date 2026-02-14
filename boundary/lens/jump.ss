@@ -66,7 +66,14 @@
 
 ;;; jump-to-def : Symbol -> void
 ;;; Display the definition location for a symbol.
+;;; Auto-builds the symbol index on first use.
 (define (jump-to-def sym)
+  ;; Auto-build index if needed (consistent with lens-callers et al.)
+  (when (and (top-level-bound? '*index-built?*)
+             (not *index-built?*)
+             (top-level-bound? 'index-refresh!)
+             (procedure? index-refresh!))
+    (index-refresh!))
   (let ([loc (jump-location sym)])
     (display "\n")
     (cond
@@ -76,9 +83,6 @@
        (printf "    ~a\n" (location->string loc))
        (display "\n")
        (show-definition-preview loc)]
-      [(and (top-level-bound? '*index-built?*) (not *index-built?*))
-       (printf "  Index has not been built.\n")
-       (printf "  Run (lens-rebuild!) to build the index, then try again.\n\n")]
       [else
        (printf "  Symbol '~a' not found in index.\n\n" sym)])))
 
