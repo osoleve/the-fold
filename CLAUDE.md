@@ -141,20 +141,6 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 
 **Note on Technical Report:** `docs/technical-report.md` is **generated** from chapter files in `docs/technical-report/`. Edit the chapter files (e.g., `00-abstract.md`, `06-the-module-system.md`), then run `scheme --script docs/technical-report/assemble.ss` to rebuild. Chapter order is defined in `docs/technical-report/manifest.sexp`.
 
-### Three-Layer Architecture
-
-```
-┌───────────┐
-│ user/     │  Applications, experiments
-├───────────┤
-│ boundary/ │  ALL impure code lives here
-├───────────┤
-│ lattice/  │  Verified skill DAG (pure)
-├───────────┤
-│ core/     │  Language kernel (pure)
-└───────────┘
-```
-
 ### Core (Language Kernel)
 
 Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
@@ -422,14 +408,14 @@ Use `/troubleshooting` skill for file locations, daemon issues, and common probl
 
 1. **Use `./fold` for REPL interaction** — It auto-starts the daemon and handles sessions
 2. **Load from project root** — All `(load ...)` paths are relative to the project root
-3. **Land the Plane** — A session is NOT complete until work is committed and pushed
+3. **Land the Plane** — A session is NOT complete until work is committed and pushed. See protocol below.
 4. **Maintain The Fold** — Before you write a helper, ensure it doesn't already exist. Seek opportunities to simplify.
 
 ---
 
 ## Agent Notes
 
-**MCP Tooling (2026-01-21):** Prefer `fold_eval` via MCP over shelling out to `./fold` for REPL interactions. Requires `fold_login` first (use tier `opus`/`sonnet`/`haiku` based on your model). The LSP tools (`fold_lsp_*`) work well for code exploration—`fold_lsp_symbols` finds definitions, `fold_lsp_lookup` combines hover/definition/references. Use these instead of grep for finding Scheme symbols.
+**MCP Tooling:** Prefer `fold_eval` via MCP over shelling out to `./fold` for REPL interactions. Requires `fold_login` first (use tier `opus`/`sonnet`/`haiku` based on your model). The LSP tools (`fold_lsp_*`) work well for code exploration—`fold_lsp_symbols` finds definitions, `fold_lsp_lookup` combines hover/definition/references. Use these instead of grep for finding Scheme symbols.
 
 **BBS Cache Staleness:** After reloading modules with `(load ...)`, the BBS in-memory state may be stale. Run `(bbs-init!)` to refresh from disk if issues show incorrect status.
 
