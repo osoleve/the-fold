@@ -453,7 +453,15 @@
          (loop (+ i 1) pipe-count #f)]          ; end string
         [in-string
          (loop (+ i 1) pipe-count #t)]          ; continue in string
-        ;; Outside string: character literals, comments, strings, pipes
+        ;; Inside pipe-quoted symbol: only look for closing pipe
+        ;; (semicolons, quotes, #| etc. are just symbol characters here)
+        [(and (odd? pipe-count)
+              (char=? (string-ref content i) #\|)
+              (not (escaped-char? content i)))
+         (loop (+ i 1) (+ pipe-count 1) #f)]    ; closing pipe
+        [(odd? pipe-count)
+         (loop (+ i 1) pipe-count #f)]           ; symbol char inside pipes
+        ;; Outside both strings and pipes: character literals, comments, strings
         ;; Character literal #\x — skip 3 chars to avoid #\" starting string or #\| counting as pipe
         [(and (char=? (string-ref content i) #\#)
               (< (+ i 1) len)
@@ -486,7 +494,7 @@
              [(>= j len) (loop j pipe-count #f)]
              [(char=? (string-ref content j) #\newline) (loop (+ j 1) pipe-count #f)]
              [else (skip (+ j 1))]))]
-        ;; Actual pipe character (not in comment, string, or char literal)
+        ;; Opening pipe character (not in comment, string, or char literal)
         [(and (char=? (string-ref content i) #\|)
               (not (escaped-char? content i)))
          (loop (+ i 1) (+ pipe-count 1) #f)]
