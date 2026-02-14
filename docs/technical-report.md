@@ -3189,6 +3189,21 @@ Modules declare dependencies via header comments:
 
 The loader parses these to build the dependency graph automatically.
 
+**Macro-Generated Definitions**:
+
+When macros generate top-level definitions, the `@defines` annotation makes them
+visible to the symbol index and LSP:
+```scheme
+;;; @defines vec2 vec2? vec2-x vec2-y vec2->list list->vec2
+(generate-vec2-core
+ vec2 vec2? vec2-x vec2-y vec2->list list->vec2
+ vec2-zero vec2-one vec2-unit-x vec2-unit-y)
+```
+
+Without this annotation, macro-generated definitions are invisible to static
+tooling (lens-jump, hover, document symbols) since they only exist after
+macro expansion at runtime.
+
 ---
 ## 7. Implementation
 
@@ -6993,6 +7008,90 @@ All query functions return structured data, not formatted strings:
 ```
 
 This enables agents to process results programmatically rather than parsing human-readable output.
+
+### 8.11 Case Study: Purity Extraction of the Meta-Tooling Layer
+
+This section documents a real development effort that demonstrates the meta-tooling ecosystem supporting a substantial refactoring task. The work was completed in January 2026, tracked as BBS issue `fold-zxvr`.
+
+**The Problem**: The `lattice/meta/` directory—the system's own search, navigation, and introspection infrastructure—contained impure code. Several modules performed file I/O directly, violating the lattice's purity invariant. This was not merely aesthetic: impure lattice code cannot be trusted by fuel-bounded agents, cannot be safely memoized, and cannot be compiled to alternative backends.
+
+**Discovery Phase**:
+
+The meta-tooling was used to audit itself. Lattice introspection (`li 'meta`) revealed 17 modules with mixed purity declarations. Cross-reference queries mapped the call graph between pure transforms and I/O operations:
+
+```scheme
+> (li 'meta)
+;; 17 modules, 340 exports
+;; purity: partial (6 modules perform file I/O)
+
+> (lxc 'load-export-index!)
+;; Calls: file-exists?, call-with-input-file, read
+;; → I/O: must move to boundary
+
+> (lxc 'export-search)
+;; Calls: bm25-search, filter, map
+;; → Pure: stays in lattice
+```
+
+**Classification**:
+
+Each module was classified as pure (data transforms, scoring, parsing) or impure (file reads, index persistence). The pattern was consistent: pure functions that transform data stay in lattice; thin I/O wrappers that read or write files move to boundary.
+
+| Module | Classification | Rationale |
+|--------|---------------|-----------|
+| `bm25.ss` | Pure | BM25 scoring operates on in-memory indices |
+| `manifest.ss` | Pure | S-expression parsing, no file I/O |
+| `kg-build.ss` | Pure | Graph construction from parsed data |
+| `exports.ss` | Mixed → split | `export-search` pure, `load-export-index!` impure |
+| `docs.ss` | Mixed → split | `docs-for` pure, `build-doc-index!` impure |
+| `source-loc.ss` | Mixed → split | Location records pure, file scanning impure |
+
+**Implementation**:
+
+Six new boundary orchestrators were created, each pairing a lattice module's I/O functions with the file system:
+
+| Boundary Orchestrator | Extracted From | I/O Operations |
+|-----------------------|----------------|----------------|
+| `boundary/meta/exports-io.ss` | `lattice/meta/exports.ss` | Index load/save |
+| `boundary/meta/docs-io.ss` | `lattice/meta/docs.ss` | Doc index build from files |
+| `boundary/meta/xref-io.ss` | `lattice/meta/xref.ss` | Source file scanning |
+| `boundary/meta/source-loc-io.ss` | `lattice/meta/source-loc.ss` | File system traversal |
+| `boundary/meta/persist-io.ss` | `lattice/meta/persist.ss` | Cache persistence |
+| `boundary/meta/docstrings-io.ss` | `lattice/meta/docstrings.ss` | Comment extraction from files |
+
+Three developer tools that were entirely I/O-dependent moved wholesale to `boundary/tools/`: `audit.ss`, `manifest-sync.ss`, and `export-annotator.ss`.
+
+**Problems Encountered**:
+
+1. **R6RS expression context**: `(doc ...)` forms are expressions in The Fold's prelude. In R6RS, internal `(define ...)` forms are only valid at the start of a body—placing them after `(doc ...)` expressions triggered syntax errors. Fix: replace internal defines with named `let` bindings after doc forms.
+
+2. **Load path cascades**: Moving modules required updating 22 load paths across the codebase. The cross-reference system (`xref-callers`) identified all affected files before any code was moved, preventing broken references.
+
+3. **Bootstrap circularity**: `meta.ss` itself must load boundary orchestrators to function as a user-facing entry point. It remains the only `'purity 'partial` file in `lattice/meta/`—an intentional architectural choice. The pure modules it coordinates are individually total.
+
+**Verification**:
+
+Three verification mechanisms operated throughout the refactoring:
+
+- **Test suite**: 340/340 tests passed after every commit. No test modifications were required—the API surface was unchanged.
+- **Pre-commit hook**: The layer boundary checker flagged any staged `.ss` file that imported across layers incorrectly, catching two accidental `(load "boundary/...")` calls in lattice code before they reached the repository.
+- **Lattice health check**: `(lattice-health)` confirmed zero orphaned skills, zero broken dependency edges, and zero manifest parse errors after the restructuring.
+
+**Results**:
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Lattice/meta files with `'purity 'total` | 11/17 | 17/17 |
+| I/O operations in lattice/meta/ | 23 | 0 |
+| Boundary orchestrator files | 0 | 6 |
+| Net lines removed from lattice | — | 1,093 |
+| Purity exceptions in entire lattice | 7 | 1 |
+
+The remaining exception (`lattice/data/graph/graph-algorithms.ss`) requires splitting store-dependent graph traversals from pure data structures—a more delicate decomposition that remains as tracked work.
+
+**Lessons**:
+
+The refactoring validated two architectural claims. First, the pure/impure boundary is a tractable decomposition even for self-referential infrastructure—the meta-tooling could be purified without changing its API or breaking its consumers. Second, the meta-tooling ecosystem (cross-references, search, pre-commit hooks) provided sufficient visibility to execute a 17-file refactoring with zero regressions. The tools built for developers worked equally well when turned on themselves.
 
 ---
 
