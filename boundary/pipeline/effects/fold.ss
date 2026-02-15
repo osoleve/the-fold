@@ -191,6 +191,81 @@
                           (sleep (make-time 'time-duration 100000000 0))  ; 100ms
                           (loop (- attempts 1))]))))))
 
+;;; ====
+;;; v2 Command Interface
+;;; ====
+
+;;; fold-ipc-command : Symbol × Alist → FoldResult
+;;; Send a v2 structured command via IPC. Falls back to eval on error.
+(define (fold-ipc-command cmd args)
+  (if (and (socket-daemon-available?) (ensure-socket-client!))
+      (guard (ex [else
+                  ;; Socket command failed — not recoverable via file IPC
+                  (list 'fold-result #f #f
+                        (format "fold-ipc-command error: ~a"
+                                (if (message-condition? ex)
+                                    (condition-message ex)
+                                    "unknown error")))])
+        (fold-ipc-command-socket cmd args))
+      ;; No socket — fall back to eval with an expression
+      (list 'fold-result #f #f
+            "v2 commands require socket transport")))
+
+;;; fold-ipc-command-socket : Symbol × Alist → FoldResult
+;;; Send v2 command via socket transport.
+(define (fold-ipc-command-socket cmd args)
+  (guard (ex [else
+              (list 'fold-result #f #f
+                    (format "fold-ipc-command error: ~a"
+                            (if (message-condition? ex)
+                                (condition-message ex)
+                                "unknown error")))])
+    (unless (fold-ipc-connect!)
+      (error 'fold-ipc-command "Could not connect to daemon"))
+    (let* ([session (if (procedure? *pipeline-session*)
+                        (*pipeline-session*)
+                        "pipeline")]
+           [req (ipc-make-command session cmd args)]
+           [req-id (ipc-message-id req)]
+           [frame (ipc-encode-frame req)])
+      ;; Send request
+      (guard (ex [else
+                  (fold-ipc-reconnect!)
+                  (unless *ipc-conn-fd*
+                    (error 'fold-ipc-command "Could not reconnect to daemon"))
+                  (ipc-client-send *ipc-conn-fd* frame)])
+        (ipc-client-send *ipc-conn-fd* frame))
+      ;; Read response
+      (let ([resp-bv (ipc-client-recv *ipc-conn-fd*)])
+        (if resp-bv
+            (let ([msg (ipc-decode-payload resp-bv)])
+              (case (ipc-message-type msg)
+                [(result)
+                 (list 'fold-result #t
+                       (ipc-message-get msg 'value)
+                       #f
+                       (ipc-message-data msg))]   ; v2 structured data
+                [(error)
+                 (list 'fold-result #f #f
+                       (or (ipc-message-get msg 'message) "unknown error"))]
+                [else
+                 (list 'fold-result #f #f
+                       (format "unexpected response type: ~a"
+                               (ipc-message-type msg)))]))
+            (begin
+              (fold-ipc-disconnect!)
+              (list 'fold-result #f #f
+                    "timeout waiting for daemon response")))))))
+
+;;; fold-result-data : FoldResult → Any | #f
+;;; Extract v2 structured data from result. Returns #f for v1 results.
+(define (fold-result-data r)
+  (if (> (length r) 4) (list-ref r 4) #f))
+
+;;; ====
+;;; Result Accessors
+;;; ====
+
 (define (fold-result-ok? r) (list-ref r 1))
 (define (fold-result-value r) (list-ref r 2))
 (define (fold-result-error r) (list-ref r 3))

@@ -21,6 +21,7 @@ export interface FoldRequest {
 export interface FoldResponse {
   output: string;
   error?: string;
+  data?: any; // v2 structured data
 }
 
 const REPL_DIR = '.fold-repl';
@@ -101,27 +102,179 @@ async function sendRequestSocket(
   });
 }
 
+// ============================================================
+// S-expression Parser
+// ============================================================
+
+type SExp = string | number | boolean | symbol | SExp[] | { car: SExp; cdr: SExp } | null;
+
+interface ParseState {
+  src: string;
+  pos: number;
+}
+
+function sexpPeek(s: ParseState): string {
+  return s.pos < s.src.length ? s.src[s.pos] : '';
+}
+
+function sexpAdvance(s: ParseState): string {
+  return s.src[s.pos++] ?? '';
+}
+
+function sexpSkipWs(s: ParseState): void {
+  while (s.pos < s.src.length) {
+    const c = s.src[s.pos];
+    if (c === ' ' || c === '\t' || c === '\n' || c === '\r') {
+      s.pos++;
+    } else if (c === ';') {
+      // Skip line comment
+      while (s.pos < s.src.length && s.src[s.pos] !== '\n') s.pos++;
+    } else {
+      break;
+    }
+  }
+}
+
+function sexpReadString(s: ParseState): string {
+  sexpAdvance(s); // consume opening "
+  let result = '';
+  while (s.pos < s.src.length) {
+    const c = sexpAdvance(s);
+    if (c === '"') return result;
+    if (c === '\\') {
+      const next = sexpAdvance(s);
+      switch (next) {
+        case 'n': result += '\n'; break;
+        case 't': result += '\t'; break;
+        case 'r': result += '\r'; break;
+        case '"': result += '"'; break;
+        case '\\': result += '\\'; break;
+        default: result += next; break;
+      }
+    } else {
+      result += c;
+    }
+  }
+  return result;
+}
+
+function isAtomChar(c: string): boolean {
+  return c !== '' && c !== '(' && c !== ')' && c !== '"' && c !== ' '
+    && c !== '\t' && c !== '\n' && c !== '\r' && c !== ';';
+}
+
+function sexpReadAtom(s: ParseState): SExp {
+  let token = '';
+  while (s.pos < s.src.length && isAtomChar(s.src[s.pos])) {
+    token += sexpAdvance(s);
+  }
+  // Booleans
+  if (token === '#t') return true;
+  if (token === '#f') return false;
+  // Numbers (integer and decimal)
+  if (/^-?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(token)) {
+    return Number(token);
+  }
+  // Symbol (returned as string — we use alist key matching)
+  return token;
+}
+
+function sexpReadList(s: ParseState): SExp {
+  sexpAdvance(s); // consume (
+  const items: SExp[] = [];
+  let dotted = false;
+  let cdrVal: SExp = null;
+
+  while (true) {
+    sexpSkipWs(s);
+    const c = sexpPeek(s);
+    if (c === '' || c === ')') {
+      sexpAdvance(s); // consume )
+      break;
+    }
+    if (c === '.') {
+      // Check for dotted pair: peek ahead to see if it's ". " (dotted) vs ".123" (number)
+      const next = s.pos + 1 < s.src.length ? s.src[s.pos + 1] : '';
+      if (!isAtomChar(next) || next === '') {
+        sexpAdvance(s); // consume .
+        sexpSkipWs(s);
+        cdrVal = sexpRead(s);
+        dotted = true;
+        sexpSkipWs(s);
+        if (sexpPeek(s) === ')') sexpAdvance(s); // consume )
+        break;
+      }
+    }
+    items.push(sexpRead(s));
+  }
+
+  if (dotted && items.length === 1) {
+    // Proper dotted pair: (a . b) → {car, cdr}
+    return { car: items[0], cdr: cdrVal };
+  }
+  if (dotted) {
+    // Improper list: (a b . c) → store as array with __dotted marker
+    return items; // Treat as list; dotted tail is rare in our protocol
+  }
+  return items;
+}
+
+function sexpRead(s: ParseState): SExp {
+  sexpSkipWs(s);
+  const c = sexpPeek(s);
+  if (c === '(') return sexpReadList(s);
+  if (c === '"') return sexpReadString(s);
+  if (c === "'") {
+    sexpAdvance(s); // consume '
+    return ['quote', sexpRead(s)];
+  }
+  return sexpReadAtom(s);
+}
+
+/**
+ * Parse a full s-expression string into a JS value
+ */
+function parseSexp(src: string): SExp {
+  const state: ParseState = { src, pos: 0 };
+  return sexpRead(state);
+}
+
+/**
+ * Extract value from an alist (list of dotted pairs) by string key
+ */
+function alistGet(alist: SExp, key: string): SExp | undefined {
+  if (!Array.isArray(alist)) return undefined;
+  for (const item of alist) {
+    if (item && typeof item === 'object' && 'car' in item) {
+      if (item.car === key) return item.cdr;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Parse s-expression response alist into FoldResponse
+ * Handles both v1 and v2 response formats.
  */
 function parseSexpResponse(resp: string): FoldResponse {
-  const typeMatch = resp.match(/\(type\s+\.\s+(\w+)\)/);
-  const msgType = typeMatch ? typeMatch[1] : 'unknown';
+  const parsed = parseSexp(resp);
+  const msgType = alistGet(parsed, 'type');
 
   if (msgType === 'result') {
-    const valueMatch = resp.match(/\(value\s+\.\s+"((?:[^"\\]|\\.)*)"\)/);
-    const value = valueMatch
-      ? valueMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\')
-      : '';
-    return { output: value };
+    const value = alistGet(parsed, 'value');
+    const data = alistGet(parsed, 'data');
+    return {
+      output: typeof value === 'string' ? value : (value !== undefined ? String(value) : ''),
+      data: data ?? undefined
+    };
   } else if (msgType === 'error') {
-    const errMatch = resp.match(/\(message\s+\.\s+"((?:[^"\\]|\\.)*)"\)/);
-    const errorMsg = errMatch
-      ? errMatch[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\')
-      : 'unknown error';
-    return { output: '', error: errorMsg };
+    const errorMsg = alistGet(parsed, 'message');
+    return {
+      output: '',
+      error: typeof errorMsg === 'string' ? errorMsg : 'unknown error'
+    };
   }
-  return { output: '', error: `Unexpected response type: ${msgType}` };
+  return { output: '', error: `Unexpected response type: ${String(msgType)}` };
 }
 
 /**
@@ -214,6 +367,75 @@ async function cleanupFiles(...files: string[]): Promise<void> {
  */
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Send a v2 structured command to the daemon.
+ * Commands are dispatched by the worker without eval — they map to
+ * specific handlers (search, inspect, exports, lsp-*, env-*).
+ */
+export async function sendCommand(
+  sessionId: string,
+  cmd: string,
+  args: Record<string, any>
+): Promise<FoldResponse> {
+  const sockPath = await getSocketPath();
+  if (sockPath) {
+    return sendCommandSocket(sessionId, cmd, args, sockPath);
+  }
+  // File-based fallback: wrap as eval expression
+  // This is a best-effort fallback — v2 commands need socket transport
+  const expr = `(${cmd} ${Object.values(args).map(v => JSON.stringify(v)).join(' ')})`;
+  return sendRequest(sessionId, expr);
+}
+
+/**
+ * Send v2 command via socket
+ */
+async function sendCommandSocket(
+  sessionId: string,
+  cmd: string,
+  args: Record<string, any>,
+  sockPath: string
+): Promise<FoldResponse> {
+  return new Promise((resolve, reject) => {
+    const sock = createConnection({ path: sockPath });
+    const reqId = Math.random().toString(36).slice(2, 10);
+
+    // Build v2 request as s-expression alist
+    const argPairs = Object.entries(args)
+      .map(([k, v]) => {
+        const val = typeof v === 'string'
+          ? `"${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+          : String(v);
+        return `(${k} . ${val})`;
+      })
+      .join(' ');
+
+    const msg = `((type . request) (v . 2) (id . "${reqId}") (session . "${sessionId}") (cmd . ${cmd}) (args . (${argPairs})))`;
+    const payload = Buffer.from(msg, 'utf-8');
+    const header = Buffer.alloc(4);
+    header.writeUInt32BE(payload.length);
+    sock.write(Buffer.concat([header, payload]));
+
+    let buf = Buffer.alloc(0);
+    sock.on('data', (chunk: Buffer) => {
+      buf = Buffer.concat([buf, chunk]);
+      if (buf.length >= 4) {
+        const len = buf.readUInt32BE(0);
+        if (buf.length >= 4 + len) {
+          const resp = buf.slice(4, 4 + len).toString('utf-8');
+          sock.destroy();
+          resolve(parseSexpResponse(resp));
+        }
+      }
+    });
+    sock.on('error', (err: Error) => reject(err));
+    sock.setTimeout(SOCKET_TIMEOUT_MS, () => {
+      sock.destroy();
+      reject(new Error('Socket timeout'));
+    });
+  });
 }
 
 /**

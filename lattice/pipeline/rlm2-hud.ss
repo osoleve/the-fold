@@ -196,28 +196,8 @@
    "You are an agent in The Fold. You receive a structured state (HUD) and emit "
    "a single S-expression action. Your output must be ONLY the action — no markdown, "
    "no prose before or after (use (think \"...\") for reasoning).\n\n"
-   ;; --- Action Grammar ---
-   "Action grammar:\n"
-   "  (search query)          — Search the lattice by keyword\n"
-   "  (inspect skill)         — Get skill description, deps, modules\n"
-   "  (exports skill)         — List a skill's exported functions\n"
-   "  (load module)           — Load a lattice module into session\n"
-   "  (eval expr)             — Evaluate Scheme expression\n"
-   "  (store key expr)        — Evaluate expr, store result with name\n"
-   "  (retrieve key)          — Fetch full content of env entry\n"
-   "  (peek key n)            — Preview first n chars of env entry\n"
-   "  (grep key pattern k)    — Search env entry chunks, top-k results\n"
-   "  (slice key start end)   — Extract chunk range [start, end) from env entry\n"
-   "  (recall-step n)         — Retrieve full record of step N\n"
-   "  (submit expr)           — Submit final answer (terminates run)\n"
-   "  (think text)            — Reasoning (ephemeral, fed to reflection)\n"
-   "  (plan! items)           — Propose/update plan: ((item . status) ...)\n"
-   "  (map-chunks key expr)   — Eval string expr per chunk, store in 'map-result\n"
-   "  (journal tag text)      — Write tagged note to session journal\n"
-   "  (recall tag)            — Read all journal entries matching tag\n"
-   "  (memorize key text)     — Save to persistent memory (survives across runs)\n"
-   "  (remember query)        — Search persistent memory by keyword (BM25 ranking)\n"
-   "  (begin action ...)      — Execute actions sequentially (stops on first error or submit)\n\n"
+   ;; --- Action Grammar (staged) ---
+   (rlm2-full-action-grammar)
    ;; --- Semantics ---
    "Semantics:\n"
    "- (begin ...) stops at the first error or (submit). Later actions do not run.\n"
@@ -251,6 +231,91 @@
    "           string-prefix? string-suffix? string-index string-index-of\n"
    "           substr string-join string-replace extract-after\n"
    "  Note: (sorted lst pred) wraps sort. (split-lines s) splits on newlines.\n"))
+
+;;; ====
+;;; Action Grammar (full — always rendered in system prompt)
+;;; ====
+;;; All 24 actions are documented in the system prompt for maximum compatibility.
+;;; The staged HUD (rlm2-render-state-staged) can omit groups, but the grammar
+;;; is always complete so the parser accepts any action the model emits.
+
+(define (rlm2-full-action-grammar)
+  (string-append
+   "Action grammar:\n"
+   "\n"
+   "  Core:\n"
+   "  (think text)            — Reasoning (ephemeral, fed to reflection)\n"
+   "  (eval expr)             — Evaluate Scheme expression\n"
+   "  (submit expr)           — Submit final answer (terminates run)\n"
+   "  (begin action ...)      — Execute actions sequentially (stops on first error or submit)\n"
+   "\n"
+   "  Discovery:\n"
+   "  (search query)          — Search the lattice by keyword\n"
+   "  (inspect skill)         — Get skill description, deps, modules\n"
+   "  (exports skill)         — List a skill's exported functions\n"
+   "  (load module)           — Load a lattice module into session\n"
+   "\n"
+   "  Code intel:\n"
+   "  (lookup symbol)         — Type info + description + definition location\n"
+   "  (definition symbol)     — File:line where symbol is defined\n"
+   "  (symbols query)         — Search symbols by name fragment\n"
+   "  (outline file)          — List definitions in a file\n"
+   "\n"
+   "  Data:\n"
+   "  (store key expr)        — Evaluate expr, store result with name\n"
+   "  (retrieve key)          — Fetch full content of env entry\n"
+   "  (peek key n)            — Preview first n chars of env entry\n"
+   "  (grep key pattern k)    — Search env entry chunks, top-k results\n"
+   "  (slice key start end)   — Extract chunk range [start, end) from env entry\n"
+   "  (map-chunks key expr)   — Eval string expr per chunk, store in 'map-result\n"
+   "\n"
+   "  Memory:\n"
+   "  (plan! items)           — Propose/update plan: ((item . status) ...)\n"
+   "  (journal tag text)      — Write tagged note to session journal\n"
+   "  (recall tag)            — Read all journal entries matching tag\n"
+   "  (recall-step n)         — Retrieve full record of step N\n"
+   "  (memorize key text)     — Save to persistent memory (survives across runs)\n"
+   "  (remember query)        — Search persistent memory by keyword (BM25 ranking)\n"
+   "\n"))
+
+;;; ====
+;;; Staged HUD Rendering (state-dependent action visibility)
+;;; ====
+
+;;; rlm2-render-state-staged : Rlm2State × Nat → String
+;;; Like rlm2-render-state but appends action hints based on current state.
+;;; Groups:
+;;;   Core: always shown
+;;;   Discovery: shown when loaded modules are few
+;;;   Data: shown when env is non-empty
+;;;   Code intel: shown when loaded modules > 0
+;;;   Memory: always shown (compact)
+(define (rlm2-render-state-staged state budget)
+  (let* ([base (rlm2-render-state state budget)]
+         [loaded (rlm2-state-loaded state)]
+         [env (rlm2-state-env state)]
+         [hints '()]
+         ;; Always show core
+         [hints (cons "  Core: think, eval, submit, begin" hints)]
+         ;; Discovery when few modules loaded
+         [hints (if (< (length loaded) 3)
+                    (cons "  Discover: search, inspect, exports, load, symbols" hints)
+                    hints)]
+         ;; Data when env non-empty
+         [hints (if (not (null? env))
+                    (cons "  Data: retrieve, peek, grep, slice, store, map-chunks" hints)
+                    hints)]
+         ;; Code intel when modules loaded
+         [hints (if (> (length loaded) 0)
+                    (cons "  Code: lookup, definition, outline" hints)
+                    hints)]
+         ;; Memory always
+         [hints (cons "  Memory: plan!, journal, recall, memorize, remember" hints)]
+         [hint-text (let loop ([hs (reverse hints)] [acc ""])
+                      (if (null? hs) acc
+                          (loop (cdr hs)
+                                (string-append acc (car hs) "\n"))))])
+    (string-append base "\n(available-actions\n" hint-text ")")))
 
 ;;; ====
 ;;; Reflection Prompt Builder

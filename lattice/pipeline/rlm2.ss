@@ -260,7 +260,8 @@
 (define *rlm2-action-types*
   '(search inspect exports load eval store retrieve peek
     grep slice recall-step submit think plan! map-chunks
-    journal recall memorize remember begin))
+    journal recall memorize remember begin
+    lookup definition symbols outline))
 
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a well-formed action (tagged list with known type)")
@@ -295,6 +296,10 @@
 (define (rlm2-memorize? a)    (and (pair? a) (eq? (car a) 'memorize)))
 (define (rlm2-remember? a)    (and (pair? a) (eq? (car a) 'remember)))
 (define (rlm2-begin? a)       (and (pair? a) (eq? (car a) 'begin)))
+(define (rlm2-lookup? a)     (and (pair? a) (eq? (car a) 'lookup)))
+(define (rlm2-definition? a) (and (pair? a) (eq? (car a) 'definition)))
+(define (rlm2-symbols? a)    (and (pair? a) (eq? (car a) 'symbols)))
+(define (rlm2-outline? a)    (and (pair? a) (eq? (car a) 'outline)))
 
 ;;; Unquote helper: (quote x) -> x, else identity.
 ;;; After `read`, model output like (retrieve 'x) has (quote x) as the arg.
@@ -336,6 +341,10 @@
 (define (rlm2-memorize-text a)      (caddr a))                   ; (memorize key text) — string
 (define (rlm2-remember-query a)     (cadr a))                    ; (remember query) — string
 (define (rlm2-begin-actions a)      (cdr a))                     ; (begin action ...)
+(define (rlm2-lookup-symbol a)     (rlm2-unquote (cadr a)))     ; (lookup 'symbol)
+(define (rlm2-definition-symbol a) (rlm2-unquote (cadr a)))     ; (definition 'symbol)
+(define (rlm2-symbols-query a)     (cadr a))                    ; (symbols query) — string
+(define (rlm2-outline-file a)      (cadr a))                    ; (outline file) — string
 
 ;;; ====
 ;;; Action Arity Table
@@ -367,7 +376,11 @@
     (recall      . 1)
     (memorize    . 2)
     (remember    . 1)
-    (begin       . #f)))
+    (begin       . #f)
+    (lookup      . 1)
+    (definition  . 1)
+    (symbols     . 1)
+    (outline     . 1)))
 
 (doc 'type '(-> Symbol (Maybe Nat)))
 (doc 'description "Look up expected arity for an action type. #f for variadic (begin).")

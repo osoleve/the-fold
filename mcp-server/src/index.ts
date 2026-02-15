@@ -16,7 +16,7 @@ import {
 import { randomUUID } from 'crypto';
 
 import { SessionManager, Session, Tier } from './session.js';
-import { sendRequest, initIPC, isDaemonRunning, waitForDaemon, getDaemonStatus } from './ipc.js';
+import { sendRequest, sendCommand, initIPC, isDaemonRunning, waitForDaemon, getDaemonStatus } from './ipc.js';
 import { tools } from './tools.js';
 import { LSPClient, formatLocation, symbolKindName, severityName, completionKindName, semanticTokenTypeName, semanticTokenModifierNames } from './lsp-client.js';
 
@@ -88,6 +88,32 @@ class FoldMCPServer {
             return await this.handleLogout(session);
           case 'fold_status':
             return await this.handleStatus(session);
+
+          // Env/Memory Tools
+          case 'fold_env_store':
+            return await this.handleEnvStore(session, args);
+          case 'fold_env_retrieve':
+            return await this.handleEnvRetrieve(session, args);
+          case 'fold_env_peek':
+            return await this.handleEnvPeek(session, args);
+          case 'fold_env_grep':
+            return await this.handleEnvGrep(session, args);
+          case 'fold_env_keys':
+            return await this.handleEnvKeys(session, args);
+          case 'fold_env_ingest':
+            return await this.handleEnvIngest(session, args);
+          case 'fold_memory_store':
+            return await this.handleMemoryStore(session, args);
+          case 'fold_memory_search':
+            return await this.handleMemorySearch(session, args);
+
+          // Lattice Meta Tools
+          case 'fold_search':
+            return await this.handleSearch(session, args);
+          case 'fold_inspect':
+            return await this.handleInspect(session, args);
+          case 'fold_exports':
+            return await this.handleExports(session, args);
 
           // LSP Tools
           case 'fold_lsp_hover':
@@ -300,15 +326,166 @@ class FoldMCPServer {
   }
 
   // ============================================================
+  // Env/Memory Tool Handlers
+  // ============================================================
+
+  private async handleEnvStore(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { key, expression } = args;
+    const response = await sendCommand(session.id, 'env-store', { key, expression });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleEnvRetrieve(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { key } = args;
+    const response = await sendCommand(session.id, 'env-retrieve', { key });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleEnvPeek(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { key, n = 500 } = args;
+    const response = await sendCommand(session.id, 'env-peek', { key, n });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleEnvGrep(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { key, pattern, k = 5 } = args;
+    const response = await sendCommand(session.id, 'env-grep', { key, pattern, k });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleEnvKeys(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const response = await sendCommand(session.id, 'env-keys', {});
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleEnvIngest(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { key, text, chunk_size = 2000 } = args;
+    const response = await sendCommand(session.id, 'env-ingest', { key, text, 'chunk-size': chunk_size });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleMemoryStore(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { key, text } = args;
+    const response = await sendCommand(session.id, 'memory-store', { key, text });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  private async handleMemorySearch(session: Session, args: any) {
+    if (!session.loggedIn) throw new Error('Not logged in. Use fold_login first.');
+    const { query, k = 5 } = args;
+    const response = await sendCommand(session.id, 'memory-search', { query, k });
+    if (response.error) throw new Error(response.error);
+    return { content: [{ type: 'text', text: response.output }] };
+  }
+
+  // ============================================================
+  // Lattice Meta Tool Handlers
+  // ============================================================
+
+  /**
+   * Handle search tool — lattice skill search
+   * Uses v2 command when socket is available, falls back to eval
+   */
+  private async handleSearch(session: Session, args: any) {
+    const { query, limit = 20 } = args;
+
+    try {
+      const response = await sendCommand(session.id, 'search', { query, limit });
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return {
+        content: [{ type: 'text', text: response.output }]
+      };
+    } catch {
+      // Fallback: send as eval expression
+      const response = await sendRequest(session.id, `(lf ${JSON.stringify(query)})`);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return {
+        content: [{ type: 'text', text: response.output }]
+      };
+    }
+  }
+
+  /**
+   * Handle inspect tool — skill description and deps
+   */
+  private async handleInspect(session: Session, args: any) {
+    const { skill } = args;
+
+    try {
+      const response = await sendCommand(session.id, 'inspect', { skill });
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return {
+        content: [{ type: 'text', text: response.output }]
+      };
+    } catch {
+      const response = await sendRequest(session.id, `(li '${skill})`);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return {
+        content: [{ type: 'text', text: response.output }]
+      };
+    }
+  }
+
+  /**
+   * Handle exports tool — skill exported functions
+   */
+  private async handleExports(session: Session, args: any) {
+    const { skill } = args;
+
+    try {
+      const response = await sendCommand(session.id, 'exports', { skill });
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return {
+        content: [{ type: 'text', text: response.output }]
+      };
+    } catch {
+      const response = await sendRequest(session.id, `(le '${skill})`);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return {
+        content: [{ type: 'text', text: response.output }]
+      };
+    }
+  }
+
+  // ============================================================
   // LSP Tool Handlers
   // ============================================================
 
   /**
    * Handle LSP hover - get type info and docs at position
+   * Tries IPC v2 command first (worker-side LSP), falls back to subprocess
    */
   private async handleLspHover(args: any) {
     const { file, line, character } = args;
 
+    // Try IPC v2 first — extract symbol name from file position
+    // Fall back to subprocess LSP for positional queries
     const result = await this.lspClient.hover(file, line, character);
 
     if (!result) {

@@ -145,6 +145,58 @@
     (chunk . ,chunk)
     (final . ,final?)))
 
+;;; ====
+;;; v2 Message Constructors
+;;; ====
+
+;;; ipc-make-command : String × Symbol × Alist → Alist
+;;; Construct a v2 command request with typed args.
+(define (ipc-make-command session cmd args)
+  (let ([id (ipc-next-id!)])
+    `((type . request)
+      (v . 2)
+      (id . ,id)
+      (session . ,session)
+      (cmd . ,cmd)
+      (args . ,args))))
+
+;;; ipc-make-data-result : String × String × Any → Alist
+;;; Construct a v2 result with both display value and structured data.
+(define (ipc-make-data-result id value data)
+  `((type . result)
+    (v . 2)
+    (id . ,id)
+    (value . ,value)
+    (data . ,data)))
+
+;;; ====
+;;; v2 Message Accessors
+;;; ====
+
+;;; ipc-message-version : Alist → Nat
+;;; Extract protocol version. Returns 1 for v1 messages (no v field).
+(define (ipc-message-version msg)
+  (let ([pair (assq 'v msg)])
+    (if pair (cdr pair) 1)))
+
+;;; ipc-message-cmd : Alist → Symbol
+;;; Extract command type. Returns 'eval for v1 compat (expr-only requests).
+(define (ipc-message-cmd msg)
+  (let ([pair (assq 'cmd msg)])
+    (if pair (cdr pair) 'eval)))
+
+;;; ipc-message-args : Alist → Alist | #f
+;;; Extract command args, or #f for v1 messages.
+(define (ipc-message-args msg)
+  (let ([pair (assq 'args msg)])
+    (if pair (cdr pair) #f)))
+
+;;; ipc-message-data : Alist → Any | #f
+;;; Extract structured data from v2 result, or #f for v1 results.
+(define (ipc-message-data msg)
+  (let ([pair (assq 'data msg)])
+    (if pair (cdr pair) #f)))
+
 ;;; ipc-make-ping : → Alist
 (define (ipc-make-ping) '((type . ping)))
 
@@ -198,12 +250,14 @@
        (symbol? (cdr (assq 'type msg)))))
 
 ;;; ipc-request? : Alist → Boolean
+;;; Accepts both v1 (expr field) and v2 (cmd+args fields) requests.
 (define (ipc-request? msg)
   (and (ipc-valid-message? msg)
        (eq? (ipc-message-type msg) 'request)
        (ipc-message-id msg)
        (ipc-message-get msg 'session)
-       (ipc-message-get msg 'expr)
+       (or (ipc-message-get msg 'expr)    ; v1
+           (ipc-message-get msg 'cmd))    ; v2
        #t))
 
 ;;; ipc-result? : Alist → Boolean

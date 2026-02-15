@@ -38,23 +38,8 @@
 ;;; think is designed to feed reflection, begin hides intermediate obs.
 
 (define *rlm2-mechanical-actions*
-  '(submit store load plan! journal memorize remember recall))
-
-;;; ====
-;;; Lattice Search (lazy-loaded in main process)
-;;; ====
-;;; Same pattern as v1: lattice meta can't load in IPC worker (nested loads
-;;; break frame protocol). Lazy-load in main process, intercept search actions.
-
-(define *rlm2-lattice-meta-loaded?* #f)
-
-(define (rlm2-ensure-lattice-meta!)
-  (unless *rlm2-lattice-meta-loaded?*
-    (let ([sink (open-output-string)])
-      (parameterize ([current-output-port sink])
-        (load "lattice/meta/meta.ss")
-        (lattice-init!)))
-    (set! *rlm2-lattice-meta-loaded?* #t)))
+  '(submit store load plan! journal memorize remember recall
+    lookup definition symbols outline))
 
 ;;; ====
 ;;; Main Entry Point
@@ -287,6 +272,10 @@
         [(memorize) (rlm2-exec-memorize state action)]
         [(remember) (rlm2-exec-remember state action)]
         [(begin)    (rlm2-exec-begin state action config depth)]
+        [(lookup)     (rlm2-exec-lookup state action)]
+        [(definition) (rlm2-exec-definition state action)]
+        [(symbols)    (rlm2-exec-symbols state action)]
+        [(outline)    (rlm2-exec-outline state action)]
         [else
          (list (make-rlm2-observation type #f
                  (format "Unknown action type: ~a" type) #f)
@@ -302,44 +291,53 @@
                 (format "Search query must be a string, got ~a" (if (pair? query) "list" "non-string"))
                 #f)
               state 1)
-        (begin
-          (rlm2-ensure-lattice-meta!)
-          (let ([out (open-output-string)])
-            (parameterize ([current-output-port out])
-              (lf query))
-            (let ([result (get-output-string out)])
-              (list (make-rlm2-observation 'search query
-                      (if (string=? result "") "No matches found." result)
-                      #t)
-                    state 1)))))))
+        ;; Workers have lattice meta via repl.ss → lattice-init-quiet!
+        (let* ([escaped (rlm2-escape-string query)]
+               [result (fold-ipc-eval (format "(lf ~a)" escaped))])
+          (list (make-rlm2-observation 'search query
+                  (if (fold-result-ok? result)
+                      (let ([v (fold-result-value result)])
+                        (if (or (not v) (string=? v ""))
+                            "No matches found."
+                            v))
+                      (format "Search error: ~a"
+                              (fold-result-error result)))
+                  (fold-result-ok? result))
+                state 1)))))
 
 (define (rlm2-exec-inspect state action)
-  (let ([skill (rlm2-inspect-skill action)])
-    (rlm2-ensure-lattice-meta!)
-    (let ([out (open-output-string)])
-      (parameterize ([current-output-port out])
-        (li skill))
-      (let ([result (get-output-string out)])
-        (list (make-rlm2-observation 'inspect skill
-                (if (string=? result "")
-                    (format "Skill '~a' not found." skill)
-                    result)
-                (not (string=? result "")))
-              state 1)))))
+  (let* ([skill (rlm2-inspect-skill action)]
+         [result (fold-ipc-eval (format "(li '~a)" skill))])
+    (list (make-rlm2-observation 'inspect skill
+            (if (fold-result-ok? result)
+                (let ([v (fold-result-value result)])
+                  (if (or (not v) (string=? v ""))
+                      (format "Skill '~a' not found." skill)
+                      v))
+                (format "Inspect error: ~a"
+                        (fold-result-error result)))
+            (fold-result-ok? result))
+          state 1)))
 
 (define (rlm2-exec-exports state action)
-  (let ([skill (rlm2-exports-skill action)])
-    (rlm2-ensure-lattice-meta!)
-    (let ([out (open-output-string)])
-      (parameterize ([current-output-port out])
-        (le skill))
-      (let ([result (get-output-string out)])
-        (list (make-rlm2-observation 'exports skill
-                (if (string=? result "")
-                    (format "Skill '~a' not found." skill)
-                    result)
-                (not (string=? result "")))
-              state 1)))))
+  (let* ([skill (rlm2-exports-skill action)]
+         [result (fold-ipc-eval (format "(le '~a)" skill))])
+    (list (make-rlm2-observation 'exports skill
+            (if (fold-result-ok? result)
+                (let ([v (fold-result-value result)])
+                  (if (or (not v) (string=? v ""))
+                      (format "Skill '~a' not found." skill)
+                      v))
+                (format "Exports error: ~a"
+                        (fold-result-error result)))
+            (fold-result-ok? result))
+          state 1)))
+
+;;; Escape a string for safe embedding in Scheme expressions
+(define (rlm2-escape-string s)
+  (let ([out (open-output-string)])
+    (write s out)
+    (get-output-string out)))
 
 (define (rlm2-exec-load state action)
   (let* ([mod (rlm2-load-module action)]
@@ -810,6 +808,66 @@
              (loop (cdr children) state*
                    (cons obs observations)
                    (+ total-fuel fuel))])))))
+
+;;; --- LSP Actions (via IPC v2 commands) ---
+
+(define (rlm2-exec-lookup state action)
+  (let* ([sym (rlm2-lookup-symbol action)]
+         [sym-str (if (symbol? sym) (symbol->string sym) (format "~a" sym))]
+         [result (fold-ipc-command 'lsp-lookup
+                   `((symbol . ,sym-str)))])
+    (list (make-rlm2-observation 'lookup sym
+            (if (fold-result-ok? result)
+                (or (fold-result-value result)
+                    (format "No information found for '~a'" sym-str))
+                (format "Lookup error: ~a" (fold-result-error result)))
+            (fold-result-ok? result))
+          state 1)))
+
+(define (rlm2-exec-definition state action)
+  (let* ([sym (rlm2-definition-symbol action)]
+         [sym-str (if (symbol? sym) (symbol->string sym) (format "~a" sym))]
+         [result (fold-ipc-command 'lsp-definition
+                   `((symbol . ,sym-str)))])
+    (list (make-rlm2-observation 'definition sym
+            (if (fold-result-ok? result)
+                (or (fold-result-value result)
+                    (format "Definition not found for '~a'" sym-str))
+                (format "Definition error: ~a" (fold-result-error result)))
+            (fold-result-ok? result))
+          state 1)))
+
+(define (rlm2-exec-symbols state action)
+  (let* ([query (rlm2-symbols-query action)]
+         [query-str (cond
+                      [(string? query) query]
+                      [(symbol? query) (symbol->string query)]
+                      [else (format "~a" query)])]
+         [result (fold-ipc-command 'lsp-symbols
+                   `((query . ,query-str)))])
+    (list (make-rlm2-observation 'symbols query
+            (if (fold-result-ok? result)
+                (or (fold-result-value result)
+                    (format "No symbols matching '~a'" query-str))
+                (format "Symbols error: ~a" (fold-result-error result)))
+            (fold-result-ok? result))
+          state 1)))
+
+(define (rlm2-exec-outline state action)
+  (let* ([file (rlm2-outline-file action)]
+         [file-str (cond
+                     [(string? file) file]
+                     [(symbol? file) (symbol->string file)]
+                     [else (format "~a" file)])]
+         [result (fold-ipc-command 'lsp-outline
+                   `((file . ,file-str)))])
+    (list (make-rlm2-observation 'outline file
+            (if (fold-result-ok? result)
+                (or (fold-result-value result)
+                    (format "No definitions found in ~a" file-str))
+                (format "Outline error: ~a" (fold-result-error result)))
+            (fold-result-ok? result))
+          state 1)))
 
 ;;; ====
 ;;; Reflection Pass

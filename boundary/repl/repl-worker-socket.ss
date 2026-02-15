@@ -206,11 +206,532 @@
 ;;; Request Processing
 ;;; ====
 
-(define (process-request! session-id msg)
-  (let ([req-id (ipc-message-id msg)]
-        [expr (ipc-message-get msg 'expr)])
+;;; ====
+;;; v2 Command Handlers
+;;; ====
+
+;;; Capture stdout from a thunk, return as string
+(define (capture-output thunk)
+  (let ([out (open-output-string)])
+    (parameterize ([current-output-port out])
+      (thunk))
+    (get-output-string out)))
+
+;;; ====
+;;; LSP Lazy Loading
+;;; ====
+
+(define *lsp-loaded?* #f)
+
+(define (ensure-lsp!)
+  (unless *lsp-loaded?*
+    (parameterize ([current-output-port (current-error-port)])
+      (guard (ex [else
+                  (display (format "LSP load failed: ~a\n"
+                                   (if (message-condition? ex)
+                                       (condition-message ex) ex))
+                           (current-error-port))])
+        (load "boundary/lsp/capabilities.ss")))
+    ;; Try to refresh the symbol index
+    (when (top-level-bound? 'index-refresh!)
+      (guard (ex [else #f])
+        (parameterize ([current-output-port (current-error-port)])
+          (index-refresh!))))
+    (set! *lsp-loaded?* #t)))
+
+;;; ====
+;;; LSP Command Handlers
+;;; ====
+
+(define (process-lsp-lookup! msg)
+  (ensure-lsp!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [sym-name (cond [(and args (assq 'symbol args)) => cdr]
+                         [else ""])]
+         [sym-str (if (symbol? sym-name) (symbol->string sym-name) sym-name)])
     (guard (ex [else
-                ;; Eval error → capture for (last-error), then send error frame
+                (let* ([err-str (format "LSP lookup error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'lsp-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([info (if (top-level-bound? 'lookup-symbol-info)
+                       (lookup-symbol-info sym-str)
+                       #f)]
+             [doc-type (if (top-level-bound? 'lookup-doc-type)
+                           (lookup-doc-type sym-str)
+                           #f)]
+             [text (cond
+                     [(and info doc-type)
+                      (format "~a\nType: ~a\n~a" sym-str doc-type
+                              (format "~s" info))]
+                     [info (format "~a\n~s" sym-str info)]
+                     [doc-type (format "~a\nType: ~a" sym-str doc-type)]
+                     [else (format "No information found for '~a'" sym-str)])]
+             [resp (ipc-make-data-result req-id text
+                     `((symbol . ,sym-str)
+                       (found . ,(if (or info doc-type) #t #f))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-lsp-definition! msg)
+  (ensure-lsp!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [sym-name (cond [(and args (assq 'symbol args)) => cdr]
+                         [else ""])]
+         [sym-str (if (symbol? sym-name) (symbol->string sym-name) sym-name)])
+    (guard (ex [else
+                (let* ([err-str (format "LSP definition error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'lsp-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([info (if (top-level-bound? 'lookup-symbol-info)
+                       (lookup-symbol-info sym-str)
+                       #f)]
+             [file (and info (assq 'file info))]
+             [line (and info (assq 'line info))]
+             [text (cond
+                     [(and file line)
+                      (format "~a:~a" (cdr file) (cdr line))]
+                     [file (format "~a" (cdr file))]
+                     [else (format "Definition not found for '~a'" sym-str)])]
+             [resp (ipc-make-data-result req-id text
+                     `((symbol . ,sym-str)
+                       (file . ,(and file (cdr file)))
+                       (line . ,(and line (cdr line)))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-lsp-symbols! msg)
+  (ensure-lsp!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [query (cond [(and args (assq 'query args)) => cdr]
+                      [else ""])]
+         [query-str (if (symbol? query) (symbol->string query) query)])
+    (guard (ex [else
+                (let* ([err-str (format "LSP symbols error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'lsp-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([matches (if (top-level-bound? 'find-symbols-matching)
+                          (find-symbols-matching query-str)
+                          '())]
+             [top-10 (if (> (length matches) 10)
+                         (let take ([ms matches] [n 10] [acc '()])
+                           (if (or (null? ms) (= n 0))
+                               (reverse acc)
+                               (take (cdr ms) (- n 1)
+                                     (cons (car ms) acc))))
+                         matches)]
+             [text (if (null? top-10)
+                       (format "No symbols matching '~a'" query-str)
+                       (let fmt-loop ([syms top-10] [acc ""])
+                         (if (null? syms)
+                             acc
+                             (let* ([sym (car syms)]
+                                    [name (if (pair? sym)
+                                              (let ([n (assq 'name sym)])
+                                                (if n (cdr n) (format "~a" sym)))
+                                              (format "~a" sym))]
+                                    [file (and (pair? sym) (assq 'file sym))]
+                                    [line (and (pair? sym) (assq 'line sym))]
+                                    [loc (cond
+                                           [(and file line)
+                                            (format "  ~a:~a" (cdr file) (cdr line))]
+                                           [file (format "  ~a" (cdr file))]
+                                           [else ""])]
+                                    [entry (format "~a~a\n" name loc)])
+                               (fmt-loop (cdr syms)
+                                         (string-append acc entry))))))]
+             [resp (ipc-make-data-result req-id text
+                     `((query . ,query-str)
+                       (count . ,(length top-10))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-lsp-outline! msg)
+  (ensure-lsp!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [file (cond [(and args (assq 'file args)) => cdr]
+                     [else ""])]
+         [file-str (if (symbol? file) (symbol->string file) file)])
+    (guard (ex [else
+                (let* ([err-str (format "LSP outline error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'lsp-error err-str))])
+                  (write-frame-stdout frame))])
+      ;; Use index-find with empty string to get all symbols, then
+      ;; filter by file. Or just read file and extract define forms.
+      (let* ([text (if (file-exists? file-str)
+                       (let* ([content (call-with-input-file file-str
+                                         get-string-all)]
+                              [defs (extract-definitions content)])
+                         (if (null? defs)
+                             (format "No definitions found in ~a" file-str)
+                             (let fmt-loop ([ds defs] [acc ""])
+                               (if (null? ds) acc
+                                   (fmt-loop (cdr ds)
+                                             (string-append acc (car ds) "\n"))))))
+                       (format "File not found: ~a" file-str))]
+             [resp (ipc-make-data-result req-id text
+                     `((file . ,file-str)))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+;;; Extract top-level define names from file content (lightweight parser)
+(define (extract-definitions content)
+  (let ([port (open-input-string content)])
+    (let loop ([defs '()] [line-num 1])
+      (let ([line (guard (ex [else #f])
+                    (let read-line ([acc '()])
+                      (let ([c (read-char port)])
+                        (cond
+                          [(eof-object? c)
+                           (if (null? acc) c (list->string (reverse acc)))]
+                          [(char=? c #\newline) (list->string (reverse acc))]
+                          [else (read-line (cons c acc))]))))])
+        (cond
+          [(or (not line) (eof-object? line)) (reverse defs)]
+          ;; Match (define (name ...) or (define name
+          [(and (>= (string-length line) 8)
+                (string=? (substring line 0 8) "(define "))
+           (let* ([rest (substring line 8 (string-length line))]
+                  [name (cond
+                          [(and (> (string-length rest) 0)
+                                (char=? (string-ref rest 0) #\())
+                           ;; (define (name ...) → extract name
+                           (let name-loop ([i 1] [acc '()])
+                             (cond
+                               [(>= i (string-length rest))
+                                (list->string (reverse acc))]
+                               [(or (char=? (string-ref rest i) #\space)
+                                    (char=? (string-ref rest i) #\)))
+                                (list->string (reverse acc))]
+                               [else (name-loop (+ i 1)
+                                                (cons (string-ref rest i) acc))]))]
+                          [else
+                           ;; (define name → extract name
+                           (let name-loop ([i 0] [acc '()])
+                             (cond
+                               [(>= i (string-length rest))
+                                (list->string (reverse acc))]
+                               [(char-whitespace? (string-ref rest i))
+                                (list->string (reverse acc))]
+                               [else (name-loop (+ i 1)
+                                                (cons (string-ref rest i) acc))]))])])
+             (loop (cons (format "  ~a :~a" name line-num) defs)
+                   (+ line-num 1)))]
+          [else (loop defs (+ line-num 1))])))))
+
+(define (process-search! msg)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [query (cond [(and args (assq 'query args)) => cdr]
+                      [else ""])]
+         [limit (cond [(and args (assq 'limit args)) => cdr]
+                      [else 20])]
+         [text (capture-output (lambda () (lf query)))]
+         [resp (ipc-make-data-result req-id
+                 (if (string=? text "") "No matches found." text)
+                 `((query . ,query) (limit . ,limit)))]
+         [frame (ipc-encode-frame resp)])
+    (write-frame-stdout frame)))
+
+(define (process-inspect! msg)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [skill (cond [(and args (assq 'skill args))
+                       => (lambda (p) (if (string? (cdr p))
+                                          (string->symbol (cdr p))
+                                          (cdr p)))]
+                      [else 'unknown])]
+         [text (capture-output (lambda () (li skill)))]
+         [resp (ipc-make-data-result req-id
+                 (if (string=? text "")
+                     (format "Skill '~a' not found." skill)
+                     text)
+                 `((skill . ,skill)))]
+         [frame (ipc-encode-frame resp)])
+    (write-frame-stdout frame)))
+
+(define (process-exports! msg)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [skill (cond [(and args (assq 'skill args))
+                       => (lambda (p) (if (string? (cdr p))
+                                          (string->symbol (cdr p))
+                                          (cdr p)))]
+                      [else 'unknown])]
+         [text (capture-output (lambda () (le skill)))]
+         [resp (ipc-make-data-result req-id
+                 (if (string=? text "")
+                     (format "Skill '~a' not found." skill)
+                     text)
+                 `((skill . ,skill)))]
+         [frame (ipc-encode-frame resp)])
+    (write-frame-stdout frame)))
+
+;;; ====
+;;; Capability Layer Lazy Loading
+;;; ====
+
+(define *cap-loaded?* #f)
+
+(define (ensure-cap!)
+  (unless *cap-loaded?*
+    (parameterize ([current-output-port (current-error-port)])
+      (guard (ex [else
+                  (display (format "Capability layer load failed: ~a\n"
+                                   (if (message-condition? ex)
+                                       (condition-message ex) ex))
+                           (current-error-port))])
+        (load "boundary/capability/fold-cap.ss")))
+    (set! *cap-loaded?* #t)))
+
+;;; ====
+;;; Env/Memory Command Handlers
+;;; ====
+
+(define (process-env-store! session-id msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [key (cond [(and args (assq 'key args))
+                     => (lambda (p) (if (string? (cdr p))
+                                        (string->symbol (cdr p))
+                                        (cdr p)))]
+                    [else 'unnamed])]
+         [expr-str (cond [(and args (assq 'expression args)) => cdr]
+                         [else "#f"])])
+    (guard (ex [else
+                (let* ([err-str (format "env-store error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'env-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([value (eval (read (open-input-string expr-str)))]
+             [result (fold-cap-env-store! session-id key value 'sexpr)]
+             [text (car result)]
+             [env-summary (cdr result)]
+             [resp `((type . result) (v . 2) (id . ,req-id)
+                     (value . ,text)
+                     (env . ,env-summary))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-env-retrieve! session-id msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [key (cond [(and args (assq 'key args))
+                     => (lambda (p) (if (string? (cdr p))
+                                        (string->symbol (cdr p))
+                                        (cdr p)))]
+                    [else 'unnamed])])
+    (guard (ex [else
+                (let* ([err-str (format "env-retrieve error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'env-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([value (fold-cap-env-fetch session-id key)]
+             [text (if value (format "~s" value) (format "Key '~a' not found" key))]
+             [resp (ipc-make-data-result req-id text
+                     `((key . ,key) (found . ,(if value #t #f))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-env-peek! session-id msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [key (cond [(and args (assq 'key args))
+                     => (lambda (p) (if (string? (cdr p))
+                                        (string->symbol (cdr p))
+                                        (cdr p)))]
+                    [else 'unnamed])]
+         [n (cond [(and args (assq 'n args)) => cdr]
+                  [else 500])])
+    (guard (ex [else
+                (let* ([err-str (format "env-peek error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'env-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([value (fold-cap-env-peek session-id key n)]
+             [text (or value (format "Key '~a' not found" key))]
+             [resp (ipc-make-data-result req-id text
+                     `((key . ,key) (found . ,(if value #t #f))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-env-grep! session-id msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [key (cond [(and args (assq 'key args))
+                     => (lambda (p) (if (string? (cdr p))
+                                        (string->symbol (cdr p))
+                                        (cdr p)))]
+                    [else 'unnamed])]
+         [pattern (cond [(and args (assq 'pattern args)) => cdr]
+                        [else ""])]
+         [k (cond [(and args (assq 'k args)) => cdr]
+                  [else 5])])
+    (guard (ex [else
+                (let* ([err-str (format "env-grep error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'env-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([results (fold-cap-env-grep session-id key pattern k)]
+             [text (if results
+                       (let fmt ([rs results] [acc ""])
+                         (if (null? rs) acc
+                             (fmt (cdr rs)
+                                  (string-append acc
+                                    (if (string=? acc "") "" "\n---\n")
+                                    (if (pair? (car rs))
+                                        (car (car rs))
+                                        (format "~a" (car rs)))))))
+                       (format "Key '~a' not found or not chunked" key))]
+             [resp (ipc-make-data-result req-id text
+                     `((key . ,key)
+                       (pattern . ,pattern)
+                       (count . ,(if results (length results) 0))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-env-keys! session-id msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [keys (fold-cap-env-keys session-id)]
+         [text (if (null? keys)
+                   "Environment is empty"
+                   (let fmt ([ks keys] [acc ""])
+                     (if (null? ks) acc
+                         (let ([entry (car ks)])
+                           (fmt (cdr ks)
+                                (string-append acc
+                                  (format "  ~a (~a, ~a)\n"
+                                          (car entry)
+                                          (cadr entry)
+                                          (caddr entry))))))))]
+         [resp (ipc-make-data-result req-id text
+                 `((keys . ,keys)))]
+         [frame (ipc-encode-frame resp)])
+    (write-frame-stdout frame)))
+
+(define (process-env-ingest! session-id msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [key (cond [(and args (assq 'key args))
+                     => (lambda (p) (if (string? (cdr p))
+                                        (string->symbol (cdr p))
+                                        (cdr p)))]
+                    [else 'unnamed])]
+         [text (cond [(and args (assq 'text args)) => cdr]
+                     [else ""])]
+         [chunk-size (cond [(and args (assq 'chunk-size args)) => cdr]
+                           [else 2000])])
+    (guard (ex [else
+                (let* ([err-str (format "env-ingest error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'env-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([env-summary (fold-cap-env-ingest! session-id key text chunk-size)]
+             [resp `((type . result) (v . 2) (id . ,req-id)
+                     (value . ,(format "Ingested ~a chars as '~a'"
+                                       (string-length text) key))
+                     (env . ,env-summary))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-memory-store! msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [key (cond [(and args (assq 'key args))
+                     => (lambda (p) (if (string? (cdr p))
+                                        (string->symbol (cdr p))
+                                        (cdr p)))]
+                    [else 'unnamed])]
+         [text (cond [(and args (assq 'text args)) => cdr]
+                     [else ""])])
+    (guard (ex [else
+                (let* ([err-str (format "memory-store error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'memory-error err-str))])
+                  (write-frame-stdout frame))])
+      (fold-cap-memorize! key text)
+      (let* ([resp (ipc-make-data-result req-id
+                     (format "Saved to persistent memory under '~a'" key)
+                     `((key . ,key)))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+(define (process-memory-search! msg)
+  (ensure-cap!)
+  (let* ([req-id (ipc-message-id msg)]
+         [args (ipc-message-args msg)]
+         [query (cond [(and args (assq 'query args)) => cdr]
+                      [else ""])]
+         [k (cond [(and args (assq 'k args)) => cdr]
+                  [else 5])])
+    (guard (ex [else
+                (let* ([err-str (format "memory-search error: ~a"
+                                        (if (message-condition? ex)
+                                            (condition-message ex) ex))]
+                       [frame (ipc-encode-frame
+                                (ipc-make-error req-id 'memory-error err-str))])
+                  (write-frame-stdout frame))])
+      (let* ([results (fold-cap-remember query k)]
+             [text (if (null? results)
+                       "No matching memories found."
+                       (let fmt ([rs results] [acc ""])
+                         (if (null? rs) acc
+                             (let ([entry (car rs)])
+                               (fmt (cdr rs)
+                                    (string-append acc
+                                      (format "(~a ~s ~a)\n"
+                                              (car entry)
+                                              (cadr entry)
+                                              (if (>= (length entry) 3)
+                                                  (caddr entry) ""))))))))]
+             [resp (ipc-make-data-result req-id text
+                     `((query . ,query)
+                       (count . ,(length results))))]
+             [frame (ipc-encode-frame resp)])
+        (write-frame-stdout frame)))))
+
+;;; ====
+;;; Request Processing (v1 + v2 dispatch)
+;;; ====
+
+(define (process-eval! session-id msg)
+  (let* ([req-id (ipc-message-id msg)]
+         [expr (ipc-message-get msg 'expr)])
+    (guard (ex [else
                 (capture-error! ex)
                 (let* ([err-str (format-condition ex)]
                        [err-msg (ipc-make-error req-id 'eval-error err-str)]
@@ -220,6 +741,33 @@
         (let* ([resp (ipc-make-result req-id result)]
                [frame (ipc-encode-frame resp)])
           (write-frame-stdout frame))))))
+
+(define (process-request! session-id msg)
+  (let ([cmd (ipc-message-cmd msg)])
+    (case cmd
+      ;; Core
+      [(eval)           (process-eval! session-id msg)]
+      ;; Lattice meta
+      [(search)         (process-search! msg)]
+      [(inspect)        (process-inspect! msg)]
+      [(exports)        (process-exports! msg)]
+      ;; LSP
+      [(lsp-lookup)     (process-lsp-lookup! msg)]
+      [(lsp-definition) (process-lsp-definition! msg)]
+      [(lsp-symbols)    (process-lsp-symbols! msg)]
+      [(lsp-outline)    (process-lsp-outline! msg)]
+      ;; Env
+      [(env-store)      (process-env-store! session-id msg)]
+      [(env-retrieve)   (process-env-retrieve! session-id msg)]
+      [(env-peek)       (process-env-peek! session-id msg)]
+      [(env-grep)       (process-env-grep! session-id msg)]
+      [(env-keys)       (process-env-keys! session-id msg)]
+      [(env-ingest)     (process-env-ingest! session-id msg)]
+      ;; Memory
+      [(memory-store)   (process-memory-store! msg)]
+      [(memory-search)  (process-memory-search! msg)]
+      ;; Default
+      [else             (process-eval! session-id msg)])))
 
 ;;; ====
 ;;; Worker Loop
