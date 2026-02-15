@@ -192,20 +192,48 @@
 ;;; ====
 
 (test-group "clp-n-queens"
-            
+
             (define-test "4-queens has 2 solutions"
-              (let* ([cs (make-cstore)]
-                     [goal (n-queens 4)]
-                     [solutions (goal cs)]
-                     [count (stream-count solutions 100)])
-                    (assert-equal 2 count)))
-            
-            ;; 8-queens is slower, so we just check it finds at least one solution
+              (call-with-values
+               (lambda () (n-queens 4))
+               (lambda (goal vars)
+                       (let* ([cs (make-cstore)]
+                              [solutions (goal cs)]
+                              [count (stream-count solutions 100)])
+                             (assert-equal 2 count)))))
+
             (define-test "8-queens has solutions"
-              (let* ([cs (make-cstore)]
-                     [goal (n-queens 8)]
-                     [solutions (goal cs)])
-                    (assert-false (stream-nil? solutions))))
+              (call-with-values
+               (lambda () (n-queens 8))
+               (lambda (goal vars)
+                       (let* ([cs (make-cstore)]
+                              [solutions (goal cs)])
+                             (assert-false (stream-nil? solutions))))))
+
+            (define-test "solve-n-queens returns valid 4-queens solutions"
+              (let ([solutions (solve-n-queens 4 10)])
+                   (assert-equal 2 (length solutions))
+                   ;; Each solution should be a list of 4 column positions
+                   (assert-equal 4 (length (car solutions)))))
+
+            (define-test "solve-n-queens 8 returns a valid placement"
+              (let* ([sol (car (solve-n-queens 8))]
+                     ;; All columns distinct
+                     [cols-unique (let check ([xs sol])
+                                      (or (null? xs)
+                                          (and (not (member (car xs) (cdr xs)))
+                                               (check (cdr xs)))))]
+                     ;; No diagonal conflicts
+                     [no-diags (let check ([qs sol] [row 0])
+                                    (or (null? qs)
+                                        (and (let inner ([rest (cdr qs)] [r (+ row 1)])
+                                                  (or (null? rest)
+                                                      (and (not (= (abs (- (car qs) (car rest)))
+                                                                    (- r row)))
+                                                           (inner (cdr rest) (+ r 1)))))
+                                             (check (cdr qs) (+ row 1)))))])
+                    (assert-true cols-unique)
+                    (assert-true no-diags)))
             )
 
 ;;; ====
@@ -213,16 +241,34 @@
 ;;; ====
 
 (test-group "clp-cryptarithmetic"
-            
+
             (define-test "SEND+MORE=MONEY has solution"
-              (let* ([cs (make-cstore)]
-                     [goal (send-more-money)]
-                     [solutions (goal cs)])
-                    (assert-false (stream-nil? solutions))
-                    ;; Verify the solution
-                    (let ([sol (stream-head solutions)])
-                         ;; Just check we got a valid solution
-                         (assert-true (cstore? sol)))))
+              (call-with-values
+               (lambda () (send-more-money))
+               (lambda (goal vars names)
+                       (let* ([cs (make-cstore)]
+                              [solutions (goal cs)])
+                             (assert-false (stream-nil? solutions))
+                             (assert-true (cstore? (stream-head solutions)))))))
+
+            (define-test "solve-send-more-money returns correct answer"
+              (let ([sol (solve-send-more-money)])
+                   ;; Should return an alist
+                   (assert-true (pair? sol))
+                   (assert-equal 8 (length sol))
+                   ;; Verify: SEND + MORE = MONEY
+                   (let ([s (cdr (assq 's sol))]
+                         [e (cdr (assq 'e sol))]
+                         [n (cdr (assq 'n sol))]
+                         [d (cdr (assq 'd sol))]
+                         [m (cdr (assq 'm sol))]
+                         [o (cdr (assq 'o sol))]
+                         [r (cdr (assq 'r sol))]
+                         [y (cdr (assq 'y sol))])
+                        (let ([send (+ (* 1000 s) (* 100 e) (* 10 n) d)]
+                              [more (+ (* 1000 m) (* 100 o) (* 10 r) e)]
+                              [money (+ (* 10000 m) (* 1000 o) (* 100 n) (* 10 e) y)])
+                             (assert-equal (+ send more) money)))))
             )
 
 ;;; ====

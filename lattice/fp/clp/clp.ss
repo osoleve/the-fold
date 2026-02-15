@@ -286,19 +286,21 @@
 
 (define (n-queens n)
   (doc 'export #t)
-  (doc 'type '(-> Nat Goal))
-  (doc 'description "Set up N-Queens problem as a CLP goal")
+  (doc 'type '(-> Nat (Values Goal (List LVar))))
+  (doc 'description "Set up N-Queens problem as a CLP goal. Returns (values goal queens-vars) so callers can extract solution values via run-clp.")
   (let ([queens (map (lambda (i) (make-lvar 'q)) (range 0 n))])
-       (clp-conj*
-        (append
-         ;; Each queen in [1, n]
-         (map (lambda (q) (goal-in-range q 1 n)) queens)
-         ;; All different columns
-         (list (goal-all-different queens))
-         ;; All different diagonals
-         (queens-diagonal-constraints queens 0)
-         ;; Label to find solutions
-         (list (goal-label queens))))))
+       (values
+        (clp-conj*
+         (append
+          ;; Each queen in [1, n]
+          (map (lambda (q) (goal-in-range q 1 n)) queens)
+          ;; All different columns
+          (list (goal-all-different queens))
+          ;; All different diagonals
+          (queens-diagonal-constraints queens 0)
+          ;; Label to find solutions
+          (list (goal-label queens))))
+        queens)))
 
 (define (queens-diagonal-constraints queens row)
   (doc 'type '(-> (List LVar) Nat (List Goal)))
@@ -365,8 +367,8 @@
 
 (define (send-more-money)
   (doc 'export #t)
-  (doc 'type '(-> Goal))
-  (doc 'description "Classic cryptarithmetic puzzle: SEND + MORE = MONEY")
+  (doc 'type '(-> (Values Goal (List LVar) (List Symbol))))
+  (doc 'description "Classic cryptarithmetic puzzle: SEND + MORE = MONEY. Returns (values goal vars names) so callers can extract named solution values.")
   (let ([s (make-lvar 's)]
         [e (make-lvar 'e)]
         [n (make-lvar 'n)]
@@ -375,30 +377,45 @@
         [o (make-lvar 'o)]
         [r (make-lvar 'r)]
         [y (make-lvar 'y)])
-       (let ([vars (list s e n d m o r y)])
-            (clp-conj*
-             (append
-              ;; All digits 0-9
-              (map (lambda (v) (goal-in-range v 0 9)) vars)
-              ;; All different
-              (list (goal-all-different vars))
-              ;; Leading digits non-zero
-              (list (goal->fd s 0))
-              (list (goal->fd m 0))
-              ;; SEND + MORE = MONEY as linear constraint
-              ;; 1000*S + 100*E + 10*N + D +
-              ;; 1000*M + 100*O + 10*R + E =
-              ;; 10000*M + 1000*O + 100*N + 10*E + Y
-              (list (goal-send-more-money-eq s e n d m o r y))
-              ;; Label
-              (list (goal-label vars)))))))
+       (let ([vars (list s e n d m o r y)]
+             [names '(s e n d m o r y)])
+            (values
+             (clp-conj*
+              (append
+               ;; All digits 0-9
+               (map (lambda (v) (goal-in-range v 0 9)) vars)
+               ;; All different
+               (list (goal-all-different vars))
+               ;; Leading digits non-zero
+               (list (goal->fd s 0))
+               (list (goal->fd m 0))
+               ;; SEND + MORE = MONEY as linear constraint
+               ;; 1000*S + 100*E + 10*N + D +
+               ;; 1000*M + 100*O + 10*R + E =
+               ;; 10000*M + 1000*O + 100*N + 10*E + Y
+               (list (goal-send-more-money-eq s e n d m o r y))
+               ;; Label
+               (list (goal-label vars))))
+             vars
+             names))))
 
 (define (goal-send-more-money-eq s e n d m o r y)
   (doc 'type '(-> LVar LVar LVar LVar LVar LVar LVar LVar Goal))
   (doc 'description "The arithmetic constraint for SEND + MORE = MONEY")
-  (doc 'note "Simplified: check after labeling since arithmetic propagation is weak")
+  (doc 'note "Registered as persistent constraint so it's re-checked during labeling")
   (lambda (cs)
-          ;; Check if all are ground
+          ;; Post as persistent constraint — re-checked each time a var is labeled
+          (let ([cs1 (post-constraint cs 'smm-eq
+                       (list s e n d m o r y)
+                       (smm-eq-check s e n d m o r y))])
+               (if cs1
+                   (clp-succeed cs1)
+                   (clp-fail cs)))))
+
+(define (smm-eq-check s e n d m o r y)
+  (doc 'type '(-> LVar ... (-> CStore (Maybe CStore))))
+  (doc 'description "Propagator for SEND+MORE=MONEY: validates when all ground, passes when partial")
+  (lambda (cs)
           (let ([sv (cstore-get-value cs s)]
                 [ev (cstore-get-value cs e)]
                 [nv (cstore-get-value cs n)]
@@ -412,11 +429,38 @@
                    (let ([send (+ (* 1000 sv) (* 100 ev) (* 10 nv) dv)]
                          [more (+ (* 1000 mv) (* 100 ov) (* 10 rv) ev)]
                          [money (+ (* 10000 mv) (* 1000 ov) (* 100 nv) (* 10 ev) yv)])
-                        (if (= (+ send more) money)
-                            (clp-succeed cs)
-                            (clp-fail cs)))
-                   ;; Not all ground - propagate constraints
-                   (clp-succeed cs)))))
+                        (if (= (+ send more) money) cs #f))
+                   ;; Not all ground yet - pass through
+                   cs))))
+
+(doc 'section 'convenience-solvers)
+
+;;; solve-n-queens : Nat [Nat] → (List (List Int))
+;;; Solve N-Queens and return up to count solutions as lists of column positions.
+;;; Each solution is a list where the i-th element is the column of the queen in row i.
+(define (solve-n-queens n . args)
+  (doc 'export #t)
+  (doc 'type '(-> Nat (List (List Int))))
+  (doc 'description "Solve N-Queens puzzle. Returns solutions as lists of column positions (1-indexed). Optional second argument specifies max solutions (default: 1).")
+  (let ([count (if (null? args) 1 (car args))])
+       (call-with-values
+        (lambda () (n-queens n))
+        (lambda (goal vars)
+                (run-clp count (lambda () goal) vars)))))
+
+;;; solve-send-more-money : → (List (Pair Symbol Int))
+;;; Solve SEND+MORE=MONEY and return named digit assignments.
+(define (solve-send-more-money)
+  (doc 'export #t)
+  (doc 'type '(-> (Maybe (List (Pair Symbol Int)))))
+  (doc 'description "Solve SEND+MORE=MONEY. Returns alist of letter→digit assignments, e.g. ((s . 9) (e . 5) ...), or #f if no solution.")
+  (call-with-values
+   (lambda () (send-more-money))
+   (lambda (goal vars names)
+           (let ([solutions (run-clp 1 (lambda () goal) vars)])
+                (if (null? solutions)
+                    #f
+                    (map cons names (car solutions)))))))
 
 (doc 'section 'help)
 
@@ -448,6 +492,10 @@
   (display "  (clp-solve vars goal)        First solution or #f\n")
   (display "  (clp-all vars goal)          All solutions\n")
   (display "  (clp-count goal)             Count solutions\n\n")
-  (display "Examples:\n")
-  (display "  (n-queens 8)                 8-Queens puzzle\n")
-  (display "  (send-more-money)            SEND + MORE = MONEY\n"))
+  (display "Convenience Solvers:\n")
+  (display "  (solve-n-queens 8)           First solution as column list\n")
+  (display "  (solve-n-queens 8 92)        All 92 solutions\n")
+  (display "  (solve-send-more-money)      Named digit assignments\n\n")
+  (display "Composable Problem Setup:\n")
+  (display "  (n-queens n)                 Returns (values goal vars)\n")
+  (display "  (send-more-money)            Returns (values goal vars names)\n"))

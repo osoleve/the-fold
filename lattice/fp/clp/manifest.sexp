@@ -68,8 +68,10 @@
    ;; Running
    run-clp run-clp* clp-solve clp-all clp-count
 
-   ;; Examples
-   n-queens send-more-money clp-help)
+   ;; Examples & Solvers
+   n-queens send-more-money
+   solve-n-queens solve-send-more-money
+   clp-help)
 
   (modules
    (domain "domain.ss" "Finite domain representation with intervals")
