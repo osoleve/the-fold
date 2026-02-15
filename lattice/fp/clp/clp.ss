@@ -297,19 +297,19 @@
           ;; All different columns
           (list (goal-all-different queens))
           ;; All different diagonals
-          (queens-diagonal-constraints queens 0)
+          (clp-queens-diagonal-constraints queens 0)
           ;; Label to find solutions
           (list (goal-label queens))))
         queens)))
 
-(define (queens-diagonal-constraints queens row)
+(define (clp-queens-diagonal-constraints queens row)
   (doc 'type '(-> (List LVar) Nat (List Goal)))
   (doc 'description "Generate diagonal constraints for N-Queens")
   (if (null? queens)
       '()
       (append
        (queens-diagonal-with-rest (car queens) (cdr queens) row (+ row 1))
-       (queens-diagonal-constraints (cdr queens) (+ row 1)))))
+       (clp-queens-diagonal-constraints (cdr queens) (+ row 1)))))
 
 (define (queens-diagonal-with-rest q1 rest row1 row2)
   (doc 'type '(-> LVar (List LVar) Nat Nat (List Goal)))

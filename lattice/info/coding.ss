@@ -92,17 +92,18 @@
             (append (huffman-codes-helper left (string-append prefix "0"))
                     (huffman-codes-helper right (string-append prefix "1"))))))
 
-(define (huffman-encode message code-table)
+(define (huffman-encode message tree)
   (doc 'export #t)
-  (doc 'type '(-> (List Symbol) (List (Pair Symbol String)) String))
-  (doc 'description "Encode message using Huffman code table")
-  (apply string-append
-         (map (lambda (sym)
-                      (let ([entry (assq sym code-table)])
-                           (if entry
-                               (cdr entry)
-                               (error "huffman-encode" "symbol not in code table" sym))))
-              message)))
+  (doc 'type '(-> (List Symbol) Node String))
+  (doc 'description "Encode message using Huffman tree")
+  (let ([code-table (huffman-codes tree)])
+       (apply string-append
+              (map (lambda (sym)
+                           (let ([entry (assq sym code-table)])
+                                (if entry
+                                    (cdr entry)
+                                    (error "huffman-encode" "symbol not in code table" sym))))
+                   message))))
 
 (define (huffman-decode bitstring tree)
   (doc 'export #t)

@@ -72,7 +72,7 @@
 
 ;; Encode and decode round-trip
 (define test-msg '(a b a c a d a))
-(define encoded (huffman-encode test-msg test-codes))
+(define encoded (huffman-encode test-msg test-tree))
 (test-true "encoded is string" (string? encoded))
 (test-true "encoded non-empty" (> (string-length encoded) 0))
 

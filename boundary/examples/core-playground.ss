@@ -131,7 +131,7 @@
   (let ([normalized (normalize expr)])
        (print-section "Normalized" (sexpr->string normalized))
        
-       (let ([hash-hex (hash-expr-hex expr)])
+       (let ([hash-hex (hash-expr-hex normalized)])
             (display (format "Hash: ~a\n\n" hash-hex))
             (display "Note: Alpha-equivalent expressions have the same hash.\n"))))
 
@@ -139,17 +139,19 @@
 ;;; Compare hashes of two expressions.
 (define (try-hash-compare expr1 expr2)
   (print-boxed "HASH COMPARISON" "")
-  (print-section "Expression 1" (sexpr->string expr1))
-  (let ([hash1 (hash-expr-hex expr1)])
-       (display (format "  Hash: ~a\n\n" hash1))
-       
-       (print-section "Expression 2" (sexpr->string expr2))
-       (let ([hash2 (hash-expr-hex expr2)])
-            (display (format "  Hash: ~a\n\n" hash2))
-            
-            (if (string=? hash1 hash2)
-                (display "✓ Hashes match! Expressions are alpha-equivalent.\n")
-                (display "✗ Hashes differ. Expressions are NOT alpha-equivalent.\n")))))
+  (let ([norm1 (normalize expr1)]
+        [norm2 (normalize expr2)])
+       (print-section "Expression 1" (sexpr->string expr1))
+       (let ([hash1 (hash-expr-hex norm1)])
+            (display (format "  Hash: ~a\n\n" hash1))
+
+            (print-section "Expression 2" (sexpr->string expr2))
+            (let ([hash2 (hash-expr-hex norm2)])
+                 (display (format "  Hash: ~a\n\n" hash2))
+
+                 (if (string=? hash1 hash2)
+                     (display "✓ Hashes match! Expressions are alpha-equivalent.\n")
+                     (display "✗ Hashes differ. Expressions are NOT alpha-equivalent.\n"))))))
 
 (doc 'section 'block-experiments)
 

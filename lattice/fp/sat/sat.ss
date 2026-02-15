@@ -241,10 +241,10 @@
                             (at-most-one (map (lambda (r) (var r c)) (range 0 n))))
                     (range 0 n))
         ;; Diagonals have at most one queen
-        (queens-diagonal-constraints n var))))
+        (sat-queens-diagonal-constraints n var))))
 
 
-(define (queens-diagonal-constraints n var)
+(define (sat-queens-diagonal-constraints n var)
   (doc 'type '(-> Nat (-> Nat Nat Literal) (List (List Literal))))
   (flatten
          (append

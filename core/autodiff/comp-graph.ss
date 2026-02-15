@@ -441,8 +441,8 @@
 (define (forward-diff f x)
   (dual-deriv (f (dual-variable x))))
 
-;;; gradient-forward : ((List Number) → Number) × (List Number) × Nat → Number
-;;; Compute partial derivative with respect to variable i.
+;;; gradient-forward : (Number ... → Number) × (List Number) × Nat → Number
+;;; Compute partial derivative with respect to variable i (f called via apply).
 (define (gradient-forward f args i)
   (let ([dual-args
          (let loop ([as args] [j 0])
@@ -454,8 +454,9 @@
                         (loop (cdr as) (+ j 1)))))])
        (dual-deriv (apply f dual-args))))
 
-;;; gradient-forward-all : ((List Number) → Number) × (List Number) → (List Number)
+;;; gradient-forward-all : (Number ... → Number) × (List Number) → (List Number)
 ;;; Compute full gradient (all partial derivatives).
+;;; f is called via apply — it takes N individual args, not a list.
 (define (gradient-forward-all f args)
   (let loop ([i 0])
        (if (>= i (length args))
@@ -818,7 +819,7 @@
 ;;; Hessian via Hyperdual Numbers
 ;;; ====
 
-;;; hessian-forward : ((List Hyperdual) → Hyperdual) × (List Number) → Matrix
+;;; hessian-forward : (Hyperdual ... → Hyperdual) × (List Number) → Matrix
 ;;; Compute exact Hessian using hyperdual numbers.
 ;;; H[i,j] = d^2f/dx_i*dx_j is the e1e2 coefficient when
 ;;; x_i has e1=1 and x_j has e2=1.
