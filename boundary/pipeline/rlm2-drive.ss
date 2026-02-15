@@ -96,7 +96,8 @@
       ;; Drive the loop
       (let loop ([state initial-state]
                  [fingerprints '()]
-                 [prev-step-hash #f])
+                 [prev-step-hash #f]
+                 [consecutive-thinks 0])
         (cond
           ;; Success: state carries a result
           [(rlm2-state-complete? state)
@@ -160,6 +161,14 @@
                        [action (rlm2-parse-result-action final-parse)]
                        [raw-thought (rlm2-parse-result-thought final-parse)]
                        ;; === EXECUTE PHASE ===
+                       [_trace (when (getenv "RLM_TRACE")
+                                 (format (current-error-port)
+                                   "[step ~a] action=~a raw=~a~%"
+                                   (rlm2-state-step state)
+                                   (rlm2-action-type action)
+                                   (if (> (string-length effective-text) 200)
+                                       (substring effective-text 0 200)
+                                       effective-text)))]
                        [exec-result (rlm2-execute-action state action
                                       config depth)]
                        [observation (car exec-result)]
@@ -198,6 +207,20 @@
                                     (rlm2-state-add-note state*
                                       "[LOOP] Repeated action pattern detected. Try a different approach.")
                                     state*)]
+                       ;; === THINK-SPAM DETECTION ===
+                       [thinks (if (eq? action-type 'think)
+                                   (+ consecutive-thinks 1)
+                                   0)]
+                       [state** (cond
+                                  [(>= thinks 5)
+                                   (rlm2-state-add-note state**
+                                     (format "[URGENT] ~a consecutive thinks — submit NOW. Use: (submit \"your answer text here\") or (begin (retrieve 'step-N-result) (submit last-result))"
+                                             thinks))]
+                                  [(>= thinks 3)
+                                   (rlm2-state-add-note state**
+                                     (format "[NUDGE] ~a consecutive think actions. Act now: peek, grep, eval, or (submit \"answer\")."
+                                             thinks))]
+                                  [else state**])]
                        ;; === RECORD STEP ===
                        [step-hash (rlm2-record-step!
                                    (rlm2-state-step state)
@@ -222,7 +245,7 @@
                        [fps* (if looping?
                                  '()  ; reset after loop break
                                  (cons fp fingerprints))])
-                  (loop state*** fps* step-hash))]))])))))
+                  (loop state*** fps* step-hash thinks))]))])))))
 
 ;;; ====
 ;;; Action Execution
@@ -428,7 +451,7 @@
          [results (rlm-env-grep (rlm2-state-env state) key pattern k)])
     (list (make-rlm2-observation 'grep key
             (if results
-                (rlm2-format-grep-results results)
+                (rlm2-format-grep-results results pattern)
                 (format "Key '~a' not found or not chunked" key))
             (if results #t #f))
           state 1)))
@@ -947,19 +970,80 @@
 ;;; Grep Results Formatting
 ;;; ====
 
-(define (rlm2-format-grep-results results)
+;;; rlm2-format-grep-results : (List (String . Number)) String -> String
+;;; Extract matching lines from BM25 chunk results.
+;;; Returns lines containing the pattern (case-insensitive substring match)
+;;; rather than entire chunks, giving the model clean signal.
+;;; Falls back to full chunk text if no lines match the pattern literally.
+(define (rlm2-format-grep-results results pattern)
   (if (null? results)
       "No matches found."
-      (let loop ([rs results] [acc '()])
-        (if (null? rs)
-            (let join ([strs (reverse acc)] [out ""])
-              (if (null? strs)
-                  out
+      (let* ([pat-lower (string-downcase pattern)]
+             [lines-from-chunk
+              (lambda (chunk-text)
+                (let loop ([chars (string->list chunk-text)]
+                           [line '()]
+                           [acc '()])
+                  (cond
+                    [(null? chars)
+                     (let ([final (list->string (reverse line))])
+                       (reverse (if (string-contains-ci final pat-lower)
+                                    (cons final acc)
+                                    acc)))]
+                    [(char=? (car chars) #\newline)
+                     (let ([l (list->string (reverse line))])
+                       (loop (cdr chars) '()
+                             (if (string-contains-ci l pat-lower)
+                                 (cons l acc)
+                                 acc)))]
+                    [else (loop (cdr chars) (cons (car chars) line) acc)])))]
+             [all-lines
+              (let chunk-loop ([rs results] [acc '()])
+                (if (null? rs)
+                    (reverse acc)
+                    (let ([lines (lines-from-chunk (car (car rs)))])
+                      (chunk-loop (cdr rs) (append (reverse lines) acc)))))]
+             ;; Deduplicate matching lines (same entry may appear in overlapping chunks)
+             [unique-lines
+              (let dedup ([ls all-lines] [seen '()] [acc '()])
+                (cond
+                  [(null? ls) (reverse acc)]
+                  [(member (car ls) seen) (dedup (cdr ls) seen acc)]
+                  [else (dedup (cdr ls) (cons (car ls) seen)
+                               (cons (car ls) acc))]))])
+        (if (null? unique-lines)
+            ;; No literal matches — fall back to first chunk (BM25 fuzzy match)
+            (let ([text (car (car results))])
+              (if (> (string-length text) 500)
+                  (substring text 0 500)
+                  text))
+            (let join ([strs unique-lines] [out ""])
+              (if (null? strs) out
                   (join (cdr strs)
                         (if (string=? out "")
                             (car strs)
-                            (string-append out "\n" (car strs))))))
-            (loop (cdr rs) (cons (car (car rs)) acc))))))
+                            (string-append out "\n" (car strs))))))))))
+
+;;; Case-insensitive substring containment check
+(define (string-contains-ci str pattern)
+  (let ([slen (string-length str)]
+        [plen (string-length pattern)])
+    (if (> plen slen)
+        #f
+        (let loop ([i 0])
+          (cond
+            [(> (+ i plen) slen) #f]
+            [(string-ci-match? str i pattern plen) #t]
+            [else (loop (+ i 1))])))))
+
+(define (string-ci-match? str start pattern plen)
+  (let loop ([j 0])
+    (cond
+      [(= j plen) #t]
+      [(char-ci=? (string-ref str (+ start j))
+                  (string-ref pattern j))
+       (loop (+ j 1))]
+      [else #f])))
 
 ;;; ====
 ;;; CAS Recording

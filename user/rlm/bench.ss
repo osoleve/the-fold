@@ -407,14 +407,33 @@
 
 (define (parse-pairs-from-output text)
   (let* ([clean (strip-outer-quotes text)]
-         [lines (string-split-lines clean)])
-    (let loop ([ls lines] [pairs '()])
+         [lines (string-split-lines clean)]
+         ;; Also try extracting all (UNNN UMMM) or (UNNN, UMMM) patterns
+         [scan-pairs (scan-all-pairs clean)])
+    (let loop ([ls lines] [pairs scan-pairs])
       (if (null? ls)
           (deduplicate-pairs (reverse pairs))
           (let ([pair (try-parse-pair (car ls))])
             (if pair
                 (loop (cdr ls) (cons pair pairs))
                 (loop (cdr ls) pairs)))))))
+
+;;; Scan text for all (UNNN, UMMM) or (UNNN UMMM) patterns
+(define (scan-all-pairs text)
+  (let ([len (string-length text)])
+    (let loop ([i 0] [pairs '()])
+      (if (>= i len)
+          (reverse pairs)
+          (if (char=? (string-ref text i) #\()
+              (let ([close (find-char-from text #\) i)])
+                (if close
+                    (let* ([content (substring text (+ i 1) close)]
+                           [pair (parse-pair-content content)])
+                      (if pair
+                          (loop (+ close 1) (cons pair pairs))
+                          (loop (+ i 1) pairs)))
+                    (loop (+ i 1) pairs)))
+              (loop (+ i 1) pairs))))))
 
 (define (strip-outer-quotes s)
   (let ([len (string-length s)])
@@ -439,7 +458,11 @@
             (parse-pair-content trimmed))))))
 
 (define (parse-pair-content content)
-  (let ([parts (string-split-on-comma content)])
+  (let* ([parts-comma (string-split-on-comma content)]
+         ;; Fall back to whitespace split if comma split gives 1 part
+         [parts (if (= (length parts-comma) 2)
+                    parts-comma
+                    (string-split-on-whitespace content))])
     (if (= (length parts) 2)
         (let ([a (string-trim (car parts))]
               [b (string-trim (cadr parts))])
@@ -450,6 +473,19 @@
               (cons a b)
               #f))
         #f)))
+
+(define (string-split-on-whitespace s)
+  (let loop ([chars (string->list s)] [current '()] [parts '()])
+    (cond
+      [(null? chars)
+       (let ([last (list->string (reverse current))])
+         (reverse (if (string=? last "") parts (cons last parts))))]
+      [(char-whitespace? (car chars))
+       (let ([word (list->string (reverse current))])
+         (if (string=? word "")
+             (loop (cdr chars) '() parts)
+             (loop (cdr chars) '() (cons word parts))))]
+      [else (loop (cdr chars) (cons (car chars) current) parts)])))
 
 (define (find-char s ch)
   (let loop ([i 0])
@@ -635,5 +671,7 @@
           (display (format "\nResults saved to ~a\n" results-file)))))))
 
 ;; Auto-run when invoked as script (RLM_INTEGRATION=1)
-(when (getenv "RLM_INTEGRATION")
+;; Skip if loaded as a library (e.g., by bench-pairs-discovery.ss)
+(when (and (getenv "RLM_INTEGRATION")
+           (not (top-level-bound? '*bench-library-mode*)))
   (run-benchmark-suite))
