@@ -1356,8 +1356,8 @@ Dependencies:
                                                 (top-level-bound? s))))
                                        (oblist))])
                          (when (> (length runtime-syms) count)
-                           (display (format "  ~a runtime symbols matching ~a* (use 'all to list)\n"
-                                            (length runtime-syms) name)))))
+                           (display (format "  + ~a macro-generated runtime symbols (use 'all to see all ~a* bindings)\n"
+                                            (- (length runtime-syms) count) name)))))
                      (when (and (eq? mode 'source) has-macros (not (module-loaded? name)))
                        (display "  Note: load module first to see macro-generated exports\n"))
                      (display "\n")]

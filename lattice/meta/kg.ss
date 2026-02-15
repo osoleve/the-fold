@@ -121,36 +121,48 @@
 (define (kg-add-skill! manifest-data)
   (let* ([name (cdr (assq 'name manifest-data))]
          [skill-block (make-skill-entity manifest-data)]
+         [skill-path (cdr (assq 'path manifest-data))]
          [modules (cdr (assq 'modules manifest-data))]
          [exports (cdr (assq 'exports manifest-data))])
         ;; Add skill and its manifest data
         (set! *kg-skills* (cons (cons name skill-block) *kg-skills*))
         (set! *kg-skill-data* (cons (cons name manifest-data) *kg-skill-data*))
-        ;; Add modules
+        ;; Add modules — use parse-module-entry to handle both flat and nested formats
         (for-each
          (lambda (mod)
-                 (when (and (pair? mod) (>= (length mod) 3))
-                       (let* ([mod-name (car mod)]
-                              [mod-file (cadr mod)]
-                              [mod-desc (caddr mod)]
-                              [mod-block (make-module-entity mod-name mod-file mod-desc skill-block)]
-                              [mod-key (string->symbol (format "~a/~a" name mod-name))])
-                             (set! *kg-modules* (cons (cons mod-key mod-block) *kg-modules*)))))
+                 (let ([entries (parse-module-entry mod skill-path)])
+                      (for-each
+                       (lambda (entry)
+                               (let* ([mod-name (car entry)]
+                                      [mod-file (cdr entry)]
+                                      [mod-block (make-module-entity mod-name mod-file "" skill-block)]
+                                      [mod-key (string->symbol (format "~a/~a" name mod-name))])
+                                     (set! *kg-modules* (cons (cons mod-key mod-block) *kg-modules*))))
+                       entries)))
          (if (list? modules) modules '()))
-        ;; Add exports (grouped by module)
+        ;; Add exports — handle both grouped and flat formats
+        ;; Grouped: ((module-name sym1 sym2 ...) ...) — car is a known module
+        ;; Flat: ((sym1 sym2 sym3 ...)) — car is not a known module
         (for-each
          (lambda (export-group)
                  (when (pair? export-group)
-                       (let* ([mod-name (car export-group)]
-                              [mod-key (string->symbol (format "~a/~a" name mod-name))]
-                              [mod-entry (assq mod-key *kg-modules*)]
-                              [mod-block (if mod-entry (cdr mod-entry) skill-block)])
+                       (let* ([first-sym (car export-group)]
+                              [mod-key (if (symbol? first-sym)
+                                          (string->symbol (format "~a/~a" name first-sym))
+                                          #f)]
+                              [is-grouped (and mod-key (assq mod-key *kg-modules*))]
+                              [mod-block (if is-grouped
+                                            (cdr (assq mod-key *kg-modules*))
+                                            skill-block)]
+                              [export-syms (if is-grouped
+                                              (cdr export-group)
+                                              export-group)])
                              (for-each
                               (lambda (export-name)
                                       (when (symbol? export-name)
                                             (let ([export-block (make-export-entity export-name mod-block)])
                                                  (set! *kg-exports* (cons (cons export-name export-block) *kg-exports*)))))
-                              (cdr export-group)))))
+                              export-syms))))
          (if (list? exports) exports '()))
         skill-block))
 

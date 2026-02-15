@@ -407,7 +407,7 @@
 ;;; High-Level Interface
 ;;; ====
 
-;;; gradient : ((List TracedValue) → TracedValue) × (List Number) → (List Number)
+;;; gradient : (TracedValue ... → TracedValue) × (List Number) → (List Number)
 ;;; Compute gradient of f at point args.
 ;;; f takes individual traced arguments, uses traced operations, returns traced.
 ;;; Supports nested gradient computations - each call creates its own AD scope.
@@ -431,8 +431,8 @@
                      ;; Constant function - all gradients are 0
                      (map (lambda (_) 0) args))))))
 
-;;; gradient-at : (List Number) → (List Number)
-;;; Variadic version of gradient.
+;;; gradient-at : (TracedValue ... → TracedValue) × Number ... → (List Number)
+;;; Variadic version of gradient — pass f and args directly.
 (define (gradient-at f . args)
   (gradient (lambda (xs) (apply f xs)) args))
 

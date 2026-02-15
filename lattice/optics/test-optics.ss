@@ -210,6 +210,22 @@
       (assert-equal '(1 0 3 0 5)
         (traversal-over trav-even (const 0) test-list))))
 
+  (define-test "filtered element-level: to-list yields element or empty"
+    (let ([f-odd (filtered odd?)])
+      (assert-equal '(3) (traversal-to-list f-odd 3))
+      (assert-equal '() (traversal-to-list f-odd 4))))
+
+  (define-test "filtered element-level: over modifies matching, preserves non-matching"
+    (let ([f-odd (filtered odd?)])
+      (assert-equal 6 (traversal-over f-odd (lambda (x) (* x 2)) 3))
+      (assert-equal 4 (traversal-over f-odd (lambda (x) (* x 2)) 4))))
+
+  (define-test "filtered composes with traversal-each"
+    (let ([trav (>>> traversal-each (filtered odd?))])
+      (assert-equal '(1 3 5) (traversal-to-list trav '(1 2 3 4 5)))
+      (assert-equal '(10 2 30 4 50)
+        (traversal-over trav (lambda (x) (* x 10)) '(1 2 3 4 5)))))
+
   (define-test "traversal-both traverses pair"
     (assert-equal '(1 2) (traversal-to-list traversal-both '(1 . 2)))
     (assert-equal '(2 . 3)

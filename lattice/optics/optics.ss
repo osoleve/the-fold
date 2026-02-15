@@ -433,6 +433,18 @@
      (map (lambda (x) (if (pred x) (f x) x)) xs))
    (lambda (xs) (filter pred xs))))
 
+;;; filtered : (a → Boolean) → Traversal a a a a
+;;; Element-level filter: focuses on the element if it matches the predicate,
+;;; otherwise acts as identity (over) / empty (to-list).
+;;; Unlike traversal-filtered which operates on lists, this works on individual
+;;; elements and composes naturally with traversal-each:
+;;;   (>>> traversal-each (filtered odd?))
+(define (filtered pred)
+  (doc 'export #t)
+  (make-traversal
+   (lambda (f x) (if (pred x) (f x) x))
+   (lambda (x) (if (pred x) (list x) '()))))
+
 ;;; traversal-both : Traversal (a, a) (b, b) a b
 ;;; Traverse both elements of a pair of same type.
 (doc traversal-both 'export #t)

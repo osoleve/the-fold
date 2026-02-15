@@ -388,8 +388,12 @@ class FoldMCPServer {
     for (const sym of symbols) {
       const kind = symbolKindName(sym.kind);
       const container = sym.containerName ? ` (in ${sym.containerName})` : '';
+      // Use 0-indexed line numbers so output is directly usable as input to hover/lookup/references
+      const file = sym.location?.uri?.replace(/^file:\/\//, '') ?? '?';
+      const line = sym.location?.range?.start?.line ?? '?';
+      const col = sym.location?.range?.start?.character ?? '?';
       lines.push(`  ${sym.name} [${kind}]${container}`);
-      lines.push(`    ${formatLocation(sym.location)}`);
+      lines.push(`    ${file}:${line}:${col}`);
     }
 
     return {

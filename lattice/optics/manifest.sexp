@@ -86,7 +86,7 @@ Key features:
     ;; Traversals
     make-traversal traversal? traversal-traverse traversal-fold
     traversal-to-list traversal-over traversal-set traversal-compose
-    traversal-each traversal-filtered traversal-both
+    traversal-each traversal-filtered filtered traversal-both
     traversal-left traversal-right traversal-just
     lens->traversal prism->traversal affine->traversal
 
