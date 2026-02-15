@@ -21,6 +21,14 @@ import { tools } from './tools.js';
 import { LSPClient, formatLocation, symbolKindName, severityName, completionKindName, semanticTokenTypeName, semanticTokenModifierNames } from './lsp-client.js';
 
 /**
+ * Sanitize a symbol name for safe embedding in Scheme eval fallback.
+ * Strips anything that isn't alphanumeric, hyphen, underscore, or slash.
+ */
+function sanitizeSymbol(s: string): string {
+  return s.replace(/[^a-zA-Z0-9_\-\/]/g, '');
+}
+
+/**
  * Main MCP server class
  */
 class FoldMCPServer {
@@ -438,7 +446,8 @@ class FoldMCPServer {
         content: [{ type: 'text', text: response.output }]
       };
     } catch {
-      const response = await sendRequest(session.id, `(li '${skill})`);
+      const safe = sanitizeSymbol(skill);
+      const response = await sendRequest(session.id, `(li '${safe})`);
       if (response.error) {
         throw new Error(response.error);
       }
@@ -463,7 +472,8 @@ class FoldMCPServer {
         content: [{ type: 'text', text: response.output }]
       };
     } catch {
-      const response = await sendRequest(session.id, `(le '${skill})`);
+      const safe = sanitizeSymbol(skill);
+      const response = await sendRequest(session.id, `(le '${safe})`);
       if (response.error) {
         throw new Error(response.error);
       }

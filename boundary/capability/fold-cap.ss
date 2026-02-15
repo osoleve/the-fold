@@ -161,8 +161,14 @@
                 (loop (cdr ms) (+ i 1) idx*)))))))
 
 ;;; fold-cap-memorize! : Symbol × String → void
+;;; Re-reads from disk before appending to avoid stale-cache overwrites
+;;; when multiple workers write to the same memories.sexp file.
 (define (fold-cap-memorize! key text)
   (fold-cap-ensure-rlm-dir!)
+  ;; Invalidate cache and re-read from disk to avoid overwriting
+  ;; entries written by other workers since our last read.
+  (set! *fold-cap-memory-cache* #f)
+  (set! *fold-cap-memory-index* #f)
   (let* ([memories (fold-cap-load-memory!)]
          [ts (let ([d (current-date)])
                (format "~4d-~2,'0d-~2,'0dT~2,'0d:~2,'0d:~2,'0dZ"

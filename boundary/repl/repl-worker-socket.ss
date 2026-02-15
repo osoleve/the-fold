@@ -521,7 +521,10 @@
                        [frame (ipc-encode-frame
                                 (ipc-make-error req-id 'env-error err-str))])
                   (write-frame-stdout frame))])
-      (let* ([value (eval (read (open-input-string expr-str)))]
+      ;; Capture stdout to prevent display/print from corrupting IPC frame stream
+      (let* ([value (let ([out (open-output-string)])
+                      (parameterize ([current-output-port out])
+                        (eval (read (open-input-string expr-str)))))]
              [result (fold-cap-env-store! session-id key value 'sexpr)]
              [text (car result)]
              [env-summary (cdr result)]
