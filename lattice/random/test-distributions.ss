@@ -603,6 +603,97 @@
                     (assert-equal seq1 seq2))))
 
 ;;; ====
+;;; Protocol Dispatch Tests
+;;; ====
+
+(test-group protocol-dispatch
+
+            (define-test protocol-pdf-normal
+              ;; dist-pdf on normal matches direct call
+              (let ([d (normal 0 1)])
+                (assert-true (within-tolerance
+                               (normal-pdf 0 0 1)
+                               (dist-pdf d 0) 0.0001))
+                (assert-true (within-tolerance
+                               (normal-pdf 1.5 0 1)
+                               (dist-pdf d 1.5) 0.0001))))
+
+            (define-test protocol-pdf-exponential
+              (let ([d (exponential 2.0)])
+                (assert-true (within-tolerance
+                               (exponential-pdf 1.0 2.0)
+                               (dist-pdf d 1.0) 0.0001))
+                (assert-equal (dist-pdf d -1) 0)))
+
+            (define-test protocol-pdf-uniform
+              (let ([d (uniform 0 10)])
+                (assert-true (within-tolerance 0.1 (dist-pdf d 5) 0.0001))
+                (assert-equal (dist-pdf d 11) 0)))
+
+            (define-test protocol-pdf-poisson
+              (let ([d (poisson 5.0)])
+                (assert-true (within-tolerance
+                               (poisson-pmf 3 5.0)
+                               (dist-pdf d 3) 0.0001))))
+
+            (define-test protocol-pdf-binomial
+              (let ([d (binomial 10 0.5)])
+                (assert-true (within-tolerance
+                               (binomial-pmf 5 10 0.5)
+                               (dist-pdf d 5) 0.0001))))
+
+            (define-test protocol-pdf-geometric
+              (let ([d (geometric 0.3)])
+                (assert-true (within-tolerance
+                               (geometric-pmf 2 0.3)
+                               (dist-pdf d 2) 0.0001))))
+
+            (define-test protocol-pdf-bernoulli
+              (let ([d (bernoulli 0.7)])
+                (assert-true (within-tolerance 0.7 (dist-pdf d #t) 0.0001))
+                (assert-true (within-tolerance 0.3 (dist-pdf d #f) 0.0001))))
+
+            (define-test protocol-cdf-normal
+              (let ([d (normal 0 1)])
+                (assert-true (within-tolerance 0.5 (dist-cdf d 0) 0.001))
+                (assert-true (within-tolerance 0.975 (dist-cdf d 1.96) 0.01))))
+
+            (define-test protocol-cdf-exponential
+              (let ([d (exponential 1.0)])
+                (assert-true (within-tolerance 0.5 (dist-cdf d 0.693) 0.01))))
+
+            (define-test protocol-cdf-geometric
+              (let ([d (geometric 0.5)])
+                (assert-true (within-tolerance 0.875 (dist-cdf d 3) 0.001))))
+
+            (define-test protocol-quantile-normal
+              (let ([d (normal 100 15)])
+                (assert-true (within-tolerance 100 (dist-quantile d 0.5) 0.01))))
+
+            (define-test protocol-quantile-exponential
+              (let ([d (exponential 1.0)])
+                (assert-true (within-tolerance 0.693 (dist-quantile d 0.5) 0.01))))
+
+            (define-test protocol-sample-normal
+              ;; dist-sample should produce same results as random-normal
+              (let* ([d (normal 50 10)]
+                     [samples (with-random 42 (random-list 5000 (dist-sample d)))]
+                     [m (mean samples)])
+                (assert-true (within-tolerance 50 m 1.0))))
+
+            (define-test protocol-sample-gamma
+              (let* ([d (gamma 5 2)]
+                     [samples (with-random 42 (random-list 5000 (dist-sample d)))]
+                     [m (mean samples)])
+                (assert-true (within-tolerance 2.5 m 0.2))))
+
+            (define-test protocol-sample-beta
+              (let* ([d (beta 2 5)]
+                     [samples (with-random 42 (random-list 5000 (dist-sample d)))]
+                     [m (mean samples)])
+                (assert-true (within-tolerance (/ 2 7) m 0.02)))))
+
+;;; ====
 ;;; Print Summary
 ;;; ====
 
