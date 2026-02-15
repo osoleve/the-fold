@@ -155,17 +155,30 @@
             (and lock-info
                  (string=? (car lock-info) (get-lock-identity-token))))))))
 
+(define (process-alive? pid)
+  (doc 'type (-> Number Bool))
+  (doc 'description "Check if a process with given PID exists via /proc/<pid>. Linux-specific. Returns #f for non-positive PIDs.")
+  (and (> pid 0)
+       (guard (e [else #f])
+         (file-exists? (format "/proc/~a" pid)))))
+
 (define (lock-file-stale? lock-path)
   (doc 'type (-> String Bool))
-  (doc 'description "Check if a lock file is stale (older than threshold).")
+  (doc 'description "Check if a lock file is stale. A lock is stale if: (1) it can't be parsed, (2) its owning PID is a real OS PID that no longer exists, or (3) it's older than the stale threshold. PID check only applies when POSIX FFI is available (ensures real PIDs).")
   (guard (e [else #t])  ; Treat errors as stale
     (let ([lock-info (parse-lock-file lock-path)])
       (if (not lock-info)
           #t  ; Can't parse = stale
-          (let* ([timestamp (caddr lock-info)]
+          (let* ([pid (cadr lock-info)]
+                 [timestamp (caddr lock-info)]
                  [now (current-time-utc)]
                  [age (- now timestamp)])
-            (> age *lock-stale-threshold-s*))))))
+            (or
+             ;; PID liveness: only trust when POSIX FFI gives real PIDs
+             (and *posix-ffi-available*
+                  (not (process-alive? pid)))
+             ;; Fallback: time-based stale detection
+             (> age *lock-stale-threshold-s*)))))))
 
 (define (break-stale-lock-safe lock-path)
   (doc 'type (-> String Bool))

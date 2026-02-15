@@ -195,6 +195,14 @@
   (flush-output-port *stdout-binary*))
 
 ;;; ====
+;;; Graceful Exit Flag
+;;; ====
+
+;;; Set by (bye) during eval. Checked after response is sent.
+;;; This allows the worker to finish sending its response before exiting.
+(define *bye-requested* #f)
+
+;;; ====
 ;;; Request Processing
 ;;; ====
 
@@ -230,7 +238,7 @@
                  (case (ipc-message-type msg)
                    [(request)
                     (process-request! session-id msg)
-                    #t]
+                    (not *bye-requested*)]
                    [(ping)
                     (write-frame-stdout (ipc-encode-frame (ipc-make-pong)))
                     #t]

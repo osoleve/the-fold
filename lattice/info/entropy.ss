@@ -9,24 +9,18 @@
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
-(doc 'section 'constants)
-
-(define pi 3.14159265358979323846)
-
 (doc 'section 'utility-functions)
 
 (define (entropy-log2 x)
+  (doc 'export #f)
   (doc 'type '(-> Number Number))
   (doc 'description "Logarithm base 2 with convention 0*log(0) = 0")
   (if (<= x 0)
       0  ; Convention: 0 * log(0) = 0
       (log2 x)))
 
-(define safe-log2 entropy-log2)
-(doc safe-log2 'type '(-> Number Number))
-(doc safe-log2 'description "Alias for entropy-log2")
-
 (define (any2 pred xs ys)
+  (doc 'export #f)
   (doc 'type '(-> (-> α β Bool) (List α) (List β) Bool))
   (doc 'description "Check if predicate holds for any pair of corresponding elements")
   (cond
@@ -36,6 +30,7 @@
    [else (any2 pred (cdr xs) (cdr ys))]))
 
 (define (plogp p)
+  (doc 'export #f)
   (doc 'type '(-> Number Number))
   (doc 'description "Compute p * log2(p) with convention 0 * log(0) = 0")
   (if (<= p 0)
@@ -140,11 +135,13 @@
         (mutual-information joint-probs marginal-x marginal-y)))
 
 (define (compute-marginal-x joint-probs)
+  (doc 'export #f)
   (doc 'type '(-> (List (List Number)) (List Number)))
   (doc 'description "Compute marginal P(X) by summing rows")
   (map (lambda (row) (fold-left + 0 row)) joint-probs))
 
 (define (compute-marginal-y joint-probs)
+  (doc 'export #f)
   (doc 'type '(-> (List (List Number)) (List Number)))
   (doc 'description "Compute marginal P(Y) by summing columns")
   (if (null? joint-probs)
@@ -173,7 +170,7 @@
                         (map (lambda (pi qi)
                                      (if (<= pi 0)
                                          0
-                                         (* pi (safe-log2 qi))))
+                                         (* pi (entropy-log2 qi))))
                              p q))))))
 
 (define (kl-divergence p q)
@@ -210,7 +207,7 @@
   (doc 'type '(-> Number Number))
   (doc 'description "Differential entropy of Gaussian with standard deviation sigma")
   (let ([e-val (exp-num 1)])
-       (* 0.5 (log2 (* 2 pi e-val (* sigma sigma))))))
+       (* 0.5 (log2 (* 2 (pi-value) e-val (* sigma sigma))))))
 
 (define (uniform-entropy a b)
   (doc 'export #t)
@@ -251,7 +248,7 @@
             (entropy probs))))
 
 (define (count-occurrences lst)
-  (doc 'export #t)
+  (doc 'export #f)
   (doc 'type '(-> (List α) (List (Pair α Nat))))
   (doc 'description "Count frequency of each unique element")
   (let loop ([remaining lst] [counts '()])
@@ -266,6 +263,7 @@
                            (cons (cons item 1) counts)))))))
 
 (define (assoc-helper key alist)
+  (doc 'export #f)
   (doc 'type '(-> α (List (Pair α β)) (Sum (Pair α β) Bool)))
   (cond
    [(null? alist) #f]
@@ -273,6 +271,7 @@
    [else (assoc-helper key (cdr alist))]))
 
 (define (update-count key alist)
+  (doc 'export #f)
   (doc 'type '(-> α (List (Pair α Nat)) (List (Pair α Nat))))
   (map (lambda (pair)
                (if (equal? key (car pair))
@@ -371,6 +370,6 @@
   (doc 'type '(-> Number Number))
   (doc 'description "Entropy power: N(X) = (1/(2*pi*e)) * 2^(2h)")
   (let ([e-val (exp-num 1)])
-       (* (/ 1 (* 2 pi e-val))
+       (* (/ 1 (* 2 (pi-value) e-val))
           (expt 2 (* 2 h)))))
 

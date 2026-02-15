@@ -255,7 +255,7 @@
           (display (format "Anonymous session: ~a\n" session-id))]))])))
 
 (doc bye 'type '(-> Void))
-(doc bye 'description "Cleanup and logout current session. Logs out from session (clears tier/name), deletes .fold-session file if present, deletes session file from .fold-sessions/")
+(doc bye 'description "Cleanup and logout current session. Logs out, deletes session files, and signals the worker process to exit after sending its response.")
 (define (bye)
   (let ([session-id (current-session-id)])
     (when session-id
@@ -263,4 +263,7 @@
     ;; Clean up .fold-session file (persisted session from fold-agent.py)
     (when (file-exists? ".fold-session")
       (delete-file ".fold-session"))
+    ;; Signal worker to exit after sending response
+    (when (top-level-bound? '*bye-requested*)
+      (set! *bye-requested* #t))
     (display "Goodbye.\n")))

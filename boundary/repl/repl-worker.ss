@@ -399,6 +399,9 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
                       (delete-file path)))
         paths)))
 
+;;; Set by (bye) during eval. Checked after response is written.
+(define *bye-requested* #f)
+
 (define (process-request! session-id)
   (let ([path (request-path session-id)])
        (when (file-exists? path)
@@ -435,16 +438,19 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
 
 (define (worker-loop session-id)
   (let loop ([last-heartbeat 0])
-       (if (daemon-running?)
-           (begin
-            (process-request! session-id)
-            (let ([now (time-second (current-time))])
-                 (when (>= (- now last-heartbeat) *heartbeat-interval*)
-                       (write-heartbeat! session-id)
-                       (set! last-heartbeat now)))
-            (sleep (make-time 'time-duration *poll-interval-ns* 0))
-            (loop last-heartbeat))
-           (cleanup-worker! session-id))))
+       (cond
+        [*bye-requested*
+         (cleanup-worker! session-id)]
+        [(daemon-running?)
+         (process-request! session-id)
+         (let ([now (time-second (current-time))])
+              (when (>= (- now last-heartbeat) *heartbeat-interval*)
+                    (write-heartbeat! session-id)
+                    (set! last-heartbeat now)))
+         (sleep (make-time 'time-duration *poll-interval-ns* 0))
+         (loop last-heartbeat)]
+        [else
+         (cleanup-worker! session-id)])))
 
 ;;; ====
 ;;; Startup
