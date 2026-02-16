@@ -274,6 +274,8 @@
     (content . ,(cdr (assq 'content msg)))))
 
 (define (parse-openai-response json-str)
+  (unless (string? json-str)
+    (set! json-str (format "~a" json-str)))
   (let ([parsed (parse-json-string json-str)])
     (if (not parsed)
         (list 'err 'json-parse-error
@@ -287,10 +289,21 @@
               (let* ([first-choice (cadr choices)]
                      [message (assq 'message first-choice)])
                 (if message
-                    (let ([content (assq 'content (cdr message))])
-                      (if content
-                          (list 'ok (cdr content))
-                          (list 'err 'no-content "No content in response message")))
+                    (let* ([content (assq 'content (cdr message))]
+                           [content-val (and content (cdr content))]
+                           ;; Some models (e.g. GPT-OSS-120B) put output in
+                           ;; reasoning_content and leave content null.
+                           [reasoning (assq 'reasoning_content (cdr message))]
+                           [reasoning-val (and reasoning
+                                              (string? (cdr reasoning))
+                                              (cdr reasoning))])
+                      (cond
+                        [(and content-val (string? content-val))
+                         (list 'ok content-val reasoning-val)]
+                        [reasoning-val
+                         (list 'ok reasoning-val #f)]
+                        [else
+                         (list 'err 'no-content "No content in response message")]))
                     (list 'err 'no-message "No message in response choice")))
               ;; Check for error response
               (let ([error (assq 'error parsed)])
@@ -435,5 +448,7 @@
 (define (rlm-chat-ok? r) (eq? (car r) 'ok))
 (define (rlm-chat-err? r) (eq? (car r) 'err))
 (define (rlm-chat-text r) (cadr r))       ; for ok response
+(define (rlm-chat-reasoning r)            ; reasoning_content or #f
+  (and (> (length r) 2) (caddr r)))
 (define (rlm-chat-error-code r) (cadr r)) ; for err response
 (define (rlm-chat-error-msg r) (caddr r)) ; for err response

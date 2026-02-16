@@ -54,31 +54,44 @@
       [(string=? trimmed "")
        (make-rlm2-parse-result (list 'think "") #f text #f "empty-input")]
       [else
-       (let ([direct (rlm2-try-read-action trimmed)])
-         (if (rlm2-try-ok? direct)
-             ;; Direct read succeeded
-             (rlm2-extract-thought-and-action (rlm2-try-action direct) text)
-             ;; Direct read failed — try fuzzy extraction
-             (let ([balanced (rlm2-extract-balanced trimmed)])
-               (if (not balanced)
-                   ;; No balanced parens — use direct failure info
-                   (make-rlm2-parse-result
-                     (list 'think trimmed) trimmed text
-                     (rlm2-try-candidate direct)
-                     (or (rlm2-try-reason direct) "no-balanced-sexp"))
-                   ;; Found balanced parens — try reading that
-                   (let ([fuzzy (rlm2-try-read-action balanced)])
-                     (if (rlm2-try-ok? fuzzy)
-                         (let ([pre (rlm2-text-before-paren trimmed)])
-                           (rlm2-extract-thought-and-action
-                             (rlm2-try-action fuzzy) text
-                             (if (string=? pre "") #f pre)))
-                         ;; Balanced parens found but validation failed
-                         (make-rlm2-parse-result
-                           (list 'think trimmed) trimmed text
-                           (rlm2-try-candidate fuzzy)
-                           (or (rlm2-try-reason fuzzy)
-                               "balanced-extraction-read-failed"))))))))])))
+       (rlm2-parse-response-inner trimmed text)])))
+
+;;; Inner dispatch: direct read → partial begin recovery → fuzzy extraction
+(define (rlm2-parse-response-inner trimmed text)
+  (let ([direct (rlm2-try-read-action trimmed)])
+    (if (rlm2-try-ok? direct)
+        ;; Direct read succeeded
+        (rlm2-extract-thought-and-action (rlm2-try-action direct) text)
+        ;; Direct read failed — try partial begin recovery, then fuzzy
+        (let ([partial (rlm2-try-partial-begin trimmed)])
+          (if partial
+              ;; Recovered actions from a truncated begin block
+              (rlm2-extract-thought-and-action partial text)
+              ;; No partial begin — try fuzzy extraction
+              (rlm2-parse-fuzzy trimmed text direct))))))
+
+;;; Fuzzy extraction: find balanced parens in text, try to read+validate
+(define (rlm2-parse-fuzzy trimmed text direct)
+  (let ([balanced (rlm2-extract-balanced trimmed)])
+    (if (not balanced)
+        ;; No balanced parens — use direct failure info
+        (make-rlm2-parse-result
+          (list 'think trimmed) trimmed text
+          (rlm2-try-candidate direct)
+          (or (rlm2-try-reason direct) "no-balanced-sexp"))
+        ;; Found balanced parens — try reading that
+        (let ([fuzzy (rlm2-try-read-action balanced)])
+          (if (rlm2-try-ok? fuzzy)
+              (let ([pre (rlm2-text-before-paren trimmed)])
+                (rlm2-extract-thought-and-action
+                  (rlm2-try-action fuzzy) text
+                  (if (string=? pre "") #f pre)))
+              ;; Balanced parens found but validation failed
+              (make-rlm2-parse-result
+                (list 'think trimmed) trimmed text
+                (rlm2-try-candidate fuzzy)
+                (or (rlm2-try-reason fuzzy)
+                    "balanced-extraction-read-failed")))))))
 
 
 ;;; ====
@@ -182,6 +195,52 @@
                  (rlm2-only-comments? rest))))]
         ;; Anything else — not a comment
         [else #f]))))
+
+;;; Try to recover completed sub-expressions from a truncated (begin ...) block.
+;;; When max_tokens cuts the model output mid-begin, we lose the closing paren
+;;; but may have several complete sub-expressions inside. This function reads
+;;; them one at a time and reconstructs a valid begin.
+;;; Returns a validated action or #f.
+(define (rlm2-try-partial-begin text)
+  (let ([len (string-length text)])
+    ;; Must start with (begin followed by whitespace
+    (and (> len 6)
+         (char=? (string-ref text 0) #\()
+         (let ([prefix (substring text 1 (min 6 len))])
+           (string=? prefix "begin"))
+         (> len 6)
+         (char-whitespace? (string-ref text 6))
+         ;; Read sub-expressions from the body, stopping at first failure
+         (let ([port (open-input-string (substring text 6 len))])
+           (let loop ([exprs '()])
+             (guard (ex [#t
+                         ;; read threw — truncated sexp. Use what we have.
+                         (rlm2-partial-begin-result exprs)])
+               (let ([expr (read port)])
+                 (if (eof-object? expr)
+                     ;; Clean EOF — but we're here because the outer read
+                     ;; failed (trailing content or unclosed begin paren),
+                     ;; so build from what we collected
+                     (rlm2-partial-begin-result exprs)
+                     (loop (cons expr exprs))))))))))
+
+;;; Given collected sub-expressions (in reverse order), build and validate
+;;; a begin action. Returns validated action or #f.
+(define (rlm2-partial-begin-result exprs)
+  (let ([exprs (reverse exprs)])
+    (cond
+      [(null? exprs) #f]
+      ;; Single expr — validate directly
+      [(null? (cdr exprs))
+       (let ([v (rlm2-validate-action (car exprs))])
+         (and (rlm2-validation-ok? v)
+              (rlm2-validation-value v)))]
+      ;; Multiple exprs — wrap in begin, validate
+      [else
+       (let* ([candidate (cons 'begin exprs)]
+              [v (rlm2-validate-action candidate)])
+         (and (rlm2-validation-ok? v)
+              (rlm2-validation-value v)))])))
 
 ;;; Extract the first balanced parenthesized expression from text.
 ;;; Returns the substring or #f.

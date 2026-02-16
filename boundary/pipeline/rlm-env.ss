@@ -213,7 +213,7 @@
              ;; Non-chunked: fetch full value and truncate
              (let ([value (rlm-env-fetch env key)])
                (if value
-                   (let ([s (format "~a" value)])
+                   (let ([s (format "~s" value)])
                      (if (<= (string-length s) n)
                          s
                          (substring s 0 n)))

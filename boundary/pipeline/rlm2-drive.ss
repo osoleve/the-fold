@@ -82,7 +82,8 @@
       (let loop ([state initial-state]
                  [fingerprints '()]
                  [prev-step-hash #f]
-                 [consecutive-thinks 0])
+                 [consecutive-thinks 0]
+                 [history '()])
         (cond
           ;; Success: state carries a result
           [(rlm2-state-complete? state)
@@ -101,14 +102,16 @@
                   [hud (rlm2-render-state state
                          (rlm2-config-context-budget config))]
                   [t1 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
-                  ;; Call LLM with system prompt + optional few-shot + HUD
+                  ;; Call LLM with system prompt + few-shot + sliding window + HUD
                   [few-shot (rlm2-config-few-shot config)]
+                  [history-msgs (rlm2-history->messages history)]
                   [messages (append
                               (list (rlm2-make-msg "system" sys-prompt))
                               few-shot
+                              history-msgs
                               (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
-                                          messages 1024 0.7)]
+                                          messages 4096 0.7)]
                   [t2 (and *rlm2-timing-enabled?* (rlm2-time-ms))])
              (cond
                ;; LLM call failed
@@ -118,18 +121,27 @@
                                started depth prev-step-hash input-hex)]
                [else
                 (let* ([raw-text (rlm-chat-text act-response)]
+                       [reasoning (rlm-chat-reasoning act-response)]
+                       [_trace-reasoning
+                        (when (and reasoning (getenv "RLM_TRACE"))
+                          (format (current-error-port)
+                            "[step ~a] reasoning=~a~%"
+                            (rlm2-state-step state)
+                            (if (> (string-length reasoning) 800)
+                                (substring reasoning 0 800)
+                                reasoning)))]
                        ;; Parse action from model output
                        [parse-result (rlm2-parse-response raw-text)]
                        [action (rlm2-parse-result-action parse-result)]
                        [raw-thought (rlm2-parse-result-thought parse-result)]
                        ;; One-shot retry: if parser fell back to (think ...)
-                       ;; and raw text looks truncated, retry at 4096
+                       ;; and raw text looks truncated, retry at 8192
                        [truncated? (and (rlm2-think? action)
                                         (rlm2-looks-truncated? raw-text))]
                        ;; Retry with higher budget if truncated
                        [retry-result (and truncated?
                                          (rlm-chat (rlm2-config-provider config)
-                                                   messages 4096 0.7))]
+                                                   messages 8192 0.7))]
                        ;; Use retry if it succeeded and parsed to non-think
                        [effective-text
                         (if (and retry-result (rlm-chat-ok? retry-result))
@@ -151,14 +163,24 @@
                                    "[step ~a] action=~a raw=~a~%"
                                    (rlm2-state-step state)
                                    (rlm2-action-type action)
-                                   (if (> (string-length effective-text) 200)
-                                       (substring effective-text 0 200)
+                                   (if (> (string-length effective-text) 500)
+                                       (substring effective-text 0 500)
                                        effective-text)))]
                        [exec-result (rlm2-execute-action state action
                                       config depth)]
                        [observation (car exec-result)]
                        [state-after-exec (cadr exec-result)]
                        [fuel-used (caddr exec-result)]
+                       [_trace2 (when (getenv "RLM_TRACE")
+                                  (let ([obs-text (rlm2-observation-value observation)]
+                                        [obs-ok (rlm2-observation-ok? observation)])
+                                    (format (current-error-port)
+                                      "  => ok=~a obs=~a~%"
+                                      obs-ok
+                                      (if (and (string? obs-text)
+                                               (> (string-length obs-text) 300))
+                                          (substring obs-text 0 300)
+                                          obs-text))))]
                        [t3 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
                        ;; === REFLECT PHASE ===
                        ;; Skip LLM reflection for mechanical actions
@@ -199,11 +221,11 @@
                        [state** (cond
                                   [(>= thinks 5)
                                    (rlm2-state-add-note state**
-                                     (format "[URGENT] ~a consecutive thinks — submit NOW. Use: (submit \"your answer text here\") or (begin (retrieve 'step-N-result) (submit last-result))"
+                                     (format "[URGENT] ~a consecutive thinks — act NOW. Compute your answer with (store 'answer expr), then (submit (retrieve 'answer))."
                                              thinks))]
                                   [(>= thinks 3)
                                    (rlm2-state-add-note state**
-                                     (format "[NUDGE] ~a consecutive think actions. Act now: peek, grep, eval, or (submit \"answer\")."
+                                     (format "[NUDGE] ~a consecutive think actions. Act now: map-chunks, eval, store, or peek/grep."
                                              thinks))]
                                   [else state**])]
                        ;; === RECORD STEP ===
@@ -229,8 +251,15 @@
                        ;; Update fingerprints
                        [fps* (if looping?
                                  '()  ; reset after loop break
-                                 (cons fp fingerprints))])
-                  (loop state*** fps* step-hash thinks))]))])))))
+                                 (cons fp fingerprints))]
+                       ;; === SLIDING WINDOW ===
+                       ;; Use formatted parsed action (not raw text) to avoid
+                       ;; showing truncated begin blocks as if they all executed
+                       [action-text (format "~s" action)]
+                       [obs-summary (rlm2-observation-summary observation)]
+                       [history* (rlm2-history-push history
+                                   action-text obs-summary 3)])
+                  (loop state*** fps* step-hash thinks history*))]))])))))
 
 ;;; ====
 ;;; Action Execution
@@ -280,6 +309,20 @@
          (list (make-rlm2-observation type #f
                  (format "Unknown action type: ~a" type) #f)
                state 1)]))))
+
+;;; --- IPC Value Parsing ---
+;;;
+;;; IPC returns all values as strings (the wire protocol is text-based).
+;;; Before storing in the CAS-backed env, parse them back to structured data
+;;; so that rlm-env-store!/fetch round-trips correctly.
+;;; Without this, (format "~s" string) double-quotes the value.
+
+(define (rlm2-parse-ipc-value str)
+  (if (not (string? str))
+      str  ; already structured, pass through
+      (guard (ex [else str])  ; if read fails, keep as string
+        (let ([val (read (open-input-string str))])
+          (if (eof-object? val) str val)))))
 
 ;;; --- Individual Action Handlers ---
 
@@ -377,7 +420,9 @@
                                   (format "Error: ~a" (fold-result-error result))
                                   (+ total-fuel 5))))))]
          [ok? (eq? 'ok (car final))]
-         [result-val (cadr final)]
+         [result-val (if ok?
+                        (rlm2-parse-ipc-value (cadr final))
+                        (cadr final))]
          [fuel (caddr final)]
          ;; Auto-store result in env
          [result-key (string->symbol
@@ -399,7 +444,7 @@
          [code-text (format "~s" expanded)]
          [result (fold-ipc-eval code-text)])
     (if (fold-result-ok? result)
-        (let* ([value (fold-result-value result)]
+        (let* ([value (rlm2-parse-ipc-value (fold-result-value result))]
                [env* (car (rlm-env-store! env key value 'sexpr))]
                [state* (rlm2-state-with-env state env*)])
           (list (make-rlm2-observation 'store key
@@ -591,7 +636,7 @@
                         [errors 0]
                         [idx 0])
                (if (null? hashes)
-                   ;; All chunks processed — parse results and store as 'map-result
+                   ;; All chunks processed — parse results, flatten, store as 'map-result
                    (let* ([raw-results (reverse results)]
                           [parsed (map (lambda (x)
                                          (if (string? x)
@@ -600,13 +645,16 @@
                                                  (if (eof-object? val) x val)))
                                              x))
                                        raw-results)]
+                          [flattened parsed]
                           [n-chunks (length parsed)]
-                          [env* (car (rlm-env-store! env 'map-result parsed 'sexpr))]
+                          [env* (car (rlm-env-store! env 'map-result flattened 'sexpr))]
                           [state* (rlm2-state-with-env state env*)]
                           [ok? (= errors 0)])
                      (list (make-rlm2-observation 'map-chunks key
-                             (format "Processed ~a chunks (~a errors). Results stored as 'map-result.\nValues: ~s"
-                                     n-chunks errors parsed)
+                             (format "Processed ~a chunks (~a errors). ~a results stored as 'map-result.\nValues: ~s"
+                                     n-chunks errors
+                                     (length flattened)
+                                     flattened)
                              ok?)
                            state* (max 1 n-chunks)))
                    ;; Process one chunk
@@ -659,12 +707,15 @@
                   #t)
                 state 0)))))
 
-(define (rlm2-join-journal-entries texts)
+(define (rlm2-join-strings sep texts)
   (if (null? texts)
       ""
       (let loop ([rest (cdr texts)] [acc (car texts)])
         (if (null? rest) acc
-            (loop (cdr rest) (string-append acc "\n" (car rest)))))))
+            (loop (cdr rest) (string-append acc sep (car rest)))))))
+
+(define (rlm2-join-journal-entries texts)
+  (rlm2-join-strings "\n" texts))
 
 ;;; --- System Memory (persistent across runs) ---
 
@@ -786,11 +837,27 @@
              [observations '()]
              [total-fuel 0])
     (if (null? children)
-        ;; All succeeded — return last observation
-        (let ([last-obs (if (null? observations)
-                            (make-rlm2-observation 'begin #f "empty begin" #t)
-                            (car observations))])
-          (list last-obs state total-fuel))
+        ;; All succeeded — combine observations so model sees all results
+        (if (null? observations)
+            (list (make-rlm2-observation 'begin #f "empty begin" #t) state total-fuel)
+            (let* ([obs-list (reverse observations)]
+                   [values (map rlm2-observation-value obs-list)]
+                   ;; Filter out trivial "noted" values to reduce noise
+                   [substantive (filter (lambda (v)
+                                          (not (and (string? v) (string=? v "noted"))))
+                                        values)]
+                   [combined (if (null? substantive)
+                                 "noted"
+                                 (rlm2-join-strings "\n" (map (lambda (v)
+                                                                (if (string? v) v (format "~s" v)))
+                                                              substantive)))]
+                   [last-obs (car (reverse obs-list))])
+              (list (make-rlm2-observation
+                      (rlm2-observation-action-type last-obs)
+                      (rlm2-observation-target last-obs)
+                      combined
+                      #t)
+                    state total-fuel)))
         (let* ([child (car children)]
                [result (rlm2-execute-action state child config depth)]
                [obs (car result)]
@@ -879,7 +946,9 @@
               (rlm2-mechanical-note action observation step-num)])
     (let* ([prompt (rlm2-build-reflection-prompt
                     thought action observation)]
-           [messages (list (rlm2-make-msg "user" prompt))]
+           [messages (list (rlm2-make-msg "system"
+                            "You are a note-taker. Summarize what was learned in ONE sentence. Do not solve problems or take actions.")
+                          (rlm2-make-msg "user" prompt))]
            [response (rlm-chat (rlm2-config-provider config)
                                messages 256 0.3)])
       (if (rlm-chat-ok? response)
@@ -933,8 +1002,24 @@
 ;;; (retrieve 'key) to reference env values. We pre-expand these to
 ;;; their actual values before sending to IPC.
 
+;;; Bare symbol expansion: after (store 'entries val), models can write
+;;; (filter pred entries) instead of (filter pred (retrieve 'entries)).
+;;; The driver auto-inlines non-chunked stored values (<50K chars).
+;;; Scope tracking prevents expanding lambda-bound variables.
 (define (rlm2-expand-env-refs expr env)
+  (rlm2-expand-env-refs* expr env '()))
+
+(define (rlm2-expand-env-refs* expr env bound)
   (cond
+    ;; Bare symbol matching a non-chunked env key (not locally bound)
+    [(and (symbol? expr)
+          (not (memq expr bound))
+          (let ([entry (rlm-env-get env expr)])
+            (and entry
+                 (not (eq? (cadr entry) 'chunks))
+                 (< (caddr entry) 50000))))
+     (let ([val (rlm-env-fetch env expr)])
+       (if val (rlm2-quote-if-needed val) expr))]
     ;; (retrieve 'key) -> expanded value
     [(and (pair? expr)
           (eq? (car expr) 'retrieve)
@@ -976,10 +1061,25 @@
        (if val
            (rlm2-quote-if-needed val)
            expr))]
+    ;; Don't expand inside quote
+    [(and (pair? expr) (eq? (car expr) 'quote))
+     expr]
+    ;; Lambda: track params as locally bound
+    [(and (pair? expr) (eq? (car expr) 'lambda) (pair? (cdr expr)))
+     (let* ([params (cadr expr)]
+            [param-syms (cond
+                          [(list? params) params]
+                          [(symbol? params) (list params)]  ; rest-arg
+                          [else '()])]
+            [bound* (append param-syms bound)])
+       (cons 'lambda
+             (cons params
+                   (map (lambda (e) (rlm2-expand-env-refs* e env bound*))
+                        (cddr expr)))))]
     ;; Recurse into sub-expressions
     [(pair? expr)
-     (cons (rlm2-expand-env-refs (car expr) env)
-           (rlm2-expand-env-refs (cdr expr) env))]
+     (cons (rlm2-expand-env-refs* (car expr) env bound)
+           (rlm2-expand-env-refs* (cdr expr) env bound))]
     [else expr]))
 
 (define (rlm2-literal-arg? x)
@@ -1276,7 +1376,7 @@
       "  (define rest cdr)"
       "  (define (iota n) (let loop ([i (- n 1)] [acc '()]) (if (< i 0) acc (loop (- i 1) (cons i acc)))))"
       "  (define (build-list n f) (map f (iota n)))"
-      "  (define (sorted lst pred) (sort pred lst))"
+      "  (define (sorted lst pred) (list-sort pred lst))"
       "  (define (list<? a b)"
       "    (cond [(and (null? a) (null? b)) #f]"
       "          [(null? a) #t]"
@@ -1295,13 +1395,22 @@
       "                (loop (cdr xs) (cons result acc))"
       "                (loop (cdr xs) acc))))))"
       "  (define (string-split str delim)"
-      "    (let ([dc (if (char? delim) delim (string-ref delim 0))]"
-      "          [len (string-length str)])"
-      "      (let loop ([i 0] [start 0] [acc '()])"
-      "        (cond [(= i len) (reverse (cons (substring str start len) acc))]"
-      "              [(char=? (string-ref str i) dc)"
-      "               (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]"
-      "              [else (loop (+ i 1) start acc)]))))"
+      "    (if (char? delim)"
+      "        (let ([len (string-length str)])"
+      "          (let loop ([i 0] [start 0] [acc '()])"
+      "            (cond [(= i len) (reverse (cons (substring str start len) acc))]"
+      "                  [(char=? (string-ref str i) delim)"
+      "                   (loop (+ i 1) (+ i 1) (cons (substring str start i) acc))]"
+      "                  [else (loop (+ i 1) start acc)])))"
+      "        (let ([dlen (string-length delim)] [slen (string-length str)])"
+      "          (if (= dlen 0) (list str)"
+      "              (if (= dlen 1) (string-split str (string-ref delim 0))"
+      "                  (let loop ([i 0] [start 0] [acc '()])"
+      "                    (cond [(> (+ i dlen) slen)"
+      "                           (reverse (cons (substring str start slen) acc))]"
+      "                          [(string=? (substring str i (+ i dlen)) delim)"
+      "                           (loop (+ i dlen) (+ i dlen) (cons (substring str start i) acc))]"
+      "                          [else (loop (+ i 1) start acc)])))))))"
       "  (define (string-trim str)"
       "    (let ([len (string-length str)])"
       "      (let ([s (let loop ([i 0])"
@@ -1311,10 +1420,10 @@
       "                   (if (and (> i s) (char-whitespace? (string-ref str (- i 1))))"
       "                       (loop (- i 1)) i))])"
       "          (substring str s e)))))"
-      "  (define (string-prefix? str prefix)"
+      "  (define (string-prefix? prefix str)"
       "    (and (>= (string-length str) (string-length prefix))"
       "         (string=? (substring str 0 (string-length prefix)) prefix)))"
-      "  (define (string-suffix? str suffix)"
+      "  (define (string-suffix? suffix str)"
       "    (let ([slen (string-length str)] [xlen (string-length suffix)])"
       "      (and (>= slen xlen)"
       "           (string=? (substring str (- slen xlen) slen) suffix))))"
@@ -1393,6 +1502,49 @@
         [(char=? (string-ref text i) #\newline)
          (substring text 0 i)]
         [else (loop (+ i 1))]))))
+
+;;; ====
+;;; Sliding Window History
+;;; ====
+;;;
+;;; Keeps the last N (action-text . observation-summary) pairs.
+;;; Converted to alternating assistant/user messages for the LLM context.
+
+(define (rlm2-observation-summary obs)
+  (let* ([ok (rlm2-observation-ok? obs)]
+         [val (rlm2-observation-value obs)]
+         [type (rlm2-observation-action-type obs)]
+         [key (rlm2-observation-target obs)]
+         [text (if (string? val) val (format "~s" val))]
+         ;; Cap at 1500 chars to avoid blowing context
+         [text (if (> (string-length text) 1500)
+                   (string-append (substring text 0 1497) "...")
+                   text)])
+    (format "(observation ~a ~a ok=~a\n  ~a)" type key ok text)))
+
+(define (rlm2-history-push history action-text obs-summary max-turns)
+  ;; Push newest to front, keep at most max-turns
+  (let ([entry (cons action-text obs-summary)])
+    (if (>= (length history) max-turns)
+        (cons entry (list-head history (- max-turns 1)))
+        (cons entry history))))
+
+(define (rlm2-history->messages history)
+  ;; History is newest-first. Reverse to chronological, then flatten
+  ;; into alternating assistant/user messages.
+  (let loop ([turns (reverse history)] [msgs '()])
+    (if (null? turns)
+        (reverse msgs)
+        (let ([turn (car turns)])
+          (loop (cdr turns)
+                (cons (rlm2-make-msg "user" (cdr turn))      ; observation
+                      (cons (rlm2-make-msg "assistant" (car turn))  ; action
+                            msgs)))))))
+
+(define (list-head lst n)
+  (if (or (<= n 0) (null? lst))
+      '()
+      (cons (car lst) (list-head (cdr lst) (- n 1)))))
 
 (define (rlm2-generate-run-id)
   (format "~a-~a"
