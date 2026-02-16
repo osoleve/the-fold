@@ -22,6 +22,9 @@
 (doc *module-cache* 'description "Pre-computed list of all modules for O(1) lookup")
 (define *module-cache* '())
 
+(doc *export-module-map* 'description "Reverse map: export symbol → module require path (e.g., make-group → group)")
+(define *export-module-map* (make-eq-hashtable))
+
 (doc *search-ready* 'description "Flag indicating search indices are built")
 (define *search-ready* #f)
 
@@ -35,6 +38,7 @@
   (set! *module-index* (bm25-create))
   (set! *export-index* (bm25-create))
   (set! *module-cache* '())
+  (set! *export-module-map* (make-eq-hashtable))
 
   ;; Build docstring cache only if not already populated from cache
   (when (zero? (hashtable-size *docstrings*))
@@ -69,7 +73,41 @@
                  modules)))
    (kg-skills))
 
-  ;; Index all exports (with docstrings)
+  ;; Build export→module reverse mapping from manifest grouped exports
+  ;; Manifest exports format: ((module-name sym1 sym2 ...) ...)
+  (for-each
+   (lambda (skill-name)
+           (let ([manifest-data (kg-skill-data skill-name)])
+                (when manifest-data
+                      (let ([exports-raw (let ([e (assq 'exports manifest-data)])
+                                              (if e (cdr e) '()))])
+                           (when (list? exports-raw)
+                                 (for-each
+                                  (lambda (export-group)
+                                          (when (pair? export-group)
+                                                (let* ([first-sym (car export-group)]
+                                                       [mod-key (if (symbol? first-sym)
+                                                                    (string->symbol
+                                                                     (format "~a/~a" skill-name first-sym))
+                                                                    #f)]
+                                                       [is-grouped (and mod-key
+                                                                        (assq mod-key *module-cache*))]
+                                                       [module-name (if is-grouped first-sym #f)]
+                                                       [export-syms (if is-grouped
+                                                                        (cdr export-group)
+                                                                        export-group)])
+                                                      (when module-name
+                                                            (for-each
+                                                             (lambda (sym)
+                                                                     (when (and (symbol? sym)
+                                                                                (not (hashtable-ref *export-module-map* sym #f)))
+                                                                           (hashtable-set! *export-module-map*
+                                                                                          sym module-name)))
+                                                             export-syms)))))
+                                  exports-raw))))))
+   (kg-skills))
+
+  ;; Index all exports (with docstrings and module info)
   (for-each
    (lambda (export-entry)
            (let* ([export-name (car export-entry)]
@@ -77,7 +115,9 @@
                   [doc-terms (docstring-terms export-name)]
                   [all-terms (append name-terms doc-terms)]
                   [docstring (get-docstring export-name)]
+                  [module (hashtable-ref *export-module-map* export-name #f)]
                   [data `((name . ,export-name)
+                          ,@(if module `((module . ,module)) '())
                           ,@(if docstring `((docstring . ,docstring)) '()))])
                  (set! *export-index*
                        (bm25-add-doc *export-index* export-name all-terms data))))
@@ -154,7 +194,10 @@
    ;; Check exports
    [(assq sym (kg-exports))
     => (lambda (entry)
-               (list sym 1.0 'export `((name . ,sym))))]
+               (let ([mod (hashtable-ref *export-module-map* sym #f)])
+                    (list sym 1.0 'export
+                          `((name . ,sym)
+                            ,@(if mod `((module . ,mod)) '())))))]
    ;; Check modules
    [(find-module-by-name sym)
     => (lambda (mod-entry)
@@ -204,7 +247,10 @@
                                 [name-str (string-downcase (symbol->string export-name))])
                                (if (and (>= (string-length name-str) prefix-len)
                                         (string=? (substring name-str 0 prefix-len) prefix-str))
-                                   (list export-name 0.9 'export `((name . ,export-name)))
+                                   (let ([mod (hashtable-ref *export-module-map* export-name #f)])
+                                        (list export-name 0.9 'export
+                                              `((name . ,export-name)
+                                                ,@(if mod `((module . ,mod)) '()))))
                                    #f)))
                  (kg-exports))]
                [skill-matches
@@ -232,7 +278,10 @@
                          (let* ([export-name (car export-entry)]
                                 [name-str (string-downcase (symbol->string export-name))])
                                (if (string-contains? name-str substr-str)
-                                   (list export-name 0.8 'export `((name . ,export-name)))
+                                   (let ([mod (hashtable-ref *export-module-map* export-name #f)])
+                                        (list export-name 0.8 'export
+                                              `((name . ,export-name)
+                                                ,@(if mod `((module . ,mod)) '()))))
                                    #f)))
                  (kg-exports))]
                [skill-matches
@@ -389,9 +438,12 @@
                 (when (and desc (string? (cdr desc)) (> (string-length (cdr desc)) 0))
                       (printf "  ~a\n" (truncate-string (cdr desc) 70)))))]
     [(export)
-     ;; For exports, show docstring (first line only)
+     ;; For exports, show require command and docstring
      (when data
-           (let ([doc (assq 'docstring data)])
+           (let ([mod (assq 'module data)]
+                 [doc (assq 'docstring data)])
+                (when mod
+                      (printf "  (require '~a)\n" (cdr mod)))
                 (when (and doc (string? (cdr doc)) (> (string-length (cdr doc)) 0))
                       (printf "  ~a\n" (truncate-string (cdr doc) 70)))))]
     [(module)
