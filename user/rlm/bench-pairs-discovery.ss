@@ -91,7 +91,8 @@
     "  to parse them into sets. Do NOT re-extract data across multiple steps.\n\n"
     "Phase 3 — SOLVE AND SUBMIT (steps 9+):\n"
     "  Use loaded lattice tools (or eval) to compute the answer from extracted data.\n"
-    "  Submit with (submit \"answer\").\n\n"
+    "  Store the computed result, then submit: (submit (retrieve 'answer)).\n"
+    "  Do NOT pass a string to submit — (submit expr) evaluates expr as code.\n\n"
     "CRITICAL: Each step costs budget. Minimize (think ...) — prefer action.\n"
     "Use (begin action1 action2 ...) to chain multiple actions per step.\n\n"
     "Large values are chunked. Navigate with:\n"
@@ -105,55 +106,6 @@
       [(string=? v "v1") *prompt-v1*]
       [(string=? v "v2") *prompt-v2*]
       [else *prompt-v3*])))
-
-;;; ====
-;;; Few-shot: minimal — just show that step 0 should search the lattice
-;;; ====
-
-(define *discovery-few-shot*
-  (list
-    ;; Turn 1: step 0 — search the lattice
-    `((role . "user")
-      (content . ,(string-append
-        "(rlm-state\n"
-        "  (task \"Find all pairs (X,Y) from the data satisfying constraints C1 and C2.\")\n"
-        "  (plan ())\n"
-        "  (env\n"
-        "    (input chunked 15000))\n"
-        "  (loaded ())\n"
-        "  (notes ())\n"
-        "  (episodic ())\n"
-        "  (journal ())\n"
-        "  (last-result #f)\n"
-        "  (fuel 60000)\n"
-        "  (step 0))")))
-    `((role . "assistant")
-      (content . ,(string-append
-        "(begin\n"
-        "  (think \"Finding constrained pairs is a constraint satisfaction problem."
-        " Let me search the lattice for constraint tools before writing manual code.\")\n"
-        "  (search \"constraint\"))")))
-    ;; Turn 2: step 1 — inspect and load the discovered tool
-    `((role . "user")
-      (content . ,(string-append
-        "(rlm-state\n"
-        "  (task \"Find all pairs (X,Y) from the data satisfying constraints C1 and C2.\")\n"
-        "  (plan ())\n"
-        "  (env\n"
-        "    (input chunked 15000))\n"
-        "  (loaded ())\n"
-        "  (notes (\"Search found: clp — Constraint Logic Programming over Finite Domains\"))\n"
-        "  (episodic\n"
-        "    (0 . \"h0\"))\n"
-        "  (journal ())\n"
-        "  (last-result ((clp \"CLP(FD): make-lvar, goal-in-domain, goal-=fd, goal-<fd, run-clp\")))\n"
-        "  (fuel 59500)\n"
-        "  (step 1))")))
-    `((role . "assistant")
-      (content . ,(string-append
-        "(begin\n"
-        "  (inspect 'clp)\n"
-        "  (load 'clp))")))))
 
 ;;; ====
 ;;; Benchmark runner
@@ -211,7 +163,7 @@
                                        provider *discovery-system-prompt*
                                        max-steps max-fuel chunk-size
                                        1 4 8000 #f)
-                                     (list *discovery-few-shot*))])
+                                     (list '()))])
                        (rlm2-run config task haystack))))])
       (let* ([status (rlm2-run-result-status result)]
              [output (format "~a" (rlm2-run-result-output result))]
