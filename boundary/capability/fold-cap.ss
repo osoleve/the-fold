@@ -98,24 +98,30 @@
 
 ;;; fold-cap-env-map-chunks : String × Symbol × String → (List Any)
 ;;; Evaluate expr per chunk with *chunk* bound. Returns list of results.
+;;; The expression is compiled once as a lambda and applied per chunk.
 (define (fold-cap-env-map-chunks session-id key expr-text)
   (let* ([env (fold-cap-get-env session-id)]
          [manifest (rlm-env-fetch env key)])
     (if (not (and manifest (chunk-manifest? manifest)))
         '()
-        (map (lambda (hash)
-               (let ([blk (fetch-persistent (hex->hash hash))])
-                 (if blk
-                     (let* ([chunk-text (utf8->string (block-payload blk))]
-                            [code (format "(let ([*chunk* ~s]) ~a)"
-                                          chunk-text expr-text)])
-                       (guard (ex [else
-                                   (format "error:~a"
-                                           (if (message-condition? ex)
-                                               (condition-message ex) ex))])
-                         (eval (read (open-input-string code)))))
-                     "")))
-             (chunk-manifest-hashes manifest)))))
+        ;; Compile once: (lambda (*chunk*) <expr>)
+        (let ([proc (guard (ex [else #f])
+                      (eval (read (open-input-string
+                                    (format "(lambda (*chunk*) ~a)" expr-text)))))])
+          (if (not proc)
+              ;; Parse/compile failed — return error for every chunk
+              (map (lambda (_) (format "error:invalid expression: ~a" expr-text))
+                   (chunk-manifest-hashes manifest))
+              (map (lambda (hash)
+                     (let ([blk (fetch-persistent (hex->hash hash))])
+                       (if blk
+                           (guard (ex [else
+                                       (format "error:~a"
+                                               (if (message-condition? ex)
+                                                   (condition-message ex) ex))])
+                             (proc (utf8->string (block-payload blk))))
+                           "")))
+                   (chunk-manifest-hashes manifest)))))))
 
 ;;; ====
 ;;; Persistent Memory (cross-session)
