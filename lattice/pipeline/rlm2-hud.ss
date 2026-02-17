@@ -225,7 +225,7 @@
    "Error recovery:\n"
    "- Errors are normal. If an eval/store/map-chunks fails, read the error, fix the expression, retry.\n"
    "- Common fixes: escape quotes in string expressions, check variable binding order, verify data types.\n"
-   "- You have up to 25 steps — use them. Do not give up after one failure.\n\n"
+   "- You have up to 20 steps — use them. Do not give up after one failure.\n\n"
    ;; --- Chunked values ---
    "Chunked values:\n"
    "Large values are automatically chunked for memory efficiency. "

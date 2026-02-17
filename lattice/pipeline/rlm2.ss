@@ -243,7 +243,7 @@
 ;;; Action Language
 ;;; ====
 ;;;
-;;; 19 forms + begin. Each is a tagged list.
+;;; 23 forms + begin. Each is a tagged list.
 ;;;
 ;;; (search query)           (inspect skill)        (exports skill)
 ;;; (load module)            (eval expr)            (store key expr)
@@ -251,7 +251,8 @@
 ;;; (slice key start end)    (recall-step n)        (submit expr)
 ;;; (think text)             (plan! items)          (map-chunks key expr)
 ;;; (journal tag text)       (recall tag)           (memorize key text)
-;;; (remember query)
+;;; (remember query)         (lookup symbol)        (definition symbol)
+;;; (symbols query)          (outline file)
 ;;; (begin action ...)
 
 (doc 'section 'rlm2-actions)
