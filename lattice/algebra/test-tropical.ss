@@ -218,40 +218,96 @@
   (define-test "eigenvalue of 2-node cycle"
     ;; 0→1: 4, 1→0: 6. One cycle with weight 10, length 2.
     ;; Cycle mean = 10/2 = 5.
-    (let* ([sr min-plus-semiring]
-           [A (matrix-from-lists '((+inf.0 4)
+    (let* ([A (matrix-from-lists '((+inf.0 4)
                                    (6 +inf.0)))]
-           [ev (tropical-eigenvalue sr A)])
+           [ev (tropical-eigenvalue A)])
       (assert-num= 5 ev)))
 
   (define-test "eigenvalue of 3-node cycle"
     ;; 0→1: 1, 1→2: 2, 2→0: 3. Cycle weight = 6, length = 3.
     ;; Mean = 2.
-    (let* ([sr min-plus-semiring]
-           [A (matrix-from-lists '((+inf.0 1 +inf.0)
+    (let* ([A (matrix-from-lists '((+inf.0 1 +inf.0)
                                    (+inf.0 +inf.0 2)
                                    (3 +inf.0 +inf.0)))]
-           [ev (tropical-eigenvalue sr A)])
+           [ev (tropical-eigenvalue A)])
       (assert-num= 2 ev)))
 
   (define-test "eigenvalue with competing cycles"
     ;; Two cycles: 0→1→0 with weight 3+5=8 (mean 4)
     ;;             0→1→2→0 with weight 3+1+2=6 (mean 2)
     ;; Min cycle mean = 2.
-    (let* ([sr min-plus-semiring]
-           [A (matrix-from-lists '((+inf.0 3 +inf.0)
+    (let* ([A (matrix-from-lists '((+inf.0 3 +inf.0)
                                    (5 +inf.0 1)
                                    (2 +inf.0 +inf.0)))]
-           [ev (tropical-eigenvalue sr A)])
+           [ev (tropical-eigenvalue A)])
       (assert-num= 2 ev)))
 
   (define-test "eigenvalue of DAG is #f (no cycles)"
-    (let* ([sr min-plus-semiring]
-           [A (matrix-from-lists '((+inf.0 1 +inf.0)
+    (let* ([A (matrix-from-lists '((+inf.0 1 +inf.0)
                                    (+inf.0 +inf.0 2)
                                    (+inf.0 +inf.0 +inf.0)))]
-           [ev (tropical-eigenvalue sr A)])
-      (assert-false ev))))
+           [ev (tropical-eigenvalue A)])
+      (assert-false ev)))
+
+  (define-test "eigenvalue of 1x1 self-loop"
+    ;; Single node with self-loop weight 7. Cycle mean = 7.
+    (let* ([A (matrix-from-lists '((7)))]
+           [ev (tropical-eigenvalue A)])
+      (assert-num= 7 ev)))
+
+  (define-test "eigenvalue of all-infinity matrix is #f"
+    (let* ([A (matrix-from-lists '((+inf.0 +inf.0)
+                                   (+inf.0 +inf.0)))]
+           [ev (tropical-eigenvalue A)])
+      (assert-false ev)))
+
+  (define-test "eigenvalue with negative weights"
+    ;; 0→1: -2, 1→0: 3. Cycle weight = 1, length = 2.
+    ;; Mean = 1/2.
+    (let* ([A (matrix-from-lists '((+inf.0 -2)
+                                   (3 +inf.0)))]
+           [ev (tropical-eigenvalue A)])
+      (assert-num= 1/2 ev))))
+
+;;; ============================================================
+;;; Section 6b: Critical Edges
+;;; ============================================================
+
+(test-group "tropical-critical-edges"
+  (define-test "critical edges on simple 2-node cycle"
+    ;; 0→1: 4, 1→0: 6. Eigenvalue = 5.
+    ;; Cycle weight = 10, length = 2, mean = 5. Both edges are critical.
+    (let* ([A (matrix-from-lists '((+inf.0 4)
+                                   (6 +inf.0)))]
+           [edges (tropical-critical-edges A 5)])
+      (assert-equal 2 (length edges))
+      (assert-true (and (member '(0 1) edges) #t))
+      (assert-true (and (member '(1 0) edges) #t))))
+
+  (define-test "critical edges with competing cycles"
+    ;; 0→1: 3, 1→0: 5, 1→2: 1, 2→0: 2. Eigenvalue = 2.
+    ;; Cycle 0→1→0: weight 8, length 2, mean 4. NOT critical.
+    ;; Cycle 0→1→2→0: weight 6, length 3, mean 2. Critical.
+    (let* ([A (matrix-from-lists '((+inf.0 3 +inf.0)
+                                   (5 +inf.0 1)
+                                   (2 +inf.0 +inf.0)))]
+           [edges (tropical-critical-edges A 2)])
+      ;; Edges 0→1, 1→2, 2→0 should be critical (they form the min-mean cycle)
+      (assert-true (and (member '(0 1) edges) #t))
+      (assert-true (and (member '(1 2) edges) #t))
+      (assert-true (and (member '(2 0) edges) #t))
+      ;; Edge 1→0 should NOT be critical (the 0→1→0 cycle has mean 4, not 2)
+      (assert-false (and (member '(1 0) edges) #t))))
+
+  (define-test "critical edges with eigenvalue zero"
+    ;; 0→1: -3, 1→0: 3. Cycle weight = 0, length = 2, mean = 0.
+    ;; Both edges are critical.
+    (let* ([A (matrix-from-lists '((+inf.0 -3)
+                                   (3 +inf.0)))]
+           [edges (tropical-critical-edges A 0)])
+      (assert-equal 2 (length edges))
+      (assert-true (and (member '(0 1) edges) #t))
+      (assert-true (and (member '(1 0) edges) #t)))))
 
 ;;; ============================================================
 ;;; Section 7: Newton Polygon and Tropical Polynomial Roots

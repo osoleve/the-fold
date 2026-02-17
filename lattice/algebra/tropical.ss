@@ -7,7 +7,7 @@
 (doc 'module 'tropical)
 (doc 'description "Tropical algebra: semirings, matrix operations, eigenvalues, polynomials, Newton polygons")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'observably-pure)
 
 (doc 'note "Tropical semirings reveal algorithmic unity:")
 (doc 'note "- Floyd-Warshall = tropical matrix closure (A* over min-plus)")
@@ -226,104 +226,100 @@
 (doc 'note "The tropical eigenvalue of an n×n matrix A is the minimum")
 (doc 'note "cycle mean: λ = min over all cycles C of (weight(C) / length(C)).")
 (doc 'note "Computed via Karp's algorithm in O(n³).")
+(doc 'note "")
+(doc 'note "These functions are min-plus-specific: Karp's formula uses")
+(doc 'note "conventional subtraction and division, which only make sense")
+(doc 'note "when ⊗ = +. Max-plus eigenvalue (maximum cycle mean) would")
+(doc 'note "need the min/max in the extraction phase swapped.")
 
-;;; tropical-eigenvalue : Semiring × Matrix → Number | #f
-;;; Minimum (or maximum, depending on semiring) cycle mean.
-;;; Returns #f if no cycles exist (all diagonal entries are 0̄ after closure).
+;;; tropical-eigenvalue : Matrix → Number | #f
+;;; Minimum cycle mean over the min-plus semiring.
+;;; Returns #f if no cycles exist.
 ;;; Uses Karp's algorithm: O(n³) time, O(n²) space.
-(define (tropical-eigenvalue sr A)
+(define (tropical-eigenvalue A)
   (doc 'export #t)
   (let* ([n (matrix-rows A)]
-         [zero (semiring-zero sr)]
-         [⊕ (semiring-add sr)]
-         [⊗ (semiring-mul sr)]
-         ;; F[k][j] = cost of shortest k-step walk from node 0 to node j
-         ;; We use a source node trick: add a virtual source with 0-cost edges to all nodes.
-         ;; Equivalently, compute for each starting node and take the optimum.
-         ;; For Karp's: F[k,j] = min_i (A^k)[i,j] starting from all sources.
-         ;; Simpler: compute powers A^0, A^1, ..., A^n row by row.
+         ;; F[k,j] = min-plus cost of shortest k-step walk from virtual source to j.
+         ;; Virtual source has zero-cost edges to all nodes.
          ;;
-         ;; Karp's formula: λ = min_j min_{0≤k<n} (F[n,j] - F[k,j]) / (n - k)
-         ;; where F[k,j] = weight of shortest k-edge walk from virtual source to j.
+         ;; Karp's formula: λ = min_j max_{0≤k<n} (F[n,j] - F[k,j]) / (n - k)
          ;;
          ;; We compute F as a (n+1) × n table.
-         [F (make-vector (* (+ n 1) n) zero)])
-    ;; F[0,j] = 0 (one) for all j — virtual source has zero-cost edges
-    ;; In tropical: the "zero cost" is the multiplicative identity (0 in conventional)
+         [F (make-vector (* (+ n 1) n) +inf.0)])
+    ;; F[0,j] = 0 for all j — virtual source
     (do ([j 0 (+ j 1)])
         ((= j n))
-      (vector-set! F j (semiring-one sr)))
-    ;; F[k+1,j] = ⊕_i (F[k,i] ⊗ A[i,j])
+      (vector-set! F j 0))
+    ;; F[k+1,j] = min_i (F[k,i] + A[i,j])
     (do ([k 0 (+ k 1)])
         ((= k n))
       (let ([k-off (* k n)]
             [k1-off (* (+ k 1) n)])
         (do ([j 0 (+ j 1)])
             ((= j n))
-          (let loop ([i 0] [acc zero])
+          (let loop ([i 0] [acc +inf.0])
             (if (= i n)
                 (vector-set! F (+ k1-off j) acc)
                 (loop (+ i 1)
-                      (⊕ acc (⊗ (vector-ref F (+ k-off i))
-                                 (matrix-ref A i j)))))))))
-    ;; Karp's formula: λ = min_j max_{0≤k<n} (F[n,j] - F[k,j]) / (n - k)
-    ;; In min-plus: this finds the minimum cycle mean.
-    ;; F values are conventional numbers (since ⊗ = +), so we use
-    ;; ordinary arithmetic for the ratio computation.
-    (let ([n-off (* n n)]
-          [best #f])
-      (do ([j 0 (+ j 1)])
-          ((= j n) best)
-        (let ([fn-j (vector-ref F (+ n-off j))])
-          (when (and (finite? fn-j))
-            (let loop-k ([k 0] [worst #f])
-              (if (= k n)
-                  ;; Update best with this node's worst ratio
-                  (when worst
-                    (set! best (if best (min best worst) worst)))
-                  (let ([fk-j (vector-ref F (+ (* k n) j))])
-                    (if (finite? fk-j)
-                        (let ([ratio (/ (- fn-j fk-j) (- n k))])
-                          (loop-k (+ k 1)
-                                  (if worst (max worst ratio) ratio)))
-                        (loop-k (+ k 1) worst)))))))))))
+                      (min acc (+ (vector-ref F (+ k-off i))
+                                  (matrix-ref A i j)))))))))
+    ;; Karp extraction: λ = min_j max_{0≤k<n} (F[n,j] - F[k,j]) / (n - k)
+    (let ([n-off (* n n)])
+      (let loop-j ([j 0] [best #f])
+        (if (= j n)
+            best
+            (let ([fn-j (vector-ref F (+ n-off j))])
+              (if (not (finite? fn-j))
+                  (loop-j (+ j 1) best)
+                  ;; Inner: max over k of (F[n,j] - F[k,j]) / (n - k)
+                  (let loop-k ([k 0] [worst #f])
+                    (if (= k n)
+                        (loop-j (+ j 1)
+                                (if worst
+                                    (if best (min best worst) worst)
+                                    best))
+                        (let ([fk-j (vector-ref F (+ (* k n) j))])
+                          (if (finite? fk-j)
+                              (let ([ratio (/ (- fn-j fk-j) (- n k))])
+                                (loop-k (+ k 1)
+                                        (if worst (max worst ratio) ratio)))
+                              (loop-k (+ k 1) worst))))))))))))
 
-;;; tropical-critical-edges : Semiring × Matrix × Number → List
+;;; tropical-critical-edges : Matrix × Number → List
 ;;; Edges (i, j) on critical circuits (those achieving the eigenvalue).
-;;; An edge (i,j) is critical if it lies on some cycle whose mean equals eigenval.
-(define (tropical-critical-edges sr A eigenval)
+;;; Min-plus-specific: uses conventional arithmetic on edge weights.
+;;;
+;;; Algorithm: subtract eigenval from every finite edge weight to get
+;;; the reduced matrix B. Compute B's closure. Edge (i,j) is critical
+;;; iff B[i,j] + B*[j,i] = 0 (the cycle through (i,j) in the reduced
+;;; graph has zero total weight, meaning the original cycle had mean = eigenval).
+(define (tropical-critical-edges A eigenval)
   (doc 'export #t)
   (let* ([n (matrix-rows A)]
-         [closure (tropical-matrix-closure sr A)]
-         [result '()])
-    ;; Edge (i,j) with weight w is critical if:
-    ;; closure[j,i] is finite (j can reach i, forming a cycle through (i,j))
-    ;; and (w + closure[j,i]) / (some cycle length) = eigenval
-    ;; Simpler criterion: edge (i,j) is critical if
-    ;; closure[i,i] is the eigenvalue times some cycle length involving (i,j).
-    ;;
-    ;; Standard criterion: (i,j) is critical iff
-    ;; there exist nodes such that the cycle through (i,j) achieves the eigenvalue.
-    ;; Operationally: d(j,i) + A[i,j] achieves a cycle mean of eigenval.
+         ;; Reduced matrix: B[i,j] = A[i,j] - eigenval for finite entries
+         [B-data (make-vector (* n n) +inf.0)])
     (do ([i 0 (+ i 1)])
-        ((= i n) (reverse result))
+        ((= i n))
       (do ([j 0 (+ j 1)])
           ((= j n))
-        (let ([w (matrix-ref A i j)]
-              [d-ji (matrix-ref closure j i)])
-          (when (and (finite? w) (finite? d-ji))
-            ;; The cycle through edge (i,j) has total weight w + d-ji.
-            ;; We check if this contributes to the eigenvalue by verifying
-            ;; that for some cycle length k, (w + d-ji) / k = eigenval.
-            ;; For shortest-path closure, d-ji is the shortest path j→i,
-            ;; so the cycle weight is w + d-ji. If eigenval * k = w + d-ji
-            ;; for integer k ≥ 1, this edge is critical.
-            ;; In practice, we check if w + d-ji is a multiple of eigenval.
-            (let ([cycle-weight (+ w d-ji)])
-              (when (and (not (zero? eigenval))
-                         (let ([k (/ cycle-weight eigenval)])
-                           (and (>= k 1) (integer? k))))
-                (set! result (cons (list i j) result))))))))))
+        (let ([a-ij (matrix-ref A i j)])
+          (when (finite? a-ij)
+            (vector-set! B-data (+ (* i n) j) (- a-ij eigenval))))))
+    (let* ([B (list 'matrix n n B-data)]
+           [B* (tropical-matrix-closure min-plus-semiring B)])
+      ;; Edge (i,j) is critical iff B[i,j] + B*[j,i] = 0
+      (let loop-i ([i 0] [result '()])
+        (if (= i n)
+            (reverse result)
+            (let loop-j ([j 0] [result result])
+              (if (= j n)
+                  (loop-i (+ i 1) result)
+                  (let ([b-ij (matrix-ref B i j)]
+                        [d-ji (matrix-ref B* j i)])
+                    (if (and (finite? b-ij) (finite? d-ji)
+                             (= (+ b-ij d-ji) 0))
+                        (loop-j (+ j 1) (cons (list i j) result))
+                        (loop-j (+ j 1) result))))))))))
 
 ;;; ====
 ;;; Section 6: Tropical Polynomials
