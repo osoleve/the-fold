@@ -355,6 +355,7 @@ Dependencies:
  (register-module-path! 'galois "lattice/algebra/galois.ss")
  (register-module-path! 'field-ext "lattice/algebra/field-ext.ss")
  (register-module-path! 'poly-bridge "lattice/algebra/poly-bridge.ss")
+ (register-module-path! 'tropical "lattice/algebra/tropical.ss")
 
  ;; IPC
  (register-module-path! 'ipc-protocol "lattice/ipc/protocol.ss")

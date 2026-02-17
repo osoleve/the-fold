@@ -24,7 +24,8 @@
              polynomial gcd factorization interpolation
              multivariate monomial-ordering groebner-basis
              galois-field finite-field gf2n binary-field
-             irreducible primitive-element aes-field))
+             irreducible primitive-element aes-field
+             tropical semiring min-plus max-plus newton-polygon))
   (aliases (abstract-algebra group-theory ring-theory polynomial-algebra galois-fields))
 
   (exports
@@ -132,7 +133,23 @@
     ;; Extended field constructor with metadata
     make-field* field-metadata field-meta-ref
     ;; Large prime field without enumeration
-    make-field-zp-large))
+    make-field-zp-large)
+   (tropical
+    ;; Semiring abstraction
+    make-semiring semiring? semiring-add semiring-mul semiring-zero semiring-one semiring-eq?
+    ;; Standard instances
+    min-plus-semiring max-plus-semiring
+    ;; Scalar operations
+    tropical-add tropical-mul tropical-power
+    ;; Matrix operations
+    tropical-matrix-identity tropical-matrix-mul tropical-matrix-add
+    tropical-matrix-power tropical-matrix-closure
+    ;; Eigenvalue / critical circuits
+    tropical-eigenvalue tropical-critical-edges
+    ;; Tropical polynomials
+    tropical-poly-eval tropical-poly-roots newton-polygon
+    ;; Conversion utilities
+    adjacency->tropical tropical->adjacency))
 
   (modules
    (group "group.ss" "Group theory: cyclic, symmetric, dihedral groups and homomorphisms")
@@ -142,4 +159,5 @@
    (multivariate "multivariate.ss" "Multivariate polynomials over fields: sparse representation, orderings, division")
    (groebner "groebner.ss" "Gröbner bases: Buchberger's algorithm, ideal membership, reduction")
    (poly-bridge "poly-bridge.ss" "Bridge between numeric (descending) and algebra (ascending) polynomial representations")
-   (galois "galois.ss" "Galois fields: GF(p), GF(p^n) extensions, GF(2^n) binary fields, irreducibles, primitives")))
+   (galois "galois.ss" "Galois fields: GF(p), GF(p^n) extensions, GF(2^n) binary fields, irreducibles, primitives")
+   (tropical "tropical.ss" "Tropical semirings: min-plus, max-plus, matrix closure, eigenvalues, Newton polygons")))
