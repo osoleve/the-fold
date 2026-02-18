@@ -40,116 +40,152 @@
 
   (exports
    ;; normal-form.ss — Strategic Form Games
-   make-game game-payoff find-pure-nash
+   (normal-form
+    make-game game-payoff find-pure-nash)
 
    ;; extensive-form.ss — Extensive Form Games
-   make-terminal terminal? terminal-payoffs terminal-payoff
-   make-decision decision? decision-player decision-actions decision-children decision-child
-   make-chance chance? chance-outcomes chance-probs chance-children
-   make-extensive-game extensive-game? game-num-players game-root game-info-sets
-   tree-depth tree-size terminal-nodes
-   backward-induction solve-spe spe-result? spe-payoffs spe-strategy
-   expected-utility
-   make-info-set info-set? info-set-player info-set-label info-set-nodes
-   add-info-set perfect-information?
-   ultimatum-game make-centipede-game centipede-4 entry-deterrence
-   stackelberg-simple signaling-simple
-   print-tree
+   (extensive-form
+    make-terminal terminal? terminal-payoffs terminal-payoff
+    make-decision decision? decision-player decision-actions decision-children decision-child
+    make-chance chance? chance-outcomes chance-probs chance-children
+    make-extensive-game extensive-game? game-num-players game-root game-info-sets
+    tree-depth tree-size terminal-nodes
+    backward-induction solve-spe spe-result? spe-payoffs spe-strategy
+    expected-utility
+    make-info-set info-set? info-set-player info-set-label info-set-nodes
+    add-info-set perfect-information?
+    ultimatum-game make-centipede-game centipede-4 entry-deterrence
+    stackelberg-simple signaling-simple
+    print-tree)
 
    ;; coop-games.ss — Cooperative Games
-   coalition-empty coalition-singleton coalition-member?
-   coalition-union coalition-intersection coalition-complement
-   coalition-size coalition->list list->coalition all-coalitions
-   make-coop-game coop-game? coop-game-players coop-game-value
-   coop-game-grand-coalition
-   allocation-total allocation-coalition-total imputation?
-   shapley-value core-excess allocation-in-core? nucleolus
-   nash-bargaining kalai-smorodinsky
-   make-additive-game make-unanimity-game make-weighted-voting-game
-   make-airport-game make-bankruptcy-game make-gloves-game
-   coop-game-superadditive? coop-game-convex? coop-game-monotonic?
-   coop-game-simple?
-   is-winning? is-blocking? is-pivotal? banzhaf-index
+   (coop-games
+    coalition-empty coalition-singleton coalition-member?
+    coalition-union coalition-intersection coalition-complement
+    coalition-size coalition->list list->coalition all-coalitions
+    make-coop-game coop-game? coop-game-players coop-game-value
+    coop-game-grand-coalition
+    allocation-total allocation-coalition-total imputation?
+    shapley-value core-excess allocation-in-core? nucleolus
+    nash-bargaining kalai-smorodinsky
+    make-additive-game make-unanimity-game make-weighted-voting-game
+    make-airport-game make-bankruptcy-game make-gloves-game
+    coop-game-superadditive? coop-game-convex? coop-game-monotonic?
+    coop-game-simple?
+    is-winning? is-blocking? is-pivotal? banzhaf-index)
+
+   ;; matching.ss — Stable Matching
+   (matching
+    make-matching-market matching-market?
+    market-proposers market-receivers market-proposer-prefs market-receiver-prefs
+    market-num-proposers market-num-receivers
+    stable-match matching-stable?
+    stable-match-receiver-optimal
+    make-assignment-game assignment-game-value optimal-assignment
+    optimal-assignment-subset
+    make-medical-residency-market make-school-choice-market
+    make-random-preferences preference-rank
+    weighted-matching-ilp bottleneck-matching-ilp)
 
    ;; voting.ss — Social Choice
-   make-preference-profile profile-voters profile-candidates
-   profile-num-candidates profile-rankings
-   plurality-winner borda-winner antiplurality-winner
-   plurality-scores-all borda-scores-all
-   pairwise-margin pairwise-beats?
-   condorcet-winner? condorcet-winner
-   copeland-score copeland-winner
-   schulze-strengths schulze-winner schulze-ranking
-   manipulation-possible? condorcet-cycle-example
+   (voting
+    make-preference-profile profile-voters profile-candidates
+    profile-num-candidates profile-rankings
+    plurality-winner borda-winner antiplurality-winner
+    plurality-scores-all borda-scores-all
+    pairwise-margin pairwise-beats?
+    condorcet-winner? condorcet-winner
+    copeland-score copeland-winner
+    schulze-strengths schulze-winner schulze-ranking
+    manipulation-possible? condorcet-cycle-example)
 
    ;; strategic-voting.ss — Strategic Voting Equilibrium
-   social-welfare find-best-responses best-response-improves?
-   is-strategic-equilibrium? find-strategic-equilibrium all-strategic-equilibria
-   price-of-anarchy price-of-stability
-   count-manipulable-profiles strategy-proofness-ratio compare-strategy-proofness
-   find-manipulation-example gibbard-satterthwaite-demo
-   strategic-example-1 strategic-example-cycle
+   (strategic-voting
+    social-welfare find-best-responses best-response-improves?
+    is-strategic-equilibrium? find-strategic-equilibrium all-strategic-equilibria
+    price-of-anarchy price-of-stability
+    count-manipulable-profiles strategy-proofness-ratio compare-strategy-proofness
+    find-manipulation-example gibbard-satterthwaite-demo
+    strategic-example-1 strategic-example-cycle)
 
    ;; voting-games.ss — Voting-Games Bridge
-   profile->majority-game profile->weighted-voting-game
-   profile->rule-induced-game
-   shapley-shubik-index shapley-shubik-weighted
-   banzhaf-voting-power banzhaf-weighted
-   voter-is-dictator? voter-is-dummy? voter-has-veto?
-   minimal-winning-coalitions is-minimal-winning?
-   power-concentration power-gini
-   decisive-for-candidate blocking-for-candidate
-   make-electoral-college-game electoral-college-power power-per-capita
-   us-electoral-college-2020 un-security-council simple-3-voter-example
+   (voting-games
+    profile->majority-game profile->weighted-voting-game
+    profile->rule-induced-game
+    shapley-shubik-index shapley-shubik-weighted
+    banzhaf-voting-power banzhaf-weighted
+    voter-is-dictator? voter-is-dummy? voter-has-veto?
+    minimal-winning-coalitions is-minimal-winning?
+    power-concentration power-gini
+    decisive-for-candidate blocking-for-candidate
+    make-electoral-college-game electoral-college-power power-per-capita
+    us-electoral-college-2020 un-security-council simple-3-voter-example)
 
    ;; multi-winner.ss — Multi-Winner Elections
-   droop-quota hare-quota
-   stv stv-droop stv-hare
-   make-approval-profile approval-profile-voters approval-profile-candidates
-   approval-count approval-scores approval-winners
-   pav-score pav-winners
-   sav-score sav-winners
-   monroe-greedy cc-greedy cc-total-satisfaction
-   proportionality-score representation-coverage diversity-score
-   profile->approval approval->profile
-   stv-example approval-example diverse-preferences-example
+   (multi-winner
+    droop-quota hare-quota
+    stv stv-droop stv-hare
+    make-approval-profile approval-profile-voters approval-profile-candidates
+    approval-count approval-scores approval-winners
+    pav-score pav-winners
+    sav-score sav-winners
+    monroe-greedy cc-greedy cc-total-satisfaction
+    proportionality-score representation-coverage diversity-score
+    profile->approval approval->profile
+    stv-example approval-example diverse-preferences-example)
+
+   ;; fair-division.ss — Fair Division
+   (fair-division
+    make-cake cake? cake-players cake-set-valuation! cake-valuation cake-total-value
+    make-piece piece-empty piece-singleton piece-value piece-length piece-merge
+    make-division division-assign! division-piece division->list
+    proportional? envy-free? equitable? pareto-optimal?
+    cut-and-choose dubins-spanier selfridge-conway
+    make-adjusted-winner-problem adjusted-winner
+    make-discrete-problem discrete-problem-players discrete-problem-goods-count
+    discrete-problem-valuation round-robin discrete-allocation-value
+    envy-free-up-to-one? maximin-share
+    uniform-cake simple-cake-2 opposing-valuations-cake)
 
    ;; mechanism.ss — Mechanism Design
-   *tie-break-strategy* with-tie-break
-   make-bids make-auction-outcome
-   auction-outcome-winner auction-outcome-payment auction-outcome-revenue
-   first-price-auction second-price-auction all-pay-auction third-price-auction
-   dutch-auction with-reserve bidder-utility
-   check-dsic verify-dsic check-ex-post-ir
-   vcg-combinatorial pivot-mechanism
-   myerson-virtual-value optimal-reserve-uniform
-   k-double-auction double-auction-trades double-auction-volume
-   double-auction-buyer-surplus double-auction-seller-surplus double-auction-total-surplus
-   make-direct-mechanism
-   is-budget-balanced? is-weakly-budget-balanced?
+   (mechanism
+    *tie-break-strategy* with-tie-break
+    make-bids make-auction-outcome
+    auction-outcome-winner auction-outcome-payment auction-outcome-revenue
+    first-price-auction second-price-auction all-pay-auction third-price-auction
+    dutch-auction with-reserve bidder-utility
+    check-dsic verify-dsic check-ex-post-ir
+    vcg-combinatorial pivot-mechanism
+    myerson-virtual-value optimal-reserve-uniform
+    k-double-auction double-auction-trades double-auction-volume
+    double-auction-buyer-surplus double-auction-seller-surplus double-auction-total-surplus
+    make-direct-mechanism
+    is-budget-balanced? is-weakly-budget-balanced?)
 
    ;; evolutionary.ss — Evolutionary Game Theory
-   make-symmetric-game symmetric-game? sg-payoff sg-num-strategies sg-strategy-name
-   make-population population? pop-freq pop-size pop->list
-   uniform-population pure-population
-   strategy-fitness all-fitnesses average-fitness
-   replicator-derivative replicator-step replicator-trajectory replicator-converge
-   is-ess? find-all-ess is-nash-equilibrium? find-pure-nash
-   can-invade? invasion-fitness invasion-gradient
-   is-interior-equilibrium? hawk-dove-mixed-ess
-   hawk-dove-game stag-hunt-symmetric pd-symmetric rps-game
-   analyze-game
+   (evolutionary
+    make-symmetric-game symmetric-game? sg-payoff sg-num-strategies sg-strategy-name
+    make-population population? pop-freq pop-size pop->list
+    uniform-population pure-population
+    strategy-fitness all-fitnesses average-fitness
+    replicator-derivative replicator-step replicator-trajectory replicator-converge
+    is-ess? find-all-ess is-nash-equilibrium? find-pure-nash
+    can-invade? invasion-fitness invasion-gradient
+    is-interior-equilibrium? hawk-dove-mixed-ess
+    hawk-dove-game stag-hunt-symmetric pd-symmetric rps-game
+    analyze-game)
 
    ;; mcdm.ss — Multi-Criteria Decision Making
-   make-decision-problem decision-problem? dp-alternatives dp-criteria dp-score
-   criterion-ranking dp->profile dp->weighted-profile
-   mcdm-borda mcdm-schulze mcdm-copeland mcdm-condorcet mcdm-ranking
-   weighted-borda-scores weighted-borda-winner
-   dominates? pareto-frontier pareto-dominated is-pareto-optimal?
-   sensitivity-to-criterion robustness-profile min-robustness
-   has-condorcet-cycle? cycle-participants
-   method-agreement unanimous-winner? mcdm-summary
-   sorting-algorithm-example tech-choice-example)
+   (mcdm
+    make-decision-problem decision-problem? dp-alternatives dp-criteria dp-score
+    criterion-ranking dp->profile dp->weighted-profile
+    mcdm-borda mcdm-schulze mcdm-copeland mcdm-condorcet mcdm-ranking
+    weighted-borda-scores weighted-borda-winner
+    dominates? pareto-frontier pareto-dominated is-pareto-optimal?
+    sensitivity-to-criterion robustness-profile min-robustness
+    has-condorcet-cycle? cycle-participants
+    method-agreement unanimous-winner? mcdm-summary
+    sorting-algorithm-example tech-choice-example))
 
   (modules
    (normal-form "normal-form.ss" "Strategic form games, Nash equilibrium, IESDS")

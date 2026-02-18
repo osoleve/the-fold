@@ -36,23 +36,202 @@ Key design principles:
 
 
   (exports
-   ;; FP is the protocol/abstraction layer. Import from sub-skills directly:
-   ;; - fp/clp: Constraint logic programming (103 exports)
-   ;;
-   ;; Optics, game theory, and control systems are now top-level lattice skills:
-   ;; - lattice/optics/    (was fp/optics)
-   ;; - lattice/game-theory/ (was fp/game)
-   ;; - lattice/control-systems/ (was fp/control-systems)
-   ;;
-   ;; Source-annotated exports from fp root modules are minimal.
-   ;; See lattice/fp/*/manifest.sexp for detailed exports.
-   ;;
-   ;; Core Result type operations (from core/base/prelude.ss):
-   ;; These are fundamental error-handling primitives exported here
-   ;; for discoverability via lattice search.
+   ;; Root-level re-exports from core prelude for discoverability
    (prelude ok? error? result-map result-bind result-sequence
             unwrap-ok unwrap-error)
-   )
+
+   ;; ---- Root-level modules ----
+
+   (protocol
+     register-protocol-impl! get-protocol-impl protocol-implementations
+     get-type-tag protocol-dispatch protocol-dispatch/default
+     implement-protocol! protocol-exists? type-implements? list-protocols)
+
+   (protocol-bundle
+     make-protocol-bundle bundle? bundle-name bundle-slots
+     make-bundle-slot slot? slot-getter slot-setter slot-label
+     register-bundle! get-bundle list-bundles
+     derive-bundle-runtime! implement-bundle-runtime!
+     bundle-types bundle-protocols bundle-slot-count
+     implements-bundle? compose-bundles assert-bundle! missing-protocols)
+
+   (protocol-introspect
+     make-protocol-doc protocol-doc? protocol-doc-name
+     protocol-doc-docstring protocol-doc-signature protocol-doc-module
+     register-protocol-doc! get-protocol-doc protocol-docstring
+     protocols-for-type all-type-tags
+     protocol-describe type-describe protocol-matrix protocol-graph
+     protocol-stats print-protocol-stats pi ti pm)
+
+   (templates
+     make-monoid monoid? monoid-mempty monoid-mappend
+     monoid-sum monoid-product monoid-list monoid-string
+     monoid-all monoid-any monoid-first monoid-last monoid-max monoid-min monoid-endo
+     mconcat mtimes verify-monoid-laws
+     make-foldable foldable? foldable-fold-map foldable-foldr foldable-foldl
+     foldable-list foldable-maybe
+     fold-with to-list null-foldable? length-foldable elem-foldable
+     make-traversable traversable? traversable-traverse
+     make-functor make-named-functor functor? functor-fmap functor-name
+     functor-list functor-maybe functor-either functor-id
+     fmap-with replace-with void-with
+     make-applicative applicative? applicative-pure applicative-ap
+     applicative-list applicative-maybe applicative-either
+     ap-with lift-a2 sequence-a traverse-a
+     make-lens lens? lens-getter lens-setter
+     view set-lens over lens-compose
+     lens-fst lens-snd lens-head lens-tail lens-nth lens-key
+     make-prism prism? prism-match prism-build preview review
+     prism-just prism-left prism-right)
+
+   ;; ---- control/ subdir ----
+
+   (state
+     make-state state? state-fn run-state eval-state exec-state
+     state-get state-put state-modify state-gets
+     state-pure state-bind state-then state-map state-ap
+     state-sequence state-map-m state-for-each
+     state-when state-unless
+     state-view state-set state-over
+     state-get-key state-put-key)
+
+   (effects
+     make-effect-sig effect-sig? effect-sig-name effect-sig-operations
+     make-operation operation? operation-name operation-param-type operation-result-type
+     lookup-operation
+     sig-State sig-Reader sig-Writer sig-Exception sig-NonDet sig-Console sig-Async
+     make-effect-row effect-row? effect-row-effects empty-row
+     row-contains? row-add row-remove row-union)
+
+   (free
+     pure-free free pure-free? free-suspended? from-pure-free from-free
+     free-map free-bind free-then free-ap
+     lift-free fold-free iter-free run-free)
+
+   (continuation
+     make-cont cont? run-cont eval-cont
+     cont-return cont-bind cont-map cont-ap cont-join
+     callCC cont-abort cont-shift cont-reset
+     with-escape cont-throw
+     cont-loop cont-for-each cont-fold
+     with-early-return cont-when cont-unless
+     fail choose amb)
+
+   ;; ---- meta/ subdir ----
+
+   (combinators
+     id identity const flip apply-fn
+     compose2 compose pipe2 pipe >>> <<<
+     curry2 uncurry2 curry3 uncurry3
+     partial partial2 rpartial on both
+     pair-first pair-second bimap complement
+     conjoin)
+
+   (result
+     ok err
+     result-fold result-default result-or result-and
+     result-map-error result-bimap
+     result-catch result-catch/handler result-try
+     assert-ok! assert-ok/msg!
+     result->maybe maybe->result result->either either->result
+     result-ap result-lift2 result-traverse result-filter
+     validation-ok validation-err validation-errs validation-ok?)
+
+   (logic
+     make-lvar lvar? lvar-name lvar-id lvar=?
+     extend-subst lookup-subst walk walk* unify
+     succeed fail == =/= conj disj conj* disj* conde
+     call/fresh fresh1 fresh2 fresh3)
+
+   (dsl
+     make-instruction instruction-tag instruction-payload instruction-cont
+     dsl-fmap dsl-pure dsl-pure? dsl-suspended?
+     dsl-pure-value dsl-instruction dsl-bind dsl-map dsl-emit dsl-request
+     make-interpreter interpreter? interpreter-handler run-dsl
+     dsl-trace layered-interpreter composed-interpreter)
+
+   ;; ---- parsing/ subdir ----
+
+   (parser
+     make-pos pos? pos-line pos-col pos-offset
+     parser-initial-pos advance-pos
+     parser-make-state parser-state? parser-state-input
+     parser-state-index parser-state-pos parser-state-remaining
+     parser-state-at-end? parser-state-current-char parser-initial-state
+     make-parse-error parse-error? error-pos error-message error-expected
+     merge-errors format-error make-parser)
+
+   (regex
+     regex-lit regex-lit? regex-lit-char
+     regex-dot regex-dot?
+     regex-class regex-class? regex-class-chars regex-class-negated?
+     regex-seq regex-seq? regex-seq-exprs
+     regex-alt regex-alt? regex-alt-exprs
+     regex-star regex-star? regex-star-expr
+     regex-plus regex-plus? regex-plus-expr
+     regex-opt regex-opt? regex-opt-expr
+     regex-group regex-group? regex-group-expr
+     regex-empty regex-empty?)
+
+   (fsm
+     make-fsm fsm? fsm-states fsm-alphabet fsm-transitions
+     fsm-start fsm-accepting fsm-epsilon fsm-assertions
+     fsm-deterministic? dfa nfa epsilon-nfa
+     fsm-delta epsilon-closure epsilon-closure-set
+     fsm-move fsm-run fsm-accepts?
+     fsm-reachable)
+
+   ;; ---- data/ subdir ----
+
+   (stream
+     stream-nil stream-nil? stream-cons stream-cons?
+     stream-head stream-tail
+     list->stream stream->list
+     stream-iterate stream-repeat stream-cycle stream-from stream-range
+     naturals stream-unfold
+     stream-map stream-filter stream-take stream-drop)
+
+   (zipper
+     make-zipper zipper? zipper-left zipper-focus-maybe zipper-right
+     zipper-empty zipper-empty? zipper-singleton
+     list->zipper zipper->list zipper-from-position
+     zipper-has-focus? zipper-can-go-left? zipper-can-go-right?
+     zipper-left! zipper-right! zipper-start zipper-end zipper-goto)
+
+   ;; ---- symbolic/ subdir ----
+
+   (expr
+     num var
+     make-sum make-product make-diff make-neg make-div make-pow make-app
+     sum product difference division power
+     num? var? sum? product? difference? quotient?)
+
+   (diff
+     deriv partial gradient jacobian hessian
+     deriv-n directional-derivative curl divergence laplacian)
+
+   ;; ---- measure/ subdir ----
+
+   (units
+     make-dim dim-length dim-time dim-mass dim-current
+     dim-temperature dim-amount dim-luminosity dim?  dim=?
+     dim-one dim-length-base dim-time-base dim-mass-base
+     dim-current-base dim-temperature-base dim-amount-base dim-luminosity-base
+     dim* dim/)
+
+   ;; ---- rewrite/ subdir ----
+
+   (rule
+     make-rule rule? rule-name rule-lhs rule-rhs
+     rule-category rule-direction rule-conditions
+     metavar? metavar-name metavar-constraint
+     pattern-vars pattern-vars-unique rule->string valid-rule?)
+
+   (engine
+     match-pattern substitute-template
+     apply-rule apply-rule-name apply-rule-at apply-rule-anywhere
+     find-all-positions
+     id-strategy fail-strategy seq choice try repeat repeat-n map-children))
 
 
   ;;; ====

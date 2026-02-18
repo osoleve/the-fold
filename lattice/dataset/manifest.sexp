@@ -14,7 +14,21 @@
     (parameter make-param-range param-range? param-sample param-interpolate make-param-set param-set-sample)
     (presentation make-layout layout-vstack layout-hstack layout-beside layout-above textbox frame-block render-layout)
     (distractor make-distractor-strategy distractor-nearby distractor-sign-flip distractor-off-by-one generate-distractors)
-    (difficulty difficulty-score difficulty-tier))
+    (difficulty difficulty-score difficulty-tier)
+    (sexp
+      sample->canonical-sexp canonical-sexp->sample
+      dataset->sexp sexp->dataset
+      sexp->string sexp->pretty-string
+      validate-sample-sexp)
+    (jsonl
+      make-json-object json-object? json-object-pairs
+      make-json-array json-array? json-array-items
+      sample->json json->sample
+      sample-json-iso
+      json->string
+      samples->jsonl sample->jsonl-line
+      sample->prompt-json samples->prompt-jsonl
+      sample->openai-json samples->openai-jsonl))
   (modules
     (sample "sample.ss" "Sample record type with Q/A lenses into state")
     (parameter "parameter.ss" "Parameter ranges, sampling, and interpolation")

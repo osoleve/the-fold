@@ -56,6 +56,62 @@
     ;; Conditioning and inference
     condition observe factor
     sample-many importance-sample rejection-sample)
+   (bayesian
+    ;; Beta-Binomial conjugate model
+    make-beta-prior beta-prior? beta-prior-alpha beta-prior-beta
+    beta-binomial-posterior beta-posterior-mean beta-posterior-mode
+    beta-posterior-variance beta-credible-interval
+    ;; Normal-Normal conjugate model
+    make-normal-prior normal-prior? normal-prior-mean normal-prior-variance
+    normal-normal-posterior normal-posterior-credible-interval
+    ;; Gamma-Poisson conjugate model
+    make-gamma-prior gamma-prior? gamma-prior-shape gamma-prior-rate
+    gamma-poisson-posterior gamma-posterior-mean gamma-posterior-variance
+    gamma-posterior-mode
+    ;; Dirichlet-Multinomial conjugate model
+    make-dirichlet-prior dirichlet-prior? dirichlet-prior-alphas
+    dirichlet-multinomial-posterior dirichlet-posterior-mean dirichlet-posterior-mode
+    ;; Log PDFs and utilities
+    log-beta-pdf log-beta log-normal-pdf log-gamma-pdf log-poisson-pmf log-factorial
+    ;; Divergence and information
+    kl-divergence-normal kl-divergence-beta digamma
+    ;; Model selection
+    log-marginal-likelihood-beta-binomial log-binomial-coeff
+    log-marginal-likelihood-normal-normal
+    bayes-factor log-bayes-factor interpret-bayes-factor
+    bic aic
+    ;; Sequential updates
+    sequential-beta-update sequential-normal-update sequential-gamma-update
+    ;; Posterior summaries and prediction
+    posterior-summary predictive-beta-binomial predictive-mean-beta-binomial)
+
+   (monte-carlo
+    ;; Sample statistics
+    sample-mean sample-variance sample-std sample-sem
+    sample-quantile sample-median sample-min sample-max sample-summary
+    ;; Integration
+    mc-integrate mc-estimate
+    ;; Importance sampling
+    importance-sample self-normalized-importance-sample
+    ;; Rejection sampling
+    rejection-sample rejection-sample-n rejection-sample-bounded
+    ;; Metropolis-Hastings MCMC
+    mh-step mh-symmetric-step mh-chain mh-sample mh-thinned-sample
+    random-walk-proposal multivariate-random-walk-proposal
+    ;; Gibbs sampling
+    gibbs-step gibbs-chain gibbs-sample
+    ;; Variance reduction
+    antithetic-estimate antithetic-integrate
+    control-variate-estimate
+    stratified-sample
+    ;; Diagnostics
+    effective-sample-size gelman-rubin autocorrelation
+    integrated-autocorrelation-time mcmc-diagnostics
+    ;; Batch and parallel runners
+    parallel-chains batch-sample progressive-sample
+    ;; Convenience
+    run-mc mc-pi-estimate mc-normal-tail-prob)
+
    (variational-inference
     ;; Variational families
     make-mf-gaussian mf-gaussian? mf-gaussian-means mf-gaussian-log-stds

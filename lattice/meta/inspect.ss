@@ -12,8 +12,41 @@
 ;;; ====
 
 ;;; lattice-describe : Symbol -> void
-;;; Pretty-print full skill description
+;;; Agent-compact skill description: 1-line summary, metadata, modules with require paths
 (define (lattice-describe skill-name)
+  (let ([info (lattice-info skill-name)])
+       (if (not info)
+           (printf "Skill not found: ~a\n" skill-name)
+           (let ([name (cdr (assq 'name info))]
+                 [version (cdr (assq 'version info))]
+                 [tier (cdr (assq 'tier info))]
+                 [purity (cdr (assq 'purity info))]
+                 [stability (cdr (assq 'stability info))]
+                 [desc (cdr (assq 'description info))]
+                 [deps (cdr (assq 'dependencies info))]
+                 [uses (cdr (assq 'dependents info))]
+                 [mod-count (cdr (assq 'module-count info))]
+                 [exp-count (cdr (assq 'export-count info))]
+                 [modules (kg-modules skill-name)])
+                (printf "~a v~a — ~a\n" name version
+                        (truncate-string (first-line desc) 60))
+                (printf "tier ~a | ~a | ~a | ~a modules, ~a exports\n"
+                        tier purity stability mod-count exp-count)
+                (printf "deps: ~a | used-by: ~a\n"
+                        (if (null? deps) "(none)" deps)
+                        (if (null? uses) "(none)" uses))
+                (unless (null? modules)
+                  (printf "\n")
+                  (for-each
+                   (lambda (mod)
+                     (let* ([mod-name (car mod)]
+                            [bare-name (module-bare-name mod-name)])
+                       (printf "  ~a  (require '~a)\n" mod-name bare-name)))
+                   modules))))))
+
+;;; lattice-describe-pretty : Symbol -> void
+;;; Verbose human-oriented skill description
+(define (lattice-describe-pretty skill-name)
   (if (not (kg-initialized?))
       (begin
         (printf "Knowledge graph not initialized.\n")
@@ -66,19 +99,40 @@
                 (printf "\nModules (~a):\n" (length modules))
                 (for-each
                  (lambda (mod)
-                         (let* ([mod-name (car mod)]
-                                [name-str (symbol->string mod-name)]
-                                [slash-pos (let loop ([i 0])
-                                             (cond
-                                               [(>= i (string-length name-str)) #f]
-                                               [(char=? (string-ref name-str i) #\/) i]
-                                               [else (loop (+ i 1))]))]
-                                [bare-name (if slash-pos
-                                               (substring name-str (+ slash-pos 1)
-                                                          (string-length name-str))
-                                               name-str)])
-                           (printf "  - ~a  (require '~a)\n" mod-name bare-name)))
+                   (let* ([mod-name (car mod)]
+                          [bare-name (module-bare-name mod-name)])
+                     (printf "  - ~a  (require '~a)\n" mod-name bare-name)))
                  modules))))))
+
+;;; first-line : String -> String
+;;; Extract first non-empty line from a (possibly multiline) string
+(define (first-line str)
+  (if (not (string? str))
+      ""
+      (let ([len (string-length str)])
+           (let loop ([i 0])
+                (cond
+                 [(>= i len) (string-trim str)]
+                 [(char=? (string-ref str i) #\newline)
+                  (let ([line (string-trim (substring str 0 i))])
+                       (if (string=? line "")
+                           ;; skip blank leading line, try next
+                           (first-line (substring str (+ i 1) len))
+                           line))]
+                 [else (loop (+ i 1))])))))
+
+;;; module-bare-name : Symbol -> String
+;;; Extract bare module name from potentially namespaced key (linalg/vec -> vec)
+(define (module-bare-name mod-name)
+  (let* ([name-str (symbol->string mod-name)]
+         [slash-pos (let loop ([i 0])
+                      (cond
+                        [(>= i (string-length name-str)) #f]
+                        [(char=? (string-ref name-str i) #\/) i]
+                        [else (loop (+ i 1))]))])
+    (if slash-pos
+        (substring name-str (+ slash-pos 1) (string-length name-str))
+        name-str)))
 
 ;;; string-trim : String -> String
 ;;; Remove leading/trailing whitespace and collapse internal whitespace
@@ -139,9 +193,78 @@
                (cons skill-name (lattice-skill-exports skill-name)))
        (kg-skills)))
 
+;;; lattice-exports-compact : Symbol -> void
+;;; Agent-compact exports: grouped by module with require paths, truncated per group.
+;;; For flat exports, uses *export-module-map* to reconstruct grouping.
+(define (lattice-exports-compact skill-name)
+  (let ([data (kg-skill-data skill-name)])
+    (if (not data)
+        (printf "Skill not found: ~a\n" skill-name)
+        (let* ([exports-raw (cdr (or (assq 'exports data) '(exports . ())))]
+               [total (length (lattice-skill-exports skill-name))])
+          (printf "~a — ~a exports\n\n" skill-name total)
+          (cond
+            [(or (not (list? exports-raw)) (null? exports-raw))
+             (printf "  (none)\n")]
+            ;; Already grouped: (module-name sym1 sym2 ...) ...
+            [(and (pair? (car exports-raw)) (list? (car exports-raw)))
+             (for-each
+              (lambda (group)
+                (when (and (pair? group) (list? group))
+                  (let* ([mod-name (car group)]
+                         [syms (filter symbol? (cdr group))]
+                         [n (length syms)]
+                         [max-show 20])
+                    (printf "~a (require '~a): ~a exports\n" mod-name mod-name n)
+                    (for-each (lambda (sym) (printf "  ~a\n" sym))
+                              (take-at-most max-show syms))
+                    (when (> n max-show)
+                      (printf "  ...and ~a more\n" (- n max-show)))
+                    (printf "\n"))))
+              exports-raw)]
+            ;; Flat: group via *export-module-map* where possible
+            [else
+             (let* ([syms (lattice-skill-exports skill-name)]
+                    [grouped (group-exports-by-module syms)])
+               (for-each
+                (lambda (group)
+                  (let* ([mod-name (car group)]
+                         [mod-syms (cdr group)]
+                         [n (length mod-syms)]
+                         [max-show 20])
+                    (if mod-name
+                        (printf "~a (require '~a): ~a exports\n" mod-name mod-name n)
+                        (printf "(ungrouped): ~a exports\n" n))
+                    (for-each (lambda (sym) (printf "  ~a\n" sym))
+                              (take-at-most max-show mod-syms))
+                    (when (> n max-show)
+                      (printf "  ...and ~a more\n" (- n max-show)))
+                    (printf "\n")))
+                grouped))])))))
+
+;;; group-exports-by-module : (List Symbol) -> (List (module-or-#f . (syms ...)))
+;;; Group exports using *export-module-map*. Ungrouped exports get #f key (sorted last).
+(define (group-exports-by-module syms)
+  (let ([groups '()] [order '()])
+    (for-each
+     (lambda (sym)
+       (let* ([mod (hashtable-ref *export-module-map* sym #f)]
+              [existing (assq mod groups)])
+         (if existing
+             (set-cdr! existing (cons sym (cdr existing)))
+             (begin
+               (set! groups (cons (list mod sym) groups))
+               (set! order (cons mod order))))))
+     syms)
+    ;; Reverse each group's syms, put #f (ungrouped) last
+    (let* ([finalized (map (lambda (g) (cons (car g) (reverse (cdr g))))
+                           (reverse groups))]
+           [with-mod (filter (lambda (g) (car g)) finalized)]
+           [without-mod (filter (lambda (g) (not (car g))) finalized)])
+      (append with-mod without-mod))))
+
 ;;; lattice-exports-pretty : Symbol -> void
-;;; Pretty-print exports for a skill.
-;;; Handles both grouped and flat manifest formats.
+;;; Verbose human-oriented exports listing
 (define (lattice-exports-pretty skill-name)
   (let ([data (kg-skill-data skill-name)])
     (if (not data)
@@ -300,19 +423,29 @@
 ;;; ====
 
 ;;; li : Symbol -> void
-;;; Quick skill inspection
+;;; Inspect skill (agent-compact)
 (define (li skill-name)
   (lattice-describe skill-name))
 
 ;;; le : Symbol -> void
-;;; Quick exports list
+;;; List exports (agent-compact, grouped by module)
 (define (le skill-name)
-  (lattice-exports-pretty skill-name))
+  (lattice-exports-compact skill-name))
 
 ;;; lm : Symbol -> void
-;;; Quick modules list
+;;; List modules with details
 (define (lm skill-name)
   (lattice-modules-detail skill-name))
+
+;;; li-pretty : Symbol -> void
+;;; Inspect skill (verbose)
+(define (li-pretty skill-name)
+  (lattice-describe-pretty skill-name))
+
+;;; le-pretty : Symbol -> void
+;;; List exports (verbose, ungrouped)
+(define (le-pretty skill-name)
+  (lattice-exports-pretty skill-name))
 
 ;;; ====
 ;;; Test Result Parsing (pure — operates on output strings)
@@ -386,11 +519,12 @@
 
 (unless (top-level-bound? '*inspect-banner-shown*)
   (meta-printf "inspect.ss loaded.\n")
-  (meta-printf "  (lattice-describe 'skill)     - Full description\n")
-  (meta-printf "  (lattice-skill-exports 'skill) - Export list\n")
-  (meta-printf "  (lattice-modules-detail 'skill) - Module details\n")
-  (meta-printf "  (lattice-source 'export)      - Source location\n")
-  (meta-printf "  (lattice-info 'skill)         - Structured info\n")
-  (meta-printf "  (lattice-summary)             - All skills summary\n")
-  (meta-printf "  (li 'skill), (le 'skill)      - Quick inspection\n"))
+  (meta-printf "  (li 'skill)                   - Inspect (agent-compact)\n")
+  (meta-printf "  (le 'skill)                   - Exports (grouped by module)\n")
+  (meta-printf "  (lm 'skill)                   - Module details\n")
+  (meta-printf "  (li-pretty 'skill)            - Inspect (verbose)\n")
+  (meta-printf "  (le-pretty 'skill)            - Exports (verbose)\n")
+  (meta-printf "  (lattice-info 'skill)         - Structured alist\n")
+  (meta-printf "  (lattice-source 'export)      - Source file location\n")
+  (meta-printf "  (lattice-summary)             - All skills summary\n"))
 (set-top-level-value! '*inspect-banner-shown* #t)

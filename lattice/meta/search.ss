@@ -409,7 +409,7 @@
 (define *show-scores* #f)
 
 (doc print-results 'type (-> (List SearchResult) Void))
-(doc print-results 'description "Pretty print search results with clean formatting")
+(doc print-results 'description "Agent-compact search results: always shows scores, require paths, brief descriptions")
 (define (print-results results)
   (if (null? results)
       (printf "No results found.\n")
@@ -419,26 +419,57 @@
                      [score (cadr result)]
                      [type (caddr result)]
                      [data (cadddr result)])
-                    ;; Format: name [type] (score: N.N) - only show score if enabled
+                    (case type
+                      [(skill)
+                       (printf "~a [skill] (~a)" id (round-to score 2))
+                       (when data
+                             (let ([desc (assq 'description data)]
+                                   [mods (assq 'modules data)])
+                               (when (and desc (string? (cdr desc)))
+                                     (printf " — ~a" (truncate-string (cdr desc) 60)))))
+                       (printf "\n")]
+                      [(export)
+                       (let ([mod (and data (assq 'module data))]
+                             [doc (and data (assq 'docstring data))])
+                         (if mod
+                             (printf "~a [export] (~a)  (require '~a)\n" id (round-to score 2) (cdr mod))
+                             (printf "~a [export] (~a)\n" id (round-to score 2)))
+                         (when (and doc (string? (cdr doc)) (> (string-length (cdr doc)) 0))
+                               (printf "  ~a\n" (truncate-string (cdr doc) 80))))]
+                      [(module)
+                       (let ([skill (and data (assq 'skill data))])
+                         (printf "~a [module] (~a)" id (round-to score 2))
+                         (when skill (printf "  part of ~a" (cdr skill)))
+                         (printf "\n"))])))
+       results)))
+
+;;; print-results-pretty : (List SearchResult) -> void
+;;; Verbose human-oriented search results
+(define (print-results-pretty results)
+  (if (null? results)
+      (printf "No results found.\n")
+      (for-each
+       (lambda (result)
+               (let ([id (car result)]
+                     [score (cadr result)]
+                     [type (caddr result)]
+                     [data (cadddr result)])
                     (if *show-scores*
                         (printf "~a [~a] (score: ~a)\n" id type (round-to score 3))
                         (printf "~a [~a]\n" id type))
-                    ;; Show description/docstring
-                    (print-result-detail type id data)))
+                    (print-result-detail-pretty type id data)))
        results)))
 
-;;; print-result-detail : Symbol × Symbol × Alist -> void
-;;; Print details for a search result based on its type
-(define (print-result-detail type id data)
+;;; print-result-detail-pretty : Symbol × Symbol × Alist -> void
+;;; Verbose detail for a search result
+(define (print-result-detail-pretty type id data)
   (case type
     [(skill)
-     ;; For skills, show description
      (when data
            (let ([desc (assq 'description data)])
                 (when (and desc (string? (cdr desc)) (> (string-length (cdr desc)) 0))
                       (printf "  ~a\n" (truncate-string (cdr desc) 70)))))]
     [(export)
-     ;; For exports, show require command and docstring
      (when data
            (let ([mod (assq 'module data)]
                  [doc (assq 'docstring data)])
@@ -447,7 +478,6 @@
                 (when (and doc (string? (cdr doc)) (> (string-length (cdr doc)) 0))
                       (printf "  ~a\n" (truncate-string (cdr doc) 70)))))]
     [(module)
-     ;; For modules, show the module info
      (when data
            (let ([skill (assq 'skill data)])
                 (when skill
@@ -467,17 +497,16 @@
 (doc 'section 'convenience-functions)
 
 (doc lf 'type (-> String Void))
-(doc lf 'description "Quick search with pretty output (for REPL)")
+(doc lf 'description "Search the lattice. Agent-compact output with scores and require paths")
 (define (lf query)
   (print-results (lattice-find query 10)))
 
 (doc lfe 'type (-> Symbol Void))
-(doc lfe 'description "Quick exact search with pretty output. Falls back to substring search if no exact match found")
+(doc lfe 'description "Exact symbol lookup. Falls back to substring search if no exact match")
 (define (lfe sym)
   (let ([result (lattice-find-exact sym)])
        (if result
            (print-results (list result))
-           ;; Fallback to substring search
            (let ([substring-results (lattice-find-substring sym 10)])
                 (if (null? substring-results)
                     (printf "Not found: ~a\n" sym)
@@ -486,7 +515,7 @@
                       (print-results substring-results)))))))
 
 ;;; lfp : Symbol -> void
-;;; Quick prefix search with pretty output
+;;; Prefix search
 (define (lfp prefix)
   (let ([results (lattice-find-prefix prefix 15)])
        (if (null? results)
@@ -494,15 +523,53 @@
            (print-results results))))
 
 ;;; lfs : Symbol -> void
-;;; Quick substring search with pretty output
+;;; Substring search
 (define (lfs substr)
   (let ([results (lattice-find-substring substr 15)])
        (if (null? results)
            (printf "No matches containing: ~a\n" substr)
            (print-results results))))
 
+;;; ====
+;;; Human-verbose variants (pretty printers)
+;;; ====
+
+;;; lf-pretty : String -> void
+;;; Verbose search with optional scores (toggle with search-scores)
+(define (lf-pretty query)
+  (print-results-pretty (lattice-find query 10)))
+
+;;; lfe-pretty : Symbol -> void
+;;; Verbose exact search
+(define (lfe-pretty sym)
+  (let ([result (lattice-find-exact sym)])
+       (if result
+           (print-results-pretty (list result))
+           (let ([substring-results (lattice-find-substring sym 10)])
+                (if (null? substring-results)
+                    (printf "Not found: ~a\n" sym)
+                    (begin
+                      (printf "No exact match for ~a. Showing substring matches:\n\n" sym)
+                      (print-results-pretty substring-results)))))))
+
+;;; lfp-pretty : Symbol -> void
+;;; Verbose prefix search
+(define (lfp-pretty prefix)
+  (let ([results (lattice-find-prefix prefix 15)])
+       (if (null? results)
+           (printf "No matches for prefix: ~a\n" prefix)
+           (print-results-pretty results))))
+
+;;; lfs-pretty : Symbol -> void
+;;; Verbose substring search
+(define (lfs-pretty substr)
+  (let ([results (lattice-find-substring substr 15)])
+       (if (null? results)
+           (printf "No matches containing: ~a\n" substr)
+           (print-results-pretty results))))
+
 ;;; search-scores : Bool -> void
-;;; Toggle display of BM25 scores in search results
+;;; Toggle display of BM25 scores in verbose output
 (define (search-scores show?)
   (set! *show-scores* show?)
   (printf "Score display: ~a\n" (if show? "on" "off")))
@@ -510,11 +577,10 @@
 (doc 'section 'repl-interface)
 
 (meta-printf "search.ss loaded.\n")
-(meta-printf "  (lattice-index!)               - Build search indices\n")
-(meta-printf "  (lattice-find \"query\")         - Full-text search\n")
-(meta-printf "  (lattice-find-exact 'symbol)   - Exact match\n")
-(meta-printf "  (lattice-complete \"prefix\")    - Autocomplete\n")
-(meta-printf "  (lf \"query\")                   - Quick search\n")
-(meta-printf "  (lfe 'symbol)                  - Quick exact search\n")
+(meta-printf "  (lf \"query\")                   - Search (agent-compact)\n")
+(meta-printf "  (lfe 'symbol)                  - Exact lookup\n")
 (meta-printf "  (lfp 'prefix)                  - Prefix search\n")
 (meta-printf "  (lfs 'substr)                  - Substring search\n")
+(meta-printf "  (lf-pretty \"query\")            - Search (verbose)\n")
+(meta-printf "  (lattice-find \"query\" k type)  - Programmatic search\n")
+(meta-printf "  (lattice-complete \"prefix\")    - Autocomplete\n")
