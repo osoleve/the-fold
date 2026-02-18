@@ -97,12 +97,14 @@
 (doc parse-module-entry 'description "Parse a single module entry and return module index entries. Handles both simple format: (name \"file.ss\" \"desc\") and nested format: ((subdir \"name\") (description \"...\") (files (\"a.ss\" \"b.ss\")))")
 (define (parse-module-entry mod skill-path)
   (cond
-   ;; Simple format: (name "file.ss" "description")
+   ;; Simple format: (name "file.ss" "description") — name can be symbol or string
    [(and (pair? mod)
-         (symbol? (car mod))
+         (or (symbol? (car mod)) (string? (car mod)))
          (>= (length mod) 2)
          (string? (cadr mod)))
-    (let* ([mod-name (car mod)]
+    (let* ([mod-name (if (string? (car mod))
+                         (string->symbol (car mod))
+                         (car mod))]
            [mod-file (cadr mod)]
            [full-path (string-append skill-path "/" mod-file)])
           (list (cons mod-name full-path)))]

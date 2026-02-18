@@ -11,7 +11,7 @@
 ;;; ====
 
 (define LATTICE-CACHE-PATH ".fold-repl/lattice-cache.sexp")
-(define LATTICE-CACHE-VERSION 2)  ; Bump: now includes docstrings + source-locs
+(define LATTICE-CACHE-VERSION 3)  ; Bump: module-aware source location resolution
 
 ;;; ====
 ;;; Pure Helpers

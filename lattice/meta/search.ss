@@ -596,12 +596,13 @@
 
 (doc lattice-find-data 'type (-> String (List Alist)))
 (doc lattice-find-data 'description "Search returning structured alists instead of printing. For MCP/IPC consumption.")
-;;; lattice-find-data : String [Nat] -> (List Alist)
+;;; lattice-find-data : String [Nat] [Symbol] -> (List Alist)
 ;;; Each result is an alist: ((id . sym) (score . 0.85) (type . export) ...)
 ;;; with type-specific fields: module, docstring (exports); description (skills); skill (modules)
 (define (lattice-find-data query . args)
   (let* ([k (if (pair? args) (car args) 10)]
-         [results (lattice-find query k)])
+         [type (if (and (pair? args) (pair? (cdr args))) (cadr args) #f)]
+         [results (if type (lattice-find query k type) (lattice-find query k))])
     (map (lambda (result)
            (let ([id (car result)]
                  [score (cadr result)]

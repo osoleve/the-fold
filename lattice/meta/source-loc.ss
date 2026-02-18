@@ -146,13 +146,33 @@
 
 ;;; populate-source-locations! : (List (Symbol File Line)) -> Void
 ;;; Populate the cache from a list of definition records.
-;;; Only stores first occurrence of each symbol.
+;;; Prefers definitions from canonical module files (via *export-module-map*
+;;; and *module-paths*) over incidental definitions in other files.
 (define (populate-source-locations! defs)
-  (for-each
-   (lambda (def)
-           (let ([name (car def)]
-                 [file (cadr def)]
-                 [line (caddr def)])
-                (unless (hashtable-ref *source-locations* name #f)
-                        (hashtable-set! *source-locations* name (cons file line)))))
-   defs))
+  (let ([canonical-file-for
+         (if (and (top-level-bound? '*export-module-map*)
+                  (top-level-bound? '*module-paths*))
+             (lambda (sym)
+               (let ([mod (hashtable-ref *export-module-map* sym #f)])
+                 (and mod (hashtable-ref *module-paths* mod #f))))
+             (lambda (sym) #f))])
+    (for-each
+     (lambda (def)
+       (let ([name (car def)]
+             [file (cadr def)]
+             [line (caddr def)])
+         (let ([existing (hashtable-ref *source-locations* name #f)]
+               [canonical (canonical-file-for name)])
+           (cond
+             ;; No existing entry — store
+             [(not existing)
+              (hashtable-set! *source-locations* name (cons file line))]
+             ;; This file IS the canonical source — always overwrite
+             [(and canonical (string=? file canonical))
+              (hashtable-set! *source-locations* name (cons file line))]
+             ;; Existing file is already canonical — keep it
+             [(and canonical (string=? (car existing) canonical))
+              (void)]
+             ;; Neither is canonical — first wins (keep existing)
+             [else (void)]))))
+     defs)))
