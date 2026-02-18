@@ -58,6 +58,36 @@
                        [else 0])])
             (loop (+ i 1) (+ (* acc 36) val)))))))
 
+(doc 'section 'board-aware-counter)
+
+(define (bbs-current-counter-file)
+  (doc 'type '(-> String))
+  (doc 'description "Get the counter file path for current context (board-aware or fallback).
+Routes to default issues board when no context is active but registry loaded.")
+  (doc 'export #t)
+  (cond
+   [(and (top-level-bound? 'board-context?)
+         (board-context?))
+    (board-counter-file (current-board))]
+   [(and (top-level-bound? 'board-ref)
+         (board-ref "issues"))
+    (board-counter-file (board-ref "issues"))]
+   [else *bbs-counter-file*]))
+
+(define (bbs-current-id-prefix)
+  (doc 'type '(-> String))
+  (doc 'description "Get the ID prefix for current context (board-aware or fallback).
+Routes to default issues board when no context is active but registry loaded.")
+  (doc 'export #t)
+  (cond
+   [(and (top-level-bound? 'board-context?)
+         (board-context?))
+    (board-id-prefix (current-board))]
+   [(and (top-level-bound? 'board-ref)
+         (board-ref "issues"))
+    (board-id-prefix (board-ref "issues"))]
+   [else *bbs-id-prefix*]))
+
 (doc 'section 'counter-operations)
 
 (define (bbs-ensure-counter-dir!)
@@ -69,71 +99,84 @@
 
 (define (bbs-read-counter)
   (doc 'type '(-> Int))
-  (doc 'description "Read the current counter value. Returns 0 if counter file doesn't exist")
+  (doc 'description "Read the current counter value. Returns 0 if counter file doesn't exist. Board-aware.")
   (doc 'export #t)
-  (guard (e [else 0])
-    (if (file-exists? *bbs-counter-file*)
-        (call-with-input-file *bbs-counter-file*
-          (lambda (port)
-            (let ([line (get-line port)])
-              (if (eof-object? line)
-                  0
-                  (string->number line)))))
-        0)))
+  (let ([cf (bbs-current-counter-file)])
+    (guard (e [else 0])
+      (if (file-exists? cf)
+          (call-with-input-file cf
+            (lambda (port)
+              (let ([line (get-line port)])
+                (if (eof-object? line)
+                    0
+                    (string->number line)))))
+          0))))
 
 (define (%bbs-write-counter! n)
   (doc 'type '(-> Int Void))
-  (doc 'description "INTERNAL: Write the counter value (caller must hold lock). Uses atomic write-then-rename to prevent corruption")
-  (bbs-ensure-counter-dir!)
-  (call-with-atomic-output-file *bbs-counter-file*
-    (lambda (port)
-      (put-string port (number->string n))
-      (newline port))
-    '(replace)))
+  (doc 'description "INTERNAL: Write the counter value (caller must hold lock). Board-aware.")
+  (let ([cf (bbs-current-counter-file)])
+    ;; Ensure parent dir exists
+    (bbs-ensure-counter-dir!)
+    (when (and (top-level-bound? 'board-context?)
+               (board-context?))
+      (board-ensure-dirs! (current-board)))
+    (call-with-atomic-output-file cf
+      (lambda (port)
+        (put-string port (number->string n))
+        (newline port))
+      '(replace))))
 
 (define (bbs-write-counter! n)
   (doc 'type '(-> Int Void))
-  (doc 'description "PUBLIC: Write the counter value with locking. Uses atomic write-then-rename to prevent corruption")
+  (doc 'description "PUBLIC: Write the counter value with locking. Board-aware.")
   (doc 'export #t)
-  (with-file-lock *bbs-counter-file*
+  (with-file-lock (bbs-current-counter-file)
     (lambda ()
       (%bbs-write-counter! n))))
 
 (define (bbs-next-id!)
   (doc 'type '(-> String))
-  (doc 'description "Generate the next issue ID and increment counter. Returns 'fold-XXXX' format. Uses file locking to prevent race conditions with concurrent calls")
+  (doc 'description "Generate the next ID and increment counter. Uses board's id-prefix if in board context. Board-aware.")
   (doc 'export #t)
-  (with-file-lock *bbs-counter-file*
+  (with-file-lock (bbs-current-counter-file)
     (lambda ()
       (let* ([current (bbs-read-counter)]
              [next (+ current 1)]
-             [id (string-append *bbs-id-prefix* (int->base36 next))])
+             [id (string-append (bbs-current-id-prefix) (int->base36 next))])
         (%bbs-write-counter! next)
         id))))
 
 (define (bbs-id->number id)
   (doc 'type '(-> String (Option Int)))
-  (doc 'description "Extract the numeric part from an ID")
+  (doc 'description "Extract the numeric part from an ID using current prefix")
   (doc 'export #t)
-  (let ([prefix-len (string-length *bbs-id-prefix*)])
+  (bbs-id->number-with-prefix id (bbs-current-id-prefix)))
+
+(define (bbs-id->number-with-prefix id prefix)
+  (doc 'type '(-> String String (Option Int)))
+  (doc 'description "Extract the numeric part from an ID given a specific prefix")
+  (doc 'export #t)
+  (let ([prefix-len (string-length prefix)])
     (if (and (> (string-length id) prefix-len)
-             (string=? (substring id 0 prefix-len) *bbs-id-prefix*))
+             (string=? (substring id 0 prefix-len) prefix))
         (base36->int (substring id prefix-len (string-length id)))
         #f)))
 
 (define (bbs-sync-counter-from-heads! ids)
   (doc 'type '(-> (List String) Void))
-  (doc 'description "Sync counter to be at least as high as the highest existing ID. Call this during initialization to avoid ID collisions")
+  (doc 'description "Sync counter to be at least as high as the highest existing ID. Board-aware.")
   (doc 'export #t)
-  (with-file-lock *bbs-counter-file*
+  (with-file-lock (bbs-current-counter-file)
     (lambda ()
-      (let ([max-num (fold-left
-                      (lambda (acc id)
-                        (let ([num (bbs-id->number id)])
-                          (if (and num (> num acc))
-                              num
-                              acc)))
-                      0
-                      ids)])
-        (when (> max-num (bbs-read-counter))
-          (%bbs-write-counter! max-num))))))
+      (let ([prefix (bbs-current-id-prefix)])
+        (let ([max-num (fold-left
+                        (lambda (acc id)
+                          (let ([num (bbs-id->number-with-prefix id prefix)])
+                            (if (and num (> num acc))
+                                num
+                                acc)))
+                        0
+                        ids)])
+          (when (> max-num (bbs-read-counter))
+            (%bbs-write-counter! max-num)))))))

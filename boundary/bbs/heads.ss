@@ -20,20 +20,39 @@
 
 (define (bbs-head-path id)
   (doc 'type '(-> String String))
-  (doc 'description "Get the filesystem path for an issue's head file")
+  (doc 'description "Get the filesystem path for an issue's head file. Uses board context if active, otherwise falls back to flat layout")
   (doc 'export #t)
-  (string-append *bbs-heads-dir* "/" id ".head"))
+  (string-append (bbs-current-heads-dir) "/" id ".head"))
+
+(define (bbs-current-heads-dir)
+  (doc 'type '(-> String))
+  (doc 'description "Get the heads directory for the current context (board-aware or fallback).
+When no board context is active but the board registry is loaded, routes to
+the default 'issues' board to avoid writing to the legacy flat directory.")
+  (doc 'export #t)
+  (cond
+   [(and (top-level-bound? 'board-context?)
+         (board-context?))
+    (board-heads-dir (current-board))]
+   ;; No board context: route to default issues board if registry is loaded
+   [(and (top-level-bound? 'board-ref)
+         (board-ref "issues"))
+    (board-heads-dir (board-ref "issues"))]
+   [else *bbs-heads-dir*]))
 
 (define (bbs-ensure-heads-dir!)
   (doc 'type '(-> Void))
-  (doc 'description "Ensure the heads directory exists")
+  (doc 'description "Ensure the heads directory exists (board-aware)")
   (doc 'export #t)
   (unless (file-exists? ".store")
     (mkdir ".store"))
   (unless (file-exists? ".store/heads")
     (mkdir ".store/heads"))
-  (unless (file-exists? *bbs-heads-dir*)
-    (mkdir *bbs-heads-dir*)))
+  (unless (file-exists? ".store/heads/bbs")
+    (mkdir ".store/heads/bbs"))
+  (let ([dir (bbs-current-heads-dir)])
+    (unless (file-exists? dir)
+      (mkdir dir))))
 
 (doc 'section 'read-write-operations)
 
@@ -121,11 +140,29 @@
 
 (define (bbs-list-heads)
   (doc 'type '(-> (List String)))
-  (doc 'description "List all issue IDs that have head files")
+  (doc 'description "List all IDs that have head files in the current heads directory")
+  (doc 'export #t)
+  (let ([dir (bbs-current-heads-dir)])
+    (guard (e [else '()])
+      (if (file-exists? dir)
+          (let ([entries (directory-list dir)])
+            (filter-map
+             (lambda (entry)
+               (let ([len (string-length entry)])
+                 (if (and (> len 5)
+                          (string=? (substring entry (- len 5) len) ".head"))
+                     (substring entry 0 (- len 5))
+                     #f)))
+             entries))
+          '()))))
+
+(define (bbs-list-heads-in dir)
+  (doc 'type '(-> String (List String)))
+  (doc 'description "List all IDs with head files in a specific directory")
   (doc 'export #t)
   (guard (e [else '()])
-    (if (file-exists? *bbs-heads-dir*)
-        (let ([entries (directory-list *bbs-heads-dir*)])
+    (if (file-exists? dir)
+        (let ([entries (directory-list dir)])
           (filter-map
            (lambda (entry)
              (let ([len (string-length entry)])
@@ -138,11 +175,16 @@
 
 (define (bbs-list-issue-heads)
   (doc 'type '(-> (List String)))
-  (doc 'description "List only issue IDs (fold-* prefix), excluding posts. Use this for issue index operations to avoid counting posts")
+  (doc 'description "List only issue IDs (fold-* prefix), excluding posts. Use this for issue index operations to avoid counting posts. In board context, lists all heads (no filtering needed since boards are isolated)")
   (doc 'export #t)
-  (filter (lambda (id)
-            (and (>= (string-length id) 5)
-                 (string=? (substring id 0 5) "fold-")))
-          (bbs-list-heads)))
+  (if (and (top-level-bound? 'board-context?)
+           (board-context?))
+      ;; In board context, all heads belong to this board
+      (bbs-list-heads)
+      ;; Legacy: filter by prefix in flat layout
+      (filter (lambda (id)
+                (and (>= (string-length id) 5)
+                     (string=? (substring id 0 5) "fold-")))
+              (bbs-list-heads))))
 
 ;;; filter-map and string-trim provided by prelude

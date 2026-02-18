@@ -188,6 +188,105 @@
   (doc 'export #t)
   (block-refs blk))
 
+(doc 'section 'board-descriptor-block)
+
+(doc BBS-BOARD 'type 'Symbol)
+(doc BBS-BOARD 'description "Block tag for board descriptor entities")
+(define BBS-BOARD 'bbs/board)
+
+(doc 'section 'forum-blocks)
+
+(doc BBS-TOPIC 'type 'Symbol)
+(doc BBS-TOPIC 'description "Block tag for forum topic entities")
+(define BBS-TOPIC 'bbs/topic)
+
+(doc BBS-REPLY 'type 'Symbol)
+(doc BBS-REPLY 'description "Block tag for forum reply entities")
+(define BBS-REPLY 'bbs/reply)
+
+(define (make-topic-block id title body author created-at status version prev-hash)
+  (doc 'type '(-> String String String String String Symbol Int (Option Bytevector) Block))
+  (doc 'description "Create a forum topic block")
+  (doc 'export #t)
+  (let* ([payload-data `((id . ,id)
+                          (title . ,title)
+                          (body . ,body)
+                          (author . ,author)
+                          (created-at . ,created-at)
+                          (status . ,status)
+                          (version . ,version))]
+         [payload (string->utf8 (format "~s" payload-data))]
+         [refs (if prev-hash (vector prev-hash) (vector))])
+    (make-block BBS-TOPIC payload refs)))
+
+(define (topic-block-data blk)
+  (doc 'type '(-> Block (Option Alist)))
+  (doc 'description "Extract topic data from a block")
+  (doc 'export #t)
+  (if (and (block? blk) (eq? (block-tag blk) BBS-TOPIC))
+      (read (open-input-string (utf8->string (block-payload blk))))
+      #f))
+
+(define (topic-block-prev blk)
+  (doc 'type '(-> Block (Option Bytevector)))
+  (doc 'description "Get the previous version hash from a topic block")
+  (doc 'export #t)
+  (let ([refs (block-refs blk)])
+    (if (> (vector-length refs) 0)
+        (vector-ref refs 0)
+        #f)))
+
+(define (make-reply-block topic-hash reply-id body author created-at parent-hash)
+  (doc 'type '(-> Bytevector String String String String (Option Bytevector) Block))
+  (doc 'description "Create a forum reply block. refs[0] = topic or parent reply hash")
+  (doc 'param 'parent-hash "Hash of parent (topic or reply for nested threading)")
+  (doc 'export #t)
+  (let* ([payload-data `((id . ,reply-id)
+                          (body . ,body)
+                          (author . ,author)
+                          (created-at . ,created-at))]
+         [payload (string->utf8 (format "~s" payload-data))]
+         [refs (if parent-hash
+                   (vector topic-hash parent-hash)
+                   (vector topic-hash))])
+    (make-block BBS-REPLY payload refs)))
+
+(define (reply-block-data blk)
+  (doc 'type '(-> Block (Option Alist)))
+  (doc 'description "Extract reply data from a block")
+  (doc 'export #t)
+  (if (and (block? blk) (eq? (block-tag blk) BBS-REPLY))
+      (read (open-input-string (utf8->string (block-payload blk))))
+      #f))
+
+(define (reply-block-topic-hash blk)
+  (doc 'type '(-> Block Bytevector))
+  (doc 'description "Get the topic hash from a reply block (refs[0])")
+  (doc 'export #t)
+  (vector-ref (block-refs blk) 0))
+
+(define (make-board-block slug board-type id-prefix description created-at created-by)
+  (doc 'type '(-> String Symbol String String String String Block))
+  (doc 'description "Create a board descriptor block for CAS storage")
+  (doc 'export #t)
+  (let* ([payload-data `((name . ,slug)
+                          (slug . ,slug)
+                          (board-type . ,board-type)
+                          (id-prefix . ,id-prefix)
+                          (description . ,description)
+                          (created-at . ,created-at)
+                          (created-by . ,created-by))]
+         [payload (string->utf8 (format "~s" payload-data))])
+    (make-block BBS-BOARD payload (vector))))
+
+(define (board-block-data blk)
+  (doc 'type '(-> Block (Option Alist)))
+  (doc 'description "Extract board descriptor data from a block")
+  (doc 'export #t)
+  (if (and (block? blk) (eq? (block-tag blk) BBS-BOARD))
+      (read (open-input-string (utf8->string (block-payload blk))))
+      #f))
+
 (doc 'section 'post-block)
 
 (define (make-post-block id title body post-type tags created-at author version prev-hash)

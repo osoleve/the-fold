@@ -1,24 +1,35 @@
+(load "boundary/bbs/board.ss")
 (load "boundary/bbs/ops.ss")
 (load "boundary/bbs/posts.ss")
+(load "boundary/bbs/forum.ss")
+(load "boundary/bbs/forum-index.ss")
+(load "boundary/bbs/item.ss")
+(load "boundary/bbs/migrate.ss")
 
 (doc 'module 'bbs)
-(doc 'description "BBS Entry Point - CAS-native bulletin board system for issue tracking and posts")
+(doc 'description "BBS Entry Point - Multi-board CAS-native bulletin board system")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
 (doc 'note "Usage:
   (bbs-init!)
 
-  ;; Issues
+  ;; Issues (default tracker board)
   (bbs-create \"Issue title\" 'priority 2 'type 'task)
   (bbs-show 'fold-001)
   (bbs-list)
   (bbs-update 'fold-001 'status 'in_progress)
   (bbs-close 'fold-001 'reason \"Done!\")
 
-  ;; Posts (changelogs, notes, announcements)
+  ;; Posts (default feed board)
   (post-create \"Title\" \"Body...\" 'changelog)
   (post-show 'post-1)
-  (post-list)")
+  (post-list)
+
+  ;; Multi-board
+  (boards)
+  (board-create! \"discuss\" 'forum \"discuss-\" \"General discussion\")
+  (board-switch \"discuss\")
+  (with-board (board-ref \"discuss\") (item-create! \"Topic title\" 'body \"...\"))")
 
 (doc 'section 'initialization)
 
@@ -32,59 +43,152 @@
 
 (define (bbs-init!)
   (doc 'type (-> Int))
-  (doc 'description "Initialize the BBS system (issues and posts)")
+  (doc 'description "Initialize the BBS system. Handles migration, board registry, and index loading.")
   (doc 'note "Tries cached index first, rebuilds only if cache is stale")
   (if *bbs-initialized*
-      (hashtable-size (let () *bbs-by-status*))  ; Return count without reinit
+      (bbs-issue-count)
       (begin
         (printf "Initializing BBS...~n")
-        ;; Initialize issues
-        (let ([count (if (bbs-load-index-cache!)
-                         (begin
-                           (printf "  (issues loaded from cache)~n")
-                           (bbs-issue-count))
-                         (bbs-rebuild-indices!))])
+
+        ;; Check for migration
+        (when (bbs-needs-migration?)
+          (bbs-migrate-to-boards!))
+
+        ;; Load or create board registry
+        (unless (board-load-registry!)
+          ;; Fresh install — create default boards
+          (board-create! "issues" 'tracker "fold-" "The Fold issue tracker")
+          (board-create! "changelog" 'feed "post-" "Changelog and announcements"))
+
+        ;; Initialize issues board
+        (let* ([issues-board (board-ref "issues")]
+               [count (if issues-board
+                         (bbs-init-board! issues-board)
+                         0)])
+          ;; Wire globals to issues board for backward compatibility
+          (when issues-board
+            (set! *bbs-issues* (board-items-ht issues-board))
+            (set! *bbs-by-status* (board-by-status-ht issues-board))
+            (set! *bbs-by-priority* (board-by-priority-ht issues-board))
+            (set! *bbs-deps* (board-deps issues-board)))
+
           (set! *bbs-initialized* #t)
           (printf "  Loaded ~a issues~n" count)
-          ;; Initialize posts
-          (bbs-init-posts!)
+
+          ;; Initialize changelog board
+          (let ([changelog-board (board-ref "changelog")])
+            (when changelog-board
+              (bbs-init-feed-board! changelog-board)))
+
+          ;; Initialize any other boards
+          (for-each
+           (lambda (b)
+             (let ([slug (board-slug b)])
+               (unless (or (string=? slug "issues")
+                           (string=? slug "changelog"))
+                 (case (board-board-type b)
+                   [(tracker) (bbs-init-board! b)]
+                   [(feed) (bbs-init-feed-board! b)]
+                   [(forum) (bbs-init-forum-board! b)]))))
+           (board-list))
+
+          count))))
+
+(define (bbs-init-board! b)
+  (doc 'type '(-> Board Int))
+  (doc 'description "Initialize a tracker board's index")
+  (if (board-initialized? b)
+      (hashtable-size (board-items-ht b))
+      (with-board b
+        (let ([count (if (bbs-load-index-cache!)
+                         (begin
+                           (printf "  (~a: loaded from cache)~n" (board-slug b))
+                           (hashtable-size (board-items-ht b)))
+                         (bbs-rebuild-indices!))])
+          (board-set-initialized! b)
+          count))))
+
+(define (bbs-init-feed-board! b)
+  (doc 'type '(-> Board Int))
+  (doc 'description "Initialize a feed board's index")
+  (if (board-initialized? b)
+      (hashtable-size (board-items-ht b))
+      (with-board b
+        (let ([count (if (post-load-index-cache!)
+                         (begin
+                           (printf "  (~a: loaded from cache)~n" (board-slug b))
+                           (hashtable-size (board-items-ht b)))
+                         (post-rebuild-indices!))])
+          ;; Wire globals for changelog backward compat
+          (when (string=? (board-slug b) "changelog")
+            (set! *bbs-posts* (board-items-ht b))
+            (set! *bbs-posts-by-type* (board-by-type-ht b))
+            (set! *bbs-posts-initialized* #t))
+          (board-set-initialized! b)
+          (printf "  Loaded ~a posts (~a)~n" count (board-slug b))
+          count))))
+
+(define (bbs-init-forum-board! b)
+  (doc 'type '(-> Board Int))
+  (doc 'description "Initialize a forum board's index")
+  (if (board-initialized? b)
+      (hashtable-size (board-items-ht b))
+      (with-board b
+        (let ([count (forum-rebuild-index!)])
+          (board-set-initialized! b)
+          (printf "  Loaded ~a topics (~a)~n" count (board-slug b))
           count))))
 
 (define (bbs-init-posts!)
   (doc 'type (-> Int))
-  (doc 'description "Initialize the post index")
-  (doc 'note "Tries cached index first, rebuilds only if cache is stale")
+  (doc 'description "Initialize the post index (backward compat)")
   (if *bbs-posts-initialized*
-      (post-index-count)  ; Return count without reinit
-      (let ([count (if (post-load-index-cache!)
-                       (begin
-                         (printf "  (posts loaded from cache)~n")
-                         (post-index-count))
-                       (post-rebuild-indices!))])
-        (set! *bbs-posts-initialized* #t)
-        (printf "  Loaded ~a posts~n" count)
-        count)))
+      (post-index-count)
+      (let ([b (board-ref "changelog")])
+        (if b
+            (bbs-init-feed-board! b)
+            0))))
 
 (define (bbs-init-posts-quiet!)
   (doc 'type (-> Int))
   (doc 'description "Initialize post index silently (for startup)")
   (unless *bbs-posts-initialized*
-    (unless (post-load-index-cache!)
-      (post-rebuild-indices!))
+    (let ([b (board-ref "changelog")])
+      (when b
+        (with-board b
+          (unless (post-load-index-cache!)
+            (post-rebuild-indices!))
+          (set! *bbs-posts* (board-items-ht b))
+          (set! *bbs-posts-by-type* (board-by-type-ht b)))))
     (set! *bbs-posts-initialized* #t))
   (post-index-count))
 
 (define (bbs-init-quiet!)
   (doc 'type (-> Int))
   (doc 'description "Initialize BBS silently (for startup)")
-  (doc 'note "Tries cached index first for fast startup")
   (unless *bbs-initialized*
-    (unless (bbs-load-index-cache!)
-      (bbs-rebuild-indices!))
+    ;; Check for migration
+    (when (bbs-needs-migration?)
+      (bbs-migrate-to-boards!))
+    ;; Load registry
+    (unless (board-load-registry!)
+      (board-create! "issues" 'tracker "fold-" "The Fold issue tracker")
+      (board-create! "changelog" 'feed "post-" "Changelog and announcements"))
+    ;; Init issues
+    (let ([issues-board (board-ref "issues")])
+      (when issues-board
+        (with-board issues-board
+          (unless (bbs-load-index-cache!)
+            (bbs-rebuild-indices!))
+          (set! *bbs-issues* (board-items-ht issues-board))
+          (set! *bbs-by-status* (board-by-status-ht issues-board))
+          (set! *bbs-by-priority* (board-by-priority-ht issues-board))
+          (set! *bbs-deps* (board-deps issues-board))
+          (board-set-initialized! issues-board))))
     (set! *bbs-initialized* #t))
   ;; Also init posts silently
   (bbs-init-posts-quiet!)
-  (hashtable-size *bbs-by-status*))
+  (bbs-issue-count))
 
 (doc 'section 'display-functions)
 
@@ -266,19 +370,16 @@
 (define (bbs-add-blocker blocker blocked)
   (doc 'type (-> (Or String Symbol) (Or String Symbol) Void))
   (doc 'description "Add a dependency where blocker blocks blocked")
-  (doc 'note "Alias for bbs-dep with clearer naming")
-  (doc 'example "(bbs-add-blocker 'fold-001 'fold-002) means fold-001 blocks fold-002")
   (bbs-dep blocker blocked))
 
 (define (bbs-remove-blocker blocker blocked)
   (doc 'type (-> (Or String Symbol) (Or String Symbol) Void))
   (doc 'description "Remove a dependency")
-  (doc 'note "Alias for bbs-undep with clearer naming")
   (bbs-undep blocker blocked))
 
 (define (bbs-gc)
   (doc 'type (-> Void))
-  (doc 'description "Garbage collect stale dependencies (where either issue is missing)")
+  (doc 'description "Garbage collect stale dependencies")
   (let ([removed (bbs-gc-deps!)])
     (if (null? removed)
         (printf "No stale dependencies found.~n")
@@ -294,7 +395,6 @@
 (define (bbs-by-label label)
   (doc 'type (-> Symbol (List String)))
   (doc 'description "Get issue IDs that have a specific label")
-  (doc 'returns "List of IDs (not displayed)")
   (filter
    (lambda (id)
      (let ([data (bbs-fetch-issue-data id)])
@@ -360,7 +460,6 @@
 (define (bbs-search query . args)
   (doc 'type (-> String Void))
   (doc 'description "Search issues by title AND description (case-insensitive)")
-  (doc 'note "More comprehensive than bbs-find which only searches titles")
   (let* ([limit (get-keyword-arg args 'limit 20)]
          [query-lower (string-downcase query)]
          [matches (filter
@@ -420,6 +519,30 @@
          (printf "  ~a: ~a~n" (pad-right (symbol->string label) 20) count)))
      labels)))
 
+(doc 'section 'board-management-commands)
+
+(define (boards)
+  (doc 'type (-> Void))
+  (doc 'description "List all registered boards")
+  (doc 'export #t)
+  (let ([bs (board-list)])
+    (printf "~a boards~n" (length bs))
+    (printf "~a~n" (make-string 50 #\-))
+    (for-each
+     (lambda (b)
+       (printf "  ~a  [~a]  ~a  (~a items)~n"
+               (pad-right (board-slug b) 15)
+               (pad-right (symbol->string (board-board-type b)) 7)
+               (truncate-str (board-description b) 25)
+               (hashtable-size (board-items-ht b))))
+     bs)))
+
+(define (board-switch slug)
+  (doc 'type (-> String Void))
+  (doc 'description "Display info about a board (for REPL exploration). Use with-board for programmatic access.")
+  (doc 'export #t)
+  (board-info slug))
+
 (doc 'section 'string-utilities)
 
 (define (take-n n lst)
@@ -472,7 +595,7 @@
 
 (doc 'section 'print-help)
 
-(printf "bbs.ss loaded.~n")
+(printf "bbs.ss loaded (multi-board).~n")
 (printf "  (bbs-init!)                     - Initialize BBS~n")
 (printf "  (bbs-create \"title\" ...)        - Create issue~n")
 (printf "  (bbs-show 'id)                  - Show issue~n")
@@ -489,6 +612,8 @@
 (printf "  (bbs-list-by-label 'label)      - Filter by label~n")
 (printf "  (bbs-list-by-type 'type)        - Filter by type~n")
 (printf "  (bbs-label-report)              - Show all labels~n")
+(printf "  (boards)                        - List all boards~n")
+(printf "  (board-create! slug type ...)   - Create new board~n")
 
 ;;; Auto-initialize on load (prevents stale cache issues)
 (bbs-init!)

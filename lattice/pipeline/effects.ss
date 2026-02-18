@@ -261,42 +261,75 @@
 ;;; ====
 ;;; BBS (Issue Tracker) Effects
 ;;; ====
+;;; All BBS effects accept an optional 'board keyword argument
+;;; to target a specific board. Defaults to "issues" for tracker ops.
+;;; Example: (bbs-create "Title" 'board "discuss")
 
-;;; bbs-create : String -> Stage ctx i String
-;;; Create an issue, return ID.
-(define (bbs-create title)
-  (effect 'bbs
-          (list 'create title)))
+;;; Extract 'board keyword from rest args (local to avoid boundary dep)
+(define (%bbs-board-arg args)
+  (let loop ([rest args])
+    (cond
+     [(null? rest) #f]
+     [(and (pair? (cdr rest)) (eq? (car rest) 'board))
+      (cadr rest)]
+     [else (loop (cdr rest))])))
 
-;;; bbs-create-full : String -> String -> Symbol -> Nat -> Stage ctx i String
+;;; bbs-create : String [#:board String] -> Stage ctx i String
+;;; Create an issue/topic/post, return ID.
+(define (bbs-create title . args)
+  (let ([board (%bbs-board-arg args)])
+    (effect 'bbs
+            (if board
+                (list 'create title 'board board)
+                (list 'create title)))))
+
+;;; bbs-create-full : String -> String -> Symbol -> Nat [#:board String] -> Stage ctx i String
 ;;; Create issue with full details.
-(define (bbs-create-full title description type priority)
-  (effect 'bbs
-          (list 'create-full title description type priority)))
+(define (bbs-create-full title description type priority . args)
+  (let ([board (%bbs-board-arg args)])
+    (effect 'bbs
+            (if board
+                (list 'create-full title description type priority 'board board)
+                (list 'create-full title description type priority)))))
 
-;;; bbs-update : String -> Alist -> Stage ctx i ()
+;;; bbs-update : String -> Alist [#:board String] -> Stage ctx i ()
 ;;; Update an issue by ID.
-(define (bbs-update id updates)
-  (effect 'bbs
-          (list 'update id updates)))
+(define (bbs-update id updates . args)
+  (let ([board (%bbs-board-arg args)])
+    (effect 'bbs
+            (if board
+                (list 'update id updates 'board board)
+                (list 'update id updates)))))
 
-;;; bbs-close : String -> Stage ctx i ()
+;;; bbs-close : String [#:board String] -> Stage ctx i ()
 ;;; Close an issue.
-(define (bbs-close id)
-  (effect 'bbs
-          (list 'close id)))
+(define (bbs-close id . args)
+  (let ([board (%bbs-board-arg args)])
+    (effect 'bbs
+            (if board
+                (list 'close id 'board board)
+                (list 'close id)))))
 
 ;;; bbs-ready : Stage ctx i (List Issue)
-;;; Get ready (unblocked) issues.
+;;; Get ready (unblocked) issues. Stage value (not a function) for pipeline compat.
 (define bbs-ready
   (effect 'bbs
           (list 'ready)))
 
-;;; bbs-show : String -> Stage ctx i Issue
-;;; Get issue details.
-(define (bbs-show id)
+;;; bbs-ready-board : String -> Stage ctx i (List Issue)
+;;; Get ready issues for a specific board.
+(define (bbs-ready-board board)
   (effect 'bbs
-          (list 'show id)))
+          (list 'ready 'board board)))
+
+;;; bbs-show : String [#:board String] -> Stage ctx i Issue
+;;; Get issue details.
+(define (bbs-show id . args)
+  (let ([board (%bbs-board-arg args)])
+    (effect 'bbs
+            (if board
+                (list 'show id 'board board)
+                (list 'show id)))))
 
 ;;; Backwards compatibility aliases
 (define beads-create bbs-create)
