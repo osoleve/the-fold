@@ -417,6 +417,74 @@
            (string-append (substring s 0 (- max-len 3)) "..."))))
 
 ;;; ====
+;;; Structured Data API (for MCP/IPC)
+;;; ====
+
+(doc lattice-describe-data 'type (-> Symbol (Maybe Alist)))
+(doc lattice-describe-data 'description "Structured skill info for MCP/IPC. Returns enriched alist or #f if not found.")
+;;; lattice-describe-data : Symbol -> Alist | #f
+;;; Returns the lattice-info alist enriched with module require paths.
+;;; Callers get a single self-contained S-expression per skill.
+(define (lattice-describe-data skill-name)
+  (let ([info (lattice-info skill-name)])
+    (if (not info)
+        #f
+        (let ([modules (kg-modules skill-name)])
+          `(,@info
+            (modules . ,(map (lambda (mod)
+                               (let* ([mod-name (car mod)]
+                                      [bare (module-bare-name mod-name)])
+                                 `((name . ,mod-name)
+                                   (require . ,bare))))
+                             modules)))))))
+
+(doc lattice-exports-data 'type (-> Symbol (Maybe Alist)))
+(doc lattice-exports-data 'description "Structured exports for MCP/IPC. Returns alist with grouped exports or #f if not found.")
+;;; lattice-exports-data : Symbol -> Alist | #f
+;;; Returns: ((skill . name) (total . N) (groups ((name . mod) (require . mod) (exports sym1 sym2 ...)) ...))
+(define (lattice-exports-data skill-name)
+  (let ([data (kg-skill-data skill-name)])
+    (if (not data)
+        #f
+        (let* ([exports-raw (cdr (or (assq 'exports data) '(exports . ())))]
+               [total (length (lattice-skill-exports skill-name))])
+          `((skill . ,skill-name)
+            (total . ,total)
+            (groups . ,(exports-raw->groups exports-raw skill-name)))))))
+
+;;; exports-raw->groups : List Symbol -> (List Alist)
+;;; Convert raw manifest exports into structured module groups.
+;;; Handles both grouped ((mod sym1 sym2) ...) and flat (sym1 sym2 ...) formats.
+(define (exports-raw->groups exports-raw skill-name)
+  (cond
+    [(or (not (list? exports-raw)) (null? exports-raw))
+     '()]
+    ;; Already grouped: ((module-name sym1 sym2 ...) ...)
+    [(and (pair? (car exports-raw)) (list? (car exports-raw)))
+     (filter-map
+      (lambda (group)
+        (and (pair? group) (list? group)
+             (let* ([mod-name (car group)]
+                    [syms (filter symbol? (cdr group))])
+               `((name . ,mod-name)
+                 (require . ,(symbol->string mod-name))
+                 (exports . ,syms)))))
+      exports-raw)]
+    ;; Flat: group via *export-module-map* where possible
+    [else
+     (let* ([syms (lattice-skill-exports skill-name)]
+            [grouped (group-exports-by-module syms)])
+       (map (lambda (group)
+              (let ([mod-name (car group)]
+                    [mod-syms (cdr group)])
+                `((name . ,(or mod-name 'ungrouped))
+                  ,@(if mod-name
+                        `((require . ,(symbol->string mod-name)))
+                        '())
+                  (exports . ,mod-syms))))
+            grouped))]))
+
+;;; ====
 ;;; Convenience Functions (for REPL)
 ;;; ====
 

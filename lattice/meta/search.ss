@@ -107,6 +107,24 @@
                                   exports-raw))))))
    (kg-skills))
 
+  ;; Second pass: populate export→module map from *module-paths* via exports-of
+  ;; This catches exports not declared in manifests. Manifest mappings win (don't overwrite).
+  (when (top-level-bound? 'exports-of)
+        (let ([mod-names (hashtable-keys *module-paths*)])
+             (vector-for-each
+              (lambda (mod-name)
+                      (let ([path (hashtable-ref *module-paths* mod-name #f)])
+                           (when (and path (file-exists? path))
+                                 (guard (e [else (void)])  ; skip files that fail to parse
+                                   (let ([syms (exports-of path)])
+                                        (for-each
+                                         (lambda (sym)
+                                                 (when (and (symbol? sym)
+                                                            (not (hashtable-ref *export-module-map* sym #f)))
+                                                       (hashtable-set! *export-module-map* sym mod-name)))
+                                         syms))))))
+              mod-names)))
+
   ;; Index all exports (with docstrings and module info)
   (for-each
    (lambda (export-entry)
@@ -573,6 +591,61 @@
 (define (search-scores show?)
   (set! *show-scores* show?)
   (printf "Score display: ~a\n" (if show? "on" "off")))
+
+(doc 'section 'structured-data-api)
+
+(doc lattice-find-data 'type (-> String (List Alist)))
+(doc lattice-find-data 'description "Search returning structured alists instead of printing. For MCP/IPC consumption.")
+;;; lattice-find-data : String [Nat] -> (List Alist)
+;;; Each result is an alist: ((id . sym) (score . 0.85) (type . export) ...)
+;;; with type-specific fields: module, docstring (exports); description (skills); skill (modules)
+(define (lattice-find-data query . args)
+  (let* ([k (if (pair? args) (car args) 10)]
+         [results (lattice-find query k)])
+    (map (lambda (result)
+           (let ([id (car result)]
+                 [score (cadr result)]
+                 [type (caddr result)]
+                 [data (cadddr result)])
+             `((id . ,id)
+               (score . ,(round-to score 3))
+               (type . ,type)
+               ,@(result-data->alist type data))))
+         results)))
+
+;;; result-data->alist : Symbol Alist -> Alist
+;;; Extract type-specific fields from a search result's data payload
+(define (result-data->alist type data)
+  (if (not data)
+      '()
+      (case type
+        [(skill)
+         (let ([desc (assq 'description data)]
+               [tier (assq 'tier data)]
+               [purity (assq 'purity data)]
+               [modules-raw (assq 'modules data)])
+           `(,@(if (and desc (string? (cdr desc)))
+                   `((description . ,(cdr desc)))
+                   '())
+             ,@(if tier `((tier . ,(cdr tier))) '())
+             ,@(if purity `((purity . ,(cdr purity))) '())
+             ,@(if modules-raw
+                   `((module-count . ,(length (cdr modules-raw))))
+                   '())))]
+        [(export)
+         (let ([mod (assq 'module data)]
+               [doc (assq 'docstring data)])
+           `(,@(if mod `((module . ,(cdr mod))
+                         (require . ,(cdr mod)))
+                   '())
+             ,@(if (and doc (string? (cdr doc))
+                        (> (string-length (cdr doc)) 0))
+                   `((docstring . ,(cdr doc)))
+                   '())))]
+        [(module)
+         (let ([skill (assq 'skill data)])
+           `(,@(if skill `((skill . ,(cdr skill))) '())))]
+        [else '()])))
 
 (doc 'section 'repl-interface)
 

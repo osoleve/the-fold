@@ -441,9 +441,11 @@
                       [else ""])]
          [limit (cond [(and args (assq 'limit args)) => cdr]
                       [else 20])]
-         [text (capture-output (lambda () (lf query)))]
-         [resp (ipc-make-data-result req-id
-                 (if (string=? text "") "No matches found." text)
+         [results (lattice-find-data query limit)]
+         [text (if (null? results)
+                   "No matches found."
+                   (format "~s" results))]
+         [resp (ipc-make-data-result req-id text
                  `((query . ,query) (limit . ,limit)))]
          [frame (ipc-encode-frame resp)])
     (write-frame-stdout frame)))
@@ -456,11 +458,11 @@
                                           (string->symbol (cdr p))
                                           (cdr p)))]
                       [else 'unknown])]
-         [text (capture-output (lambda () (li skill)))]
-         [resp (ipc-make-data-result req-id
-                 (if (string=? text "")
-                     (format "Skill '~a' not found." skill)
-                     text)
+         [data (lattice-describe-data skill)]
+         [text (if data
+                   (format "~s" data)
+                   (format "Skill '~a' not found." skill))]
+         [resp (ipc-make-data-result req-id text
                  `((skill . ,skill)))]
          [frame (ipc-encode-frame resp)])
     (write-frame-stdout frame)))
@@ -473,11 +475,11 @@
                                           (string->symbol (cdr p))
                                           (cdr p)))]
                       [else 'unknown])]
-         [text (capture-output (lambda () (le skill)))]
-         [resp (ipc-make-data-result req-id
-                 (if (string=? text "")
-                     (format "Skill '~a' not found." skill)
-                     text)
+         [data (lattice-exports-data skill)]
+         [text (if data
+                   (format "~s" data)
+                   (format "Skill '~a' not found." skill))]
+         [resp (ipc-make-data-result req-id text
                  `((skill . ,skill)))]
          [frame (ipc-encode-frame resp)])
     (write-frame-stdout frame)))

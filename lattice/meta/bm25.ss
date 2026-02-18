@@ -341,11 +341,98 @@
             (tokenize (symbol->string name))
             (tokenize description)))))
 
+(doc 'section 'operator-expansion)
+(doc 'note "Operator symbols are invisible to BM25 tokenization because word-char? only accepts alphanumeric/hyphen/underscore. This section expands operator characters and known compound operators into searchable word tokens at index time (export->terms only, not query tokenize).")
+
+;;; Compound operator expansions — specific multi-char sequences with known semantics.
+;;; Checked before per-character fallback.
+(define *compound-operator-expansions*
+  '(("^."   . (view lens-view optic-view))
+    ("^?"   . (preview affine-preview optic-preview))
+    ("^.."  . (to-list-of traversal-fold fold-of))
+    (".~"   . (set lens-set optic-set))
+    ("%~"   . (over lens-over optic-over))
+    (">>>"  . (compose compose-forward then pipe))
+    ("<<<"  . (compose compose-backward))
+    ("&&&"  . (fanout both split))
+    ("***"  . (split parallel bimap))
+    ("+++"  . (choice either))))
+
+;;; Per-character operator expansions — fallback for unknown operator sequences.
+(define *operator-char-expansions*
+  '((#\+ . (add plus))
+    (#\- . (sub subtract negate))
+    (#\* . (mul multiply star))
+    (#\/ . (div divide))
+    (#\^ . (power view))
+    (#\. . (dot access compose))
+    (#\~ . (set over modify))
+    (#\% . (over modify))
+    (#\& . (and fanout both))
+    (#\| . (or choice))
+    (#\> . (compose forward pipe then))
+    (#\< . (compose backward))
+    (#\! . (bang mutate effect))
+    (#\= . (equal eq))
+    (#\? . (predicate query check))))
+
+;;; operator-char? : Char -> Bool
+;;; True if the character is an operator (non-word, non-whitespace).
+(define (operator-char? c)
+  (and (not (char-alphabetic? c))
+       (not (char-numeric? c))
+       (not (char=? c #\-))
+       (not (char=? c #\_))
+       (not (char-whitespace? c))))
+
+;;; split-word-operator : String -> (Pair String String)
+;;; Split a symbol name into (word-prefix . operator-suffix).
+;;; "vec+" -> ("vec" . "+"), "^." -> ("" . "^."), "stage->>>" -> ("stage-" . ">>>")
+;;; The split point is the first operator char that is followed only by operator chars.
+(define (split-word-operator str)
+  (let ([len (string-length str)])
+    (let loop ([i (- len 1)])
+      (cond
+        [(< i 0)
+         ;; Entire string is operators
+         (cons "" str)]
+        [(operator-char? (string-ref str i))
+         (loop (- i 1))]
+        [else
+         ;; i is the last word-char; split at i+1
+         (cons (substring str 0 (+ i 1))
+               (substring str (+ i 1) len))]))))
+
+;;; expand-operator-str : String -> (List Symbol)
+;;; Expand an operator string into searchable terms.
+;;; Checks compound table first, then falls back to per-character expansion.
+(define (expand-operator-str op-str)
+  (if (string=? op-str "")
+      '()
+      (let ([compound (assoc op-str *compound-operator-expansions*)])
+        (if compound
+            (cdr compound)
+            ;; Per-character fallback: collect expansions for each char
+            (let loop ([chars (string->list op-str)] [terms '()])
+              (if (null? chars)
+                  (remove-duplicates terms)
+                  (let ([entry (assv (car chars) *operator-char-expansions*)])
+                    (loop (cdr chars)
+                          (if entry
+                              (append terms (cdr entry))
+                              terms)))))))))
+
 (doc export->terms 'type (-> Symbol (List Symbol)))
-(doc export->terms 'description "Extract searchable terms from export symbol")
+(doc export->terms 'description "Extract searchable terms from export symbol. Enriches standard tokenization with operator symbol expansions so that operator-heavy names like ^., %~, vec+, stage->>> are findable by semantic search terms.")
 (define (export->terms sym)
   (if (symbol? sym)
-      (tokenize (symbol->string sym))
+      (let* ([str (symbol->string sym)]
+             [base-terms (tokenize str)]
+             [split (split-word-operator str)]
+             [word-prefix (car split)]
+             [op-suffix (cdr split)]
+             [op-terms (expand-operator-str op-suffix)])
+        (remove-duplicates (append base-terms op-terms)))
       '()))
 
 (doc 'section 'repl-interface)
