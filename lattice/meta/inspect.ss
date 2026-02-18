@@ -245,16 +245,14 @@
 ;;; group-exports-by-module : (List Symbol) -> (List (module-or-#f . (syms ...)))
 ;;; Group exports using *export-module-map*. Ungrouped exports get #f key (sorted last).
 (define (group-exports-by-module syms)
-  (let ([groups '()] [order '()])
+  (let ([groups '()])
     (for-each
      (lambda (sym)
        (let* ([mod (hashtable-ref *export-module-map* sym #f)]
               [existing (assq mod groups)])
          (if existing
              (set-cdr! existing (cons sym (cdr existing)))
-             (begin
-               (set! groups (cons (list mod sym) groups))
-               (set! order (cons mod order))))))
+             (set! groups (cons (list mod sym) groups)))))
      syms)
     ;; Reverse each group's syms, put #f (ungrouped) last
     (let* ([finalized (map (lambda (g) (cons (car g) (reverse (cdr g))))
