@@ -229,4 +229,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (multivariate  0 (prelude field sort)  "algebra/multivariate.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 53+ entries will be added as we review modules
+  ;; Phase 53 — Gröbner Bases (5 tasks total)
+  (modules
+    (groebner  0 (prelude multivariate)  "algebra/groebner.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 54 — Eigenvalue Computation (5 tasks total)
+  (modules
+    (matrix-eigen  1 (prelude vec matrix matrix-decomp)  "linalg/matrix-eigen.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 55 — Digital Filters (5 tasks total)
+  (modules
+    (digital-filters  0 (prelude complex dft convolution vec)  "numeric/digital-filters.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 56+ entries will be added as we review modules
