@@ -65,4 +65,8 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (primality  0 (prelude sort modular)  "number-theory/primality.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 12+ entries will be added as we review modules
+  ;; Phase 12 — Signal Processing (5 tasks total)
+  (modules
+    (dft  0 (prelude complex vec)  "numeric/dft.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 13+ entries will be added as we review modules
