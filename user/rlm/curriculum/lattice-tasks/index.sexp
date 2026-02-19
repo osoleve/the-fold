@@ -45,4 +45,12 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (entropy  0 (prelude transcendental)  "info/entropy.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 7+ entries will be added as we review modules
+  ;; Phase 7 — Spatial Data Structures (5 tasks total)
+  (modules
+    (kdtree  0 (prelude sort heap)  "data/kdtree.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 8 — Topology (5 tasks total)
+  (modules
+    (simplicial-complex  1 (set sort)  "topology/simplicial-complex.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 9+ entries will be added as we review modules
