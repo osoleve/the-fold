@@ -97,4 +97,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (statistical-measures  0 (prelude entropy transcendental)  "info/statistical-measures.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 20+ entries will be added as we review modules
+  ;; Phase 20 — Algebra II (5 tasks total)
+  (modules
+    (tropical  0 (prelude matrix)  "algebra/tropical.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 21 — Topology II (5 tasks total)
+  (modules
+    (homology  1 (simplicial-complex)  "topology/homology.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 22 — Signal Processing IV (5 tasks total)
+  (modules
+    (wavelet  0 (prelude vec)  "numeric/wavelet.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 23+ entries will be added as we review modules
