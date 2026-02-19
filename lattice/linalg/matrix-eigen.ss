@@ -28,8 +28,8 @@ Do NOT load dependencies here to avoid redefinition issues.")
 
 (doc 'module 'constants
      'description "Default tolerance and maximum iterations for eigenvalue computations")
-(define *eigen-tolerance* 1e-10)
-(define *eigen-max-iterations* 1000)
+(define *eigen-tolerance* 1e-8)
+(define *eigen-max-iterations* 200)
 
 (doc 'section 'power-iteration
      'description "Power iteration for finding dominant eigenvalue")
