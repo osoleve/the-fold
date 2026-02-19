@@ -301,4 +301,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (ode-system  0 (prelude vec matrix)  "sim/ode-system.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 71+ entries will be added as we review modules
+  ;; Phase 71 — Symbolic Expressions (5 tasks total)
+  (modules
+    (expr  0 (prelude)  "fp/expr.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 72 — Fair Division (5 tasks total)
+  (modules
+    (fair-division  0 (prelude sort vec)  "game-theory/fair-division.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 73 — Cost Analysis (5 tasks total)
+  (modules
+    (cost-analysis  0 (prelude sort)  "fp/cost-analysis.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 74+ entries will be added as we review modules
