@@ -73,4 +73,8 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (sha512  0 ()  "crypto/sha512.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 14+ entries will be added as we review modules
+  ;; Phase 14 — Signal Processing II (5 tasks total)
+  (modules
+    (window-functions  0 (prelude)  "numeric/window-functions.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 15+ entries will be added as we review modules
