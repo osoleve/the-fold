@@ -145,4 +145,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (normal-form  0 (prelude)  "game-theory/normal-form.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 32+ entries will be added as we review modules
+  ;; Phase 32 — Graph Topology (5 tasks total)
+  (modules
+    (graph-homology  1 (prelude homology)  "data/graph-homology.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 33 — Optimization (5 tasks total)
+  (modules
+    (convergence  0 (prelude vec)  "optimization/convergence.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 34 — Numeric Bridges (5 tasks total)
+  (modules
+    (complex-bridge  0 (prelude complex)  "numeric/complex-bridge.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 35+ entries will be added as we review modules
