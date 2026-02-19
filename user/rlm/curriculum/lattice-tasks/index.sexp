@@ -69,4 +69,8 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (dft  0 (prelude complex vec)  "numeric/dft.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 13+ entries will be added as we review modules
+  ;; Phase 13 — Cryptography (5 tasks total)
+  (modules
+    (sha512  0 ()  "crypto/sha512.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 14+ entries will be added as we review modules
