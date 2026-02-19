@@ -193,4 +193,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (fast-multiply  0 (prelude)  "number-theory/fast-multiply.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 44+ entries will be added as we review modules
+  ;; Phase 44 — Physical Units (5 tasks total)
+  (modules
+    (units  0 (prelude)  "fp/units.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 45 — Persistent Homology (5 tasks total)
+  (modules
+    (persistent  1 (homology simplicial-complex)  "topology/persistent.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 46 — Interval Global Optimization (5 tasks total)
+  (modules
+    (interval-global  0 (prelude interval heap)  "optimization/interval-global.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 47+ entries will be added as we review modules
