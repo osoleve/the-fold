@@ -121,4 +121,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (spectral-analysis  0 (prelude complex dft window-functions)  "numeric/spectral-analysis.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 26+ entries will be added as we review modules
+  ;; Phase 26 — Information Theory IV (5 tasks total)
+  (modules
+    (rate-distortion  0 (entropy sort)  "info/rate-distortion.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 27 — Statistics (5 tasks total)
+  (modules
+    (summary-stats  0 (prelude sort)  "statistics/summary-stats.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 28 — Special Functions (5 tasks total)
+  (modules
+    (special-functions  0 (prelude)  "fp/special-functions.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 29+ entries will be added as we review modules
