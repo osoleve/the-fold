@@ -241,4 +241,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (digital-filters  0 (prelude complex dft convolution vec)  "numeric/digital-filters.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 56+ entries will be added as we review modules
+  ;; Phase 56 — Functional Data Structures (5 tasks total)
+  (modules
+    (zipper  0 (prelude combinators)  "fp/zipper.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 57 — Strategic Voting (5 tasks total)
+  (modules
+    (strategic-voting  1 (prelude voting)  "game-theory/strategic-voting.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 58 — Multi-Criteria Decision Making (5 tasks total)
+  (modules
+    (mcdm  0 (voting)  "game-theory/mcdm.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 59+ entries will be added as we review modules
