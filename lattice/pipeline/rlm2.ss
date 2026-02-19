@@ -245,7 +245,7 @@
 ;;; Action Language
 ;;; ====
 ;;;
-;;; 23 forms + begin. Each is a tagged list.
+;;; 24 forms + begin. Each is a tagged list.
 ;;;
 ;;; (search query)           (inspect skill)        (exports skill)
 ;;; (load module)            (eval expr)            (store key expr)
@@ -254,7 +254,7 @@
 ;;; (think text)             (plan! items)          (map-chunks key expr)
 ;;; (journal tag text)       (recall tag)           (memorize key text)
 ;;; (remember query)         (lookup symbol)        (definition symbol)
-;;; (symbols query)          (outline file)
+;;; (symbols query)          (outline file)         (delegate task input)
 ;;; (begin action ...)
 
 (doc 'section 'rlm2-actions)
@@ -264,7 +264,7 @@
   '(search inspect exports load eval store retrieve peek
     grep slice recall-step submit think plan! map-chunks
     journal recall memorize remember begin
-    lookup definition symbols outline))
+    lookup definition symbols outline delegate))
 
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a well-formed action (tagged list with known type)")
@@ -303,6 +303,7 @@
 (define (rlm2-definition? a) (and (pair? a) (eq? (car a) 'definition)))
 (define (rlm2-symbols? a)    (and (pair? a) (eq? (car a) 'symbols)))
 (define (rlm2-outline? a)    (and (pair? a) (eq? (car a) 'outline)))
+(define (rlm2-delegate? a)  (and (pair? a) (eq? (car a) 'delegate)))
 
 ;;; Unquote helper: (quote x) -> x, else identity.
 ;;; After `read`, model output like (retrieve 'x) has (quote x) as the arg.
@@ -348,6 +349,8 @@
 (define (rlm2-definition-symbol a) (rlm2-unquote (cadr a)))     ; (definition 'symbol)
 (define (rlm2-symbols-query a)     (cadr a))                    ; (symbols query) — string
 (define (rlm2-outline-file a)      (cadr a))                    ; (outline file) — string
+(define (rlm2-delegate-task a)     (cadr a))                    ; (delegate task input) — string
+(define (rlm2-delegate-input a)    (caddr a))                   ; (delegate task input) — string
 
 ;;; ====
 ;;; Action Arity Table
@@ -383,7 +386,8 @@
     (lookup      . 1)
     (definition  . 1)
     (symbols     . 1)
-    (outline     . 1)))
+    (outline     . 1)
+    (delegate    . 2)))
 
 (doc 'type '(-> Symbol (Maybe Nat)))
 (doc 'description "Look up expected arity for an action type. #f for variadic (begin).")

@@ -66,7 +66,7 @@
 
 (define *rlm2-mechanical-actions*
   '(submit store load plan! journal memorize remember recall
-    lookup definition symbols outline))
+    lookup definition symbols outline delegate))
 
 ;;; ====
 ;;; Main Entry Point
@@ -336,6 +336,7 @@
         [(definition) (rlm2-exec-definition state action)]
         [(symbols)    (rlm2-exec-symbols state action)]
         [(outline)    (rlm2-exec-outline state action)]
+        [(delegate)   (rlm2-exec-delegate state action config depth)]
         [else
          (list (make-rlm2-observation type #f
                  (format "Unknown action type: ~a" type) #f)
@@ -1051,6 +1052,70 @@
                 (format "Outline error: ~a" (fold-result-error result)))
             (fold-result-ok? result))
           state 1)))
+
+;;; ====
+;;; Delegate Action (recursive sub-agent)
+;;; ====
+;;;
+;;; Spawns a sub-RLM at depth+1 to handle a focused sub-task.
+;;; The sub-agent inherits the parent's system prompt and provider but
+;;; gets a fraction of the remaining fuel and steps. The parent blocks
+;;; synchronously while the child runs.
+
+(define (rlm2-exec-delegate state action config depth)
+  (let ([sub-task (rlm2-delegate-task action)]
+        [sub-input (rlm2-delegate-input action)]
+        [max-depth (rlm2-config-max-depth config)])
+    ;; Enforce depth limit
+    (if (>= (+ depth 1) max-depth)
+        (list (make-rlm2-observation 'delegate sub-task
+                (format "Delegation blocked: depth ~a would exceed max-depth ~a. Handle this sub-task directly."
+                        (+ depth 1) max-depth)
+                #f)
+              state 1)
+        ;; Build sub-config with reduced resources
+        (let* ([remaining-fuel (rlm2-state-fuel state)]
+               [remaining-steps (- (rlm2-config-max-steps config)
+                                   (rlm2-state-step state))]
+               [sub-fuel (min (quotient (* remaining-fuel 2) 5) 15000)]
+               [sub-steps (min (max 1 (- remaining-steps 2)) 8)]
+               [sub-config (make-rlm2-config
+                             (rlm2-config-provider config)
+                             (rlm2-config-system-prompt config)
+                             sub-steps
+                             sub-fuel
+                             (rlm2-config-chunk-size config)
+                             max-depth
+                             (rlm2-config-loop-window config)
+                             (rlm2-config-context-budget config)
+                             #f  ; no verifier for sub-tasks
+                             (rlm2-config-max-tokens config))]
+               [result (guard (ex [else
+                                   (list 'rlm2-run-result 'error
+                                     (format "Delegate exception: ~a"
+                                       (if (message-condition? ex)
+                                           (condition-message ex)
+                                           "unknown"))
+                                     "" '())])
+                         (rlm2-run-at-depth sub-config sub-task sub-input
+                                            (+ depth 1)))]
+               [status (rlm2-run-result-status result)]
+               [output (rlm2-run-result-output result)]
+               ;; Charge the full sub-fuel allocation. The parent allocated
+               ;; this budget — unused fuel is not returned. The trajectory
+               ;; records actual consumption for auditing.
+               [output-text (if (string? output)
+                                output
+                                (format "~a" output))]
+               [obs-text (format "[sub-agent ~a] ~a"
+                                 status
+                                 (if (> (string-length output-text) 1500)
+                                     (string-append (substring output-text 0 1497) "...")
+                                     output-text))])
+          (list (make-rlm2-observation 'delegate sub-task
+                  obs-text
+                  (memq status '(completed)))
+                state sub-fuel)))))
 
 ;;; ====
 ;;; Reflection Pass

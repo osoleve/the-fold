@@ -202,6 +202,7 @@
    "Semantics:\n"
    "- (begin ...) stops at the first error or (submit). Later actions do not run.\n"
    "- (think ...) is ephemeral — it is fed to reflection but not stored in notes.\n"
+   "- (delegate task input) spawns a sub-agent with its own fuel budget. Use for focused sub-tasks.\n"
    "- (memorize key text) persists across agent runs. (remember query) does BM25 keyword search.\n"
    "- Eval results are auto-stored as step-N-result. Use (store key expr) to name values.\n"
    "- Plan status values: pending, done, blocked, skipped. You own plan status.\n\n"
@@ -277,6 +278,7 @@
    "  (inspect skill)         — Get skill description, deps, modules\n"
    "  (exports skill)         — List a skill's exported functions\n"
    "  (load module)           — Load a lattice module into session\n"
+   "  (delegate task input)   — Spawn a sub-agent for a focused sub-task\n"
    "\n"
    "  Code intel:\n"
    "  (lookup symbol)         — Type info + description + definition location\n"
@@ -322,7 +324,7 @@
          [hints (cons "  Core: think, eval, submit, begin" hints)]
          ;; Discovery when few modules loaded
          [hints (if (< (length loaded) 3)
-                    (cons "  Discover: search, inspect, exports, load, symbols" hints)
+                    (cons "  Discover: search, inspect, exports, load, symbols, delegate" hints)
                     hints)]
          ;; Data when env non-empty
          [hints (if (not (null? env))
