@@ -253,4 +253,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (mcdm  0 (voting)  "game-theory/mcdm.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 59+ entries will be added as we review modules
+  ;; Phase 59 — Signal Processing Polynomials (5 tasks total)
+  (modules
+    (signal-poly  0 (prelude field algebra/polynomial digital-filters)  "numeric/signal-poly.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 60 — Singular Value Decomposition (5 tasks total)
+  (modules
+    (svd  1 (prelude vec matrix matrix-decomp matrix-eigen)  "linalg/svd.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 61 — Polynomial Optimization (5 tasks total)
+  (modules
+    (poly-optimize  0 (prelude field algebra/polynomial multivariate convergence)  "optimization/poly-optimize.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 62+ entries will be added as we review modules
