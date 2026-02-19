@@ -77,4 +77,8 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (window-functions  0 (prelude)  "numeric/window-functions.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 15+ entries will be added as we review modules
+  ;; Phase 15 — Signal Processing III (5 tasks total)
+  (modules
+    (convolution  0 (prelude complex dft vec)  "numeric/convolution.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 16+ entries will be added as we review modules
