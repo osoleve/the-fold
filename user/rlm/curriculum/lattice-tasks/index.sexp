@@ -181,4 +181,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (lp  0 (vec matrix matrix-decomp matrix-solvers)  "optimization/lp.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 41+ entries will be added as we review modules
+  ;; Phase 41 — Integer Matrix (5 tasks total)
+  (modules
+    (integer-matrix  0 (prelude matrix modular)  "linalg/integer-matrix.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 42 — Affine Arithmetic (5 tasks total)
+  (modules
+    (affine  0 (prelude sort interval)  "numeric/affine.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 43 — Fast Multiply (5 tasks total)
+  (modules
+    (fast-multiply  0 (prelude)  "number-theory/fast-multiply.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 44+ entries will be added as we review modules
