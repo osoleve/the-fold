@@ -109,4 +109,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (wavelet  0 (prelude vec)  "numeric/wavelet.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 23+ entries will be added as we review modules
+  ;; Phase 23 — E-Graphs (5 tasks total)
+  (modules
+    (egraph/union-find  0 (prelude)  "egraph/union-find.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 24 — Coding Theory (5 tasks total)
+  (modules
+    (coding  0 (entropy sort)  "info/coding.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 25 — Spectral Analysis (5 tasks total)
+  (modules
+    (spectral-analysis  0 (prelude complex dft window-functions)  "numeric/spectral-analysis.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 26+ entries will be added as we review modules
