@@ -487,6 +487,11 @@ Dependencies:
  (register-module-path! 'bayesian "lattice/random/bayesian.ss")
  (register-module-path! 'variational-inference "lattice/random/variational-inference.ss")
 
+ ;; QuickCheck layer
+ (register-module-path! 'qc-generators "lattice/quickcheck/generators.ss")
+ (register-module-path! 'qc-shrink "lattice/quickcheck/shrink.ss")
+ (register-module-path! 'quickcheck "lattice/quickcheck/quickcheck.ss")
+
  ;; Statistics core
  (register-module-path! 'summary-stats "lattice/statistics/core/summary-stats.ss")
  (register-module-path! 'result-types "lattice/statistics/core/result-types.ss")

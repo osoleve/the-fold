@@ -392,8 +392,8 @@ Key design principles:
 
   (testing (
     ((framework "Property-Based Testing")
-     (description "QuickCheck-style property testing for verifying laws")
-     (location "lattice/fp/meta/quickcheck.ss"))
+     (description "QuickCheck-style property testing with generators, shrinkers, and test framework integration")
+     (location "lattice/quickcheck/quickcheck.ss"))
 
     ((framework "Law Checking")
      (description "Automated verification of type class laws")
