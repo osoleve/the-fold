@@ -20,6 +20,32 @@
 (doc 'purity 'impure)
 
 ;;; ====
+;;; Progress File (sideband for external consumers)
+;;; ====
+;;; When *rlm2-progress-file* is set, each completed step appends a
+;;; tab-delimited line: step\taction-type\tok?\tnote-preview
+;;; Consumers (e.g. Python brain) poll this file for live trajectory.
+
+(define *rlm2-progress-file* #f)
+
+(define (rlm2-emit-progress! step-num action-type ok? note)
+  (when *rlm2-progress-file*
+    (guard (ex [else (void)])  ; never let progress I/O break the run
+      (let ([p (open-file-output-port *rlm2-progress-file*
+                 (file-options no-fail no-truncate)
+                 (buffer-mode line)
+                 (native-transcoder))])
+        (set-port-position! p (port-length p))
+        (put-string p (format "~a\t~a\t~a\t~a\n"
+                        step-num action-type
+                        (if ok? "ok" "err")
+                        (let ([s (if (string? note) note (format "~a" note))])
+                          (if (> (string-length s) 200)
+                              (substring s 0 200)
+                              s))))
+        (close-port p)))))
+
+;;; ====
 ;;; Step Timing (gated by RLM_TIMING env var)
 ;;; ====
 
@@ -239,6 +265,10 @@
                        [state*** (rlm2-state-add-episodic state**
                                    (rlm2-state-step state)
                                    step-hash)]
+                       ;; === PROGRESS SIDEBAND ===
+                       [_progress (rlm2-emit-progress!
+                                   (rlm2-state-step state) action-type
+                                   (rlm2-observation-ok? observation) note)]
                        ;; === TELEMETRY ===
                        [step-duration-ms (- (rlm2-time-ms) step-t0)]
                        [_telem (rlm2-record-telemetry!
