@@ -53,4 +53,8 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (simplicial-complex  1 (set sort)  "topology/simplicial-complex.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 9+ entries will be added as we review modules
+  ;; Phase 9 — Spatial Data Structures II (5 tasks total)
+  (modules
+    (quadtree  0 (prelude sort heap)  "data/quadtree.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 10+ entries will be added as we review modules
