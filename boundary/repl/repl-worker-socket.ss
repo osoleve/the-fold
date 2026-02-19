@@ -48,6 +48,23 @@
   (let ([form (cadr expr)])
     (if (pair? form) (car form) form)))
 
+(define (definition-formals expr)
+  ;; (define (name a b c) body) → (a b c)
+  ;; (define name (lambda (a b c) body)) → (a b c)
+  (guard (e [else #f])
+    (let ([form (cadr expr)])
+      (cond
+        [(pair? form) (cdr form)]
+        [(and (symbol? form)
+              (pair? (cddr expr))
+              (pair? (caddr expr))
+              (eq? (car (caddr expr)) 'lambda))
+         (cadr (caddr expr))]
+        [else #f]))))
+
+;;; Procedure formals cache — maps symbol → formals list for user-defined fns
+(define *procedure-formals* (make-hashtable symbol-hash eq?))
+
 ;;; ====
 ;;; Evaluation (same core logic as repl-worker.ss)
 ;;; ====
@@ -62,6 +79,13 @@
             (values last-result last-def-name last-def-expr)
             (let ([is-def (definition? expr)]
                   [result (eval expr)])
+              (when is-def
+                (let ([name (definition-name expr)])
+                  (when (and (top-level-bound? name)
+                             (procedure? (top-level-value name)))
+                    (let ([formals (definition-formals expr)])
+                      (when formals
+                        (hashtable-set! *procedure-formals* name formals))))))
               (loop result
                     (if is-def (definition-name expr) last-def-name)
                     (if is-def expr last-def-expr))))))))
@@ -125,6 +149,51 @@
           (string-append base-msg (suggest-for-unbound sym)))
         base-msg)))
 
+;;; ====
+;;; Procedure repr (Python-style __repr__ for bare symbol lookups)
+;;; ====
+
+(define (last-symbol-expr str)
+  ;; Parse the input string, return the last expression if it's a bare symbol.
+  (guard (e [else #f])
+    (let ([port (open-input-string str)])
+      (let loop ([last #f])
+        (let ([expr (read port)])
+          (if (eof-object? expr)
+              (and (symbol? last) last)
+              (loop expr)))))))
+
+(define (procedure-repr sym)
+  ;; Build a rich repr for a procedure bound to sym.
+  (let ([docstring (and (top-level-bound? 'get-docstring)
+                        (get-docstring sym))]
+        [source (and (top-level-bound? 'lattice-export-source)
+                     (lattice-export-source sym))])
+    (cond
+      ;; Lattice export with docstring: type sig + description + provenance
+      [docstring
+       (string-append docstring
+                      (if source
+                          (format "\n  [~a] (require '~a)"
+                                  source
+                                  (or (and (top-level-bound? '*export-module-map*)
+                                           (hashtable-ref *export-module-map* sym #f))
+                                      sym))
+                          ""))]
+      ;; User-defined with captured formals
+      [(hashtable-ref *procedure-formals* sym #f)
+       => (lambda (formals)
+            (format "~a : ~a → ..." sym formals))]
+      ;; Fallback: standard Chez repr
+      [else (format "~s" (top-level-value sym))])))
+
+(define (format-eval-result str result)
+  ;; If the result is a procedure and the input was a bare symbol, show repr.
+  (let ([sym (last-symbol-expr str)])
+    (if (and sym (procedure? result))
+        (procedure-repr sym)
+        (format "~s" result))))
+
 (define (scheme-eval-and-capture session-id str)
   (let ([output-port (open-output-string)]
         [error-port (open-output-string)])
@@ -153,9 +222,9 @@
           (string-append output
                          (if (eq? result (void))
                              ""
-                             (string-append "\n=> " (format "~s" result))))]
+                             (string-append "\n=> " (format-eval-result str result))))]
          [(not (eq? result (void)))
-          (format "~s" result)]
+          (format-eval-result str result)]
          [else ""])))))
 
 ;;; ====
