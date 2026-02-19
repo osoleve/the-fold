@@ -169,4 +169,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (ode-integrators  0 (prelude)  "physics/ode-integrators.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 38+ entries will be added as we review modules
+  ;; Phase 38 — Interval Arithmetic (5 tasks total)
+  (modules
+    (interval  0 (prelude)  "numeric/interval.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 39 — Mechanism Design (5 tasks total)
+  (modules
+    (mechanism  0 (prelude sort)  "game-theory/mechanism.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 40 — Linear Programming (5 tasks total)
+  (modules
+    (lp  0 (vec matrix matrix-decomp matrix-solvers)  "optimization/lp.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 41+ entries will be added as we review modules
