@@ -277,4 +277,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (ilp  0 (lp)  "optimization/ilp.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 65+ entries will be added as we review modules
+  ;; Phase 65 — Galois Fields (5 tasks total)
+  (modules
+    (galois  0 (prelude field algebra/polynomial primality)  "algebra/galois.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 66 — Iterative Solvers (5 tasks total)
+  (modules
+    (iterative-solvers  0 (prelude vec matrix)  "linalg/iterative-solvers.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 67 — Tree Zipper (5 tasks total)
+  (modules
+    (tree-zipper  0 (prelude combinators)  "fp/tree-zipper.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 68+ entries will be added as we review modules
