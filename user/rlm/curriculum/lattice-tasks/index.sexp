@@ -265,4 +265,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (poly-optimize  0 (prelude field algebra/polynomial multivariate convergence)  "optimization/poly-optimize.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 62+ entries will be added as we review modules
+  ;; Phase 62 — Verified Integration (5 tasks total)
+  (modules
+    (interval-integrate  0 (prelude interval heap)  "numeric/interval-integrate.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 63 — Generic Zippers (5 tasks total)
+  (modules
+    (generic-zipper  0 (prelude combinators)  "fp/generic-zipper.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 64 — Integer Linear Programming (5 tasks total)
+  (modules
+    (ilp  0 (lp)  "optimization/ilp.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 65+ entries will be added as we review modules
