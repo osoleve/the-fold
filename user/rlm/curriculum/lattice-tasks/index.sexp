@@ -81,4 +81,8 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (convolution  0 (prelude complex dft vec)  "numeric/convolution.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 16+ entries will be added as we review modules
+  ;; Phase 16 — Transcendental Functions (5 tasks total)
+  (modules
+    (transcendental  0 (prelude)  "numeric/transcendental.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 17+ entries will be added as we review modules
