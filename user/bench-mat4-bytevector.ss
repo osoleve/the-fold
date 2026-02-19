@@ -16,7 +16,8 @@
         (error 'bench "Cannot load acceleration library"))
 
 ;;; ====
-;;; Result struct for mat4 (must match Rust)
+;;; Result struct: { m: [f64; 16], fuel: u64, status: u8, _pad: [u8; 7] }
+;;; Fields ordered for natural alignment (matches Rust #[repr(C)])
 ;;; ====
 
 (define-ftype mat4-result-t

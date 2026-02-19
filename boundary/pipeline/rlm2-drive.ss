@@ -138,7 +138,7 @@
                               history-msgs
                               (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
-                                          messages 4096 0.7)]
+                                          messages 2048 0.7)]
                   [t2 (and *rlm2-timing-enabled?* (rlm2-time-ms))])
              (cond
                ;; LLM call failed

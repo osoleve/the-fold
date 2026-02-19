@@ -27,7 +27,7 @@
 
 (define *poll-interval-ns* 2000000)   ; 2ms — not 100ms like file polling
 (define *cleanup-interval* 60)        ; 1 minute between cleanups
-(define *max-workers* 50)
+(define *max-workers* 100)
 (define *heartbeat-interval* 30)      ; 30s between pings
 (define *heartbeat-timeout* 90)       ; 90s without pong = dead idle worker
 (define *eval-timeout* 600)           ; 10 min — max eval time before force-kill

@@ -3,10 +3,8 @@
 fold — JSON-based REPL client for The Fold.
 
 Usage:
-  ./fold + 1 2                          # Implicit parens: (+ 1 2)
-  ./fold "+ 1 2"                        # Quoted form also works
-  ./fold "(+ 1 2)"                      # Explicit parens work too
-  ./fold -s dev define x 10             # Named session, unquoted
+  ./fold "(+ 1 2)"                      # Evaluate an expression
+  ./fold -s dev "(define x 10)"         # Named session with -s flag
   ./fold --status                       # Check if daemon is running
   ./fold --sessions                     # List active sessions
   ./fold -c file.ss                     # Check file for paren errors
@@ -14,7 +12,6 @@ Usage:
 Features:
   - Auto-starts daemon if not running (disable with --no-auto-start)
   - Colorized error output (disable with NO_COLOR=1)
-  - Implicit parenthesization for convenience
 
 Session Persistence:
   Sessions can be specified in several ways (in order of priority):
@@ -39,9 +36,7 @@ Exit codes:
   1 - Error (daemon, execution, etc.)
   2 - Timeout
 
-Note: If code doesn't start with '(', it's automatically wrapped in parens.
-      Single-token symbols are wrapped too (e.g., "bye" becomes "(bye)").
-      Literals (numbers, quoted, booleans) stay unwrapped.
+Note: Code is passed to the daemon as-is. Use explicit parentheses.
 """
 
 import os
@@ -118,69 +113,66 @@ def resolve_session(explicit_session):
     return generate_session_id()
 
 def list_sessions():
-    """List active sessions with their status."""
-    workers_dir = os.path.join(REPL_DIR, "workers")
-    sessions_dir = ".fold-sessions"
-
-    if not os.path.exists(workers_dir):
-        return []
+    """List active sessions by finding running worker processes."""
+    import subprocess
+    import re
 
     sessions = []
     now = time.time()
 
-    # Find all pid files
-    for filename in os.listdir(workers_dir):
-        if not filename.endswith(".pid"):
-            continue
-
-        session_id = filename[:-4]  # Remove .pid
-        pid_file = os.path.join(workers_dir, filename)
-
-        try:
-            with open(pid_file, 'r') as f:
-                pid = int(f.read().strip())
-        except (IOError, ValueError):
-            continue
-
-        # Check if process is alive
-        try:
-            os.kill(pid, 0)
-        except OSError:
-            continue  # Process not running
-
-        # Get idle time from lastreq or heartbeat
-        idle_seconds = None
-        for suffix in [".lastreq", ".heartbeat"]:
-            ts_file = os.path.join(workers_dir, session_id + suffix)
-            if os.path.exists(ts_file):
+    # Find worker processes via ps — works with both file-based and socket daemons
+    try:
+        result = subprocess.run(
+            ["ps", "aux"],
+            capture_output=True, text=True, timeout=5
+        )
+        for line in result.stdout.splitlines():
+            # Match the scheme process, not the sh -c wrapper
+            if '/bin/sh -c' in line:
+                continue
+            # Match: scheme --script .../repl-worker-socket.ss <session-id>
+            # or:    scheme --script .../repl-worker.ss <session-id>
+            match = re.search(r'repl-worker(?:-socket)?\.ss\s+(\S+)', line)
+            if match:
+                session_id = match.group(1)
+                # Extract PID (second field in ps aux output)
+                parts = line.split()
                 try:
-                    mtime = os.path.getmtime(ts_file)
-                    idle_seconds = now - mtime
-                    break
-                except OSError:
+                    pid = int(parts[1])
+                except (IndexError, ValueError):
+                    continue
+
+                # Extract process start time for idle estimate
+                # ps aux TIME field (index 9) shows cumulative CPU, not helpful
+                # Use /proc/<pid>/stat start time if available
+                idle_seconds = None
+                try:
+                    stat_file = f"/proc/{pid}/stat"
+                    if os.path.exists(stat_file):
+                        with open(stat_file, 'r') as f:
+                            # Field 22 is starttime in clock ticks
+                            fields = f.read().split()
+                            if len(fields) > 21:
+                                clk_tck = os.sysconf('SC_CLK_TCK')
+                                boot_time = 0
+                                with open('/proc/stat', 'r') as bf:
+                                    for bline in bf:
+                                        if bline.startswith('btime'):
+                                            boot_time = int(bline.split()[1])
+                                            break
+                                start_time = boot_time + int(fields[21]) / clk_tck
+                                idle_seconds = now - start_time
+                except (IOError, ValueError, OSError):
                     pass
 
-        # Try to get friendly name from session file
-        name = None
-        session_file = os.path.join(sessions_dir, session_id + ".session")
-        if os.path.exists(session_file):
-            try:
-                with open(session_file, 'r') as f:
-                    content = f.read()
-                    # Extract name from s-expression: ((name . foo) ...)
-                    import re
-                    match = re.search(r'\(name\s+\.\s+"?([^")\s]+)"?\)', content)
-                    if match:
-                        name = match.group(1)
-            except IOError:
-                pass
-
-        sessions.append({
-            "session_id": session_id,
-            "name": name,
-            "pid": pid,
-            "idle_seconds": idle_seconds
-        })
+                sessions.append({
+                    "session_id": session_id,
+                    "name": session_id,
+                    "pid": pid,
+                    "idle_seconds": idle_seconds
+                })
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
 
     return sessions
 
@@ -200,50 +192,6 @@ def ensure_dirs():
     os.makedirs(REQUESTS_DIR, exist_ok=True)
     os.makedirs(RESPONSES_DIR, exist_ok=True)
 
-def is_literal(token):
-    """Check if a single token is a literal (not a procedure call)."""
-    if not token:
-        return False
-    first_char = token[0]
-    # Quoted expressions: 'x, `x, ,x, ,@x
-    if first_char in "'`,":
-        return True
-    # Hash literals: #t, #f, #\x, #(vector), #vu8(...)
-    if first_char == '#':
-        return True
-    # String literals
-    if first_char == '"':
-        return True
-    # Numeric literals (including negative)
-    if first_char.isdigit():
-        return True
-    if first_char == '-' and len(token) > 1 and token[1].isdigit():
-        return True
-    if first_char == '+' and len(token) > 1 and token[1].isdigit():
-        return True
-    # Decimal starting with dot
-    if first_char == '.' and len(token) > 1 and token[1].isdigit():
-        return True
-    return False
-
-def apply_implicit_parens(code):
-    """Wrap code in parens if it doesn't start with '(' and isn't a literal."""
-    code = code.strip()
-    if not code:
-        return code
-    # Already parenthesized
-    if code.startswith('('):
-        return code
-    # Quoted/quasi-quoted expressions - never wrap (may contain spaces)
-    if code[0] in "'`":
-        return code
-    # Single token - wrap if it's a symbol (procedure call), not a literal
-    if ' ' not in code and '\t' not in code and '\n' not in code:
-        if is_literal(code):
-            return code  # Don't wrap literals
-        return f"({code})"  # Wrap symbols (procedure calls)
-    # Multiple tokens - wrap in parens
-    return f"({code})"
 
 def is_daemon_running():
     """Check if daemon is actually running (not just zombie state)."""
@@ -593,12 +541,12 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./fold + 1 2                Evaluate (+ 1 2)
-  ./fold -s dev define x 10   Define x in 'dev' session
-  ./fold --status             Check if daemon is running
-  ./fold --sessions           List active sessions
-  ./fold --no-auto-start x    Don't auto-start daemon
-  ./fold -c file.ss           Check file for paren balance errors
+  ./fold "(+ 1 2)"              Evaluate (+ 1 2)
+  ./fold -s dev "(define x 10)" Define x in 'dev' session
+  ./fold --status               Check if daemon is running
+  ./fold --sessions             List active sessions
+  ./fold --no-auto-start "(x)"  Don't auto-start daemon
+  ./fold -c file.ss             Check file for paren balance errors
 """
     )
     parser.add_argument("code", nargs="*", help="Code to execute (multiple args joined with spaces)")
@@ -686,9 +634,6 @@ Examples:
             print(f"{COLORS['red']}Error:{COLORS['reset']} No code provided", file=sys.stderr)
             sys.exit(1)
         return
-
-    # Implicit parenthesization: wrap code in parens if needed
-    code = apply_implicit_parens(code)
 
     ensure_dirs()
 

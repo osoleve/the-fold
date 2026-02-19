@@ -139,7 +139,7 @@
                          ;; Build JSON request body using proper JSON serialization
                          [request-body (json->string
                                         `((model . ,api-model)
-                                          (max_tokens . 4096)
+                                          (max_tokens . 2048)
                                           (system . ,system-prompt)
                                           (messages . (((role . "user")
                                                         (content . ,user-prompt))))))]
