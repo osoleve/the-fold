@@ -491,6 +491,8 @@ Dependencies:
  (register-module-path! 'qc-generators "lattice/quickcheck/generators.ss")
  (register-module-path! 'qc-shrink "lattice/quickcheck/shrink.ss")
  (register-module-path! 'quickcheck "lattice/quickcheck/quickcheck.ss")
+ (register-module-path! 'gen-linalg "lattice/quickcheck/gen-linalg.ss")
+ (register-module-path! 'qc-laws "lattice/quickcheck/laws.ss")
 
  ;; Statistics core
  (register-module-path! 'summary-stats "lattice/statistics/core/summary-stats.ss")
