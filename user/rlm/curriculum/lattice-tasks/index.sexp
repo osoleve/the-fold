@@ -57,4 +57,12 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (quadtree  0 (prelude sort heap)  "data/quadtree.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 10+ entries will be added as we review modules
+  ;; Phase 10 — Computational Geometry (5 tasks total)
+  (modules
+    (convex-hull  0 (prelude mesh-gen sort)  "geometry/convex-hull.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 11 — Number Theory II (5 tasks total)
+  (modules
+    (primality  0 (prelude sort modular)  "number-theory/primality.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 12+ entries will be added as we review modules
