@@ -52,7 +52,8 @@
     (let-values ([(to-relay from-relay pid err-port)
                   (open-process-ports
                     (format "python3 ~a" (rlm-relay-script-path))
-                    (buffer-mode line))])
+                    (buffer-mode line)
+                    (native-transcoder))])
       ;; Cache ALL ports — GC collecting stderr closes the pipe fd,
       ;; sending SIGPIPE to the child process.
       (set! *rlm-relay-to*   to-relay)

@@ -307,7 +307,7 @@
                                     env))]
            [full-cmd (string-append env-exports cmd)])
       (let-values ([(to-stdin from-stdout from-stderr process-id)
-                    (open-process-ports (format "/bin/sh -c ~s" full-cmd)
+                    (open-process-ports full-cmd
                                         (buffer-mode block)
                                         (native-transcoder))])
         (close-port to-stdin)  ; no stdin needed
