@@ -133,4 +133,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (special-functions  0 (prelude)  "fp/special-functions.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 29+ entries will be added as we review modules
+  ;; Phase 29 — Lock-Free Data Structures (5 tasks total)
+  (modules
+    (chase-lev-deque  0 (prelude)  "data/chase-lev-deque.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 30 — Control Systems (5 tasks total)
+  (modules
+    (kalman  0 (prelude)  "control-systems/kalman.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 31 — Game Theory (5 tasks total)
+  (modules
+    (normal-form  0 (prelude)  "game-theory/normal-form.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 32+ entries will be added as we review modules
