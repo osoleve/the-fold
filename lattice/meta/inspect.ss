@@ -16,7 +16,11 @@
 (define (lattice-describe skill-name)
   (let ([info (lattice-info skill-name)])
        (if (not info)
-           (printf "Skill not found: ~a\n" skill-name)
+           (if (and (top-level-bound? 'module-name->path)
+                    (module-name->path skill-name))
+               (printf "~a is a module, not a skill. Use (require '~a) to load it, or (lf \"~a\") to find its parent skill.\n"
+                       skill-name skill-name skill-name)
+               (printf "Skill not found: ~a\n" skill-name))
            (let ([name (cdr (assq 'name info))]
                  [version (cdr (assq 'version info))]
                  [tier (cdr (assq 'tier info))]
@@ -199,7 +203,11 @@
 (define (lattice-exports-compact skill-name)
   (let ([data (kg-skill-data skill-name)])
     (if (not data)
-        (printf "Skill not found: ~a\n" skill-name)
+        (if (and (top-level-bound? 'module-name->path)
+                 (module-name->path skill-name))
+            (printf "~a is a module, not a skill. Use (require '~a) to load it, or (lf \"~a\") to find its parent skill.\n"
+                    skill-name skill-name skill-name)
+            (printf "Skill not found: ~a\n" skill-name))
         (let* ([exports-raw (cdr (or (assq 'exports data) '(exports . ())))]
                [total (length (lattice-skill-exports skill-name))])
           (printf "~a — ~a exports\n\n" skill-name total)
