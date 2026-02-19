@@ -157,4 +157,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (complex-bridge  0 (prelude complex)  "numeric/complex-bridge.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 35+ entries will be added as we review modules
+  ;; Phase 35 — Evolutionary Game Theory (5 tasks total)
+  (modules
+    (evolutionary  1 (normal-form)  "game-theory/evolutionary.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 36 — Social Choice / Voting (5 tasks total)
+  (modules
+    (voting  0 (prelude sort)  "game-theory/voting.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 37 — ODE Integrators (5 tasks total)
+  (modules
+    (ode-integrators  0 (prelude)  "physics/ode-integrators.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 38+ entries will be added as we review modules
