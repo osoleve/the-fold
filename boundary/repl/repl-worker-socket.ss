@@ -18,6 +18,13 @@
 ;;; Content Addressing (same as repl-worker.ss)
 ;;; ====
 
+;;; Capture internal references at load time. User eval shares the top-level
+;;; namespace, so a creature doing (define normalize ...) would clobber our
+;;; binding. These closures close over the *current* value, not the name.
+(define *worker-normalize* normalize)
+(define *worker-sha256*    sha256)
+(define *worker-hash->hex* hash->hex)
+
 (define (extract-definition-body expr)
   (cond
    [(and (pair? expr) (eq? (car expr) 'define))
@@ -34,11 +41,11 @@
                            (extract-definition-body value)
                            value)]
          [normalized (if (pair? body-to-hash)
-                         (normalize body-to-hash)
+                         (*worker-normalize* body-to-hash)
                          body-to-hash)]
          [serialized (string->utf8 (format "~s" normalized))]
-         [hash (sha256 serialized)])
-    (hash->hex hash)))
+         [hash (*worker-sha256* serialized)])
+    (*worker-hash->hex* hash)))
 
 (define (definition? expr)
   (and (pair? expr)

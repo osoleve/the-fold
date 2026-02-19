@@ -141,6 +141,13 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
 ;;; Content Addressing
 ;;; ====
 
+;;; Capture internal references at load time. User eval shares the top-level
+;;; namespace, so a creature doing (define normalize ...) would clobber our
+;;; binding. These closures close over the *current* value, not the name.
+(define *worker-normalize* normalize)
+(define *worker-sha256*    sha256)
+(define *worker-hash->hex* hash->hex)
+
 ;;; extract-definition-body : S-expr → S-expr
 ;;; Extract the actual code being defined (without the 'define' keyword).
 ;;; For (define (foo x) x), returns (fn (x) x) for normalization.
@@ -170,11 +177,11 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
                            (extract-definition-body value)
                            value)]
          [normalized (if (pair? body-to-hash)
-                         (normalize body-to-hash)
+                         (*worker-normalize* body-to-hash)
                          body-to-hash)]
          [serialized (string->utf8 (format "~s" normalized))]
-         [hash (sha256 serialized)])
-        (hash->hex hash)))
+         [hash (*worker-sha256* serialized)])
+        (*worker-hash->hex* hash)))
 
 ;;; definition? : S-expr → Boolean
 ;;; Check if an expression is a definition form.
