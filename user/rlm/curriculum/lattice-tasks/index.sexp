@@ -289,4 +289,16 @@ Authored in S-expressions, exportable to JSONL for Verifiers/Prime Lab.")
   (modules
     (tree-zipper  0 (prelude combinators)  "fp/tree-zipper.sexp"  complete))  ;; 5 tasks
 
-  ;; Phase 68+ entries will be added as we review modules
+  ;; Phase 68 — Extensive Form Games (5 tasks total)
+  (modules
+    (extensive-form  0 (prelude)  "game-theory/extensive-form.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 69 — Blocked Matrix Algorithms (5 tasks total)
+  (modules
+    (matrix-blocked  0 (prelude vec matrix)  "linalg/matrix-blocked.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 70 — ODE Systems (5 tasks total)
+  (modules
+    (ode-system  0 (prelude vec matrix)  "sim/ode-system.sexp"  complete))  ;; 5 tasks
+
+  ;; Phase 71+ entries will be added as we review modules
