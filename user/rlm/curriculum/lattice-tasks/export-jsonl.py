@@ -253,7 +253,7 @@ def task_to_jsonl(task):
     }
 
     return {
-        "prompt": prompt,
+        "question": prompt,
         "answer": reference,
         "task": task_type,
         "info": json.dumps(info),

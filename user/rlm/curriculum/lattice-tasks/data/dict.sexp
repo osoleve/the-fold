@@ -65,7 +65,7 @@
     (tier 0)
     (type implement)
     (description "Implement dict-merge: merge two dictionaries. When keys overlap, dict2's value wins (dict2 takes precedence). Use dict-assoc to add each entry from dict2 into dict1. dict-assoc already handles updating existing keys.")
-    (context "Available: prelude, dict-assoc (already defined: adds or updates a key-value pair in a dictionary).")
+    (context "Available: prelude, dict-assoc (signature: (dict-assoc key value dict) — takes three separate arguments: the key, the value, and the dictionary; returns a new dictionary with the entry added or updated).")
     (before "(define (dict-merge dict1 dict2)
   (doc 'type (-> Dict Dict Dict))
   (doc 'description \"Merge two dictionaries\")
@@ -145,7 +145,7 @@
     (tier 0)
     (type test)
     (description "Write a comprehensive test suite for the dict module. The module implements an alist-based immutable dictionary with: dict-empty, dict-empty?, dict-lookup, dict-has-key?, dict-assoc, dict-dissoc, dict-keys, dict-values, dict-merge, dict-map-values, dict-filter, dict-size. Cover: (1) empty dictionary behavior, (2) single-entry CRUD, (3) multi-entry operations, (4) key update semantics (dict-assoc on existing key), (5) merge precedence, (6) edge case: dict-lookup returns #f for missing keys — note this is ambiguous if #f is a valid value.")
-    (context "Available: the full dict module (loaded via require). Use assert-equal and assert-true from test-framework.ss.")
+    (context "Available: the full dict module (loaded via require). Use assert-equal, assert-true, assert-false, and assert-error directly — they are pre-defined in the session. Do NOT use define-test, test-group, test-begin, or run-all-tests.")
     (before ";; lattice/data/test-dict.ss
 ;; No tests exist yet for the dict module.
 ;; Write comprehensive tests covering the API.")
