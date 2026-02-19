@@ -138,7 +138,7 @@
                               history-msgs
                               (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
-                                          messages 2048 0.7)]
+                                          messages (rlm2-config-max-tokens config) 0.7)]
                   [t2 (and *rlm2-timing-enabled?* (rlm2-time-ms))])
              (cond
                ;; LLM call failed
@@ -168,7 +168,7 @@
                        ;; Retry with higher budget if truncated
                        [retry-result (and truncated?
                                          (rlm-chat (rlm2-config-provider config)
-                                                   messages 8192 0.7))]
+                                                   messages (min (* 4 (rlm2-config-max-tokens config)) 8192) 0.7))]
                        ;; Use retry if it succeeded and parsed to non-think
                        [effective-text
                         (if (and retry-result (rlm-chat-ok? retry-result))

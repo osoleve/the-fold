@@ -195,13 +195,13 @@
 
 (doc 'section 'rlm2-config)
 
-(doc 'type '(-> RlmProvider String Nat Nat Nat Nat Nat Nat (Maybe Proc) Rlm2Config))
+(doc 'type '(-> RlmProvider String Nat Nat Nat Nat Nat Nat (Maybe Proc) Nat Rlm2Config))
 (doc 'description "Create an RLM v2 configuration")
 (define (make-rlm2-config provider system-prompt max-steps max-fuel
                           chunk-size max-depth loop-window context-budget
-                          verifier)
+                          verifier max-tokens)
   (list 'rlm2-config provider system-prompt max-steps max-fuel
-        chunk-size max-depth loop-window context-budget verifier))
+        chunk-size max-depth loop-window context-budget verifier max-tokens))
 
 (define (rlm2-config? x)
   (and (pair? x) (eq? (car x) 'rlm2-config)))
@@ -215,14 +215,15 @@
 (define (rlm2-config-loop-window cfg)    (list-ref cfg 7))
 (define (rlm2-config-context-budget cfg) (list-ref cfg 8))
 (define (rlm2-config-verifier cfg)       (list-ref cfg 9))
+(define (rlm2-config-max-tokens cfg)     (list-ref cfg 10))
 
 (doc 'type '(-> Rlm2Config (List Msg)))
 (doc 'description "Few-shot examples as user/assistant message pairs. Empty list if not set.")
 (define (rlm2-config-few-shot cfg)
-  (if (> (length cfg) 10) (list-ref cfg 10) '()))
+  (if (> (length cfg) 11) (list-ref cfg 11) '()))
 
 (doc 'type '(-> RlmProvider String Rlm2Config))
-(doc 'description "Sensible defaults: 20 steps, 50k fuel, 2k chunks, depth 2, window 3, 8k budget, no verifier")
+(doc 'description "Sensible defaults: 20 steps, 50k fuel, 2k chunks, depth 2, window 3, 8k budget, no verifier, 2048 max-tokens")
 (define (make-rlm2-config-default provider system-prompt)
   (make-rlm2-config provider system-prompt
                     20     ; max-steps
@@ -231,7 +232,8 @@
                     2      ; max-depth
                     3      ; loop-window
                     8000   ; context-budget (chars)
-                    #f))   ; no verifier
+                    #f     ; no verifier
+                    2048)) ; max-tokens per LLM call
 
 (doc 'type '(-> Rlm2State Rlm2Config Boolean))
 (doc 'description "True when fuel or steps are exhausted")

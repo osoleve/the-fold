@@ -311,7 +311,8 @@
 ;;; Initialization
 ;;; ====
 
-(unless (top-level-bound? '*socket-ffi-loaded*)
+(unless (or (top-level-bound? '*socket-ffi-loaded*)
+            (and (top-level-bound? '*quiet*) (top-level-value '*quiet*)))
   (display "socket-ffi.ss loaded.\n")
   (display "  (ipc-load!)                      - Load FFI library\n")
   (display "  (ipc-reactor-start! path)        - Start reactor\n")

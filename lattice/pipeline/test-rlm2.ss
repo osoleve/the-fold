@@ -121,7 +121,7 @@
       (assert-true (rlm2-state-exhausted? s cfg))))
 
   (define-test "state-exhausted? on steps"
-    (let* ([cfg (make-rlm2-config 'p "sys" 2 50000 2000 2 3 8000 #f)]
+    (let* ([cfg (make-rlm2-config 'p "sys" 2 50000 2000 2 3 8000 #f 2048)]
            [s (rlm2-state-advance-step
                (rlm2-state-advance-step
                 (make-initial-rlm2-state "t" #f 50000)))])
@@ -136,7 +136,7 @@
 (test-group "rlm2-config"
 
   (define-test "make-rlm2-config creates valid config"
-    (let ([cfg (make-rlm2-config 'dummy "sys" 10 5000 2000 2 3 8000 #f)])
+    (let ([cfg (make-rlm2-config 'dummy "sys" 10 5000 2000 2 3 8000 #f 1024)])
       (assert-true (rlm2-config? cfg))
       (assert-equal 'dummy (rlm2-config-provider cfg))
       (assert-equal "sys" (rlm2-config-system-prompt cfg))
@@ -146,14 +146,16 @@
       (assert-equal 2 (rlm2-config-max-depth cfg))
       (assert-equal 3 (rlm2-config-loop-window cfg))
       (assert-equal 8000 (rlm2-config-context-budget cfg))
-      (assert-false (rlm2-config-verifier cfg))))
+      (assert-false (rlm2-config-verifier cfg))
+      (assert-equal 1024 (rlm2-config-max-tokens cfg))))
 
   (define-test "make-rlm2-config-default has sensible values"
     (let ([cfg (make-rlm2-config-default 'p "sys")])
       (assert-equal 20 (rlm2-config-max-steps cfg))
       (assert-equal 50000 (rlm2-config-max-fuel cfg))
       (assert-equal 8000 (rlm2-config-context-budget cfg))
-      (assert-false (rlm2-config-verifier cfg))))
+      (assert-false (rlm2-config-verifier cfg))
+      (assert-equal 2048 (rlm2-config-max-tokens cfg))))
 )
 
 ;;; ====
