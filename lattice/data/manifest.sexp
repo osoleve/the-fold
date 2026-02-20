@@ -6,7 +6,7 @@
   (path "lattice/data")
   (purity total)
   (stability stable)
-  (fuel-bound "O(log n) for balanced structures, O((V+E) log V) for graph algorithms, O(n³) for graph homology")
+  (fuel-bound (max (cubic n) (max (log-linear n) (logarithmic n))))
   (deps (fp))  ; collection-protocol depends on fp/protocol
 
   (description

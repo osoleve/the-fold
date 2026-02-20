@@ -6,7 +6,7 @@
   (path "lattice/algebra")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n^3) for axiom verification, O(n^2) for group/polynomial operations, exponential for Gröbner bases")
+  (fuel-bound (max (exponential n) (max (cubic n) (quadratic n))))
   (deps ())  ; Tier 0 - no lattice dependencies
 
   (description

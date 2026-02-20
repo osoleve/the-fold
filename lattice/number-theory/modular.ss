@@ -71,6 +71,7 @@
 
 ;;; gcd : Int × Int → Int
 ;;; Greatest common divisor using Euclidean algorithm.
+(doc gcd 'fuel-cost '(logarithmic n))
 (define (gcd a b)
   (doc 'export #t)
   (if (= b 0)

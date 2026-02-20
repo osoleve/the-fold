@@ -4,7 +4,7 @@
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n log n) for FFT, O(n) for FIR/spline/interval-ops, O(log n) for spline-eval, O(n²) for Lagrange, O(k) for affine-ops where k=noise-symbols, O(n²) for FEM assembly, O(n√n) for sparse CG")
+  (fuel-bound (max (quadratic n) (max (log-linear n) (linear n))))
   (deps (linalg algebra geometry))
 
   (description

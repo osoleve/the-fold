@@ -17,6 +17,7 @@
 
 (doc alist-ref 'type '(-> Alist Key (Maybe Value)))
 (doc alist-ref 'description "Look up key in alist, returning the value or #f if not found")
+(doc alist-ref 'fuel-cost '(linear n))
 (doc alist-ref 'export #t)
 (define (alist-ref alist key)
   (let ([pair (assq key alist)])
@@ -59,6 +60,7 @@
 
 (doc alist-merge 'type '(-> Alist Alist Alist))
 (doc alist-merge 'description "Merge two alists; entries in b win on key conflict")
+(doc alist-merge 'fuel-cost '(quadratic n))
 (doc alist-merge 'export #t)
 (define (alist-merge a b)
   (let loop ([remaining b] [result a])

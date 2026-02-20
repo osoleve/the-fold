@@ -148,6 +148,7 @@
 
 ;;; matrix-transpose : Matrix a → Matrix a
 ;;; Transpose a matrix (swap rows and columns).
+(doc matrix-transpose 'fuel-cost '(quadratic n))
 (define (matrix-transpose m)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
@@ -163,6 +164,7 @@
 
 ;;; matrix-map : (a → b) × Matrix a → Matrix b
 ;;; Apply function to each element.
+(doc matrix-map 'fuel-cost '(quadratic n))
 (define (matrix-map f m)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
@@ -201,6 +203,7 @@
 
 ;;; matrix-add : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise addition.
+(doc matrix-add 'fuel-cost '(quadratic n))
 (define (matrix-add m1 m2)
   (matrix-map2 + m1 m2))
 
@@ -232,6 +235,7 @@
 ;;; Matrix multiplication: A(m×n) * B(n×p) = C(m×p)
 ;;; FIX: Use i-k-j loop order for better cache locality (fold-2iv0)
 ;;; Inner j loop now accesses M2 and C sequentially (row-major)
+(doc matrix-mul 'fuel-cost '(cubic n))
 (define (matrix-mul m1 m2)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])

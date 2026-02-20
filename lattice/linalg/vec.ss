@@ -73,11 +73,13 @@
 (define (vec-map f v)
   (doc 'type '(-> (-> a b) (Vec a) (Vec b)))
   (doc 'description "Apply function to each element")
+  (doc 'fuel-cost '(linear n))
   (vec-map-idx i v (f (vector-ref v i))))
 
 (define (vec-fold f init v)
   (doc 'type '(-> (-> b a b) b (Vec a) b))
   (doc 'description "Left fold over vector elements")
+  (doc 'fuel-cost '(linear n))
   (vec-fold-idx acc init i v (f acc (vector-ref v i))))
 
 (define (vec-fold-right f init v)
@@ -154,6 +156,7 @@
 (define (vec-add v1 v2)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
   (doc 'description "Element-wise addition")
+  (doc 'fuel-cost '(linear n))
   (vec-zip-with + v1 v2))
 
 (define (vec-sub v1 v2)
@@ -186,6 +189,7 @@
 (define (vec-dot v1 v2)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or Num Error)))
   (doc 'description "Dot product (inner product)")
+  (doc 'fuel-cost '(linear n))
   (let ([n1 (vector-length v1)]
         [n2 (vector-length v2)])
        (if (not (= n1 n2))
@@ -200,6 +204,7 @@
 (define (vec-norm v)
   (doc 'type '(-> (Vec Num) Num))
   (doc 'description "L2 norm (Euclidean length)")
+  (doc 'fuel-cost '(linear n))
   (sqrt (vec-norm-squared v)))
 
 (define (vec-norm-l1 v)
@@ -218,6 +223,7 @@
 (define (vec-normalize v)
   (doc 'type '(-> (Vec Num) (Or (Vec Num) Error)))
   (doc 'description "Normalize to unit length")
+  (doc 'fuel-cost '(linear n))
   (let ([n (vec-norm v)])
        (if (= n 0)
            '(error zero-vector)
@@ -261,6 +267,7 @@
 (define (vec-sum v)
   (doc 'type '(-> (Vec Num) Num))
   (doc 'description "Sum of all elements")
+  (doc 'fuel-cost '(linear n))
   (vec-fold + 0 v))
 
 (define (vec-product v)

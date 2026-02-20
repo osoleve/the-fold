@@ -7,8 +7,9 @@
 (require 'matrix)
 (require 'matrix-decomp)
 
-(doc 'module 'matrix-solvers
-     'description "Linear Equation Solvers
+(doc 'module 'matrix-solvers)
+(doc 'purity 'total)
+(doc 'description "Linear Equation Solvers
 
 Solvers for Ax = b and related problems.
 
@@ -61,7 +62,8 @@ Dependencies (must be loaded by client in correct order):
 
 (doc matrix-solve
      'type (-> Matrix Vec (or Vec Error))
-     'description "Solve Ax = b for square A using LU decomposition")
+     'description "Solve Ax = b for square A using LU decomposition"
+     'fuel-cost '(cubic n))
 (define (matrix-solve a b)
   (let ([lu (matrix-lu a)])
        (if (and (pair? lu) (eq? (car lu) 'error))
@@ -70,6 +72,7 @@ Dependencies (must be loaded by client in correct order):
 
 ;;; matrix-inverse : Matrix → Matrix | Error
 ;;; Compute the inverse of a square matrix A using LU decomposition.
+(doc matrix-inverse 'fuel-cost '(cubic n))
 (define (matrix-inverse a)
   (let* ([n (matrix-rows a)]
          [lu (matrix-lu a)])
@@ -113,6 +116,7 @@ Dependencies (must be loaded by client in correct order):
 
 ;;; matrix-determinant : Matrix → Num | Error
 ;;; Compute the determinant of a square matrix A using LU decomposition.
+(doc matrix-determinant 'fuel-cost '(cubic n))
 (define (matrix-determinant a)
   (if (not (matrix-square? a))
       `(error not-square ,(matrix-rows a) ,(matrix-cols a))

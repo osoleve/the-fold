@@ -86,7 +86,7 @@ Dependencies:
     ;; Lattice directories (skill tree)
     "lattice/linalg" "lattice/data" "lattice/data/graph" "lattice/algebra" "lattice/random"
     "lattice/numeric" "lattice/geometry" "lattice/autodiff" "lattice/diffgeo"
-    "lattice/query" "lattice/dsl" "lattice/info"
+    "lattice/query" "lattice/dsl" "lattice/info" "lattice/info-stat"
     "lattice/physics/diff" "lattice/physics/diff3d"
     "lattice/physics/classical" "lattice/physics/classical3d"
     "lattice/sim" "lattice/automata" "lattice/number-theory" "lattice/pipeline"
@@ -256,6 +256,9 @@ Dependencies:
  (register-module-path! 'model-selection-info "lattice/info/model-selection.ss")
  (register-module-path! 'empirical-info "lattice/info/empirical-info.ss")
  (register-module-path! 'partition-info "lattice/info/partition-info.ss")
+
+ ;; Info-stat bridge layer
+ (register-module-path! 'info-stat/mi-bridge "lattice/info-stat/mi-bridge.ss")
 
  ;; Topology layer
  (register-module-path! 'simplicial-complex "lattice/topology/simplicial-complex.ss")
@@ -641,6 +644,10 @@ Dependencies:
  (register-module-path! 'simulation "lattice/physics/problems/simulation.ss")
  (register-module-path! 'physics-problem "lattice/physics/problems/physics-problem.ss")
  (register-module-path! 'spatial "lattice/physics/problems/templates/spatial.ss")
+
+ ;; Meta modules
+ (register-module-path! 'meta/fuel-vocab "lattice/meta/fuel-vocab.ss")
+ (register-module-path! 'meta/purity-audit "lattice/meta/purity-audit.ss")
 
  ;; Boundary modules
  (register-module-path! 'boundary/bbs "boundary/bbs/bbs.ss"))

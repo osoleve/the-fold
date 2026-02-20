@@ -143,6 +143,7 @@
 
 ;;; poly-add : Polynomial × Polynomial → Polynomial
 ;;; Add two polynomials over the same field.
+(doc poly-add 'fuel-cost '(linear n))
 (define (poly-add p1 p2)
   (doc 'export #t)
   (let* ([F (poly-field p1)]
@@ -183,6 +184,7 @@
 
 ;;; poly-mul : Polynomial × Polynomial → Polynomial
 ;;; Multiply two polynomials (convolution).
+(doc poly-mul 'fuel-cost '(quadratic n))
 (define (poly-mul p1 p2)
   (doc 'export #t)
   (let* ([F (poly-field p1)]
@@ -364,6 +366,7 @@
 
 ;;; poly-eval : Polynomial × Coeff → Coeff
 ;;; Evaluate polynomial at point using Horner's method.
+(doc poly-eval 'fuel-cost '(linear n))
 (define (poly-eval p x)
   (doc 'export #t)
   (let* ([F (poly-field p)]

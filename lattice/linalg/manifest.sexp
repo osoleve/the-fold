@@ -6,7 +6,7 @@
   (path "lattice/linalg")
   (purity total)
   (stability stable)
-  (fuel-bound "O(n³) for general matrices, O(n²) for Toeplitz systems, O(n) for vectors")
+  (fuel-bound (max (cubic n) (max (quadratic n) (linear n))))
   (deps ())  ; Tier 0 - no lattice dependencies
 
   (description

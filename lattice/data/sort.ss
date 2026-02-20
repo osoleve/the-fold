@@ -40,7 +40,7 @@
   (doc 'type (-> (-> α α Boolean) (List α) (List α)))
   (doc 'description "Sort list using merge sort with custom comparator")
   (doc 'note "Stable: equal elements maintain their original order")
-  (doc 'complexity "O(n log n) time, O(n) space")
+  (doc 'fuel-cost '(log-linear n))
   (let ([len (length lst)])
     (if (<= len 1)
         lst

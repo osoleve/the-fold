@@ -66,6 +66,7 @@
 ;;; - Small inputs (N < 32)
 ;;; - Non-power-of-2 sizes
 ;;; - Verification of FFT correctness
+(doc dft-naive 'fuel-cost '(quadratic n))
 (define (dft-naive x)
   (doc 'export #t)
   (let* ([n (vector-length x)]
@@ -146,7 +147,7 @@
 ;;; Compute the Fast Fourier Transform using Cooley-Tukey radix-2 algorithm.
 ;;;
 ;;; Requirements: Input length must be a power of 2.
-;;; Complexity: O(N log N)
+(doc fft-radix2 'fuel-cost '(log-linear n))
 (define (fft-radix2 x)
   (doc 'export #t)
   (if (not (power-of-2? (vector-length x)))
@@ -203,7 +204,8 @@
 ;;; dft : Vector[Complex] → Vector[Complex]
 ;;; Compute DFT using the most appropriate algorithm.
 ;;; - Power-of-2 sizes: Use FFT (O(N log N))
-;;; - Other sizes: Use naive DFT (O(N²))
+;;; - Other sizes: Use naive DFT (O(N^2))
+(doc dft 'fuel-cost '(max (log-linear n) (quadratic n)))
 (define (dft x)
   (doc 'export #t)
   (if (power-of-2? (vector-length x))
