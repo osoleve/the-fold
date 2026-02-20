@@ -652,6 +652,7 @@ Dependencies:
  (register-module-path! 'meta/readme-audit "lattice/meta/readme-audit.ss")
  (register-module-path! 'meta/fuel-report "lattice/meta/fuel-report.ss")
  (register-module-path! 'meta/module-manifest "lattice/meta/module-manifest.ss")
+ (register-module-path! 'meta/serendipity "lattice/meta/serendipity.ss")
  (register-module-path! 'pipeline/rlm2-metrics "lattice/pipeline/rlm2-metrics.ss")
 
  ;; Boundary modules

@@ -1,4 +1,5 @@
 (load "lattice/meta/search.ss")
+(load "lattice/meta/serendipity.ss")
 (load "lattice/meta/analytics.ss")
 (load "lattice/meta/inspect.ss")
 (load "boundary/meta/persist-io.ss")
@@ -36,6 +37,7 @@
   (printf "  Use (lef \"file.ss\") to list exports from any file\n")
   (printf "  Use (lt 'skill) to list tests\n")
   (printf "  Use (lsrc 'fn) for source location\n")
+  (printf "  Use (lr 'sym) to browse related\n")
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
 
@@ -72,6 +74,7 @@
   (printf "  Use (lef \"file.ss\") to list exports from any file\n")
   (printf "  Use (lt 'skill) to list tests\n")
   (printf "  Use (lsrc 'fn) for source location\n")
+  (printf "  Use (lr 'sym) to browse related\n")
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
 
@@ -137,7 +140,10 @@
   (printf "  (lattice-roots)           - Dependency-free skills\n")
   (printf "  (lattice-tier-0)          - Tier 0 foundational skills\n")
   (printf "  (lattice-leaves)          - Skills with no dependents\n")
-  (printf "  (lattice-tiers)           - Skills grouped by tier\n"))
+  (printf "  (lattice-tiers)           - Skills grouped by tier\n\n")
+  (printf "DISCOVERY:\n")
+  (printf "  (lr 'sym)                 - Browse related (pretty-print)\n")
+  (printf "  (lrr 'sym)               - Browse related (raw alist)\n"))
 
 (doc 'section 'repl-interface)
 
