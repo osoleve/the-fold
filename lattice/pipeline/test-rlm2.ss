@@ -840,4 +840,150 @@
   (let ([r (rlm2-parse-response "(search \"q\") #; (this is ignored)")])
     (assert-true (rlm2-search? (rlm2-parse-result-action r)))))
 
+;;; ====
+;;; Structured Diagnostics (fold-zy0t)
+;;; ====
+
+(test-group "rlm2-diagnostics"
+
+  (define-test "rlm2-error builds structured error"
+    (let ([d (rlm2-error 'action-unknown
+               (list 'given "lookup")
+               (list 'hint "Valid actions: search, eval"))])
+      (assert-true (rlm2-diagnostic? d))
+      (assert-equal 'action-unknown (rlm2-diagnostic-type d))
+      (assert-equal "lookup" (rlm2-diagnostic-field d 'given))
+      (assert-equal "Valid actions: search, eval" (rlm2-diagnostic-field d 'hint))))
+
+  (define-test "rlm2-nudge builds think-streak nudge"
+    (let ([d (rlm2-nudge 'think-streak 3 "You have enough context to act.")])
+      (assert-true (rlm2-diagnostic? d))
+      (assert-equal 'think-streak (rlm2-diagnostic-type d))
+      (assert-equal 3 (rlm2-diagnostic-field d 'count))
+      (assert-equal "You have enough context to act." (rlm2-diagnostic-field d 'suggestion))))
+
+  (define-test "rlm2-warning builds warning"
+    (let ([d (rlm2-warning 'loop-detected "Repeated pattern" "Try something else.")])
+      (assert-true (rlm2-diagnostic? d))
+      (assert-equal 'loop-detected (rlm2-diagnostic-type d))
+      (assert-equal "Repeated pattern" (rlm2-diagnostic-field d 'detail))))
+
+  (define-test "rlm2-diagnostic? rejects non-diagnostics"
+    (assert-false (rlm2-diagnostic? "plain string"))
+    (assert-false (rlm2-diagnostic? 42))
+    (assert-false (rlm2-diagnostic? '(search "q"))))
+
+  (define-test "rlm2-format-diagnostic passes strings through"
+    (assert-equal "hello" (rlm2-format-diagnostic "hello")))
+
+  (define-test "rlm2-format-diagnostic renders error"
+    (let* ([d (rlm2-error 'action-unknown
+                (list 'given "lookup")
+                (list 'hint "Valid actions: search, eval")
+                (list 'suggestion "(search ...)"))]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (string? text))
+      ;; Should contain the type
+      (assert-true (>= (rlm2-hud-contains? text "action-unknown") 0))
+      ;; Should contain the given value
+      (assert-true (>= (rlm2-hud-contains? text "lookup") 0))
+      ;; Should contain the hint
+      (assert-true (>= (rlm2-hud-contains? text "Valid actions") 0))
+      ;; Should contain the suggestion
+      (assert-true (>= (rlm2-hud-contains? text "(search ...)") 0))))
+
+  (define-test "rlm2-format-diagnostic renders nudge"
+    (let* ([d (rlm2-nudge 'think-streak 5 "Compute answer now.")]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (string? text))
+      (assert-true (>= (rlm2-hud-contains? text "think-streak") 0))
+      (assert-true (>= (rlm2-hud-contains? text "5") 0))
+      (assert-true (>= (rlm2-hud-contains? text "Compute answer now.") 0))))
+
+  (define-test "rlm2-format-diagnostic renders warning"
+    (let* ([d (rlm2-warning 'loop-detected "Repeated pattern" "Try different approach.")]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (string? text))
+      (assert-true (>= (rlm2-hud-contains? text "loop-detected") 0))
+      (assert-true (>= (rlm2-hud-contains? text "Repeated pattern") 0))))
+)
+
+(test-group "rlm2-diagnostic-constructors"
+
+  (define-test "rlm2-error-unknown-action suggests closest"
+    (let* ([d (rlm2-error-unknown-action "searh" '("search" "eval" "submit"))]
+           [text (rlm2-format-diagnostic d)])
+      ;; Should mention the valid actions
+      (assert-true (>= (rlm2-hud-contains? text "search") 0))
+      ;; Should be an error diagnostic
+      (assert-true (rlm2-diagnostic? d))
+      (assert-equal 'action-unknown (rlm2-diagnostic-type d))))
+
+  (define-test "rlm2-error-parse builds parse error"
+    (let* ([d (rlm2-error-parse "(broken sexp" "Unclosed parenthesis")]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "parse-error") 0))
+      (assert-true (>= (rlm2-hud-contains? text "Unclosed parenthesis") 0))))
+
+  (define-test "rlm2-error-eval builds eval error"
+    (let* ([d (rlm2-error-eval '(+ x y) "variable x is not bound")]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "eval-error") 0))
+      (assert-true (>= (rlm2-hud-contains? text "variable x is not bound") 0))
+      (assert-true (>= (rlm2-hud-contains? text "Check syntax") 0))))
+
+  (define-test "rlm2-error-require builds require error"
+    (let* ([d (rlm2-error-require 'linalg/vex "module not found")]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "require-error") 0))
+      (assert-true (>= (rlm2-hud-contains? text "linalg/vex") 0))
+      (assert-true (>= (rlm2-hud-contains? text "search") 0))))
+
+  (define-test "rlm2-error-key-not-found builds key error"
+    (let* ([d (rlm2-error-key-not-found 'missing-key)]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "key-not-found") 0))
+      (assert-true (>= (rlm2-hud-contains? text "missing-key") 0))))
+
+  (define-test "rlm2-error-type-mismatch builds type error"
+    (let* ([d (rlm2-error-type-mismatch "string" 42 "search query")]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "type-mismatch") 0))
+      (assert-true (>= (rlm2-hud-contains? text "Expected string") 0))))
+
+  (define-test "rlm2-nudge-think-streak at 3"
+    (let* ([d (rlm2-nudge-think-streak 3)]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "think-streak") 0))
+      (assert-true (>= (rlm2-hud-contains? text "3") 0))
+      ;; Should suggest action, not scold
+      (assert-true (>= (rlm2-hud-contains? text "enough context") 0))))
+
+  (define-test "rlm2-nudge-think-streak at 5 is more urgent"
+    (let* ([d (rlm2-nudge-think-streak 5)]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "5") 0))
+      ;; Should suggest specific submit pattern
+      (assert-true (>= (rlm2-hud-contains? text "store") 0))))
+
+  (define-test "rlm2-warning-loop is constructive"
+    (let* ([d (rlm2-warning-loop)]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "loop-detected") 0))
+      ;; Should suggest alternatives, not scold
+      (assert-true (>= (rlm2-hud-contains? text "different approach") 0))))
+
+  (define-test "rlm2-warning-fuel at low budget"
+    (let* ([d (rlm2-warning-fuel 500 5000)]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "budget-status") 0))
+      (assert-true (>= (rlm2-hud-contains? text "500") 0))
+      (assert-true (>= (rlm2-hud-contains? text "low") 0))))
+
+  (define-test "rlm2-warning-fuel at sufficient budget"
+    (let* ([d (rlm2-warning-fuel 4000 5000)]
+           [text (rlm2-format-diagnostic d)])
+      (assert-true (>= (rlm2-hud-contains? text "Sufficient") 0))))
+)
+
 (run-all-tests)

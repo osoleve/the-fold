@@ -246,21 +246,17 @@
                        ;; Inject loop-break note if stuck
                        [state** (if looping?
                                     (rlm2-state-add-note state*
-                                      "[LOOP] Repeated action pattern detected. Try a different approach.")
+                                      (rlm2-format-diagnostic (rlm2-warning-loop)))
                                     state*)]
                        ;; === THINK-SPAM DETECTION ===
                        [thinks (if (eq? action-type 'think)
                                    (+ consecutive-thinks 1)
                                    0)]
                        [state** (cond
-                                  [(>= thinks 5)
-                                   (rlm2-state-add-note state**
-                                     (format "[URGENT] ~a consecutive thinks — act NOW. Compute your answer with (store 'answer expr), then (submit (retrieve 'answer))."
-                                             thinks))]
                                   [(>= thinks 3)
                                    (rlm2-state-add-note state**
-                                     (format "[NUDGE] ~a consecutive think actions. Act now: map-chunks, eval, store, or peek/grep."
-                                             thinks))]
+                                     (rlm2-format-diagnostic
+                                       (rlm2-nudge-think-streak thinks)))]
                                   [else state**])]
                        ;; === RECORD STEP ===
                        [step-hash (rlm2-record-step!
@@ -308,15 +304,24 @@
 
 (define (rlm2-execute-action state action config depth)
   (guard (ex [else
-              (list (make-rlm2-observation
-                     (if (pair? action) (car action) 'unknown)
-                     #f
-                     (format "Exception: ~a"
-                             (if (message-condition? ex)
-                                 (condition-message ex)
-                                 "unknown"))
-                     #f)
-                    state 1)])
+              (let ([error-msg (if (message-condition? ex)
+                                   (condition-message ex)
+                                   "unknown")])
+                (list (make-rlm2-observation
+                       (if (pair? action) (car action) 'unknown)
+                       #f
+                       (rlm2-format-diagnostic
+                         (rlm2-error 'exception
+                           (list 'detail (format "~a" error-msg))
+                           (list 'expr (if (pair? action)
+                                           (let ([s (format "~s" action)])
+                                             (if (> (string-length s) 200)
+                                                 (string-append (substring s 0 197) "...")
+                                                 s))
+                                           "#f"))
+                           (list 'suggestion "Check your expression for syntax errors and retry.")))
+                       #f)
+                      state 1))])
     (let ([type (rlm2-action-type action)])
       (case type
         [(search)   (rlm2-exec-search state action)]
@@ -348,7 +353,11 @@
         [(reframe)    (rlm2-exec-reframe state action)]
         [else
          (list (make-rlm2-observation type #f
-                 (format "Unknown action type: ~a" type) #f)
+                 (rlm2-format-diagnostic
+                   (rlm2-error-unknown-action
+                     (format "~a" type)
+                     (map symbol->string *rlm2-action-types*)))
+                 #f)
                state 1)]))))
 
 ;;; --- IPC Value Parsing ---
@@ -372,7 +381,8 @@
     ;; Validate: query must be a string to prevent code injection
     (if (not (string? query))
         (list (make-rlm2-observation 'search query
-                (format "Search query must be a string, got ~a" (if (pair? query) "list" "non-string"))
+                (rlm2-format-diagnostic
+                  (rlm2-error-type-mismatch "string" query "search query"))
                 #f)
               state 1)
         ;; Workers have lattice meta via repl.ss → lattice-init-quiet!
@@ -384,8 +394,11 @@
                         (if (or (not v) (string=? v ""))
                             "No matches found."
                             v))
-                      (format "Search error: ~a"
-                              (fold-result-error result)))
+                      (rlm2-format-diagnostic
+                        (rlm2-error 'search-error
+                          (list 'given query)
+                          (list 'detail (fold-result-error result))
+                          (list 'suggestion "Try different search terms or check spelling."))))
                   (fold-result-ok? result))
                 state 1)))))
 
@@ -396,10 +409,16 @@
             (if (fold-result-ok? result)
                 (let ([v (fold-result-value result)])
                   (if (or (not v) (string=? v ""))
-                      (format "Skill '~a' not found." skill)
+                      (rlm2-format-diagnostic
+                        (rlm2-error 'skill-not-found
+                          (list 'given (format "~a" skill))
+                          (list 'suggestion (format "Use (search \"~a\") to find available skills." skill))))
                       v))
-                (format "Inspect error: ~a"
-                        (fold-result-error result)))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'inspect-error
+                    (list 'given (format "~a" skill))
+                    (list 'detail (fold-result-error result))
+                    (list 'suggestion "Check the skill name and try (search ...) to discover skills."))))
             (fold-result-ok? result))
           state 1)))
 
@@ -410,10 +429,16 @@
             (if (fold-result-ok? result)
                 (let ([v (fold-result-value result)])
                   (if (or (not v) (string=? v ""))
-                      (format "Skill '~a' not found." skill)
+                      (rlm2-format-diagnostic
+                        (rlm2-error 'skill-not-found
+                          (list 'given (format "~a" skill))
+                          (list 'suggestion (format "Use (search \"~a\") to find available skills." skill))))
                       v))
-                (format "Exports error: ~a"
-                        (fold-result-error result)))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'exports-error
+                    (list 'given (format "~a" skill))
+                    (list 'detail (fold-result-error result))
+                    (list 'suggestion "Check the skill name and try (search ...) to discover skills."))))
             (fold-result-ok? result))
           state 1)))
 
@@ -435,7 +460,9 @@
                   (format "Module ~a loaded." mod) #t)
                 (rlm2-state-with-loaded state loaded*) 1))
         (list (make-rlm2-observation 'load mod
-                (format "Failed to load ~a: ~a" mod (fold-result-error result)) #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-require mod (fold-result-error result)))
+                #f)
               state 1))))
 
 (define (rlm2-exec-eval state action config)
@@ -458,7 +485,8 @@
                                        (fold-result-value result)
                                        (+ total-fuel 10))
                             (list 'err
-                                  (format "Error: ~a" (fold-result-error result))
+                                  (rlm2-format-diagnostic
+                                    (rlm2-error-eval (car es) (fold-result-error result)))
                                   (+ total-fuel 5))))))]
          [ok? (eq? 'ok (car final))]
          [result-val (if ok?
@@ -492,8 +520,9 @@
                   (format "Stored ~a" key) #t)
                 state* 1))
         (list (make-rlm2-observation 'store key
-                (format "Failed to eval expression: ~a"
-                        (fold-result-error result)) #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-eval (rlm2-store-expr action) (fold-result-error result)))
+                #f)
               state 1))))
 
 (define (rlm2-exec-retrieve state action)
@@ -502,7 +531,7 @@
          [entry (rlm-env-get env key)])
     (if (not entry)
         (list (make-rlm2-observation 'retrieve key
-                (format "Key '~a' not found" key) #f)
+                (rlm2-format-diagnostic (rlm2-error-key-not-found key)) #f)
               state 1)
         (let ([tag (cadr entry)] [size (caddr entry)])
           (if (eq? tag 'chunks)
@@ -524,7 +553,7 @@
          [n (rlm2-peek-n action)]
          [result (rlm-env-peek (rlm2-state-env state) key n)])
     (list (make-rlm2-observation 'peek key
-            (or result (format "Key '~a' not found" key))
+            (or result (rlm2-format-diagnostic (rlm2-error-key-not-found key)))
             (if result #t #f))
           state 1)))
 
@@ -536,7 +565,11 @@
     (list (make-rlm2-observation 'grep key
             (if results
                 (rlm2-format-grep-results results pattern)
-                (format "Key '~a' not found or not chunked" key))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'grep-error
+                    (list 'given (format "~a" key))
+                    (list 'detail "Key not found or value is not chunked")
+                    (list 'suggestion "Check that the key exists in env and is a chunked value."))))
             (if results #t #f))
           state 1)))
 
@@ -572,10 +605,20 @@
                 (list (make-rlm2-observation 'recall-step n payload #t)
                       state 1))
               (list (make-rlm2-observation 'recall-step n
-                      (format "Step ~a record not found in CAS" n) #f)
+                      (rlm2-format-diagnostic
+                        (rlm2-error 'recall-error
+                          (list 'given (format "step ~a" n))
+                          (list 'detail "Step record not found in CAS")
+                          (list 'suggestion "The step may not have been recorded yet.")))
+                      #f)
                     state 1)))
         (list (make-rlm2-observation 'recall-step n
-                (format "Step ~a not in episodic log" n) #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error 'recall-error
+                    (list 'given (format "step ~a" n))
+                    (list 'detail "Step not in episodic log")
+                    (list 'suggestion "Check (episodic ...) in your HUD for available step numbers.")))
+                #f)
               state 1))))
 
 (define (rlm2-exec-submit state action config)
@@ -602,11 +645,17 @@
                     1)
               ;; Verifier rejected
               (list (make-rlm2-observation 'submit expr
-                      "Answer rejected by verifier" #f)
+                      (rlm2-format-diagnostic
+                        (rlm2-error 'submit-rejected
+                          (list 'detail "Answer rejected by verifier")
+                          (list 'suggestion "Review your answer and try a different approach.")))
+                      #f)
                     state 1)))
         ;; Eval failed
         (list (make-rlm2-observation 'submit expr
-                (format "Submit eval failed: ~a" (fold-result-error result)) #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-eval expr (fold-result-error result)))
+                #f)
               state 1))))
 
 (define (rlm2-exec-think state action)
@@ -620,7 +669,9 @@
     ;; Validate: items must be a list (ideally of pairs, but tolerate atoms)
     (if (not (list? items))
         (list (make-rlm2-observation 'plan! items
-                "plan! argument must be a list of (item . status) pairs" #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-type-mismatch "list of (item . status) pairs" items "plan!"))
+                #f)
               state 0)
         ;; Normalize: ensure each item is a pair. Wrap bare atoms as (atom . pending).
         (let ([normalized (map (lambda (item)
@@ -655,22 +706,34 @@
     (cond
       [(not entry)
        (list (make-rlm2-observation 'map-chunks key
-               (format "Key '~a' not found" key) #f)
+               (rlm2-format-diagnostic (rlm2-error-key-not-found key)) #f)
              state 1)]
       [(not (eq? (cadr entry) 'chunks))
        (list (make-rlm2-observation 'map-chunks key
-               (format "Key '~a' is not chunked — use (eval ...) for small values" key) #f)
+               (rlm2-format-diagnostic
+                 (rlm2-error 'not-chunked
+                   (list 'given (format "~a" key))
+                   (list 'detail "Value is not chunked")
+                   (list 'suggestion "Use (eval ...) directly for small values.")))
+               #f)
              state 1)]
       [(not (string? expr-text))
        (list (make-rlm2-observation 'map-chunks key
-               "Expression must be a string (evaluated per chunk with *chunk* bound)" #f)
+               (rlm2-format-diagnostic
+                 (rlm2-error-type-mismatch "string" expr-text "map-chunks expression"))
+               #f)
              state 1)]
       [else
        ;; Fetch manifest and iterate over chunks
        (let ([manifest (rlm-env-fetch env key)])
          (if (not (and manifest (chunk-manifest? manifest)))
              (list (make-rlm2-observation 'map-chunks key
-                     "Chunk manifest not found in CAS" #f)
+                     (rlm2-format-diagnostic
+                       (rlm2-error 'manifest-missing
+                         (list 'given (format "~a" key))
+                         (list 'detail "Chunk manifest not found in CAS")
+                         (list 'suggestion "The data may be corrupted. Try re-storing the value.")))
+                     #f)
                    state 1)
              (let loop ([hashes (chunk-manifest-hashes manifest)]
                         [results '()]
@@ -725,7 +788,9 @@
         [text (rlm2-journal-text action)])
     (if (not (string? text))
         (list (make-rlm2-observation 'journal tag
-                "Journal text must be a string" #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-type-mismatch "string" text "journal text"))
+                #f)
               state 0)
         (let ([state* (rlm2-state-add-journal state tag text)])
           (list (make-rlm2-observation 'journal tag
@@ -913,7 +978,9 @@
         [text (rlm2-memorize-text action)])
     (if (not (string? text))
         (list (make-rlm2-observation 'memorize key
-                "Memorize text must be a string" #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-type-mismatch "string" text "memorize text"))
+                #f)
               state 1)
         (begin
           (rlm2-append-system-memory! key text)
@@ -925,7 +992,9 @@
   (let ([query (rlm2-remember-query action)])
     (if (not (string? query))
         (list (make-rlm2-observation 'remember query
-                "Remember query must be a string" #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-type-mismatch "string" query "remember query"))
+                #f)
               state 1)
         (let ([memories (rlm2-load-system-memory!)])
           (if (null? memories)
@@ -953,8 +1022,11 @@
   ;; Enforce max nesting depth
   (if (>= depth (rlm2-config-max-depth config))
       (list (make-rlm2-observation 'begin #f
-              (format "begin nesting depth ~a exceeds max-depth ~a"
-                      depth (rlm2-config-max-depth config))
+              (rlm2-format-diagnostic
+                (rlm2-error 'nesting-limit
+                  (list 'detail (format "begin nesting depth ~a exceeds max-depth ~a"
+                                        depth (rlm2-config-max-depth config)))
+                  (list 'suggestion "Flatten your begin block or use sequential actions.")))
               #f)
             state 1)
   ;; Execute children sequentially, stop on first error or submit completion
@@ -1012,8 +1084,15 @@
     (list (make-rlm2-observation 'lookup sym
             (if (fold-result-ok? result)
                 (or (fold-result-value result)
-                    (format "No information found for '~a'" sym-str))
-                (format "Lookup error: ~a" (fold-result-error result)))
+                    (rlm2-format-diagnostic
+                      (rlm2-error 'symbol-not-found
+                        (list 'given sym-str)
+                        (list 'suggestion (format "Try (symbols \"~a\") to search by fragment." sym-str)))))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'lookup-error
+                    (list 'given sym-str)
+                    (list 'detail (fold-result-error result))
+                    (list 'suggestion "Check the symbol name and ensure the module is loaded."))))
             (fold-result-ok? result))
           state 1)))
 
@@ -1025,8 +1104,15 @@
     (list (make-rlm2-observation 'definition sym
             (if (fold-result-ok? result)
                 (or (fold-result-value result)
-                    (format "Definition not found for '~a'" sym-str))
-                (format "Definition error: ~a" (fold-result-error result)))
+                    (rlm2-format-diagnostic
+                      (rlm2-error 'symbol-not-found
+                        (list 'given sym-str)
+                        (list 'suggestion (format "Try (symbols \"~a\") to search by fragment." sym-str)))))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'definition-error
+                    (list 'given sym-str)
+                    (list 'detail (fold-result-error result))
+                    (list 'suggestion "Check the symbol name and ensure the module is loaded."))))
             (fold-result-ok? result))
           state 1)))
 
@@ -1041,8 +1127,15 @@
     (list (make-rlm2-observation 'symbols query
             (if (fold-result-ok? result)
                 (or (fold-result-value result)
-                    (format "No symbols matching '~a'" query-str))
-                (format "Symbols error: ~a" (fold-result-error result)))
+                    (rlm2-format-diagnostic
+                      (rlm2-error 'no-matches
+                        (list 'given query-str)
+                        (list 'suggestion "Try a shorter or different search fragment."))))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'symbols-error
+                    (list 'given query-str)
+                    (list 'detail (fold-result-error result))
+                    (list 'suggestion "Check the query string."))))
             (fold-result-ok? result))
           state 1)))
 
@@ -1057,8 +1150,15 @@
     (list (make-rlm2-observation 'outline file
             (if (fold-result-ok? result)
                 (or (fold-result-value result)
-                    (format "No definitions found in ~a" file-str))
-                (format "Outline error: ~a" (fold-result-error result)))
+                    (rlm2-format-diagnostic
+                      (rlm2-error 'no-definitions
+                        (list 'given file-str)
+                        (list 'suggestion "Check the file path. Use lattice paths like 'lattice/linalg/vec.ss'."))))
+                (rlm2-format-diagnostic
+                  (rlm2-error 'outline-error
+                    (list 'given file-str)
+                    (list 'detail (fold-result-error result))
+                    (list 'suggestion "Check the file path."))))
             (fold-result-ok? result))
           state 1)))
 
@@ -1078,8 +1178,11 @@
     ;; Enforce depth limit
     (if (>= (+ depth 1) max-depth)
         (list (make-rlm2-observation 'delegate sub-task
-                (format "Delegation blocked: depth ~a would exceed max-depth ~a. Handle this sub-task directly."
-                        (+ depth 1) max-depth)
+                (rlm2-format-diagnostic
+                  (rlm2-error 'delegation-limit
+                    (list 'detail (format "Depth ~a would exceed max-depth ~a"
+                                          (+ depth 1) max-depth))
+                    (list 'suggestion "Handle this sub-task directly instead of delegating.")))
                 #f)
               state 1)
         ;; Build sub-config with reduced resources
@@ -1137,7 +1240,9 @@
   (let ([new-task (rlm2-reframe-task action)])
     (if (not (string? new-task))
         (list (make-rlm2-observation 'reframe new-task
-                "Reframe task must be a string" #f)
+                (rlm2-format-diagnostic
+                  (rlm2-error-type-mismatch "string" new-task "reframe task"))
+                #f)
               state 0)
         (list (make-rlm2-observation 'reframe new-task
                 (format "Task reframed to: ~a" new-task) #t)
@@ -1386,18 +1491,16 @@
                                    (rlm2-config-loop-window config))]
                        [state** (if looping?
                                     (rlm2-state-add-note state*
-                                      "[LOOP] Repeated action pattern detected. Try a different approach.")
+                                      (rlm2-format-diagnostic (rlm2-warning-loop)))
                                     state*)]
                        ;; === THINK-SPAM ===
                        [thinks (if (eq? action-type 'think)
                                    (+ consecutive-thinks 1) 0)]
                        [state** (cond
-                                  [(>= thinks 5)
-                                   (rlm2-state-add-note state**
-                                     (format "[URGENT] ~a consecutive thinks — act NOW." thinks))]
                                   [(>= thinks 3)
                                    (rlm2-state-add-note state**
-                                     (format "[NUDGE] ~a consecutive think actions. Act now." thinks))]
+                                     (rlm2-format-diagnostic
+                                       (rlm2-nudge-think-streak thinks)))]
                                   [else state**])]
                        ;; === RECORD STEP ===
                        [step-hash (rlm2-record-step!
