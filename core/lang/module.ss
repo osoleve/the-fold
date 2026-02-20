@@ -656,6 +656,7 @@ Dependencies:
  (register-module-path! 'meta/promotion "lattice/meta/promotion.ss")
  (register-module-path! 'meta/bbs-xref "lattice/meta/bbs-xref.ss")
  (register-module-path! 'ode-adaptive "lattice/sim/dynamics/ode-adaptive.ss")
+ (register-module-path! 'autodiff/ode-jacobian "lattice/autodiff/ode-jacobian.ss")
  (register-module-path! 'contract "lattice/validation/contract.ss")
  (register-module-path! 'pipeline/rlm2-metrics "lattice/pipeline/rlm2-metrics.ss")
 
