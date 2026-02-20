@@ -181,6 +181,13 @@ Key design principles:
      fsm-move fsm-run fsm-accepts?
      fsm-reachable)
 
+   (parser-compile
+     dfa->parser regex-ast->parser
+     regex->parser regex->combinator-parser
+     compiled-regex? compiled-regex-pattern compiled-regex-ast
+     compiled-regex-dfa compiled-regex-parser
+     compile-regex compiled-regex-matches? compiled-regex-parse)
+
    ;; ---- data/ subdir ----
 
    (stream
@@ -266,7 +273,8 @@ Key design principles:
        "parser.ss"           ; Core combinator framework
        "parser-dsl.ss"       ; DSL for parser construction
        "parser-examples.ss"  ; JSON, S-expr, arithmetic parsers
-       "regex.ss")))         ; Regular expression matching
+       "regex.ss"            ; Regular expression matching
+       "parser-compile.ss")))  ; DFA-backed parsers, compiled regex
 
     ((subdir "meta")
      (description "FP combinators, DSL utilities, logic programming, Result type")

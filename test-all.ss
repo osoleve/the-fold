@@ -452,6 +452,7 @@
     "fp/parsing/test-fsm.ss"
     "fp/parsing/test-parser-examples.ss"
     "fp/parsing/test-parser-infinite-loop.ss"
+    "fp/parsing/test-parser-compile.ss"
     "fp/sat/test-sat.ss"
     "fp/sat/test-maxsat.ss"
     "fp/control/test-free.ss"

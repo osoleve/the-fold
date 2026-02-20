@@ -431,6 +431,7 @@ Dependencies:
  (register-module-path! 'logic "lattice/fp/meta/logic.ss")
  (register-module-path! 'parser-examples "lattice/fp/parsing/parser-examples.ss")
  (register-module-path! 'regex "lattice/fp/parsing/regex.ss")
+ (register-module-path! 'parser-compile "lattice/fp/parsing/parser-compile.ss")
  (register-module-path! 'functor-general "lattice/fp/category/multi/functor-general.ss")
  (register-module-path! 'expr "lattice/fp/symbolic/expr.ss")
  (register-module-path! 'rule "lattice/fp/rewrite/rule.ss")
