@@ -647,6 +647,8 @@
     ;; Automata
     "automata/test-statechart.ss"
     "automata/test-statechart-zipper.ss"
+    ;; Validation
+    "validation/test-contract.ss"
     ;; Tiles
     "tiles/test-tiles.ss"
     "tiles/test-triangle.ss"
