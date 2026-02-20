@@ -3,7 +3,7 @@
 ;;; NOTE: Run from fabric/stitches directory
 
 (load "core/lang/module.ss")
-(load "core/test-framework.ss")
+(load "core/testing/test-framework.ss")
 (load "lattice/fp/parsing/fsm.ss")
 
 (display "
@@ -472,6 +472,94 @@
                      [dot (fsm->dot m "test\"graph")])
                     ;; Graph name quotes should be escaped
                     (assert-true (string-contains dot "test\\\"graph")))))
+
+;;; ====
+;;; Derived Language Operations
+;;; ====
+
+(test-group derived-language-operations
+            (define-test fsm-difference-test
+              ;; Difference: strings with >= 2 a's MINUS even-length strings
+              ;; Should give: odd-length strings with >= 2 a's (i.e., "aaa", "aaaaa", ...)
+              (let* ([two-plus (dfa '(s0 s1 s2) (list char-a)
+                                    (list (list 's0 char-a 's1) (list 's1 char-a 's2) (list 's2 char-a 's2))
+                                    's0 '(s2))]
+                     [even-as (dfa '(q0 q1) (list char-a)
+                                   (list (list 'q0 char-a 'q1) (list 'q1 char-a 'q0))
+                                   'q0 '(q0))]
+                     [diff (fsm-difference two-plus even-as)])
+                    ;; "aa" is in two-plus AND even-as, so NOT in diff
+                    (assert-false (fsm-accepts? diff "aa"))
+                    ;; "aaa" is in two-plus and NOT in even-as → in diff
+                    (assert-true (fsm-accepts? diff "aaa"))
+                    ;; "aaaa" is in two-plus AND even-as → not in diff
+                    (assert-false (fsm-accepts? diff "aaaa"))
+                    ;; "aaaaa" is in two-plus and NOT in even-as → in diff
+                    (assert-true (fsm-accepts? diff "aaaaa"))
+                    ;; "a" is not in two-plus → not in diff
+                    (assert-false (fsm-accepts? diff "a"))))
+
+            (define-test fsm-subset-test
+              ;; L(two-a's) should be a subset of L(one-or-more-a's)
+              (let* ([two-as (fsm-concat (fsm-char char-a) (fsm-char char-a))]
+                     [a-plus (fsm-plus (fsm-char char-a))])
+                    (assert-true (fsm-subset? two-as a-plus))
+                    ;; But not the other way
+                    (assert-false (fsm-subset? a-plus two-as))))
+
+            (define-test fsm-subset-equal-test
+              ;; Same language should be subset both ways
+              (let* ([m1 (fsm-star (fsm-char char-a))]
+                     [m2 (fsm-star (fsm-char char-a))])
+                    (assert-true (fsm-subset? m1 m2))
+                    (assert-true (fsm-subset? m2 m1))))
+
+            (define-test fsm-equivalent-same-test
+              ;; Same language via different constructions
+              ;; a* = (a|ε)(a|ε)... vs explicit a*
+              (let* ([m1 (fsm-star (fsm-char char-a))]
+                     [m2 (fsm-star (fsm-union (fsm-char char-a) (fsm-epsilon-lang)))])
+                    (assert-true (fsm-equivalent? m1 m2))))
+
+            (define-test fsm-equivalent-different-test
+              ;; a* is not the same as a+
+              (let* ([a-star (fsm-star (fsm-char char-a))]
+                     [a-plus (fsm-plus (fsm-char char-a))])
+                    (assert-false (fsm-equivalent? a-star a-plus))))
+
+            (define-test fsm-reverse-single-char-test
+              ;; Reverse of single-char FSM is the same
+              (let* ([m (fsm-char char-a)]
+                     [rev (fsm-reverse m)])
+                    (assert-true (fsm-accepts? rev "a"))
+                    (assert-false (fsm-accepts? rev ""))
+                    (assert-false (fsm-accepts? rev "aa"))))
+
+            (define-test fsm-reverse-concat-test
+              ;; Reverse of "ab" should accept "ba"
+              (let* ([ab (fsm-concat (fsm-char char-a) (fsm-char char-b))]
+                     [rev (fsm-reverse ab)])
+                    (assert-true (fsm-accepts? rev "ba"))
+                    (assert-false (fsm-accepts? rev "ab"))
+                    (assert-false (fsm-accepts? rev "a"))
+                    (assert-false (fsm-accepts? rev "b"))))
+
+            (define-test fsm-reverse-star-test
+              ;; Reverse of a* is still a*
+              (let* ([m (fsm-star (fsm-char char-a))]
+                     [rev (fsm-reverse m)])
+                    (assert-true (fsm-accepts? rev ""))
+                    (assert-true (fsm-accepts? rev "a"))
+                    (assert-true (fsm-accepts? rev "aaa"))))
+
+            (define-test fsm-reverse-palindrome-test
+              ;; Reverse of (a|b)* is still (a|b)* — check specific strings
+              (let* ([ab-star (fsm-star (fsm-union (fsm-char char-a) (fsm-char char-b)))]
+                     [rev (fsm-reverse ab-star)])
+                    (assert-true (fsm-accepts? rev ""))
+                    (assert-true (fsm-accepts? rev "ab"))
+                    (assert-true (fsm-accepts? rev "ba"))
+                    (assert-true (fsm-accepts? rev "aabb")))))
 
 ;;; ====
 ;;; Edge Cases

@@ -886,6 +886,80 @@
 (doc fsm-complement 'type '(-> FSM FSM))
 (doc fsm-complement 'description "Complement of a DFA. First completes the DFA (adds explicit dead state for missing transitions), then flips accepting and non-accepting states")
 
+(doc 'section 'fsm-derived-language-operations)
+
+(define (fsm-difference fsm1 fsm2)
+  (doc 'type '(-> FSM FSM FSM))
+  (doc 'description "Difference of two FSMs: L(M1) \\ L(M2). Accepts strings in M1 but not M2.")
+  (fsm-intersect fsm1 (fsm-complement fsm2)))
+
+(define (fsm-subset? fsm1 fsm2)
+  (doc 'type '(-> FSM FSM Boolean))
+  (doc 'description "Check if L(M1) ⊆ L(M2). True when every string accepted by M1 is also accepted by M2.")
+  (fsm-empty? (fsm-difference fsm1 fsm2)))
+
+(define (fsm-equivalent? fsm1 fsm2)
+  (doc 'type '(-> FSM FSM Boolean))
+  (doc 'description "Check if L(M1) = L(M2). True when both FSMs accept exactly the same language.")
+  (and (fsm-subset? fsm1 fsm2)
+       (fsm-subset? fsm2 fsm1)))
+
+(define (fsm-reverse fsm)
+  (doc 'type '(-> FSM FSM))
+  (doc 'description "Reverse of an FSM: accepts the reverse of every string in L(M). Reverses all transitions, swaps start and accepting states.")
+  (let* ([m (fsm-rename fsm "r")]
+         [new-start (fsm-fresh-state "rev")]
+         ;; Reverse all regular transitions: (from . sym) -> (to) becomes (to . sym) -> (from)
+         [rev-trans
+          (fold-left
+           (lambda (acc t)
+             (let ([from (caar t)]
+                   [sym (cdar t)]
+                   [targets (cdr t)])
+               (fold-left
+                (lambda (acc2 to)
+                  (let ([key (cons to sym)]
+                        [existing (assoc (cons to sym) acc2)])
+                    (if existing
+                        ;; Append to existing transition
+                        (map (lambda (entry)
+                               (if (equal? (car entry) key)
+                                   (cons key (union equal? (list from) (cdr entry)))
+                                   entry))
+                             acc2)
+                        (cons (cons key (list from)) acc2))))
+                acc
+                targets)))
+           '()
+           (fsm-transitions m))]
+         ;; Reverse epsilon transitions similarly
+         [rev-eps
+          (fold-left
+           (lambda (acc e)
+             (let ([from (car e)]
+                   [targets (cdr e)])
+               (fold-left
+                (lambda (acc2 to)
+                  (let ([existing (assoc to acc2)])
+                    (if existing
+                        (map (lambda (entry)
+                               (if (equal? (car entry) to)
+                                   (cons to (union equal? (list from) (cdr entry)))
+                                   entry))
+                             acc2)
+                        (cons (cons to (list from)) acc2))))
+                acc
+                targets)))
+           '()
+           (fsm-epsilon m))]
+         ;; New start epsilon-transitions to all old accepting states
+         [start-eps (cons new-start (fsm-accepting m))]
+         ;; Old start becomes the only accepting state
+         [all-states (cons new-start (fsm-states m))]
+         [all-eps (cons start-eps rev-eps)])
+    (make-fsm all-states (fsm-alphabet m) rev-trans
+              new-start (list (fsm-start m)) all-eps)))
+
 (doc 'section 'state-machine-simulation)
 
 (define (make-moore fsm outputs)
@@ -980,10 +1054,11 @@
 ;;;
 ;;; Operations:
 ;;;   fsm-union, fsm-concat, fsm-star, fsm-plus, fsm-optional,
-;;;   fsm-intersect, fsm-complement, nfa->dfa, fsm-minimize
+;;;   fsm-intersect, fsm-complement, fsm-difference, fsm-reverse,
+;;;   nfa->dfa, fsm-minimize
 ;;;
 ;;; Queries:
-;;;   fsm-reachable, fsm-empty?
+;;;   fsm-reachable, fsm-empty?, fsm-subset?, fsm-equivalent?
 ;;;
 ;;; Moore/Mealy:
 ;;;   make-moore, moore?, moore-run, make-mealy, mealy?, mealy-run
