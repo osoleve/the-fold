@@ -44,6 +44,10 @@
     (let ([entries '((name . "x") (purpose . "y") (tier-access . boundary))])
       (assert-equal 'cons-pair (readme-detect-style entries))))
 
+  (define-test "mixed style"
+    (let ([entries '((name "flat-value") (purpose . "cons-value"))])
+      (assert-equal 'mixed (readme-detect-style entries))))
+
   (define-test "empty style"
     (assert-equal 'empty (readme-detect-style '())))
 )

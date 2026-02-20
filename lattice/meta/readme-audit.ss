@@ -56,17 +56,15 @@ Handles both flat-list ((name \"x\")) and cons-pair ((name . \"x\")) patterns.")
       [(eq? (caar entries) key)
        (let ([entry (car entries)])
          (cond
-           ;; Cons pair: (name . "value")
+           ;; Flat list with single value: (name "value") → cddr is ()
            [(and (pair? (cdr entry)) (not (pair? (cadr entry)))
                  (not (null? (cdr entry)))
-                 ;; Distinguish (name . "val") from (name "val")
-                 ;; by checking if cddr is null — flat-list has (name "val") -> cddr = ()
                  (null? (cddr entry)))
             (cadr entry)]
-           ;; Cons pair where cdr is not a list: (name . value)
+           ;; Cons pair: (name . "value") → cdr is atom, not a pair
            [(not (pair? (cdr entry)))
             (cdr entry)]
-           ;; Flat list: (name "value") or (name (sublist))
+           ;; Flat list with nested value: (name (sublist ...))
            [else (cadr entry)]))]
       [else (loop (cdr entries))])))
 
