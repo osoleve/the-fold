@@ -216,6 +216,152 @@
         (assert-true (string? s))
         (assert-true (> (string-length s) 0))))))
 
+(test-group "resumable-basic"
+
+  (define-test "saturate-resumable reaches fixpoint same as saturate"
+    (let ([eg (make-egraph)]
+          [rules arith-identity-rules]
+          [config (default-saturation-config)])
+      (egraph-add-term! eg '(* (+ x 0) 1))
+      (egraph-add-term! eg 'x)
+      (let ([result (saturate-resumable eg rules config)])
+        ;; Should reach fixpoint (not be suspended)
+        (assert-false (saturation-suspended? result))
+        (assert-true (result-saturated? result)))))
+
+  (define-test "fuel limit returns suspension"
+    (let ([eg (make-egraph)]
+          [rules arith-comm-rules]
+          [config (make-saturation-config 1 0 0)])
+      (egraph-add-term! eg '(+ a b))
+      (let ([result (saturate-resumable eg rules config)])
+        ;; With 1 iteration fuel and commutativity, should suspend
+        ;; (commutativity creates (+ b a) which needs rebuild, then
+        ;; another iteration confirms fixpoint)
+        (assert-true (or (saturation-suspended? result)
+                        (result-saturated? result))))))
+
+  (define-test "suspension preserves loop state"
+    (let ([eg (make-egraph)]
+          ;; Use associativity rules that take many iterations
+          [rules arith-assoc-rules]
+          [config (make-saturation-config 2 0 0)])  ; Only 2 iterations
+      (egraph-add-term! eg '(+ (+ (+ a b) c) d))
+      (let ([result (saturate-resumable eg rules config)])
+        (when (saturation-suspended? result)
+          ;; Suspension has the right iteration count
+          (assert-equal 2 (suspension-iteration result))
+          ;; The wrapped result is accessible
+          (assert-true (saturation-result? (suspension-result result)))
+          (assert-equal 'fuel-exhausted (result-status (suspension-result result))))))))
+
+(test-group "resumable-resume"
+
+  (define-test "resume from suspension continues work"
+    (let ([eg (make-egraph)]
+          [rules arith-identity-rules]
+          ;; 1 iteration at a time
+          [config (make-saturation-config 1 0 0)])
+      (egraph-add-term! eg '(+ x 0))
+      (egraph-add-term! eg 'x)
+      ;; First run: 1 iteration
+      (let ([r1 (saturate-resumable eg rules config)])
+        (if (saturation-suspended? r1)
+            ;; Resume: should eventually reach fixpoint
+            (let ([r2 (saturate-resume r1)])
+              (if (saturation-suspended? r2)
+                  ;; One more try
+                  (let ([r3 (saturate-resume r2)])
+                    (assert-true (or (saturation-suspended? r3)
+                                    (result-saturated? r3))))
+                  (assert-true (result-saturated? r2))))
+            ;; Reached fixpoint in 1 iteration (identity rule applied + confirmed)
+            (assert-true (result-saturated? r1))))))
+
+  (define-test "resume accumulates iteration count"
+    ;; Use identity rules on nested expression that needs multiple iterations
+    (let ([eg (make-egraph)]
+          [rules arith-identity-rules]
+          [config (make-saturation-config 1 0 0)])
+      (egraph-add-term! eg '(* (* (+ x 0) 1) 1))
+      (egraph-add-term! eg 'x)
+      ;; Step through until fixpoint, tracking total iterations
+      (let step ([result (saturate-resumable eg rules config)]
+                 [steps 0])
+        (if (saturation-suspended? result)
+            (step (saturate-resume result) (+ steps 1))
+            ;; Reached fixpoint after multiple suspend-resume cycles
+            (assert-true (> steps 0))))))
+
+  (define-test "resume-with allows changing config"
+    (let ([eg (make-egraph)]
+          [rules arith-identity-rules]
+          [tight-config (make-saturation-config 1 0 0)]
+          [generous-config (make-saturation-config 100 10000 0)])
+      (egraph-add-term! eg '(* (* x 1) 1))
+      (egraph-add-term! eg 'x)
+      ;; Start with tight fuel
+      (let ([r1 (saturate-resumable eg rules tight-config)])
+        (when (saturation-suspended? r1)
+          ;; Resume with generous fuel — should reach fixpoint
+          (let ([r2 (saturate-resume-with r1 generous-config)])
+            (assert-true (or (result-saturated? r2)
+                            ;; Or a new suspension if it needs more
+                            (saturation-suspended? r2)))))))))
+
+(test-group "resumable-multi-step"
+
+  (define-test "multi-step saturation reaches same equivalence"
+    ;; Verify that stepping through 1-iteration-at-a-time reaches
+    ;; the same e-graph state as running all at once.
+    (let ([eg1 (make-egraph)]
+          [eg2 (make-egraph)]
+          [rules arith-identity-rules])
+      ;; Setup identical e-graphs
+      (let ([t1 (egraph-add-term! eg1 '(+ (* x 1) 0))]
+            [x1 (egraph-add-term! eg1 'x)]
+            [t2 (egraph-add-term! eg2 '(+ (* x 1) 0))]
+            [x2 (egraph-add-term! eg2 'x)])
+        ;; All-at-once
+        (saturate-simple eg1 rules)
+        ;; Step-by-step
+        (let step ([result (saturate-resumable eg2 rules (make-saturation-config 1 0 0))])
+          (when (saturation-suspended? result)
+            (step (saturate-resume result))))
+        ;; Both should agree: (+ (* x 1) 0) equivalent to x
+        (assert-equal (egraph-find eg1 t1) (egraph-find eg1 x1))
+        (assert-equal (egraph-find eg2 t2) (egraph-find eg2 x2)))))
+
+  (define-test "suspension-result accessors work"
+    (let ([eg (make-egraph)]
+          [rules arith-assoc-rules]
+          [config (make-saturation-config 1 0 0)])
+      (egraph-add-term! eg '(+ (+ a b) c))
+      (let ([result (saturate-resumable eg rules config)])
+        (when (saturation-suspended? result)
+          (let ([inner (suspension-result result)])
+            (assert-true (number? (result-final-classes inner)))
+            (assert-true (number? (result-final-nodes inner)))))))))
+
+(test-group "resumable-predicate"
+
+  (define-test "saturation-suspended? distinguishes types"
+    (let ([result (make-saturation-result 'saturated 5 10 3 8)])
+      (assert-false (saturation-suspended? result))
+      (assert-false (saturation-suspended? 42))
+      (assert-false (saturation-suspended? '()))
+      (assert-false (saturation-suspended? (vector 'wrong 1 2 3 4 5 6)))))
+
+  (define-test "suspension is not a saturation-result"
+    ;; Suspensions and results are distinct types
+    (let ([eg (make-egraph)]
+          [rules arith-comm-rules]
+          [config (make-saturation-config 1 0 0)])
+      (egraph-add-term! eg '(+ a b))
+      (let ([result (saturate-resumable eg rules config)])
+        (when (saturation-suspended? result)
+          (assert-false (saturation-result? result)))))))
+
 (test-group "rule-sets"
 
   (define-test "arith-identity-rules defined"

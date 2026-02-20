@@ -267,6 +267,107 @@
           arith-distrib-rules))
 
 ;;; ============================================================
+;;; Resumable Saturation
+;;; ============================================================
+
+(doc 'section 'resumable)
+
+;;; Saturation suspension — captures loop state for later resumption.
+;;; A suspension wraps a SaturationResult plus the continuation state
+;;; needed to restart the loop: egraph, rules, iteration count, total applied.
+
+(define saturation-suspension-tag 'saturation-suspension)
+
+(define (make-saturation-suspension eg rules iteration total-applied config result)
+  (vector saturation-suspension-tag eg rules iteration total-applied config result))
+
+(doc 'type '(-> Any Boolean))
+(doc 'description "Check if a value is a saturation suspension (resumable).")
+(define (saturation-suspended? x)
+  (and (vector? x)
+       (>= (vector-length x) 7)
+       (eq? (vector-ref x 0) saturation-suspension-tag)))
+
+(define (suspension-egraph s) (vector-ref s 1))
+(define (suspension-rules s) (vector-ref s 2))
+(define (suspension-iteration s) (vector-ref s 3))
+(define (suspension-total-applied s) (vector-ref s 4))
+(define (suspension-config s) (vector-ref s 5))
+(define (suspension-result s) (vector-ref s 6))
+
+;;; Inner loop shared by saturate-resumable and saturate-resume.
+;;; start-iter/start-total are the accumulated counts from prior runs.
+;;; Config fuel is treated as RELATIVE: fuel=5 means 5 more iterations.
+(define (saturate-resumable-loop eg rules config start-iter start-total)
+  (let ([fuel (config-fuel config)]
+        [node-limit (config-node-limit config)]
+        [iter-limit (config-iter-limit config)])
+    (let loop ([rel-iter 0]
+               [total-applied start-total])
+      (let ([abs-iter (+ start-iter rel-iter)])
+        (cond
+          ;; Fuel exhausted (relative to this run's budget)
+          [(and (> fuel 0) (>= rel-iter fuel))
+           (let ([result (make-saturation-result 'fuel-exhausted abs-iter total-applied
+                           (egraph-class-count eg) (egraph-node-count eg))])
+             (make-saturation-suspension eg rules abs-iter total-applied config result))]
+
+          ;; Node limit
+          [(and (> node-limit 0) (> (egraph-node-count eg) node-limit))
+           (let ([result (make-saturation-result 'node-limit abs-iter total-applied
+                           (egraph-class-count eg) (egraph-node-count eg))])
+             (make-saturation-suspension eg rules abs-iter total-applied config result))]
+
+          ;; Run one iteration
+          [else
+           (let ([applied (saturate-iteration eg rules iter-limit)])
+             (egraph-saturate-rebuild! eg)
+             (cond
+               ;; Fixpoint
+               [(zero? applied)
+                (make-saturation-result 'saturated abs-iter total-applied
+                  (egraph-class-count eg) (egraph-node-count eg))]
+
+               ;; Iteration limit — suspend
+               [(and (> iter-limit 0) (>= applied iter-limit))
+                (let ([result (make-saturation-result 'iter-limit (+ abs-iter 1)
+                                (+ total-applied applied)
+                                (egraph-class-count eg) (egraph-node-count eg))])
+                  (make-saturation-suspension eg rules (+ abs-iter 1)
+                    (+ total-applied applied) config result))]
+
+               ;; Continue
+               [else (loop (+ rel-iter 1) (+ total-applied applied))]))])))))
+
+(doc 'type '(-> EGraph (List Rule) SaturationConfig (Or SaturationResult SaturationSuspension)))
+(doc 'description "Run equality saturation, returning a suspension on resource limits.
+Returns a SaturationResult on fixpoint, or a SaturationSuspension when a limit is hit.
+Use saturate-resume to continue from a suspension.")
+(define (saturate-resumable eg rules config)
+  (saturate-resumable-loop eg rules config 0 0))
+
+(doc 'type '(-> SaturationSuspension (Or SaturationResult SaturationSuspension)))
+(doc 'description "Resume saturation from a suspension. Uses the same config as the original.
+Returns a result on fixpoint, or a new suspension if limits are hit again.")
+(define (saturate-resume suspension)
+  (let ([eg (suspension-egraph suspension)]
+        [rules (suspension-rules suspension)]
+        [iter (suspension-iteration suspension)]
+        [total (suspension-total-applied suspension)]
+        [config (suspension-config suspension)])
+    (saturate-resumable-loop eg rules config iter total)))
+
+(doc 'type '(-> SaturationSuspension SaturationConfig (Or SaturationResult SaturationSuspension)))
+(doc 'description "Resume saturation with a new configuration. Useful for granting more fuel
+or adjusting node limits after inspecting a suspension.")
+(define (saturate-resume-with suspension new-config)
+  (let ([eg (suspension-egraph suspension)]
+        [rules (suspension-rules suspension)]
+        [iter (suspension-iteration suspension)]
+        [total (suspension-total-applied suspension)])
+    (saturate-resumable-loop eg rules new-config iter total)))
+
+;;; ============================================================
 ;;; Debugging
 ;;; ============================================================
 
