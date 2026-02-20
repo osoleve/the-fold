@@ -649,6 +649,8 @@ Dependencies:
  (register-module-path! 'meta/fuel-vocab "lattice/meta/fuel-vocab.ss")
  (register-module-path! 'meta/purity-audit "lattice/meta/purity-audit.ss")
  (register-module-path! 'meta/bridge-discovery "lattice/meta/bridge-discovery.ss")
+ (register-module-path! 'meta/readme-audit "lattice/meta/readme-audit.ss")
+ (register-module-path! 'pipeline/rlm2-metrics "lattice/pipeline/rlm2-metrics.ss")
 
  ;; Boundary modules
  (register-module-path! 'boundary/bbs "boundary/bbs/bbs.ss"))
