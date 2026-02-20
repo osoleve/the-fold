@@ -167,6 +167,7 @@ Dependencies:
  (register-module-path! 'quadtree "lattice/data/quadtree.ss")
  (register-module-path! 'graph-matrix "lattice/data/graph/graph-matrix.ss")
  (register-module-path! 'graph-homology "lattice/data/graph/graph-homology.ss")
+ (register-module-path! 'graph-filtration "lattice/data/graph/graph-filtration.ss")
  (register-module-path! 'graph-community "lattice/data/graph/graph-community.ss")
  (register-module-path! 'graph-layout "lattice/data/graph/graph-layout.ss")
  (register-module-path! 'pagerank "lattice/data/graph/pagerank.ss")
@@ -174,6 +175,7 @@ Dependencies:
  (register-module-path! 'random-graphs "lattice/data/graph/random-graphs.ss")
  (register-module-path! 'graph-bridge "lattice/data/graph/graph-bridge.ss")
  (register-module-path! 'spectral-community "lattice/data/graph/spectral-community.ss")
+ (register-module-path! 'shortest-path "lattice/data/graph/shortest-path.ss")
 
  ;; Optics layer
  (register-module-path! 'optics "lattice/optics/optics.ss")
@@ -363,6 +365,7 @@ Dependencies:
  (register-module-path! 'field-ext "lattice/algebra/field-ext.ss")
  (register-module-path! 'poly-bridge "lattice/algebra/poly-bridge.ss")
  (register-module-path! 'tropical "lattice/algebra/tropical.ss")
+ (register-module-path! 'tropical-graph "lattice/algebra/tropical-graph.ss")
 
  ;; IPC
  (register-module-path! 'ipc-protocol "lattice/ipc/protocol.ss")
@@ -412,6 +415,7 @@ Dependencies:
  (register-module-path! 'natural-transform "lattice/fp/category/natural-transform.ss")
  (register-module-path! 'kan-extension "lattice/fp/category/kan-extension.ss")
  (register-module-path! 'qvec "lattice/fp/measure/qvec.ss")
+ (register-module-path! 'markov "lattice/fp/markov.ss")
 
  ;; FP layer 2: depth-1 dependents
  (register-module-path! 'effects "lattice/fp/control/effects.ss")

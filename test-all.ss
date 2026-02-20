@@ -355,9 +355,11 @@
     "data/graph/test-graph-algorithms.ss"
     "data/graph/test-graph-community.ss"
     "data/graph/test-graph-homology.ss"
+    "data/graph/test-graph-filtration.ss"
     "data/graph/test-graph-layout.ss"
     "data/graph/test-graph-matrix.ss"
     "data/graph/test-spectral-community.ss"
+    "data/graph/test-shortest-path.ss"
     "data/test-community-homology.ss"
     ;; Algebra
     "algebra/test-polynomial.ss"
@@ -368,6 +370,7 @@
     "algebra/test-module.ss"
     "algebra/test-group.ss"
     "algebra/test-poly-bridge.ss"
+    "algebra/test-tropical-graph.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
     ;; Number Theory
@@ -417,6 +420,7 @@
     "quickcheck/test-quickcheck.ss"
     "quickcheck/test-laws.ss"
     ;; FP Core
+    "fp/test-markov.ss"
     "fp/test-protocol.ss"
     "fp/test-protocol-bundle.ss"
     "fp/test-protocol-introspect.ss"
