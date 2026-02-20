@@ -284,19 +284,68 @@
   (/ (vec-std-dev v) (sqrt (vector-length v))))
 
 ;;; skewness : (List Num) → Num
-;;; Sample skewness (Fisher's definition).
+;;; Population skewness (biased estimator).
+;;; Uses population std-dev (n denominator) for consistency:
+;;; g1 = m3 / sigma^3 where m3 = (1/n) sum((xi - mu)^3), sigma = sqrt(m2).
+;;; Symmetric distributions have skewness 0; right-skewed > 0, left-skewed < 0.
 (define (skewness xs)
+  (doc 'type '(-> (List Num) Num))
+  (doc 'description "Population skewness (third standardized moment)")
   (let* ([n (length xs)]
          [mu (mean xs)]
-         [s (std-dev xs)]
+         [s (std-dev-population xs)]
          [m3 (/ (fold-left + 0 (map (lambda (x) (expt (- x mu) 3)) xs)) n)])
         (if (= s 0) 0 (/ m3 (expt s 3)))))
 
 ;;; kurtosis : (List Num) → Num
-;;; Sample excess kurtosis.
+;;; Excess kurtosis (biased estimator).
+;;; Uses population std-dev (n denominator) for consistency:
+;;; g2 = m4 / sigma^4 - 3 where m4 = (1/n) sum((xi - mu)^4), sigma = sqrt(m2).
+;;; Normal distribution has excess kurtosis 0; heavy-tailed > 0 (leptokurtic),
+;;; light-tailed < 0 (platykurtic).
 (define (kurtosis xs)
+  (doc 'type '(-> (List Num) Num))
+  (doc 'description "Excess kurtosis (fourth standardized moment minus 3)")
   (let* ([n (length xs)]
          [mu (mean xs)]
-         [s (std-dev xs)]
+         [s (std-dev-population xs)]
          [m4 (/ (fold-left + 0 (map (lambda (x) (expt (- x mu) 4)) xs)) n)])
         (if (= s 0) 0 (- (/ m4 (expt s 4)) 3))))
+
+;;; vec-skewness : Vec → Num
+;;; Population skewness for vector data.
+(define (vec-skewness v)
+  (doc 'type '(-> Vec Num))
+  (doc 'export #t)
+  (doc 'description "Population skewness (vector version)")
+  (let* ([n (vector-length v)]
+         [mu (vec-mean v)]
+         [m2 (let loop ([i 0] [s 0])
+               (if (= i n) (/ s n)
+                   (let ([d (- (vector-ref v i) mu)])
+                     (loop (+ i 1) (+ s (* d d))))))]
+         [sigma (sqrt m2)]
+         [m3 (let loop ([i 0] [s 0])
+               (if (= i n) (/ s n)
+                   (let ([d (- (vector-ref v i) mu)])
+                     (loop (+ i 1) (+ s (* d d d))))))])
+    (if (= sigma 0) 0 (/ m3 (* sigma sigma sigma)))))
+
+;;; vec-kurtosis : Vec → Num
+;;; Excess kurtosis for vector data (population, biased estimator).
+(define (vec-kurtosis v)
+  (doc 'type '(-> Vec Num))
+  (doc 'export #t)
+  (doc 'description "Excess kurtosis (vector version)")
+  (let* ([n (vector-length v)]
+         [mu (vec-mean v)]
+         [m2 (let loop ([i 0] [s 0])
+               (if (= i n) (/ s n)
+                   (let ([d (- (vector-ref v i) mu)])
+                     (loop (+ i 1) (+ s (* d d))))))]
+         [sigma (sqrt m2)]
+         [m4 (let loop ([i 0] [s 0])
+               (if (= i n) (/ s n)
+                   (let ([d (- (vector-ref v i) mu)])
+                     (loop (+ i 1) (+ s (* d d d d))))))])
+    (if (= sigma 0) 0 (- (/ m4 (* sigma sigma sigma sigma)) 3))))

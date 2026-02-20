@@ -357,6 +357,7 @@
     "data/graph/test-graph-homology.ss"
     "data/graph/test-graph-layout.ss"
     "data/graph/test-graph-matrix.ss"
+    "data/graph/test-spectral-community.ss"
     "data/test-community-homology.ss"
     ;; Algebra
     "algebra/test-polynomial.ss"
@@ -386,6 +387,7 @@
     "numeric/test-spectral-analysis.ss"
     "numeric/test-dft.ss"
     "numeric/test-convolution.ss"
+    "numeric/test-fft-convolve.ss"
     "numeric/test-window-functions.ss"
     "numeric/test-digital-filters.ss"
     "numeric/test-polynomial.ss"

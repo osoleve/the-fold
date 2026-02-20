@@ -65,6 +65,69 @@
                 (assert-true (< (abs (- (iqr xs) 4.5)) 0.01)))))
 
 ;;; ====
+;;; Skewness and Kurtosis Tests
+;;; ====
+
+(test-group "skewness-kurtosis"
+
+            (define-test "skewness of symmetric data is 0"
+              ;; Perfectly symmetric around 3
+              (let ([xs '(1 2 3 4 5)])
+                (assert-true (< (abs (skewness xs)) 1e-10))))
+
+            (define-test "skewness of right-skewed data is positive"
+              ;; Heavy right tail
+              (let ([xs '(1 1 1 1 1 1 1 1 1 10)])
+                (assert-true (> (skewness xs) 0))))
+
+            (define-test "skewness of left-skewed data is negative"
+              ;; Mirror of right-skewed
+              (let ([xs '(1 10 10 10 10 10 10 10 10 10)])
+                (assert-true (< (skewness xs) 0))))
+
+            (define-test "skewness of constant data is 0"
+              (assert-equal 0 (skewness '(5 5 5 5 5))))
+
+            (define-test "kurtosis of symmetric uniform-like data is negative"
+              ;; Uniform distribution is platykurtic (lighter tails than normal)
+              (let ([xs '(1 2 3 4 5 6 7 8 9 10)])
+                (assert-true (< (kurtosis xs) 0))))
+
+            (define-test "kurtosis of constant data is 0"
+              (assert-equal 0 (kurtosis '(5 5 5 5 5))))
+
+            (define-test "kurtosis of heavy-tailed data is positive"
+              ;; Outlier-heavy data should be leptokurtic
+              (let ([xs '(0 0 0 0 0 0 0 0 0 10)])
+                (assert-true (> (kurtosis xs) 0))))
+
+            (define-test "skewness uses consistent population convention"
+              ;; Verify: symmetric data (2 2 2 3 3 3 4 4 4)
+              ;; Population m3 = 0, so skewness = 0 regardless of std convention
+              ;; But we verify m2 consistency: population variance = 2/3
+              ;; kurtosis should be exactly -3/2
+              (let ([xs '(2 2 2 3 3 3 4 4 4)])
+                (assert-true (< (abs (skewness xs)) 1e-10))
+                (assert-true (< (abs (- (kurtosis xs) -3/2)) 1e-10))))
+
+            (define-test "vec-skewness matches list skewness"
+              (let* ([xs '(1 3 5 2 8 4 7)]
+                     [v (list->vector xs)])
+                (assert-true (< (abs (- (vec-skewness v) (skewness xs))) 1e-10))))
+
+            (define-test "vec-kurtosis matches list kurtosis"
+              (let* ([xs '(1 3 5 2 8 4 7)]
+                     [v (list->vector xs)])
+                (assert-true (< (abs (- (vec-kurtosis v) (kurtosis xs))) 1e-10))))
+
+            (define-test "vec-skewness of symmetric vector is 0"
+              (let ([v (vector 1 2 3 4 5)])
+                (assert-true (< (abs (vec-skewness v)) 1e-10))))
+
+            (define-test "vec-kurtosis of constant vector is 0"
+              (assert-equal 0 (vec-kurtosis (vector 7 7 7 7 7)))))
+
+;;; ====
 ;;; Distribution Tests
 ;;; ====
 

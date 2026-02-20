@@ -31,6 +31,8 @@ The long-term vision: a smaller, Fold-native model that's as capable as frontier
 - **Auto-starts daemon** if not running (disable with `--no-auto-start`)
 - Code is passed as-is — use explicit parentheses
 - **Sessions persist state** across invocations - variables, functions, and loaded modules are retained
+- **Session resolution** (priority order): `--session`/`-s` flag → `FOLD_SESSION` env var → `.fold-session` file → `"agent-default"`
+- `./fold -c file.ss` — check file for parenthesis errors without evaluating
 
 Returns result on stdout, errors to stderr with exit codes: 0=success, 1=error, 2=timeout.
 
@@ -81,9 +83,14 @@ The time-travel debugger lives in `boundary/debug/debug-repl.ss`:
 scheme --script test-all.ss
 
 # Test subsets
-scheme --script test-all.ss quick     # Skip slow tests
-scheme --script test-all.ss core      # Core tests only
-scheme --script test-all.ss boundary  # Boundary tests only
+scheme --script test-all.ss quick          # Skip slow tests
+scheme --script test-all.ss core           # Core tests only
+scheme --script test-all.ss lattice        # Lattice tests only
+scheme --script test-all.ss boundary       # Boundary tests only
+scheme --script test-all.ss incremental    # Skip unchanged tests (fingerprint cache)
+
+# Combine modes
+scheme --script test-all.ss incremental quick  # Incremental + skip slow
 
 # Individual modules and their tests are colocated, e.g.
 scheme --script lattice/linalg/test-vec.ss
@@ -114,6 +121,31 @@ Test framework: `core/testing/test-framework.ss` provides unified API across all
 **Note:** `assert-true` checks `(eq? #t expr)`, not just truthiness. Use `(assert-true (pair? x))` instead of `(assert-true x)` when x might be a truthy non-boolean like a pair from `assq`.
 
 **Performance tip:** When tests need expensive initialization (building indices, parsing manifests), use an "ensure" pattern: check if already initialized before building. See `kg-ensure!` and `lattice-ensure!` in `lattice/meta/` for examples. This reduced test-meta.ss runtime from 20s to 2s.
+
+### Pre-Commit Hooks
+
+```bash
+git config core.hooksPath .githooks   # One-time setup
+```
+
+The pre-commit hook runs automatically on `git commit`:
+1. **Scheme tests** — incremental by default, `FOLD_FULL_TESTS=1` forces full suite
+2. **Large file detection** — rejects files >500KB
+3. **Layer boundary violations** — ensures `core/` doesn't load from `lattice/`/`boundary/`, `lattice/` doesn't load from `boundary/`. Known exceptions in `.githooks/purity-exceptions`. Stale exceptions also fail.
+4. **Rust checks** (if `.rs` files staged) — `cargo fmt --check`, `cargo clippy`, `cargo check` in `boundary/ffi/rust-accel/`
+
+### Rust FFI
+
+The Rust acceleration layer lives at `boundary/ffi/rust-accel/`:
+
+```bash
+cd boundary/ffi/rust-accel
+cargo check                    # Compile check
+cargo fmt                      # Format
+cargo clippy --all-targets     # Lint
+cargo test                     # Run Rust tests
+cargo build --release          # Build shared library
+```
 
 ---
 
@@ -298,6 +330,10 @@ Boundary is organized into functional subdirectories. Root-level files are entry
 
 **Developer Tools:** Protocols (`lattice/fp/protocol.ss`), protocol bundles, refactoring toolkit (`boundary/tools/refactor-toolkit.ss`), and template DSL. Use `/dev-tools` skill for detailed API.
 
+### MCP Server
+
+The MCP server (`mcp-server/`) provides multitenancy for Claude Code and other MCP clients. It's the backend for all `fold_eval`, `fold_login`, `fold_lsp_*` tools. Built with `@modelcontextprotocol/sdk` on Node.js, communicating with the daemon via IPC (socket or file-based). Each connection gets an isolated session. The LSP client (`lsp-client.ts`) connects to the Fold LSP server for code intelligence.
+
 ---
 
 ## Core Principles
@@ -374,9 +410,20 @@ These subsystems compose into a differentiable programming pipeline:
 4. **E-graphs** (`lattice/egraph/`) enable equality saturation: the same computation can be extracted as different optimal forms depending on the cost model (`cuda-cost`, `cpu-cost`, `code-size-cost`). The same function yields different kernels for different hardware.
 5. **CUDA codegen** (planned, `docs/cuda-codegen-design.md`) — traced computations normalize to S-expressions, hash to content addresses, and compile to CUDA kernels cached in the CAS. Optics compile to GPU memory access patterns (Lens→direct index, Traversal→parallel map, Fold→parallel reduction).
 
+### RLM (Reinforcement Learning from the Machine)
+
+Training small models to navigate The Fold autonomously. The RLM agent operates via a HUD state machine with 15 actions (search, eval, require, submit, think, etc.).
+
+- **RLM v2 implementation** — `lattice/pipeline/rlm2*.ss` (types, parser, HUD, driver). Pure agent logic in lattice, I/O driver in boundary.
+- **Curriculum** — `user/rlm/curriculum/` contains task data as JSONL. Tasks are organized into tiers (Tier 0: single-module, Tier 1: multi-module composition). Generated from lattice function DAG via `user/rlm/extract-curriculum.ss`.
+- **Benchmarks** — `user/rlm/bench-*.ss` for various eval suites (GSM8K, HotPotQA, Pairs discovery, etc.).
+- **RL training** — Uses PrimeIntellect's prime-rl framework (separate repo at `~/prime-rl-local/`). Multi-node: trainer+orchestrator on elsie-1, vLLM inference on elsie-2. Weight broadcast via NFS over ConnectX-7.
+- **SFT pipeline** — `user/rlm/pytorch-ft/train-sft.py` for supervised fine-tuning on collected traces.
+- **Environment** — `~/fold-rlm-prime/environments/fold_rlm_tier0/` contains the verifier environment that prime-rl calls for reward scoring.
+
 ### Hardware Context
 
-Development runs on **2x NVIDIA DGX Spark** (GB10 Grace Blackwell, ARM Cortex-X925/A725) linked over **200Gbps ConnectX-7 with NCCL**. 256GB unified memory total. Native FP8 tensor core support. vLLM serves local models for development and experimentation.
+Development runs on **2x NVIDIA DGX Spark** (GB10 Grace Blackwell, ARM Cortex-X925/A725) linked over **200Gbps ConnectX-7**. 256GB unified memory total (128GB per node, unified CPU/GPU). Native FP8 tensor core support. vLLM serves local models for development and experimentation. ConnectX-7 direct link IPs: elsie-1 = `192.168.100.10`, elsie-2 = `192.168.100.11`. NFS at `/shared/rl-outputs` for weight broadcast between nodes.
 
 ---
 

@@ -789,7 +789,7 @@
 ;;; Returns 0 if S or S̄ is empty or has zero volume.
 (define (conductance adj nodes)
   (let* ([n (adjacency-matrix-node-count adj)]
-         [node-set (list->set nodes n)]
+         [node-set (nodes->bitvec nodes n)]
          ;; Compute cut and volumes
          [cut-val 0]
          [vol-s 0]
@@ -816,9 +816,9 @@
           0
           (/ cut-val min-vol)))))
 
-;;; list->set : (List Nat) × Nat → Vector
+;;; nodes->bitvec : (List Nat) × Nat → Vector
 ;;; Convert list of node indices to boolean vector.
-(define (list->set nodes n)
+(define (nodes->bitvec nodes n)
   (let ([s (make-vector n #f)])
     (for-each (lambda (i) (when (< i n) (vector-set! s i #t))) nodes)
     s))
@@ -831,7 +831,7 @@
 ;;; Minimizing ratio cut leads to balanced partitions.
 (define (ratio-cut adj nodes)
   (let* ([n (adjacency-matrix-node-count adj)]
-         [node-set (list->set nodes n)]
+         [node-set (nodes->bitvec nodes n)]
          [size-s (length nodes)]
          [size-sbar (- n size-s)]
          [cut-val 0])
@@ -857,7 +857,7 @@
 ;;; This is the objective minimized by normalized spectral clustering.
 (define (normalized-cut adj nodes)
   (let* ([n (adjacency-matrix-node-count adj)]
-         [node-set (list->set nodes n)]
+         [node-set (nodes->bitvec nodes n)]
          [cut-val 0]
          [vol-s 0]
          [vol-sbar 0])

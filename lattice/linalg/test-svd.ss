@@ -383,6 +383,43 @@
                   (test-approx "Large cond: σ₂ = 0.001" 0.001 (matrix-ref sigma 1 1) 1e-9))))
 
 ;;; ====
+;;; Condition Number Tests
+;;; ====
+
+(printf "\n--- Condition Number ---\n")
+
+;; Test: Condition number of identity matrix is 1
+(let ([kappa (matrix-condition-number (matrix-identity 3))])
+     (test-approx "Identity: κ = 1" 1.0 kappa 1e-8))
+
+;; Test: Condition number of diagonal matrix = max/min diagonal
+(let ([kappa (matrix-condition-number (matrix-from-lists '((5 0 0) (0 3 0) (0 0 1))))])
+     (test-approx "Diagonal: κ = 5/1 = 5" 5.0 kappa 1e-6))
+
+;; Test: Condition number of well-conditioned 2x2
+(let ([kappa (matrix-condition-number (matrix-from-lists '((4 2) (2 4))))])
+     ;; Eigenvalues are 6 and 2, so singular values are 6 and 2, κ = 3
+     (test-approx "Symmetric 2x2: κ = 3" 3.0 kappa 1e-6))
+
+;; Test: Large condition number
+(let ([kappa (matrix-condition-number (matrix-from-lists '((1000 0) (0 0.001))))])
+     (test-approx "Large κ = 1e6" 1e6 kappa 1e-2))
+
+;; Test: Singular matrix returns +inf.0
+(let ([kappa (matrix-condition-number (matrix-from-lists '((1 2) (2 4))))])
+     (test-true "Singular: κ = +inf.0" (infinite? kappa)))
+
+;; Test: Zero matrix returns +inf.0
+(let ([kappa (matrix-condition-number (make-matrix 2 2 0))])
+     (test-true "Zero matrix: κ = +inf.0" (infinite? kappa)))
+
+;; Test: Rectangular matrix (3x2)
+(let* ([a (matrix-from-lists '((1 0) (0 1) (0 0)))]
+       [kappa (matrix-condition-number a)])
+      ;; Singular values are 1, 1 -> κ = 1
+      (test-approx "Rectangular 3x2: κ = 1" 1.0 kappa 1e-6))
+
+;;; ====
 ;;; Summary
 ;;; ====
 

@@ -171,6 +171,9 @@ Dependencies:
  (register-module-path! 'graph-layout "lattice/data/graph/graph-layout.ss")
  (register-module-path! 'pagerank "lattice/data/graph/pagerank.ss")
  (register-module-path! 'centrality "lattice/data/graph/centrality.ss")
+ (register-module-path! 'random-graphs "lattice/data/graph/random-graphs.ss")
+ (register-module-path! 'graph-bridge "lattice/data/graph/graph-bridge.ss")
+ (register-module-path! 'spectral-community "lattice/data/graph/spectral-community.ss")
 
  ;; Optics layer
  (register-module-path! 'optics "lattice/optics/optics.ss")
@@ -211,6 +214,7 @@ Dependencies:
  (register-module-path! 'complex "lattice/numeric/complex.ss")
  (register-module-path! 'dft "lattice/numeric/dft.ss")
  (register-module-path! 'convolution "lattice/numeric/convolution.ss")
+ (register-module-path! 'fft-convolve "lattice/numeric/fft-convolve.ss")
  (register-module-path! 'spectral-analysis "lattice/numeric/spectral-analysis.ss")
  (register-module-path! 'numeric/polynomial "lattice/numeric/polynomial.ss")
  (register-module-path! 'interpolate "lattice/numeric/interpolate.ss")
@@ -245,6 +249,9 @@ Dependencies:
  (register-module-path! 'statistical-measures "lattice/info/statistical-measures.ss")
  (register-module-path! 'epiplexity "lattice/info/epiplexity.ss")
  (register-module-path! 'rate-distortion "lattice/info/rate-distortion.ss")
+ (register-module-path! 'model-selection-info "lattice/info/model-selection.ss")
+ (register-module-path! 'empirical-info "lattice/info/empirical-info.ss")
+ (register-module-path! 'partition-info "lattice/info/partition-info.ss")
 
  ;; Topology layer
  (register-module-path! 'simplicial-complex "lattice/topology/simplicial-complex.ss")

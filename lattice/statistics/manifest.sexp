@@ -26,7 +26,8 @@
   (exports
    ;; Core
    (summary-stats vec-mean vec-variance vec-std-dev vec-median vec-quantile
-                  vec-quantiles quantiles vec-covariance vec-correlation)
+                  vec-quantiles quantiles vec-covariance vec-correlation
+                  skewness kurtosis vec-skewness vec-kurtosis)
    (design-matrix add-intercept standardize-columns dummy-encode polynomial-features
                   legendre-p chebyshev-t hermite-h laguerre-l
                   legendre-features chebyshev-features hermite-features laguerre-features

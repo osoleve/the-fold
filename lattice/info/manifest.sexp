@@ -82,7 +82,21 @@
     compression-ratio space-savings)
 
    (epiplexity
-    prequential-epiplexity prequential-epiplexity-scalar requential-epiplexity))
+    prequential-epiplexity prequential-epiplexity-scalar requential-epiplexity)
+
+   (model-selection-info
+    log-likelihood-gaussian log-likelihood-gaussian-vec
+    aic bic aicc aic-weights evidence-ratio residual-entropy-bits)
+
+   (empirical-info
+    discretize-uniform default-num-bins
+    entropy-empirical mutual-information-empirical
+    conditional-entropy-empirical nmi-empirical)
+
+   (partition-info
+    partition-entropy partition-sizes
+    partition-mi partition-nmi
+    partition-vi partition-vi-normalized))
 
   (modules
    (entropy "entropy.ss"
@@ -102,4 +116,13 @@
      compression, run-length encoding, parity checks, Hamming (7,4) codes.")
    (epiplexity "epiplexity.ss"
     "Prequential and requential epiplexity measures for sequence prediction
-     evaluation and model comparison.")))
+     evaluation and model comparison.")
+   (model-selection-info "model-selection.ss"
+    "Information-theoretic model selection: AIC, BIC, AICc, Akaike weights.
+     Bridges info/ to statistics/ by grounding model comparison in entropy.")
+   (empirical-info "empirical-info.ss"
+    "Empirical information measures from raw samples: entropy, MI, conditional
+     entropy via uniform binning. Bridges info/ to statistics/ data analysis.")
+   (partition-info "partition-info.ss"
+    "Info-theoretic partition quality metrics: NMI, variation of information.
+     Bridges info/ to data/graph/ community detection evaluation.")))

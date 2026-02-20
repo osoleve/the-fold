@@ -427,6 +427,29 @@
                                (loop (+ i 1) rank))))))))
 
 ;;; ====
+;;; Condition Number
+;;; ====
+
+;;; matrix-condition-number : Matrix × [Num] → Num | Error
+;;;
+;;; Compute the 2-norm condition number of a matrix: κ(A) = σ_max / σ_min.
+;;;
+;;; A large condition number indicates the matrix is nearly singular and
+;;; sensitive to perturbation. Returns +inf.0 if σ_min < tolerance (i.e.,
+;;; the matrix is rank-deficient).
+(define (matrix-condition-number a . opts)
+  (let* ([tol (if (pair? opts) (car opts) *svd-tolerance*)]
+         [sv (singular-values a tol)])
+    (if (and (pair? sv) (eq? (car sv) 'error))
+        sv
+        (let* ([n (vector-length sv)]
+               [sigma-max (vector-ref sv 0)]
+               [sigma-min (vector-ref sv (- n 1))])
+          (if (< sigma-min tol)
+              +inf.0
+              (/ sigma-max sigma-min))))))
+
+;;; ====
 ;;; Singular Values Only
 ;;; ====
 
