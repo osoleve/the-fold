@@ -1259,9 +1259,9 @@
                                     (rlm2-state-with-task s2 task)
                                     s2)])
                        s3)
-                     ;; Fresh state
+                     ;; Fresh state — task must be a string
                      (make-rlm2-state
-                       task '() '() '() '() '() '()
+                       (or task "") '() '() '() '() '() '()
                        #f fuel 0))]
          [sys-prompt (rlm2-build-system-prompt
                        (rlm2-config-system-prompt config))])
@@ -1451,9 +1451,10 @@
 ;;; ====
 
 (define (rlm2-update-state state action observation note fuel-used)
-  ;; If exec already set an rlm2-result (submit succeeded, or submit
-  ;; inside begin), preserve it instead of overwriting with observation.
-  (let* ([has-result? (rlm2-state-complete? state)]
+  ;; If exec already set an rlm2-result or rlm2-idle marker,
+  ;; preserve it instead of overwriting with observation.
+  (let* ([has-result? (or (rlm2-state-complete? state)
+                          (rlm2-state-idle? state))]
          [last-result (if has-result?
                          (rlm2-state-last-result state)
                          observation)]
