@@ -674,6 +674,7 @@
     "meta/test-serendipity.ss"
     "meta/test-module-manifest.ss"
     "meta/test-promotion.ss"
+    "meta/test-bbs-xref.ss"
     ;; Pipeline
     "pipeline/test-stage-context.ss"
     "pipeline/test-rlm2.ss"
