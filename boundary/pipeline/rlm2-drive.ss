@@ -1451,10 +1451,13 @@
 ;;; ====
 
 (define (rlm2-update-state state action observation note fuel-used)
-  ;; If exec already set an rlm2-result or rlm2-idle marker,
-  ;; preserve it instead of overwriting with observation.
+  ;; If exec already set an rlm2-result marker, preserve it.
+  ;; For rlm2-idle, only preserve on the idle action itself —
+  ;; otherwise the marker becomes sticky in rlm2-run which has
+  ;; no idle-exit condition, dropping subsequent observations.
   (let* ([has-result? (or (rlm2-state-complete? state)
-                          (rlm2-state-idle? state))]
+                          (and (rlm2-state-idle? state)
+                               (rlm2-idle? action)))]
          [last-result (if has-result?
                          (rlm2-state-last-result state)
                          observation)]
