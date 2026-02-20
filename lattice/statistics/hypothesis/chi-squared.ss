@@ -23,8 +23,10 @@
   (doc 'param 'observed "observed frequency counts")
   (doc 'param 'expected "expected frequency counts (must sum to same as observed)")
   (let* ([n (vector-length observed)])
-        (if (not (= n (vector-length expected)))
-            (error 'chi-squared-test-goodness "vectors must have equal length")
+        (if (< n 2)
+            (error 'chi-squared-test-goodness "need at least 2 categories")
+            (if (not (= n (vector-length expected)))
+                (error 'chi-squared-test-goodness "vectors must have equal length")
             (let* ([chi-sq (let loop ([i 0] [sum 0])
                                 (if (= i n)
                                     sum
@@ -35,7 +37,7 @@
                                           (loop (+ i 1) (+ sum contrib)))))]
                    [df (- n 1)]
                    [p-value (chi-squared-pvalue chi-sq df)])
-                  (make-test-result 'chi-squared-goodness chi-sq df p-value #f #f)))))
+                  (make-test-result 'chi-squared-goodness chi-sq df p-value #f #f))))))
 
 ;;; chi-squared-test-goodness-uniform : Vec → TestResult
 ;;; Test against uniform distribution.

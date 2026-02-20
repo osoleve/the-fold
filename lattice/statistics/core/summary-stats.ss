@@ -25,23 +25,27 @@
 
 ;;; variance : (List Num) → Num
 ;;; Compute sample variance (n-1 denominator).
+;;; Returns 0 for single-element lists. Errors on empty lists.
 (define (variance xs)
-  (let* ([n (length xs)]
-         [mu (mean xs)]
-         [ss (fold-left + 0 (map (lambda (x) (expt (- x mu) 2)) xs))])
-        (if (<= n 1)
-            0
-            (/ ss (- n 1)))))
+  (let ([n (length xs)])
+    (if (= n 0)
+        (error 'variance "empty list")
+        (let* ([mu (mean xs)]
+               [ss (fold-left + 0 (map (lambda (x) (expt (- x mu) 2)) xs))])
+          (if (<= n 1)
+              0
+              (/ ss (- n 1)))))))
 
 ;;; variance-population : (List Num) → Num
 ;;; Compute population variance (n denominator).
+;;; Errors on empty lists.
 (define (variance-population xs)
-  (let* ([n (length xs)]
-         [mu (mean xs)]
-         [ss (fold-left + 0 (map (lambda (x) (expt (- x mu) 2)) xs))])
-        (if (= n 0)
-            0
-            (/ ss n))))
+  (let ([n (length xs)])
+    (if (= n 0)
+        (error 'variance-population "empty list")
+        (let* ([mu (mean xs)]
+               [ss (fold-left + 0 (map (lambda (x) (expt (- x mu) 2)) xs))])
+          (/ ss n)))))
 
 ;;; std-dev : (List Num) → Num
 ;;; Compute sample standard deviation.
@@ -59,32 +63,37 @@
 
 ;;; median : (List Num) → Num
 ;;; Compute median (middle value or average of two middle values).
+;;; Errors on empty lists.
 (define (median xs)
-  (let* ([sorted (sort-by < xs)]
-         [n (length sorted)]
-         [mid (quotient n 2)])
+  (if (null? xs)
+      (error 'median "empty list")
+      (let* ([sorted (sort-by < xs)]
+             [n (length sorted)]
+             [mid (quotient n 2)])
         (if (odd? n)
             (list-ref sorted mid)
             (/ (+ (list-ref sorted (- mid 1))
                   (list-ref sorted mid))
-               2))))
+               2)))))
 
 ;;; quantile : (List Num) × Num → Num
 ;;; Compute p-th quantile (0 <= p <= 1).
 ;;; Uses linear interpolation (type 7, R default).
 (define (quantile xs p)
-  (if (or (< p 0) (> p 1))
-      (error 'quantile "p must be in [0, 1]" p)
-      (let* ([sorted (sort-by < xs)]
-             [n (length sorted)]
-             [index (* p (- n 1))]
-             [lo (inexact->exact (floor index))]
-             [hi (inexact->exact (ceiling index))]
-             [h (- index lo)])
+  (if (null? xs)
+      (error 'quantile "empty list")
+      (if (or (< p 0) (> p 1))
+          (error 'quantile "p must be in [0, 1]" p)
+          (let* ([sorted (sort-by < xs)]
+                 [n (length sorted)]
+                 [index (* p (- n 1))]
+                 [lo (inexact->exact (floor index))]
+                 [hi (inexact->exact (ceiling index))]
+                 [h (- index lo)])
             (if (= lo hi)
                 (list-ref sorted lo)
                 (+ (* (- 1 h) (list-ref sorted lo))
-                   (* h (list-ref sorted hi)))))))
+                   (* h (list-ref sorted hi))))))))
 
 ;;; quantile-from-sorted : (Vector Num) × Num → Num
 ;;; Compute p-th quantile from pre-sorted vector (internal helper).
@@ -109,13 +118,16 @@
 ;;;   => (3.25 5.5 7.75)  ; Q1, median, Q3
 (define (quantiles xs ps)
   (doc 'export #t)
-  (for-each
-    (lambda (p)
-      (when (or (< p 0) (> p 1))
-        (error 'quantiles "all probabilities must be in [0, 1]" p)))
-    ps)
-  (let ([sorted-vec (list->vector (sort-by < xs))])
-    (map (lambda (p) (quantile-from-sorted sorted-vec p)) ps)))
+  (if (null? xs)
+      (error 'quantiles "empty list")
+      (begin
+        (for-each
+          (lambda (p)
+            (when (or (< p 0) (> p 1))
+              (error 'quantiles "all probabilities must be in [0, 1]" p)))
+          ps)
+        (let ([sorted-vec (list->vector (sort-by < xs))])
+          (map (lambda (p) (quantile-from-sorted sorted-vec p)) ps)))))
 
 ;;; iqr : (List Num) → Num
 ;;; Interquartile range (Q3 - Q1).
@@ -124,38 +136,46 @@
     (- (cadr qs) (car qs))))
 
 ;;; range-stat : (List Num) → Num
-;;; Range (max - min).
+;;; Range (max - min). Errors on empty lists. Returns 0 for single-element lists.
 (define (range-stat xs)
-  (- (apply max xs) (apply min xs)))
+  (if (null? xs)
+      (error 'range-stat "empty list")
+      (- (apply max xs) (apply min xs))))
 
 ;;; ====
 ;;; Covariance and Correlation
 ;;; ====
 
 ;;; covariance : (List Num) × (List Num) → Num
-;;; Compute sample covariance.
+;;; Compute sample covariance. Errors on empty lists.
 (define (covariance xs ys)
-  (if (not (= (length xs) (length ys)))
-      (error 'covariance "lists must have same length")
-      (let* ([n (length xs)]
-             [mu-x (mean xs)]
-             [mu-y (mean ys)]
-             [prod-sum (fold-left + 0
-                                  (map (lambda (x y) (* (- x mu-x) (- y mu-y)))
-                                       xs ys))])
+  (if (null? xs)
+      (error 'covariance "empty list")
+      (if (not (= (length xs) (length ys)))
+          (error 'covariance "lists must have same length")
+          (let* ([n (length xs)]
+                 [mu-x (mean xs)]
+                 [mu-y (mean ys)]
+                 [prod-sum (fold-left + 0
+                                      (map (lambda (x y) (* (- x mu-x) (- y mu-y)))
+                                           xs ys))])
             (if (<= n 1)
                 0
-                (/ prod-sum (- n 1))))))
+                (/ prod-sum (- n 1)))))))
 
 ;;; correlation : (List Num) × (List Num) → Num
 ;;; Compute Pearson correlation coefficient.
+;;; Returns 0 when either variable has zero variance (no information).
+;;; Errors on empty lists.
 (define (correlation xs ys)
-  (let ([cov (covariance xs ys)]
-        [sx (std-dev xs)]
-        [sy (std-dev ys)])
-       (if (or (= sx 0) (= sy 0))
-           0  ; undefined, return 0
-           (/ cov (* sx sy)))))
+  (if (null? xs)
+      (error 'correlation "empty list")
+      (let ([cov (covariance xs ys)]
+            [sx (std-dev xs)]
+            [sy (std-dev ys)])
+        (if (or (= sx 0) (= sy 0))
+            0  ; undefined, return 0
+            (/ cov (* sx sy))))))
 
 ;;; ====
 ;;; Vector-Optimized Versions
@@ -223,10 +243,12 @@
                     (loop (+ i 1) (max m (vector-ref v i))))))))
 
 ;;; vec-median : Vec → Num
-;;; Median of vector elements.
+;;; Median of vector elements. Errors on empty vectors.
 (define (vec-median v)
   (doc 'export #t)
-  (median (vector->list v)))
+  (if (= (vector-length v) 0)
+      (error 'vec-median "empty vector")
+      (median (vector->list v))))
 
 ;;; vec-quantile : Vec × Num → Num
 ;;; p-th quantile of vector elements.
@@ -241,47 +263,57 @@
   (quantiles (vector->list v) ps))
 
 ;;; vec-covariance : Vec × Vec → Num
-;;; Sample covariance of two vectors.
+;;; Sample covariance of two vectors. Errors on empty vectors.
 (define (vec-covariance v1 v2)
   (doc 'export #t)
-  (let* ([n (vector-length v1)])
+  (let ([n (vector-length v1)])
+    (if (= n 0)
+        (error 'vec-covariance "empty vector")
         (if (not (= n (vector-length v2)))
             (error 'vec-covariance "vectors must have same length")
-            (let* ([mu1 (vec-mean v1)]
-                   [mu2 (vec-mean v2)])
-                  (if (<= n 1)
-                      0
-                      (let loop ([i 0] [s 0])
-                           (if (= i n)
-                               (/ s (- n 1))
-                               (loop (+ i 1)
-                                     (+ s (* (- (vector-ref v1 i) mu1)
-                                             (- (vector-ref v2 i) mu2)))))))))))
+            (if (<= n 1)
+                0
+                (let* ([mu1 (vec-mean v1)]
+                       [mu2 (vec-mean v2)])
+                  (let loop ([i 0] [s 0])
+                    (if (= i n)
+                        (/ s (- n 1))
+                        (loop (+ i 1)
+                              (+ s (* (- (vector-ref v1 i) mu1)
+                                      (- (vector-ref v2 i) mu2))))))))))))
 
 ;;; vec-correlation : Vec × Vec → Num
 ;;; Pearson correlation of two vectors.
+;;; Returns 0 when either variable has zero variance. Errors on empty vectors.
 (define (vec-correlation v1 v2)
   (doc 'export #t)
-  (let ([cov (vec-covariance v1 v2)]
-        [s1 (vec-std-dev v1)]
-        [s2 (vec-std-dev v2)])
-       (if (or (= s1 0) (= s2 0))
-           0
-           (/ cov (* s1 s2)))))
+  (if (= (vector-length v1) 0)
+      (error 'vec-correlation "empty vector")
+      (let ([cov (vec-covariance v1 v2)]
+            [s1 (vec-std-dev v1)]
+            [s2 (vec-std-dev v2)])
+        (if (or (= s1 0) (= s2 0))
+            0
+            (/ cov (* s1 s2))))))
 
 ;;; ====
 ;;; Additional Utilities
 ;;; ====
 
 ;;; sem : (List Num) → Num
-;;; Standard error of the mean.
+;;; Standard error of the mean. Errors on empty lists.
 (define (sem xs)
-  (/ (std-dev xs) (sqrt (length xs))))
+  (if (null? xs)
+      (error 'sem "empty list")
+      (/ (std-dev xs) (sqrt (length xs)))))
 
 ;;; vec-sem : Vec → Num
-;;; Standard error of the mean (vector version).
+;;; Standard error of the mean (vector version). Errors on empty vectors.
 (define (vec-sem v)
-  (/ (vec-std-dev v) (sqrt (vector-length v))))
+  (let ([n (vector-length v)])
+    (if (= n 0)
+        (error 'vec-sem "empty vector")
+        (/ (vec-std-dev v) (sqrt n)))))
 
 ;;; skewness : (List Num) → Num
 ;;; Population skewness (biased estimator).
@@ -291,11 +323,13 @@
 (define (skewness xs)
   (doc 'type '(-> (List Num) Num))
   (doc 'description "Population skewness (third standardized moment)")
-  (let* ([n (length xs)]
-         [mu (mean xs)]
-         [s (std-dev-population xs)]
-         [m3 (/ (fold-left + 0 (map (lambda (x) (expt (- x mu) 3)) xs)) n)])
-        (if (= s 0) 0 (/ m3 (expt s 3)))))
+  (if (null? xs)
+      (error 'skewness "empty list")
+      (let* ([n (length xs)]
+             [mu (mean xs)]
+             [s (std-dev-population xs)]
+             [m3 (/ (fold-left + 0 (map (lambda (x) (expt (- x mu) 3)) xs)) n)])
+        (if (= s 0) 0 (/ m3 (expt s 3))))))
 
 ;;; kurtosis : (List Num) → Num
 ;;; Excess kurtosis (biased estimator).
@@ -306,19 +340,22 @@
 (define (kurtosis xs)
   (doc 'type '(-> (List Num) Num))
   (doc 'description "Excess kurtosis (fourth standardized moment minus 3)")
-  (let* ([n (length xs)]
-         [mu (mean xs)]
-         [s (std-dev-population xs)]
-         [m4 (/ (fold-left + 0 (map (lambda (x) (expt (- x mu) 4)) xs)) n)])
-        (if (= s 0) 0 (- (/ m4 (expt s 4)) 3))))
+  (if (null? xs)
+      (error 'kurtosis "empty list")
+      (let* ([n (length xs)]
+             [mu (mean xs)]
+             [s (std-dev-population xs)]
+             [m4 (/ (fold-left + 0 (map (lambda (x) (expt (- x mu) 4)) xs)) n)])
+        (if (= s 0) 0 (- (/ m4 (expt s 4)) 3)))))
 
 ;;; vec-skewness : Vec → Num
-;;; Population skewness for vector data.
+;;; Population skewness for vector data. Errors on empty vectors.
 (define (vec-skewness v)
   (doc 'type '(-> Vec Num))
   (doc 'export #t)
   (doc 'description "Population skewness (vector version)")
   (let* ([n (vector-length v)]
+         [_ (when (= n 0) (error 'vec-skewness "empty vector"))]
          [mu (vec-mean v)]
          [m2 (let loop ([i 0] [s 0])
                (if (= i n) (/ s n)
@@ -333,11 +370,13 @@
 
 ;;; vec-kurtosis : Vec → Num
 ;;; Excess kurtosis for vector data (population, biased estimator).
+;;; Errors on empty vectors.
 (define (vec-kurtosis v)
   (doc 'type '(-> Vec Num))
   (doc 'export #t)
   (doc 'description "Excess kurtosis (vector version)")
   (let* ([n (vector-length v)]
+         [_ (when (= n 0) (error 'vec-kurtosis "empty vector"))]
          [mu (vec-mean v)]
          [m2 (let loop ([i 0] [s 0])
                (if (= i n) (/ s n)

@@ -20,6 +20,15 @@
   (doc 'type '(-> (List Vec) ANOVAResult))
   (doc 'description "Test H0: all group means are equal")
   (doc 'note "F = (SS_between / df_between) / (SS_within / df_within)")
+  (if (null? groups)
+      (error 'anova-one-way "need at least 2 groups")
+      (if (< (length groups) 2)
+          (error 'anova-one-way "need at least 2 groups")
+          (begin
+            (for-each (lambda (g)
+                        (when (= (vector-length g) 0)
+                          (error 'anova-one-way "groups must not be empty")))
+                      groups)
   (let* ([k (length groups)]
          [ns (map vector-length groups)]        ; Group sizes
          [n (apply + ns)]                       ; Total sample size
@@ -42,7 +51,7 @@
          ;; P-value
          [p-value (f-pvalue f-stat df-between df-within)])
         (make-anova-result f-stat df-between df-within p-value
-                           ss-between ss-within ms-between ms-within)))
+                           ss-between ss-within ms-between ms-within))))))
 
 ;;; compute-grand-mean : (List Vec) → Num
 ;;; Compute overall mean across all groups.

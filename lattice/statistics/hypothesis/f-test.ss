@@ -22,6 +22,8 @@
   (doc 'note "F = var(x) / var(y) follows F(n1-1, n2-1) under H0")
   (let* ([n1 (vector-length xs)]
          [n2 (vector-length ys)]
+         [_ (when (or (< n1 2) (< n2 2))
+              (error 'f-test-variance "need at least 2 observations per group" n1 n2))]
          [var1 (vec-variance xs)]
          [var2 (vec-variance ys)]
          ;; Always put larger variance in numerator for consistency
@@ -62,6 +64,13 @@
 ;;; Tests H0: all group variances are equal.
 (define (levene-test groups)
   (doc 'export #t)
+  (begin
+    (when (< (length groups) 2)
+      (error 'levene-test "need at least 2 groups"))
+    (for-each (lambda (g)
+                (when (= (vector-length g) 0)
+                  (error 'levene-test "groups must not be empty")))
+              groups)
   (let* ([k (length groups)]
          ;; Transform: Z_ij = |X_ij - median(X_i)|
          [z-groups (map (lambda (g)
@@ -80,7 +89,7 @@
                           (cons (anova-df-between anova-result)
                                 (anova-df-within anova-result))
                           (anova-p-value anova-result)
-                          #f #f)))
+                          #f #f))))
 
 ;;; ====
 ;;; Bartlett's Test
@@ -91,6 +100,13 @@
 ;;; Assumes normal distributions; sensitive to non-normality.
 (define (bartlett-test groups)
   (doc 'export #t)
+  (begin
+    (when (< (length groups) 2)
+      (error 'bartlett-test "need at least 2 groups"))
+    (for-each (lambda (g)
+                (when (< (vector-length g) 2)
+                  (error 'bartlett-test "each group must have at least 2 observations")))
+              groups)
   (let* ([k (length groups)]
          [ns (map vector-length groups)]
          [n (apply + ns)]
@@ -102,7 +118,7 @@
          [sum-log (apply + (map (lambda (ni vi)
                                         (* (- ni 1) (log (max vi 1e-10))))
                                 ns vars))]
-         [num (* (- n k) (log sp2))]
+         [num (* (- n k) (log (max sp2 1e-10)))]
          [chi-sq-num (- num sum-log)]
          ;; Correction factor
          [c (+ 1 (/ (- (apply + (map (lambda (ni) (/ 1 (- ni 1))) ns))
@@ -111,7 +127,7 @@
          [chi-sq (/ chi-sq-num c)]
          [df (- k 1)]
          [p-value (chi-squared-pvalue chi-sq df)])
-        (make-test-result 'bartlett-test chi-sq df p-value #f #f)))
+        (make-test-result 'bartlett-test chi-sq df p-value #f #f))))
 
 ;;; ====
 ;;; Regression F-Test

@@ -475,20 +475,22 @@
                  basis)]))
 
 ;;; vec-min : Vector → Num
+;;; Errors on empty vectors.
 (define (vec-min v)
   (let ([n (vector-length v)])
     (if (= n 0)
-        +inf.0
+        (error 'vec-min "empty vector")
         (let loop ([i 1] [m (vector-ref v 0)])
           (if (= i n)
               m
               (loop (+ i 1) (min m (vector-ref v i))))))))
 
 ;;; vec-max : Vector → Num
+;;; Errors on empty vectors.
 (define (vec-max v)
   (let ([n (vector-length v)])
     (if (= n 0)
-        -inf.0
+        (error 'vec-max "empty vector")
         (let loop ([i 1] [m (vector-ref v 0)])
           (if (= i n)
               m

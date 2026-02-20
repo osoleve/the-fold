@@ -44,7 +44,11 @@
    [else
     ;; Use normal approximation as starting point for large df
     (let* ([z0 (standard-normal-quantile p)]
-           [x0 (if (> df 30) z0 (* z0 (sqrt (/ df (- df 2)))))])
+           ;; For df <= 2 the variance-based scaling breaks (negative or zero denominator),
+           ;; so just use the normal quantile as starting point
+           [x0 (if (> df 30) z0
+                    (if (<= df 2) z0
+                        (* z0 (sqrt (/ df (- df 2))))))])
           (newton-raphson-quantile
            (lambda (x) (t-cdf x df))
            (lambda (x) (t-pdf x df))

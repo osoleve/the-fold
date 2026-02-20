@@ -1135,6 +1135,250 @@
                     (assert-true (> (abs (vector-ref tvals 1)) 100)))))
 
 ;;; ====
+;;; Edge-Case Hardening Tests
+;;; ====
+;;; These tests verify that degenerate inputs (empty lists, single elements,
+;;; all-identical values, zero variance) produce meaningful errors or
+;;; sensible defaults rather than crashes or silent wrong answers.
+
+(test-group "edge-cases-summary-stats"
+
+            ;; Empty list errors
+            (define-test "mean of empty list errors"
+              (assert-error (lambda () (mean '()))))
+
+            (define-test "variance of empty list errors"
+              (assert-error (lambda () (variance '()))))
+
+            (define-test "variance-population of empty list errors"
+              (assert-error (lambda () (variance-population '()))))
+
+            (define-test "std-dev of empty list errors"
+              (assert-error (lambda () (std-dev '()))))
+
+            (define-test "std-dev-population of empty list errors"
+              (assert-error (lambda () (std-dev-population '()))))
+
+            (define-test "median of empty list errors"
+              (assert-error (lambda () (median '()))))
+
+            (define-test "quantile of empty list errors"
+              (assert-error (lambda () (quantile '() 0.5))))
+
+            (define-test "quantiles of empty list errors"
+              (assert-error (lambda () (quantiles '() '(0.25 0.75)))))
+
+            (define-test "iqr of empty list errors"
+              (assert-error (lambda () (iqr '()))))
+
+            (define-test "range-stat of empty list errors"
+              (assert-error (lambda () (range-stat '()))))
+
+            (define-test "covariance of empty lists errors"
+              (assert-error (lambda () (covariance '() '()))))
+
+            (define-test "correlation of empty lists errors"
+              (assert-error (lambda () (correlation '() '()))))
+
+            (define-test "sem of empty list errors"
+              (assert-error (lambda () (sem '()))))
+
+            (define-test "skewness of empty list errors"
+              (assert-error (lambda () (skewness '()))))
+
+            (define-test "kurtosis of empty list errors"
+              (assert-error (lambda () (kurtosis '()))))
+
+            ;; Empty vector errors
+            (define-test "vec-mean of empty vector errors"
+              (assert-error (lambda () (vec-mean (vector)))))
+
+            (define-test "vec-variance of empty vector errors"
+              (assert-error (lambda () (vec-variance (vector)))))
+
+            (define-test "vec-std-dev of empty vector errors"
+              (assert-error (lambda () (vec-std-dev (vector)))))
+
+            (define-test "vec-median of empty vector errors"
+              (assert-error (lambda () (vec-median (vector)))))
+
+            (define-test "vec-min of empty vector errors"
+              (assert-error (lambda () (vec-min (vector)))))
+
+            (define-test "vec-max of empty vector errors"
+              (assert-error (lambda () (vec-max (vector)))))
+
+            (define-test "vec-sem of empty vector errors"
+              (assert-error (lambda () (vec-sem (vector)))))
+
+            (define-test "vec-skewness of empty vector errors"
+              (assert-error (lambda () (vec-skewness (vector)))))
+
+            (define-test "vec-kurtosis of empty vector errors"
+              (assert-error (lambda () (vec-kurtosis (vector)))))
+
+            (define-test "vec-covariance of empty vectors errors"
+              (assert-error (lambda () (vec-covariance (vector) (vector)))))
+
+            (define-test "vec-correlation of empty vectors errors"
+              (assert-error (lambda () (vec-correlation (vector) (vector)))))
+
+            ;; Single-element behavior
+            (define-test "mean of single element returns that element"
+              (assert-equal 42 (mean '(42))))
+
+            (define-test "variance of single element is 0"
+              (assert-equal 0 (variance '(7))))
+
+            (define-test "std-dev of single element is 0"
+              (assert-equal 0 (std-dev '(7))))
+
+            (define-test "median of single element returns that element"
+              (assert-equal 5 (median '(5))))
+
+            (define-test "quantile of single element returns that element"
+              (assert-equal 5 (quantile '(5) 0.5)))
+
+            (define-test "range-stat of single element is 0"
+              (assert-equal 0 (range-stat '(5))))
+
+            (define-test "covariance of single-element lists is 0"
+              (assert-equal 0 (covariance '(3) '(7))))
+
+            (define-test "vec-variance of single element is 0"
+              (assert-equal 0 (vec-variance (vector 7))))
+
+            (define-test "vec-std-dev of single element is 0"
+              (assert-equal 0 (vec-std-dev (vector 7))))
+
+            (define-test "vec-covariance of single-element vectors is 0"
+              (assert-equal 0 (vec-covariance (vector 3) (vector 7))))
+
+            ;; All-identical values (zero variance)
+            (define-test "variance of identical values is 0"
+              (assert-equal 0 (variance '(5 5 5 5 5))))
+
+            (define-test "std-dev of identical values is 0"
+              (assert-equal 0 (std-dev '(5 5 5 5 5))))
+
+            (define-test "correlation with zero variance returns 0"
+              (assert-equal 0 (correlation '(5 5 5) '(1 2 3))))
+
+            (define-test "vec-correlation with zero variance returns 0"
+              (assert-equal 0 (vec-correlation (vector 5 5 5) (vector 1 2 3))))
+
+            (define-test "skewness of identical values is 0"
+              (assert-equal 0 (skewness '(5 5 5 5 5))))
+
+            (define-test "kurtosis of identical values is 0"
+              (assert-equal 0 (kurtosis '(5 5 5 5 5))))
+
+            (define-test "range-stat of identical values is 0"
+              (assert-equal 0 (range-stat '(5 5 5 5 5)))))
+
+(test-group "edge-cases-t-tests"
+
+            ;; Too few observations
+            (define-test "t-test-one-sample with 0 elements errors"
+              (assert-error (lambda () (t-test-one-sample (vector)))))
+
+            (define-test "t-test-one-sample with 1 element errors"
+              (assert-error (lambda () (t-test-one-sample (vector 5.0)))))
+
+            (define-test "t-test-two-sample-equal with 1 element errors"
+              (assert-error (lambda () (t-test-two-sample (vector 5.0) (vector 3.0) #t))))
+
+            (define-test "t-test-two-sample-welch with 1 element errors"
+              (assert-error (lambda () (t-test-two-sample (vector 5.0) (vector 3.0) #f))))
+
+            (define-test "t-test-one-sample-greater with 1 element errors"
+              (assert-error (lambda () (t-test-one-sample-greater (vector 5.0) 0))))
+
+            (define-test "t-test-one-sample-less with 1 element errors"
+              (assert-error (lambda () (t-test-one-sample-less (vector 5.0) 0))))
+
+            ;; All-identical values (zero variance, se = 0)
+            (define-test "t-test-one-sample with constant data at mu0 gives p=1"
+              (let ([result (t-test-one-sample (vector 5.0 5.0 5.0 5.0 5.0) 5.0)])
+                (assert-true (test-result? result))
+                (assert-equal 0 (test-statistic result))
+                (assert-equal 1 (test-p-value result))))
+
+            (define-test "t-test-one-sample with constant data away from mu0 gives p=0"
+              (let ([result (t-test-one-sample (vector 5.0 5.0 5.0 5.0 5.0) 3.0)])
+                (assert-true (test-result? result))
+                (assert-equal 0 (test-p-value result))))
+
+            (define-test "t-test-two-sample with identical constant groups gives p=1"
+              (let ([result (t-test-two-sample (vector 5.0 5.0 5.0) (vector 5.0 5.0 5.0) #t)])
+                (assert-true (test-result? result))
+                (assert-equal 1 (test-p-value result))))
+
+            (define-test "t-test-two-sample with different constants gives p=0"
+              (let ([result (t-test-two-sample (vector 5.0 5.0 5.0) (vector 3.0 3.0 3.0) #t)])
+                (assert-true (test-result? result))
+                (assert-equal 0 (test-p-value result))))
+
+            (define-test "t-test-paired with 2 elements works"
+              (let ([result (t-test-paired (vector 5.0 6.0) (vector 3.0 4.0))])
+                (assert-true (test-result? result))))
+
+            (define-test "t-test effect size with zero variance is 0"
+              (let ([result (t-test-one-sample (vector 5.0 5.0 5.0 5.0 5.0) 5.0)])
+                (assert-equal 0 (test-effect-size result)))))
+
+(test-group "edge-cases-anova"
+
+            (define-test "anova-one-way with empty groups list errors"
+              (assert-error (lambda () (anova-one-way '()))))
+
+            (define-test "anova-one-way with single group errors"
+              (assert-error (lambda () (anova-one-way (list (vector 1.0 2.0 3.0))))))
+
+            (define-test "anova-one-way with empty vector in group errors"
+              (assert-error (lambda () (anova-one-way (list (vector 1.0 2.0) (vector))))))
+
+            (define-test "anova-one-way with constant identical groups"
+              (let* ([g1 (vector 5.0 5.0 5.0)]
+                     [g2 (vector 5.0 5.0 5.0)]
+                     [result (anova-one-way (list g1 g2))])
+                ;; All identical => F should be 0 or very small, p should be high
+                (assert-true (anova-result? result))
+                (assert-true (> (anova-p-value result) 0.05)))))
+
+(test-group "edge-cases-f-test"
+
+            (define-test "f-test-variance with single-element vectors errors"
+              (assert-error (lambda () (f-test-variance (vector 5.0) (vector 3.0)))))
+
+            (define-test "levene-test with single group errors"
+              (assert-error (lambda () (levene-test (list (vector 1.0 2.0 3.0))))))
+
+            (define-test "levene-test with empty group errors"
+              (assert-error (lambda () (levene-test (list (vector 1.0 2.0) (vector))))))
+
+            (define-test "bartlett-test with single group errors"
+              (assert-error (lambda () (bartlett-test (list (vector 1.0 2.0 3.0))))))
+
+            (define-test "bartlett-test with single-element group errors"
+              (assert-error (lambda () (bartlett-test (list (vector 1.0) (vector 2.0 3.0))))))
+
+            (define-test "bartlett-test with constant data doesn't crash"
+              ;; All zeros variance => should not crash with log(0)
+              (let ([result (bartlett-test (list (vector 5.0 5.0 5.0)
+                                                (vector 5.0 5.0 5.0)))])
+                (assert-true (test-result? result)))))
+
+(test-group "edge-cases-chi-squared"
+
+            (define-test "chi-squared-test-goodness with mismatched lengths errors"
+              (assert-error (lambda () (chi-squared-test-goodness (vector 10 20) (vector 15)))))
+
+            (define-test "chi-squared-test-goodness with single category errors"
+              ;; df = 0 is invalid for chi-squared distribution
+              (assert-error (lambda () (chi-squared-test-goodness (vector 100) (vector 100))))))
+
+;;; ====
 ;;; Run All Tests
 ;;; ====
 
