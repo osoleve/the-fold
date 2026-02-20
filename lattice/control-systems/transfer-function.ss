@@ -17,6 +17,7 @@
 (require 'numeric/polynomial)
 
 (doc 'module 'transfer-function)
+(doc 'purity 'total)
 (doc 'description "Transfer function representation for LTI systems with frequency response analysis")
 (doc 'layer 'lattice)
 

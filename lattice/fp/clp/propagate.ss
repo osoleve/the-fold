@@ -4,6 +4,7 @@
 (require 'fd-constraints)
 
 (doc 'module 'propagate)
+(doc 'purity 'total)
 (doc 'description "AC-3 style arc consistency propagation engine. When a variable's domain changes, all constraints involving that variable are re-evaluated.")
 
 (doc 'section 'propagation-loop)

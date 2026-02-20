@@ -6,8 +6,9 @@
 (require 'vec)
 (require 'matrix)
 
-(doc 'module 'iterative-solvers
-     'description "Iterative Linear System Solvers
+(doc 'module 'iterative-solvers)
+(doc 'purity 'total)
+(doc 'description "Iterative Linear System Solvers
 
 Implements iterative methods for solving Ax = b:
   - jacobi : Jacobi iteration (parallelizable, slow convergence)

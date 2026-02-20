@@ -30,6 +30,7 @@
 (require 'field)
 
 (doc 'module 'poly-algebra)
+(doc 'purity 'total)
 (doc 'description "Polynomial algebra integration for exact rational arithmetic in control systems")
 (doc 'layer 'lattice)
 

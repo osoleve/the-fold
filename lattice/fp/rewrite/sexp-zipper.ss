@@ -7,6 +7,7 @@
 (require 'zipper-lens)
 
 (doc 'module 'rewrite/sexp-zipper)
+(doc 'purity 'total)
 (doc 'description "Zipper for S-expressions")
 (doc 'layer 'lattice)
 

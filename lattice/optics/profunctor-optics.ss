@@ -10,6 +10,7 @@
 (require 'optics)
 
 (doc 'module 'profunctor-optics)
+(doc 'purity 'total)
 (doc 'description "Part 1: Profunctor Type Class A profunctor is a bifunctor that is contravariant in its first argument and covariant in its second: class Profunctor p where dimap :: (a' -> a) -> (b -> b') -> p a b -> p a' b'")
 (doc 'layer 'lattice)
 (define (make-profunctor dimap-fn)

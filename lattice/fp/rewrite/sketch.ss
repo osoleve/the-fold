@@ -8,6 +8,7 @@
 (require 'verify)
 
 (doc 'module 'rewrite/sketch)
+(doc 'purity 'total)
 (doc 'description "Proof Sketch Data Structures")
 (doc 'layer 'lattice)
 

@@ -6,6 +6,7 @@
 (require 'combinators)
 
 (doc 'module 'stream)
+(doc 'purity 'total)
 (doc 'description "Stream Type A stream is either: - stream-nil: the empty stream - (stream-cons head thunk): head value with lazy tail The thunk is a nullary procedure that, when called, produces")
 (doc 'layer 'lattice)
 (define stream-nil '(stream-nil))

@@ -33,6 +33,7 @@
 (require 'rewrite/laws)
 
 (doc 'module 'rewrite/fusion-rules)
+(doc 'purity 'total)
 (doc 'description "Fusion Rewrite Rules")
 (doc 'layer 'lattice)
 

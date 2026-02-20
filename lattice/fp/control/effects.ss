@@ -7,6 +7,7 @@
 (require 'continuation)
 
 (doc 'module 'effects)
+(doc 'purity 'partial)  ; Global gensym counter for fresh names
 (doc 'description "Algebraic effect handlers for The Fold. Provides structured side effect handling with effect signatures, effect handlers (deep and shallow), effect rows, and common effects (State, Reader, Writer, Exception, NonDet, Async).")
 (doc 'layer 'lattice)
 (doc 'note "Uses a free monad-like encoding where effects are operations interpreted by handlers. Effect rows enable effect polymorphism. Deep handlers handle the entire continuation recursively, shallow handlers only handle the immediate continuation.")

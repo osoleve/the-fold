@@ -5,8 +5,9 @@
 (require 'prelude)
 (require 'vec3)
 
-(doc 'module 'quaternion
-     'description "Quaternion Math Library
+(doc 'module 'quaternion)
+(doc 'purity 'total)
+(doc 'description "Quaternion Math Library
 
 Pure, functional quaternion operations for 3D rotations.
 

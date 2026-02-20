@@ -6,6 +6,7 @@
 (require 'combinators)
 
 (doc 'module 'free)
+(doc 'purity 'total)
 (doc 'description "Free Monad Representation Free f a is either: ('pure a)                    — A pure value ('free functor-value)        — A suspended computation Where functor-value is (f (Free f a))")
 (doc 'layer 'lattice)
 (define (pure-free x)

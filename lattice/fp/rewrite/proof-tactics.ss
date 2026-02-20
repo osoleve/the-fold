@@ -6,6 +6,7 @@
 (require 'rewrite/laws)
 
 (doc 'module 'rewrite/proof-tactics)
+(doc 'purity 'total)
 (doc 'description "Proof Tactics Wrapping Rewrite Strategies")
 (doc 'layer 'lattice)
 

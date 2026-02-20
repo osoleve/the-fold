@@ -6,8 +6,9 @@
 (require 'vec)
 (require 'matrix)
 
-(doc 'module 'numeric-instances
-     'description "Num/Fractional/Floating instances for Vec and Matrix
+(doc 'module 'numeric-instances)
+(doc 'purity 'total)
+(doc 'description "Num/Fractional/Floating instances for Vec and Matrix
 
 This module provides numeric type class instances for Vec and Matrix,
 enabling element-wise arithmetic operations:

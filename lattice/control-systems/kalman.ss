@@ -28,6 +28,7 @@
 (require 'prelude)
 
 (doc 'module 'kalman)
+(doc 'purity 'total)
 (doc 'description "Scalar Kalman filter for online estimation with log-space variant")
 (doc 'layer 'lattice)
 

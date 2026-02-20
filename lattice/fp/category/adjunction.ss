@@ -4,6 +4,7 @@
 (require 'natural-transform)
 
 (doc 'module 'adjunction)
+(doc 'purity 'total)
 (doc 'description "Adjoint Functors - An adjunction F ⊣ G consists of left adjoint F : C → D, right adjoint G : D → C, unit η : Id_C ⟹ G∘F, and counit ε : F∘G ⟹ Id_D. Triangle identities: (ε ◁ F) ∘ (F ▷ η) = id_F and (G ▷ ε) ∘ (η ◁ G) = id_G.")
 (doc 'see-also '(free-algebra.ss monad-derivation.ss))
 

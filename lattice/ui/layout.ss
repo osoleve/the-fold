@@ -21,6 +21,11 @@
 
 (require 'prelude)
 
+(doc 'module 'layout)
+(doc 'purity 'partial)  ; Exports canvas-set! for in-place mutation
+(doc 'description "Text layout primitives: 2D character framebuffer for ASCII/ANSI rendering")
+(doc 'layer 'lattice)
+
 ;;; ====
 ;;; Data Structures
 ;;; ====

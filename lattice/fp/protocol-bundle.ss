@@ -5,6 +5,7 @@
 (require 'protocol)
 
 (doc 'module 'protocol-bundle)
+(doc 'purity 'total)
 (doc 'description "Bundle Data Structures A bundle is metadata describing a set of protocol pairs (getter/setter). Structure: (protocol-bundle name (slot ...)) Each slot: (bundle-slot getter-proto setter-proto label) make-protocol-bundle : Symbol × (List Slot) → Bundle")
 (doc 'layer 'lattice)
 (define (make-protocol-bundle name slots)

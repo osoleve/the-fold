@@ -32,6 +32,7 @@
 (require 'rewrite/sexp-zipper)
 
 (doc 'module 'engine)
+(doc 'purity 'total)
 (doc 'description "Pattern matching and rewriting engine with strategy combinators")
 (doc 'layer 'lattice)
 

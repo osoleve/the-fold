@@ -5,6 +5,7 @@
 (require 'pretty-class)
 
 (doc 'module 'pretty-instances)
+(doc 'purity 'total)
 (doc 'description "Vec2 Pretty (tagged list: (vec2 x y)) Note: Scheme vectors use scheme-vec-pretty from core/util/pretty-class.ss Vec2/Vec3 are tagged lists like (vec2 x y), not Scheme vectors. vec2-pretty : Vec2 → Doc Pretty-print a 2D vector as [x, y]")
 (doc 'layer 'lattice)
 (define (vec2-pretty v)

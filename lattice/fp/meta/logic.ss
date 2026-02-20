@@ -6,6 +6,7 @@
 (require 'stream)
 
 (doc 'module 'logic)
+(doc 'purity 'partial)  ; Global mutable counter for logic variable identity
 (doc 'description "Logic Variables Logic variables are placeholders that can be unified with values. Each variable has a unique identifier.")
 (doc 'layer 'lattice)
 (define *lvar-counter* 0)

@@ -8,6 +8,7 @@
 (require 'sort)
 
 (doc 'module 'graph-community)
+(doc 'purity 'total)
 (doc 'description "Community detection and minimum spanning tree algorithms")
 (doc 'layer 'lattice)
 

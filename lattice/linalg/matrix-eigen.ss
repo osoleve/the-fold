@@ -7,8 +7,9 @@
 (require 'matrix)
 (require 'matrix-decomp)
 
-(doc 'module 'matrix-eigen
-     'description "Eigenvalue and Eigenvector Computation
+(doc 'module 'matrix-eigen)
+(doc 'purity 'total)
+(doc 'description "Eigenvalue and Eigenvector Computation
 
 Algorithms for computing eigenvalues and eigenvectors:
   - Power iteration (dominant eigenvalue)

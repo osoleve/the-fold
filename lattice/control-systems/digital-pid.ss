@@ -13,6 +13,7 @@
 (require 'prelude)
 
 (doc 'module 'digital-pid)
+(doc 'purity 'total)
 (doc 'description "Digital PID controller with anti-windup and derivative filtering")
 (doc 'layer 'lattice)
 

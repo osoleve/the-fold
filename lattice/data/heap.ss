@@ -7,6 +7,7 @@
 (require 'prelude)
 
 (doc 'module 'heap)
+(doc 'purity 'total)
 (doc 'description
      "Purely functional heap implementation using leftist tree structure. Provides O(log n) insert, delete-min, merge; O(1) peek-min. A leftist heap maintains the leftist property: rank(left) >= rank(right) where rank is the length of the rightmost path to an empty node. This ensures the right spine is always short, making merge efficient. Heap α = Empty | (Node rank value left right). Default: min-heap (smallest element at root). For max-heap, use heap-max-* functions or provide custom comparator.")
 (doc 'layer 'lattice)
