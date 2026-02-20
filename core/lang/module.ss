@@ -497,6 +497,7 @@ Dependencies:
  (register-module-path! 'differentiable-signal "lattice/autodiff/differentiable-signal.ss")
  (register-module-path! 'profiling "lattice/autodiff/profiling.ss")
  (register-module-path! 'traced-optics "lattice/autodiff/traced-optics.ss")
+ (register-module-path! 'optic-functors "lattice/autodiff/optic-functors.ss")
  (register-module-path! 'symbolic-diff "lattice/autodiff/symbolic-diff.ss")
 
  ;; Random layer

@@ -540,6 +540,7 @@
     "query/sql/test-ast-zipper.ss"
     ;; Autodiff
     "autodiff/test-traced-optics.ss"
+    "autodiff/test-optic-functors.ss"
     "autodiff/test-differentiable.ss"
     "autodiff/test-higher-order-diff.ss"
     "autodiff/test-symbolic-diff.ss"

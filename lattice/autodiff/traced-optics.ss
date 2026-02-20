@@ -122,9 +122,9 @@
 
       ;; Iso: Like lens (single focus, fully reversible)
       [(eq? otype 'iso)
-       (let* ([focus (iso-forward optic s)]
+       (let* ([focus (iso-view optic s)]
               [traced-focus (trace-value focus tape)]
-              [s-traced (iso-backward optic traced-focus)])
+              [s-traced (iso-review optic traced-focus)])
          (values s-traced traced-focus))]
 
       ;; Getter: Read-only, cannot lift for gradient (no set operation)
