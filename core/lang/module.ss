@@ -343,6 +343,7 @@ Dependencies:
  (register-module-path! 'interval-global "lattice/optimization/interval-global.ss")
  (register-module-path! 'interval-newton "lattice/optimization/interval-newton.ss")
  (register-module-path! 'interval-contract "lattice/optimization/interval-contract.ss")
+ (register-module-path! 'maxsat-bridge "lattice/optimization/maxsat-bridge.ss")
 
  ;; Geometry layer
  (register-module-path! 'geometry "lattice/geometry/geometry.ss")

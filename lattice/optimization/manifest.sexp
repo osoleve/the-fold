@@ -7,7 +7,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(iterations × n) for first-order, O(iterations × n²) for second-order, O(iterations × m × n) for LP, O(2^k × LP) for ILP, O(2^d × iterations) for interval global")
-  (deps (autodiff linalg numeric data))
+  (deps (autodiff linalg numeric data sat))
 
   (description
    "Numerical optimization algorithms powered by automatic differentiation.
@@ -18,8 +18,9 @@
     global optimization with guaranteed enclosure of the global minimum,
     monotonicity-enhanced optimization using interval gradients for
     automatic pruning, constraint contractors for constrained interval
-    optimization, and interval Newton method for guaranteed root finding
-    with existence proofs.")
+    optimization, interval Newton method for guaranteed root finding
+    with existence proofs, and weighted constraint optimization
+    via MaxSAT with stratified solving and named variable domains.")
 
   (keywords (optimization gradient-descent sgd adam muon newton lbfgs
              minimize convergence line-search numerical
@@ -28,7 +29,9 @@
              global-optimization interval-branch-and-bound verified-optimization
              constraint-propagation contractors constrained-optimization
              monotonicity-pruning interval-gradient
-             root-finding interval-newton bisection krawczyk existence-proof))
+             root-finding interval-newton bisection krawczyk existence-proof
+             weighted-maxsat constraint-optimization weighted-constraints
+             scheduling vertex-cover diagnosis))
   (aliases (optim opt minimize))
 
   (exports
@@ -57,7 +60,13 @@
                     find-root find-all-roots-simple
                     make-root-result root-result? root-result-roots
                     root-result-iterations root-result-reason root-result-count
-                    root-result-unique-roots))
+                    root-result-unique-roots)
+   (maxsat-bridge make-wco-domain wco-declare wco-declare* wco-var wco-neg-var wco-var-count
+                  wco-implies wco-iff wco-mutex wco-exactly-one wco-at-most-k wco-at-least-k
+                  make-wco-problem wco-require wco-prefer wco-prefer-true wco-prefer-false
+                  wco->maxsat wco-solve
+                  wco-result? wco-result-cost wco-result-model wco-result-assignment wco-result-value
+                  weighted-vertex-cover weighted-diagnosis scheduling-problem))
 
   (modules
    (line-search "line-search.ss" "Armijo, Wolfe line search strategies")
@@ -70,4 +79,5 @@
    (ilp "ilp.ss" "Integer linear programming via branch-and-bound")
    (interval-global "interval-global.ss" "Interval branch-and-bound global optimization with monotonicity pruning")
    (interval-contract "interval-contract.ss" "Constraint contractors for interval optimization")
-   (interval-newton "interval-newton.ss" "Interval Newton method for guaranteed root finding with existence proofs")))
+   (interval-newton "interval-newton.ss" "Interval Newton method for guaranteed root finding with existence proofs")
+   (maxsat-bridge "maxsat-bridge.ss" "Weighted constraint optimization via stratified MaxSAT")))

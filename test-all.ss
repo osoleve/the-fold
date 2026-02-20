@@ -528,6 +528,7 @@
     "optimization/test-poly-optimize.ss"
     "optimization/test-interval-contract.ss"
     "optimization/test-interval-newton.ss"
+    "optimization/test-maxsat-bridge.ss"
     ;; Query
     "query/test-optic-query.ss"
     "query/test-query-macro.ss"
