@@ -138,12 +138,22 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
   (cdr (assq 'expression request)))
 
 ;;; ====
+;;; User Environment Isolation
+;;; ====
+
+;;; Same isolation pattern as repl-worker-socket.ss. See fold-zxzj.
+(define *system-env* #f)
+(define *user-env*   #f)
+
+(define (session-reset!)
+  (set! *user-env* (copy-environment *system-env*))
+  "Session namespace reset. User definitions cleared.")
+
+;;; ====
 ;;; Content Addressing
 ;;; ====
 
-;;; Capture internal references at load time. User eval shares the top-level
-;;; namespace, so a creature doing (define normalize ...) would clobber our
-;;; binding. These closures close over the *current* value, not the name.
+;;; Belt-and-suspenders: capture internal references at load time.
 (define *worker-normalize* normalize)
 (define *worker-sha256*    sha256)
 (define *worker-hash->hex* hash->hex)
@@ -207,21 +217,22 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
    - last-defined-name is the symbol of the last definition, or #f
    - last-def-expr is the full definition expression, or #f"
   (let ([port (open-input-string str)])
-       (let loop ([last-result (void)]
-                  [last-def-name #f]
-                  [last-def-expr #f])
-            (let ([expr (read port)])
-                 (if (eof-object? expr)
-                     (values last-result last-def-name last-def-expr)
-                     (let ([is-def (definition? expr)]
-                           [result (eval expr)])
-                          (loop result
-                                (if is-def
-                                    (definition-name expr)
-                                    last-def-name)
-                                (if is-def
-                                    expr
-                                    last-def-expr))))))))
+    (parameterize ([interaction-environment *user-env*])
+      (let loop ([last-result (void)]
+                 [last-def-name #f]
+                 [last-def-expr #f])
+        (let ([expr (read port)])
+          (if (eof-object? expr)
+              (values last-result last-def-name last-def-expr)
+              (let ([is-def (definition? expr)]
+                    [result (eval expr)])
+                (loop result
+                      (if is-def
+                          (definition-name expr)
+                          last-def-name)
+                      (if is-def
+                          expr
+                          last-def-expr)))))))))
 
 (define (scheme-eval-and-capture session-id str)
   "Evaluate expressions and capture both stdout and stderr.
@@ -484,6 +495,9 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
               (load "boundary/history/history.ss")
               (history-init-session! session-id)
               (set! *history-loaded* #t))
+       ;; Snapshot system environment, then create isolated user namespace.
+       (set! *system-env* (interaction-environment))
+       (set! *user-env* (copy-environment *system-env*))
        (write-ready! session-id)
        (write-heartbeat! session-id)
        (write-lastreq! session-id)  ; Initialize last-request timestamp (legacy)

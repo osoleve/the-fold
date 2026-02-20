@@ -15,12 +15,29 @@
 (load "boundary/repl/error-context.ss")
 
 ;;; ====
+;;; User Environment Isolation
+;;; ====
+
+;;; After all system modules load, we copy the interaction-environment into
+;;; *user-env*. User eval runs with (parameterize ([interaction-environment
+;;; *user-env*]) ...), so user (define ...) only modifies *user-env* — the
+;;; system namespace stays clean. This prevents (define normalize ...) from
+;;; clobbering internal module bindings (fold-zxzj).
+(define *system-env* #f)  ; Set after repl.ss loads
+(define *user-env*   #f)  ; Set after repl.ss loads
+
+(define (session-reset!)
+  (set! *user-env* (copy-environment *system-env*))
+  (hashtable-clear! *procedure-formals*)
+  "Session namespace reset. User definitions cleared.")
+
+;;; ====
 ;;; Content Addressing (same as repl-worker.ss)
 ;;; ====
 
-;;; Capture internal references at load time. User eval shares the top-level
-;;; namespace, so a creature doing (define normalize ...) would clobber our
-;;; binding. These closures close over the *current* value, not the name.
+;;; Belt-and-suspenders: capture internal references at load time.
+;;; The primary protection is *user-env* isolation above, but these
+;;; closures provide defense-in-depth for content addressing.
 (define *worker-normalize* normalize)
 (define *worker-sha256*    sha256)
 (define *worker-hash->hex* hash->hex)
@@ -78,24 +95,26 @@
 
 (define (scheme-eval-string str)
   (let ([port (open-input-string str)])
-    (let loop ([last-result (void)]
-               [last-def-name #f]
-               [last-def-expr #f])
-      (let ([expr (read port)])
-        (if (eof-object? expr)
-            (values last-result last-def-name last-def-expr)
-            (let ([is-def (definition? expr)]
-                  [result (eval expr)])
-              (when is-def
-                (let ([name (definition-name expr)])
-                  (when (and (top-level-bound? name)
-                             (procedure? (top-level-value name)))
-                    (let ([formals (definition-formals expr)])
-                      (when formals
-                        (hashtable-set! *procedure-formals* name formals))))))
-              (loop result
-                    (if is-def (definition-name expr) last-def-name)
-                    (if is-def expr last-def-expr))))))))
+    (parameterize ([interaction-environment *user-env*])
+      (let loop ([last-result (void)]
+                 [last-def-name #f]
+                 [last-def-expr #f])
+        (let ([expr (read port)])
+          (if (eof-object? expr)
+              (values last-result last-def-name last-def-expr)
+              (let ([is-def (definition? expr)]
+                    [result (eval expr)])
+                (when is-def
+                  (let ([name (definition-name expr)])
+                    (when (and (top-level-bound? name)
+                               (procedure? (top-level-value name)))
+                      (let ([formals (definition-formals expr)])
+                        (when formals
+                          (hashtable-set! *procedure-formals* name formals))))))
+                (loop result
+                      (if is-def (definition-name expr) last-def-name)
+                      (if is-def expr last-def-expr)))))))))
+
 
 (define (condition->string c)
   (let ([who (and (who-condition? c) (condition-who c))]
@@ -601,7 +620,8 @@
                   (write-frame-stdout frame))])
       ;; Capture stdout to prevent display/print from corrupting IPC frame stream
       (let* ([value (let ([out (open-output-string)])
-                      (parameterize ([current-output-port out])
+                      (parameterize ([current-output-port out]
+                                     [interaction-environment *user-env*])
                         (eval (read (open-input-string expr-str)))))]
              [result (fold-cap-env-store! session-id key value 'sexpr)]
              [text (car result)]
@@ -897,6 +917,10 @@
     ;; protocol clean — many modules print load banners on stdout.
     (parameterize ([current-output-port (current-error-port)])
       (load "boundary/repl/repl.ss"))
+    ;; Snapshot system environment, then create isolated user namespace.
+    ;; User (define ...) goes into *user-env*, system bindings stay clean.
+    (set! *system-env* (interaction-environment))
+    (set! *user-env* (copy-environment *system-env*))
     ;; Run the frame-based worker loop with structured cleanup.
     ;; dynamic-wind ensures flush on any exit path: normal return,
     ;; shutdown frame, EOF, or uncaught exception.
