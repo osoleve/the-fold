@@ -295,6 +295,10 @@ penetration depth, computed via SDFs.")
 (define (make-soft-material stiffness damping alpha friction)
   (list 'soft-material stiffness damping alpha friction))
 
+;;; soft-material? : Any → Boolean
+(define (soft-material? x)
+  (and (pair? x) (eq? (car x) 'soft-material)))
+
 ;;; soft-material-stiffness : SoftMaterial → Number
 (define (soft-material-stiffness m) (list-ref m 1))
 

@@ -234,6 +234,10 @@
 (define (make-ma-result theta mean residuals sigma q)
   (list 'ma-result theta mean residuals sigma q))
 
+;;; ma-result? : Any → Bool
+(define (ma-result? x)
+  (and (pair? x) (eq? (car x) 'ma-result)))
+
 ;;; Accessors
 (define (ma-coefficients model) (cadr model))
 (define (ma-intercept model) (caddr model))

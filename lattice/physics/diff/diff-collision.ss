@@ -135,6 +135,10 @@ For fully differentiable physics, this module provides:
 (define (make-collision-pair idx-a idx-b radius-a radius-b)
   (list 'collision-pair idx-a idx-b radius-a radius-b))
 
+;;; collision-pair? : Any → Boolean
+(define (collision-pair? x)
+  (and (pair? x) (eq? (car x) 'collision-pair)))
+
 ;;; collision-pair-idx-a : CollisionPair → Nat
 (define (collision-pair-idx-a cp) (list-ref cp 1))
 

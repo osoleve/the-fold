@@ -104,6 +104,9 @@
         8                   ; solver-iterations
         32))                ; spatial-hash-cell-size
 
+(define (world-config? x)
+  (and (pair? x) (eq? (car x) 'world-config)))
+
 (define (config-fixed-dt c) (list-ref c 1))
   (doc 'type '(config-fixed-dt : WorldConfig → Number))
 

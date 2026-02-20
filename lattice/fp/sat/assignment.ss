@@ -24,6 +24,9 @@
         (make-vector (+ nvars 1) 0)      ; levels (0 = unassigned)
         (make-vector (+ nvars 1) #f)))   ; reasons
 
+(define (assignment? x)
+  (and (pair? x) (eq? (car x) 'assignment)))
+
 (define (assignment-copy a)
   (doc 'export #t)
   (doc 'type '(-> Assignment Assignment))

@@ -223,6 +223,9 @@
   (doc 'description "Create a generator from a body that calls yield")
   (list 'generator body))
 
+(define (generator? x)
+  (and (pair? x) (eq? (car x) 'generator)))
+
 (define (generator-to-list gen)
   (doc 'type '(-> Generator (List a)))
   (doc 'description "Collect all yielded values into a list")

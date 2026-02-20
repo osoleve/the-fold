@@ -456,6 +456,10 @@
 (define (make-coyoneda fa)
   (list 'coyoneda identity fa))
 
+;;; coyoneda? : Any → Boolean
+(define (coyoneda? x)
+  (and (pair? x) (eq? (car x) 'coyoneda)))
+
 ;;; coyoneda-map : (α → β) × (Coyoneda f α) → (Coyoneda f β)
 ;;; Map over a Coyoneda value.
 (define (coyoneda-map f cy)

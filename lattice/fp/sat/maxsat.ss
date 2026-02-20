@@ -23,6 +23,9 @@
   (doc 'param 'soft-clauses "Clauses we want to maximize")
   (list 'maxsat hard-clauses soft-clauses))
 
+(define (maxsat? x)
+  (and (pair? x) (eq? (car x) 'maxsat)))
+
 (define (maxsat-hard m) (cadr m))
 (define (maxsat-soft m) (caddr m))
 (define (maxsat-num-soft m) (length (maxsat-soft m)))

@@ -45,6 +45,9 @@
               0            ; conflict count
               watches)))   ; 2WL watches
 
+(define (solver-state? x)
+  (and (pair? x) (eq? (car x) 'solver-state)))
+
 (define (state-cnf s) (list-ref s 1))
 (define (state-assignment s) (list-ref s 2))
 (define (state-learned s) (list-ref s 3))

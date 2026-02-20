@@ -72,6 +72,10 @@ Supported constraint types:
         body-b-idx anchor-b
         rest-length stiffness damping))
 
+;;; spring-constraint? : Any → Boolean
+(define (spring-constraint? x)
+  (and (pair? x) (eq? (car x) 'spring-constraint)))
+
 ;;; Spring constraint accessors
 (define (spring-constraint-body-a c) (list-ref c 1))
 (define (spring-constraint-anchor-a c) (list-ref c 2))
@@ -118,6 +122,10 @@ Supported constraint types:
 (define (make-anchor-constraint body-idx local-anchor world-target stiffness damping)
   (list 'anchor-constraint body-idx local-anchor world-target stiffness damping))
 
+;;; anchor-constraint? : Any → Boolean
+(define (anchor-constraint? x)
+  (and (pair? x) (eq? (car x) 'anchor-constraint)))
+
 ;;; Anchor constraint accessors
 (define (anchor-constraint-body c) (list-ref c 1))
 (define (anchor-constraint-local-anchor c) (list-ref c 2))
@@ -158,6 +166,10 @@ Supported constraint types:
 ;;;   anchor-b: pivot point in body B's local coordinates
 (define (make-revolute-joint body-a-idx anchor-a body-b-idx anchor-b stiffness damping)
   (list 'revolute-joint body-a-idx anchor-a body-b-idx anchor-b stiffness damping))
+
+;;; revolute-joint? : Any → Boolean
+(define (revolute-joint? x)
+  (and (pair? x) (eq? (car x) 'revolute-joint)))
 
 ;;; Revolute joint accessors
 (define (revolute-joint-body-a j) (list-ref j 1))

@@ -24,6 +24,12 @@
 (define (make-graph-node id x y)
   (list 'graph-node id (vector x y) (vector 0.0 0.0)))  ; id, pos, velocity
 
+(define (graph-node? x)
+  (and (pair? x) (eq? (car x) 'graph-node)))
+
+(define (layout-graph? x)
+  (and (pair? x) (eq? (car x) 'layout-graph)))
+
 (define (node-id node) (list-ref node 1))
 (define (node-pos node) (list-ref node 2))
 (define (node-vel node) (list-ref node 3))
