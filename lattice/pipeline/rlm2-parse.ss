@@ -26,11 +26,13 @@
 (doc 'section 'rlm2-parse)
 
 (doc 'type '(-> Action (Maybe String) String Rlm2ParseResult))
-(doc 'description "Parse result: action + optional thought + raw text + optional failure info")
+(doc 'description "Parse result: action + optional thought + raw text + optional failure info + optional alias info")
 (define (make-rlm2-parse-result action thought raw . rest)
   (let ([candidate (if (pair? rest) (car rest) #f)]
-        [failure-reason (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) #f)])
-    (list 'rlm2-parse-result action thought raw candidate failure-reason)))
+        [failure-reason (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) #f)]
+        [alias-info (if (and (pair? rest) (pair? (cdr rest)) (pair? (cddr rest)))
+                        (caddr rest) #f)])
+    (list 'rlm2-parse-result action thought raw candidate failure-reason alias-info)))
 
 (define (rlm2-parse-result? x)
   (and (pair? x) (eq? (car x) 'rlm2-parse-result)))
@@ -40,6 +42,24 @@
 (define (rlm2-parse-result-raw r)            (list-ref r 3))
 (define (rlm2-parse-result-candidate r)      (if (> (length r) 4) (list-ref r 4) #f))
 (define (rlm2-parse-result-failure-reason r) (if (> (length r) 5) (list-ref r 5) #f))
+(define (rlm2-parse-result-alias-info r)     (if (> (length r) 6) (list-ref r 6) #f))
+
+(doc 'type '(-> Rlm2ParseResult (Pair Symbol Symbol) Rlm2ParseResult))
+(doc 'description "Return a new parse result with alias-info set")
+(define (rlm2-parse-result-with-alias r alias-info)
+  (list 'rlm2-parse-result
+        (rlm2-parse-result-action r)
+        (rlm2-parse-result-thought r)
+        (rlm2-parse-result-raw r)
+        (rlm2-parse-result-candidate r)
+        (rlm2-parse-result-failure-reason r)
+        alias-info))
+
+(doc 'type '(-> (Pair Symbol Symbol) String))
+(doc 'description "Format a correction note for when an alias was used, to help the model learn canonical names")
+(define (rlm2-alias-correction-note alias-info)
+  (format "[alias] '~a' resolved to '~a'. Use (~a ...) directly."
+          (car alias-info) (cdr alias-info) (cdr alias-info)))
 
 ;;; ====
 ;;; Main entry point
@@ -60,8 +80,13 @@
 (define (rlm2-parse-response-inner trimmed text)
   (let ([direct (rlm2-try-read-action trimmed)])
     (if (rlm2-try-ok? direct)
-        ;; Direct read succeeded
-        (rlm2-extract-thought-and-action (rlm2-try-action direct) text)
+        ;; Direct read succeeded — pass through alias info if present
+        (let ([result (rlm2-extract-thought-and-action
+                        (rlm2-try-action direct) text)]
+              [alias-info (rlm2-try-alias-info direct)])
+          (if alias-info
+              (rlm2-parse-result-with-alias result alias-info)
+              result))
         ;; Direct read failed — try partial begin recovery, then fuzzy
         (let ([partial (rlm2-try-partial-begin trimmed)])
           (if partial
@@ -82,10 +107,14 @@
         ;; Found balanced parens — try reading that
         (let ([fuzzy (rlm2-try-read-action balanced)])
           (if (rlm2-try-ok? fuzzy)
-              (let ([pre (rlm2-text-before-paren trimmed)])
-                (rlm2-extract-thought-and-action
-                  (rlm2-try-action fuzzy) text
-                  (if (string=? pre "") #f pre)))
+              (let* ([pre (rlm2-text-before-paren trimmed)]
+                     [result (rlm2-extract-thought-and-action
+                               (rlm2-try-action fuzzy) text
+                               (if (string=? pre "") #f pre))]
+                     [alias-info (rlm2-try-alias-info fuzzy)])
+                (if alias-info
+                    (rlm2-parse-result-with-alias result alias-info)
+                    result))
               ;; Balanced parens found but validation failed
               (make-rlm2-parse-result
                 (list 'think trimmed) trimmed text
@@ -95,21 +124,101 @@
 
 
 ;;; ====
+;;; Action Alias Table
+;;; ====
+;;;
+;;; Maps common synonyms (emitted by smaller models) to canonical action names.
+;;; Used before validation so that e.g. (lookup "foo") becomes (search "foo").
+
+(doc 'section 'rlm2-alias)
+
+(doc 'type 'Alist)
+(doc 'description "Maps alias symbols to canonical action symbols.
+Targets must be members of *rlm2-action-types* in rlm2.ss.")
+(define *rlm2-action-aliases*
+  '(;; search aliases
+    (find     . search)
+    (help     . search)
+    ;; eval aliases
+    (run      . eval)
+    (execute  . eval)
+    ;; load aliases
+    (import   . load)
+    (require  . load)
+    (use      . load)
+    ;; submit aliases
+    (answer   . submit)
+    (respond  . submit)
+    (output   . submit)
+    ;; inspect aliases
+    (look     . inspect)
+    (view     . inspect)
+    (info     . inspect)
+    (describe . inspect)
+    (show     . inspect)
+    ;; exports aliases
+    (list-exports . exports)
+    ;; symbols aliases
+    (list     . symbols)
+    (dir      . symbols)
+    ;; retrieve aliases
+    (get      . retrieve)
+    (fetch    . retrieve)
+    (cat      . retrieve)))
+
+(doc 'type '(-> Symbol (Maybe Symbol)))
+(doc 'description "Look up the canonical action name for an alias. Returns #f if not an alias.")
+(define (rlm2-alias-lookup sym)
+  (let ([entry (assq sym *rlm2-action-aliases*)])
+    (and entry (cdr entry))))
+
+(doc 'type '(-> Any (Values Any (Maybe (Pair Symbol Symbol)))))
+(doc 'description "Resolve aliases in an action expression. Returns (values resolved-expr alias-info).
+alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
+(define (rlm2-resolve-alias expr)
+  (if (not (and (pair? expr) (symbol? (car expr))))
+      (values expr #f)
+      (let* ([head (car expr)]
+             [args (cdr expr)]
+             [canonical (rlm2-alias-lookup head)])
+        (if canonical
+            (values (cons canonical args) (cons head canonical))
+            (values expr #f)))))
+
+;;; ====
 ;;; Helpers
 ;;; ====
 
 ;;; Try to read an S-expression from a string and validate it as an action.
 ;;; Returns a tagged result:
 ;;;   (parse-ok action)              — valid action
+;;;   (parse-ok action alias-info)   — valid action after alias resolution
 ;;;   (parse-fail candidate reason)  — failure with diagnostics
 ;;; Rejects input with significant trailing content after the first expression
 ;;; (whitespace and comments are tolerated).
-(doc 'description "Try to read and validate an action from a string. Returns (parse-ok action) or (parse-fail candidate reason).")
+(doc 'description "Try to read and validate an action from a string. Returns (parse-ok action [alias-info]) or (parse-fail candidate reason).")
 
 (define (rlm2-try-ok? r) (eq? (car r) 'parse-ok))
 (define (rlm2-try-action r) (cadr r))
+(define (rlm2-try-alias-info r)
+  (and (rlm2-try-ok? r) (> (length r) 2) (caddr r)))
 (define (rlm2-try-candidate r) (cadr r))
 (define (rlm2-try-reason r) (caddr r))
+
+;;; Validate an expression, trying alias resolution on failure.
+;;; Returns a try-result: (parse-ok action alias-info) or (parse-fail candidate reason).
+(define (rlm2-validate-or-alias expr)
+  (let ([validation (rlm2-validate-action expr)])
+    (if (rlm2-validation-ok? validation)
+        (list 'parse-ok (rlm2-validation-value validation) #f)
+        ;; Validation failed — try alias resolution before giving up
+        (let-values ([(resolved alias-info) (rlm2-resolve-alias-recursive expr)])
+          (if alias-info
+              (let ([v2 (rlm2-validate-action resolved)])
+                (if (rlm2-validation-ok? v2)
+                    (list 'parse-ok (rlm2-validation-value v2) alias-info)
+                    (list 'parse-fail expr (rlm2-validation-error v2))))
+              (list 'parse-fail expr (rlm2-validation-error validation)))))))
 
 (define (rlm2-try-read-action str)
   (guard (exn [#t
@@ -131,11 +240,28 @@
                         (if (> (string-length rest) 100)
                             (string-append (substring rest 0 97) "...")
                             rest)))
-                (let ([validation (rlm2-validate-action expr)])
-                  (if (rlm2-validation-ok? validation)
-                      (list 'parse-ok (rlm2-validation-value validation))
-                      (list 'parse-fail expr
-                            (rlm2-validation-error validation))))))))))
+                (rlm2-validate-or-alias expr)))))))
+
+;;; Also resolve aliases inside begin blocks (recursive)
+(define (rlm2-resolve-alias-recursive expr)
+  (if (not (and (pair? expr) (symbol? (car expr))))
+      (values expr #f)
+      (if (eq? (car expr) 'begin)
+          ;; Resolve aliases in each child of a begin
+          (let loop ([children (cdr expr)]
+                     [resolved-children '()]
+                     [any-alias? #f]
+                     [first-alias #f])
+            (if (null? children)
+                (let ([result (cons 'begin (reverse resolved-children))])
+                  (values result first-alias))
+                (let-values ([(child-resolved child-alias) (rlm2-resolve-alias (car children))])
+                  (loop (cdr children)
+                        (cons child-resolved resolved-children)
+                        (or any-alias? (and child-alias #t))
+                        (or first-alias child-alias)))))
+          ;; Non-begin: resolve at top level
+          (rlm2-resolve-alias expr))))
 
 ;;; Read remaining content from a port, trimmed.
 (define (rlm2-port-rest-trimmed port)

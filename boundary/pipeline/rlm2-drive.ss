@@ -219,6 +219,13 @@
                                    (rlm2-state-step state))
                                  (rlm2-reflect config raw-thought action
                                    observation (rlm2-state-step state)))]
+                       ;; Prepend alias correction if an alias was resolved
+                       [alias-info (rlm2-parse-result-alias-info final-parse)]
+                       [note (if alias-info
+                                 (string-append
+                                   (rlm2-alias-correction-note alias-info)
+                                   " " note)
+                                 note)]
                        [t4 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
                        ;; Emit timing to stderr if enabled
                        [_timing (when *rlm2-timing-enabled?*
@@ -1363,6 +1370,13 @@
                                    (rlm2-state-step state))
                                  (rlm2-reflect config raw-thought action
                                    observation (rlm2-state-step state)))]
+                       ;; Prepend alias correction if an alias was resolved
+                       [alias-info (rlm2-parse-result-alias-info final-parse)]
+                       [note (if alias-info
+                                 (string-append
+                                   (rlm2-alias-correction-note alias-info)
+                                   " " note)
+                                 note)]
                        ;; === UPDATE STATE ===
                        [state* (rlm2-update-state state-after-exec
                                  action observation note fuel-used)]
