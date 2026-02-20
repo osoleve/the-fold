@@ -176,6 +176,7 @@ Dependencies:
  (register-module-path! 'graph-bridge "lattice/data/graph/graph-bridge.ss")
  (register-module-path! 'spectral-community "lattice/data/graph/spectral-community.ss")
  (register-module-path! 'shortest-path "lattice/data/graph/shortest-path.ss")
+ (register-module-path! 'max-flow "lattice/data/graph/max-flow.ss")
 
  ;; Optics layer
  (register-module-path! 'optics "lattice/optics/optics.ss")
@@ -275,6 +276,7 @@ Dependencies:
 
  ;; Sim layer
  (register-module-path! 'ode-system "lattice/sim/dynamics/ode-system.ss")
+ (register-module-path! 'ode-state-space "lattice/sim/dynamics/ode-state-space.ss")
  (register-module-path! 'chaos "lattice/sim/dynamics/chaos.ss")
  (register-module-path! 'sim/stability "lattice/sim/dynamics/stability.ss")
  (register-module-path! 'sim/discrete "lattice/sim/dynamics/discrete.ss")
@@ -438,6 +440,7 @@ Dependencies:
  (register-module-path! 'verify "lattice/fp/rewrite/verify.ss")
  (register-module-path! 'goals "lattice/fp/rewrite/goals.ss")
  (register-module-path! 'simplify "lattice/fp/symbolic/simplify.ss")
+ (register-module-path! 'egraph-simplify "lattice/fp/symbolic/egraph-simplify.ss")
  (register-module-path! 'diff "lattice/fp/symbolic/diff.ss")
  (register-module-path! 'clause "lattice/fp/sat/clause.ss")
  (register-module-path! 'assignment "lattice/fp/sat/assignment.ss")
@@ -526,6 +529,7 @@ Dependencies:
  (register-module-path! 'regularized "lattice/statistics/regression/regularized.ss")
  (register-module-path! 'glm "lattice/statistics/regression/glm.ss")
  (register-module-path! 'traced-regression "lattice/statistics/regression/traced-regression.ss")
+ (register-module-path! 'autodiff-fit "lattice/statistics/regression/autodiff-fit.ss")
 
  ;; Statistics timeseries
  (register-module-path! 'differencing "lattice/statistics/timeseries/differencing.ss")
@@ -535,6 +539,7 @@ Dependencies:
  (register-module-path! 'ar "lattice/statistics/timeseries/ar.ss")
  (register-module-path! 'ma "lattice/statistics/timeseries/ma.ss")
  (register-module-path! 'ar-poly "lattice/statistics/timeseries/ar-poly.ss")
+ (register-module-path! 'spectral-ts "lattice/statistics/spectral-ts.ss")
 
  ;; DSL layer
  (register-module-path! 'tagless "lattice/dsl/tagless.ss")
