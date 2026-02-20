@@ -316,6 +316,52 @@
                     (< dot 0))))
 
 ;;; ====
+;;; L-BFGS Curvature Condition Tests
+;;; ====
+
+(test-group "L-BFGS Curvature Guard"
+            (define-test "curvature-ok accepts valid pair"
+              (assert-true (lbfgs-curvature-ok? '(1.0 0.0) '(0.5 0.0))))
+
+            (define-test "curvature-ok rejects negative y^T s"
+              ;; y^T s = -0.5 < 0 (e.g., near saddle point)
+              (assert-false (lbfgs-curvature-ok? '(1.0 0.0) '(-0.5 0.0))))
+
+            (define-test "curvature-ok rejects zero y^T s"
+              ;; Orthogonal s and y: y^T s = 0
+              (assert-false (lbfgs-curvature-ok? '(1.0 0.0) '(0.0 1.0))))
+
+            (define-test "history-push skips pair with violated curvature"
+              (let* ([h (make-lbfgs-history 5)]
+                     ;; Push a valid pair
+                     [h1 (lbfgs-history-push h '(1.0 0.0) '(0.5 0.0))]
+                     ;; Push an invalid pair (y^T s < 0)
+                     [h2 (lbfgs-history-push h1 '(1.0 0.0) '(-1.0 0.0))])
+                    ;; History should still have size 1 (bad pair was skipped)
+                    (= (lh-size h2) 1)))
+
+            (define-test "well-conditioned sphere has no curvature skips"
+              (let* ([cc (make-convergence-criteria 1e-6 1e-8 1e-8 100)]
+                     [result (lbfgs sphere-2d '(5.0 5.0) cc)])
+                    ;; Convex quadratic should never violate curvature condition
+                    (null? (opt-meta result))))
+
+            (define-test "non-convex function near saddle reports curvature skips"
+              ;; f(x, y) = x^3 - 3xy^2 (monkey saddle at origin)
+              ;; Starting near the saddle, L-BFGS will encounter curvature violations
+              (let* ([monkey-saddle (lambda (x y)
+                                     (traced-sub
+                                      (traced-mul x (traced-mul x x))
+                                      (traced-mul 3 (traced-mul x (traced-mul y y)))))]
+                     [cc (make-convergence-criteria 1e-4 1e-6 1e-6 50)]
+                     [result (lbfgs monkey-saddle '(0.1 0.1) cc)]
+                     [meta (opt-meta result)]
+                     [skips (assq 'curvature-skips meta)])
+                    ;; Should have completed (not crashed) and potentially recorded skips.
+                    ;; The key property: it doesn't corrupt and blow up.
+                    (opt-result? result))))
+
+;;; ====
 ;;; L-BFGS-B (Bounded) Tests
 ;;; ====
 

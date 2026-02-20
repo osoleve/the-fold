@@ -155,7 +155,16 @@
 
   (define-test "non-result fails predicate"
     (assert-false (opt-result? '(not-a-result)))
-    (assert-false (opt-result? 42))))
+    (assert-false (opt-result? 42)))
+
+  (define-test "opt-meta defaults to empty"
+    (let ([r (make-opt-result '(1.0) 0.0 '(0.0) 10 'grad-converged)])
+      (assert-equal '() (opt-meta r))))
+
+  (define-test "opt-meta returns metadata alist"
+    (let ([r (make-opt-result '(1.0) 0.0 '(0.0) 10 'max-iter
+                              (list (cons 'curvature-skips 3)))])
+      (assert-equal 3 (cdr (assq 'curvature-skips (opt-meta r)))))))
 
 ;;; ============================================================
 ;;; Convergence Monitoring

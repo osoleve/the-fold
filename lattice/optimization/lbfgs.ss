@@ -41,24 +41,36 @@ Algorithm:
 (define (lh-y-list h) (list-ref h 4))
 (define (lh-rho-list h) (list-ref h 5))
 
+;;; *lbfgs-curvature-epsilon* : Number
+;;; Minimum y^T s value for accepting a curvature pair.
+;;; Pairs with y^T s below this threshold are skipped to prevent
+;;; corrupting the inverse Hessian approximation.
+(define *lbfgs-curvature-epsilon* 1e-10)
+
+;;; lbfgs-curvature-ok? : (List Number) × (List Number) → Bool
+;;; Check whether a (s, y) pair satisfies the curvature condition y^T s > epsilon.
+;;; When violated (e.g., near saddle points of non-convex functions),
+;;; the pair should be skipped to avoid corrupting the inverse Hessian.
+(define (lbfgs-curvature-ok? s y)
+  (> (dot-product y s) *lbfgs-curvature-epsilon*))
+
 ;;; lbfgs-history-push : LBFGSHistory × (List Number) × (List Number) → LBFGSHistory
 ;;; Add a new (s, y) pair to history.
 ;;; s = x_new - x_old, y = grad_new - grad_old
+;;; Skips the update if curvature condition y^T s > epsilon is violated.
 (define (lbfgs-history-push h s y)
-  (let* ([ys (dot-product y s)]
-         ;; Skip if curvature condition violated
-         [_ (if (<= ys 1e-10) h #f)])
-        (if (and _ (<= ys 1e-10))
-            h  ; Don't add bad pairs
-            (let* ([rho (/ 1.0 ys)]
-                   [max-size (lh-max-size h)]
-                   [old-size (lh-size h)]
-                   [new-size (min (+ old-size 1) max-size)]
-                   ;; Add to front, trim if necessary
-                   [s-list (take-n (cons s (lh-s-list h)) max-size)]
-                   [y-list (take-n (cons y (lh-y-list h)) max-size)]
-                   [rho-list (take-n (cons rho (lh-rho-list h)) max-size)])
-                  (list 'lbfgs-history max-size new-size s-list y-list rho-list)))))
+  (let ([ys (dot-product y s)])
+       (if (<= ys *lbfgs-curvature-epsilon*)
+           h  ; Skip: curvature condition violated
+           (let* ([rho (/ 1.0 ys)]
+                  [max-size (lh-max-size h)]
+                  [old-size (lh-size h)]
+                  [new-size (min (+ old-size 1) max-size)]
+                  ;; Add to front, trim if necessary
+                  [s-list (take-n (cons s (lh-s-list h)) max-size)]
+                  [y-list (take-n (cons y (lh-y-list h)) max-size)]
+                  [rho-list (take-n (cons rho (lh-rho-list h)) max-size)])
+                 (list 'lbfgs-history max-size new-size s-list y-list rho-list)))))
 
 ;;; take-n : (List α) × Nat → (List α)
 ;;; Take first n elements of list.
@@ -162,6 +174,7 @@ Algorithm:
 ;;;   x0: initial point
 ;;;   m: history size (typically 3-20, default 10)
 ;;;   criteria: convergence criteria
+;;; Result metadata includes (curvature-skips . N) when N > 0 curvature pairs were rejected.
 (define (lbfgs-full f x0 m criteria)
   (let* ([init-grad (gradient f x0)]
          [init-f (apply f x0)]
@@ -170,11 +183,15 @@ Algorithm:
         (let loop ([x x0]
                    [grad init-grad]
                    [history init-history]
-                   [state init-state])
+                   [state init-state]
+                   [curvature-skips 0])
              (let ([reason (converged? criteria state)])
                   (if reason
-                      (make-opt-result x (cs-f-val state) grad
-                                       (cs-iter state) reason)
+                      (let ([meta (if (> curvature-skips 0)
+                                      (list (cons 'curvature-skips curvature-skips))
+                                      '())])
+                           (make-opt-result x (cs-f-val state) grad
+                                            (cs-iter state) reason meta))
                       (let* (;; Compute search direction using L-BFGS
                              [direction (lbfgs-direction history grad)]
                              ;; Wolfe line search (required for L-BFGS convergence)
@@ -184,14 +201,18 @@ Algorithm:
                              ;; Compute new gradient
                              [grad-new (gradient f x-new)]
                              [f-new (apply f x-new)]
-                             ;; Update history with (s, y)
+                             ;; Update history with (s, y), tracking curvature skips
                              [s (map - x-new x)]
                              [y (map - grad-new grad)]
-                             [history-new (if (> alpha 0)
+                             [curvature-ok (and (> alpha 0) (lbfgs-curvature-ok? s y))]
+                             [history-new (if curvature-ok
                                               (lbfgs-history-push history s y)
                                               history)]
+                             [new-skips (if (and (> alpha 0) (not curvature-ok))
+                                            (+ curvature-skips 1)
+                                            curvature-skips)]
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
-                            (loop x-new grad-new history-new new-state)))))))
+                            (loop x-new grad-new history-new new-state new-skips)))))))
 
 ;;; ====
 ;;; Simplified Interface
@@ -242,6 +263,7 @@ Algorithm:
 ;;;   upper: upper bounds (use +inf.0 for unbounded)
 ;;;   m: history size (typically 3-20, default 10)
 ;;;   criteria: convergence criteria
+;;; Result metadata includes (curvature-skips . N) when N > 0 curvature pairs were rejected.
 (define (lbfgs-b-full f x0 lower upper m criteria)
   (let* ([init-x (project-box x0 lower upper)]
          [init-grad (gradient f init-x)]
@@ -251,11 +273,15 @@ Algorithm:
         (let loop ([x init-x]
                    [grad init-grad]
                    [history init-history]
-                   [state init-state])
+                   [state init-state]
+                   [curvature-skips 0])
              (let ([reason (converged-bound? criteria state x grad lower upper)])
                   (if reason
-                      (make-opt-result x (cs-f-val state) grad
-                                       (cs-iter state) reason)
+                      (let ([meta (if (> curvature-skips 0)
+                                      (list (cons 'curvature-skips curvature-skips))
+                                      '())])
+                           (make-opt-result x (cs-f-val state) grad
+                                            (cs-iter state) reason meta))
                       (let* (;; Compute projected gradient
                              [pg (projected-gradient x grad lower upper)]
                              ;; L-BFGS direction from projected gradient
@@ -265,12 +291,18 @@ Algorithm:
                              [x-new (car ls-result)]
                              [grad-new (gradient f x-new)]
                              [f-new (apply f x-new)]
-                             ;; Update history
+                             ;; Update history, tracking curvature skips
                              [s (map - x-new x)]
                              [y (map - grad-new grad)]
-                             [history-new (lbfgs-history-push history s y)]
+                             [curvature-ok (lbfgs-curvature-ok? s y)]
+                             [history-new (if curvature-ok
+                                              (lbfgs-history-push history s y)
+                                              history)]
+                             [new-skips (if (not curvature-ok)
+                                            (+ curvature-skips 1)
+                                            curvature-skips)]
                              [new-state (update-convergence-state state f-new grad-new x x-new)])
-                            (loop x-new grad-new history-new new-state)))))))
+                            (loop x-new grad-new history-new new-state new-skips)))))))
 
 ;;; project-box : (List Number) × (List Number) × (List Number) → (List Number)
 ;;; Project point onto box constraints.

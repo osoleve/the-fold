@@ -482,10 +482,11 @@
               (loop (cdr xs) (cons result acc))
               (loop (cdr xs) acc))))))
 
-;;; make-opt-result : (List Number) × Number × (List Number) × Nat × Symbol → OptResult
-(define (make-opt-result x f-val grad iter reason)
+;;; make-opt-result : (List Number) × Number × (List Number) × Nat × Symbol [× Meta] → OptResult
+(define (make-opt-result x f-val grad iter reason . rest)
   (doc 'export #t)
-  (list 'opt-result x f-val grad iter reason))
+  (let ([meta (if (pair? rest) (car rest) '())])
+       (list 'opt-result x f-val grad iter reason meta)))
 
 ;;; opt-result-x : OptResult → (List Number)
 (define (opt-result-x r) (list-ref r 1))

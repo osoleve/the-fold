@@ -124,11 +124,15 @@ Returns #f if not converged, or a symbol indicating why:
 (doc 'section 'optimization-result)
 
 (doc 'note "Represents the result of an optimization.
-Structure: (opt-result x f-val grad iterations converged-reason)")
+Structure: (opt-result x f-val grad iterations converged-reason meta)
+The meta field is an optional alist of key-value pairs (e.g., curvature-skips).")
 
-(define (make-opt-result x f-val grad iterations converged-reason)
+;;; make-opt-result : (List Number) × Number × (List Number) × Nat × Symbol [× (List (Pair Symbol Any))] → OptResult
+;;; The optional meta argument defaults to '() when omitted.
+(define (make-opt-result x f-val grad iterations converged-reason . rest)
   (doc 'type '(-> (List Number) Number (List Number) Nat Symbol OptResult))
-  (list 'opt-result x f-val grad iterations converged-reason))
+  (let ([meta (if (pair? rest) (car rest) '())])
+       (list 'opt-result x f-val grad iterations converged-reason meta)))
 
 ;;; opt-result? : α → Bool
 (define (opt-result? x)
@@ -140,6 +144,13 @@ Structure: (opt-result x f-val grad iterations converged-reason)")
 (define (opt-grad result) (list-ref result 3))
 (define (opt-iterations result) (list-ref result 4))
 (define (opt-converged result) (list-ref result 5))
+
+;;; opt-meta : OptResult → (List (Pair Symbol Any))
+;;; Return metadata alist. Returns '() for results without metadata.
+(define (opt-meta result)
+  (if (> (length result) 6)
+      (list-ref result 6)
+      '()))
 
 (doc 'section 'convergence-monitoring)
 
