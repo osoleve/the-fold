@@ -163,6 +163,24 @@
                    (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
+(doc 'type '(-> Rlm2State String Rlm2State))
+(doc 'description "Return a new state with the task replaced (for reframe)")
+(define (rlm2-state-with-task s task)
+  (make-rlm2-state task (rlm2-state-plan s) (rlm2-state-env s)
+                   (rlm2-state-loaded s) (rlm2-state-notes s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
+                   (rlm2-state-fuel s) (rlm2-state-step s)))
+
+(doc 'type '(-> Rlm2State Nat Rlm2State))
+(doc 'description "Return a new state with fuel set to a specific value (for refueling)")
+(define (rlm2-state-with-fuel s fuel)
+  (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
+                   (rlm2-state-loaded s) (rlm2-state-notes s)
+                   (rlm2-state-episodic s) (rlm2-state-journal s)
+                   (rlm2-state-last-result s)
+                   fuel (rlm2-state-step s)))
+
 ;;; ====
 ;;; Completion & Exhaustion
 ;;; ====
@@ -188,6 +206,40 @@
 
 (define (rlm2-result? x)
   (and (pair? x) (eq? (car x) 'rlm2-result)))
+
+;;; ====
+;;; Idle State (voluntary pause for continuous agents)
+;;; ====
+
+(doc 'section 'rlm2-idle)
+
+(doc 'type '(-> Rlm2State Boolean))
+(doc 'description "True when the agent has voluntarily paused via (idle)")
+(define (rlm2-state-idle? s)
+  (let ([r (rlm2-state-last-result s)])
+    (and (pair? r) (eq? (car r) 'rlm2-idle))))
+
+(define (make-rlm2-idle-marker)
+  (list 'rlm2-idle))
+
+;;; ====
+;;; Wake Result (returned by rlm2-wake)
+;;; ====
+
+(doc 'section 'rlm2-wake-result)
+
+(doc 'type '(-> Symbol String Nat Nat Rlm2WakeResult))
+(doc 'description "Result of a wake cycle: status, state-hash, remaining fuel, last step number")
+(define (make-rlm2-wake-result status state-hash fuel-remaining last-step)
+  (list 'rlm2-wake-result status state-hash fuel-remaining last-step))
+
+(define (rlm2-wake-result? x)
+  (and (pair? x) (eq? (car x) 'rlm2-wake-result)))
+
+(define (rlm2-wake-result-status r)         (list-ref r 1))
+(define (rlm2-wake-result-state-hash r)     (list-ref r 2))
+(define (rlm2-wake-result-fuel-remaining r) (list-ref r 3))
+(define (rlm2-wake-result-last-step r)      (list-ref r 4))
 
 ;;; ====
 ;;; RLM v2 Configuration
@@ -264,7 +316,8 @@
   '(search inspect exports load eval store retrieve peek
     grep slice recall-step submit think plan! map-chunks
     journal recall memorize remember begin
-    lookup definition symbols outline delegate))
+    lookup definition symbols outline delegate
+    idle reframe))
 
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a well-formed action (tagged list with known type)")
@@ -304,6 +357,8 @@
 (define (rlm2-symbols? a)    (and (pair? a) (eq? (car a) 'symbols)))
 (define (rlm2-outline? a)    (and (pair? a) (eq? (car a) 'outline)))
 (define (rlm2-delegate? a)  (and (pair? a) (eq? (car a) 'delegate)))
+(define (rlm2-idle? a)     (and (pair? a) (eq? (car a) 'idle)))
+(define (rlm2-reframe? a)  (and (pair? a) (eq? (car a) 'reframe)))
 
 ;;; Unquote helper: (quote x) -> x, else identity.
 ;;; After `read`, model output like (retrieve 'x) has (quote x) as the arg.
@@ -351,6 +406,7 @@
 (define (rlm2-outline-file a)      (cadr a))                    ; (outline file) — string
 (define (rlm2-delegate-task a)     (cadr a))                    ; (delegate task input) — string
 (define (rlm2-delegate-input a)    (caddr a))                   ; (delegate task input) — string
+(define (rlm2-reframe-task a)      (cadr a))                    ; (reframe task) — string
 
 ;;; ====
 ;;; Action Arity Table
@@ -387,7 +443,9 @@
     (definition  . 1)
     (symbols     . 1)
     (outline     . 1)
-    (delegate    . 2)))
+    (delegate    . 2)
+    (idle        . 0)
+    (reframe     . 1)))
 
 (doc 'type '(-> Symbol (Maybe Nat)))
 (doc 'description "Look up expected arity for an action type. #f for variadic (begin).")

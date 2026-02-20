@@ -66,7 +66,7 @@
 
 (define *rlm2-mechanical-actions*
   '(submit store load plan! journal memorize remember recall
-    lookup definition symbols outline delegate))
+    lookup definition symbols outline delegate idle reframe))
 
 ;;; ====
 ;;; Main Entry Point
@@ -337,6 +337,8 @@
         [(symbols)    (rlm2-exec-symbols state action)]
         [(outline)    (rlm2-exec-outline state action)]
         [(delegate)   (rlm2-exec-delegate state action config depth)]
+        [(idle)       (rlm2-exec-idle state action)]
+        [(reframe)    (rlm2-exec-reframe state action)]
         [else
          (list (make-rlm2-observation type #f
                  (format "Unknown action type: ~a" type) #f)
@@ -1116,6 +1118,292 @@
                   obs-text
                   (memq status '(completed)))
                 state sub-fuel)))))
+
+;;; --- Lifecycle Actions (idle, reframe) ---
+
+(define (rlm2-exec-idle state action)
+  (list (make-rlm2-observation 'idle #f "Pausing. State will be checkpointed." #t)
+        (rlm2-state-with-last-result state (make-rlm2-idle-marker))
+        0))
+
+(define (rlm2-exec-reframe state action)
+  (let ([new-task (rlm2-reframe-task action)])
+    (if (not (string? new-task))
+        (list (make-rlm2-observation 'reframe new-task
+                "Reframe task must be a string" #f)
+              state 0)
+        (list (make-rlm2-observation 'reframe new-task
+                (format "Task reframed to: ~a" new-task) #t)
+              (rlm2-state-with-task state new-task) 0))))
+
+;;; ====
+;;; Agent State Persistence (CAS-backed, for continuous agents)
+;;; ====
+;;;
+;;; Follows the same pattern as rlm2-memory:
+;;;   Head pointer: .store/heads/rlm2-agent/{agent-id}.head
+;;;   CAS block:    tag=rlm2/agent-state, payload=serialized state,
+;;;                 refs=(vector prev-state-hash) or empty
+
+(define *rlm2-agent-heads-dir* ".store/heads/rlm2-agent")
+
+(define (rlm2-agent-head-path agent-id)
+  (string-append *rlm2-agent-heads-dir* "/" agent-id ".head"))
+
+(define (rlm2-ensure-agent-heads-dir!)
+  (unless (file-exists? ".store")
+    (mkdir ".store"))
+  (unless (file-exists? ".store/heads")
+    (mkdir ".store/heads"))
+  (unless (file-exists? *rlm2-agent-heads-dir*)
+    (mkdir *rlm2-agent-heads-dir*)))
+
+(define (rlm2-read-agent-head agent-id)
+  (let ([path (rlm2-agent-head-path agent-id)])
+    (guard (e [else #f])
+      (if (file-exists? path)
+          (let* ([content (call-with-input-file path
+                            (lambda (port) (get-line port)))]
+                 [trimmed (string-trim content)])
+            (if (>= (string-length trimmed) 64)
+                (hex->hash trimmed)
+                #f))
+          #f))))
+
+(define (rlm2-write-agent-head! agent-id hash)
+  (rlm2-ensure-agent-heads-dir!)
+  (let ([path (rlm2-agent-head-path agent-id)])
+    (with-file-lock path
+      (lambda ()
+        (call-with-atomic-output-file path
+          (lambda (port)
+            (put-string port (hash->hex hash))
+            (newline port))
+          '(replace))))))
+
+(define (rlm2-checkpoint-state! agent-id state prev-hash)
+  "Serialize state to a CAS block. Returns the hex hash string."
+  (let* ([payload (string->utf8 (format "~s" state))]
+         [refs (if prev-hash
+                   (vector (hex->hash prev-hash))
+                   (vector))]
+         [blk (make-block 'rlm2/agent-state payload refs)]
+         [hash (store-persistent! blk)]
+         [hex (hash->hex hash)])
+    (rlm2-write-agent-head! agent-id hash)
+    hex))
+
+(define (rlm2-restore-state agent-id)
+  "Load agent state from CAS. Returns state or #f."
+  (let ([head (rlm2-read-agent-head agent-id)])
+    (if (not head)
+        #f
+        (let ([blk (fetch-persistent head)])
+          (if (not blk)
+              (begin
+                (format (current-error-port)
+                  "[RLM] WARNING: agent ~a head points to missing block ~a~%"
+                  agent-id (hash->hex head))
+                #f)
+              (guard (ex [else
+                          (format (current-error-port)
+                            "[RLM] WARNING: failed to deserialize agent ~a state: ~a~%"
+                            agent-id (if (message-condition? ex)
+                                         (condition-message ex) ex))
+                          #f])
+                (let ([data (read (open-input-string
+                                   (utf8->string (block-payload blk))))])
+                  (if (rlm2-state? data)
+                      data
+                      (begin
+                        (format (current-error-port)
+                          "[RLM] WARNING: agent ~a state block is not a valid rlm2-state~%"
+                          agent-id)
+                        #f)))))))))
+
+;;; ====
+;;; Wake Entry Point (continuous agent lifecycle)
+;;; ====
+;;;
+;;; rlm2-wake : String × Rlm2Config × Nat × Nat → Rlm2WakeResult
+;;;
+;;; Restores agent state from CAS (or creates fresh), runs for up to
+;;; max-steps with the provided fuel budget, then checkpoints on:
+;;;   - (idle) action → paused
+;;;   - step/fuel exhaustion → paused
+;;;   - (submit) → completed
+;;;   - error → error (state still checkpointed)
+
+(doc 'type '(-> String String Rlm2Config Nat Nat Rlm2WakeResult))
+(doc 'description "Wake a continuous agent. Restores state, runs for budget, checkpoints on pause.")
+(define (rlm2-wake agent-id task config max-steps fuel)
+  (let* ([session-id (format "rlm2-agent-~a" agent-id)]
+         [started (rlm2-current-iso8601)]
+         ;; Restore or create state
+         [restored (rlm2-restore-state agent-id)]
+         [prev-head (and restored
+                         (let ([h (rlm2-read-agent-head agent-id)])
+                           (and h (hash->hex h))))]
+         [state0 (if restored
+                     ;; Refuel and optionally update task
+                     (let* ([s1 (rlm2-state-with-fuel restored
+                                  (+ (rlm2-state-fuel restored) fuel))]
+                            ;; Clear idle marker from last-result
+                            [s2 (if (rlm2-state-idle? s1)
+                                    (rlm2-state-with-last-result s1 #f)
+                                    s1)]
+                            ;; Update task if provided and different
+                            [s3 (if (and (string? task)
+                                        (not (string=? task ""))
+                                        (not (string=? task (rlm2-state-task s2))))
+                                    (rlm2-state-with-task s2 task)
+                                    s2)])
+                       s3)
+                     ;; Fresh state
+                     (make-rlm2-state
+                       task '() '() '() '() '() '()
+                       #f fuel 0))]
+         [sys-prompt (rlm2-build-system-prompt
+                       (rlm2-config-system-prompt config))])
+    ;; Parameterize with persistent session ID
+    (parameterize ([*pipeline-session* session-id])
+      ;; Init worker prelude (idempotent if session survives)
+      (rlm2-init-worker-prelude!)
+      ;; Drive the loop — identical to rlm2-run-at-depth inner loop
+      ;; but with different termination semantics
+      (let loop ([state state0]
+                 [steps-taken 0]
+                 [fingerprints '()]
+                 [prev-step-hash prev-head]
+                 [consecutive-thinks 0]
+                 [history '()])
+        (cond
+          ;; Success: agent submitted an answer
+          [(rlm2-state-complete? state)
+           (let ([state-hash (rlm2-checkpoint-state! agent-id state
+                               prev-step-hash)])
+             (make-rlm2-wake-result 'completed state-hash
+                                    (rlm2-state-fuel state)
+                                    (rlm2-state-step state)))]
+          ;; Idle: voluntary pause
+          [(rlm2-state-idle? state)
+           (let ([state-hash (rlm2-checkpoint-state! agent-id state
+                               prev-step-hash)])
+             (make-rlm2-wake-result 'paused state-hash
+                                    (rlm2-state-fuel state)
+                                    (rlm2-state-step state)))]
+          ;; Exhaustion: steps or fuel
+          [(or (>= steps-taken max-steps)
+               (<= (rlm2-state-fuel state) 0))
+           (let ([state-hash (rlm2-checkpoint-state! agent-id state
+                               prev-step-hash)])
+             (make-rlm2-wake-result 'paused state-hash
+                                    (rlm2-state-fuel state)
+                                    (rlm2-state-step state)))]
+          [else
+           ;; === ACT PHASE ===
+           (let* ([step-t0 (rlm2-time-ms)]
+                  [hud (rlm2-render-state state
+                         (rlm2-config-context-budget config))]
+                  [few-shot (rlm2-config-few-shot config)]
+                  [history-msgs (rlm2-history->messages history)]
+                  [messages (append
+                              (list (rlm2-make-msg "system" sys-prompt))
+                              few-shot
+                              history-msgs
+                              (list (rlm2-make-msg "user" hud)))]
+                  [act-response (rlm-chat (rlm2-config-provider config)
+                                          messages (rlm2-config-max-tokens config) 0.7)])
+             (cond
+               ;; LLM call failed — checkpoint and return error
+               [(rlm-chat-err? act-response)
+                (let ([state-hash (rlm2-checkpoint-state! agent-id state
+                                    prev-step-hash)])
+                  (make-rlm2-wake-result 'error state-hash
+                                         (rlm2-state-fuel state)
+                                         (rlm2-state-step state)))]
+               [else
+                (let* ([raw-text (rlm-chat-text act-response)]
+                       [reasoning (rlm-chat-reasoning act-response)]
+                       ;; Parse action
+                       [parse-result (rlm2-parse-response raw-text)]
+                       [action (rlm2-parse-result-action parse-result)]
+                       [raw-thought (rlm2-parse-result-thought parse-result)]
+                       ;; Truncation retry (same as rlm2-run)
+                       [truncated? (and (rlm2-think? action)
+                                        (rlm2-looks-truncated? raw-text))]
+                       [retry-result (and truncated?
+                                         (rlm-chat (rlm2-config-provider config)
+                                                   messages
+                                                   (min (* 4 (rlm2-config-max-tokens config)) 8192)
+                                                   0.7))]
+                       [effective-text
+                        (if (and retry-result (rlm-chat-ok? retry-result))
+                            (let ([rt (rlm-chat-text retry-result)])
+                              (let ([rp (rlm2-parse-response rt)])
+                                (if (rlm2-think? (rlm2-parse-result-action rp))
+                                    raw-text
+                                    rt)))
+                            raw-text)]
+                       [final-parse (if (eq? effective-text raw-text)
+                                        parse-result
+                                        (rlm2-parse-response effective-text))]
+                       [action (rlm2-parse-result-action final-parse)]
+                       [raw-thought (rlm2-parse-result-thought final-parse)]
+                       ;; === EXECUTE ===
+                       [exec-result (rlm2-execute-action state action config 0)]
+                       [observation (car exec-result)]
+                       [state-after-exec (cadr exec-result)]
+                       [fuel-used (caddr exec-result)]
+                       ;; === REFLECT ===
+                       [action-type (rlm2-action-type action)]
+                       [mechanical? (memq action-type *rlm2-mechanical-actions*)]
+                       [note (if mechanical?
+                                 (rlm2-mechanical-note action observation
+                                   (rlm2-state-step state))
+                                 (rlm2-reflect config raw-thought action
+                                   observation (rlm2-state-step state)))]
+                       ;; === UPDATE STATE ===
+                       [state* (rlm2-update-state state-after-exec
+                                 action observation note fuel-used)]
+                       ;; === LOOP DETECTION ===
+                       [fp (rlm2-semantic-fingerprint state* action-type)]
+                       [looping? (rlm2-loop-detected? fingerprints fp
+                                   (rlm2-config-loop-window config))]
+                       [state** (if looping?
+                                    (rlm2-state-add-note state*
+                                      "[LOOP] Repeated action pattern detected. Try a different approach.")
+                                    state*)]
+                       ;; === THINK-SPAM ===
+                       [thinks (if (eq? action-type 'think)
+                                   (+ consecutive-thinks 1) 0)]
+                       [state** (cond
+                                  [(>= thinks 5)
+                                   (rlm2-state-add-note state**
+                                     (format "[URGENT] ~a consecutive thinks — act NOW." thinks))]
+                                  [(>= thinks 3)
+                                   (rlm2-state-add-note state**
+                                     (format "[NUDGE] ~a consecutive think actions. Act now." thinks))]
+                                  [else state**])]
+                       ;; === RECORD STEP ===
+                       [step-hash (rlm2-record-step!
+                                   (rlm2-state-step state) action observation note
+                                   (rlm2-config-provider config) fuel-used
+                                   prev-step-hash)]
+                       [state*** (rlm2-state-add-episodic state**
+                                   (rlm2-state-step state) step-hash)]
+                       ;; === PROGRESS ===
+                       [_progress (rlm2-emit-progress!
+                                   (rlm2-state-step state) action-type
+                                   (rlm2-observation-ok? observation) note)]
+                       ;; Fingerprints
+                       [fps* (if looping? '() (cons fp fingerprints))]
+                       ;; === SLIDING WINDOW ===
+                       [action-text (format "~s" action)]
+                       [obs-summary (rlm2-observation-summary observation)]
+                       [history* (rlm2-history-push history action-text obs-summary 3)])
+                  (loop state*** (+ steps-taken 1) fps* step-hash
+                        thinks history*))]))])))))
 
 ;;; ====
 ;;; Reflection Pass

@@ -205,7 +205,9 @@
    "- (delegate task input) spawns a sub-agent with its own fuel budget. Use for focused sub-tasks.\n"
    "- (memorize key text) persists across agent runs. (remember query) does BM25 keyword search.\n"
    "- Eval results are auto-stored as step-N-result. Use (store key expr) to name values.\n"
-   "- Plan status values: pending, done, blocked, skipped. You own plan status.\n\n"
+   "- Plan status values: pending, done, blocked, skipped. You own plan status.\n"
+   "- (idle) checkpoints your state and pauses execution. You'll resume later with fresh fuel.\n"
+   "- (reframe task) changes the current task without losing env, loaded modules, or memory.\n\n"
    "Environment & stored values:\n"
    "- After (store 'entries val), you can use entries as a bare variable in later expressions:\n"
    "    (store 'entries (flatten (retrieve 'map-result)))\n"
@@ -301,6 +303,10 @@
    "  (recall-step n)         — Retrieve full record of step N\n"
    "  (memorize key text)     — Save to persistent memory (survives across runs)\n"
    "  (remember query)        — Search persistent memory by keyword (BM25 ranking)\n"
+   "\n"
+   "  Lifecycle:\n"
+   "  (idle)                  — Voluntarily pause (checkpoint state, resume later with fresh fuel)\n"
+   "  (reframe task)          — Change current task without resetting state\n"
    "\n"))
 
 ;;; ====
@@ -336,6 +342,8 @@
                     hints)]
          ;; Memory always
          [hints (cons "  Memory: plan!, journal, recall, memorize, remember" hints)]
+         ;; Lifecycle always (for continuous agents)
+         [hints (cons "  Lifecycle: idle, reframe" hints)]
          [hint-text (let loop ([hs (reverse hints)] [acc ""])
                       (if (null? hs) acc
                           (loop (cdr hs)
