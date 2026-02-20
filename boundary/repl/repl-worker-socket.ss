@@ -39,7 +39,7 @@
 ;;; Uses POSIX alarm(2) for wall-clock timeout. When the alarm fires,
 ;;; SIGALRM is delivered and the registered handler raises an error
 ;;; that propagates up through the guard in process-eval!.
-(load-shared-object "libc.so.6")
+(load-shared-object #f)  ; resolve from current process image (portable)
 (define posix-alarm (foreign-procedure "alarm" (unsigned-int) unsigned-int))
 (define *eval-timeout-seconds* 90)
 

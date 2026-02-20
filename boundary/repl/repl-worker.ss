@@ -153,7 +153,7 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
 ;;; Eval Timeout (POSIX alarm-based)
 ;;; ====
 
-(load-shared-object "libc.so.6")
+(load-shared-object #f)  ; resolve from current process image (portable)
 (define posix-alarm (foreign-procedure "alarm" (unsigned-int) unsigned-int))
 (define *eval-timeout-seconds* 90)
 
