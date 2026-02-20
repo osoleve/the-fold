@@ -205,6 +205,17 @@ Public API functions (eval-expr, eval-expr-traced) wrap these.")
   (doc 'export #t)
   (caddr r))
 
+(define (suspended-fuel r)
+  (doc 'type (-> Result Fuel))
+  (doc 'description "Extract remaining fuel from a public suspended result.
+Returns the fuel remaining at time of suspension. For computing progress:
+  progress = (/ (- initial-fuel (suspended-fuel r)) initial-fuel)")
+  (doc 'export #t)
+  (if (and (pair? r) (eq? (car r) 'suspended)
+           (pair? (cdr r)) (pair? (cddr r)) (pair? (cdddr r)))
+      (cadddr r)
+      0))
+
 (doc 'section 'the-evaluator)
 
 (doc 'note "eval-core : Expr × Env × Fuel × Ctx → (ok Value Fuel Ctx) | (suspended Expr Env Fuel Ctx) | (error ...)
@@ -289,7 +300,8 @@ Internal unified evaluator. Use eval-expr or eval-expr-traced for public API.")
         [(result-ok? result)
          `(ok ,(result-value result) ,(result-fuel result))]
         [(result-suspended? result)
-         `(suspended ,(result-expr result) ,(result-env result))]
+         ;; Internal suspended: (suspended expr env fuel ctx) — fuel at cadddr
+         `(suspended ,(result-expr result) ,(result-env result) ,(cadddr result))]
         [else result])))
 
 (define (eval-expr-traced expr env fuel tape)
