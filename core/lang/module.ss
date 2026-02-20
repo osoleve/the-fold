@@ -313,6 +313,7 @@ Dependencies:
  (register-module-path! 'multi-winner "lattice/game-theory/multi-winner.ss")
  (register-module-path! 'evolutionary "lattice/game-theory/evolutionary.ss")
  (register-module-path! 'physics-dsl "lattice/game-theory/physics-dsl.ss")
+ (register-module-path! 'game-theory/clp-equilibrium "lattice/game-theory/clp-equilibrium.ss")
 
  ;; Control systems layer
  (register-module-path! 'control/state-space "lattice/control-systems/state-space.ss")

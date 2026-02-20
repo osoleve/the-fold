@@ -510,6 +510,7 @@
     "game-theory/test-strategic-voting.ss"
     "game-theory/test-voting.ss"
     "game-theory/test-physics-dsl.ss"
+    "game-theory/test-clp-equilibrium.ss"
     ;; Statistics
     "statistics/test-statistics.ss"
     "statistics/core/test-model-protocol.ss"

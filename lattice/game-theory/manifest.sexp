@@ -199,4 +199,13 @@
    (fair-division "fair-division.ss" "Cake cutting, adjusted winner, EF1, maximin share")
    (mechanism "mechanism.ss" "Auctions, VCG, incentive compatibility, double auctions")
    (evolutionary "evolutionary.ss" "Replicator dynamics, ESS, population games, invasion analysis")
-   (mcdm "mcdm.ss" "Multi-criteria decision making via voting aggregation")))
+   (mcdm "mcdm.ss" "Multi-criteria decision making via voting aggregation")
+   (clp-equilibrium "clp-equilibrium.ss" "CLP(FD) bridge for Nash equilibrium via constraint propagation"))
+
+  (bridge-exports
+   ;; clp-equilibrium.ss — CLP(FD) ↔ Game Theory Bridge
+   (clp-equilibrium
+    clp-best-response-p1 clp-best-response-p2 clp-mutual-best-response
+    clp-dominance-prune game->clp-nash game->clp-constrained-nash
+    clp-find-pure-nash clp-constrained-nash
+    nash-solution->names nash-solutions->names))
