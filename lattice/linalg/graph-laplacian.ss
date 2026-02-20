@@ -638,8 +638,8 @@
                     (loop (+ iter 1) new-centroids)))))))))
 
 ;;; kmeans-init-pp : Matrix × Nat → Matrix
-;;; K-means++ initialization: choose centroids with probability
-;;; proportional to squared distance from existing centroids.
+;;; Farthest-point initialization (Hochbaum-Shmoys): deterministically
+;;; choose the point with maximum squared distance from existing centroids.
 (define (kmeans-init-pp points k)
   (let* ([n (matrix-rows points)]
          [d (matrix-cols points)]
