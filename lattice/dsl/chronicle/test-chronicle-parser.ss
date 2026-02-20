@@ -3,7 +3,7 @@
 ;;; Tests for the parser combinator-based Chronicle parser.
 
 (load "core/lang/module.ss")
-(load "core/test-framework.ss")
+(load "core/testing/test-framework.ss")
 (load "lattice/dsl/chronicle/chronicle-parser.ss")
 
 ;;; ====
@@ -12,32 +12,32 @@
 
 (test-group chronicle-parser-lexical
             (define-test parse-identifier
-              (let ([result (parse identifier "hello_world")])
+              (let ([result (parser-parse identifier "hello_world")])
                    (assert-true (right? result))
                    (assert-equal 'hello_world (from-right result))))
             
             (define-test parse-identifier-with-dash
-              (let ([result (parse identifier "my-var")])
+              (let ([result (parser-parse identifier "my-var")])
                    (assert-true (right? result))
                    (assert-equal 'my-var (from-right result))))
             
             (define-test parse-quoted-string-simple
-              (let ([result (parse quoted-string "\"hello\"")])
+              (let ([result (parser-parse quoted-string "\"hello\"")])
                    (assert-true (right? result))
                    (assert-equal "hello" (from-right result))))
             
             (define-test parse-quoted-string-escapes
-              (let ([result (parse quoted-string "\"line1\\nline2\"")])
+              (let ([result (parser-parse quoted-string "\"line1\\nline2\"")])
                    (assert-true (right? result))
                    (assert-equal "line1\nline2" (from-right result))))
             
             (define-test parse-number-positive
-              (let ([result (parse parse-number "42")])
+              (let ([result (parser-parse parse-number "42")])
                    (assert-true (right? result))
                    (assert-equal 42 (from-right result))))
             
             (define-test parse-number-negative
-              (let ([result (parse parse-number "-10")])
+              (let ([result (parser-parse parse-number "-10")])
                    (assert-true (right? result))
                    (assert-equal -10 (from-right result)))))
 
@@ -47,27 +47,27 @@
 
 (test-group chronicle-parser-guards
             (define-test parse-guard-flag
-              (let ([result (parse parse-guard "flag?(visited)")])
+              (let ([result (parser-parse parse-guard "flag?(visited)")])
                    (assert-true (right? result))
                    (assert-equal '(flag? visited) (from-right result))))
             
             (define-test parse-guard-has-item
-              (let ([result (parse parse-guard "has-item?(key)")])
+              (let ([result (parser-parse parse-guard "has-item?(key)")])
                    (assert-true (right? result))
                    (assert-equal '(has-item? key) (from-right result))))
             
             (define-test parse-guard-var-ge
-              (let ([result (parse parse-guard "var>=(score, 100)")])
+              (let ([result (parser-parse parse-guard "var>=(score, 100)")])
                    (assert-true (right? result))
                    (assert-equal '(var>= score 100) (from-right result))))
             
             (define-test parse-guard-true
-              (let ([result (parse parse-guard "true")])
+              (let ([result (parser-parse parse-guard "true")])
                    (assert-true (right? result))
                    (assert-equal #t (from-right result))))
             
             (define-test parse-guard-false
-              (let ([result (parse parse-guard "false")])
+              (let ([result (parser-parse parse-guard "false")])
                    (assert-true (right? result))
                    (assert-equal #f (from-right result)))))
 
@@ -77,22 +77,22 @@
 
 (test-group chronicle-parser-effects
             (define-test parse-effect-flag
-              (let ([result (parse parse-effect "flag!(visited)")])
+              (let ([result (parser-parse parse-effect "flag!(visited)")])
                    (assert-true (right? result))
                    (assert-equal '(flag! visited) (from-right result))))
             
             (define-test parse-effect-set
-              (let ([result (parse parse-effect "set!(health, 100)")])
+              (let ([result (parser-parse parse-effect "set!(health, 100)")])
                    (assert-true (right? result))
                    (assert-equal '(set! health 100) (from-right result))))
             
             (define-test parse-effect-inc
-              (let ([result (parse parse-effect "inc!(gold, 50)")])
+              (let ([result (parser-parse parse-effect "inc!(gold, 50)")])
                    (assert-true (right? result))
                    (assert-equal '(inc! gold 50) (from-right result))))
             
             (define-test parse-effect-add-item
-              (let ([result (parse parse-effect "add-item!(sword)")])
+              (let ([result (parser-parse parse-effect "add-item!(sword)")])
                    (assert-true (right? result))
                    (assert-equal '(add-item! sword) (from-right result)))))
 
@@ -102,7 +102,7 @@
 
 (test-group chronicle-parser-choices
             (define-test parse-simple-choice
-              (let ([result (parse parse-choice "-> \"Go north\" => north")])
+              (let ([result (parser-parse parse-choice "-> \"Go north\" => north")])
                    (assert-true (right? result))
                    (let ([choice (from-right result)])
                         (assert-equal '-> (car choice))
@@ -110,7 +110,7 @@
                         (assert-equal 'north (caddr choice)))))
             
             (define-test parse-choice-with-guard
-              (let ([result (parse parse-choice "-> \"Open door\" => room [when: flag?(has_key)]")])
+              (let ([result (parser-parse parse-choice "-> \"Open door\" => room [when: flag?(has_key)]")])
                    (assert-true (right? result))
                    (let ([choice (from-right result)])
                         (assert-equal "Open door" (cadr choice))
@@ -119,7 +119,7 @@
                         (assert-equal ':when (cadddr choice)))))
             
             (define-test parse-choice-with-effect
-              (let ([result (parse parse-choice "-> \"Take key\" => here [do: add-item!(key)]")])
+              (let ([result (parser-parse parse-choice "-> \"Take key\" => here [do: add-item!(key)]")])
                    (assert-true (right? result))
                    (let ([choice (from-right result)])
                         (assert-equal "Take key" (cadr choice))))))
@@ -130,7 +130,7 @@
 
 (test-group chronicle-parser-scenes
             (define-test parse-simple-scene
-              (let ([result (parse parse-scene "scene intro { \"Welcome!\" }")])
+              (let ([result (parser-parse parse-scene "scene intro { \"Welcome!\" }")])
                    (assert-true (right? result))
                    (let ([scene (from-right result)])
                         (assert-equal 'scene (car scene))
@@ -138,7 +138,7 @@
                         (assert-equal "Welcome!" (caddr scene)))))
             
             (define-test parse-scene-with-choice
-              (let ([result (parse parse-scene "scene start { \"Hello\" -> \"Continue\" => next }")])
+              (let ([result (parser-parse parse-scene "scene start { \"Hello\" -> \"Continue\" => next }")])
                    (assert-true (right? result))
                    (let ([scene (from-right result)])
                         (assert-equal 'scene (car scene))
@@ -148,7 +148,7 @@
                         (assert-true (> (length scene) 3)))))
             
             (define-test parse-scene-with-on-enter
-              (let ([result (parse parse-scene "scene hall { \"The hall.\" on-enter { flag!(entered) } }")])
+              (let ([result (parser-parse parse-scene "scene hall { \"The hall.\" on-enter { flag!(entered) } }")])
                    (assert-true (right? result))
                    (let ([scene (from-right result)])
                         ;; Check on-enter is present

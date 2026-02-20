@@ -55,7 +55,7 @@
               (assert-equal -5.0 (eval-expr (make-neg (var 'x)) '((x . 5.0)))))
 
             (define-test quotient
-              (assert-equal 2.0 (eval-expr (quotient (var 'x) (var 'y))
+              (assert-equal 2.0 (eval-expr (division (var 'x) (var 'y))
                                            '((x . 6.0) (y . 3.0)))))
 
             (define-test power
@@ -246,7 +246,7 @@
 
             (define-test verify-quotient
               ;; d/dx[1/x] = -1/x^2 at x=2: -0.25
-              (assert-true (verify-derivative (quotient (num 1) (var 'x)) 'x 2.0 0.0001)))
+              (assert-true (verify-derivative (division (num 1) (var 'x)) 'x 2.0 0.0001)))
 
             (define-test verify-chain-rule
               ;; d/dx[sin(x^2)] = cos(x^2) * 2x at x=1

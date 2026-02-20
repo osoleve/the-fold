@@ -34,19 +34,19 @@
             
             (define-test coproduct-fmap-maps-left
               (let* ([x (inl 5)]
-                     [result (coproduct-fmap
-                              (lambda (n) (* n 2))
-                              identity
-                              x)])
+                     [fmap (make-coproduct-fmap
+                             (lambda (f v) (f v))    ;; fmap for left (identity functor)
+                             (lambda (f v) (f v)))]  ;; fmap for right
+                     [result (fmap (lambda (n) (* n 2)) x)])
                     (assert-true (inl? result))
                     (assert-equal 10 (from-inl result))))
-            
+
             (define-test coproduct-fmap-maps-right
               (let* ([x (inr "hi")]
-                     [result (coproduct-fmap
-                              identity
-                              (lambda (s) (string-append s "!"))
-                              x)])
+                     [fmap (make-coproduct-fmap
+                             (lambda (f v) (f v))
+                             (lambda (f v) (f v)))]
+                     [result (fmap (lambda (s) (string-append s "!")) x)])
                     (assert-true (inr? result))
                     (assert-equal "hi!" (from-inr result)))))
 

@@ -83,7 +83,7 @@
         (cons p1 p2)
         (cons p2 p1))))
 
-(define (edge-key edge)
+(define (voronoi-edge-key edge)
   ;; Create a hashtable-compatible key from a canonical edge
   (let ([p1 (car edge)]
         [p2 (cdr edge)])
@@ -100,9 +100,9 @@
              [p1 (tri2-p1 tri)]
              [p2 (tri2-p2 tri)]
              [p3 (tri2-p3 tri)]
-             [e1 (edge-key (canonical-edge p1 p2))]
-             [e2 (edge-key (canonical-edge p2 p3))]
-             [e3 (edge-key (canonical-edge p3 p1))])
+             [e1 (voronoi-edge-key (canonical-edge p1 p2))]
+             [e2 (voronoi-edge-key (canonical-edge p2 p3))]
+             [e3 (voronoi-edge-key (canonical-edge p3 p1))])
         (hashtable-update! adj e1 (lambda (v) (cons i v)) '())
         (hashtable-update! adj e2 (lambda (v) (cons i v)) '())
         (hashtable-update! adj e3 (lambda (v) (cons i v)) '())))))

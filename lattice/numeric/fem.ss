@@ -804,7 +804,8 @@
                           (loop-i (+ i 1) row-acc)
                           (loop-j (+ j 1)
                                   (cons (make-point2 (* i h) (* j h)) row-acc))))))]
-         [triangles (delaunay-triangulate pts)])
+         [tri-record (delaunay-triangulate pts)]
+         [triangles (triangulation-triangles tri-record)])
     (make-fem-mesh triangles)))
 
 (doc make-disk-mesh 'type '(-> Number Nat FEMMesh))
@@ -831,7 +832,8 @@
                                                         (* r (sin theta)))
                                            acc)))))]
          [all-pts (append boundary-pts interior-pts)]
-         [triangles (delaunay-triangulate all-pts)])
+         [tri-record (delaunay-triangulate all-pts)]
+         [triangles (triangulation-triangles tri-record)])
     (make-fem-mesh triangles)))
 
 (doc fem-l2-error 'type '(-> FEMMesh Vector (-> Number Number Number) Number))

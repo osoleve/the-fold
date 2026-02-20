@@ -292,9 +292,9 @@
             
             (define-test typed-if-branches
               (let* ([c (typed-bool #t)]
-                     [t (typed-int 1)]
-                     [e (typed-int 2)]
-                     [result ((dict-ref eval-typed-dict 'if) c t e)])
+                     [result ((dict-ref eval-typed-dict 'if) c
+                              (lambda () (typed-int 1))
+                              (lambda () (typed-int 2)))])
                     (assert-equal 1 (typed-value result)))))
 
 ;;; ====

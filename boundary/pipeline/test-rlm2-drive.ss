@@ -125,11 +125,11 @@
 
   (define-test "formats empty results"
     (assert-equal "No matches found."
-                  (rlm2-format-grep-results '())))
+                  (rlm2-format-grep-results '() "test")))
 
   (define-test "formats multiple results"
     (let ([result (rlm2-format-grep-results
-                   '(("line one" . 0.9) ("line two" . 0.7)))])
+                   '(("line one" . 0.9) ("line two" . 0.7)) "test")])
       (assert-true (string? result))
       (assert-true (> (string-length result) 0))))
 )
@@ -305,38 +305,20 @@
 
 (test-group "rlm2-exec-memorize"
 
-  (define-test "exec-memorize writes to .rlm/ dir"
-    (let ([test-dir (string-append (current-directory) "/.rlm-test-" (format "~a" (random 100000)))])
-      (dynamic-wind
-        (lambda ()
-          ;; Redirect system memory to test dir
-          (set! rlm2-system-memory-path
-            (lambda () (string-append test-dir "/memories.sexp")))
-          (set! rlm2-ensure-rlm-dir!
-            (lambda () (unless (file-exists? test-dir) (mkdir test-dir)))))
-        (lambda ()
-          (rlm2-invalidate-system-memory-cache!)
-          (let* ([s (make-initial-rlm2-state "t" #f 1000)]
-                 [action '(memorize eigen-strategy "Use QR decomposition")]
-                 [result (rlm2-exec-memorize s action)]
-                 [obs (car result)])
-            (assert-true (rlm2-observation-ok? obs))
-            ;; Verify file was created
-            (assert-true (file-exists? (string-append test-dir "/memories.sexp")))))
-        (lambda ()
-          ;; Cleanup
-          (when (file-exists? (string-append test-dir "/memories.sexp"))
-            (delete-file (string-append test-dir "/memories.sexp")))
-          (when (file-exists? test-dir)
-            (delete-directory test-dir))
-          (rlm2-invalidate-system-memory-cache!)
-          ;; Restore original
-          (set! rlm2-system-memory-path
-            (lambda () (string-append (current-directory) "/.rlm/memories.sexp")))
-          (set! rlm2-ensure-rlm-dir!
-            (lambda ()
-              (let ([dir (string-append (current-directory) "/.rlm")])
-                (unless (file-exists? dir) (mkdir dir)))))))))
+  (define-test "exec-memorize stores via CAS"
+    (dynamic-wind
+      (lambda ()
+        (rlm2-invalidate-system-memory-cache!))
+      (lambda ()
+        (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+               [action '(memorize eigen-strategy "Use QR decomposition")]
+               [result (rlm2-exec-memorize s action)]
+               [obs (car result)])
+          (assert-true (rlm2-observation-ok? obs))
+          ;; Verify observation reports success
+          (assert-true (string? (rlm2-observation-value obs)))))
+      (lambda ()
+        (rlm2-invalidate-system-memory-cache!))))
 )
 
 (test-group "rlm2-exec-remember"

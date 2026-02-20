@@ -80,9 +80,9 @@
                             (not (char=? c #\tab))))
            "URL character"))
 
-;;; md-link : Parser AST
+;;; md-link-parser : Parser AST
 ;;; Parse a link: [text](url) or [text](url "title")
-(define md-link
+(define md-link-parser
   (parser-bind (parser-char #\[)
                (lambda (_)
                  (parser-bind (parser-many md-link-text-char)
@@ -220,7 +220,7 @@
 (define md-inline-element
   (parser-choice (list (parser-try md-escaped)
                 (parser-try md-inline-code)
-                (parser-try md-link)
+                (parser-try md-link-parser)
                 (parser-try md-strong-parser)
                 (parser-try md-em-parser)
                 md-plain-text)))

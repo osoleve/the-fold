@@ -130,8 +130,8 @@
 (define (md-code-content-until fence)
   (make-parser
    (lambda (state)
-     (let* ([input (state-input state)]
-            [start-idx (state-index state)]
+     (let* ([input (parser-state-input state)]
+            [start-idx (parser-state-index state)]
             [input-len (string-length input)]
             [fence-len (string-length fence)])
        ;; Search for fence at start of line
@@ -141,7 +141,7 @@
            [(>= idx input-len)
             ;; EOF without closing fence - take all remaining as code
             (let* ([code (substring input start-idx idx)]
-                   [new-pos (fold-left advance-pos (state-pos state)
+                   [new-pos (fold-left advance-pos (parser-state-pos state)
                                        (string->list code))]
                    [new-state (parser-make-state input idx new-pos)])
               (right (cons code new-state)))]
@@ -158,7 +158,7 @@
                                   (+ after-fence 1)
                                   after-fence)]
                    [consumed (substring input start-idx final-idx)]
-                   [new-pos (fold-left advance-pos (state-pos state)
+                   [new-pos (fold-left advance-pos (parser-state-pos state)
                                        (string->list consumed))]
                    [new-state (parser-make-state input final-idx new-pos)])
               (right (cons code new-state)))]
@@ -244,14 +244,14 @@
                                 (let ([inlines (parse-inline-or-text (string-trim text))])
                                   (parser-pure (md-list-item inlines))))))))
 
-;;; md-unordered-list : Parser AST
-(define md-unordered-list
+;;; md-ul-block : Parser AST
+(define md-ul-block
   (parser-bind (parser-some md-ul-item)
                (lambda (items)
                  (parser-pure (md-unordered-list items)))))
 
-;;; md-ordered-list : Parser AST
-(define md-ordered-list
+;;; md-ol-block : Parser AST
+(define md-ol-block
   (parser-bind (parser-some md-ol-item)
                (lambda (items)
                  (parser-pure (md-ordered-list items)))))
@@ -392,8 +392,8 @@
                  (parser-try md-blockquote-block)
                  (parser-try md-hr-parser)
                  (parser-try md-table-block)
-                 (parser-try md-unordered-list)
-                 (parser-try md-ordered-list)
+                 (parser-try md-ul-block)
+                 (parser-try md-ol-block)
                  md-paragraph-block))))
 
 ;;; Initialize md-block

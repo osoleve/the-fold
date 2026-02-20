@@ -18,7 +18,8 @@
                       (make-point2 1.0 0.0)
                       (make-point2 0.0 1.0)
                       (make-point2 1.0 1.0))]
-           [tris (delaunay-triangulate pts)]
+           [tri-record (delaunay-triangulate pts)]
+           [tris (triangulation-triangles tri-record)]
            [mesh (make-fem-mesh tris)])
       (assert-true (fem-mesh? mesh))
       (assert-equal 4 (fem-mesh-num-nodes mesh))

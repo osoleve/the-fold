@@ -388,11 +388,10 @@
 ;;; env-var : Dict × Symbol → (Env → α)
 (define (env-var d name) ((dict-ref d 'var) name))
 
-;;; run-env-expr : Dict × (Dict → (Env → α)) → α
+;;; run-env-expr : Dict × (Env → α) → α
 ;;; Run with empty initial environment
-;;; program is a function (dict -> (env -> result)), so apply dict first, then env
 (define (run-env-expr d program)
-  ((program d) '()))
+  (program '()))
 
 ;;; example-let : Dict → (Env → α)
 ;;; Example: let x = 5 in let y = 3 in x + y

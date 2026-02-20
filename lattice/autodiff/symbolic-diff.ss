@@ -297,10 +297,10 @@
     (let ([result (/ (num-val numer) (num-val denom))])
          (if (integer? result)
              (num result)
-             (quotient numer denom)))]
+             (division numer denom)))]
    ;; x/x = 1
    [(expr=? numer denom) (num 1)]
-   [else (quotient numer denom)]))
+   [else (division numer denom)]))
 
 ;;; simplify-pow : Expr × Expr → Expr
 (define (simplify-pow base exp)
