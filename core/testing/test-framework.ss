@@ -14,12 +14,12 @@
 
 (doc 'section 'test-context)
 
-(doc 'description "Test context vector for mutable state: #(run passed failed name)")
+(doc 'description "Test context vector for mutable state: #(run passed failed name records)")
 (define (make-test-context)
   (doc 'type (-> TestContext))
-  (doc 'description "Create a new test context vector.")
+  (doc 'description "Create a new test context vector with structured record accumulator.")
   (doc 'export #t)
-  (vector 0 0 0 #f))
+  (vector 0 0 0 #f '()))
 
 (doc 'description "Current test context (thread-local parameter)")
 (define current-context (make-parameter (make-test-context)))
@@ -76,6 +76,18 @@
   (doc 'export #t)
   (vector-set! (current-context) 3 name))
 
+(define (ctx-records)
+  (doc 'type (-> (List TestRecord)))
+  (doc 'description "Get accumulated structured test records from current context.")
+  (doc 'export #t)
+  (vector-ref (current-context) 4))
+
+(define (ctx-add-record! record)
+  (doc 'type (-> TestRecord Unit))
+  (doc 'description "Append a structured test record to the current context.")
+  (vector-set! (current-context) 4
+               (cons record (vector-ref (current-context) 4))))
+
 (define (reset-statistics!)
   (doc 'type (-> Unit))
   (doc 'description "Reset all test statistics in current context to zero.")
@@ -84,7 +96,8 @@
     (vector-set! ctx 0 0)
     (vector-set! ctx 1 0)
     (vector-set! ctx 2 0)
-    (vector-set! ctx 3 #f)))
+    (vector-set! ctx 3 #f)
+    (vector-set! ctx 4 '())))
 
 (doc 'section 'backwards-compatibility)
 
@@ -235,25 +248,42 @@
 
 (define (run-test name test-thunk)
   (doc 'type (-> Symbol (-> Unit) Unit))
-  (doc 'description "Run a single test, catching any errors.")
+  (doc 'description "Run a single test, capturing timing and structured record.")
   (doc 'export #t)
   (set-name! name)
-  (let ([initial-fail-count (ctx-failed)])
+  (let ([initial-fail-count (ctx-failed)]
+        [t0 (current-time 'time-monotonic)]
+        [error-detail #f])
        (guard (exn [else
                     (inc-failed!)
+                    (set! error-detail
+                      (if (condition? exn) (condition-message exn)
+                          (format "~a" exn)))
                     (display "    ✗ ")
                     (display name)
                     (display " — EXCEPTION: ")
-                    (display (if (condition? exn)
-                                 (condition-message exn)
-                                 exn))
+                    (display error-detail)
                     (newline)])
               (test-thunk))
-       (when (= initial-fail-count (ctx-failed))
-             (inc-passed!)
-             (display "    ✓ ")
-             (display name)
-             (newline))))
+       (let* ([t1 (current-time 'time-monotonic)]
+              [elapsed-ns (+ (* (- (time-second t1) (time-second t0)) 1000000000)
+                             (- (time-nanosecond t1) (time-nanosecond t0)))]
+              [elapsed-ms (/ elapsed-ns 1000000)]
+              [passed (= initial-fail-count (ctx-failed))])
+         (when passed
+               (inc-passed!)
+               (display "    ✓ ")
+               (display name)
+               (newline))
+         ;; Accumulate structured record
+         (ctx-add-record!
+           (list 'test-record
+                 (list 'name name)
+                 (list 'group (current-group))
+                 (list 'status (if passed 'pass
+                                   (if error-detail 'error 'fail)))
+                 (list 'elapsed-ms elapsed-ms)
+                 (list 'error error-detail))))))
 
 (define (run-group group-name)
   (doc 'type (-> Symbol Unit))
@@ -326,6 +356,45 @@
   ;; Machine-parseable result line for structured test detection
   (printf "[TEST-RESULT total=~a passed=~a failed=~a]~n"
           (ctx-run) (ctx-passed) (ctx-failed)))
+
+(doc 'type '(-> (List TestRecord)))
+(doc 'description "Return accumulated test records as a list of S-expressions.
+Each record: (test-record (name sym) (group sym) (status pass|fail|error)
+              (elapsed-ms num) (error msg-or-#f)).
+Records are in execution order (reversed from accumulation).")
+(define (test-records)
+  (reverse (ctx-records)))
+
+(doc 'type '(-> Alist))
+(doc 'description "Return a structured test report as an S-expression alist.
+Includes summary stats, per-test records, and timing breakdown.")
+(define (test-report)
+  (let* ([records (test-records)]
+         [total-ms (apply + (map (lambda (r)
+                                   (let ([entry (assq 'elapsed-ms (cdr r))])
+                                     (if entry (cadr entry) 0)))
+                                 records))]
+         [slowest (if (null? records) #f
+                      (let loop ([rs (cdr records)]
+                                 [best (car records)]
+                                 [best-ms (let ([e (assq 'elapsed-ms (cdar records))])
+                                            (if e (cadr e) 0))])
+                        (if (null? rs) best
+                            (let* ([r (car rs)]
+                                   [ms (let ([e (assq 'elapsed-ms (cdr r))])
+                                         (if e (cadr e) 0))])
+                              (if (> ms best-ms)
+                                  (loop (cdr rs) r ms)
+                                  (loop (cdr rs) best best-ms))))))])
+    (list 'test-report
+          (list 'total (ctx-run))
+          (list 'passed (ctx-passed))
+          (list 'failed (ctx-failed))
+          (list 'total-ms total-ms)
+          (list 'slowest (and slowest
+                              (let ([n (assq 'name (cdr slowest))])
+                                (and n (cadr n)))))
+          (list 'records records))))
 
 (define (exit-with-summary)
   (doc 'type (-> Unit))
