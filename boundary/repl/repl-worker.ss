@@ -150,6 +150,21 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
   "Session namespace reset. User definitions cleared.")
 
 ;;; ====
+;;; Eval Timeout (POSIX alarm-based)
+;;; ====
+
+(load-shared-object "libc.so.6")
+(define posix-alarm (foreign-procedure "alarm" (unsigned-int) unsigned-int))
+(define *eval-timeout-seconds* 90)
+
+(define (with-eval-timeout thunk)
+  (posix-alarm *eval-timeout-seconds*)
+  (dynamic-wind
+    (lambda () #f)
+    thunk
+    (lambda () (posix-alarm 0))))
+
+;;; ====
 ;;; Content Addressing
 ;;; ====
 
@@ -449,7 +464,8 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
                                     ;; Record error in history
                                     (history-record-if-enabled! session-id expr-str e 'error #f)])
                                 (let-values ([(result def-name eval-result)
-                                              (scheme-eval-and-capture session-id expr-str)])
+                                              (with-eval-timeout
+                                                (lambda () (scheme-eval-and-capture session-id expr-str)))])
                                      (write-response resp-path result)
                                      ;; Record success in history
                                      (history-record-if-enabled! session-id expr-str eval-result 'success def-name))))))))
@@ -498,6 +514,11 @@ Errors to:      .fold-repl/responses/<session-id>.error.txt
        ;; Snapshot system environment, then create isolated user namespace.
        (set! *system-env* (interaction-environment))
        (set! *user-env* (copy-environment *system-env*))
+       ;; Register SIGALRM handler for eval timeouts (fold-zxyw).
+       (register-signal-handler 14  ; SIGALRM
+         (lambda (sig)
+           (error 'eval-timeout
+                  (format "Evaluation timed out after ~a seconds" *eval-timeout-seconds*))))
        (write-ready! session-id)
        (write-heartbeat! session-id)
        (write-lastreq! session-id)  ; Initialize last-request timestamp (legacy)

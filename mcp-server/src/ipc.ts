@@ -28,10 +28,10 @@ const REPL_DIR = '.fold-repl';
 const REQUESTS_DIR = join(REPL_DIR, 'requests');
 const RESPONSES_DIR = join(REPL_DIR, 'responses');
 const POLL_INTERVAL_MS = 100;
-const TIMEOUT_MS = 30000; // 30 seconds
+const TIMEOUT_MS = 120000; // 120 seconds — must exceed worker eval timeout (90s)
 const DAEMON_RETRY_ATTEMPTS = 5;
 const DAEMON_RETRY_DELAY_MS = 2000;
-const SOCKET_TIMEOUT_MS = 30000;
+const SOCKET_TIMEOUT_MS = 120000;
 
 /**
  * Initialize IPC directories

@@ -32,6 +32,25 @@
   "Session namespace reset. User definitions cleared.")
 
 ;;; ====
+;;; Eval Timeout (POSIX alarm-based)
+;;; ====
+
+;;; Prevents runaway evals from permanently blocking the session.
+;;; Uses POSIX alarm(2) for wall-clock timeout. When the alarm fires,
+;;; SIGALRM is delivered and the registered handler raises an error
+;;; that propagates up through the guard in process-eval!.
+(load-shared-object "libc.so.6")
+(define posix-alarm (foreign-procedure "alarm" (unsigned-int) unsigned-int))
+(define *eval-timeout-seconds* 90)
+
+(define (with-eval-timeout thunk)
+  (posix-alarm *eval-timeout-seconds*)
+  (dynamic-wind
+    (lambda () #f)
+    thunk
+    (lambda () (posix-alarm 0))))
+
+;;; ====
 ;;; Content Addressing (same as repl-worker.ss)
 ;;; ====
 
@@ -838,7 +857,8 @@
                        [err-msg (ipc-make-error req-id 'eval-error err-str)]
                        [frame (ipc-encode-frame err-msg)])
                   (write-frame-stdout frame))])
-      (let ([result (scheme-eval-and-capture session-id expr)])
+      (let ([result (with-eval-timeout
+                      (lambda () (scheme-eval-and-capture session-id expr)))])
         (let* ([resp (ipc-make-result req-id result)]
                [frame (ipc-encode-frame resp)])
           (write-frame-stdout frame))))))
@@ -921,6 +941,14 @@
     ;; User (define ...) goes into *user-env*, system bindings stay clean.
     (set! *system-env* (interaction-environment))
     (set! *user-env* (copy-environment *system-env*))
+    ;; Register SIGALRM handler for eval timeouts (fold-zxyw).
+    ;; When posix-alarm fires, SIGALRM (14) is delivered and this handler
+    ;; raises an error that propagates up through the guard in process-eval!,
+    ;; returning a timeout error to the client instead of blocking forever.
+    (register-signal-handler 14  ; SIGALRM
+      (lambda (sig)
+        (error 'eval-timeout
+               (format "Evaluation timed out after ~a seconds" *eval-timeout-seconds*))))
     ;; Run the frame-based worker loop with structured cleanup.
     ;; dynamic-wind ensures flush on any exit path: normal return,
     ;; shutdown frame, EOF, or uncaught exception.
