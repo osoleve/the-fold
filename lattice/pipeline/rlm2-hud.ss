@@ -460,7 +460,7 @@
        (string-append
         (format "[~a]" (or type 'nudge))
         (if count (format " Count: ~a." count) "")
-        (format " ~a" (or suggestion "Consider taking an action."))))]
+        (if suggestion (format " ~a" suggestion) " Consider taking an action.")))]
     [(eq? (car d) 'warning)
      (let ([type (rlm2-diagnostic-field d 'type)]
            [detail (rlm2-diagnostic-field d 'detail)]
@@ -468,7 +468,7 @@
        (string-append
         (format "[~a]" (or type 'warning))
         (if detail (format " ~a." detail) "")
-        (format " ~a" (or suggestion ""))))]
+        (if suggestion (format " ~a" suggestion) "")))]
     [else (format "~s" d)]))
 
 ;;; ====
@@ -596,12 +596,7 @@
         (if (null? rest) acc
             (loop (cdr rest) (string-append acc sep (car rest)))))))
 
-(define (string-downcase s)
-  (let ([len (string-length s)])
-    (let loop ([i 0] [acc '()])
-      (if (>= i len)
-          (list->string (reverse acc))
-          (loop (+ i 1) (cons (char-downcase (string-ref s i)) acc))))))
+;;; string-downcase: use Chez Scheme built-in (R6RS)
 
 ;;; ====
 ;;; String Utilities (local, no external deps)

@@ -313,12 +313,10 @@
                        (rlm2-format-diagnostic
                          (rlm2-error 'exception
                            (list 'detail (format "~a" error-msg))
-                           (list 'expr (if (pair? action)
-                                           (let ([s (format "~s" action)])
-                                             (if (> (string-length s) 200)
-                                                 (string-append (substring s 0 197) "...")
-                                                 s))
-                                           "#f"))
+                           (list 'expr (let ([s (format "~s" action)])
+                                       (if (> (string-length s) 200)
+                                           (string-append (substring s 0 197) "...")
+                                           s)))
                            (list 'suggestion "Check your expression for syntax errors and retry.")))
                        #f)
                       state 1))])
