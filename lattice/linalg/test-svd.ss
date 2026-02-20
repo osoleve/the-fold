@@ -1,4 +1,4 @@
-;;; core/linalg/test-svd.ss --- Tests for Singular Value Decomposition
+;;; lattice/linalg/test-svd.ss --- Tests for Singular Value Decomposition
 ;;;
 ;;; Comprehensive test suite for SVD module.
 
@@ -418,6 +418,174 @@
        [kappa (matrix-condition-number a)])
       ;; Singular values are 1, 1 -> κ = 1
       (test-approx "Rectangular 3x2: κ = 1" 1.0 kappa 1e-6))
+
+;;; ====
+;;; Rank-Deficient Matrix Tests (fold-zy04)
+;;; ====
+
+(printf "\n--- Rank-Deficient Matrices ---\n")
+
+;; Helper: check that no element of a matrix is infinite or NaN
+(define (matrix-has-bad-values? m)
+  (let ([data (matrix-data m)])
+    (let loop ([i 0])
+      (if (= i (vector-length data)) #f
+          (if (or (infinite? (vector-ref data i))
+                  (nan? (vector-ref data i)))
+              #t
+              (loop (+ i 1)))))))
+
+;; Test: Rank-1 matrix (outer product of [1,2,3] with itself)
+(let* ([a (matrix-from-lists '((1 2 3) (2 4 6) (3 6 9)))]
+       [result (svd a)])
+      (test-false "Rank-1 3x3: SVD succeeds" (is-error? result))
+      (when (not (is-error? result))
+            (let* ([u (car result)]
+                   [sigma (cadr result)]
+                   [v (caddr result)])
+                  ;; Only one non-zero singular value
+                  (test-approx "Rank-1 3x3: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-8)
+                  (test-approx "Rank-1 3x3: σ₃ = 0" 0.0 (matrix-ref sigma 2 2) 1e-8)
+                  ;; No infinities or NaN
+                  (test-false "Rank-1 3x3: U clean" (matrix-has-bad-values? u))
+                  (test-false "Rank-1 3x3: Σ clean" (matrix-has-bad-values? sigma))
+                  (test-false "Rank-1 3x3: V clean" (matrix-has-bad-values? v))
+                  ;; Rank is correctly 1
+                  (test "Rank-1 3x3: rank" 1 (matrix-rank a))
+                  ;; Reconstruction holds
+                  (test-true "Rank-1 3x3: reconstruction" (verify-svd a u sigma v 1e-6)))))
+
+;; Test: Zero matrix — all singular values must be exactly 0
+(let* ([a (make-matrix 3 3 0)]
+       [result (svd a)])
+      (test-false "Zero 3x3: SVD succeeds" (is-error? result))
+      (when (not (is-error? result))
+            (let* ([u (car result)]
+                   [sigma (cadr result)]
+                   [v (caddr result)])
+                  (test-approx "Zero 3x3: σ₁ = 0" 0.0 (matrix-ref sigma 0 0) 1e-15)
+                  (test-approx "Zero 3x3: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-15)
+                  (test-approx "Zero 3x3: σ₃ = 0" 0.0 (matrix-ref sigma 2 2) 1e-15)
+                  (test-false "Zero 3x3: U clean" (matrix-has-bad-values? u))
+                  (test-false "Zero 3x3: Σ clean" (matrix-has-bad-values? sigma))
+                  (test-false "Zero 3x3: V clean" (matrix-has-bad-values? v))
+                  (test "Zero 3x3: rank" 0 (matrix-rank a)))))
+
+;; Test: Matrix with identical rows (rank-1)
+(let* ([a (matrix-from-lists '((1 2 3) (1 2 3) (1 2 3)))]
+       [result (svd a)])
+      (test-false "Repeated rows: SVD succeeds" (is-error? result))
+      (when (not (is-error? result))
+            (let* ([u (car result)]
+                   [sigma (cadr result)]
+                   [v (caddr result)])
+                  (test-approx "Repeated rows: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-8)
+                  (test-approx "Repeated rows: σ₃ = 0" 0.0 (matrix-ref sigma 2 2) 1e-8)
+                  (test-false "Repeated rows: no bad values" (matrix-has-bad-values? sigma))
+                  (test "Repeated rows: rank" 1 (matrix-rank a))
+                  (test-true "Repeated rows: reconstruction" (verify-svd a u sigma v 1e-6)))))
+
+;; Test: Matrix with proportional columns (rank-1, rectangular)
+(let* ([a (matrix-from-lists '((2 4) (1 2) (3 6)))]
+       [result (svd a)])
+      (test-false "Proportional cols 3x2: SVD succeeds" (is-error? result))
+      (when (not (is-error? result))
+            (let* ([sigma (cadr result)])
+                  (test-approx "Proportional cols: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-8)
+                  (test "Proportional cols: rank" 1 (matrix-rank a)))))
+
+;; Test: Scaled rank-1 matrix — noise singular values must be clamped
+;; This is the key regression test: at scale=10000, QR noise in A^T A
+;; eigenvalues can produce phantom singular values without relative tolerance.
+(let* ([row '(10000 20000 30000 40000 50000)]
+       [a (matrix-from-lists (list row row row row row))]
+       [result (svd a)])
+      (test-false "Scaled rank-1 5x5: SVD succeeds" (is-error? result))
+      (when (not (is-error? result))
+            (let* ([u (car result)]
+                   [sigma (cadr result)]
+                   [v (caddr result)])
+                  ;; All singular values except the first must be 0
+                  (test-approx "Scaled rank-1: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-8)
+                  (test-approx "Scaled rank-1: σ₃ = 0" 0.0 (matrix-ref sigma 2 2) 1e-8)
+                  (test-approx "Scaled rank-1: σ₄ = 0" 0.0 (matrix-ref sigma 3 3) 1e-8)
+                  (test-approx "Scaled rank-1: σ₅ = 0" 0.0 (matrix-ref sigma 4 4) 1e-8)
+                  (test "Scaled rank-1: rank" 1 (matrix-rank a))
+                  (test-true "Scaled rank-1: reconstruction" (verify-svd a u sigma v 1e-2)))))
+
+;; Test: Pseudoinverse of rank-deficient matrix satisfies Moore-Penrose
+(let* ([a (matrix-from-lists '((1 2 3) (2 4 6) (3 6 9)))]
+       [pinv (pseudoinverse a)])
+      (test-false "Rank-deficient pinv: succeeds" (is-error? pinv))
+      (when (not (is-error? pinv))
+            ;; Property 1: AA+A = A
+            (let* ([aa-pinv (matrix-mul a pinv)]
+                   [aa-pinv-a (matrix-mul aa-pinv a)]
+                   [diff (matrix-sub aa-pinv-a a)]
+                   [err (matrix-frobenius-norm diff)])
+                  (test-true "Rank-deficient pinv: AA+A = A" (< err 1e-6)))
+            ;; Property 2: A+AA+ = A+
+            (let* ([pinv-a (matrix-mul pinv a)]
+                   [pinv-a-pinv (matrix-mul pinv-a pinv)]
+                   [diff (matrix-sub pinv-a-pinv pinv)]
+                   [err (matrix-frobenius-norm diff)])
+                  (test-true "Rank-deficient pinv: A+AA+ = A+" (< err 1e-6)))
+            ;; No bad values in pseudoinverse
+            (test-false "Rank-deficient pinv: clean" (matrix-has-bad-values? pinv))))
+
+;; Test: Pseudoinverse of scaled rank-1 matrix
+(let* ([row '(10000 20000 30000 40000 50000)]
+       [a (matrix-from-lists (list row row row row row))]
+       [pinv (pseudoinverse a)])
+      (test-false "Scaled rank-1 pinv: succeeds" (is-error? pinv))
+      (when (not (is-error? pinv))
+            (let* ([aa-pinv (matrix-mul a pinv)]
+                   [aa-pinv-a (matrix-mul aa-pinv a)]
+                   [diff (matrix-sub aa-pinv-a a)]
+                   [err (matrix-frobenius-norm diff)])
+                  (test-true "Scaled rank-1 pinv: AA+A = A" (< err 1e-4)))
+            (test-false "Scaled rank-1 pinv: clean" (matrix-has-bad-values? pinv))))
+
+;; Test: Pseudoinverse of zero matrix is zero matrix
+(let* ([a (make-matrix 3 3 0)]
+       [pinv (pseudoinverse a)])
+      (test-false "Zero matrix pinv: succeeds" (is-error? pinv))
+      (when (not (is-error? pinv))
+            (test-approx "Zero matrix pinv: all zeros"
+                         0.0 (matrix-frobenius-norm pinv) 1e-15)))
+
+;; Test: Condition number of rank-deficient matrix is +inf.0
+(let* ([row '(10000 20000 30000 40000 50000)]
+       [a (matrix-from-lists (list row row row row row))]
+       [kappa (matrix-condition-number a)])
+      (test-true "Scaled rank-1: κ = +inf.0" (infinite? kappa)))
+
+;; Test: Wide rank-deficient matrix (2x4 rank-1, AAT path)
+(let* ([a (matrix-from-lists '((1 2 3 4) (2 4 6 8)))]
+       [result (svd a)])
+      (test-false "Wide rank-1 2x4: SVD succeeds" (is-error? result))
+      (when (not (is-error? result))
+            (let* ([sigma (cadr result)]
+                   [u (car result)]
+                   [v (caddr result)])
+                  (test-approx "Wide rank-1: σ₂ = 0" 0.0 (matrix-ref sigma 1 1) 1e-8)
+                  (test-false "Wide rank-1: Σ clean" (matrix-has-bad-values? sigma))
+                  (test-false "Wide rank-1: V clean" (matrix-has-bad-values? v))
+                  (test "Wide rank-1: rank" 1 (matrix-rank a))
+                  (test-true "Wide rank-1: reconstruction" (verify-svd a u sigma v 1e-6)))))
+
+;; Test: Singular values of rank-deficient matrix contain no infinity/NaN
+(let* ([a (matrix-from-lists '((1 2 3) (2 4 6) (3 6 9)))]
+       [sv (singular-values a)])
+      (test-false "Rank-deficient SV: succeeds" (is-error? sv))
+      (when (not (is-error? sv))
+            (let loop ([i 0] [ok #t])
+                 (if (= i (vector-length sv))
+                     (test-true "Rank-deficient SV: no inf/NaN" ok)
+                     (loop (+ i 1)
+                           (and ok
+                                (not (infinite? (vector-ref sv i)))
+                                (not (nan? (vector-ref sv i)))))))))
 
 ;;; ====
 ;;; Summary

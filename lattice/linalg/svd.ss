@@ -18,11 +18,38 @@
 ;;; Constants
 ;;; ====
 
-;;; Default tolerance for rank determination and zero singular values
+;;; Default tolerance for rank determination and zero singular values.
+;;; Used as a fallback; most operations now use adaptive relative tolerance
+;;; based on the largest singular value (see svd-relative-tolerance).
 (define *svd-tolerance* 1e-10)
+
+;;; Machine epsilon for IEEE 754 double precision (2^-52).
+(define *svd-machine-epsilon* 2.220446049250313e-16)
 
 ;;; Maximum iterations for eigenvalue computation
 (define *svd-max-iterations* 1000)
+
+;;; svd-relative-tolerance : Vec × Nat × Nat → Num
+;;; Compute adaptive threshold for singular value truncation.
+;;;
+;;; Formula: tol = sigma_max * sqrt(max(m, n) * eps)
+;;;
+;;; Rationale: SVD computes singular values as sqrt(eigenvalues of A^T A).
+;;; The eigenvalues have error proportional to ||A^T A|| * eps = sigma_max^2 * eps.
+;;; Taking the square root, the noise in singular values is proportional to
+;;; sigma_max * sqrt(eps). The max(m,n) factor accounts for dimensionality.
+;;;
+;;; Falls back to *svd-tolerance* if sigma_max is 0 (zero matrix).
+(define (svd-relative-tolerance singular-values m n)
+  (let* ([k (vector-length singular-values)]
+         [sigma-max (if (= k 0) 0
+                        (let loop ([i 0] [mx 0])
+                          (if (= i k) mx
+                              (loop (+ i 1) (max mx (abs (vector-ref singular-values i)))))))])
+    (if (or (= sigma-max 0) (infinite? sigma-max) (nan? sigma-max))
+        *svd-tolerance*
+        (max *svd-tolerance*
+             (* sigma-max (sqrt (* (max m n) *svd-machine-epsilon*)))))))
 
 ;;; ====
 ;;; Core SVD Algorithm
@@ -85,11 +112,16 @@
                    [sorted-eigenvalues (car sorted)]
                    [sorted-v (cdr sorted)]
                    ;; Compute singular values (sqrt of eigenvalues)
-                   [singular-values (eigenvalues->singular-values sorted-eigenvalues tol)]
+                   ;; First pass: convert with absolute tolerance
+                   [raw-sv (eigenvalues->singular-values sorted-eigenvalues tol)]
+                   ;; Second pass: apply relative tolerance to clamp noise
+                   [singular-values (clamp-noise-singular-values raw-sv m n)]
                    ;; Build Σ matrix (m×n with singular values on diagonal)
                    [sigma (build-sigma-matrix m n singular-values)]
+                   ;; Use relative tolerance for rank determination
+                   [rel-tol (svd-relative-tolerance singular-values m n)]
                    ;; Compute U columns: u_i = (1/σ_i) × A × v_i
-                   [u (compute-u-from-av a sorted-v singular-values m n tol)])
+                   [u (compute-u-from-av a sorted-v singular-values m n rel-tol)])
                   (list u sigma sorted-v)))))
 
 ;;; svd-via-aat : Matrix × Nat × Nat × Nat × Num → (U Σ V) | Error
@@ -107,12 +139,15 @@
                    [sorted (sort-singular-data eigenvalues u m)]
                    [sorted-eigenvalues (car sorted)]
                    [sorted-u (cdr sorted)]
-                   ;; Compute singular values
-                   [singular-values (eigenvalues->singular-values sorted-eigenvalues tol)]
+                   ;; Compute singular values with noise clamping
+                   [raw-sv (eigenvalues->singular-values sorted-eigenvalues tol)]
+                   [singular-values (clamp-noise-singular-values raw-sv m n)]
                    ;; Build Σ matrix
                    [sigma (build-sigma-matrix m n singular-values)]
+                   ;; Use relative tolerance for rank determination
+                   [rel-tol (svd-relative-tolerance singular-values m n)]
                    ;; Compute V columns: v_i = (1/σ_i) × A^T × u_i
-                   [v (compute-v-from-atu at sorted-u singular-values m n tol)])
+                   [v (compute-v-from-atu at sorted-u singular-values m n rel-tol)])
                   (list sorted-u sigma v)))))
 
 ;;; ====
@@ -120,16 +155,41 @@
 ;;; ====
 
 ;;; eigenvalues->singular-values : Vec × Num → Vec
-;;; Convert eigenvalues to singular values, clamping negative values to 0.
+;;; Convert eigenvalues to singular values, clamping noise to 0.
+;;; Guards against: negative eigenvalues (numeric noise), infinities
+;;; (overflow in A^T A), and NaN.
 (define (eigenvalues->singular-values eigenvalues tol)
   (let* ([n (vector-length eigenvalues)]
          [result (make-vector n 0)])
         (do ([i 0 (+ i 1)])
             ((= i n) result)
             (let ([ev (vector-ref eigenvalues i)])
-                 ;; Eigenvalues should be non-negative for A^T A
-                 ;; Clamp tiny negatives to 0 (numerical error)
-                 (vector-set! result i (if (> ev tol) (sqrt ev) 0))))))
+                 ;; Eigenvalues of A^T A should be non-negative.
+                 ;; Clamp to 0 if: negative (numeric noise), below tolerance,
+                 ;; infinite (overflow in Gram matrix), or NaN.
+                 (vector-set! result i
+                              (cond
+                               [(or (nan? ev) (infinite? ev)) 0]
+                               [(> ev tol) (sqrt ev)]
+                               [else 0]))))))
+
+;;; clamp-noise-singular-values : Vec × Nat × Nat → Vec
+;;; Apply relative tolerance to clamp noise singular values to 0.
+;;; After the initial eigenvalue->sqrt conversion, some tiny singular values
+;;; may be numerical noise (e.g., sqrt of a spurious eigenvalue in A^T A).
+;;; This function computes a relative threshold from the largest singular
+;;; value and zeros out anything below it.
+(define (clamp-noise-singular-values sv m n)
+  (let* ([k (vector-length sv)]
+         [rel-tol (svd-relative-tolerance sv m n)]
+         [result (make-vector k 0)])
+    (do ([i 0 (+ i 1)])
+        ((= i k) result)
+        (let ([s (vector-ref sv i)])
+          (vector-set! result i
+                       (if (or (nan? s) (infinite? s) (<= s rel-tol))
+                           0
+                           s))))))
 
 ;;; build-sigma-matrix : Nat × Nat × Vec → Matrix
 ;;; Build the m×n diagonal matrix with singular values.
@@ -350,8 +410,15 @@
                    [v (caddr svd-result)]
                    [m (matrix-rows a)]
                    [n (matrix-cols a)]
+                   ;; Extract singular values for relative tolerance
+                   [k (min m n)]
+                   [sv (let ([v (make-vector k 0)])
+                         (do ([i 0 (+ i 1)]) ((= i k) v)
+                           (vector-set! v i (matrix-ref sigma i i))))]
+                   ;; Use relative tolerance for pseudoinverse thresholding
+                   [rel-tol (svd-relative-tolerance sv m n)]
                    ;; Σ^+ is n×m (transpose of Σ dimensions)
-                   [sigma-pinv (build-sigma-pseudoinverse sigma m n tol)]
+                   [sigma-pinv (build-sigma-pseudoinverse sigma m n rel-tol)]
                    ;; A^+ = V × Σ^+ × U^T
                    [vt (matrix-transpose v)]
                    [ut (matrix-transpose u)]
@@ -418,11 +485,18 @@
         (if (and (pair? svd-result) (eq? (car svd-result) 'error))
             svd-result
             (let* ([sigma (cadr svd-result)]
-                   [k (min (matrix-rows sigma) (matrix-cols sigma))])
+                   [m (matrix-rows sigma)]
+                   [n (matrix-cols sigma)]
+                   [k (min m n)]
+                   ;; Extract singular values for relative tolerance
+                   [sv (let ([v (make-vector k 0)])
+                         (do ([i 0 (+ i 1)]) ((= i k) v)
+                           (vector-set! v i (matrix-ref sigma i i))))]
+                   [rel-tol (svd-relative-tolerance sv m n)])
                   (let loop ([i 0] [rank 0])
                        (if (= i k)
                            rank
-                           (if (> (abs (matrix-ref sigma i i)) tol)
+                           (if (> (abs (matrix-ref sigma i i)) rel-tol)
                                (loop (+ i 1) (+ rank 1))
                                (loop (+ i 1) rank))))))))
 
@@ -442,10 +516,14 @@
          [sv (singular-values a tol)])
     (if (and (pair? sv) (eq? (car sv) 'error))
         sv
-        (let* ([n (vector-length sv)]
+        (let* ([k (vector-length sv)]
+               [m (matrix-rows a)]
+               [n (matrix-cols a)]
                [sigma-max (vector-ref sv 0)]
-               [sigma-min (vector-ref sv (- n 1))])
-          (if (< sigma-min tol)
+               ;; Find smallest non-zero singular value
+               [rel-tol (svd-relative-tolerance sv m n)]
+               [sigma-min (vector-ref sv (- k 1))])
+          (if (<= sigma-min rel-tol)
               +inf.0
               (/ sigma-max sigma-min))))))
 
@@ -470,8 +548,9 @@
                    [k (vector-length eigenvalues)]
                    ;; Sort descending
                    [sorted (sort-vector-descending eigenvalues)]
-                   ;; Convert to singular values
-                   [singular (eigenvalues->singular-values sorted tol)])
+                   ;; Convert to singular values, then apply relative clamping
+                   [raw-sv (eigenvalues->singular-values sorted tol)]
+                   [singular (clamp-noise-singular-values raw-sv m n)])
                   singular))))
 
 ;;; sort-vector-descending : Vec → Vec
