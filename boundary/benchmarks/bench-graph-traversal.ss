@@ -2,7 +2,7 @@
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
 (load "boundary/storage/store-api.ss")
-(load "lattice/data/graph/graph-algorithms.ss")
+(load "lattice/data/graph/graph-primitives.ss")
 (load "boundary/blocks/graph-traversal.ss")
 (load "boundary/tools/benchmark.ss")
 
@@ -10,7 +10,7 @@
 (doc 'description "Comprehensive benchmarking suite for graph algorithms with varying graph sizes and structures, measuring execution time, memory usage, and scalability")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'dependencies '(block sha256 fs store-api graph-algorithms benchmark))
+(doc 'dependencies '(block sha256 fs store-api graph-primitives benchmark))
 
 (doc 'section 'test-graph-generators)
 

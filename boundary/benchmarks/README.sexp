@@ -21,7 +21,7 @@
 
    Or execute directly:
      scheme --script boundary/benchmarks/bench-graph-traversal.ss")
- (dependencies (core/data/graph-algorithms boundary/tools/benchmark boundary/fs))
+ (dependencies (core/data/graph-primitives boundary/tools/benchmark boundary/fs))
  (output
   "Benchmarks produce detailed reports including:
    - Execution time statistics (mean, median, stddev)

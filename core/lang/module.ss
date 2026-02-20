@@ -157,7 +157,7 @@ Dependencies:
  (register-module-path! 'set "lattice/data/set.ss")
  (register-module-path! 'dict "lattice/data/dict.ss")
  (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
- (register-module-path! 'graph-algorithms "lattice/data/graph/graph-algorithms.ss")
+ (register-module-path! 'graph-primitives "lattice/data/graph/graph-primitives.ss")
  (register-module-path! 'heap "lattice/data/heap.ss")
  (register-module-path! 'avl-tree "lattice/data/avl-tree.ss")
  (register-module-path! 'chase-lev-deque "lattice/data/chase-lev-deque.ss")

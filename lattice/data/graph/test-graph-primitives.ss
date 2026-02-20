@@ -1,11 +1,11 @@
-;;; test-graph-algorithms.ss — Tests for traversal, pathfinding, and analysis
+;;; test-graph-primitives.ss — Tests for graph data structures
 
 (source-directories (cons "core" (source-directories)))
 (load "core/blocks/block.ss")
 (load "core/base/sha256.ss")
 (load "boundary/io/fs.ss")
 (load "boundary/storage/store-api.ss")
-(load "lattice/data/graph/graph-algorithms.ss")
+(load "lattice/data/graph/graph-primitives.ss")
 (load "boundary/blocks/graph-traversal.ss")
 
 (define tests-passed 0)

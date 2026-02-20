@@ -352,7 +352,7 @@
     "data/test-collection-utils.ss"
     "data/graph/test-centrality.ss"
     "data/graph/test-pagerank.ss"
-    "data/graph/test-graph-algorithms.ss"
+    "data/graph/test-graph-primitives.ss"
     "data/graph/test-graph-community.ss"
     "data/graph/test-graph-homology.ss"
     "data/graph/test-graph-filtration.ss"

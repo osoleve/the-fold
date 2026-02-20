@@ -1,5 +1,5 @@
-;;; lattice/data/graph/graph-algorithms.ss — Pure Graph Data Structures
-;;; @module graph-algorithms
+;;; lattice/data/graph/graph-primitives.ss — Pure Graph Data Structures
+;;; @module graph-primitives
 ;;; @requires prelude sort
 
 (unless (top-level-bound? 'require)
@@ -7,7 +7,7 @@
 (require 'prelude)
 (require 'sort)
 
-(doc 'module 'graph-algorithms)
+(doc 'module 'graph-primitives)
 (doc 'description "Pure graph data structures: visited sets, queues, stacks, hash utilities, cycle utilities.
   Composable building blocks for graph algorithms.")
 (doc 'layer 'lattice)

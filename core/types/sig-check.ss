@@ -1200,7 +1200,7 @@
     "lattice/data/queue.ss"
     "lattice/data/set.ss"
     "lattice/data/dict.ss"
-    "lattice/data/graph/graph-algorithms.ss"
+    "lattice/data/graph/graph-primitives.ss"
     "lattice/linalg/vec.ss"
     "lattice/linalg/matrix.ss"))
 

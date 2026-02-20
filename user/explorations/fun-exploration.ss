@@ -1,7 +1,7 @@
 ;;; fun-exploration.ss - Let's have some fun with the new tools!
 
 (load "boundary/repl/repl.ss")
-(load "lattice/data/graph/graph-algorithms.ss")
+(load "lattice/data/graph/graph-primitives.ss")
 (load "boundary/blocks/graph-traversal.ss")
 (load "boundary/ui/graph-export.ss")
 

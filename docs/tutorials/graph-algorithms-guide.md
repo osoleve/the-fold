@@ -47,12 +47,12 @@ Best for dense graphs and algorithms requiring all-pairs operations.
 (define cycle (cycle-graph 5))      ; Cycle 0-1-2-3-4-0
 ```
 
-### Hash-Based Graphs (graph-algorithms.ss)
+### Hash-Based Graphs (graph-primitives.ss)
 
 For The Fold's content-addressed block graphs.
 
 ```scheme
-(load "lattice/data/graph-algorithms.ss")
+(load "lattice/data/graph/graph-primitives.ss")
 
 ;; Works with fs-capability and block hashes
 (define fs (make-fs-capability ".store"))

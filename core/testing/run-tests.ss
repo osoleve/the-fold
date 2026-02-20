@@ -101,7 +101,7 @@
 (doc 'description "Layer 7: Data Structures (lattice/data/)")
 (run-test-file "lattice" "data" "test-data-structures.ss")
 (run-test-file "lattice" "data" "test-collection-utils.ss")
-(run-test-file "lattice" "data" "test-graph-algorithms.ss")
+(run-test-file "lattice" "data" "test-graph-primitives.ss")
 
 (doc 'description "Layer 8: Query System (lattice/query/)")
 (run-test-file "lattice" "query" "test-aho-corasick.ss")

@@ -95,7 +95,7 @@
      collection-count-matching collection-partition collection-group-by
      make-collection-from-blocks collection-add collection-remove collection-merge)
 
-   (graph-algorithms
+   (graph-primitives
      bytevector-hash
      make-visited visited-add visited-contains? visited-remove
      hash-equal? hash-in-list? remove-hash unique-hashes
@@ -203,7 +203,7 @@
    (dict "dict.ss" "Key-value dictionary/map operations")
    (collection-utils "collection-utils.ss" "Higher-order collection operations")
    ;; Graph modules moved to graph/ subdirectory
-   (graph-algorithms "graph/graph-algorithms.ss" "Pure data structures: visited sets, queues, stacks, hash/cycle utilities")
+   (graph-primitives "graph/graph-primitives.ss" "Pure data structures: visited sets, queues, stacks, hash/cycle utilities")
    (graph-homology "graph/graph-homology.ss" "Homology-based cycle analysis: Betti numbers, cycle basis, tree/forest detection")
    (pagerank "graph/pagerank.ss" "PageRank importance scoring")
    (graph-matrix "graph/graph-matrix.ss" "Adjacency matrices, Dijkstra O((V+E) log V), Floyd-Warshall, graph metrics")
