@@ -411,6 +411,9 @@
     "random/test-monte-carlo.ss"
     "random/test-bayesian.ss"
     "random/test-variational-inference.ss"
+    ;; QuickCheck
+    "quickcheck/test-quickcheck.ss"
+    "quickcheck/test-laws.ss"
     ;; FP Core
     "fp/test-protocol.ss"
     "fp/test-protocol-bundle.ss"
