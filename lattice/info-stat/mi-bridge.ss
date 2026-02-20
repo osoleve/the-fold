@@ -11,6 +11,7 @@
 (require 'sort)
 
 (doc 'module 'info-stat/mi-bridge)
+(doc 'bridges '(info statistics))
 (doc 'description "Bridge connecting information theory to statistics:
   MI-based feature selection, entropy-based model comparison for regression
   results, and KL divergence for empirical distribution comparison.")

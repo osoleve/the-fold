@@ -6,6 +6,7 @@
 (require 'lenses)
 
 (doc 'module 'optics-integration)
+(doc 'bridges '(physics optics))
 (doc 'description "Integrates the physics lens library with the optics tower")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

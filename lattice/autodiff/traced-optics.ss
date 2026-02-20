@@ -9,6 +9,7 @@
 (load "lattice/physics/diff/traced-vec2.ss")
 
 (doc 'module 'traced-optics)
+(doc 'bridges '(optics autodiff physics))
 (doc 'description "Optics + Autodiff Integration - enables computing gradients through optic-focused paths")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

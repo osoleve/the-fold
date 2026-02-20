@@ -8,6 +8,7 @@
 (require 'rollout)
 
 (doc 'module 'optic-optimize)
+(doc 'bridges '(physics optics autodiff))
 (doc 'description "Optic-Based Physics Optimization
 
 Physics parameter optimization using traced-optics.

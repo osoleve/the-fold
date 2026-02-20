@@ -6,6 +6,7 @@
 (require 'diff)
 
 (doc 'module 'symbolic-diff)
+(doc 'bridges '(autodiff fp))
 (doc 'description "Symbolic-Autodiff Integration - bridges symbolic differentiation with automatic differentiation")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

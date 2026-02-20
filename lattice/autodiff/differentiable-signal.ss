@@ -10,6 +10,7 @@
 (require 'reverse-diff)
 
 (doc 'module 'differentiable-signal)
+(doc 'bridges '(autodiff numeric))
 (doc 'description "Differentiable Signal Processing - VJP (Vector-Jacobian Product) wrappers for signal processing operations, enabling gradients to flow through DFT, IDFT, and convolution")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

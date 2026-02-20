@@ -11,6 +11,7 @@
 (require 'heap)
 
 (doc 'module 'graph-matrix)
+(doc 'bridges '(data linalg))
 (doc 'purity 'total)
 (doc 'description "Adjacency matrix graph representation for linear algebra graph algorithms")
 (doc 'layer 'lattice)

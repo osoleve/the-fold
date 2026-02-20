@@ -12,6 +12,7 @@
 (require 'graph-laplacian)
 
 (doc 'module 'graph-bridge)
+(doc 'bridges '(data linalg))
 (doc 'description "Bidirectional bridge between graph and matrix representations.
   Provides a lightweight Graph record that carries metadata (node count,
   directedness, weight presence) alongside its edge list, and named

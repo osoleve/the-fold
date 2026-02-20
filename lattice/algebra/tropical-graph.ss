@@ -8,6 +8,7 @@
 (require 'graph-matrix)
 
 (doc 'module 'tropical-graph)
+(doc 'bridges '(algebra data))
 (doc 'description "Bridge between tropical algebra and graph algorithms.
 Demonstrates that classical graph algorithms are special cases of tropical
 semiring computation: Floyd-Warshall = tropical closure over min-plus,

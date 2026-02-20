@@ -25,6 +25,7 @@
 (require 'result-types)
 
 (doc 'module 'traced-regression)
+(doc 'bridges '(statistics optics autodiff))
 (doc 'description "Traced optics integration for regression - gradients through parameter paths")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

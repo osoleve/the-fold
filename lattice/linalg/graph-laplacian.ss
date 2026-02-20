@@ -9,6 +9,7 @@
 (require 'sort)
 
 (doc 'module 'graph-laplacian)
+(doc 'bridges '(linalg data))
 (doc 'purity 'total)
 (doc 'description "Laplacian matrices for spectral graph theory and analysis")
 (doc 'requires '(prelude matrix matrix-eigen graph-matrix))

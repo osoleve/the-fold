@@ -19,6 +19,7 @@
 (require 'simplify)
 
 (doc 'module 'egraph-simplify)
+(doc 'bridges '(fp egraph))
 (doc 'description "E-graph equality saturation for symbolic expression simplification")
 (doc 'layer 'lattice)
 (doc 'tier 2)

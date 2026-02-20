@@ -8,6 +8,7 @@
 (require 'homology)
 
 (doc 'module 'graph-homology)
+(doc 'bridges '(data topology))
 (doc 'description "Algebraic topology tools for analyzing cycles in graphs using simplicial homology.
   H_0 (0-th homology) captures connected components; H_1 (1st homology) captures independent cycles.
   Betti numbers: beta_0 = number of connected components, beta_1 = number of independent cycles.

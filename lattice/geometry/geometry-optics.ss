@@ -9,6 +9,7 @@
 (require 'geometry)
 
 (doc 'module 'geometry-optics)
+(doc 'bridges '(geometry optics))
 (doc 'description "Composable optics for geometric primitives. Provides lenses, traversals, and prisms for rays, planes, triangles, spheres, and bounding boxes.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

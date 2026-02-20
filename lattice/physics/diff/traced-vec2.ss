@@ -6,6 +6,7 @@
 (require 'reverse-diff)
 
 (doc 'module 'traced-vec2)
+(doc 'bridges '(physics linalg autodiff))
 (doc 'description "Differentiable 2D Vector Operations
 
 Traced vec2 operations for automatic differentiation through physics.

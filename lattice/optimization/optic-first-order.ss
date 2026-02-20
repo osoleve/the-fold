@@ -4,6 +4,7 @@
 (require 'first-order)
 
 (doc 'module 'optic-first-order)
+(doc 'bridges '(optimization optics autodiff))
 (doc 'description "Optic-based first-order optimization for structured parameters")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

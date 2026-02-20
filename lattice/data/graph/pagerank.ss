@@ -11,6 +11,7 @@
 (require 'graph-matrix)
 
 (doc 'module 'pagerank)
+(doc 'bridges '(data linalg))
 (doc 'purity 'total)
 (doc 'description "PageRank importance scoring using eigenvalue computation")
 (doc 'layer 'lattice)

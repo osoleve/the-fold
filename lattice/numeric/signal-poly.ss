@@ -8,6 +8,7 @@
 (require 'digital-filters)
 
 (doc 'module 'signal-poly)
+(doc 'bridges '(numeric algebra))
 (doc 'description "Polynomial algebra for signal processing: exact filter analysis, stability analysis, filter simplification, deconvolution")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

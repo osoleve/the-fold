@@ -10,6 +10,7 @@
 (require 'graph-community)
 
 (doc 'module 'spectral-community)
+(doc 'bridges '(data linalg))
 (doc 'description "Bridge between spectral graph theory (graph-laplacian) and community detection (graph-community)")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

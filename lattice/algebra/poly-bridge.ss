@@ -5,6 +5,7 @@
 (require 'algebra/polynomial)
 
 (doc 'module 'poly-bridge)
+(doc 'bridges '(algebra numeric))
 (doc 'description "Bridge between polynomial representations")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

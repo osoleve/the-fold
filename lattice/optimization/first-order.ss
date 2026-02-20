@@ -7,6 +7,7 @@
 (require 'matrix)
 
 (doc 'module 'first-order)
+(doc 'bridges '(optimization autodiff linalg))
 (doc 'description "First-order optimization algorithms using gradient information")
 (doc 'layer 'lattice)
 (doc 'purity 'total)

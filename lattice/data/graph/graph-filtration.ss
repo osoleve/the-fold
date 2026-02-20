@@ -9,6 +9,7 @@
 (require 'persistent)
 
 (doc 'module 'graph-filtration)
+(doc 'bridges '(data topology))
 (doc 'description "Bridges weighted graph analysis with persistent homology via edge-weight filtrations.
   Given a weighted adjacency matrix, produces filtrations that track how topological features
   (connected components, cycles) evolve as edges are added in order of increasing weight.
