@@ -651,6 +651,7 @@ Dependencies:
  (register-module-path! 'meta/bridge-discovery "lattice/meta/bridge-discovery.ss")
  (register-module-path! 'meta/readme-audit "lattice/meta/readme-audit.ss")
  (register-module-path! 'meta/fuel-report "lattice/meta/fuel-report.ss")
+ (register-module-path! 'meta/module-manifest "lattice/meta/module-manifest.ss")
  (register-module-path! 'pipeline/rlm2-metrics "lattice/pipeline/rlm2-metrics.ss")
 
  ;; Boundary modules
@@ -1140,6 +1141,36 @@ Dependencies:
     (printf "  Cached headers:    ~a\n" (cdr (assq 'cached-headers info)))
     (printf "  Registered paths:  ~a\n" (cdr (assq 'registered-paths info)))
     (printf "---------------------------------------\n\n")))
+
+;;; ====
+;;; Manifest Integration
+;;; ====
+
+(doc 'section 'manifest-integration)
+
+(doc module-paths-snapshot 'type '(-> (List (Pair Symbol String))))
+(doc module-paths-snapshot 'description "Export current *module-paths* as a sorted alist. Useful for building content-addressed manifests from the live registry.")
+(doc module-paths-snapshot 'export #t)
+(define (module-paths-snapshot)
+  (let-values ([(keys vals) (hashtable-entries *module-paths*)])
+    (list-sort
+      (lambda (a b) (string<? (symbol->string (car a)) (symbol->string (car b))))
+      (let loop ([i 0] [acc '()])
+        (if (>= i (vector-length keys))
+            acc
+            (loop (+ i 1)
+                  (cons (cons (vector-ref keys i) (vector-ref vals i)) acc)))))))
+
+(doc register-module-paths! 'type '(-> (List (Pair Symbol String)) Void))
+(doc register-module-paths! 'description "Register multiple module paths from a list of (name . path) pairs.
+More explicit than individual register-module-path! calls — manifests bulk-loading their
+module entries through this makes the source of truth clear.")
+(doc register-module-paths! 'export #t)
+(define (register-module-paths! entries)
+  (for-each
+    (lambda (e)
+      (hashtable-set! *module-paths* (car e) (cdr e)))
+    entries))
 
 ;;; ====
 ;;; Convenience
