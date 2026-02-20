@@ -43,7 +43,11 @@
                 transcritical-normal-form-param hopf-normal-form-param)
    (attractor-render render-attractor render-attractor-colored
                      render-spinning-attractor render-spinning-attractor-colored
-                     demo-lorenz demo-rossler))
+                     demo-lorenz demo-rossler)
+   (ode-adaptive dp45-step ode-adaptive-integrate ode-solve ode-solve/tol
+                 ode-system-integrate ode-result-trajectory ode-result-steps
+                 ode-result-rejections ode-result-truncated? ode-result-final
+                 ode-result-final-state ode-result-times default-ode-opts))
 
   (modules
    (simulation-stream "simulation-stream.ss" "Core simulation stream abstraction and utilities")
@@ -51,4 +55,5 @@
    (stability "dynamics/stability.ss" "Fixed point detection and stability analysis")
    (chaos "dynamics/chaos.ss" "Chaos detection, Lyapunov exponents, strange attractors")
    (bifurcation "dynamics/bifurcation.ss" "Bifurcation analysis: parameter continuation, detection, diagrams")
-   (attractor-render "dynamics/attractor-render.ss" "ASCII visualization of attractors")))
+   (attractor-render "dynamics/attractor-render.ss" "ASCII visualization of attractors")
+   (ode-adaptive "dynamics/ode-adaptive.ss" "Adaptive step-size ODE solver (Dormand-Prince RK4(5))")))

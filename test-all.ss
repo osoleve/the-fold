@@ -665,6 +665,7 @@
     "sim/dynamics/test-bifurcation.ss"
     "sim/dynamics/test-stability.ss"
     "sim/dynamics/test-discrete.ss"
+    "sim/dynamics/test-ode-adaptive.ss"
     ;; Meta
     "meta/test-meta.ss"
     "meta/test-docs.ss"
