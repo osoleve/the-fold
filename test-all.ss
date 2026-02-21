@@ -310,6 +310,7 @@
     "types/test-infer.ss"
     "types/test-resolve.ss"
     "types/test-annotate.ss"
+    "types/test-lawfulness.ss"
     ;; Layer 5: Evaluation
     "lang/test-eval.ss"
     "lang/test-typed-eval.ss"
