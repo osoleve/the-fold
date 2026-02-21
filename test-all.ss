@@ -371,6 +371,7 @@
     "algebra/test-group.ss"
     "algebra/test-poly-bridge.ss"
     "algebra/test-tropical-graph.ss"
+    "algebra/test-egraph-groebner.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
     ;; Number Theory

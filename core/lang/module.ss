@@ -368,6 +368,7 @@ Dependencies:
  (register-module-path! 'algebra/polynomial "lattice/algebra/polynomial.ss")
  (register-module-path! 'multivariate "lattice/algebra/multivariate.ss")
  (register-module-path! 'groebner "lattice/algebra/groebner.ss")
+ (register-module-path! 'egraph-groebner "lattice/algebra/egraph-groebner.ss")
  (register-module-path! 'module-theory "lattice/algebra/module.ss")
  (register-module-path! 'galois "lattice/algebra/galois.ss")
  (register-module-path! 'field-ext "lattice/algebra/field-ext.ss")
