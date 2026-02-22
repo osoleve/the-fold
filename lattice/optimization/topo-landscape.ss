@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module topo-landscape
-;;; @requires prelude persistent convergence vec
+;;; @requires prelude sort persistent convergence vec
 
 (require 'prelude)
+(require 'sort)
 (require 'persistent)
 (require 'convergence)
 (require 'vec)
@@ -174,7 +175,7 @@ Each simplex's birth time becomes max(f(v)) over its vertices.")
                    (cons simplex max-fval)))
                pairs)]
          ;; Re-sort by new filtration values (preserving dimension ordering within ties)
-         [sorted (list-sort
+         [sorted (sort-by
                   (lambda (a b)
                     (let ([fa (cdr a)] [fb (cdr b)]
                           [da (simplex-dim (car a))] [db (simplex-dim (car b))])

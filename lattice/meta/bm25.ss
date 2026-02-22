@@ -1,4 +1,5 @@
 (load "core/base/prelude.ss")
+(load "lattice/data/sort.ss")
 
 (doc 'module 'bm25)
 (doc 'description "Pure functional BM25 implementation for lattice search. Provides term-frequency/inverse-document-frequency ranking with document length normalization.")
@@ -263,7 +264,7 @@
                               (cons doc-id (bm25-score idx doc-id query-terms)))
                       all-docs)]
          [filtered (filter (lambda (entry) (> (cdr entry) 0)) scored)]
-         [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) filtered)])
+         [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) filtered)])
         (take-at-most k sorted)))
 
 (doc bm25-search-string 'type (-> Index String Int (List (Pair DocId Score))))

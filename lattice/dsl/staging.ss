@@ -435,7 +435,7 @@
 ;;; Staged fixed-point combinator.
 (define (stage-fix f)
   (doc 'export #t)
-  (let* ([rec-name (gensym 'rec)]
+  (let* ([rec-name '%stage-rec]
          [dummy (make-code 1 rec-name)]
          [body (f dummy)])
         (make-code (code-stage body)

@@ -438,47 +438,39 @@
 ;;;   (order-by key-fn [direction])
 ;;;   (limit n)
 ;;;   (offset n))
+;;;
+;;; All clauses are expanded at macro time — no runtime eval.
 (define-syntax query-syntax
-  (syntax-rules (from where select order-by limit offset)
-    ;; Base case: just from clause
-    [(query-syntax (from src opt))
-     (run-query (from src opt))]
-
-    ;; from + where
-    [(query-syntax (from src opt) (where pred))
-     (run-query (where-clause (from src opt) pred))]
-
-    ;; from + where + select
-    [(query-syntax (from src opt) (where pred) (select proj))
-     (run-query (select-clause (where-clause (from src opt) pred) proj))]
-
-    ;; from + select (no where)
-    [(query-syntax (from src opt) (select proj))
-     (run-query (select-clause (from src opt) proj))]
-
-    ;; General case with multiple clauses - use procedural builder
+  (syntax-rules (from)
+    ;; Delegate to clause builder which processes one clause at a time
     [(query-syntax (from src opt) clause ...)
-     (run-query (apply-clauses (from src opt) (list (quote clause) ...)))]))
+     (run-query (query-build (from src opt) clause ...))]))
 
-;;; apply-clauses : Query × (List QuotedClause) → Query
-;;; Apply a list of quoted clauses to a query.
-(define (apply-clauses q clauses)
-  (if (null? clauses)
-      q
-      (let ([clause (car clauses)]
-            [rest (cdr clauses)])
-        (apply-clauses
-         (case (car clause)
-           [(where) (where-clause q (eval (cadr clause)))]
-           [(select) (select-clause q (eval (cadr clause)))]
-           [(order-by)
-            (if (> (length clause) 2)
-                (order-by-clause q (eval (cadr clause)) (caddr clause))
-                (order-by-clause q (eval (cadr clause))))]
-           [(limit) (limit-clause q (cadr clause))]
-           [(offset) (offset-clause q (cadr clause))]
-           [else (error 'apply-clauses "Unknown clause" (car clause))])
-         rest))))
+;;; query-build : Recursive helper macro that applies clauses left-to-right.
+;;; Each clause is matched and expanded at compile time.
+(define-syntax query-build
+  (syntax-rules (where select order-by limit offset)
+    ;; Base case: no more clauses
+    [(query-build q)
+     q]
+    ;; where
+    [(query-build q (where pred) rest ...)
+     (query-build (where-clause q pred) rest ...)]
+    ;; select
+    [(query-build q (select proj) rest ...)
+     (query-build (select-clause q proj) rest ...)]
+    ;; order-by with direction
+    [(query-build q (order-by key dir) rest ...)
+     (query-build (order-by-clause q key dir) rest ...)]
+    ;; order-by without direction
+    [(query-build q (order-by key) rest ...)
+     (query-build (order-by-clause q key) rest ...)]
+    ;; limit
+    [(query-build q (limit n) rest ...)
+     (query-build (limit-clause q n) rest ...)]
+    ;; offset
+    [(query-build q (offset n) rest ...)
+     (query-build (offset-clause q n) rest ...)]))
 
 ;;; ============================================================
 ;;; Part 9: Query Result Operations

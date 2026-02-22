@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module meta/module-manifest
-;;; @requires prelude sha256
+;;; @requires prelude sha256 sort
 (require 'prelude)
 (require 'sha256)
+(require 'sort)
 
 (doc 'module 'meta/module-manifest)
 (doc 'description "Content-addressed module manifests. Builds canonical, hashable
@@ -40,7 +41,7 @@ Pure analysis — no filesystem I/O.")
 Sorts by name for deterministic ordering. Removes duplicates (last wins).
 Returns a tagged alist: (module-manifest (version 1) (count N) (entries ...)).")
 (define (build-manifest entries)
-  (let* ([sorted (list-sort
+  (let* ([sorted (sort-by
                    (lambda (a b)
                      (string<? (symbol->string (car a))
                                (symbol->string (car b))))
@@ -368,6 +369,6 @@ source of truth explicit.")
     (let-values ([(keys vals) (hashtable-entries counts)])
       (let loop ([i 0] [acc '()])
         (if (>= i (vector-length keys))
-            (list-sort (lambda (a b) (string<? (car a) (car b))) acc)
+            (sort-by (lambda (a b) (string<? (car a) (car b))) acc)
             (loop (+ i 1)
                   (cons (cons (vector-ref keys i) (vector-ref vals i)) acc)))))))

@@ -1,10 +1,11 @@
 ;;; lattice/meta/purity-audit.ss — Purity Annotation Audit
 ;;; @module meta/purity-audit
-;;; @requires prelude
+;;; @requires prelude sort
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'sort)
 
 (doc 'module 'meta/purity-audit)
 (doc 'description "Audit lattice modules for (doc 'purity ...) annotations. Scans registered module files and reports coverage.")
@@ -158,7 +159,7 @@
       (for-each
         (lambda (entry)
           (printf "  ~a  (~a)\n" (cadr entry) (car entry)))
-        (list-sort (lambda (a b) (string<? (symbol->string (car a))
-                                          (symbol->string (car b))))
-                   files-missing)))
+        (sort-by (lambda (a b) (string<? (symbol->string (car a))
+                                        (symbol->string (car b))))
+                 files-missing)))
     (printf "\n")))

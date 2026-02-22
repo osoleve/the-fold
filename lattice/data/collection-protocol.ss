@@ -81,29 +81,21 @@ Example:
 
 (define (coll-any? coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
-  (doc 'description "Check if any element satisfies predicate. Short-circuits on first match.")
-  (call/cc
-   (lambda (return)
-     (coll-fold coll
-                (lambda (acc elem)
-                  (if (pred elem)
-                      (return #t)
-                      acc))
-                #f)
-     #f)))
+  (doc 'description "Check if any element satisfies predicate. Skips pred after first match via or short-circuit.")
+  (if (coll-fold coll
+                 (lambda (acc elem)
+                   (or acc (pred elem)))
+                 #f)
+      #t #f))
 
 (define (coll-all? coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
-  (doc 'description "Check if all elements satisfy predicate. Short-circuits on first mismatch.")
-  (call/cc
-   (lambda (return)
-     (coll-fold coll
-                (lambda (acc elem)
-                  (if (pred elem)
-                      acc
-                      (return #f)))
-                #t)
-     #t)))
+  (doc 'description "Check if all elements satisfy predicate. Skips pred after first mismatch via and short-circuit.")
+  (if (coll-fold coll
+                 (lambda (acc elem)
+                   (and acc (pred elem)))
+                 #t)
+      #t #f))
 
 (define (coll-filter-list coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (List Element)))
@@ -125,16 +117,12 @@ Example:
 
 (define (coll-find coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (Maybe Element)))
-  (doc 'description "Find first element satisfying predicate, or #f. Short-circuits on first match.")
-  (call/cc
-   (lambda (return)
-     (coll-fold coll
-                (lambda (acc elem)
-                  (if (pred elem)
-                      (return elem)
-                      acc))
-                #f)
-     #f)))
+  (doc 'description "Find first element satisfying predicate, or #f. Skips pred after match found.")
+  (coll-fold coll
+             (lambda (acc elem)
+               (if acc acc
+                   (if (pred elem) elem #f)))
+             #f))
 
 (define (coll-partition coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (Values (List Element) (List Element))))

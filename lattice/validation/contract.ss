@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module contract
-;;; @requires prelude sha256
+;;; @requires prelude sha256 sort
 (require 'prelude)
 (require 'sha256)
+(require 'sort)
 
 (doc 'module 'contract)
 (doc 'description "Content-addressed validation contracts. Contracts are declarative
@@ -527,7 +528,7 @@ or (error path message) with the location and description of the first failure."
 (doc 'description "Content-address the entire registry. Hash of sorted contract hashes.")
 (define (registry-hash reg)
   (let* ([contracts (registry-contracts reg)]
-         [sorted-hashes (list-sort string<? (map contract-hash contracts))]
+         [sorted-hashes (sort-by string<? (map contract-hash contracts))]
          [combined (apply string-append sorted-hashes)])
     (sha256-hex (string->utf8 combined))))
 

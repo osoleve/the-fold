@@ -1,6 +1,7 @@
 ;;; lattice/linalg/bench-blocked.ss — Benchmarks for Blocked/Parallel Matrix Operations
 
 (load "boundary/parallel/matrix-parallel.ss")
+(load "lattice/data/sort.ss")
 
 ;;; ====
 ;;; Benchmark Harness
@@ -17,7 +18,7 @@
   (let ([runs (if (null? args) 3 (car args))])
   (let loop ([i 0] [times '()])
     (if (= i runs)
-        (let* ([sorted (list-sort < times)]
+        (let* ([sorted (sort-by < times)]
                [median (list-ref sorted (quotient runs 2))])
           (printf "  ~a: ~,1fms (median of ~a runs)\n" label median runs)
           median)

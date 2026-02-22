@@ -277,11 +277,4 @@ Uses simple word-boundary matching.")
                  acc))])))
 
 (define (string-downcase str)
-  (let* ([len (string-length str)]
-         [result (make-string len)])
-    (let loop ([i 0])
-      (if (>= i len)
-          result
-          (begin
-            (string-set! result i (char-downcase (string-ref str i)))
-            (loop (+ i 1)))))))
+  (list->string (map char-downcase (string->list str))))

@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module pipeline/rlm2-metrics
-;;; @requires pipeline/rlm2
+;;; @requires pipeline/rlm2 sort
 (require 'pipeline/rlm2)
+(require 'sort)
 
 (doc 'module 'pipeline/rlm2-metrics)
 (doc 'description "Post-episode trajectory analysis for RLM v2. Pure functions that
@@ -23,7 +24,7 @@ and offline analysis.")
 (define (rlm2-action-histogram steps)
   (let loop ([steps steps] [counts '()])
     (if (null? steps)
-        (list-sort (lambda (a b) (> (cdr a) (cdr b))) counts)
+        (sort-by (lambda (a b) (> (cdr a) (cdr b))) counts)
         (let* ([step (car steps)]
                [action (rlm2-step-record-action step)]
                [type (if (pair? action) (car action) 'unknown)]

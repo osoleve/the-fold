@@ -153,12 +153,11 @@
              (begin
                (implement-protocol! getter-proto type-tag (cadr override))
                (implement-protocol! setter-proto type-tag (caddr override)))
-             ;; Use naming convention (eval required for runtime symbol lookup)
-             ;; Note: We eval both names once at registration time, not per-call
+             ;; Use naming convention — look up by symbol at registration time
              (let* ([getter-name (build-getter-name prefix label)]
                     [setter-name (build-setter-name prefix label)]
-                    [getter-fn (eval getter-name)]
-                    [raw-setter-fn (eval setter-name)]
+                    [getter-fn (top-level-value getter-name)]
+                    [raw-setter-fn (top-level-value setter-name)]
                     [setter-fn (lambda (obj val) (raw-setter-fn obj val))])
                (implement-protocol! getter-proto type-tag getter-fn)
                (implement-protocol! setter-proto type-tag setter-fn)))))

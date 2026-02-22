@@ -616,9 +616,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; bound? : Symbol → Boolean
 ;;; Check if a symbol is bound (has a value).
 (define (bound? sym)
-  (guard (e [else #f])
-         (eval sym)
-         #t))
+  (top-level-bound? sym))
 
 ;;; ====
 ;;; Goal Navigation

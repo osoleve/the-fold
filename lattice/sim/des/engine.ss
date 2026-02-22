@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module des/engine
-;;; @requires prelude stream des/event des/world
+;;; @requires prelude sort stream des/event des/world
 (require 'prelude)
+(require 'sort)
 (require 'stream)
 (require 'des/event)
 (require 'des/world)
@@ -128,7 +129,7 @@
 (define (des-snapshot-times config initial-world times)
   (doc 'type '(-> DESConfig DESWorld (List Number) (List DESWorld)))
   (doc 'description "Run simulation and capture world states at specific clock times.")
-  (let ([sorted-times (list-sort < times)]
+  (let ([sorted-times (sort-by < times)]
         [all-states (des-run-list config initial-world)])
     (let loop ([states all-states] [ts sorted-times] [acc '()])
       (if (or (null? ts) (null? states)) (reverse acc)

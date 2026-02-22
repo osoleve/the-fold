@@ -2,10 +2,11 @@
   (load "core/lang/module.ss"))
 
 ;;; @module maxsat-bridge
-;;; @requires maxsat convergence
+;;; @requires maxsat convergence sort
 
 (require 'maxsat)
 (require 'convergence)
+(require 'sort)
 
 (doc 'module 'maxsat-bridge)
 (doc 'description "Weighted constraint optimization via MaxSAT.
@@ -278,8 +279,8 @@ MaxSAT binary search minimizes the number of unsatisfied clauses.")
   (doc 'description "Group by weight, sorted descending. Returns ((weight clause ...) ...)")
   (if (null? weighted-softs)
       '()
-      (let ([sorted-ws (list-sort (lambda (a b) (> (car a) (car b)))
-                                  weighted-softs)])
+      (let ([sorted-ws (sort-by (lambda (a b) (> (car a) (car b)))
+                                weighted-softs)])
         (let loop ([rest sorted-ws] [groups '()])
           (if (null? rest)
               (reverse groups)

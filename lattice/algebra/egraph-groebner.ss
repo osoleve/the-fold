@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module egraph-groebner
-;;; @requires prelude field multivariate groebner egraph/extract
+;;; @requires prelude sort field multivariate groebner egraph/extract
 ;;; lattice/algebra/egraph-groebner.ss — Bridge E-Graph Rewriting to Gröbner Basis
 ;;;
 ;;; Connects e-graph equality saturation with Gröbner basis polynomial
@@ -17,6 +17,7 @@
 ;;; This is Lattice code: pure conversion and rule generation.
 
 (require 'prelude)
+(require 'sort)
 (require 'field)
 (require 'multivariate)
 (require 'groebner)
@@ -186,7 +187,7 @@
         [(pair? t)
          (for-each collect (cdr t))]
         [else (void)]))
-    (list-sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+    (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
                vars)))
 
 ;;; ============================================================
@@ -211,7 +212,7 @@
   (doc 'type (-> Term Term Field Boolean))
   (doc 'description "Test polynomial equivalence over a specific field.")
   (doc 'export #t)
-  (let* ([vars (list-sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+  (let* ([vars (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
                           (union-symbols (eterm-variables t1) (eterm-variables t2)))]
          [ordering (make-ordering 'grevlex vars)]
          [p1 (eterm->mpoly t1 F vars ordering)]
@@ -234,7 +235,7 @@
                  (set! all-vars (union-symbols all-vars (eterm-variables t2)))
                  (for-each (lambda (r) (set! all-vars (union-symbols all-vars (eterm-variables r))))
                            relations)
-                 (list-sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+                 (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
                             all-vars))]
          [ordering (make-ordering 'grevlex vars)]
          [p1 (eterm->mpoly t1 F vars ordering)]
@@ -286,7 +287,7 @@
   (let* ([vars (let ([all-vars '()])
                  (for-each (lambda (r) (set! all-vars (union-symbols all-vars (eterm-variables r))))
                            relations)
-                 (list-sort (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+                 (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
                             all-vars))]
          [ordering (make-ordering 'grevlex vars)]
          ;; Convert to polynomials
