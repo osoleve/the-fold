@@ -25,23 +25,13 @@
 ;;; Either generators and operations
 ;;; ============================================================================
 
-(define (left x) (list 'left x))
-(define (right x) (list 'right x))
-(define (left? e) (and (pair? e) (eq? (car e) 'left)))
-(define (right? e) (and (pair? e) (eq? (car e) 'right)))
-(define (from-left e) (cadr e))
-(define (from-right e) (cadr e))
+;; left, right, left?, right?, from-left, from-right, either-fmap, either-bind
+;; are all provided by (require 'combinators)
 
 (define gen-either-int
   (gen-frequency
     (list (cons 1 (gen-map left gen-int))
           (cons 3 (gen-map right gen-int)))))
-
-(define (either-fmap f e)
-  (if (right? e) (right (f (from-right e))) e))
-
-(define (either-bind e f)
-  (if (right? e) (f (from-right e)) e))
 
 (define (either=? a b)
   (cond

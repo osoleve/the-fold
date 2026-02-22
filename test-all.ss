@@ -348,6 +348,9 @@
     "data/test-kdtree.ss"
     "data/test-quadtree.ss"
     "data/test-sort.ss"
+    "data/test-sort-properties.ss"
+    "data/test-avl-properties.ss"
+    "data/test-heap-properties.ss"
     "data/test-chase-lev-deque.ss"
     "data/test-collection-protocol.ss"
     "data/test-collection-utils.ss"
@@ -373,6 +376,7 @@
     "algebra/test-poly-bridge.ss"
     "algebra/test-tropical-graph.ss"
     "algebra/test-egraph-groebner.ss"
+    "algebra/test-algebra-laws.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
     ;; Number Theory
@@ -421,6 +425,7 @@
     ;; QuickCheck
     "quickcheck/test-quickcheck.ss"
     "quickcheck/test-laws.ss"
+    "fp/test-monad-laws.ss"
     ;; FP Core
     "fp/test-markov.ss"
     "fp/test-protocol.ss"
@@ -428,6 +433,7 @@
     "fp/test-protocol-introspect.ss"
     "fp/test-templates.ss"
     "optics/test-optics.ss"
+    "optics/test-optics-laws.ss"
     "optics/test-bidirectional.ss"
     "optics/test-block-optics.ss"
     "optics/test-profunctor-optics.ss"

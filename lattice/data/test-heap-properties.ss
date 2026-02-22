@@ -4,6 +4,7 @@
 (load "core/lang/module.ss")
 (require 'quickcheck)
 (require 'heap)
+(require 'sort)
 
 ;;; ============================================================================
 ;;; Generators
@@ -45,9 +46,6 @@
 
 (define (same-elements? xs ys)
   (equal? (merge-sort xs) (merge-sort ys)))
-
-;;; We need sort to compare element bags
-(require 'sort)
 
 ;;; ============================================================================
 ;;; Structural invariants

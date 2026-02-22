@@ -6,7 +6,6 @@
 (require 'qc-laws)
 (require 'field)
 (require 'algebra/polynomial)
-(require 'group)
 
 ;;; ============================================================================
 ;;; Polynomial generators
@@ -16,9 +15,7 @@
 (define gen-q-coeffs
   (gen-bind (gen-int-range 0 5)
     (lambda (deg)
-      (gen-list-of (+ deg 1)
-        (gen-map (lambda (n) (if (= n 0) 0 n))
-                 (gen-int-range -5 5))))))
+      (gen-list-of (+ deg 1) (gen-int-range -5 5)))))
 
 (define gen-q-poly
   (gen-map (lambda (coeffs) (make-polynomial Q-field coeffs))
@@ -35,13 +32,6 @@
 (define gen-z7-poly
   (gen-map (lambda (coeffs) (make-polynomial Z7 coeffs))
            gen-z7-coeffs))
-
-;;; ============================================================================
-;;; Polynomial equality
-;;; ============================================================================
-
-(define (poly-equal? p1 p2)
-  (equal? (poly-coeffs p1) (poly-coeffs p2)))
 
 ;;; ============================================================================
 ;;; Polynomial ring laws over Q
@@ -113,16 +103,16 @@
         (<= sum-deg max-deg)))
     'tests 200)
 
-  (define-property "degree of product <= sum of degrees (for non-zero)"
+  (define-property "degree of product = sum of degrees (integral domain)"
     (gen-pair gen-q-poly gen-q-poly)
     (lambda (pair)
       (let* ([p (car pair)]
              [q (cdr pair)]
              [prod (poly-mul p q)])
         (if (or (poly-zero? p) (poly-zero? q))
-            #t  ; zero polynomial handled separately
-            (<= (poly-degree prod)
-                (+ (poly-degree p) (poly-degree q))))))
+            #t  ; zero polynomial: deg undefined
+            (= (poly-degree prod)
+               (+ (poly-degree p) (poly-degree q))))))
     'tests 200)
 
   (define-property "p + (-p) = zero"

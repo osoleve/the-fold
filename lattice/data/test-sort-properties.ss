@@ -9,10 +9,21 @@
 ;;; Helpers
 ;;; ============================================================================
 
+(define (count-occurrences x lst)
+  (let loop ([l lst] [n 0])
+    (cond [(null? l) n]
+          [(= x (car l)) (loop (cdr l) (+ n 1))]
+          [else (loop (cdr l) n)])))
+
 (define (same-elements? xs ys)
-  ;; Check that xs and ys are permutations of each other
-  ;; by sorting both and comparing
-  (equal? (merge-sort xs) (merge-sort ys)))
+  ;; Check that xs and ys are permutations by counting occurrences
+  ;; (avoids using merge-sort to validate merge-sort)
+  (and (= (length xs) (length ys))
+       (let loop ([remaining xs])
+         (or (null? remaining)
+             (and (= (count-occurrences (car remaining) xs)
+                     (count-occurrences (car remaining) ys))
+                  (loop (cdr remaining)))))))
 
 (define (all-satisfy? pred lst)
   (or (null? lst)
