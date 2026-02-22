@@ -12,7 +12,7 @@
 
 (doc 'module 'graph-matrix)
 (doc 'bridges '(data linalg))
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Adjacency matrix graph representation for linear algebra graph algorithms")
 (doc 'layer 'lattice)
 

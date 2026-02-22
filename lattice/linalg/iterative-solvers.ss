@@ -7,7 +7,7 @@
 (require 'matrix)
 
 (doc 'module 'iterative-solvers)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Iterative Linear System Solvers
 
 Implements iterative methods for solving Ax = b:

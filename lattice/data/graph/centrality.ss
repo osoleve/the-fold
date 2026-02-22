@@ -11,7 +11,7 @@
 (require 'graph-matrix)
 
 (doc 'module 'centrality)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Graph centrality measures: eigenvector, Katz, closeness, and betweenness centrality")
 (doc 'layer 'lattice)
 

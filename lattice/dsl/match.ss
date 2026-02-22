@@ -8,7 +8,7 @@
 (doc 'module 'match)
 (doc 'description "Pattern Matching Compilation - Efficient pattern matching for DSLs")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Compiles pattern matches to decision trees:
   (match expr

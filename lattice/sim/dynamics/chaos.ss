@@ -9,7 +9,7 @@
 (doc 'module 'chaos)
 (doc 'description "Chaos detection and analysis: Lyapunov exponents, fractal dimension, strange attractors, Poincaré sections")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features "RK4 integration, Lyapunov spectrum computation, Kaplan-Yorke dimension, Poincaré section extraction, strange attractor generation")
 
 ;;; ============================================================

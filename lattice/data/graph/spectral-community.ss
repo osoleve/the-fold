@@ -13,7 +13,7 @@
 (doc 'bridges '(data linalg))
 (doc 'description "Bridge between spectral graph theory (graph-laplacian) and community detection (graph-community)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Connects the Laplacian spectral methods with the community detection API:
   - spectral-bipartition: Fiedler-vector bipartition returning a label vector

@@ -18,7 +18,7 @@ Memory management:
 - Naive rollout: O(T) memory for T timesteps (stores full tape)
 - Checkpointed: O(sqrt(T)) memory (stores checkpoints, recomputes segments)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'basic-rollout)
 

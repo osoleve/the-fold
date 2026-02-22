@@ -7,7 +7,7 @@
 (doc 'module 'iteration)
 (doc 'description "Vector and matrix iteration macros for linalg")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Provides high-level iteration abstractions to replace repetitive do loops")
 (doc 'note "These macros expand to efficient iterative code without abstraction overhead")
 (doc 'note "No runtime overhead, just cleaner code")

@@ -11,7 +11,7 @@
 (doc 'module 'markov)
 (doc 'description "Discrete-time Markov chain analysis: stationary distributions, mixing times, ergodicity, entropy rates")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "A Markov chain is represented as a row-stochastic transition matrix P
   where P(i,j) = Pr(X_{n+1} = j | X_n = i). Each row sums to 1.

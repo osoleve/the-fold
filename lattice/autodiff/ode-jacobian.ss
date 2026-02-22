@@ -12,7 +12,7 @@ Replaces numerical finite-difference Jacobians with exact reverse-mode AD Jacobi
 Eliminates epsilon-sensitivity and provides machine-precision derivatives for
 linearization, stiffness detection, and future implicit solvers.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Exact Jacobian via Reverse-Mode AD

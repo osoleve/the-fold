@@ -7,7 +7,7 @@
 (doc 'module 'simplicial-complex)
 (doc 'description "Core data structures for computational topology")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 1)
 (doc 'dependencies '(data/set data/sort))
 

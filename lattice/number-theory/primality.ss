@@ -8,7 +8,7 @@
 (doc 'module 'primality)
 (doc 'description "Number-theoretic algorithms for primality testing and factorization")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'trial-division)
 

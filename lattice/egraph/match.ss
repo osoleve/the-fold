@@ -24,7 +24,7 @@
 (doc 'description "Pattern matching on e-graphs for equality saturation")
 (doc 'layer 'lattice)
 (doc 'tier 1)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Pattern Variables

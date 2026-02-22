@@ -11,7 +11,7 @@
 (doc 'module 'optics)
 (doc 'description "Comprehensive Optics Tower - A complete hierarchy of optics for composable data access")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'iso)
 (doc 'description "An isomorphism represents a reversible transformation. Iso s t a b means: s ≅ a and t ≅ b with consistent transformations. For simple isos: Iso' s a means s ≅ a. Laws: forward . backward = id, backward . forward = id")

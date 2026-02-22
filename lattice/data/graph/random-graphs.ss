@@ -18,7 +18,7 @@ Generators:
   barabasi-albert — Preferential attachment, produces scale-free networks
   watts-strogatz  — Small-world model: ring lattice with random rewiring")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================================
 ;;; Erdos-Renyi G(n,p)

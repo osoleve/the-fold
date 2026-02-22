@@ -4,7 +4,7 @@
 (doc 'module 'dag)
 (doc 'description "Tools for navigating the skill dependency DAG. Find dependencies, dependents, paths, and structural queries.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'direct-dependencies)
 

@@ -6,7 +6,7 @@
 (doc 'module 'tagless)
 (doc 'description "Tagless Final DSL Pattern - Alternative to Free monads that avoids intermediate data structures")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Key Concepts:
   - DSL defined as an \"algebra\" (type class interface)

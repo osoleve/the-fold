@@ -11,7 +11,7 @@
 (doc 'module 'svd)
 (doc 'description "Singular Value Decomposition and related operations")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Implements: svd (full A = UΣV^T), svd-thin (economy), pseudoinverse (Moore-Penrose), low-rank-approx, matrix-rank")
 
 ;;; ====

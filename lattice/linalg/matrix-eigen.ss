@@ -8,7 +8,7 @@
 (require 'matrix-decomp)
 
 (doc 'module 'matrix-eigen)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Eigenvalue and Eigenvector Computation
 
 Algorithms for computing eigenvalues and eigenvectors:

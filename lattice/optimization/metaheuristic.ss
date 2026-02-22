@@ -9,7 +9,7 @@
 (doc 'module 'metaheuristic)
 (doc 'description "Global optimization via metaheuristics: simulated annealing, genetic algorithms, particle swarm")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'overview)
 (doc 'note "Black-box global optimization methods that don't require gradients.

@@ -8,7 +8,7 @@
 (doc 'module 'diagnostics)
 (doc 'description "Model Diagnostics — Diagnostic measures for regression models")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "Residual types (raw, standardized, studentized)")
 (doc 'description "Leverage (hat matrix diagonal)")

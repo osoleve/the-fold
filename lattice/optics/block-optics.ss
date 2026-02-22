@@ -19,7 +19,7 @@ Composable optics for accessing and traversing content-addressed blocks:
   - block-refs-each    : Traversal over all refs
   - follow-ref         : Affine that follows a ref through a CAS")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'basic-lenses)
 

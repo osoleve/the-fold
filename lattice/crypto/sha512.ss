@@ -5,7 +5,7 @@
 (doc 'note "Uses 64-bit arithmetic with explicit masking since Chez Scheme fixnums are 61 bits. Follows FIPS 180-4 specification exactly")
 (doc 'tier 0)
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section '64-bit-arithmetic)
 

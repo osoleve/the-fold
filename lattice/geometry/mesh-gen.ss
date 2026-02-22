@@ -13,7 +13,7 @@
 (doc 'module 'mesh-gen)
 (doc 'description "Mesh generation: Delaunay triangulation, quality metrics, and refinement")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section: 2D Point and Triangle Representation

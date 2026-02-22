@@ -11,7 +11,7 @@
 (doc 'module 'regularized)
 (doc 'description "Regularized Regression — Ridge, Lasso, and Elastic Net regression")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "ridge-fit: L2 regularized regression")
 (doc 'description "lasso-fit: L1 regularized regression (coordinate descent)")

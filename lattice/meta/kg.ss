@@ -6,7 +6,7 @@
 (doc 'module 'kg)
 (doc 'description "Lattice knowledge graph builder from manifest files")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Quiet Load Mode

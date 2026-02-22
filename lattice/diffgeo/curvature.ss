@@ -11,7 +11,7 @@
 (doc 'module 'curvature)
 (doc 'description "Curvature Computations - Curvature measures for Riemannian manifolds and surfaces")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Provides: Metric tensors, Christoffel symbols, Riemann curvature tensor, Ricci tensor, scalar curvature, surface curvatures")
 (doc 'note "A Riemannian metric g assigns an inner product to each tangent space: g = Σ_ij g_ij dx^i ⊗ dx^j")
 (doc 'note "The Levi-Civita connection: Γ^k_ij = ½ g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})")

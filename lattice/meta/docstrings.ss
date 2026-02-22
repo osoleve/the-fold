@@ -1,7 +1,7 @@
 (doc 'module 'docstrings)
 (doc 'description "Extract ;;; docstrings from source files and associate them with function definitions for improved search indexing.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Docstring format: ;;; function-name : type-signature followed by description lines, then (define (function-name args...) ...)")
 
 (doc 'section 'state)

@@ -10,7 +10,7 @@
 (doc 'module 'voting)
 (doc 'description "Social choice functions and voting rules for aggregating preferences. Covers positional rules (Borda, plurality), Condorcet methods (Copeland, Schulze), and related concepts")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key concepts: preference profile (collection of voter rankings), positional rules (score based on position), Condorcet winner (beats all others pairwise), Schulze method (resolves cycles via strongest path). Connects to cooperative games: voting games are simple games, power indices measure voting power")
 
 (doc 'section 'preference-profiles)

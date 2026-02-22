@@ -6,7 +6,7 @@
 (doc 'module 'differencing)
 (doc 'description "Time Series Differencing — Differencing and integration for time series")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "difference: d-th order differencing")
 (doc 'description "integrate: reverse differencing")

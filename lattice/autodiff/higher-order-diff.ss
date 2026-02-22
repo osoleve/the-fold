@@ -12,7 +12,7 @@
 (doc 'module 'higher-order-diff)
 (doc 'description "Higher-Order Differentiation - Jacobian, Hessian, and vector-product utilities for efficient higher-order derivative computation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key operations: jacobian (full Jacobian matrix), hessian (Hessian matrix using finite differences), hessian-exact (exact Hessian via hyperdual numbers), jvp (Jacobian-vector product, forward mode), vjp (Vector-Jacobian product, reverse mode), second-derivative-exact (exact d^2f/dx^2 via hyperdual numbers)")
 
 (doc 'section 'jacobian-computation)

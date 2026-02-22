@@ -10,7 +10,7 @@
 (doc 'description "Sorting algorithms for lists and vectors")
 (doc 'layer 'lattice)
 (doc 'tier 0)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'merge-sort)
 

@@ -19,7 +19,7 @@ For fully differentiable physics, this module provides:
 2. Contact geometry gradients (analytical)
 3. Integration with traced rigid bodies")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'circle-circle-collision-response)
 

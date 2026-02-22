@@ -9,7 +9,7 @@
 (doc 'module 'discrete-control)
 (doc 'description "Discretization methods for converting continuous-time state-space systems to discrete-time, plus discrete-time simulation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'discrete-state-space)
 (doc 'description "A discrete state-space system uses the same (ss A B C D) structure but with the interpretation: x[k+1] = A*x[k] + B*u[k], y[k] = C*x[k] + D*u[k]. We add metadata to distinguish discrete from continuous systems")

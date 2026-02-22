@@ -19,7 +19,7 @@
 (doc 'description "Cost models for e-graph extraction")
 (doc 'layer 'lattice)
 (doc 'tier 1)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Cost Model Protocol

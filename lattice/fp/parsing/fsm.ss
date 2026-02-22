@@ -9,7 +9,7 @@
 (doc 'module 'fsm)
 (doc 'description "Finite State Machine Library — A pure functional implementation of finite state machines supporting deterministic (DFA), non-deterministic (NFA), and epsilon-NFA automata.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features '(dfa nfa epsilon-nfa construction execution nfa-to-dfa minimization composition language-operations moore-mealy visualization))
 
 (doc 'section 'finite-state-machine-types)

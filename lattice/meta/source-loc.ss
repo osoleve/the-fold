@@ -1,7 +1,7 @@
 (doc 'module 'source-loc)
 (doc 'description "Source location tracking for jump-to-definition workflows")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'state)
 

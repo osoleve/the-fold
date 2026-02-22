@@ -4,7 +4,7 @@
 (doc 'module 'tiles/units)
 (doc 'description "Unit/entity management: creation, placement, movement, visibility")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'unit-protocol)
 (doc 'note "Unit fields: id, type, team, properties")

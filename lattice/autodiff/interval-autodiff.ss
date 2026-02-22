@@ -4,7 +4,7 @@
 (doc 'module 'interval-autodiff)
 (doc 'description "Interval Automatic Differentiation - extends autodiff to produce interval-valued gradients for verified optimization")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 1)
 (doc 'note "Key insight: The gradient of f at any point x in box B lies within the interval gradient computed here. Enables monotonicity pruning and verified optimization with rigorous gradient bounds.")
 

@@ -10,7 +10,7 @@
 (doc 'module 'ode-state-space)
 (doc 'description "Bridge between ODE systems and state-space models. Provides linearization of nonlinear ODEs around equilibrium points, conversion of state-space models to ODE systems, and state-space simulation via ODE integration.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Numerical Jacobian (finite differences)

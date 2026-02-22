@@ -1,7 +1,7 @@
 (doc 'module 'docs)
 (doc 'description "S-expression doc form extraction for search and inspection")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'state)
 

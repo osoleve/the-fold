@@ -19,7 +19,7 @@ Supported constraint types:
 - Revolute joint (shared pivot point)
 - Anchor constraint (pin to world point)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'spring-constraint)
 

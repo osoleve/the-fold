@@ -11,7 +11,7 @@
 (doc 'module 'graph-layout)
 (doc 'description "Force-directed graph layout using Fruchterman-Reingold algorithm")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section: Graph Representation

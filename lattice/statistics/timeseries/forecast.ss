@@ -6,7 +6,7 @@
 (doc 'module 'forecast)
 (doc 'description "Forecasting Utilities — Forecast accuracy metrics and utilities")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "mape: Mean Absolute Percentage Error")
 (doc 'description "rmse: Root Mean Squared Error")

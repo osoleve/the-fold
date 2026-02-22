@@ -5,7 +5,7 @@
 (doc 'module 'symbolic-metrics)
 (doc 'description "Exact symbolic metric derivatives for standard coordinate systems")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Eliminates numerical differentiation errors for polar, spherical, cylindrical metrics")
 (doc 'note "Provides exact ∂g_{ij}/∂x^l for Christoffel symbol computation")
 

@@ -11,7 +11,7 @@
   Provides runtime bridge registry and automatic candidate detection via module
   dependency analysis.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====================================================================
 ;;; Bridge Registry

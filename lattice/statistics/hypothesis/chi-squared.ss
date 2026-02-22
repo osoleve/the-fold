@@ -9,7 +9,7 @@
 (doc 'module 'chi-squared)
 (doc 'description "Chi-Squared Tests — Goodness-of-fit and independence tests")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "chi-squared-test-goodness: Compare observed vs expected frequencies")
 (doc 'description "chi-squared-test-independence: Test independence in contingency table")

@@ -8,7 +8,7 @@
 Uses a label convention: @skill:name, @module:name, @export:name. Pure
 functions for parsing, creating, and indexing cross-reference labels.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Label Convention

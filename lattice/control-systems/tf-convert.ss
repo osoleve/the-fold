@@ -21,7 +21,7 @@
 (require 'control/transfer-function)
 
 (doc 'module 'tf-convert)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Bidirectional conversion between state-space and transfer function representations")
 (doc 'layer 'lattice)
 

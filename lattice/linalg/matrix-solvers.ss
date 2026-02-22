@@ -8,7 +8,7 @@
 (require 'matrix-decomp)
 
 (doc 'module 'matrix-solvers)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Linear Equation Solvers
 
 Solvers for Ax = b and related problems.

@@ -8,7 +8,7 @@
 (doc 'module 'collision-detection3d)
 (doc 'description "3D Collision Detection - Comprehensive collision detection for 3D physics including: AABB3D (Axis-Aligned Bounding Box), Sphere primitives, Box3D (oriented box), Broad phase (spatial hash).")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Manifold structure: (list normal-vec3 penetration contact-vec3) where normal is unit vector from A toward B, penetration is positive overlap depth, contact is world-space contact point")
 
 (doc 'section 'point-in-shape-tests)

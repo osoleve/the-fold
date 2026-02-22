@@ -9,7 +9,7 @@
 (doc 'bridges '(autodiff fp))
 (doc 'description "Symbolic-Autodiff Integration - bridges symbolic differentiation with automatic differentiation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key functions: eval-expr (evaluate symbolic expressions numerically), simplify (algebraic simplification), expr-to-traced (compile expressions to traced functions)")
 
 (define sym-gradient gradient)

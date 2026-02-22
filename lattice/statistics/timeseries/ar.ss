@@ -12,7 +12,7 @@
 (doc 'module 'ar)
 (doc 'description "Autoregressive Models — AR(p) model fitting and forecasting")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "ar-fit: Fit AR(p) model using Yule-Walker equations")
 (doc 'description "ar-predict: One-step ahead prediction")

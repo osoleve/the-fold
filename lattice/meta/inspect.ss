@@ -4,7 +4,7 @@
 (doc 'module 'inspect)
 (doc 'description "Skill introspection providing detailed information for agent consumption")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "I/O functions (test discovery, export verification) in boundary/meta/inspect-io.ss")
 
 ;;; ====

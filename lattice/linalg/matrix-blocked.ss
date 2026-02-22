@@ -9,7 +9,7 @@
 (doc 'module 'matrix-blocked)
 (doc 'description "Cache-efficient blocked matrix algorithms: tiled multiply, tiled transpose, Strassen.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Client must load prelude.ss, vec.ss, matrix.ss before this file.")
 
 ;;; ====

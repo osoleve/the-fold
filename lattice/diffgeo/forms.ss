@@ -9,7 +9,7 @@
 (doc 'module 'forms)
 (doc 'description "Differential Forms - Exterior algebra, wedge product, and exterior derivative")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "A k-form is an alternating multilinear map: (TpM)^k → R")
 (doc 'note "The exterior algebra Λ(T*pM) = ⊕ Λ^k(T*pM) where Λ^k is the space of k-forms")
 (doc 'note "Components use multi-index notation: ω = Σ_{I} ω_I dx^I where I = (i₁ < i₂ < ... < iₖ)")

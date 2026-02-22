@@ -9,7 +9,7 @@
 (doc 'module 'ma)
 (doc 'description "Moving Average Models — MA(q) model fitting and forecasting")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "ma-fit: Fit MA(q) model via innovations algorithm")
 (doc 'description "ma-predict: One-step ahead prediction")

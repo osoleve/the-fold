@@ -9,7 +9,7 @@
 (doc 'description "Aho-Corasick Multi-Pattern String Matching")
 (doc 'note "Dogfooding new data structures: Queue for BFS, Dict for transitions")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "State = (id Dict Set Nat) where Dict: Char -> Nat, Set of patterns, Nat is failure link")
 (define-record-type ac-state

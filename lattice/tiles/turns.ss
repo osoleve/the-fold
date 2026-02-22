@@ -4,7 +4,7 @@
 (doc 'module 'tiles/turns)
 (doc 'description "Turn-based game system: turn order, action points, phases, history")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'turn-state)
 (doc 'note "Turn state fields: turn-number, active-unit, turn-order, action-points, phase, history")

@@ -7,7 +7,7 @@
 (doc 'module 'matrix)
 (doc 'description "Core matrix operations for linear algebra")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Matrices are represented as (matrix rows cols data) where data is a flat vector in row-major order for cache efficiency")
 
 ;;; ====

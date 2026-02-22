@@ -6,7 +6,7 @@
 (require 'effects)
 
 (doc 'module 'dsl)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Command/Instruction Definitions A DSL is defined by its instruction set. Each instruction has a tag, parameters, and a continuation. This follows the Free monad command pattern: (tag payload continuation)")
 (doc 'layer 'lattice)
 (define (make-instruction tag payload k)

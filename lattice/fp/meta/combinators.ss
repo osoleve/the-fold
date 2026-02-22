@@ -8,7 +8,7 @@
 (doc 'module 'combinators)
 (doc 'description "Practical FP combinators — Higher-order function utilities and combinators for functional programming patterns without requiring full type class machinery. Features: function composition (compose, pipe), currying and partial application, common combinators (id, const, flip, on), tuple operations, function lifting and application, logical combinators, Maybe/Option operations, Either/Result operations.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'pair-convention)
 (doc 'note "Throughout this module, 2-element pairs use Scheme's native cons cells: (cons a b) produces (a . b), car extracts the first element, cdr extracts the second element. For 3+ element tuples, we use lists: (list a b c). This is consistent with the rest of the FP toolkit.")

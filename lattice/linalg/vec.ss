@@ -7,7 +7,7 @@
 (doc 'module 'vec)
 (doc 'description "Core vector operations for linear algebra")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Vectors are represented as Scheme vectors for efficient O(1) access")
 (doc 'note "All operations are pure and total (return error values rather than throwing)")
 

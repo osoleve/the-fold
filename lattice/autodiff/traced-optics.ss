@@ -12,7 +12,7 @@
 (doc 'bridges '(optics autodiff physics))
 (doc 'description "Optics + Autodiff Integration - enables computing gradients through optic-focused paths")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Core insight: use optics to specify WHICH parameter to differentiate, and autodiff to compute the gradient THROUGH that path. User API: optic-gradient, grad-at, optimize-at")
 
 (doc 'section 'value-tracing)

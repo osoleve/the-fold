@@ -13,7 +13,7 @@
 (doc 'module 'linear)
 (doc 'description "Linear Regression — Ordinary Least Squares (OLS) and Weighted Least Squares (WLS)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "linear-model-fit: OLS regression with full diagnostics")
 (doc 'description "weighted-linear-fit: WLS regression")

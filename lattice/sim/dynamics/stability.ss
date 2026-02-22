@@ -12,7 +12,7 @@
 (doc 'module 'stability)
 (doc 'description "Fixed point detection, linearization, eigenvalue analysis, and stability classification for continuous-time dynamical systems")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features "Fixed point (equilibrium) detection, Jacobian matrix computation (linearization), Eigenvalue-based stability classification, Stability types: stable/unstable node, saddle, spiral, center")
 
 (doc 'section 'fixed-point-detection)

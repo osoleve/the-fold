@@ -11,7 +11,7 @@
 (doc 'module 'digital-filters)
 (doc 'description "Comprehensive digital filter library: FIR, IIR, Butterworth, Chebyshev, frequency response analysis, real-time filtering")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Window Functions

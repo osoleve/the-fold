@@ -8,7 +8,7 @@
 (doc 'module 'tangent)
 (doc 'description "Tangent and Cotangent Spaces - Differential geometry structures for tangent vectors and differential forms")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "A tangent vector at a point p represents a direction on the manifold")
 (doc 'note "Tangent components (v¹, ..., vⁿ) transform covariantly: v'ⁱ = Σⱼ (∂x'ⁱ/∂xʲ) vʲ = Jⁱⱼ vʲ")
 (doc 'note "A cotangent vector (1-form) at p is a linear functional on tangent vectors")

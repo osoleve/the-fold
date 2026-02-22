@@ -4,7 +4,7 @@
 (doc 'module 'manifest-migration)
 (doc 'description "Bidirectional manifest schema migrations for smooth evolution")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Part 1: Manifest Version Detection

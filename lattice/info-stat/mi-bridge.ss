@@ -16,7 +16,7 @@
   MI-based feature selection, entropy-based model comparison for regression
   results, and KL divergence for empirical distribution comparison.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================================
 ;;; Section 1: Mutual Information Feature Selection

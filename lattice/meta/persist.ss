@@ -4,7 +4,7 @@
 (doc 'module 'persist)
 (doc 'description "Lattice index persistence — pure serialization and deserialization logic")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Cache Configuration

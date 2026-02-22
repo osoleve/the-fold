@@ -14,7 +14,7 @@
   Betti numbers: beta_0 = number of connected components, beta_1 = number of independent cycles.
   All homology functions use canonical Z_2 implementation from topology/homology.ss.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'dependencies '(topology/homology topology/simplicial-complex))
 
 ;;; --- Graph to Simplicial Complex ---

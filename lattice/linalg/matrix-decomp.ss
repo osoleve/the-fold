@@ -9,7 +9,7 @@
 (doc 'module 'matrix-decomp)
 (doc 'description "Matrix Decompositions — Fundamental matrix decomposition algorithms: LU decomposition with partial pivoting, QR decomposition (modified Gram-Schmidt), Cholesky decomposition.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "This is Core code: pure (except where noted), total, assumes reasonable input. Dependencies (must be loaded by client in correct order): prelude.ss, matrix.ss (which loads prelude.ss and vec.ss), matrix-decomp.ss (this file). Do NOT load dependencies here to avoid redefinition issues.")
 

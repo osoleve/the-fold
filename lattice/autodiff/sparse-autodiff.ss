@@ -14,7 +14,7 @@
 (doc 'module 'sparse-autodiff)
 (doc 'description "Sparse Automatic Differentiation - efficient autodiff for large, sparse systems using sparse matrix representations (COO, CSR, CSC)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key features: sparse Jacobian computation with automatic sparsity detection, memory-efficient sparse gradient storage, sparse Hessian-vector products, integration with traced/dual number systems, pattern-based sparse Jacobian computation")
 
 (doc 'section 'sparse-gradient-representation)

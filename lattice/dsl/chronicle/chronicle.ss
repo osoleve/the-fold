@@ -8,7 +8,7 @@
 (doc 'module 'chronicle)
 (doc 'description "Chronicle: A Narrative DSL - Next-generation narrative engine")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Dogfoods:
   - Quasiquotation (dsl/quasi.ss) for template expansion

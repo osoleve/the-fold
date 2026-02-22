@@ -10,7 +10,7 @@
 (doc 'module 'finite-diff)
 (doc 'description "Finite difference operators and PDE solvers: stencils for spatial derivatives, boundary conditions, and solvers for heat/wave/Laplace equations")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section 1: Difference Operators

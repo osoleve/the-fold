@@ -9,7 +9,7 @@
 (doc 'module 'matrix-blocked-decomp)
 (doc 'description "Range-parameterized kernels extracted from LU and QR for parallel dispatch.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Client must load prelude.ss, vec.ss, matrix.ss before this file. Does NOT require matrix-decomp.ss.")
 
 ;;; ====

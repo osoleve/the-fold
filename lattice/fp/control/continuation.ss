@@ -8,7 +8,7 @@
 (doc 'module 'continuation)
 (doc 'description "The Continuation monad captures the rest of the computation as a first-class value, enabling powerful control flow patterns.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features "Cont monad, ContT transformer, callCC, shift/reset, coroutines, backtracking, exception-like control flow")
 (doc 'type "Cont r a = (a -> r) -> r")
 (doc 'note "The r is the final result type of the computation")

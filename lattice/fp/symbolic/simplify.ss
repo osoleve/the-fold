@@ -8,7 +8,7 @@
 (doc 'description "Comprehensive algebraic simplification for symbolic expressions")
 (doc 'features "Collect like terms, expand products, factor expressions, trigonometric identities, logarithm/exponential rules, canonical form conversion, simplification heuristics")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'helper-functions)
 

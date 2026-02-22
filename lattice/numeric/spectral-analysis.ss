@@ -10,7 +10,7 @@
 (doc 'module 'spectral-analysis)
 (doc 'description "Spectral analysis tools: STFT, spectrograms, PSD estimation, Welch's method, periodogram analysis")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Short-Time Fourier Transform (STFT)

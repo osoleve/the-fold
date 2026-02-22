@@ -2,7 +2,7 @@
   (load "core/lang/module.ss"))
 (require 'prelude)
 (doc 'module 'control/controller-design)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Design and synthesis of controllers for linear time-invariant systems. Provides PID controller design (tuning methods), pole placement / state feedback, observer design (full-order and reduced-order), LQR (Linear Quadratic Regulator), LQG (LQR with Kalman filter), basic H-infinity concepts")
 (doc 'dependencies "core/base/prelude.ss, lattice/linalg/matrix.ss, lattice/linalg/matrix-eigen.ss, lattice/linalg/matrix-solvers.ss, lattice/control-systems/state-space.ss, lattice/control-systems/transfer-function.ss, lattice/control-systems/stability.ss")
 (require 'matrix)

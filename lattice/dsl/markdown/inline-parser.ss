@@ -8,7 +8,7 @@
 (doc 'module 'markdown-inline-parser)
 (doc 'description "Markdown Inline Parser - Parses inline markdown elements: emphasis, code, links, plain text")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Inline elements:
   **bold** or __bold__     -> (strong ...)

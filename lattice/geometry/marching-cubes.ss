@@ -6,7 +6,7 @@
 (doc 'module 'marching-cubes)
 (doc 'description "Marching Cubes algorithm for extracting triangle meshes from implicit surfaces (SDFs)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'provides "Extract triangle mesh approximating zero-level isosurface from SDF function")
 
 (doc 'section 'marching-cubes-configuration)

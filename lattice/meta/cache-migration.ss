@@ -4,7 +4,7 @@
 (doc 'module 'cache-migration)
 (doc 'description "Bidirectional cache format migrations for smooth upgrades")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Part 1: Cache Migration Registry

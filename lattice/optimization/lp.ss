@@ -13,7 +13,7 @@
 (doc 'module 'lp)
 (doc 'description "Linear programming using the revised simplex method")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'overview)
 (doc 'note "Pure functional implementation of linear programming using the revised simplex method.

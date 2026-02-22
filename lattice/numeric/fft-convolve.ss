@@ -10,7 +10,7 @@
 (doc 'module 'fft-convolve)
 (doc 'description "FFT-based convolution bridge: wires together DFT, pointwise multiply, and IDFT into the standard frequency-domain filtering pipeline. Provides linear convolution, cross-correlation, and frequency-domain filtering via FFT.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Internal helpers

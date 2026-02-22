@@ -6,7 +6,7 @@
 (doc 'module 'exponential)
 (doc 'description "Exponential Smoothing — Simple, double, and triple (Holt-Winters) exponential smoothing")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "simple-exponential-smooth: SES (alpha parameter)")
 (doc 'description "holt-smooth: Double exponential (trend)")

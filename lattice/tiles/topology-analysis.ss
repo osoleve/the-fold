@@ -5,7 +5,7 @@
 (doc 'description "Topological analysis of game boards using simplicial homology.
 Detects bottlenecks, holes in terrain, and critical corridors for strategic pathfinding.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 2)
 (doc 'dependencies '(tiles/core topology/simplicial-complex topology/homology))
 

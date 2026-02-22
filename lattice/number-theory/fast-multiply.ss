@@ -16,7 +16,7 @@
 (doc 'module 'fast-multiply)
 (doc 'description "Fast multiplication algorithms: Karatsuba, Toom-Cook, and hybrid strategies")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================================
 ;;; Limb List Representation

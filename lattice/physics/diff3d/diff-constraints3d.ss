@@ -11,7 +11,7 @@
 (doc 'module 'diff-constraints3d)
 (doc 'description "Differentiable 3D Constraint Solver - Constraint system with gradient support using truncated unrolling. Implements soft constraint forces that enable differentiable simulation.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Supported constraint types: Spring constraint (soft distance with stiffness), Distance constraint (stiff spring), Ball-socket joint (point-to-point, 3 DOF removed), Hinge joint (5 DOF removed), Fixed joint (6 DOF removed), Anchor constraint (pin to world point)")
 
 (doc 'section 'spring-constraints)

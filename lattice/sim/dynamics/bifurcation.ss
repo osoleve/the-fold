@@ -12,7 +12,7 @@
 (doc 'module 'bifurcation)
 (doc 'description "Bifurcation analysis for dynamical systems: parameter continuation, bifurcation detection (saddle-node, transcritical, pitchfork, Hopf, period-doubling), bifurcation diagrams, and normal form computation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features "Parameter continuation, bifurcation point detection, stability monitoring, bifurcation diagrams, Hopf normal form")
 
 ;;; ============================================================

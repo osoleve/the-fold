@@ -7,7 +7,7 @@
 (doc 'module 'mesh-sdf)
 (doc 'description "Mesh signed distance fields with BVH acceleration")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'provides "SDF computation for triangle meshes: signed distance from any point to surface (negative inside, zero on surface, positive outside)")
 
 (doc 'section 'mesh-structure)

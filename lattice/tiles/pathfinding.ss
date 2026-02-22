@@ -4,7 +4,7 @@
 (doc 'module 'tiles/pathfinding)
 (doc 'description "Generic pathfinding algorithms: BFS, Dijkstra, A*")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'priority-queue)
 

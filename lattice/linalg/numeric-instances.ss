@@ -7,7 +7,7 @@
 (require 'matrix)
 
 (doc 'module 'numeric-instances)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Num/Fractional/Floating instances for Vec and Matrix
 
 This module provides numeric type class instances for Vec and Matrix,

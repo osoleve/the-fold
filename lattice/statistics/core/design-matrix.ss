@@ -8,7 +8,7 @@
 (doc 'module 'design-matrix)
 (doc 'description "Design Matrix Construction — Utilities for constructing design matrices for regression")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "Intercept addition")
 (doc 'description "Column standardization (z-score)")

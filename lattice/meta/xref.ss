@@ -3,7 +3,7 @@
 (doc 'module 'xref)
 (doc 'description "Cross-reference tracking for function call relationships and impact analysis")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'state)
 

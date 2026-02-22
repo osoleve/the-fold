@@ -5,7 +5,7 @@
 (doc 'module 'normal-form)
 (doc 'description "Normal form (strategic) games with payoff matrices. Supports Nash equilibrium, dominated strategy elimination, mixed strategies, and best response dynamics.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "A normal form game consists of: players (indexed 0, 1, ... n-1), strategy sets for each player, payoff function: strategy profile -> payoff vector. For 2-player games, we represent payoffs as a matrix where rows are Player 1's strategies, columns are Player 2's strategies, each cell contains (payoff1 . payoff2).")
 
 (doc 'section 'game-representation)

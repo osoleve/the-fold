@@ -16,7 +16,7 @@ Connects persistent homology (Betti numbers, persistence diagrams) to
 optimization landscape characterization — counting connected components
 (local minima), loops (saddle structures), voids.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Pipeline:
   1. Sample points from loss surface (grid or around trajectory)

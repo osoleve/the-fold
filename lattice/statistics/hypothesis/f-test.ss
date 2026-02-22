@@ -9,7 +9,7 @@
 (doc 'module 'f-test)
 (doc 'description "F-Tests — F-tests for variance comparison and regression")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "f-test-variance: Compare variances of two samples")
 (doc 'description "f-test-regression: Overall significance of regression")

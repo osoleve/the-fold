@@ -10,7 +10,7 @@
 (doc 'module 'strategic-voting)
 (doc 'description "Strategic voting equilibrium analysis: Nash equilibria in voting games, iterative best response dynamics, price of anarchy, and Gibbard-Satterthwaite demonstrations")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key concepts: (1) A voting game models each voter as a strategic player choosing a ballot; (2) Best response: the ballot that gives a voter their most-preferred winner given others' ballots; (3) Nash equilibrium: no voter can improve by unilateral deviation; (4) Price of anarchy: ratio of truthful welfare to worst equilibrium welfare")
 (doc 'note "IMPORTANT: All voting-rule functions must be deterministic and return a SINGLE candidate (not a set of tied winners). Tie-breaking must be handled within the voting rule.")
 

@@ -5,7 +5,7 @@
 (doc 'module 'pipeline/stage)
 (doc 'description "Core Stage Algebra. Stages are the building blocks of pipelines. A Stage transforms input to output within a context, producing a StageResult. Stage ctx i o = ctx -> i -> StageResult o")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Effect interpretation happens in boundary/pipeline/interpreter.ss")
 (doc 'features "StageResult sum type (ok, err, retry, skip, halt, await); Stage constructors (pure, read, ask, local); Arrow-style composition (>>>, &&&, choice, ***); Conditional stages (if, case, when, unless); Monadic interface (bind, map, sequence); Effect staging (perform, for interpreter)")
 (doc 'dependencies '(prelude.ss fp/combinators.ss))

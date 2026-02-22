@@ -11,7 +11,7 @@
 (doc 'module 'pde-time)
 (doc 'description "Time stepping schemes for PDEs: explicit, implicit, and adaptive methods")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section 1: Time Stepping Overview

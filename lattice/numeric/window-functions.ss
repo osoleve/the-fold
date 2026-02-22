@@ -7,7 +7,7 @@
 (doc 'module 'window-functions)
 (doc 'description "Window functions for signal processing: reduce spectral leakage, smooth signal boundaries for Fourier analysis")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Basic Window Functions

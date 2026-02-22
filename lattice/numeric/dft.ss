@@ -9,7 +9,7 @@
 (doc 'module 'dft)
 (doc 'description "Comprehensive DFT/FFT implementation for signal processing, spectral analysis, and convolution operations")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Utilities

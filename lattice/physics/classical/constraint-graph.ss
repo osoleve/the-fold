@@ -8,7 +8,7 @@
 (doc 'module 'constraint-graph)
 (doc 'description "Graph algorithms for physics constraint systems: islands, ordering, parallelization")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'section 'overview)
 
 (doc 'note "KEY CONCEPTS:

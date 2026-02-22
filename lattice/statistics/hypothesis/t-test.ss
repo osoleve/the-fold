@@ -9,7 +9,7 @@
 (doc 'module 't-test)
 (doc 'description "T-Tests — One-sample, two-sample, and paired t-tests")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "t-test-one-sample: Test mean = mu0")
 (doc 'description "t-test-two-sample: Compare two group means")

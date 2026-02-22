@@ -12,7 +12,7 @@
 (doc 'module 'diff-collision3d)
 (doc 'description "Differentiable 3D Collision Response - Impulse-based collision response with gradient support for 3D. Combines soft contact forces with rigid body dynamics.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "For fully differentiable physics, this module provides: 1. Soft contact model (via smooth-collision3d.ss), 2. Contact geometry gradients (analytical), 3. Integration with traced 3D rigid bodies. Key difference from 2D: torque is a Vec3 (cross product), not scalar.")
 
 (doc 'section 'sphere-sphere-collision)

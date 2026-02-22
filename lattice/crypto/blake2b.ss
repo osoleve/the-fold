@@ -5,7 +5,7 @@
 (doc 'features "Configurable output length (1-64 bytes), optional key for MAC mode (up to 64 bytes), optional salt and personalization")
 (doc 'tier 0)
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section '64-bit-arithmetic)
 

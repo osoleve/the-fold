@@ -6,7 +6,7 @@
 (doc 'description "Declarative Optic Query DSL")
 (doc 'note "A macro-based query language that compiles to optic-query primitives. Provides SQL-like syntax for querying data through optic paths.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'design-goals)
 (doc 'description "Declarative: write WHAT you want, not HOW to get it. Composable: build complex queries from simple clauses. Readable: SQL-like syntax that's easy to understand. Efficient: compiles to existing optimized primitives.")

@@ -27,7 +27,7 @@
 (doc 'bridges '(linalg optics))
 (doc 'description "Optics for matrix operations - composable data access and autodiff support")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section: Cell Lenses

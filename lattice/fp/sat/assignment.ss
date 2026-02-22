@@ -6,7 +6,7 @@
 (doc 'module 'assignment)
 (doc 'description "SAT solver assignment tracking - partial variable assignments with decision levels")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Tracks which variables are assigned, their values, decision levels, and antecedent clauses")
 
 (doc 'section 'assignment-structure)

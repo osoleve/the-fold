@@ -7,7 +7,7 @@
 (doc 'module 'abstract-interp)
 (doc 'description "Abstract Interpretation via Galois Connections. Provides domains and abstract semantics for static analysis: Signs⊣Embed, Intervals⊣Embed, Types⊣Erase, Reach⊣Concrete.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 1)
 (doc 'see-also '(adjunction.ss interval.ss interval-autodiff.ss))
 

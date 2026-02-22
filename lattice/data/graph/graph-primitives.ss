@@ -11,7 +11,7 @@
 (doc 'description "Pure graph data structures: visited sets, queues, stacks, hash utilities, cycle utilities.
   Composable building blocks for graph algorithms.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "DESIGN PRINCIPLES:
   - Pure functional — no I/O or store access

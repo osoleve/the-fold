@@ -18,7 +18,7 @@
 (require 'control/discrete-control)
 
 (doc 'module 'z-transform)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Discrete transfer functions in z-domain for discrete-time LTI systems")
 (doc 'layer 'lattice)
 

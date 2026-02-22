@@ -6,7 +6,7 @@
 (doc 'module 'mesh-topology)
 (doc 'description "Topological analysis of triangle meshes via simplicial complex conversion")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'provides "1. Mesh integrity validation via Betti numbers (B_0: connected components, B_1: handles/tunnels, B_2: enclosed voids)
 2. Non-manifold geometry detection (edges shared by >2 triangles, vertices with non-disk-like neighborhoods)
 3. Topology verification for procedural meshes")

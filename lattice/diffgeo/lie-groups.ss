@@ -8,7 +8,7 @@
 (doc 'module 'lie-groups)
 (doc 'description "Lie Groups and Algebras - Rotation and transformation groups with their Lie algebras")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "A Lie group G is a smooth manifold that is also a group")
 (doc 'note "The tangent space at the identity element forms the Lie algebra 𝔤")
 (doc 'note "The exponential map exp: 𝔤 → G converts infinitesimal motions into finite transformations")

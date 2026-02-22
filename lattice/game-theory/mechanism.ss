@@ -10,7 +10,7 @@
 (doc 'module 'mechanism)
 (doc 'description "Mechanism design: auctions, incentive compatibility, VCG mechanisms")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "A mechanism is a game where the designer controls the rules to achieve desired outcomes. Core concepts: DSIC (dominant strategy incentive compatible) means truthful reporting is a dominant strategy. IR (individual rationality) means participants gain non-negative utility. Efficiency means maximizing total welfare.")
 

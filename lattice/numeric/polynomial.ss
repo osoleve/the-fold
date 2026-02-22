@@ -12,7 +12,7 @@
 (doc 'description "Polynomial representation and operations for control theory, signal processing, and numerical analysis")
 (doc 'note "Polynomials represented with coefficients in descending power order: p(x) = a_n*x^n + ... + a_0 stored as #(a_n ... a_0)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Polynomial Representation

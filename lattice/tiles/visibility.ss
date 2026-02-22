@@ -4,7 +4,7 @@
 (doc 'module 'tiles/visibility)
 (doc 'description "Line of sight and field of view algorithms for tile-based games")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'line-of-sight)
 

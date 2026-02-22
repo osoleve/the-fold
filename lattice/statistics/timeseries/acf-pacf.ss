@@ -8,7 +8,7 @@
 (doc 'module 'acf-pacf)
 (doc 'description "Autocorrelation Functions — ACF and PACF computation for time series")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "acf: Autocorrelation function")
 (doc 'description "pacf: Partial autocorrelation function")

@@ -4,7 +4,7 @@
 (doc 'description "SQL AST Types")
 (doc 'note "Abstract Syntax Tree definitions for ANSI SQL DML statements. All nodes include source spans for error reporting.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; Source span primitives (formerly in fp/parser-dsl.ss)
 (define (make-source-span start end) (list 'source-span start end))

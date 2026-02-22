@@ -8,7 +8,7 @@
 (doc 'module 'collision-response)
 (doc 'description "Impulse-based collision resolution for 2D physics")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'section 'collision)
 
 (doc "A collision manifold describes the contact between two bodies:")

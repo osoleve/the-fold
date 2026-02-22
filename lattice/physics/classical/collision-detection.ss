@@ -7,7 +7,7 @@
 (doc 'module 'collision-detection)
 (doc 'description "2D Collision Detection with AABB, Circle, and SAT")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'section 'shape)
 
 (doc "--- AABB (Axis-Aligned Bounding Box) ---")

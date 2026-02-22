@@ -8,7 +8,7 @@
 (doc 'description "Hierarchical state machine (statechart) implementation following Harel's statechart semantics with extensions for simulation")
 (doc 'features "Hierarchical/nested states, parallel/orthogonal regions, entry/exit actions, guard conditions, event-driven transitions, history states, DSL syntax, interpreter/executor, validation and reachability analysis")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'state-types)
 (doc 'description "States can be: Atomic (simple), Composite (hierarchical), Parallel (concurrent), History (previous state reference), Initial (default entry), Final (terminal)")

@@ -21,7 +21,7 @@
 (doc 'description "Cost-based extraction from e-graphs")
 (doc 'layer 'lattice)
 (doc 'tier 1)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Extraction State

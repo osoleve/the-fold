@@ -4,7 +4,7 @@
 (doc 'description "SQL Grammar Parser")
 (doc 'note "Parser combinators for ANSI SQL DML statements. Uses operator precedence parsing for expressions.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (unless (top-level-bound? '*sql-types-loaded*)
         (load "lattice/query/sql/types.ss"))

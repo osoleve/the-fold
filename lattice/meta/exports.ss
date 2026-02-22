@@ -3,7 +3,7 @@
 (doc 'module 'exports)
 (doc 'description "Extract exported symbols from S-expressions using (doc 'export #t) annotations")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Pure pattern recognition on S-expressions. I/O orchestration in boundary/meta/exports-io.ss")
 
 ;;; ====

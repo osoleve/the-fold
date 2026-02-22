@@ -35,7 +35,7 @@
 (require 'control/controller-design)
 
 (doc 'module 'hinf-synthesis)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "H-infinity controller synthesis via γ-iteration and Riccati equations")
 (doc 'layer 'lattice)
 

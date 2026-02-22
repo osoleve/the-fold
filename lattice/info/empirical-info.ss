@@ -8,7 +8,7 @@
 (doc 'module 'empirical-info)
 (doc 'description "Empirical information-theoretic measures from raw sample data")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Bridges info/ to statistics/ by computing entropy and mutual information
   directly from sample vectors, without requiring pre-computed probability distributions.

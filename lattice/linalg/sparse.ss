@@ -8,7 +8,7 @@
 (require 'sort)
 
 (doc 'module 'sparse)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Sparse Matrix Operations
 
 Efficient storage and operations for sparse matrices.

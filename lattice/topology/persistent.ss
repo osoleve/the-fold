@@ -7,7 +7,7 @@
 (doc 'module 'persistent)
 (doc 'description "Persistent homology for topological data analysis")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 1)
 (doc 'dependencies '(topology/homology topology/simplicial-complex))
 

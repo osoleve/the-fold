@@ -8,7 +8,7 @@
 (doc 'module 'store)
 (doc 'description "Constraint Store for CLP(FD)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Extends the miniKanren substitution with finite domains and constraint tracking. May need fuel for propagation.")
 (doc 'exports "make-cstore, cstore?, cstore accessors/setters, domain operations, binding operations, constraint management, reification")
 (doc 'dependencies "prelude.ss, logic.ss, domain.ss")

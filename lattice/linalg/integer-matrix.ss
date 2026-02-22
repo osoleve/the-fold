@@ -18,7 +18,7 @@
 (doc 'module 'integer-matrix)
 (doc 'description "Smith and Hermite normal forms for integer matrices")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================================
 ;;; Internal Matrix Operations (Mutable for Efficiency)

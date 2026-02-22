@@ -13,7 +13,7 @@
 (doc 'module 'coop-games)
 (doc 'description "Cooperative (Coalitional) Game Theory with transferable utility")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Constraint: n ≤ 60 players (fixnum bitmask limit on 64-bit)")
 
 (doc 'note "A cooperative game consists of N players (indexed 0, 1, ... n-1) and a characteristic function v: 2^N → Real where v(S) is the value coalition S can achieve")

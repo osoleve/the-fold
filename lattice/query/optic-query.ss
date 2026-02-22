@@ -6,7 +6,7 @@
 (doc 'description "Optic-Based Query Language")
 (doc 'note "Build declarative queries using optics as the path language. Optics encode how to reach data; this module adds predicate filtering, projection, and aggregation.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'design-principles)
 (doc 'description "Optics define the path through data structures. Predicates filter which targets to keep. Projectors transform results. Composable: build complex queries from simple parts.")

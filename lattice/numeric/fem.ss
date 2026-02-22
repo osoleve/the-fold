@@ -13,7 +13,7 @@
 (doc 'module 'fem)
 (doc 'description "Finite Element Method: P1 elements on triangular meshes for elliptic PDEs")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section: FEM Mesh Structure

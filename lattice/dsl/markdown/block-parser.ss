@@ -9,7 +9,7 @@
 (doc 'module 'markdown-block-parser)
 (doc 'description "Markdown Block Parser - Parses block-level markdown elements: headings, paragraphs, code blocks, lists, blockquotes, horizontal rules")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Block elements:
   # Heading 1 ... ###### Heading 6

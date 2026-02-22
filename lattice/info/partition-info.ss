@@ -8,7 +8,7 @@
 (doc 'module 'partition-info)
 (doc 'description "Information-theoretic partition quality metrics for community detection")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Bridges info/ to data/graph/ by providing the standard info-theoretic
   quality metrics used in community detection evaluation.

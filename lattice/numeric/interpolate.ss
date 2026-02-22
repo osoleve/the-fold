@@ -12,7 +12,7 @@
 (doc 'module 'interpolate)
 (doc 'description "Numerical interpolation, splines, Bezier curves, and curve fitting")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Binary Search Helper (for O(log n) segment lookup)

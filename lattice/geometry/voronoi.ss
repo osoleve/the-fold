@@ -12,7 +12,7 @@
 (doc 'module 'voronoi)
 (doc 'description "Voronoi diagram computation via Delaunay duality")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Section: Voronoi Data Structures

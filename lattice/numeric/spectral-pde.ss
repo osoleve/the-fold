@@ -11,7 +11,7 @@
 (doc 'module 'spectral-pde)
 (doc 'description "Spectral methods for PDEs: Fourier spectral (periodic), Chebyshev spectral (non-periodic), pseudospectral collocation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'see-also '(finite-diff fem pde-time dft))
 
 ;;; ============================================================

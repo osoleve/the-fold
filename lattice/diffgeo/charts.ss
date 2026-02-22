@@ -8,7 +8,7 @@
 (doc 'module 'charts)
 (doc 'description "Coordinate Charts and Atlases - Foundation for smooth manifold representation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "A chart (U, φ) consists of: domain (open set), coordinate map φ: U → R^n, inverse map φ⁻¹: R^n → U")
 (doc 'note "An atlas is a collection of compatible charts covering a manifold")
 (doc 'note "Charts are compatible if their transition functions are smooth")

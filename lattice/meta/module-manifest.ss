@@ -11,7 +11,7 @@ representations of the module registry. Enables drift detection between the
 static registry and manifest-derived module data, and CAS-backed module identity.
 Pure analysis — no filesystem I/O.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Manifest Entries

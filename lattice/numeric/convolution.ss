@@ -10,7 +10,7 @@
 (doc 'module 'convolution)
 (doc 'description "Comprehensive convolution and correlation implementations for signal processing, filtering, template matching, and feature extraction")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Convolution Modes

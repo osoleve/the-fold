@@ -7,7 +7,7 @@
 (doc 'module 'polynomial)
 (doc 'description "Polynomial rings over fields")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "Pure, functional implementation of polynomial algebra:")
 (doc 'note "- Polynomial ring F[x] over any coefficient field F")

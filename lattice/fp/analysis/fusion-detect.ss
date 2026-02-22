@@ -15,7 +15,7 @@ Analyzes S-expressions to detect fusion opportunities:
   - concat-map fusion: (flatten (map f xs)) -> (flatMap f xs)
   - stream-map-map fusion: (stream-map f (stream-map g s)) -> (stream-map (compose f g) s)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'dependencies '(core/base/prelude.ss))
 (doc 'exports '(detect-fusion-static fusion-opportunity? fusion-type
                 fusion-location fusion-before fusion-after fusion-savings

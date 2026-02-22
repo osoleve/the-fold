@@ -15,7 +15,7 @@
 (doc 'bridges '(statistics autodiff optimization))
 (doc 'description "Autodiff-GLM Bridge — Fit GLMs via gradient-based optimization with autodiff gradients")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'note "This module bridges three lattice subsystems:
   1. lattice/autodiff (reverse-mode AD for gradients)

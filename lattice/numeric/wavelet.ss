@@ -8,7 +8,7 @@
 (doc 'module 'wavelet)
 (doc 'description "Wavelet transforms for multi-resolution signal analysis: Haar, Daubechies, DWT, IDWT, multi-resolution decomposition")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Wavelet Filter Coefficients

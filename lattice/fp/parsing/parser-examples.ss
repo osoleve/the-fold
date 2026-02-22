@@ -7,7 +7,7 @@
 (doc 'module 'parser-examples)
 (doc 'description "Example Parsers Built with Combinators — Demonstrates building practical parsers using the parser combinator DSL. Shows common patterns and idioms.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'examples '(json s-expression arithmetic ini-file))
 
 (doc 'section 'character-constants)

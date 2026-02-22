@@ -7,7 +7,7 @@
 (doc 'module 'fair-division)
 (doc 'description "Algorithms for fairly dividing divisible and indivisible goods. Covers cake cutting protocols, envy-free allocation, proportional division, and the adjusted winner procedure")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key concepts: cake (continuous resource [0, 1] with valuation functions), piece (interval(s) assigned to a player), envy-free (no player prefers another's piece), proportional (each of n players gets >= 1/n of their value), equitable (all players receive same utility after normalization)")
 
 (doc 'section 'cake-representation)

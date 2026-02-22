@@ -11,7 +11,7 @@
 (doc 'module 'sample)
 (doc 'description "Sample record type for visual reasoning datasets. Questions and answers are defined as lenses into simulation state, ensuring ground truth consistency by construction.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ============================================================
 ;;; Part 1: Sample Record Type

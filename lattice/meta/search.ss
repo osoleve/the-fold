@@ -6,7 +6,7 @@
 (doc 'module 'search)
 (doc 'description "Unified search interface for the skill lattice. Integrates BM25 with the knowledge graph for ranked results.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'state)
 

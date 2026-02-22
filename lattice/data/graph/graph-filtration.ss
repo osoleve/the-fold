@@ -15,7 +15,7 @@
   (connected components, cycles) evolve as edges are added in order of increasing weight.
   Supports both simple weight filtration (edges only) and Vietoris-Rips filtration (clique expansion).")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 1)
 (doc 'dependencies '(data/graph/graph-matrix topology/simplicial-complex topology/persistent))
 

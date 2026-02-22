@@ -6,7 +6,7 @@
 related exports, nearby skills, and cross-domain connections that the user
 didn't know to search for. Turns point queries into neighborhood browsing.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 ;;; ====
 ;;; Co-Module Related Exports

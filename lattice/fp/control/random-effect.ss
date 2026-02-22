@@ -7,7 +7,7 @@
 (doc 'module 'random-effect)
 (doc 'description "The Random effect provides pure, reproducible random number generation within effectful computations, threading PRNG state implicitly.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features "random-uniform, random-int, random-choice, random-sample-dist, random-shuffle-eff, deterministic reproducible results given same seed")
 (doc 'note "Load order matters - effects.ss defines run-state for State effect, prng.ss uses state.ss which defines run-state for State monad")
 

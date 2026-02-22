@@ -8,7 +8,7 @@
 (doc 'module 'attractor-render)
 (doc 'description "ASCII visualization of strange attractors with rotation, depth shading, and animation")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features "3D point cloud rendering, camera rotation, depth-based intensity, ANSI color support, animation frames")
 
 ;;; ============================================================

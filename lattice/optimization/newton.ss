@@ -12,7 +12,7 @@
 (doc 'module 'newton)
 (doc 'description "Newton and quasi-Newton methods using second-order Hessian information")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'overview)
 (doc 'note "Second-order optimization methods using Hessian information.

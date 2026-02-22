@@ -33,7 +33,7 @@
 (require 'control/state-space)
 
 (doc 'module 'stability)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Comprehensive stability analysis for LTI systems including Routh-Hurwitz, Lyapunov, Nyquist, and margin analysis")
 (doc 'layer 'lattice)
 

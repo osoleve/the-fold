@@ -7,7 +7,7 @@
 (doc 'module 'ascii-render)
 (doc 'description "ASCII art mesh renderer with BVH-accelerated ray casting and ANSI 256-color output")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'provides "Render 3D meshes to colored ASCII art for terminal display")
 
 (doc 'section 'ascii-character-ramp)

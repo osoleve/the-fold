@@ -13,7 +13,7 @@
 (doc 'module 'glm)
 (doc 'description "Generalized Linear Models — GLM fitting via Iteratively Reweighted Least Squares (IRLS)")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "glm-fit: Fit GLM with specified family and link")
 (doc 'description "logistic-fit: Binary logistic regression (wrapper)")

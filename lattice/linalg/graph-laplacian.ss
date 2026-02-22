@@ -10,7 +10,7 @@
 
 (doc 'module 'graph-laplacian)
 (doc 'bridges '(linalg data))
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Laplacian matrices for spectral graph theory and analysis")
 (doc 'requires '(prelude matrix matrix-eigen graph-matrix))
 (doc 'note "Provides three types of Laplacian:")

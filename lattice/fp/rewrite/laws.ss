@@ -6,7 +6,7 @@
 (require 'engine)
 
 (doc 'module 'rewrite/laws)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "Standard FP Law Library")
 (doc 'layer 'lattice)
 

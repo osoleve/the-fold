@@ -8,7 +8,7 @@
 (doc 'module 'parser)
 (doc 'description "Monadic Parser Combinators — A practical parser combinator library for building DSLs and parsers. Uses the Maybe and Either types from combinators.ss for results.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'features '(position-tracking primitive-parsers sequencing alternation repetition lookahead error-handling packrat indentation-sensitive))
 
 (doc 'section 'character-constants)

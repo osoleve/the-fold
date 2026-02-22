@@ -12,7 +12,7 @@
 
 (doc 'module 'pagerank)
 (doc 'bridges '(data linalg))
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'description "PageRank importance scoring using eigenvalue computation")
 (doc 'layer 'lattice)
 

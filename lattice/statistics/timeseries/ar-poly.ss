@@ -7,7 +7,7 @@
 (doc 'module 'ar-poly)
 (doc 'description "Polynomial Algebra for Time Series — Integrates polynomial.ss with time series modules")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'description "AR characteristic polynomial factorization")
 (doc 'description "Stability analysis via polynomial operations")

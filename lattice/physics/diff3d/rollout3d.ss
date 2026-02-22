@@ -13,7 +13,7 @@
 (doc 'module 'rollout3d)
 (doc 'description "Multi-Step 3D Simulation with Checkpointing - Rollout functions for simulating 3D physics over multiple timesteps with gradient computation. Includes checkpointing for memory efficiency.")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Memory management: Naive rollout uses O(T) memory for T timesteps (stores full tape). Checkpointed uses O(sqrt(T)) memory (stores checkpoints, recomputes segments).")
 
 (doc 'section 'basic-rollout)

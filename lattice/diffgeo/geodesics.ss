@@ -9,7 +9,7 @@
 (doc 'module 'geodesics)
 (doc 'description "Geodesic Computation - Geodesic curves on Riemannian manifolds")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Provides: Geodesic tracing, exponential map, logarithm map, parallel transport, distance computation")
 (doc 'note "A geodesic is a curve γ(t) that parallel transports its own tangent vector")
 (doc 'note "Geodesic equation: d²x^k/dt² + Γ^k_{ij} (dx^i/dt)(dx^j/dt) = 0")

@@ -6,7 +6,7 @@
 (doc 'module 'homology)
 (doc 'description "Computes homology groups and Betti numbers for simplicial complexes")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'tier 1)
 (doc 'dependencies '(topology/simplicial-complex))
 

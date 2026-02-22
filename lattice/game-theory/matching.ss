@@ -13,7 +13,7 @@
 (doc 'module 'matching)
 (doc 'description "Stable matching, assignment games, and optimal matching. Includes the Gale-Shapley deferred acceptance algorithm, bipartite assignment games with connections to cooperative game theory, and optimal assignment via linear programming")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'note "Key concepts: two-sided matching (disjoint sets of agents with preferences), stability (no blocking pair - both prefer each other to current match), assignment game (cooperative game from bipartite valuations), optimal assignment (maximum weight bipartite matching via LP)")
 
 (doc 'section 'matching-market-data-structures)

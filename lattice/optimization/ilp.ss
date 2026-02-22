@@ -9,7 +9,7 @@
 (doc 'module 'ilp)
 (doc 'description "Integer linear programming with branch-and-bound and cutting planes")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 
 (doc 'section 'overview)
 (doc 'note "Extends LP with integer constraints via branch-and-bound and Gomory cutting planes.

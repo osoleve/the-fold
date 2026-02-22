@@ -11,7 +11,7 @@
 (doc 'module 'spectral-ts)
 (doc 'description "Spectral Methods for Time Series — bridges FFT/spectral analysis with time series modeling")
 (doc 'layer 'lattice)
-(doc 'purity 'total)
+(doc 'purity 'partial)
 (doc 'see-also '(dft spectral-analysis ar acf-pacf))
 
 ;;; ============================================================
