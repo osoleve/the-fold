@@ -435,14 +435,14 @@
       (do ([i (- n 1) (- i 1)])
           ((< i 0) x)
         (let* ([row (vector-ref M i)]
-               [sum (vector-ref row n)])
-          (do ([j (+ i 1) (+ j 1)])
-              ((= j n))
-            (set! sum (- sum (* (vector-ref row j) (vector-ref x j)))))
-          (let ([diag (vector-ref row i)])
-            (vector-set! x i (if (> (abs diag) 1e-15)
-                                 (/ sum diag)
-                                 0.0))))))))
+               [sum (let loop ([j (+ i 1)] [s (vector-ref row n)])
+                         (if (= j n)
+                             s
+                             (loop (+ j 1) (- s (* (vector-ref row j) (vector-ref x j))))))]
+               [diag (vector-ref row i)])
+          (vector-set! x i (if (> (abs diag) 1e-15)
+                               (/ sum diag)
+                               0.0)))))))
 
 ;;; ============================================================
 ;;; Section 7: Grid and Convenience Functions
@@ -468,10 +468,9 @@
 (doc spectral-error-estimate 'type '(-> Vector Vector Number))
 (doc spectral-error-estimate 'description "Compute max-norm error between computed and exact solution")
 (define (spectral-error-estimate computed exact)
-  (let ([n (vector-length computed)]
-        [max-err 0.0])
-    (do ([i 0 (+ i 1)])
-        ((= i n) max-err)
-      (let ([err (abs (- (vector-ref computed i) (vector-ref exact i)))])
-        (when (> err max-err)
-          (set! max-err err))))))
+  (let ([n (vector-length computed)])
+    (let loop ([i 0] [max-err 0.0])
+      (if (= i n)
+          max-err
+          (let ([err (abs (- (vector-ref computed i) (vector-ref exact i)))])
+            (loop (+ i 1) (if (> err max-err) err max-err)))))))

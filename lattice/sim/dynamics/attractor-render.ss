@@ -142,15 +142,16 @@
   (doc 'description "Convert frame buffer to string")
   (let ([w (fb-width fb)]
         [h (fb-height fb)]
-        [chars (fb-chars fb)]
-        [result '()])
-       (do ([y 0 (+ y 1)])
-           ((>= y h) (apply string-append (reverse result)))
-           (do ([x 0 (+ x 1)])
-               ((>= x w))
-               (set! result (cons (string (vector-ref chars (fb-index fb x y)))
-                                  result)))
-           (set! result (cons "\n" result)))))
+        [chars (fb-chars fb)])
+       (let row-loop ([y 0] [result '()])
+            (if (>= y h)
+                (apply string-append (reverse result))
+                (let col-loop ([x 0] [acc result])
+                     (if (>= x w)
+                         (row-loop (+ y 1) (cons "\n" acc))
+                         (col-loop (+ x 1)
+                                   (cons (string (vector-ref chars (fb-index fb x y)))
+                                         acc))))))))
 
 ;;; ============================================================
 ;;; Section: Attractor Rendering
@@ -233,27 +234,24 @@
                                           (vector-set! fb-colors idx color-code)))))
                    (render-loop (cdr pts) (+ i 1))))
         ;; Convert to colored string using simple loops
-        (let ([result '()])
-             (let row-loop ([y 0])
-                  (if (>= y height)
-                      (string-append (apply string-append (reverse result)) "\x1b;[0m")
-                      (begin
-                        (let col-loop ([x 0])
-                             (when (< x width)
-                                   (let* ([idx (+ x (* y width))]
-                                          [ch (vector-ref fb-chars idx)]
-                                          [color (vector-ref fb-colors idx)])
-                                         (if (char=? ch #\space)
-                                             (set! result (cons " " result))
-                                             (set! result (cons (string-append
-                                                                 "\x1b;[38;5;"
-                                                                 (number->string color)
-                                                                 "m"
-                                                                 (string ch))
-                                                                result))))
-                                   (col-loop (+ x 1))))
-                        (set! result (cons "\n" result))
-                        (row-loop (+ y 1))))))))
+        (let row-loop ([y 0] [result '()])
+             (if (>= y height)
+                 (string-append (apply string-append (reverse result)) "\x1b;[0m")
+                 (let col-loop ([x 0] [acc result])
+                      (if (>= x width)
+                          (row-loop (+ y 1) (cons "\n" acc))
+                          (let* ([idx (+ x (* y width))]
+                                 [ch (vector-ref fb-chars idx)]
+                                 [color (vector-ref fb-colors idx)])
+                                (col-loop (+ x 1)
+                                          (if (char=? ch #\space)
+                                              (cons " " acc)
+                                              (cons (string-append
+                                                      "\x1b;[38;5;"
+                                                      (number->string color)
+                                                      "m"
+                                                      (string ch))
+                                                    acc))))))))))
 
 ;;; ============================================================
 ;;; Section: Animation

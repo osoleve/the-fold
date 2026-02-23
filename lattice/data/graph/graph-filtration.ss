@@ -30,16 +30,17 @@
   (doc 'type '(-> Matrix (List Number)))
   (doc 'description "Extract sorted unique positive edge weights from an adjacency matrix.
   Treats the matrix as undirected (only considers upper triangle i < j).")
-  (let* ([n (matrix-rows m)]
-         [weights '()])
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (let ([w (matrix-ref m i j)])
-          (when (> w 0)
-            (set! weights (cons w weights))))))
-    (unique-sorted-numbers (sort-by < weights))))
+  (let ([n (matrix-rows m)])
+    (unique-sorted-numbers
+     (sort-by <
+       (do ([i 0 (+ i 1)]
+            [weights '()
+                     (do ([j (+ i 1) (+ j 1)]
+                          [ws weights
+                              (let ([w (matrix-ref m i j)])
+                                (if (> w 0) (cons w ws) ws))])
+                         [(= j n) ws])])
+           [(= i n) weights])))))
 
 (define (unique-sorted-numbers lst)
   (doc 'type '(-> (List Number) (List Number)))
@@ -124,16 +125,18 @@
   (k+1 choose 2) edges. Complexity is exponential in max-dim.")
 (define (graph-rips-filtration m max-dim)
   (let* ([n (matrix-rows m)]
-         [pairs '()])
-    ;; Add vertices at time 0 (all vertices present from the start in Rips)
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (set! pairs (cons (cons (make-simplex (list i)) 0.0) pairs)))
-    ;; Add k-simplices for k = 1 to max-dim
-    (do ([k 1 (+ k 1)])
-        [(> k max-dim)]
-      (set! pairs (append pairs (rips-k-simplices-from-graph m n k))))
-    (make-filtration pairs)))
+         ;; Add vertices at time 0 (all vertices present from the start in Rips)
+         [vertex-pairs
+          (do ([i 0 (+ i 1)]
+               [acc '() (cons (cons (make-simplex (list i)) 0.0) acc)])
+              [(= i n) acc])]
+         ;; Add k-simplices for k = 1 to max-dim
+         [all-pairs
+          (do ([k 1 (+ k 1)]
+               [pairs vertex-pairs
+                      (append pairs (rips-k-simplices-from-graph m n k))])
+              [(> k max-dim) pairs])])
+    (make-filtration all-pairs)))
 
 (define (rips-k-simplices-from-graph m n k)
   (doc 'type '(-> Matrix Integer Integer (List (Pair Simplex Number))))

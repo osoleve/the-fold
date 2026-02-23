@@ -365,16 +365,17 @@
   (doc 'description "Count total e-nodes in all e-classes.")
   (doc 'export #t)
   (let ([data-vec (eclass-store-data store)]
-        [n (uf-size uf)]
-        [count 0])
+        [n (uf-size uf)])
     ;; Only count nodes at canonical roots to avoid double-counting
-    (do ([i 0 (+ i 1)])
-        ((>= i n) count)
-      (when (and (< i (vector-length data-vec))
-                 (= i (uf-find uf i)))  ; Only count at roots
-        (let ([data (vector-ref data-vec i)])
-          (when data
-            (set! count (+ count (length (eclass-nodes data))))))))))
+    (do ([i 0 (+ i 1)]
+         [count 0 (if (and (< i (vector-length data-vec))
+                           (= i (uf-find uf i)))
+                      (let ([data (vector-ref data-vec i)])
+                        (if data
+                            (+ count (length (eclass-nodes data)))
+                            count))
+                      count)])
+        ((>= i n) count))))
 
 ;;; eclass-all-nodes : EClassStore × UnionFind → (List (Pair Id (List ENode)))
 ;;; Get all e-classes with their nodes. O(N) single pass.
@@ -383,15 +384,16 @@
   (doc 'description "Get all e-classes with their nodes as (id . nodes) pairs.")
   (doc 'export #t)
   (let ([data-vec (eclass-store-data store)]
-        [n (uf-size uf)]
-        [result '()])
-    (do ([i 0 (+ i 1)])
-        ((>= i n) (reverse result))
-      (when (and (< i (vector-length data-vec))
-                 (= i (uf-find uf i)))  ; Only roots
-        (let ([data (vector-ref data-vec i)])
-          (when (and data (pair? (eclass-nodes data)))
-            (set! result (cons (cons i (eclass-nodes data)) result))))))))
+        [n (uf-size uf)])
+    (do ([i 0 (+ i 1)]
+         [result '() (if (and (< i (vector-length data-vec))
+                              (= i (uf-find uf i)))
+                         (let ([data (vector-ref data-vec i)])
+                           (if (and data (pair? (eclass-nodes data)))
+                               (cons (cons i (eclass-nodes data)) result)
+                               result))
+                         result)])
+        ((>= i n) (reverse result)))))
 
 ;;; ============================================================
 ;;; Debugging

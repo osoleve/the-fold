@@ -337,16 +337,18 @@
           ;; Consider complex eigenvalue magnitudes
           (let* ([eig-vec (cadr eigs)]
                  [complex-info (caddr eigs)]
-                 [rates '()])
-                ;; Collect all natural frequencies
-                (do ([i 0 (+ i 1)])
-                    ((= i (vector-length eig-vec)))
-                    (let ([cp (find-complex-at-index i complex-info)])
-                         (if cp
-                             (let ([omega (sqrt (+ (* (car cp) (car cp))
-                                                   (* (cdr cp) (cdr cp))))])
-                                  (set! rates (cons omega rates)))
-                             (set! rates (cons (abs (vector-ref eig-vec i)) rates)))))
+                 [n (vector-length eig-vec)]
+                 ;; Collect all natural frequencies
+                 [rates (let loop ([i 0] [acc '()])
+                             (if (= i n)
+                                 acc
+                                 (let ([cp (find-complex-at-index i complex-info)])
+                                      (loop (+ i 1)
+                                            (cons (if cp
+                                                      (let ([a (car cp)] [b (cdr cp)])
+                                                           (sqrt (+ (* a a) (* b b))))
+                                                      (abs (vector-ref eig-vec i)))
+                                                  acc)))))])
                 (if (null? rates)
                     0.1  ; Default
                     (/ 1 (* 10 (apply max rates)))))]

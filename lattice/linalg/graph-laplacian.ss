@@ -659,11 +659,9 @@
       (let ([distances (make-vector n 0)])
         (do ([i 0 (+ i 1)])
             ((= i n))
-          (let ([min-dist +inf.0])
-            (do ([cc 0 (+ cc 1)])
-                ((= cc c))
-              (let ([dist (point-centroid-distance points i centroids cc d)])
-                (set! min-dist (min min-dist dist))))
+          (let ([min-dist (do ([cc 0 (+ cc 1)]
+                              [md +inf.0 (min md (point-centroid-distance points i centroids cc d))])
+                             ((= cc c) md))])
             (vector-set! distances i min-dist)))
         ;; Choose next centroid with probability proportional to distance²
         (let* ([total (let loop ([i 0] [s 0])
@@ -737,18 +735,19 @@
   (let loop ([i 0] [max-idx 0] [max-dist 0])
     (if (= i n)
         max-idx
-        (let ([min-dist-to-any +inf.0])
-          ;; Find minimum distance to any centroid
-          (do ([c 0 (+ c 1)])
-              ((= c k))
-            (when (not (= c skip-c))
-              (let ([dist (let loop2 ([j 0] [sum 0])
-                            (if (= j d)
-                                sum
-                                (let ([diff (- (matrix-ref points i j)
-                                              (matrix-ref centroids c j))])
-                                  (loop2 (+ j 1) (+ sum (* diff diff))))))])
-                (set! min-dist-to-any (min min-dist-to-any dist)))))
+        (let ([min-dist-to-any
+               (do ([c 0 (+ c 1)]
+                    [md +inf.0
+                        (if (= c skip-c)
+                            md
+                            (let ([dist (let loop2 ([j 0] [sum 0])
+                                          (if (= j d)
+                                              sum
+                                              (let ([diff (- (matrix-ref points i j)
+                                                            (matrix-ref centroids c j))])
+                                                (loop2 (+ j 1) (+ sum (* diff diff))))))])
+                              (min md dist)))])
+                   ((= c k) md))])
           (if (> min-dist-to-any max-dist)
               (loop (+ i 1) i min-dist-to-any)
               (loop (+ i 1) max-idx max-dist))))))
@@ -791,32 +790,30 @@
 ;;; Returns 0 if S or S̄ is empty or has zero volume.
 (define (conductance adj nodes)
   (let* ([n (adjacency-matrix-node-count adj)]
-         [node-set (nodes->bitvec nodes n)]
-         ;; Compute cut and volumes
-         [cut-val 0]
-         [vol-s 0]
-         [vol-sbar 0])
+         [node-set (nodes->bitvec nodes n)])
     ;; Calculate all metrics in one pass
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-      (let ([deg-i (let loop ([j 0] [d 0])
-                     (if (= j n) d
-                         (loop (+ j 1) (+ d (if (> (matrix-ref adj i j) 0) 1 0)))))])
-        (if (vector-ref node-set i)
-            (begin
-              (set! vol-s (+ vol-s deg-i))
-              ;; Count edges to complement
-              (do ([j 0 (+ j 1)])
-                  ((= j n))
-                (when (and (not (vector-ref node-set j))
-                           (> (matrix-ref adj i j) 0))
-                  (set! cut-val (+ cut-val 1)))))
-            (set! vol-sbar (+ vol-sbar deg-i)))))
-    ;; Return conductance
-    (let ([min-vol (min vol-s vol-sbar)])
-      (if (= min-vol 0)
-          0
-          (/ cut-val min-vol)))))
+    (let loop ([i 0] [cut-val 0] [vol-s 0] [vol-sbar 0])
+      (if (= i n)
+          ;; Return conductance
+          (let ([min-vol (min vol-s vol-sbar)])
+            (if (= min-vol 0)
+                0
+                (/ cut-val min-vol)))
+          (let ([deg-i (let deg-loop ([j 0] [d 0])
+                         (if (= j n) d
+                             (deg-loop (+ j 1) (+ d (if (> (matrix-ref adj i j) 0) 1 0)))))])
+            (if (vector-ref node-set i)
+                ;; Node in S: accumulate vol-s and count edges to complement
+                (let ([cut-edges (let cut-loop ([j 0] [cnt 0])
+                                   (if (= j n) cnt
+                                       (cut-loop (+ j 1)
+                                                 (if (and (not (vector-ref node-set j))
+                                                          (> (matrix-ref adj i j) 0))
+                                                     (+ cnt 1)
+                                                     cnt))))])
+                  (loop (+ i 1) (+ cut-val cut-edges) (+ vol-s deg-i) vol-sbar))
+                ;; Node in S-bar: accumulate vol-sbar
+                (loop (+ i 1) cut-val vol-s (+ vol-sbar deg-i))))))))
 
 ;;; nodes->bitvec : (List Nat) × Nat → Vector
 ;;; Convert list of node indices to boolean vector.
@@ -835,21 +832,26 @@
   (let* ([n (adjacency-matrix-node-count adj)]
          [node-set (nodes->bitvec nodes n)]
          [size-s (length nodes)]
-         [size-sbar (- n size-s)]
-         [cut-val 0])
+         [size-sbar (- n size-s)])
     ;; Count edges crossing the cut
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-      (when (vector-ref node-set i)
-        (do ([j 0 (+ j 1)])
-            ((= j n))
-          (when (and (not (vector-ref node-set j))
-                     (> (matrix-ref adj i j) 0))
-            (set! cut-val (+ cut-val 1))))))
-    ;; Compute ratio cut
-    (if (or (= size-s 0) (= size-sbar 0))
-        +inf.0
-        (+ (/ cut-val size-s) (/ cut-val size-sbar)))))
+    (let ([cut-val (let outer ([i 0] [cv 0])
+                     (if (= i n)
+                         cv
+                         (outer (+ i 1)
+                                (if (vector-ref node-set i)
+                                    (let inner ([j 0] [cnt cv])
+                                      (if (= j n)
+                                          cnt
+                                          (inner (+ j 1)
+                                                 (if (and (not (vector-ref node-set j))
+                                                          (> (matrix-ref adj i j) 0))
+                                                     (+ cnt 1)
+                                                     cnt))))
+                                    cv))))])
+      ;; Compute ratio cut
+      (if (or (= size-s 0) (= size-sbar 0))
+          +inf.0
+          (+ (/ cut-val size-s) (/ cut-val size-sbar))))))
 
 ;;; normalized-cut : (Matrix Real) × (List Nat) → Real
 ;;; Compute normalized cut (Ncut) of a partition.
@@ -859,25 +861,25 @@
 ;;; This is the objective minimized by normalized spectral clustering.
 (define (normalized-cut adj nodes)
   (let* ([n (adjacency-matrix-node-count adj)]
-         [node-set (nodes->bitvec nodes n)]
-         [cut-val 0]
-         [vol-s 0]
-         [vol-sbar 0])
-    ;; Calculate cut and volumes
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-      (let ([deg-i (let loop ([j 0] [d 0])
-                     (if (= j n) d
-                         (loop (+ j 1) (+ d (if (> (matrix-ref adj i j) 0) 1 0)))))])
-        (if (vector-ref node-set i)
-            (begin
-              (set! vol-s (+ vol-s deg-i))
-              (do ([j 0 (+ j 1)])
-                  ((= j n))
-                (when (and (not (vector-ref node-set j))
-                           (> (matrix-ref adj i j) 0))
-                  (set! cut-val (+ cut-val 1)))))
-            (set! vol-sbar (+ vol-sbar deg-i)))))
-    (if (or (= vol-s 0) (= vol-sbar 0))
-        +inf.0
-        (+ (/ cut-val vol-s) (/ cut-val vol-sbar)))))
+         [node-set (nodes->bitvec nodes n)])
+    ;; Calculate cut and volumes in one pass
+    (let loop ([i 0] [cut-val 0] [vol-s 0] [vol-sbar 0])
+      (if (= i n)
+          (if (or (= vol-s 0) (= vol-sbar 0))
+              +inf.0
+              (+ (/ cut-val vol-s) (/ cut-val vol-sbar)))
+          (let ([deg-i (let deg-loop ([j 0] [d 0])
+                         (if (= j n) d
+                             (deg-loop (+ j 1) (+ d (if (> (matrix-ref adj i j) 0) 1 0)))))])
+            (if (vector-ref node-set i)
+                ;; Node in S: accumulate vol-s and count edges to complement
+                (let ([cut-edges (let cut-loop ([j 0] [cnt 0])
+                                   (if (= j n) cnt
+                                       (cut-loop (+ j 1)
+                                                 (if (and (not (vector-ref node-set j))
+                                                          (> (matrix-ref adj i j) 0))
+                                                     (+ cnt 1)
+                                                     cnt))))])
+                  (loop (+ i 1) (+ cut-val cut-edges) (+ vol-s deg-i) vol-sbar))
+                ;; Node in S-bar: accumulate vol-sbar
+                (loop (+ i 1) cut-val vol-s (+ vol-sbar deg-i))))))))

@@ -198,11 +198,10 @@
        (let loop ([i (- n 1)])
             (if (< i 0)
                 x
-                (let ([sum 0])
-                     (do ([j (+ i 1) (+ j 1)])
-                         ((= j n))
-                         (set! sum (+ sum (* (vector-ref data (+ (* i nc) j))
-                                             (vector-ref x j)))))
+                (let ([sum (do ([j (+ i 1) (+ j 1)]
+                                [s 0 (+ s (* (vector-ref data (+ (* i nc) j))
+                                             (vector-ref x j)))])
+                               ((= j n) s))])
                      (let ([diag (vector-ref data (+ (* i nc) i))])
                           (if (< (abs diag) 1e-12)
                               #f  ; Singular

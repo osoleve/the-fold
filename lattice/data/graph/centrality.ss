@@ -398,19 +398,19 @@
 (define (centrality-correlation c1 c2)
   (let* ([n (vector-length c1)]
          [mean1 (/ (vec-fold + 0 c1) n)]
-         [mean2 (/ (vec-fold + 0 c2) n)]
-         [num 0] [den1 0] [den2 0])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (let ([d1 (- (vector-ref c1 i) mean1)]
-                  [d2 (- (vector-ref c2 i) mean2)])
-                 (set! num (+ num (* d1 d2)))
-                 (set! den1 (+ den1 (* d1 d1)))
-                 (set! den2 (+ den2 (* d2 d2)))))
-        (let ([denom (sqrt (* den1 den2))])
-             (if (< denom 1e-15)
-                 0
-                 (/ num denom)))))
+         [mean2 (/ (vec-fold + 0 c2) n)])
+        (let loop ([i 0] [num 0] [den1 0] [den2 0])
+             (if (= i n)
+                 (let ([denom (sqrt (* den1 den2))])
+                      (if (< denom 1e-15)
+                          0
+                          (/ num denom)))
+                 (let ([d1 (- (vector-ref c1 i) mean1)]
+                       [d2 (- (vector-ref c2 i) mean2)])
+                      (loop (+ i 1)
+                            (+ num (* d1 d2))
+                            (+ den1 (* d1 d1))
+                            (+ den2 (* d2 d2))))))))
 
 (doc all-centralities 'type '(-> Matrix (List (Pair Symbol Vec))))
 (doc all-centralities 'description "Compute all centrality measures for comparison; returns alist of (name . scores) pairs")
