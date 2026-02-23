@@ -26,8 +26,21 @@
 (doc *export-module-map* 'description "Reverse map: export symbol → module require path (e.g., make-group → group)")
 (define *export-module-map* hamt-empty)
 
+(doc *module-skill-map* 'description "Reverse map: module require path → skill name (e.g., vec → linalg)")
+(define *module-skill-map* hamt-empty)
+
 (doc *search-ready* 'description "Flag indicating search indices are built")
 (define *search-ready* #f)
+
+;;; ====
+;;; Concept Boost Parameters
+;;; ====
+
+(define CONCEPT-BOOST 0.25)
+(doc CONCEPT-BOOST 'description "Per-concept-match score multiplier. 1 match = 1.25x, 2 = 1.5x, etc.")
+
+(define CONCEPT-BOOST-CAP 2.0)
+(doc CONCEPT-BOOST-CAP 'description "Maximum concept boost multiplier (caps runaway boosting)")
 
 (doc 'section 'index-building)
 
@@ -40,6 +53,7 @@
   (set! *export-index* (bm25-create))
   (set! *module-cache* '())
   (set! *export-module-map* hamt-empty)
+  (set! *module-skill-map* hamt-empty)
 
   ;; Build docstring cache only if not already populated from cache
   (when (zero? (hamt-size *docstrings*))
@@ -76,6 +90,27 @@
               (kg-skills))])
     (set! *module-cache* (car acc))
     (set! *module-index* (cdr acc)))
+
+  ;; Build module→skill reverse map from module cache
+  ;; Module keys are like linalg/vec — extract short name and map to skill
+  (set! *module-skill-map*
+        (fold-left
+         (lambda (m mod-entry)
+           (let* ([mod-key (car mod-entry)]
+                  [key-str (symbol->string mod-key)]
+                  [slash-pos (string-index-of key-str "/")]
+                  [short-name (if slash-pos
+                                  (string->symbol (substring key-str (+ slash-pos 1) (string-length key-str)))
+                                  mod-key)]
+                  [skill-name (if slash-pos
+                                  (string->symbol (substring key-str 0 slash-pos))
+                                  mod-key)])
+             ;; First-found wins (some short names may collide across skills)
+             (if (hamt-lookup short-name m)
+                 m
+                 (hamt-assoc short-name skill-name m))))
+         hamt-empty
+         *module-cache*))
 
   ;; Build export→module reverse mapping from manifest grouped exports
   ;; Manifest exports format: ((module-name sym1 sym2 ...) ...)
@@ -162,10 +197,68 @@
                 (kg-build!))
           (lattice-index!)))
 
+(doc 'section 'concept-boost)
+
+(doc concept-boost-for-query 'type (-> (List Symbol) HAMT))
+(doc concept-boost-for-query 'description "Build a skill→boost-count map from query terms that match concept names.
+Each query token is checked against the concept index. Skills linked to
+matching concepts accumulate a count, used as a multiplicative score boost.")
+(define (concept-boost-for-query query-terms)
+  (fold-left
+   (lambda (boost-set term)
+     (let ([skills (kg-concept-skills term)])
+       (fold-left
+        (lambda (bs skill-name)
+          (let ([current (or (hamt-lookup skill-name bs) 0)])
+            (hamt-assoc skill-name (+ current 1) bs)))
+        boost-set
+        skills)))
+   hamt-empty
+   query-terms))
+
+(doc result->skill-name 'type (-> SearchResult (Maybe Symbol)))
+(doc result->skill-name 'description "Extract the parent skill name from any result type.
+Skill results: id is the skill. Module results: data has (skill . name).
+Export results: looks up module→skill via *module-skill-map*.")
+(define (result->skill-name result)
+  (let ([id (car result)]
+        [type (caddr result)]
+        [data (cadddr result)])
+    (case type
+      [(skill) id]
+      [(module)
+       (and data
+            (let ([skill (assq 'skill data)])
+              (and skill (cdr skill))))]
+      [(export)
+       (and data
+            (let ([mod (assq 'module data)])
+              (and mod (hamt-lookup (cdr mod) *module-skill-map*))))]
+      [else #f])))
+
+(doc apply-concept-boosts 'type (-> (List SearchResult) HAMT (List SearchResult)))
+(doc apply-concept-boosts 'description "Apply concept boost to search results. Each result whose parent
+skill appears in the boost map gets score × (1 + CONCEPT-BOOST × count),
+capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
+(define (apply-concept-boosts results boost-map)
+  (if (zero? (hamt-size boost-map))
+      results  ; fast path: no concepts matched
+      (map (lambda (result)
+             (let* ([skill (result->skill-name result)]
+                    [count (and skill (hamt-lookup skill boost-map))])
+               (if count
+                   (let* ([multiplier (min CONCEPT-BOOST-CAP
+                                           (+ 1.0 (* CONCEPT-BOOST count)))]
+                          [old-score (cadr result)]
+                          [new-score (* old-score multiplier)])
+                     (list (car result) new-score (caddr result) (cadddr result)))
+                   result)))
+           results)))
+
 (doc 'section 'search-api)
 
 (doc lattice-find 'type (-> String Int Symbol (List SearchResult)))
-(doc lattice-find 'description "Full-text search across all indexed entities. Optional: k = max results (default 10), type = 'skill|'module|'export|'all")
+(doc lattice-find 'description "Full-text search across all indexed entities. Optional: k = max results (default 10), type = 'skill|'module|'export|'all. Results are boosted by concept relevance from the knowledge graph.")
 (define (lattice-find query . options)
   (ensure-indexed!)
   (let* ([k (if (and (pair? options) (number? (car options)))
@@ -174,25 +267,36 @@
          [type (if (and (pair? options) (pair? (cdr options)))
                    (cadr options)
                    'all)]
-         [query-terms (tokenize query)])
+         [query-terms (tokenize query)]
+         [boost-map (concept-boost-for-query query-terms)])
         (if (null? query-terms)
             ;; Tokenization yielded nothing (query has only special chars)
             ;; Fall back to substring matching on raw names
             (take-at-most k (lattice-find-substring (string->symbol query) k))
             (case type
                   [(skill skills)
-                   (search-with-context *skill-index* query-terms k 'skill)]
+                   (let* ([raw (search-with-context *skill-index* query-terms k 'skill)]
+                          [boosted (apply-concept-boosts raw boost-map)]
+                          [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
+                     (take-at-most k sorted))]
                   [(module modules)
-                   (search-with-context *module-index* query-terms k 'module)]
+                   (let* ([raw (search-with-context *module-index* query-terms k 'module)]
+                          [boosted (apply-concept-boosts raw boost-map)]
+                          [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
+                     (take-at-most k sorted))]
                   [(export exports)
-                   (search-with-context *export-index* query-terms k 'export)]
+                   (let* ([raw (search-with-context *export-index* query-terms k 'export)]
+                          [boosted (apply-concept-boosts raw boost-map)]
+                          [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
+                     (take-at-most k sorted))]
                   [else
-                   ;; Search all, merge and re-sort
+                   ;; Search all, merge, boost, re-sort
                    (let* ([skill-results (search-with-context *skill-index* query-terms k 'skill)]
                           [module-results (search-with-context *module-index* query-terms k 'module)]
                           [export-results (search-with-context *export-index* query-terms k 'export)]
                           [all-results (append skill-results module-results export-results)]
-                          [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-results)])
+                          [boosted (apply-concept-boosts all-results boost-map)]
+                          [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
                          (take-at-most k sorted))]))))
 
 ;;; search-with-context : Index (List Symbol) Int Symbol -> (List SearchResult)

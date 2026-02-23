@@ -404,6 +404,93 @@
             )
 
 ;;; ====
+;;; Concept-Aware Search Tests (fold-zy0y)
+;;; ====
+
+(test-group concept-search-tests
+
+            (define-test test-concept-boost-for-query-empty
+              "No boost when query terms don't match any concept"
+              (lattice-ensure!)
+              (let ([boost (concept-boost-for-query '(xyznonexistent))])
+                (assert-equal 0 (hamt-size boost))))
+
+            (define-test test-concept-boost-for-query-match
+              "Query term matching a concept produces boost entries"
+              (lattice-ensure!)
+              ;; 'matrix' is a concept (keyword in linalg manifest)
+              (let ([boost (concept-boost-for-query '(matrix))])
+                (assert-true (> (hamt-size boost) 0))
+                ;; linalg should be in the boost set
+                (assert-true (if (hamt-lookup 'linalg boost) #t #f))))
+
+            (define-test test-concept-boost-multi-term
+              "Multiple concept-matching terms accumulate counts"
+              (lattice-ensure!)
+              ;; 'collision' and 'simulation' both link to physics skills
+              (let ([boost (concept-boost-for-query '(collision simulation))])
+                (assert-true (> (hamt-size boost) 0))
+                ;; physics/diff should have count 2 (both concepts)
+                (let ([count (hamt-lookup 'physics/diff boost)])
+                  (assert-true (if count #t #f))
+                  (assert-true (>= count 2)))))
+
+            (define-test test-result-skill-name-skill
+              "result->skill-name extracts id from skill results"
+              (lattice-ensure!)
+              (let ([result (list 'linalg 1.0 'skill '())])
+                (assert-equal 'linalg (result->skill-name result))))
+
+            (define-test test-result-skill-name-module
+              "result->skill-name extracts skill from module results"
+              (lattice-ensure!)
+              (let ([result (list 'linalg/vec 0.5 'module '((name . linalg/vec) (skill . linalg)))])
+                (assert-equal 'linalg (result->skill-name result))))
+
+            (define-test test-apply-concept-boosts-no-match
+              "Results unchanged when boost map is empty"
+              (let ([results (list (list 'foo 1.0 'skill '()))]
+                    [boost hamt-empty])
+                (let ([boosted (apply-concept-boosts results boost)])
+                  (assert-equal 1.0 (cadr (car boosted))))))
+
+            (define-test test-apply-concept-boosts-with-match
+              "Results boosted when skill matches concept"
+              (let* ([results (list (list 'linalg 1.0 'skill '()))]
+                     [boost (hamt-assoc 'linalg 1 hamt-empty)]
+                     [boosted (apply-concept-boosts results boost)])
+                ;; Should be 1.0 * (1 + 0.25 * 1) = 1.25
+                (assert-equal 1.25 (cadr (car boosted)))))
+
+            (define-test test-apply-concept-boosts-cap
+              "Concept boost is capped at CONCEPT-BOOST-CAP"
+              (let* ([results (list (list 'linalg 1.0 'skill '()))]
+                     ;; 10 concept matches would give 1 + 0.25*10 = 3.5, capped to 2.0
+                     [boost (hamt-assoc 'linalg 10 hamt-empty)]
+                     [boosted (apply-concept-boosts results boost)])
+                (assert-equal 2.0 (cadr (car boosted)))))
+
+            (define-test test-concept-boost-changes-ranking
+              "Concept boost can reorder search results"
+              (lattice-ensure!)
+              ;; Search for 'gradient descent' — optimization skill should rank high
+              ;; because 'gradient-descent' is a concept linking to optimization
+              (let ([results (lattice-find "gradient descent" 10 'skill)])
+                (assert-true (> (length results) 0))
+                ;; optimization should be in results (linked by concept)
+                (assert-true (if (find (lambda (r) (eq? 'optimization (car r))) results)
+                                 #t #f))))
+
+            (define-test test-module-skill-map-populated
+              "Module→skill reverse map is populated during indexing"
+              (lattice-ensure!)
+              ;; 'vec' module should map to 'linalg' skill
+              (let ([skill (hamt-lookup 'vec *module-skill-map*)])
+                (assert-equal 'linalg skill)))
+
+            )
+
+;;; ====
 ;;; CAS Round-Trip Tests (fold-zy11)
 ;;; ====
 
