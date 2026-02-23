@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
+(require 'iteration)
 (require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'charts)
@@ -190,33 +191,22 @@
          ;; Compute partial derivatives of metric: ∂_l g_{ij}
          ;; dg[l] is the matrix of ∂g_{ij}/∂x^l
          [dg (compute-metric-derivatives m coords eps n)]
-         ;; Allocate result: Γ[k][i][j]
-         [gamma (make-vector n #f)])
-
-    ;; Compute each Γ^k_ij
-    (do ([k 0 (+ k 1)])
-        ((= k n) gamma)
-        (let ([gamma-k (make-vector n #f)])
-          (do ([i 0 (+ i 1)])
-              ((= i n))
-              (let ([gamma-ki (make-vector n 0)])
-                (do ([j 0 (+ j 1)])
-                    ((= j n))
-                    ;; Γ^k_ij = ½ Σ_l g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})
-                    (let ([sum 0])
-                      (do ([l 0 (+ l 1)])
-                          ((= l n))
-                          (let* ([g-kl (matrix-ref g-inv k l)]
-                                 [dg-i (vector-ref dg i)]  ; ∂g/∂x^i matrix
-                                 [dg-j (vector-ref dg j)]
-                                 [dg-l (vector-ref dg l)]
-                                 [term1 (matrix-ref dg-i j l)]   ; ∂_i g_{jl}
-                                 [term2 (matrix-ref dg-j i l)]   ; ∂_j g_{il}
-                                 [term3 (matrix-ref dg-l i j)])  ; ∂_l g_{ij}
-                            (set! sum (+ sum (* g-kl (- (+ term1 term2) term3))))))
-                      (vector-set! gamma-ki j (* 0.5 sum))))
-                (vector-set! gamma-k i gamma-ki)))
-          (vector-set! gamma k gamma-k)))))
+         ;; Compute Γ[k][i][j]
+         [gamma (vec-tabulate n k
+                  (vec-tabulate n i
+                    (vec-tabulate n j
+                      ;; Γ^k_ij = ½ Σ_l g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})
+                      (* 0.5
+                         (range-fold sum 0 l 0 n
+                           (let* ([g-kl (matrix-ref g-inv k l)]
+                                  [dg-i (vector-ref dg i)]  ; ∂g/∂x^i matrix
+                                  [dg-j (vector-ref dg j)]
+                                  [dg-l (vector-ref dg l)]
+                                  [term1 (matrix-ref dg-i j l)]   ; ∂_i g_{jl}
+                                  [term2 (matrix-ref dg-j i l)]   ; ∂_j g_{il}
+                                  [term3 (matrix-ref dg-l i j)])  ; ∂_l g_{ij}
+                             (+ sum (* g-kl (- (+ term1 term2) term3)))))))))])
+    gamma))
 
 ;;; compute-metric-derivatives : Metric × Vec × Num × Nat → (Vector Matrix)
 ;;; Helper: compute ∂g_{ij}/∂x^l for all l.
@@ -326,18 +316,10 @@
 
 ;;; 4D array helpers
 (define (make-4d-array n)
-  (let ([arr (make-vector n #f)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) arr)
-        (let ([arr-i (make-vector n #f)])
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-              (let ([arr-ij (make-vector n #f)])
-                (do ([k 0 (+ k 1)])
-                    ((= k n))
-                    (vector-set! arr-ij k (make-vector n 0)))
-                (vector-set! arr-i j arr-ij)))
-          (vector-set! arr i arr-i)))))
+  (vec-tabulate n i
+    (vec-tabulate n j
+      (vec-tabulate n k
+        (make-vector n 0)))))
 
 (define (array-4d-ref arr i j k l)
   (vector-ref (vector-ref (vector-ref (vector-ref arr i) j) k) l))

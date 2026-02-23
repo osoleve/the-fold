@@ -1,8 +1,9 @@
 ;;; @module matrix
-;;; @requires prelude vec
+;;; @requires prelude vec iteration
 
 (require 'prelude)
 (require 'vec)
+(require 'iteration)
 
 (doc 'module 'matrix)
 (doc 'description "Core matrix operations for linear algebra")
@@ -110,11 +111,8 @@
         [cols (matrix-cols m)]
         [data (matrix-data m)])
        (if (and (>= i 0) (< i rows))
-           (let ([result (make-vector cols 0)]
-                 [start (* i cols)])
-                (do ([j 0 (+ j 1)])
-                    ((= j cols) result)
-                    (vector-set! result j (vector-ref data (+ start j)))))
+           (let ([start (* i cols)])
+                (vec-tabulate cols j (vector-ref data (+ start j))))
            `(error out-of-bounds ,i ,rows))))
 
 ;;; matrix-col : Matrix a × Nat → Vec a | Error
@@ -124,10 +122,7 @@
         [cols (matrix-cols m)]
         [data (matrix-data m)])
        (if (and (>= j 0) (< j cols))
-           (let ([result (make-vector rows 0)])
-                (do ([i 0 (+ i 1)])
-                    ((= i rows) result)
-                    (vector-set! result i (vector-ref data (+ (* i cols) j)))))
+           (vec-tabulate rows i (vector-ref data (+ (* i cols) j)))
            `(error out-of-bounds ,j ,cols))))
 
 ;;; matrix-diagonal : Matrix a → Vec a
@@ -136,11 +131,8 @@
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [n (min rows cols)]
-         [data (matrix-data m)]
-         [result (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (vector-ref data (+ (* i cols) i))))))
+         [data (matrix-data m)])
+        (vec-tabulate n i (vector-ref data (+ (* i cols) i)))))
 
 ;;; ====
 ;;; Matrix Transformations
@@ -169,11 +161,9 @@
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [data (matrix-data m)]
-         [n (* rows cols)]
-         [result (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) (list 'matrix rows cols result))
-            (vector-set! result i (f (vector-ref data i))))))
+         [n (* rows cols)])
+        (list 'matrix rows cols
+              (vec-tabulate n i (f (vector-ref data i))))))
 
 ;;; matrix-map2 : (a × b → c) × Matrix a × Matrix b → Matrix c | Error
 ;;; Apply function to corresponding elements.
@@ -184,13 +174,11 @@
            `(error dimension-mismatch (,r1 ,c1) (,r2 ,c2))
            (let* ([data1 (matrix-data m1)]
                   [data2 (matrix-data m2)]
-                  [n (* r1 c1)]
-                  [result (make-vector n 0)])
-                 (do ([i 0 (+ i 1)])
-                     ((= i n) (list 'matrix r1 c1 result))
-                     (vector-set! result i
-                                  (f (vector-ref data1 i)
-                                     (vector-ref data2 i))))))))
+                  [n (* r1 c1)])
+                 (list 'matrix r1 c1
+                       (vec-tabulate n i
+                         (f (vector-ref data1 i)
+                            (vector-ref data2 i))))))))
 
 ;;; matrix-fold : (b × a → b) × b × Matrix a → b
 ;;; Fold over all elements (row-major order).

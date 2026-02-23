@@ -187,21 +187,24 @@
 ;;; Currently only supports single-column expansion for simplicity.
 (define (polynomial-features X degree)
   (doc 'export #t)
-  (let* ([m (matrix-rows X)]
-         [n (matrix-cols X)]
-         [total-cols (+ n (* n degree))]  ; original + powers
-         [new-data (vec-tabulate (* m total-cols) k
-                     (let ([i (quotient k total-cols)]
-                           [j (remainder k total-cols)])
-                       (if (< j n)
-                           ;; Original column
-                           (matrix-ref X i j)
-                           ;; Polynomial term: which original col and what degree?
-                           (let* ([off (- j n)]
-                                  [src-col (quotient off degree)]
-                                  [d (+ (remainder off degree) 2)])
-                             (expt (matrix-ref X i src-col) d)))))])
-        (list 'matrix m total-cols new-data)))
+  (if (<= degree 1)
+      X  ;; no polynomial features to add
+      (let* ([m (matrix-rows X)]
+             [n (matrix-cols X)]
+             [extra (- degree 1)]  ;; powers x^2 .. x^degree per source col
+             [total-cols (+ n (* n extra))]
+             [new-data (vec-tabulate (* m total-cols) k
+                         (let ([i (quotient k total-cols)]
+                               [j (remainder k total-cols)])
+                           (if (< j n)
+                               ;; Original column
+                               (matrix-ref X i j)
+                               ;; Polynomial term: which original col and what degree?
+                               (let* ([off (- j n)]
+                                      [src-col (quotient off extra)]
+                                      [d (+ (remainder off extra) 2)])
+                                 (expt (matrix-ref X i src-col) d)))))])
+            (list 'matrix m total-cols new-data))))
 
 ;;; ====
 ;;; Matrix Construction from Data
