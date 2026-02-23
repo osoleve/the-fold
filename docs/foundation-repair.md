@@ -11,10 +11,10 @@
 | Total mutation operations | ~4,700 | ~2,500 (hashtable ops eliminated, `vector-set!`/`set!` remain) |
 | Chez hashtable creation sites | ~95 in ~69 files | 18 in 9 files (all documented exceptions) |
 | Residual hashtable operations | ~537 | ~65 across 21 files (reads + exceptions) |
-| `vector-set!` | 1,343 in 137 files | ~1,209 in 136 files (P3 in progress) |
+| `vector-set!` | 1,343 in 137 files | ~1,006 in ~130 files (P3 in progress) |
 | ~~Files falsely claiming `'total` purity~~ | ~~181 of 405~~ | **FIXED** (P1) |
 | P0–P2 completion | — | **ALL DONE** |
-| P3 `vector-set!` eliminated | — | ~203 across 7 files (pilots + batch 1) |
+| P3 `vector-set!` eliminated | — | ~203 across 23 files (pilots + batches 1-4) |
 
 ---
 
@@ -140,6 +140,29 @@ Residual `vector-set!` in batch 1 (12 total): multi-pass accumulation (combine-f
 
 QA fix: `polynomial-features` generated powers up to x^(degree+1) instead of x^degree.
 
+**Batch 3** (`c05e578d`): 6 files, 46 `vector-set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `numeric/window-functions.ss` | 8 | 0 | All 8 window builders → `vec-tabulate` |
+| `numeric/convolution.ss` | 14 | 2 | Direct/FFT convolution + correlate → `vec-tabulate` + `range-fold` |
+| `numeric/spectral-analysis.ss` | 14 | 7 | apply-window, magnitude/power-spectrum → `vec-tabulate` |
+| `data/graph/graph-matrix.ss` | 32 | 23 | degree-matrix, complete/cycle/path/star-graph → `vec-tabulate` |
+| `data/graph/graph-layout.ss` | 6 | 0 | Force-directed layout → `vec-tabulate` + `range-fold` |
+| `data/graph/pagerank.ss` | 4 | 0 | Transition/Google matrix → `vec-tabulate` |
+
+**Batch 4** (`107f328f`): 7 files, 48 `vector-set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `numeric/spectral-pde.ss` | 33 | 19 | Fourier wavenumbers/diff/heat/advection, Chebyshev nodes → `vec-tabulate` |
+| `numeric/dft.ss` | 16 | 8 | bit-reverse-copy, real/complex conversions, spectra → `vec-tabulate` |
+| `data/graph/random-graphs.ss` | 16 | 8 | Erdos-Renyi, Barabási-Albert clique, Watts-Strogatz ring → `vec-tabulate` |
+| `numeric/polynomial.ss` | 9 | 3 | monomial, scale, derivative, strip-zeros, linspace → `vec-tabulate` |
+| `numeric/pde-time.ss` | 9 | 4 | vec-add/sub/scale/madd, forward-euler-mass-step → `vec-tabulate` |
+| `numeric/fft-convolve.ss` | 5 | 0 | pointwise-mul, conj-mul, vec-reverse, result extraction → `vec-tabulate` |
+| `data/graph/graph-filtration.ss` | 2 | 0 | vertex-birth times → `vec-tabulate` |
+
 **Cluster survey** (BUILD+SCAN convertibility):
 
 | Cluster | Total `vector-set!` | Convertible | Imperative |
@@ -150,9 +173,9 @@ QA fix: `polynomial-features` generated powers up to x^(degree+1) instead of x^d
 | numeric/ | ~228 | ~70 | ~158 |
 | data/ | ~132 | ~88 | ~44 |
 
-**P3 running totals:** 109 `vector-set!` eliminated across 10 files (batches 1-2).
+**P3 running totals:** 203 `vector-set!` eliminated across 23 files (batches 1-4). Down from ~1,412 → ~1,006.
 
 Remaining scope:
-- ~1,100 `vector-set!` across ~130 files
-- Next targets: `numeric/window-functions.ss` (100% convertible), `numeric/convolution.ss`, `data/graph-matrix.ss`, `data/graph-layout.ss`
+- ~1,006 `vector-set!` across ~130 files
+- Next targets: `numeric/digital-filters.ss` (8 BUILD), `numeric/interpolate.ss` (3 BUILD + 5 SCAN), remaining diffgeo/ and statistics/ files
 - Eliminate ~795 bare `(set! ...)` across 222 files — many are loop accumulators convertible to `fold-left`/named `let`/`range-fold`
