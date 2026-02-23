@@ -11,10 +11,10 @@
 | Total mutation operations | ~4,700 | ~2,500 (hashtable ops eliminated, `vector-set!`/`set!` remain) |
 | Chez hashtable creation sites | ~95 in ~69 files | 18 in 9 files (all documented exceptions) |
 | Residual hashtable operations | ~537 | ~65 across 21 files (reads + exceptions) |
-| `vector-set!` | 1,343 in 137 files | ~1,006 in ~130 files (P3 in progress) |
+| `vector-set!` | 1,343 in 137 files | ~940 in ~120 files (P3 in progress) |
 | ~~Files falsely claiming `'total` purity~~ | ~~181 of 405~~ | **FIXED** (P1) |
 | P0–P2 completion | — | **ALL DONE** |
-| P3 `vector-set!` eliminated | — | ~203 across 23 files (pilots + batches 1-4) |
+| P3 `vector-set!` eliminated | — | ~269 across 37 files (pilots + batches 1-6) |
 
 ---
 
@@ -173,9 +173,31 @@ QA fix: `polynomial-features` generated powers up to x^(degree+1) instead of x^d
 | numeric/ | ~228 | ~70 | ~158 |
 | data/ | ~132 | ~88 | ~44 |
 
-**P3 running totals:** 203 `vector-set!` eliminated across 23 files (batches 1-4). Down from ~1,412 → ~1,006.
+**Batch 5** (`d8cf93d1`): 7 files, 28 `vector-set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `numeric/digital-filters.ss` | 27 | 15 | All window/FIR builders, freqz, magnitude/phase response → `vec-tabulate` |
+| `numeric/interpolate.ss` | 12 | 8 | Spline M-vector + segment coefficients → `vec-tabulate` |
+| `numeric/wavelet.ss` | 7 | 1 | QMF, reverse-filter, convolve-downsample, IDWT, threshold → `vec-tabulate` |
+| `data/graph/centrality.ss` | 13 | 10 | closeness, eigenvector-avg, betweenness normalization → `vec-tabulate` |
+| `data/graph/shortest-path.ss` | 3 | 2 | Bellman-Ford distance init → `vec-tabulate` |
+| `data/graph/spectral-community.ss` | 5 | 4 | Bipartition label init → `vec-tabulate` |
+
+**Batch 6** (`99fcc8fa`): 7 files, 38 `vector-set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `statistics/regression/glm.ss` | 15 | 3 | mu/eta/W/z/predict/classify/se/pvalues/residuals → `vec-tabulate` |
+| `data/graph/graph-community.ss` | 31 | 27 | label/union-find/ILP init → `vec-tabulate` |
+| `linalg/iterative-solvers.ss` | 21 | 14 | Jacobi x-new, GMRES g-vec, preconditioner → `vec-tabulate` + `range-fold` |
+| `game-theory/coop-games.ss` | 19 | 14 | nucleolus/permutation/Shapley init → `vec-tabulate` |
+| `numeric/fem.ss` | 19 | 14 | mesh trim, vec-add/sub/scale/div-pointwise → `vec-tabulate` |
+| `linalg/sparse.ss` | 37 | 35 | identity/diagonal matrix, CSR matvec → `vec-tabulate` + `range-fold` |
+
+**P3 running totals:** 269 `vector-set!` eliminated across 37 files (batches 1-6). Down from ~1,412 → ~940.
 
 Remaining scope:
-- ~1,006 `vector-set!` across ~130 files
-- Next targets: `numeric/digital-filters.ss` (8 BUILD), `numeric/interpolate.ss` (3 BUILD + 5 SCAN), remaining diffgeo/ and statistics/ files
+- ~940 `vector-set!` across ~120 files (majority are legitimately imperative: iterative solvers, ODE integrators, autodiff tapes, in-place algorithms)
+- Remaining convertible pockets: `sim/dynamics/stability.ss` (~5 BUILD), `optimization/ilp.ss` (~4 BUILD), scattered 1-2 instance files
 - Eliminate ~795 bare `(set! ...)` across 222 files — many are loop accumulators convertible to `fold-left`/named `let`/`range-fold`
