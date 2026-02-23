@@ -408,10 +408,13 @@
                 [(_ size init idx acc body)
                  (let* ([len size]
                         [result (make-vector len 0)])
-                       (vector-set! result 0 init)
-                       (let loop ([idx 1] [acc init])
-                            (if (= idx len)
-                                result
-                                (let ([acc body])
-                                     (vector-set! result idx acc)
-                                     (loop (+ idx 1) acc)))))]))
+                       (if (= len 0)
+                           result
+                           (begin
+                             (vector-set! result 0 init)
+                             (let loop ([idx 1] [acc init])
+                                  (if (= idx len)
+                                      result
+                                      (let ([acc body])
+                                           (vector-set! result idx acc)
+                                           (loop (+ idx 1) acc)))))))]))

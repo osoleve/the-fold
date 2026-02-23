@@ -185,6 +185,10 @@
 
 (test-group vec-scan
 
+  (define-test empty-scan
+    (assert-equal (vector)
+                  (vec-scan 0 999 i acc (+ acc 1))))
+
   (define-test prefix-sums
     ;; init=0, acc = acc + i => 0, 1, 3, 6, 10
     (assert-equal (vector 0 1 3 6 10)
