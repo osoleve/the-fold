@@ -1,12 +1,13 @@
 ;;; lattice/numeric/pde-time.ss — Time stepping schemes for PDEs
 ;;; @module pde-time
-;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers
+;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers iteration
 
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
 (require 'sparse)
 (require 'iterative-solvers)
+(require 'iteration)
 
 (doc 'module 'pde-time)
 (doc 'description "Time stepping schemes for PDEs: explicit, implicit, and adaptive methods")
@@ -45,36 +46,24 @@
 
 (doc pde-vec-add 'type '(-> Vector Vector Vector))
 (define (pde-vec-add v1 v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (+ (vector-ref v1 i) (vector-ref v2 i))))))
+  (vec-tabulate (vector-length v1) i
+    (+ (vector-ref v1 i) (vector-ref v2 i))))
 
 (doc pde-vec-sub 'type '(-> Vector Vector Vector))
 (define (pde-vec-sub v1 v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (- (vector-ref v1 i) (vector-ref v2 i))))))
+  (vec-tabulate (vector-length v1) i
+    (- (vector-ref v1 i) (vector-ref v2 i))))
 
 (doc pde-vec-scale 'type '(-> Number Vector Vector))
 (define (pde-vec-scale s v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (* s (vector-ref v i))))))
+  (vec-tabulate (vector-length v) i
+    (* s (vector-ref v i))))
 
 (doc pde-vec-madd 'type '(-> Vector Number Vector Vector))
 (doc pde-vec-madd 'description "Multiply-add: v1 + s * v2")
 (define (pde-vec-madd v1 s v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (+ (vector-ref v1 i) (* s (vector-ref v2 i)))))))
+  (vec-tabulate (vector-length v1) i
+    (+ (vector-ref v1 i) (* s (vector-ref v2 i)))))
 
 (doc pde-vec-dot 'type '(-> Vector Vector Number))
 (define (pde-vec-dot v1 v2)
@@ -122,15 +111,12 @@
   ;; Lumped mass: use diagonal of M for efficiency
   ;; u^{n+1} = u^n + dt * M_diag^{-1} * (A*u^n + b)
   (let* ([Au (sparse-csr-vec-mul A u)]
-         [rhs (pde-vec-add Au b)]
-         [n (vector-length u)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
+         [rhs (pde-vec-add Au b)])
+    (vec-tabulate (vector-length u) i
       (let ([m-i (vector-ref M-diag i)]
             [r-i (vector-ref rhs i)]
             [u-i (vector-ref u i)])
-        (vector-set! result i (+ u-i (/ (* dt r-i) (max m-i *pde-epsilon*))))))))
+        (+ u-i (/ (* dt r-i) (max m-i *pde-epsilon*)))))))
 
 ;;; ============================================================
 ;;; Section 4: Backward Euler (Implicit)

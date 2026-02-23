@@ -1,6 +1,6 @@
 ;;; lattice/numeric/polynomial.ss — Numeric Polynomial Operations
 ;;; @module numeric/polynomial
-;;; @requires prelude complex matrix matrix-decomp matrix-eigen hamt
+;;; @requires prelude complex matrix matrix-decomp matrix-eigen hamt iteration
 
 (require 'prelude)
 (require 'complex)
@@ -8,6 +8,7 @@
 (require 'matrix-decomp)
 (require 'matrix-eigen)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'numeric/polynomial)
 (doc 'description "Polynomial representation and operations for control theory, signal processing, and numerical analysis")
@@ -73,10 +74,8 @@
             (cond
              [(>= i (- n 1)) (vector (vector-ref coeffs (- n 1)))]  ; Keep last
              [(not (zero? (vector-ref coeffs i)))
-              (let ([result (make-vector (- n i))])
-                   (do ([j i (+ j 1)])
-                       ((= j n) result)
-                       (vector-set! result (- j i) (vector-ref coeffs j))))]
+              (let ([len (- n i)])
+                (vec-tabulate len j (vector-ref coeffs (+ i j))))]
              [else (loop (+ i 1))]))))
 
 ;;; ====
@@ -103,9 +102,9 @@
 (define (poly-monomial coeff degree)
   (if (zero? coeff)
       (poly-zero)
-      (let ([coeffs (make-vector (+ degree 1) 0)])
-           (vector-set! coeffs 0 coeff)
-           (make-poly coeffs))))
+      (make-poly
+        (vec-tabulate (+ degree 1) i
+          (if (= i 0) coeff 0)))))
 
 ;;; poly-from-roots : (List Complex|Number) × [Number] → Poly
 ;;; Construct monic polynomial from its roots.
@@ -209,12 +208,10 @@
 ;;; poly-scale : Poly × Number → Poly
 ;;; Multiply polynomial by scalar.
 (define (poly-scale p k)
-  (let* ([coeffs (poly-coeffs p)]
-         [n (vector-length coeffs)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) (make-poly result))
-            (vector-set! result i (* k (vector-ref coeffs i))))))
+  (let ([coeffs (poly-coeffs p)])
+    (make-poly
+      (vec-tabulate (vector-length coeffs) i
+        (* k (vector-ref coeffs i))))))
 
 ;;; poly-mul : Poly × Poly → Poly
 ;;; Multiply two polynomials (convolution of coefficients).
@@ -252,17 +249,14 @@
          [n (vector-length coeffs)])
         (if (<= n 1)
             (poly-zero)  ; Constant → 0
-            (let* ([new-len (- n 1)]
-                   [result (make-vector new-len 0)])
+            (let ([new-len (- n 1)])
                   ;; Derivative: coefficient a_k at x^k becomes k*a_k at x^{k-1}
                   ;; In descending order: coeff at index i is for x^{n-1-i}
                   ;; After derivative: coeff at index i for x^{n-2-i} = (n-1-i)*original[i]
-                  (do ([i 0 (+ i 1)])
-                      ((= i new-len))
-                      (let ([power (- n 1 i)]  ; Original power at this index
-                            [coeff (vector-ref coeffs i)])
-                           (vector-set! result i (* power coeff))))
-                  (make-poly result)))))
+                  (make-poly
+                    (vec-tabulate new-len i
+                      (let ([power (- n 1 i)])
+                        (* power (vector-ref coeffs i)))))))))
 
 ;;; ====
 ;;; Polynomial Root Finding
@@ -386,11 +380,9 @@
 (define (logspace start stop n)
   (if (< n 2)
       (vector (expt 10 start))
-      (let* ([step (/ (- stop start) (- n 1))]
-             [result (make-vector n)])
-            (do ([i 0 (+ i 1)])
-                ((= i n) result)
-                (vector-set! result i (expt 10 (+ start (* i step))))))))
+      (let ([step (/ (- stop start) (- n 1))])
+        (vec-tabulate n i
+          (expt 10 (+ start (* i step)))))))
 
 ;;; linspace : Number × Number × Nat → Vector
 ;;; Generate linearly spaced points from start to stop.
@@ -398,11 +390,9 @@
 (define (linspace start stop n)
   (if (< n 2)
       (vector start)
-      (let* ([step (/ (- stop start) (- n 1))]
-             [result (make-vector n)])
-            (do ([i 0 (+ i 1)])
-                ((= i n) result)
-                (vector-set! result i (+ start (* i step)))))))
+      (let ([step (/ (- stop start) (- n 1))])
+        (vec-tabulate n i
+          (+ start (* i step))))))
 
 ;;; ====
 ;;; Display

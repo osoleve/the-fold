@@ -1,8 +1,9 @@
 ;;; lattice/numeric/spectral-pde.ss — Spectral Methods for PDEs
 ;;; @module spectral-pde
-;;; @requires prelude linalg/vec linalg/matrix numeric/complex numeric/dft
+;;; @requires prelude iteration linalg/vec linalg/matrix numeric/complex numeric/dft
 
 (require 'prelude)
+(require 'iteration)
 (require 'vec)
 (require 'matrix)
 (require 'complex)
@@ -33,17 +34,10 @@
 (doc fourier-wavenumbers 'type '(-> Nat Number Vector))
 (doc fourier-wavenumbers 'description "Compute wavenumbers for Fourier spectral differentiation. For N points on [0, L), returns k = [0, 1, ..., N/2-1, -N/2, ..., -1] × 2π/L")
 (define (fourier-wavenumbers n L)
-  (let* ([k (make-vector n 0.0)]
-         [factor (/ (* 2.0 (pi-value)) L)]
+  (let* ([factor (/ (* 2.0 (pi-value)) L)]
          [half (quotient n 2)])
-    ;; Positive frequencies: 0, 1, 2, ..., N/2-1
-    (do ([i 0 (+ i 1)])
-        ((= i half))
-      (vector-set! k i (* i factor)))
-    ;; Negative frequencies: -N/2, ..., -1
-    (do ([i half (+ i 1)])
-        ((= i n) k)
-      (vector-set! k i (* (- i n) factor)))))
+    (vec-tabulate n i
+      (* (if (< i half) i (- i n)) factor))))
 
 (doc fourier-diff 'export #t)
 (doc fourier-diff 'type '(-> Vector Number Vector))
@@ -52,16 +46,14 @@
   (let* ([n (vector-length u)]
          [k (fourier-wavenumbers n L)]
          [u-hat (dft-real u)]
-         [du-hat (make-vector n (complex-zero))])
-    ;; Multiply by ik in Fourier space
-    (do ([j 0 (+ j 1)])
-        ((= j n))
-      (let* ([kj (vector-ref k j)]
-             [uj (vector-ref u-hat j)]
-             ;; i * k * û = (0 + i·k) * (a + ib) = -kb + i·ka
-             [re (complex-real uj)]
-             [im (complex-imag uj)])
-        (vector-set! du-hat j (make-complex (* (- kj) im) (* kj re)))))
+         ;; Multiply by ik in Fourier space
+         ;; i * k * û = (0 + i·k) * (a + ib) = -kb + i·ka
+         [du-hat (vec-tabulate n j
+                   (let* ([kj (vector-ref k j)]
+                          [uj (vector-ref u-hat j)]
+                          [re (complex-real uj)]
+                          [im (complex-imag uj)])
+                     (make-complex (* (- kj) im) (* kj re))))])
     ;; Transform back
     (complex->real-vec (idft du-hat))))
 
@@ -72,14 +64,11 @@
   (let* ([n (vector-length u)]
          [k (fourier-wavenumbers n L)]
          [u-hat (dft-real u)]
-         [d2u-hat (make-vector n (complex-zero))])
-    ;; Multiply by -k² in Fourier space
-    (do ([j 0 (+ j 1)])
-        ((= j n))
-      (let* ([kj (vector-ref k j)]
-             [k2 (* kj kj)]
-             [uj (vector-ref u-hat j)])
-        (vector-set! d2u-hat j (complex-scale (- k2) uj))))
+         ;; Multiply by -k² in Fourier space
+         [d2u-hat (vec-tabulate n j
+                    (let* ([kj (vector-ref k j)]
+                           [k2 (* kj kj)])
+                      (complex-scale (- k2) (vector-ref u-hat j))))])
     ;; Transform back
     (complex->real-vec (idft d2u-hat))))
 
@@ -106,22 +95,16 @@
 (doc fourier-heat-rhs 'description "Compute RHS of heat equation: α·∂²u/∂x². For use with time steppers.")
 (define (fourier-heat-rhs u L alpha)
   (let ([d2u (fourier-diff2 u L)])
-    (let* ([n (vector-length d2u)]
-           [result (make-vector n 0.0)])
-      (do ([i 0 (+ i 1)])
-          ((= i n) result)
-        (vector-set! result i (* alpha (vector-ref d2u i)))))))
+    (vec-tabulate (vector-length d2u) i
+      (* alpha (vector-ref d2u i)))))
 
 (doc fourier-advection-rhs 'export #t)
 (doc fourier-advection-rhs 'type '(-> Vector Number Number Vector))
 (doc fourier-advection-rhs 'description "Compute RHS of advection equation: -c·∂u/∂x. For use with time steppers.")
 (define (fourier-advection-rhs u L c)
   (let ([du (fourier-diff u L)])
-    (let* ([n (vector-length du)]
-           [result (make-vector n 0.0)])
-      (do ([i 0 (+ i 1)])
-          ((= i n) result)
-        (vector-set! result i (* (- c) (vector-ref du i)))))))
+    (vec-tabulate (vector-length du) i
+      (* (- c) (vector-ref du i)))))
 
 ;;; Exponential integrator for heat equation (exact in Fourier space)
 (doc fourier-heat-exact-step 'export #t)
@@ -131,14 +114,11 @@
   (let* ([n (vector-length u)]
          [k (fourier-wavenumbers n L)]
          [u-hat (dft-real u)]
-         [u-hat-new (make-vector n (complex-zero))])
-    ;; Apply exponential decay in Fourier space
-    (do ([j 0 (+ j 1)])
-        ((= j n))
-      (let* ([kj (vector-ref k j)]
-             [decay (exp (* (- alpha) (* kj kj) dt))]
-             [uj (vector-ref u-hat j)])
-        (vector-set! u-hat-new j (complex-scale decay uj))))
+         ;; Apply exponential decay in Fourier space
+         [u-hat-new (vec-tabulate n j
+                      (let* ([kj (vector-ref k j)]
+                             [decay (exp (* (- alpha) (* kj kj) dt))])
+                        (complex-scale decay (vector-ref u-hat j))))])
     (complex->real-vec (idft u-hat-new))))
 
 ;;; Exact solver for advection (phase shift in Fourier space)
@@ -149,15 +129,12 @@
   (let* ([n (vector-length u)]
          [k (fourier-wavenumbers n L)]
          [u-hat (dft-real u)]
-         [u-hat-new (make-vector n (complex-zero))])
-    ;; Apply phase shift: e^{-i·c·k·dt}
-    (do ([j 0 (+ j 1)])
-        ((= j n))
-      (let* ([kj (vector-ref k j)]
-             [phase (- (* c kj dt))]
-             [shift (make-polar 1.0 phase)]
-             [uj (vector-ref u-hat j)])
-        (vector-set! u-hat-new j (complex-mul uj shift))))
+         ;; Apply phase shift: e^{-i·c·k·dt}
+         [u-hat-new (vec-tabulate n j
+                      (let* ([kj (vector-ref k j)]
+                             [phase (- (* c kj dt))]
+                             [shift (make-polar 1.0 phase)])
+                        (complex-mul (vector-ref u-hat j) shift)))])
     (complex->real-vec (idft u-hat-new))))
 
 ;;; Integration driver
@@ -189,25 +166,18 @@
 
 ;;; Helper functions for integration
 (define (vec-madd-simple u s dt k)
-  (let* ([n (vector-length u)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (+ (vector-ref u i)
-                               (* s dt (vector-ref k i)))))))
+  (vec-tabulate (vector-length u) i
+    (+ (vector-ref u i)
+       (* s dt (vector-ref k i)))))
 
 (define (rk4-combine u k1 k2 k3 k4 dt)
-  (let* ([n (vector-length u)]
-         [result (make-vector n 0.0)]
-         [dt6 (/ dt 6.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i
-                   (+ (vector-ref u i)
-                      (* dt6 (+ (vector-ref k1 i)
-                                (* 2.0 (vector-ref k2 i))
-                                (* 2.0 (vector-ref k3 i))
-                                (vector-ref k4 i))))))))
+  (let ([dt6 (/ dt 6.0)])
+    (vec-tabulate (vector-length u) i
+      (+ (vector-ref u i)
+         (* dt6 (+ (vector-ref k1 i)
+                    (* 2.0 (vector-ref k2 i))
+                    (* 2.0 (vector-ref k3 i))
+                    (vector-ref k4 i)))))))
 
 ;;; ============================================================
 ;;; Section 3: Chebyshev Polynomials and Nodes
@@ -225,24 +195,19 @@
 (doc chebyshev-nodes 'type '(-> Nat Vector))
 (doc chebyshev-nodes 'description "Compute Chebyshev-Gauss-Lobatto nodes: x_j = cos(πj/N) for j = 0, ..., N. Returns N+1 points on [-1, 1] including endpoints.")
 (define (chebyshev-nodes n)
-  (let* ([nodes (make-vector (+ n 1) 0.0)]
-         [pi-val (pi-value)])
-    (do ([j 0 (+ j 1)])
-        ((> j n) nodes)
-      (vector-set! nodes j (cos (/ (* pi-val j) n))))))
+  (let ([pi-val (pi-value)])
+    (vec-tabulate (+ n 1) j
+      (cos (/ (* pi-val j) n)))))
 
 (doc chebyshev-nodes-interval 'export #t)
 (doc chebyshev-nodes-interval 'type '(-> Nat Number Number Vector))
 (doc chebyshev-nodes-interval 'description "Chebyshev nodes mapped to interval [a, b]")
 (define (chebyshev-nodes-interval n a b)
   (let* ([std-nodes (chebyshev-nodes n)]
-         [mapped (make-vector (+ n 1) 0.0)]
          [mid (/ (+ a b) 2.0)]
          [half-width (/ (- b a) 2.0)])
-    (do ([j 0 (+ j 1)])
-        ((> j n) mapped)
-      (let ([x-std (vector-ref std-nodes j)])
-        (vector-set! mapped j (+ mid (* half-width x-std)))))))
+    (vec-tabulate (+ n 1) j
+      (+ mid (* half-width (vector-ref std-nodes j))))))
 
 (doc chebyshev-poly 'export #t)
 (doc chebyshev-poly 'type '(-> Nat Number Number))
@@ -489,21 +454,15 @@
 (doc periodic-grid 'type '(-> Nat Number Vector))
 (doc periodic-grid 'description "Create uniform grid on [0, L) for periodic problems")
 (define (periodic-grid n L)
-  (let* ([h (/ L n)]
-         [grid (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) grid)
-      (vector-set! grid i (* i h)))))
+  (let ([h (/ L n)])
+    (vec-tabulate n i (* i h))))
 
 (doc sample-function 'export #t)
 (doc sample-function 'type '(-> (-> Number Number) Vector Vector))
 (doc sample-function 'description "Sample function f at grid points")
 (define (sample-function f grid)
-  (let* ([n (vector-length grid)]
-         [values (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) values)
-      (vector-set! values i (f (vector-ref grid i))))))
+  (vec-tabulate (vector-length grid) i
+    (f (vector-ref grid i))))
 
 (doc spectral-error-estimate 'export #t)
 (doc spectral-error-estimate 'type '(-> Vector Vector Number))

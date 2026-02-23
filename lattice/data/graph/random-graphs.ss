@@ -1,10 +1,11 @@
 ;;; lattice/data/graph/random-graphs.ss — Random Graph Generators
 ;;; @module random-graphs
-;;; @requires prelude graph-matrix prng
+;;; @requires prelude iteration graph-matrix prng
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'iteration)
 (require 'graph-matrix)
 (require 'prng)
 
@@ -33,21 +34,29 @@ The result is an undirected adjacency matrix (symmetric).")
 (define (erdos-renyi n p)
   (make-state
    (lambda (gen)
-     (let ([data (make-vector (* n n) 0)])
-       (let loop-i ([i 0] [g gen])
-         (if (>= i n)
-             (cons (list 'matrix n n data) g)
-             (let loop-j ([j (+ i 1)] [g g])
-               (if (>= j n)
-                   (loop-i (+ i 1) g)
-                   ;; Draw a uniform float and compare to p
-                   (let* ([result (run-state random-float g)]
-                          [u (car result)]
-                          [g2 (cdr result)])
-                     (when (< u p)
-                       (vector-set! data (+ (* i n) j) 1)
-                       (vector-set! data (+ (* j n) i) 1))
-                     (loop-j (+ j 1) g2))))))))))
+     ;; Phase 1: collect edge set with PRNG threading
+     (let collect ([i 0] [j 1] [edges '()] [g gen])
+       (cond
+         [(>= i n)
+          ;; Phase 2: tabulate adjacency matrix from edge set
+          (let ([data (vec-tabulate (* n n) idx
+                        (let ([r (quotient idx n)]
+                              [c (remainder idx n)])
+                          (if (memv (+ (* r n) c) edges) 1 0)))])
+            (cons (list 'matrix n n data) g))]
+         [(>= j n)
+          (collect (+ i 1) (+ i 2) edges g)]
+         [else
+          (let* ([result (run-state random-float g)]
+                 [u (car result)]
+                 [g2 (cdr result)])
+            (if (< u p)
+                ;; Store both (i,j) and (j,i) flat indices for symmetric lookup
+                (collect i (+ j 1)
+                         (cons (+ (* i n) j)
+                               (cons (+ (* j n) i) edges))
+                         g2)
+                (collect i (+ j 1) edges g2)))])))))
 
 ;;; ============================================================================
 ;;; Barabasi-Albert Preferential Attachment
@@ -64,20 +73,14 @@ proportional to their current degree. Produces scale-free degree distributions."
   (make-state
    (lambda (gen)
      (let* ([init-nodes (+ m 1)]
-            [data (make-vector (* n n) 0)]
-            ;; degree[i] tracks degree of node i
-            [degree (make-vector n 0)])
-       ;; Initialize complete graph on nodes 0..m
-       (let init-i ([i 0])
-         (when (< i init-nodes)
-           (let init-j ([j (+ i 1)])
-             (when (< j init-nodes)
-               (vector-set! data (+ (* i n) j) 1)
-               (vector-set! data (+ (* j n) i) 1)
-               (vector-set! degree i (+ (vector-ref degree i) 1))
-               (vector-set! degree j (+ (vector-ref degree j) 1))
-               (init-j (+ j 1))))
-           (init-i (+ i 1))))
+            ;; Tabulate initial complete graph K_{m+1} embedded in n×n matrix
+            [data (vec-tabulate (* n n) idx
+                    (let ([r (quotient idx n)]
+                          [c (remainder idx n)])
+                      (if (and (< r init-nodes) (< c init-nodes) (not (= r c)))
+                          1 0)))]
+            ;; Tabulate initial degree: each node in K_{m+1} has degree m, rest have 0
+            [degree (vec-tabulate n i (if (< i init-nodes) m 0))])
        ;; Add remaining nodes via preferential attachment
        (let add-node ([node init-nodes] [g gen])
          (if (>= node n)
@@ -140,17 +143,14 @@ for meaningful small-world properties.")
   (make-state
    (lambda (gen)
      (let* ([half-k (quotient k 2)]
-            [data (make-vector (* n n) 0)])
-       ;; Step 1: Build ring lattice — connect each node to k/2 neighbors on each side
-       (let build ([i 0])
-         (when (< i n)
-           (let connect ([d 1])
-             (when (<= d half-k)
-               (let ([j (modulo (+ i d) n)])
-                 (vector-set! data (+ (* i n) j) 1)
-                 (vector-set! data (+ (* j n) i) 1)
-                 (connect (+ d 1)))))
-           (build (+ i 1))))
+            ;; Tabulate ring lattice: position (i,j) is 1 iff j is within
+            ;; half-k steps of i on the ring (in either direction)
+            [data (vec-tabulate (* n n) idx
+                    (let* ([i (quotient idx n)]
+                           [j (remainder idx n)]
+                           [d (modulo (- j i) n)]
+                           [dist (min d (- n d))])
+                      (if (and (not (= i j)) (<= dist half-k)) 1 0)))])
        ;; Step 2: Rewire — for each node i and each clockwise neighbor offset d,
        ;; with probability p, replace the edge (i, (i+d) mod n) with (i, random node)
        (let rewire-i ([i 0] [g gen])

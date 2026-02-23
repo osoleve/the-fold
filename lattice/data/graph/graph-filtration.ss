@@ -1,9 +1,10 @@
 ;;; lattice/data/graph/graph-filtration.ss — Bridge from graph edge-weight filtration to persistent homology
 ;;; @module graph-filtration
-;;; @requires prelude graph-matrix simplicial-complex persistent
+;;; @requires prelude iteration graph-matrix simplicial-complex persistent
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'iteration)
 (require 'graph-matrix)
 (require 'simplicial-complex)
 (require 'persistent)
@@ -72,27 +73,37 @@
   pre-add vertex simplices at time 0.")
 (define (graph-weight-filtration m)
   (let* ([n (matrix-rows m)]
-         [vertex-birth (make-vector n +inf.0)]
-         [pairs '()])
-    ;; Collect edges with weights, record earliest birth for each vertex
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (let ([w (matrix-ref m i j)])
-          (when (> w 0)
-            (set! pairs (cons (cons (make-simplex (list i j)) w) pairs))
-            (when (< w (vector-ref vertex-birth i))
-              (vector-set! vertex-birth i w))
-            (when (< w (vector-ref vertex-birth j))
-              (vector-set! vertex-birth j w))))))
-    ;; Add vertex simplices at their earliest edge birth time
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (let ([b (vector-ref vertex-birth i)])
-        (when (< b +inf.0)
-          (set! pairs (cons (cons (make-simplex (list i)) b) pairs)))))
-    (make-filtration pairs)))
+         ;; Collect edge simplices with weights
+         [edge-pairs
+          (let loop-i ([i 0] [acc '()])
+            (if (>= i n) acc
+                (loop-i (+ i 1)
+                        (let loop-j ([j (+ i 1)] [acc acc])
+                          (if (>= j n) acc
+                              (let ([w (matrix-ref m i j)])
+                                (loop-j (+ j 1)
+                                        (if (> w 0)
+                                            (cons (cons (make-simplex (list i j)) w) acc)
+                                            acc))))))))]
+         ;; Compute earliest birth time per vertex via tabulation:
+         ;; for vertex i, scan full row for minimum positive weight
+         [vertex-birth
+          (vec-tabulate n i
+            (let row-min ([j 0] [best +inf.0])
+              (if (>= j n) best
+                  (let ([w (matrix-ref m i j)])
+                    (row-min (+ j 1)
+                             (if (and (> w 0) (< w best)) w best))))))]
+         ;; Build vertex simplices for non-isolated vertices
+         [vertex-pairs
+          (let loop ([i 0] [acc '()])
+            (if (>= i n) acc
+                (let ([b (vector-ref vertex-birth i)])
+                  (loop (+ i 1)
+                        (if (< b +inf.0)
+                            (cons (cons (make-simplex (list i)) b) acc)
+                            acc)))))])
+    (make-filtration (append edge-pairs vertex-pairs))))
 
 ;;; ============================================================
 ;;; Graph Rips Filtration

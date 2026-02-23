@@ -1,11 +1,12 @@
 ;;; lattice/numeric/fft-convolve.ss — FFT-based convolution bridge
 ;;; @module fft-convolve
-;;; @requires prelude complex dft
+;;; @requires prelude complex dft iteration
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'complex)
 (require 'dft)
+(require 'iteration)
 
 (doc 'module 'fft-convolve)
 (doc 'description "FFT-based convolution bridge: wires together DFT, pointwise multiply, and IDFT into the standard frequency-domain filtering pipeline. Provides linear convolution, cross-correlation, and frequency-domain filtering via FFT.")
@@ -19,26 +20,20 @@
 ;;; complex-pointwise-mul : Vector[Complex] x Vector[Complex] -> Vector[Complex]
 ;;; Element-wise complex multiplication of two equal-length vectors.
 (define (complex-pointwise-mul a b)
-  (let* ([n (vector-length a)]
-         [result (make-vector n)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i
-                   (complex-mul (vector-ref a i)
-                                (vector-ref b i))))))
+  (let ([n (vector-length a)])
+    (vec-tabulate n i
+      (complex-mul (vector-ref a i)
+                   (vector-ref b i)))))
 
 ;;; complex-pointwise-conj-mul : Vector[Complex] x Vector[Complex] -> Vector[Complex]
 ;;; Element-wise multiplication of conj(a[i]) * b[i].
 ;;; This is the cross-spectrum: conj(A) * B in frequency domain gives
 ;;; the correlation of a with b in time domain after IDFT.
 (define (complex-pointwise-conj-mul a b)
-  (let* ([n (vector-length a)]
-         [result (make-vector n)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i
-                   (complex-mul (complex-conjugate (vector-ref a i))
-                                (vector-ref b i))))))
+  (let ([n (vector-length a)])
+    (vec-tabulate n i
+      (complex-mul (complex-conjugate (vector-ref a i))
+                   (vector-ref b i)))))
 
 ;;; pad-to-fft-size : Vector[Number] x Integer -> Vector[Complex]
 ;;; Zero-pad a real-valued vector to length n and convert to complex.
@@ -48,11 +43,8 @@
 ;;; vec-reverse : Vector -> Vector
 ;;; Reverse a vector.
 (define (vec-reverse v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (vector-ref v (- n 1 i))))))
+  (let ([n (vector-length v)])
+    (vec-tabulate n i (vector-ref v (- n 1 i)))))
 
 ;;; ====
 ;;; FFT-based convolution (linear)
@@ -82,12 +74,10 @@
          ;; Pointwise multiply in frequency domain
          [Y (complex-pointwise-mul X H)]
          ;; Inverse transform
-         [y (ifft-radix2 Y)]
-         ;; Extract real part, trim to output length
-         [result (make-vector output-len)])
-    (do ([i 0 (+ i 1)])
-        ((= i output-len) result)
-      (vector-set! result i (complex-real (vector-ref y i))))))
+         [y (ifft-radix2 Y)])
+    ;; Extract real part, trim to output length
+    (vec-tabulate output-len i
+      (complex-real (vector-ref y i)))))
 
 ;;; ====
 ;;; Frequency-domain filtering
@@ -107,15 +97,12 @@
          [m (vector-length kernel)]
          [full (fft-convolve signal kernel)]
          ;; Trim to same length as signal, centered
-         [offset (quotient (- m 1) 2)]
-         [result (make-vector n)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
+         [offset (quotient (- m 1) 2)])
+    (vec-tabulate n i
       (let ([j (+ i offset)])
-        (vector-set! result i
-                     (if (< j (vector-length full))
-                         (vector-ref full j)
-                         0.0))))))
+        (if (< j (vector-length full))
+            (vector-ref full j)
+            0.0)))))
 
 ;;; ====
 ;;; FFT-based cross-correlation
