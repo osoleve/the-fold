@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
+(require 'iteration)
 (require 'charts)
 (require 'tangent)
 
@@ -258,9 +259,8 @@
   (let* ([n (chart-dim chart)]
          [k (length idx)]
          [num-components (binomial n k)]
-         [components (make-vector num-components 0)]
-         [offset (multi-index->offset n idx)])
-    (vector-set! components offset 1)
+         [offset (multi-index->offset n idx)]
+         [components (vec-tabulate num-components i (if (= i offset) 1 0))])
     (make-k-form point chart k components)))
 
 ;;; ============================================================================
@@ -929,8 +929,5 @@
    [else (for-all pred (cdr lst))]))
 
 (define (vec-copy v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-        (vector-set! result i (vector-ref v i)))))
+  (let ([n (vector-length v)])
+    (vec-tabulate n i (vector-ref v i))))

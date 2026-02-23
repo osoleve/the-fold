@@ -1,10 +1,11 @@
 ;;; lattice/optimization/ilp.ss — Integer Linear Programming
 ;;; @module ilp
-;;; @requires lp
+;;; @requires lp iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'lp)
+(require 'iteration)
 
 (doc 'module 'ilp)
 (doc 'description "Integer linear programming with branch-and-bound and cutting planes")
@@ -142,12 +143,10 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; round-solution : Vec x List -> Vec
 ;;; Round integer variables to nearest integer.
 (define (round-solution x integer-vars)
-  (let ([result (vec-copy x)])
-    (for-each
-      (lambda (i)
-        (vector-set! result i (round (vector-ref result i))))
-      integer-vars)
-    result))
+  (vec-tabulate (vector-length x) i
+    (if (memv i integer-vars)
+        (round (vector-ref x i))
+        (vector-ref x i))))
 
 ;;; ====
 ;;; Branch-and-Bound Core
@@ -183,15 +182,13 @@ Empty list = pure LP, all indices = pure ILP")
             [ui (vector-ref ub i)])
         ;; Lower bound: x_i >= l_i becomes x_i - s = l_i
         (when (> li -inf.0)
-          (let ([row (make-vector n 0)])
-            (vector-set! row i 1)
+          (let ([row (vec-tabulate n k (if (= k i) 1 0))])
             (set! bound-rows (cons (cons row -1) bound-rows))  ; -1 for subtract slack
             (set! bound-rhs (cons li bound-rhs))
             (set! slack-count (+ slack-count 1))))
         ;; Upper bound: x_i <= u_i becomes x_i + s = u_i
         (when (< ui +inf.0)
-          (let ([row (make-vector n 0)])
-            (vector-set! row i 1)
+          (let ([row (vec-tabulate n k (if (= k i) 1 0))])
             (set! bound-rows (cons (cons row 1) bound-rows))   ; +1 for add slack
             (set! bound-rhs (cons ui bound-rhs))
             (set! slack-count (+ slack-count 1))))))
@@ -340,10 +337,7 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; vector-take : Vec x Nat -> Vec
 ;;; Take first n elements of vector.
 (define (vector-take v n)
-  (let ([result (make-vector n 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i n) result]
-      (vector-set! result i (vector-ref v i)))))
+  (vec-tabulate n i (vector-ref v i)))
 
 ;;; ====
 ;;; Gomory Cutting Planes
@@ -382,25 +376,20 @@ Empty list = pure LP, all indices = pure ILP")
               (if (is-integer? bi)
                   #f  ; Row is integral, no cut needed
                   ;; Generate cut coefficients
-                  (let ([cut-coef (make-vector n 0)]
-                        [cut-rhs (frac bi)])
-                    ;; For each non-basic variable
-                    (do ([j 0 (+ j 1)])
-                        [(= j n)]
-                      (when (not (vec-contains? basis j))
-                        (let* ([Aj (matrix-col A j)]
-                               [aij-bar (vec-dot (matrix-row B-inv row-idx) Aj)])
-                          (vector-set! cut-coef j (frac aij-bar)))))
+                  (let* ([cut-rhs (frac bi)]
+                         [B-inv-row (matrix-row B-inv row-idx)]
+                         [cut-coef (vec-tabulate n j
+                                     (if (vec-contains? basis j)
+                                         0
+                                         (let* ([Aj (matrix-col A j)]
+                                                [aij-bar (vec-dot B-inv-row Aj)])
+                                           (frac aij-bar))))])
                     (cons cut-coef cut-rhs))))))))
 
 ;;; matrix-row : Matrix x Nat -> Vec
 ;;; Extract row i as a vector.
 (define (matrix-row m i)
-  (let* ([n (matrix-cols m)]
-         [row (make-vector n 0)])
-    (do ([j 0 (+ j 1)])
-        [(= j n) row]
-      (vector-set! row j (matrix-ref m i j)))))
+  (vec-tabulate (matrix-cols m) j (matrix-ref m i j)))
 
 ;;; add-gomory-cut : LP x Vec x Num -> LP
 ;;; Add a Gomory cut to the LP.
@@ -415,21 +404,22 @@ Empty list = pure LP, all indices = pure ILP")
          [new-n (+ n 1)]
          [new-m (+ m 1)]
          [new-A (make-matrix new-m new-n 0)]
-         [new-b (make-vector new-m 0)]
+         [new-b (vec-tabulate new-m i
+                   (cond
+                     [(< i m) (vector-ref b i)]
+                     [else rhs]))]
          [new-c (vec-append c (vector 0))])
-    ;; Copy original A and b
+    ;; Copy original A
     (do ([i 0 (+ i 1)])
         [(= i m)]
       (do ([j 0 (+ j 1)])
           [(= j n)]
-        (matrix-set! new-A i j (matrix-ref A i j)))
-      (vector-set! new-b i (vector-ref b i)))
+        (matrix-set! new-A i j (matrix-ref A i j))))
     ;; Add cut row: coef * x - s = rhs
     (do ([j 0 (+ j 1)])
         [(= j n)]
       (matrix-set! new-A m j (vector-ref coef j)))
     (matrix-set! new-A m n -1)  ; slack variable coefficient
-    (vector-set! new-b m rhs)
     (make-lp new-c new-A new-b)))
 
 ;;; ilp-solve-cutting-plane : ILP -> ILPResult
@@ -562,7 +552,11 @@ Empty list = pure LP, all indices = pure ILP")
          [n-total (+ n m m)]  ; n original + m surplus + m artificial
          [A-full (make-matrix m n-total 0)]
          [b-full (vec-ones m)]
-         [c-full (make-vector n-total 0)])
+         [c-full (vec-tabulate n-total j
+                   (cond
+                     [(< j n) (vector-ref costs j)]
+                     [(>= j (+ n m)) BIG-M]
+                     [else 0]))])
     ;; Set up constraint matrix
     (do ([i 0 (+ i 1)])
         [(= i m)]
@@ -574,14 +568,6 @@ Empty list = pure LP, all indices = pure ILP")
       (matrix-set! A-full i (+ n i) -1)
       ;; Artificial variable (add)
       (matrix-set! A-full i (+ n m i) 1))
-    ;; Set up cost vector
-    (do ([j 0 (+ j 1)])
-        [(= j n)]
-      (vector-set! c-full j (vector-ref costs j)))
-    ;; Artificial variables have Big-M cost
-    (do ([i 0 (+ i 1)])
-        [(= i m)]
-      (vector-set! c-full (+ n m i) BIG-M))
     ;; Add binary constraints for x_j <= 1
     (let* ([A-bin (make-matrix n n-total 0)]
            [b-bin (vec-ones n)])
@@ -630,42 +616,28 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; vec-negate : Vec -> Vec
 ;;; Negate all elements.
 (define (vec-negate v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i n) result]
-      (vector-set! result i (- (vector-ref v i))))))
+  (vec-tabulate (vector-length v) i (- (vector-ref v i))))
 
 ;;; vec-append : Vec x Vec -> Vec
 ;;; Concatenate two vectors.
 (define (vec-append v1 v2)
-  (let* ([n1 (vector-length v1)]
-         [n2 (vector-length v2)]
-         [result (make-vector (+ n1 n2) 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i n1)]
-      (vector-set! result i (vector-ref v1 i)))
-    (do ([i 0 (+ i 1)])
-        [(= i n2) result]
-      (vector-set! result (+ n1 i) (vector-ref v2 i)))))
+  (let ([n1 (vector-length v1)]
+        [n2 (vector-length v2)])
+    (vec-tabulate (+ n1 n2) i
+      (if (< i n1)
+          (vector-ref v1 i)
+          (vector-ref v2 (- i n1))))))
 
 ;;; vec-copy : Vec -> Vec
 ;;; Copy a vector.
 (define (vec-copy v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i n) result]
-      (vector-set! result i (vector-ref v i)))))
+  (vec-tabulate (vector-length v) i (vector-ref v i)))
 
 ;;; vec-dot : Vec x Vec -> Num
 ;;; Dot product.
 (define (vec-dot v1 v2)
-  (let ([n (vector-length v1)]
-        [sum 0])
-    (do ([i 0 (+ i 1)])
-        [(= i n) sum]
-      (set! sum (+ sum (* (vector-ref v1 i) (vector-ref v2 i)))))))
+  (range-fold sum 0 i 0 (vector-length v1)
+    (+ sum (* (vector-ref v1 i) (vector-ref v2 i)))))
 
 ;;; matrix-vstack : Matrix x Matrix -> Matrix
 ;;; Vertically stack two matrices.
@@ -725,4 +697,3 @@ Empty list = pure LP, all indices = pure ILP")
 (define (vec->string v)
   (let ([parts (map number->string (vector->list v))])
     (string-append "[" (string-join parts ", ") "]")))
-

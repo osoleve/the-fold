@@ -1,11 +1,12 @@
 ;;; lattice/linalg/matrix-solvers.ss — Linear Equation Solvers
 ;;; @module matrix-solvers
-;;; @requires prelude vec matrix matrix-decomp
+;;; @requires prelude vec matrix matrix-decomp iteration
 
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
 (require 'matrix-decomp)
+(require 'iteration)
 
 (doc 'module 'matrix-solvers)
 (doc 'purity 'partial)
@@ -78,19 +79,16 @@ Dependencies (must be loaded by client in correct order):
          [lu (matrix-lu a)])
         (if (and (pair? lu) (eq? (car lu) 'error))
             lu
-            (let* ([inv-data (make-vector (* n n) 0)]
-                   [e (make-vector n 0)])
+            (let ([inv-data (make-vector (* n n) 0)])
                   (do ([j 0 (+ j 1)])
                       [(= j n) (list 'matrix n n inv-data)]
-                      ;; Setup e_j (j-th column of identity matrix)
-                      (do ([i 0 (+ i 1)]) [(= i n)] (vector-set! e i 0))
-                      (vector-set! e j 1)
-                      ;; Solve Ax_j = e_j
-                      (let ([xj (matrix-lu-solve lu e)])
-                           ;; Copy xj to j-th column of inv-data
-                           (do ([i 0 (+ i 1)])
-                               [(= i n)]
-                               (vector-set! inv-data (+ (* i n) j) (vector-ref xj i)))))))))
+                      ;; Build e_j (j-th column of identity matrix), solve Ax_j = e_j
+                      (let* ([e (vec-tabulate n i (if (= i j) 1 0))]
+                             [xj (matrix-lu-solve lu e)])
+                            ;; Copy xj to j-th column of inv-data
+                            (do ([i 0 (+ i 1)])
+                                [(= i n)]
+                                (vector-set! inv-data (+ (* i n) j) (vector-ref xj i)))))))))
 
 ;;; ====
 ;;; Determinant

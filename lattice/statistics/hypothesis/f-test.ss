@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module f-test
-;;; @requires prelude result-types summary-stats stat/distributions
+;;; @requires prelude iteration result-types summary-stats stat/distributions
 (require 'prelude)
+(require 'iteration)
 (require 'result-types)
 (require 'summary-stats)
 (require 'stat/distributions)
@@ -75,12 +76,9 @@
          ;; Transform: Z_ij = |X_ij - median(X_i)|
          [z-groups (map (lambda (g)
                                 (let* ([med (vec-median g)]
-                                       [n (vector-length g)]
-                                       [z (make-vector n)])
-                                      (do ([i 0 (+ i 1)])
-                                          [(= i n) z]
-                                          (vector-set! z i
-                                                       (abs (- (vector-ref g i) med))))))
+                                       [n (vector-length g)])
+                                  (vec-tabulate n i
+                                    (abs (- (vector-ref g i) med)))))
                         groups)]
          ;; Perform one-way ANOVA on transformed data
          [anova-result (anova-one-way z-groups)])

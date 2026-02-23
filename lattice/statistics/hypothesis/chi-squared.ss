@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module chi-squared
-;;; @requires prelude matrix result-types stat/distributions
+;;; @requires prelude iteration matrix result-types stat/distributions
 (require 'prelude)
+(require 'iteration)
 (require 'matrix)
 (require 'result-types)
 (require 'stat/distributions)
@@ -55,11 +56,8 @@
 (define (chi-squared-test-goodness-proportions observed proportions)
   (let* ([n (vector-length observed)]
          [total (vec-sum observed)]
-         [expected (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n)]
-            (vector-set! expected i (* total (vector-ref proportions i))))
-        (chi-squared-test-goodness observed expected)))
+         [expected (vec-tabulate n i (* total (vector-ref proportions i)))])
+    (chi-squared-test-goodness observed expected)))
 
 ;;; ====
 ;;; Independence Test

@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
+(require 'iteration)
 (require 'curvature)
 (require 'sort)
 
@@ -59,20 +60,14 @@
 (define (geodesic-acceleration metric coords velocity)
   (doc 'export #t)
   (let* ([n (metric-dim metric)]
-         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
-         [accel (make-vector n 0)])
+         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)])
     ;; a^k = -Σ_{ij} Γ^k_{ij} v^i v^j
-    (do ([k 0 (+ k 1)])
-        ((= k n) accel)
-      (let ([sum 0])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-            (set! sum (+ sum (* (christoffel-ref gamma k i j)
-                                (vector-ref velocity i)
-                                (vector-ref velocity j))))))
-        (vector-set! accel k (- sum))))))
+    (vec-tabulate n k
+      (- (range-fold outer 0 i 0 n
+           (range-fold inner outer j 0 n
+             (+ inner (* (christoffel-ref gamma k i j)
+                         (vector-ref velocity i)
+                         (vector-ref velocity j)))))))))
 
 ;;; geodesic-derivative : Metric × GeodesicState → (Vec . Vec)
 ;;; Compute the derivative of the geodesic state (for RK4 integration).
@@ -743,20 +738,14 @@
 ;;; Uses cached Christoffel symbols when possible.
 (define (parallel-transport-derivative metric coords velocity V)
   (let* ([n (metric-dim metric)]
-         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
-         [dV (make-vector n 0)])
+         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)])
     ;; dV^k/dt = -Σ_{ij} Γ^k_{ij} v^i V^j
-    (do ([k 0 (+ k 1)])
-        ((= k n) dV)
-      (let ([sum 0])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-            (set! sum (+ sum (* (christoffel-ref gamma k i j)
-                                (vector-ref velocity i)
-                                (vector-ref V j))))))
-        (vector-set! dV k (- sum))))))
+    (vec-tabulate n k
+      (- (range-fold outer 0 i 0 n
+           (range-fold inner outer j 0 n
+             (+ inner (* (christoffel-ref gamma k i j)
+                         (vector-ref velocity i)
+                         (vector-ref V j)))))))))
 
 ;;; parallel-transport-step : Metric × GeodesicState × Vec × Num → (GeodesicState . Vec)
 ;;; Take one RK4 step for both geodesic and parallel transport.

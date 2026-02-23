@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module diagnostics
-;;; @requires prelude matrix matrix-solvers
+;;; @requires prelude iteration matrix matrix-solvers
 (require 'prelude)
+(require 'iteration)
 (require 'matrix)
 (require 'matrix-solvers)
 
@@ -38,74 +39,47 @@
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
          [XtX (matrix-mul (matrix-transpose X) X)]
-         [XtX-inv (matrix-inverse XtX)]
-         [h (make-vector m)])
+         [XtX-inv (matrix-inverse XtX)])
         (if (and (pair? XtX-inv) (eq? (car XtX-inv) 'error))
             XtX-inv
-            (begin
-             (do ([i 0 (+ i 1)])
-                 [(= i m)]
-                 ;; Extract row i as vector
-                 (let ([xi (make-vector n)])
-                      (do ([j 0 (+ j 1)])
-                          [(= j n)]
-                          (vector-set! xi j (matrix-ref X i j)))
-                      ;; h_ii = xi' * XtX-inv * xi
-                      (let* ([temp (make-vector n 0)])
-                            ;; temp = XtX-inv * xi
-                            (do ([r 0 (+ r 1)])
-                                [(= r n)]
-                                (let ([sum (let loop ([c 0] [s 0])
-                                                (if (= c n)
-                                                    s
-                                                    (loop (+ c 1)
-                                                          (+ s (* (matrix-ref XtX-inv r c)
-                                                                  (vector-ref xi c))))))])
-                                     (vector-set! temp r sum)))
-                            ;; h_ii = xi' * temp
-                            (let ([hii (let loop ([j 0] [s 0])
-                                            (if (= j n)
-                                                s
-                                                (loop (+ j 1)
-                                                      (+ s (* (vector-ref xi j)
-                                                              (vector-ref temp j))))))])
-                                 (vector-set! h i hii)))))
-             h))))
+            (vec-tabulate m i
+              ;; Extract row i as vector
+              (let* ([xi (vec-tabulate n j (matrix-ref X i j))]
+                     ;; temp = XtX-inv * xi
+                     [temp (vec-tabulate n r
+                             (range-fold s 0 c 0 n
+                               (+ s (* (matrix-ref XtX-inv r c)
+                                       (vector-ref xi c)))))])
+                ;; h_ii = xi' * temp
+                (range-fold s 0 j 0 n
+                  (+ s (* (vector-ref xi j)
+                          (vector-ref temp j)))))))))
 
 (doc 'section 'residual-types)
 
 (define (residuals-raw y fitted)
   (doc 'type '(-> Vec Vec Vec))
   (doc 'description "Raw residuals: e_i = y_i - y-hat_i")
-  (let* ([n (vector-length y)]
-         [e (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) e]
-            (vector-set! e i (- (vector-ref y i) (vector-ref fitted i))))))
+  (let ([n (vector-length y)])
+    (vec-tabulate n i (- (vector-ref y i) (vector-ref fitted i)))))
 
 (define (residuals-standardized raw-residuals sigma)
   (doc 'type '(-> Vec Num Vec))
   (doc 'description "Standardized residuals: e_i / sigma where sigma = residual standard error")
-  (let* ([n (vector-length raw-residuals)]
-         [r (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) r]
-            (vector-set! r i (/ (vector-ref raw-residuals i) sigma)))))
+  (let ([n (vector-length raw-residuals)])
+    (vec-tabulate n i (/ (vector-ref raw-residuals i) sigma))))
 
 (define (residuals-studentized raw-residuals leverage sigma)
   (doc 'export #t)
   (doc 'type '(-> Vec Vec Num Vec))
   (doc 'description "Internally studentized residuals: r_i = e_i / (sigma * sqrt(1 - h_ii))")
   (doc 'note "These have approximately unit variance even with non-constant variance")
-  (let* ([n (vector-length raw-residuals)]
-         [r (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) r]
-            (let* ([ei (vector-ref raw-residuals i)]
-                   [hi (vector-ref leverage i)]
-                   [denom (* sigma (sqrt (max (- 1 hi) 1e-10)))])
-                  (vector-set! r i (/ ei denom))))
-        r))
+  (let ([n (vector-length raw-residuals)])
+    (vec-tabulate n i
+      (let* ([ei (vector-ref raw-residuals i)]
+             [hi (vector-ref leverage i)]
+             [denom (* sigma (sqrt (max (- 1 hi) 1e-10)))])
+        (/ ei denom)))))
 
 (define (residuals-studentized-external raw-residuals leverage sse n p)
   (doc 'type '(-> Vec Vec Num Nat Nat Vec))
@@ -113,21 +87,17 @@
   (doc 'note "s_{-i} is the residual SE computed without observation i")
   (doc 'note "Follows a t-distribution with (n - p - 1) df under normality")
   (let* ([df (- n p)]
-         [mse (/ sse df)]
-         [sigma (sqrt mse)]
-         [r (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) r]
-            (let* ([ei (vector-ref raw-residuals i)]
-                   [hi (vector-ref leverage i)]
-                   [ei2 (* ei ei)]
-                   ;; s_{-i}^2 = ((n-p)*mse - e_i^2/(1-h_i)) / (n-p-1)
-                   [s2-i (/ (- (* df mse) (/ ei2 (max (- 1 hi) 1e-10)))
-                            (- df 1))]
-                   [s-i (sqrt (max s2-i 1e-10))]
-                   [denom (* s-i (sqrt (max (- 1 hi) 1e-10)))])
-                  (vector-set! r i (/ ei denom))))
-        r))
+         [mse (/ sse df)])
+    (vec-tabulate n i
+      (let* ([ei (vector-ref raw-residuals i)]
+             [hi (vector-ref leverage i)]
+             [ei2 (* ei ei)]
+             ;; s_{-i}^2 = ((n-p)*mse - e_i^2/(1-h_i)) / (n-p-1)
+             [s2-i (/ (- (* df mse) (/ ei2 (max (- 1 hi) 1e-10)))
+                      (- df 1))]
+             [s-i (sqrt (max s2-i 1e-10))]
+             [denom (* s-i (sqrt (max (- 1 hi) 1e-10)))])
+        (/ ei denom)))))
 
 (doc 'section 'influence-measures)
 
@@ -137,17 +107,13 @@
   (doc 'description "Cook's distance measures the influence of each observation on all fitted values")
   (doc 'note "D_i = (1/p) * (e_i^2 / mse) * (h_ii / (1 - h_ii)^2)")
   (doc 'note "Points with D_i > 4/n or D_i > 1 are potentially influential")
-  (let* ([n (vector-length raw-residuals)]
-         [D (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) D]
-            (let* ([ei (vector-ref raw-residuals i)]
-                   [hi (vector-ref leverage i)]
-                   [ei2 (* ei ei)]
-                   [denom (max (- 1 hi) 1e-10)]
-                   [Di (/ (* (/ ei2 mse) (/ hi (* denom denom))) p)])
-                  (vector-set! D i Di)))
-        D))
+  (let ([n (vector-length raw-residuals)])
+    (vec-tabulate n i
+      (let* ([ei (vector-ref raw-residuals i)]
+             [hi (vector-ref leverage i)]
+             [ei2 (* ei ei)]
+             [denom (max (- 1 hi) 1e-10)])
+        (/ (* (/ ei2 mse) (/ hi (* denom denom))) p)))))
 
 (define (cooks-distance-threshold n)
   (doc 'type '(-> Nat Num))
@@ -159,15 +125,12 @@
   (doc 'description "DFFITS measures the influence of observation i on its own fitted value")
   (doc 'note "DFFITS_i = t_i * sqrt(h_ii / (1 - h_ii)) where t_i is the externally studentized residual")
   (doc 'note "Points with |DFFITS_i| > 2*sqrt(p/n) are potentially influential")
-  (let* ([n (vector-length studentized-external)]
-         [df (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) df]
-            (let* ([ti (vector-ref studentized-external i)]
-                   [hi (vector-ref leverage i)]
-                   [denom (max (- 1 hi) 1e-10)])
-                  (vector-set! df i (* ti (sqrt (/ hi denom))))))
-        df))
+  (let ([n (vector-length studentized-external)])
+    (vec-tabulate n i
+      (let* ([ti (vector-ref studentized-external i)]
+             [hi (vector-ref leverage i)]
+             [denom (max (- 1 hi) 1e-10)])
+        (* ti (sqrt (/ hi denom)))))))
 
 (define (dffits-threshold p n)
   (doc 'type '(-> Nat Nat Num))
@@ -183,13 +146,10 @@
   (doc 'note "VIF_j = 1 / (1 - R²_j) where R²_j is the R² from regressing x_j on other predictors")
   (doc 'note "VIF > 10 indicates serious multicollinearity")
   (doc 'note "Assumes intercept is NOT in X (or is first column to be skipped)")
-  (let* ([n (matrix-cols X)]
-         [vifs (make-vector n)])
-        (do ([j 0 (+ j 1)])
-            [(= j n) vifs]
-            (let* ([r2j (r-squared-predictor X j)])
-                  (vector-set! vifs j (/ 1 (max (- 1 r2j) 1e-10)))))
-        vifs))
+  (let ([n (matrix-cols X)])
+    (vec-tabulate n j
+      (let ([r2j (r-squared-predictor X j)])
+        (/ 1 (max (- 1 r2j) 1e-10))))))
 
 (define (r-squared-predictor X j)
   (doc 'type '(-> Matrix Nat Num))
@@ -197,14 +157,13 @@
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
          ;; Extract column j as y
-         [y (make-vector m)]
+         [y (vec-tabulate m i (matrix-ref X i j))]
          ;; Build matrix of other columns
          [X-other-data (make-vector (* m (- n 1)))]
          [X-other (list 'matrix m (- n 1) X-other-data)])
-        ;; Fill y and X-other
+        ;; Fill X-other (uses mutable col counter, not a clean BUILD)
         (do ([i 0 (+ i 1)])
             [(= i m)]
-            (vector-set! y i (matrix-ref X i j))
             (let ([col-idx 0])
                  (do ([k 0 (+ k 1)])
                      [(= k n)]
