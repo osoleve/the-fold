@@ -11,10 +11,10 @@
 | Total mutation operations | ~4,700 | ~2,500 (hashtable ops eliminated, `vector-set!`/`set!` remain) |
 | Chez hashtable creation sites | ~95 in ~69 files | 18 in 9 files (all documented exceptions) |
 | Residual hashtable operations | ~537 | ~65 across 21 files (reads + exceptions) |
-| `vector-set!` | 1,343 in 137 files | ~940 in ~120 files (P3 in progress) |
+| `vector-set!` | 1,343 in 137 files | ~893 in ~110 files (P3 in progress) |
 | ~~Files falsely claiming `'total` purity~~ | ~~181 of 405~~ | **FIXED** (P1) |
 | P0–P2 completion | — | **ALL DONE** |
-| P3 `vector-set!` eliminated | — | ~269 across 37 files (pilots + batches 1-6) |
+| P3 `vector-set!` eliminated | — | ~316 across 47 files (pilots + batches 1-7) |
 
 ---
 
@@ -195,9 +195,24 @@ QA fix: `polynomial-features` generated powers up to x^(degree+1) instead of x^d
 | `numeric/fem.ss` | 19 | 14 | mesh trim, vec-add/sub/scale/div-pointwise → `vec-tabulate` |
 | `linalg/sparse.ss` | 37 | 35 | identity/diagonal matrix, CSR matvec → `vec-tabulate` + `range-fold` |
 
-**P3 running totals:** 269 `vector-set!` eliminated across 37 files (batches 1-6). Down from ~1,412 → ~940.
+**Batch 7** (`c67bf0d0`): 10 files, 47 `vector-set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `sim/dynamics/bifurcation.ss` | 16 | 5 | bordered system/matrix construction, column/subvector extraction → `vec-tabulate` |
+| `optimization/ilp.ss` | 18 | 4 | Gomory cuts, tableau init, vec arithmetic → `vec-tabulate` + `range-fold` |
+| `statistics/core/diagnostics.ss` | 12 | 1 | hat-matrix diagonal, all residual types, Cook's, DFFITS, VIF → `vec-tabulate` + `range-fold` |
+| `sim/dynamics/stability.ss` | 16 | 13 | augment-matrix, inverse extraction → `vec-tabulate` |
+| `diffgeo/forms.ss` | 17 | 15 | k-form-basis, vec-copy → `vec-tabulate` |
+| `diffgeo/geodesics.ss` | 23 | 21 | geodesic-acceleration, parallel-transport-derivative → `vec-tabulate` + `range-fold` |
+| `linalg/matrix-solvers.ss` | 19 | 17 | unit vector construction in matrix-inverse → `vec-tabulate` |
+| `statistics/hypothesis/chi-squared.ss` | 4 | 3 | expected frequencies → `vec-tabulate` |
+| `statistics/hypothesis/t-test.ss` | 1 | 0 | paired differences → `vec-tabulate` |
+| `statistics/hypothesis/f-test.ss` | 1 | 0 | Levene deviations → `vec-tabulate` |
+
+**P3 running totals:** 316 `vector-set!` eliminated across 47 files (batches 1-7). Down from ~1,412 → ~893.
 
 Remaining scope:
-- ~940 `vector-set!` across ~120 files (majority are legitimately imperative: iterative solvers, ODE integrators, autodiff tapes, in-place algorithms)
-- Remaining convertible pockets: `sim/dynamics/stability.ss` (~5 BUILD), `optimization/ilp.ss` (~4 BUILD), scattered 1-2 instance files
+- ~893 `vector-set!` across ~110 files. The vast majority are legitimately imperative: iterative solvers (Gauss-Seidel, SOR, CG, GMRES), ODE integrators (RK4, Dormand-Prince), autodiff tapes, in-place algorithms (FFT butterflies, Fisher-Yates shuffle, Gaussian elimination), and scatter/accumulate patterns.
+- Further conversion would require new combinators (e.g., `vec-scatter`, `vec-accumulate`) or API-level refactors to pure functional threading — tracked as future work.
 - Eliminate ~795 bare `(set! ...)` across 222 files — many are loop accumulators convertible to `fold-left`/named `let`/`range-fold`
