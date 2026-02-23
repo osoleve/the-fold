@@ -1,9 +1,10 @@
 ;;; lattice/numeric/wavelet.ss — Wavelet Transforms
 ;;; @module wavelet
-;;; @requires prelude vec
+;;; @requires prelude vec iteration
 
 (require 'prelude)
 (require 'vec)
+(require 'iteration)
 
 (doc 'module 'wavelet)
 (doc 'description "Wavelet transforms for multi-resolution signal analysis: Haar, Daubechies, DWT, IDWT, multi-resolution decomposition")
@@ -50,13 +51,11 @@
 ;;; g[n] = (-1)^n * h[N-1-n]
 (define (qmf-wavelet-from-scaling h)
   (doc 'export #t)
-  (let* ([n (vector-length h)]
-         [g (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) g)
-            (let* ([sign (if (even? i) 1 -1)]
-                   [j (- n 1 i)])
-                  (vector-set! g i (* sign (vector-ref h j)))))))
+  (let ([n (vector-length h)])
+       (vec-tabulate n i
+         (let* ([sign (if (even? i) 1 -1)]
+                [j (- n 1 i)])
+               (* sign (vector-ref h j))))))
 
 ;;; daubechies-4-wavelet-filter : → Vector[Number]
 ;;; Daubechies-4 wavelet filter derived from scaling filter.
@@ -89,11 +88,9 @@
 ;;; Time-reverse a filter (needed for synthesis filters).
 (define (reverse-filter h)
   (doc 'export #t)
-  (let* ([n (vector-length h)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (vector-ref h (- n 1 i))))))
+  (let ([n (vector-length h)])
+       (vec-tabulate n i
+         (vector-ref h (- n 1 i)))))
 
 ;;; convolve-downsample : Vector[Number] × Vector[Number] × Integer → Vector[Number]
 ;;; Convolve signal with filter and downsample by factor.
@@ -108,24 +105,21 @@
   (let* ([n (vector-length signal)]
          [m (vector-length filter)]
          ;; Output length after downsampling
-         [out-len (ceiling (/ n factor))]
-         [result (make-vector out-len)])
+         [out-len (ceiling (/ n factor))])
         ;; For each output sample
-        (do ([i 0 (+ i 1)])
-            ((= i out-len) result)
-            (let* ([pos (* i factor)]
-                   ;; Compute convolution at this position
-                   ;; y[i] = Σ_k h[k] * x[pos + k]
-                   [sum (let loop ([k 0] [acc 0])
-                             (if (= k m)
-                                 acc
-                                 (let ([sig-idx (+ pos k)])
-                                      (if (and (>= sig-idx 0) (< sig-idx n))
-                                          (loop (+ k 1)
-                                                (+ acc (* (vector-ref filter k)
-                                                          (vector-ref signal sig-idx))))
-                                          (loop (+ k 1) acc)))))])
-                  (vector-set! result i sum)))))
+        (vec-tabulate out-len i
+          (let ([pos (* i factor)])
+               ;; Compute convolution at this position
+               ;; y[i] = Σ_k h[k] * x[pos + k]
+               (let loop ([k 0] [acc 0])
+                    (if (= k m)
+                        acc
+                        (let ([sig-idx (+ pos k)])
+                             (if (and (>= sig-idx 0) (< sig-idx n))
+                                 (loop (+ k 1)
+                                       (+ acc (* (vector-ref filter k)
+                                                 (vector-ref signal sig-idx))))
+                                 (loop (+ k 1) acc)))))))))
 
 ;;; upsample-convolve : Vector[Number] × Vector[Number] × Integer → Vector[Number]
 ;;; Upsample by inserting zeros, then convolve with filter.
@@ -214,14 +208,11 @@
   (let* ([up-approx (upsample-convolve approx h 2)]
          [up-detail (upsample-convolve detail g 2)]
          ;; Determine actual output length (take minimum to handle odd lengths)
-         [n (min (vector-length up-approx) (vector-length up-detail) target-len)]
-         [result (make-vector n)])
+         [n (min (vector-length up-approx) (vector-length up-detail) target-len)])
         ;; Add upsampled components
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i
-                         (+ (vector-ref up-approx i)
-                            (vector-ref up-detail i))))))
+        (vec-tabulate n i
+          (+ (vector-ref up-approx i)
+             (vector-ref up-detail i)))))
 
 ;;; idwt : List × Integer × Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Inverse Discrete Wavelet Transform.
@@ -243,10 +234,7 @@
            (if (null? details)
                ;; If we still have extra length, trim to target
                (if (> (vector-length approx) target-len)
-                   (let ([result (make-vector target-len)])
-                        (do ([i 0 (+ i 1)])
-                            ((= i target-len) result)
-                            (vector-set! result i (vector-ref approx i))))
+                   (vec-tabulate target-len i (vector-ref approx i))
                    approx)
                (let* ([detail (car details)]
                       [rest (cdr details)]
@@ -375,15 +363,12 @@
 (define (threshold-coefficients coeffs threshold type)
   (doc 'export #t)
   (let* ([n (vector-length coeffs)]
-         [result (make-vector n)]
          [threshold-fn (case type
                              [(hard) hard-threshold]
                              [(soft) soft-threshold]
                              [else (error 'threshold-coefficients "unknown threshold type" type)])])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i
-                         (threshold-fn (vector-ref coeffs i) threshold)))))
+        (vec-tabulate n i
+          (threshold-fn (vector-ref coeffs i) threshold))))
 
 ;;; wavelet-denoise : Vector[Number] × Integer × Symbol × Number × Symbol → Vector[Number]
 ;;; Denoise signal using wavelet thresholding.
