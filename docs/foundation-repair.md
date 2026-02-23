@@ -20,7 +20,7 @@
 | Category | Count | Top Offenders |
 |---|---|---|
 | `vector-set!` | 1,343 in 137 files | `numeric/` (227), `statistics/` (211), `linalg/` (190), `diffgeo/` (115), `data/` (131) |
-| Chez hash tables | 537 in 69 files | `egraph/cost.ss` (70), `geometry/mesh-gen.ss` (29+), ~~`tiles/` (8 files)~~ **MIGRATED** (P1) |
+| ~~Chez hash tables~~ | ~~537 in 69 files~~ | **MIGRATED** (P1+P2) — 67 files migrated to HAMT, 6 eq-identity exceptions retained, ~17 core-boundary interop exceptions |
 | `set!` | 468 in 112 files | `diffgeo/geodesics.ss` (26), `fp/meta/dsl.ss` (20), `data/graph/graph-community.ss` (17) |
 | ~~`list-sort` (Chez built-in)~~ | ~~16 in 10 files~~ | **FIXED** (P0) — replaced with Fold-native `sort-by` |
 | ~~`eval`~~ | ~~6 in 3 files~~ | **FIXED** (P0) — replaced with protocol dispatch |
@@ -70,11 +70,22 @@ All P1 items completed across `a80dd309`, `01fa299a`, `7c49a91f`, `9fe23fb2`:
 
 **Review fixes applied:** `hamt-merge-with` #f-value bug (`9fe23fb2`), staging.ss name capture hardening (`9fe23fb2`).
 
-### P2 — Structural (high effort):
+### P2 — Structural (high effort): HASHTABLE MIGRATION DONE
+
+Hashtable migration completed across `e30379ea` (round 1: 52 files) and `7872c9ae` (round 2: 15 files):
+
+- ~~Migrate remaining ~95 `make-hashtable` calls across ~40 non-tiles lattice files to HAMT~~ — 67 files migrated, ~200 hashtable operations replaced
+  - Round 1 (`e30379ea`): fp/, autodiff/, egraph/ (eclass, union-find), data/graph/, topology/, meta/, query/, game-theory/, sim/, info/, dsl/, optics/, optimization/, linalg/, physics/classical/ (collision), geometry/voronoi
+  - Round 2 (`7872c9ae`): egraph/ (cost, extract, dirty set), physics/classical/ (world, constraint-graph), physics/classical3d/ (world3d, collision-detection3d), geometry/ (mesh-gen, mesh-topology, mesh-sdf), numeric/fem
+  - Added `hamt-first-key`/`hamt-first-entry` for O(log32 N) single-entry access
+  - Fixed `egraph-pop-dirty!` O(N²) regression (flagged by Gemini QA)
+  - Documented eq-identity exceptions: mesh-gen.ss (5), mesh-sdf.ss (1) — true pointer identity semantics
+  - Core-boundary interop exceptions: sparse-autodiff (3), higher-order-diff (1), egraph hashcons (1), parser cache (2)
+
+Remaining P2 items (not yet started):
 
 - Define Fold-native vector combinators with fuel instrumentation
 - Move `display`/`printf` from library bodies to boundary wrappers
-- Migrate remaining ~95 `make-hashtable` calls across ~40 non-tiles lattice files to HAMT (migration patterns documented in `user/rlm/sft-hamt-migration-examples.jsonl`)
 
 ### P3 — Deep numerical rewrite (very high effort):
 
