@@ -48,18 +48,15 @@
     (let ([best-nodes
            (fold-left
             (lambda (bn root)
-              (let ([best-node #f]
-                    [best-cost +inf.0])
-                (for-each
-                 (lambda (node)
-                   (let ([c (compute-node-cost node costs node-cost-fn)])
-                     (when (< c best-cost)
-                       (set! best-cost c)
-                       (set! best-node node))))
-                 (eclass-get-nodes store root))
-                (if best-node
-                    (hamt-assoc root best-node bn)
-                    bn)))
+              (let find-best ([nodes (eclass-get-nodes store root)]
+                              [best-node #f]
+                              [best-cost +inf.0])
+                (if (null? nodes)
+                    (if best-node (hamt-assoc root best-node bn) bn)
+                    (let ([c (compute-node-cost (car nodes) costs node-cost-fn)])
+                      (if (< c best-cost)
+                          (find-best (cdr nodes) (car nodes) c)
+                          (find-best (cdr nodes) best-node best-cost))))))
             hamt-empty
             (uf-roots uf))])
       (vector extraction-state-tag eg costs best-nodes))))

@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'geometry)
 (require 'bvh)
+(require 'hamt)
 
 (doc 'module 'mesh-sdf)
 (doc 'description "Mesh signed distance fields with BVH acceleration")
@@ -120,6 +121,9 @@
   (doc 'description "Single subdivision pass using shared edge midpoints")
   (doc 'note "Key insight: each edge midpoint is computed ONCE and shared by adjacent triangles; uses vertex identity (not coordinates) for edge keying to avoid floating-point issues")
   ;; First, collect all unique vertices and assign stable IDs
+  ;; NOTE: vertex-id-table uses make-eq-hashtable for pointer identity —
+  ;; structurally equal vec3s from different triangles must get different IDs.
+  ;; This is a deliberate eq-identity exception; HAMT uses structural equality.
   (let* ([vertex-id-table (make-eq-hashtable)]
          [next-id 0]
          [get-vertex-id
@@ -128,9 +132,7 @@
                 (let ([id next-id])
                   (eq-hashtable-set! vertex-id-table v id)
                   (set! next-id (+ next-id 1))
-                  id)))]
-         ;; Build edge → midpoint table using vertex IDs as keys
-         [edge-midpoints (make-hashtable equal-hash equal?)])
+                  id)))])
     ;; First pass: assign IDs to all vertices
     (for-each
       (lambda (tri)
@@ -138,23 +140,26 @@
         (get-vertex-id (triangle3-p2 tri))
         (get-vertex-id (triangle3-p3 tri)))
       triangles)
-    ;; Second pass: compute midpoints with ID-based keys
-    (for-each
-      (lambda (tri)
-        (let ([v0 (triangle3-p1 tri)]
-              [v1 (triangle3-p2 tri)]
-              [v2 (triangle3-p3 tri)])
-          (ensure-edge-midpoint-by-id! edge-midpoints v0 v1 radius
-                                        (get-vertex-id v0) (get-vertex-id v1))
-          (ensure-edge-midpoint-by-id! edge-midpoints v1 v2 radius
-                                        (get-vertex-id v1) (get-vertex-id v2))
-          (ensure-edge-midpoint-by-id! edge-midpoints v2 v0 radius
-                                        (get-vertex-id v2) (get-vertex-id v0))))
-      triangles)
-    ;; Third pass: subdivide using shared midpoints
-    (append-map (lambda (tri)
-                  (subdivide-triangle-with-midpoints-by-id tri edge-midpoints get-vertex-id))
-                triangles)))
+    ;; Second pass: compute midpoints with ID-based keys, threading HAMT
+    (let ([edge-midpoints
+           (fold-left
+            (lambda (em tri)
+              (let* ([v0 (triangle3-p1 tri)]
+                     [v1 (triangle3-p2 tri)]
+                     [v2 (triangle3-p3 tri)]
+                     [em (ensure-edge-midpoint em v0 v1 radius
+                                               (get-vertex-id v0) (get-vertex-id v1))]
+                     [em (ensure-edge-midpoint em v1 v2 radius
+                                               (get-vertex-id v1) (get-vertex-id v2))]
+                     [em (ensure-edge-midpoint em v2 v0 radius
+                                               (get-vertex-id v2) (get-vertex-id v0))])
+                em))
+            hamt-empty
+            triangles)])
+      ;; Third pass: subdivide using shared midpoints
+      (append-map (lambda (tri)
+                    (subdivide-triangle-with-midpoints-by-id tri edge-midpoints get-vertex-id))
+                  triangles))))
 
 ;;; vec3-edge-key : Vec3 × Vec3 → (List Number Number Number Number Number Number)
 ;;; Create a canonical edge key from two vertices.
@@ -181,22 +186,22 @@
 (define (edge-id-key id0 id1)
   (if (< id0 id1) (cons id0 id1) (cons id1 id0)))
 
-;;; ensure-edge-midpoint-by-id! : HashTable × Vec3 × Vec3 × Number × Int × Int → Vec3
-;;; Get or compute the midpoint for an edge, using vertex IDs as key.
-(define (ensure-edge-midpoint-by-id! table v0 v1 radius id0 id1)
+;;; ensure-edge-midpoint : HAMT × Vec3 × Vec3 × Number × Int × Int → HAMT
+;;; Ensure edge midpoint exists in HAMT, returning updated HAMT.
+(define (ensure-edge-midpoint table v0 v1 radius id0 id1)
   (let ([key (edge-id-key id0 id1)])
-    (or (hashtable-ref table key #f)
+    (if (hamt-has-key? key table)
+        table
         (let* ([mid (vec3-scale (vec3-add v0 v1) 0.5)]
                [mid-norm (vec3-scale (vec3-normalize mid) radius)])
-          (hashtable-set! table key mid-norm)
-          mid-norm))))
+          (hamt-assoc key mid-norm table)))))
 
-;;; get-edge-midpoint-by-id : HashTable × Int × Int → Vec3
+;;; get-edge-midpoint-by-id : HAMT × Int × Int → Vec3
 ;;; Retrieve the shared midpoint for an edge by vertex IDs.
 (define (get-edge-midpoint-by-id table id0 id1)
-  (hashtable-ref table (edge-id-key id0 id1) #f))
+  (hamt-lookup-or (edge-id-key id0 id1) table #f))
 
-;;; subdivide-triangle-with-midpoints-by-id : Triangle3 × HashTable × (Vec3 → Int) → (List Triangle3)
+;;; subdivide-triangle-with-midpoints-by-id : Triangle3 × HAMT × (Vec3 → Int) → (List Triangle3)
 ;;; Subdivide a triangle using pre-computed shared midpoints (ID-based lookup).
 (define (subdivide-triangle-with-midpoints-by-id tri midpoint-table get-id)
   (let* ([v0 (triangle3-p1 tri)]
@@ -216,12 +221,12 @@
      (triangle3 m20 m12 v2)       ; Bottom-right triangle
      (triangle3 m01 m12 m20))))   ; Center triangle
 
-;;; get-edge-midpoint : HashTable × Vec3 × Vec3 → Vec3
+;;; get-edge-midpoint : HAMT × Vec3 × Vec3 → Vec3
 ;;; Retrieve the shared midpoint for an edge.
 (define (get-edge-midpoint table v0 v1)
-  (hashtable-ref table (vec3-edge-key v0 v1) #f))
+  (hamt-lookup-or (vec3-edge-key v0 v1) table #f))
 
-;;; subdivide-triangle-with-midpoints : Triangle3 × HashTable → (List Triangle3)
+;;; subdivide-triangle-with-midpoints : Triangle3 × HAMT → (List Triangle3)
 ;;; Subdivide a triangle using pre-computed shared midpoints.
 (define (subdivide-triangle-with-midpoints tri midpoint-table)
   (let* ([v0 (triangle3-p1 tri)]

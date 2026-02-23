@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-detection3d
-;;; @requires prelude vec3 shapes3d
+;;; @requires prelude vec3 shapes3d hamt
 (require 'prelude)
 (require 'vec3)
 (require 'shapes3d)
+(require 'hamt)
 
 (doc 'module 'collision-detection3d)
 (doc 'description "3D Collision Detection - Comprehensive collision detection for 3D physics including: AABB3D (Axis-Aligned Bounding Box), Sphere primitives, Box3D (oriented box), Broad phase (spatial hash).")
@@ -415,13 +416,17 @@
 
 ;;; make-spatial-hash-3d : Number → SpatialHash3D
 (define (make-spatial-hash-3d cell-size)
-  (list 'spatial-hash-3d cell-size (make-eqv-hashtable)))
+  (list 'spatial-hash-3d cell-size (cons hamt-empty '())))
 
 ;;; spatial-hash-3d-cell-size : SpatialHash3D → Number
 (define (spatial-hash-3d-cell-size sh) (list-ref sh 1))
 
-;;; spatial-hash-3d-table : SpatialHash3D → Hashtable
-(define (spatial-hash-3d-table sh) (list-ref sh 2))
+;;; spatial-hash-3d-cell : SpatialHash3D → Cell(HAMT)
+;;; Returns the mutable cell holding the HAMT table.
+(define (spatial-hash-3d-cell sh) (list-ref sh 2))
+
+;;; spatial-hash-3d-table : SpatialHash3D → HAMT
+(define (spatial-hash-3d-table sh) (car (spatial-hash-3d-cell sh)))
 
 ;;; point-to-cell-3d : Vec3 × Number → (Int × Int × Int)
 ;;; Convert point to cell coordinates.
@@ -459,37 +464,40 @@
 ;;; Insert object into spatial hash using its AABB.
 (define (spatial-hash-3d-insert! sh obj aabb)
   (let* ([cell-size (spatial-hash-3d-cell-size sh)]
-         [table (spatial-hash-3d-table sh)]
+         [mcell (spatial-hash-3d-cell sh)]
          [cells (aabb-to-cells-3d aabb cell-size)])
-        (for-each (lambda (cell)
-                          (let* ([key (cell-key-3d cell)]
-                                 [existing (hashtable-ref table key '())])
-                                (hashtable-set! table key (cons obj existing))))
-                  cells)))
+        (set-car! mcell
+                  (fold-left (lambda (tbl cell)
+                               (let* ([key (cell-key-3d cell)]
+                                      [existing (hamt-lookup-or key tbl '())])
+                                     (hamt-assoc key (cons obj existing) tbl)))
+                             (car mcell) cells))))
 
 ;;; spatial-hash-3d-query : SpatialHash3D × AABB3D → (List Any)
 ;;; Query for objects that may overlap with given AABB.
 (define (spatial-hash-3d-query sh aabb)
   (let* ([cell-size (spatial-hash-3d-cell-size sh)]
          [table (spatial-hash-3d-table sh)]
-         [cells (aabb-to-cells-3d aabb cell-size)]
-         [results '()]
-         [seen (make-eq-hashtable)])
-        (for-each (lambda (cell)
-                          (let* ([key (cell-key-3d cell)]
-                                 [objs (hashtable-ref table key '())])
-                                (for-each (lambda (obj)
-                                                  (unless (hashtable-ref seen obj #f)
-                                                          (hashtable-set! seen obj #t)
-                                                          (set! results (cons obj results))))
-                                          objs)))
-                  cells)
-        results))
+         [cells (aabb-to-cells-3d aabb cell-size)])
+        (let loop ([cs cells] [seen hamt-empty] [results '()])
+             (if (null? cs)
+                 results
+                 (let* ([key (cell-key-3d (car cs))]
+                        [objs (hamt-lookup-or key table '())])
+                       (let inner ([os objs] [s seen] [r results])
+                            (if (null? os)
+                                (loop (cdr cs) s r)
+                                (let ([obj (car os)])
+                                     (if (hamt-lookup obj s)
+                                         (inner (cdr os) s r)
+                                         (inner (cdr os)
+                                                (hamt-assoc obj #t s)
+                                                (cons obj r)))))))))))
 
 ;;; spatial-hash-3d-clear! : SpatialHash3D → Unit
 ;;; Clear all entries from spatial hash.
 (define (spatial-hash-3d-clear! sh)
-  (hashtable-clear! (spatial-hash-3d-table sh)))
+  (set-car! (spatial-hash-3d-cell sh) hamt-empty))
 
 ;;; ====
 ;;; Broad Phase Collision Pair Generation
@@ -515,22 +523,25 @@
                           [shape (cdr item)])
                          (spatial-hash-3d-insert! sh obj (shape-aabb-3d shape))))
             items)
-  ;; Find pairs - use string keys for seen table
-  (let ([pairs '()]
-        [seen (make-hashtable string-hash string=?)])
-       (for-each (lambda (item)
-                         (let* ([obj-a (car item)]
-                                [shape-a (cdr item)]
-                                [candidates (spatial-hash-3d-query sh (shape-aabb-3d shape-a))])
-                               (for-each (lambda (obj-b)
-                                                 (let ([key (pair-key-3d obj-a obj-b)])
-                                                      (when (and (not (eq? obj-a obj-b))
-                                                                 (not (hashtable-ref seen key #f)))
-                                                            (hashtable-set! seen key #t)
-                                                            (set! pairs (cons (cons obj-a obj-b) pairs)))))
-                                         candidates)))
-                 items)
-       pairs))
+  ;; Find pairs - use HAMT for seen set
+  (let outer ([remaining items] [seen hamt-empty] [pairs '()])
+       (if (null? remaining)
+           pairs
+           (let* ([item (car remaining)]
+                  [obj-a (car item)]
+                  [shape-a (cdr item)]
+                  [candidates (spatial-hash-3d-query sh (shape-aabb-3d shape-a))])
+                 (let inner ([cands candidates] [s seen] [p pairs])
+                      (if (null? cands)
+                          (outer (cdr remaining) s p)
+                          (let* ([obj-b (car cands)]
+                                 [key (pair-key-3d obj-a obj-b)])
+                                (if (or (eq? obj-a obj-b)
+                                        (hamt-lookup key s))
+                                    (inner (cdr cands) s p)
+                                    (inner (cdr cands)
+                                           (hamt-assoc key #t s)
+                                           (cons (cons obj-a obj-b) p))))))))))
 
 ;;; narrow-phase-3d : (Object × Object) × (Object → Shape3D) → Manifold | #f
 ;;; Perform narrow phase collision detection on a pair.

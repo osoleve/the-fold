@@ -451,6 +451,32 @@
       (assert-equal 99 (hamt-lookup 'a h)))))
 
 ;;; ============================================================
+;;; First Key / First Entry
+;;; ============================================================
+
+(test-group "hamt-first-key"
+  (define-test "first-key on empty returns #f"
+    (assert-false (hamt-first-key hamt-empty)))
+
+  (define-test "first-key on single-entry returns that key"
+    (let ([h (hamt-assoc 'only 42 hamt-empty)])
+      (assert-equal 'only (hamt-first-key h))))
+
+  (define-test "first-key on multi-entry returns a valid key"
+    (let ([h (hamt-assoc 'c 3 (hamt-assoc 'b 2 (hamt-assoc 'a 1 hamt-empty)))])
+      (assert-true (hamt-has-key? (hamt-first-key h) h))))
+
+  (define-test "first-entry on empty returns #f"
+    (assert-false (hamt-first-entry hamt-empty)))
+
+  (define-test "first-entry returns cons pair with valid key and value"
+    (let* ([h (hamt-assoc 'x 10 (hamt-assoc 'y 20 hamt-empty))]
+           [entry (hamt-first-entry h)])
+      (assert-true (pair? entry))
+      (assert-true (hamt-has-key? (car entry) h))
+      (assert-equal (hamt-lookup (car entry) h) (cdr entry)))))
+
+;;; ============================================================
 ;;; Run Tests
 ;;; ============================================================
 

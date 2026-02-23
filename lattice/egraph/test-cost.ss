@@ -94,9 +94,7 @@
 (test-group "weighted-cost"
 
   (define-test "custom operator weights"
-    (let* ([op-costs (make-hashtable symbol-hash eq?)]
-           [_ (hashtable-set! op-costs '+ 10)]
-           [_ (hashtable-set! op-costs '* 20)]
+    (let* ([op-costs (alist->hamt '((+ . 10) (* . 20)))]
            [cm (make-weighted-cost op-costs 1)]
            [eg (make-egraph)])
       (egraph-add-term! eg '(+ x y))
@@ -105,7 +103,7 @@
         (assert-equal 12 (class-cost costs 2)))))
 
   (define-test "default cost for unknown ops"
-    (let* ([op-costs (make-hashtable symbol-hash eq?)]
+    (let* ([op-costs hamt-empty]
            [cm (make-weighted-cost op-costs 5)]
            [eg (make-egraph)])
       (egraph-add-term! eg '(foo x))
@@ -242,7 +240,7 @@
     (let ([eg (make-egraph)])
       (let ([costs (compute-costs eg ast-size-cost)])
         ;; Should return empty cost table
-        (assert-equal 0 (hashtable-size costs)))))
+        (assert-equal 0 (hamt-size costs)))))
 
   (define-test "deeply nested expression"
     (let ([eg (make-egraph)])

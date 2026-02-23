@@ -474,3 +474,26 @@
   (doc 'type '(-> (List (Pair Key Value)) HAMT))
   (doc 'description "Convert association list to HAMT")
   (dict->hamt alist))
+
+;;; ============================================================
+;;; Single-Element Access (O(log32 n))
+;;; ============================================================
+
+(define (hamt-first-entry hamt)
+  (doc 'export #t)
+  (doc 'type '(-> HAMT (Option (Pair Any Any))))
+  (doc 'description "Return first (key . value) pair found, or #f if empty. O(log32 n).")
+  (cond
+    [(hamt-empty? hamt) #f]
+    [(hamt-leaf? hamt) (cons (hamt-leaf-key hamt) (hamt-leaf-value hamt))]
+    [(hamt-collision? hamt) (car (hamt-collision-entries hamt))]
+    [(hamt-node? hamt)
+     (let ([children (hamt-node-children hamt)])
+       (and (pair? children) (hamt-first-entry (car children))))]))
+
+(define (hamt-first-key hamt)
+  (doc 'export #t)
+  (doc 'type '(-> HAMT (Option Any)))
+  (doc 'description "Return any key from the HAMT, or #f if empty. O(log32 n).")
+  (let ([entry (hamt-first-entry hamt)])
+    (and entry (car entry))))

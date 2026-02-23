@@ -28,7 +28,7 @@
     (let ([eg (make-egraph)])
       (egraph-add-term! eg 'x)
       (let ([state (make-extraction-state eg ast-size-cost)])
-        (assert-true (hashtable? (state-costs state)))))))
+        (assert-false (hamt-empty? (state-costs state)))))))
 
 (test-group "extract-basic"
 

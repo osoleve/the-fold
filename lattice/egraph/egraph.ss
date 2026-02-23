@@ -54,7 +54,9 @@
   (vector egraph-tag
           (make-uf)              ; union-find
           (make-eclass-store)    ; e-class data
-          hamt-empty             ; hashcons: enode → class-id (HAMT)
+          (make-hashtable        ; hashcons: enode → class-id
+           enode-hash
+           enode-equal?)
           hamt-empty             ; dirty set: class-id → #t (HAMT)
           (vector 0 0 0 0)))     ; stats: [adds, merges, rebuilds, hashcons-hits]
 
@@ -70,10 +72,8 @@
 (define (egraph-classes eg) (vector-ref eg 2))
 (define (egraph-hashcons eg) (vector-ref eg 3))
 (define (egraph-dirty-set eg) (vector-ref eg 4))
-(define (egraph-stats eg) (vector-ref eg 5))
-
-(define (egraph-set-hashcons! eg hc) (vector-set! eg 3 hc))
 (define (egraph-set-dirty-set! eg ds) (vector-set! eg 4 ds))
+(define (egraph-stats eg) (vector-ref eg 5))
 
 ;;; Stats accessors
 (define (egraph-stat-adds eg) (vector-ref (egraph-stats eg) 0))
@@ -99,8 +99,7 @@
   (hamt-keys (egraph-dirty-set eg)))
 
 (define (egraph-mark-dirty! eg class-id)
-  (egraph-set-dirty-set! eg
-    (hamt-assoc class-id #t (egraph-dirty-set eg))))
+  (egraph-set-dirty-set! eg (hamt-assoc class-id #t (egraph-dirty-set eg))))
 
 (define (egraph-clear-dirty! eg)
   (egraph-set-dirty-set! eg hamt-empty))
@@ -109,10 +108,9 @@
   (let ([ds (egraph-dirty-set eg)])
     (if (hamt-empty? ds)
         #f
-        (let ([keys (hamt-keys ds)])
-          (let ([id (car keys)])
-            (egraph-set-dirty-set! eg (hamt-dissoc id ds))
-            id)))))
+        (let ([id (hamt-first-key ds)])
+          (egraph-set-dirty-set! eg (hamt-dissoc id ds))
+          id))))
 
 ;;; ============================================================
 ;;; Core Operations
@@ -138,7 +136,7 @@
   (let* ([uf (egraph-uf eg)]
          [canonical (enode-canonicalize enode uf)]
          [hashcons (egraph-hashcons eg)]
-         [found (hamt-lookup canonical hashcons)])
+         [found (hashtable-ref hashcons canonical #f)])
     ;; Return canonical (root) ID, not potentially stale hashcons entry
     (and found (uf-find uf found))))
 
@@ -153,7 +151,7 @@
   (let* ([uf (egraph-uf eg)]
          [canonical (enode-canonicalize enode uf)]
          [hashcons (egraph-hashcons eg)]
-         [existing (hamt-lookup canonical hashcons)])
+         [existing (hashtable-ref hashcons canonical #f)])
     (if existing
         (begin
           (egraph-inc-stat! eg 3)  ; hashcons hit
@@ -163,7 +161,7 @@
                [new-id (uf-make-set! uf)])
           (egraph-inc-stat! eg 0)  ; add
           ;; Add to hashcons
-          (egraph-set-hashcons! eg (hamt-assoc canonical new-id hashcons))
+          (hashtable-set! hashcons canonical new-id)
           ;; Add to e-class store
           (eclass-add-node! classes new-id canonical)
           ;; Register as parent of children (use canonical IDs)
@@ -225,8 +223,10 @@
   (doc 'export #t)
   (let ([uf (egraph-uf eg)]
         [classes (egraph-classes eg)]
+        [hashcons (egraph-hashcons eg)]
+        [visited (make-eqv-hashtable)]  ; Track processed roots this pass
         [count 0])
-    (let loop ([visited hamt-empty])
+    (let loop ()
       (let ([dirty-id (egraph-pop-dirty! eg)])
         (if (not dirty-id)
             count
@@ -234,37 +234,33 @@
             ;; This fixes the bug where non-root dirty IDs were skipped
             (let ([root (uf-find uf dirty-id)])
               ;; Only process each root once per rebuild pass
-              (if (hamt-lookup root visited)
-                  (loop visited)
-                  (begin
-                    (egraph-inc-stat! eg 2)  ; rebuild
-                    (set! count (+ count 1))
-                    ;; Get all e-nodes in this class
-                    (let ([nodes (eclass-get-nodes classes root)])
-                      (for-each
-                       (lambda (enode)
-                         (let ([canonical (enode-canonicalize enode uf)]
-                               [hashcons (egraph-hashcons eg)])
-                           ;; Remove old entry if different
-                           (unless (enode-equal? enode canonical)
-                             (egraph-set-hashcons! eg (hamt-dissoc enode hashcons)))
-                           ;; Check if canonical already exists
-                           (let ([existing (hamt-lookup canonical (egraph-hashcons eg))])
-                             (cond
-                               [(not existing)
-                                ;; Not in hashcons, add it
-                                (egraph-set-hashcons! eg
-                                  (hamt-assoc canonical root (egraph-hashcons eg)))]
-                               [(not (= (uf-find uf existing) root))
-                                ;; Exists in different class, need to merge
-                                ;; Update hashcons to point to new root
-                                (let ([new-root (egraph-merge! eg root existing)])
-                                  (egraph-set-hashcons! eg
-                                    (hamt-assoc canonical new-root (egraph-hashcons eg))))]
-                               ;; else: already points to this class, no action
-                               ))))
-                       nodes))
-                    (loop (hamt-assoc root #t visited))))))))))
+              (unless (hashtable-ref visited root #f)
+                (hashtable-set! visited root #t)
+                (egraph-inc-stat! eg 2)  ; rebuild
+                (set! count (+ count 1))
+                ;; Get all e-nodes in this class
+                (let ([nodes (eclass-get-nodes classes root)])
+                  (for-each
+                   (lambda (enode)
+                     (let ([canonical (enode-canonicalize enode uf)])
+                       ;; Remove old entry if different
+                       (unless (enode-equal? enode canonical)
+                         (hashtable-delete! hashcons enode))
+                       ;; Check if canonical already exists
+                       (let ([existing (hashtable-ref hashcons canonical #f)])
+                         (cond
+                           [(not existing)
+                            ;; Not in hashcons, add it
+                            (hashtable-set! hashcons canonical root)]
+                           [(not (= (uf-find uf existing) root))
+                            ;; Exists in different class, need to merge
+                            ;; Update hashcons to point to new root
+                            (let ([new-root (egraph-merge! eg root existing)])
+                              (hashtable-set! hashcons canonical new-root))]
+                           ;; else: already points to this class, no action
+                           ))))
+                   nodes)))
+              (loop)))))))
 
 ;;; egraph-saturate-rebuild! : EGraph → Nat
 ;;; Keep rebuilding until no more dirty classes.

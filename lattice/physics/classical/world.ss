@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module world
-;;; @requires prelude vec2 integrators collision-detection collision-response raycasting constraints constraint-solver sort
+;;; @requires prelude vec2 integrators collision-detection collision-response raycasting constraints constraint-solver sort hamt
 (require 'prelude)
 (require 'vec2)
 (require 'integrators)
@@ -10,6 +10,7 @@
 (require 'constraints)
 (require 'constraint-solver)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'world)
 (doc 'description "2D physics world with collision detection and resolution")
@@ -91,7 +92,7 @@
 (doc 'section 'physics)
 
 (doc "A physics world contains:")
-(doc "  - entities: hashtable of id → entity")
+(doc "  - entities: HAMT of id → entity")
 (doc "  - gravity: gravity force vector")
 (doc "  - spatial-hash: broad phase structure")
 (doc "  - config: world configuration")
@@ -124,20 +125,20 @@
 (define (make-world gravity)
   (let ([config (make-world-config)])
        (list 'world
-             (make-hashtable equal-hash equal?)  ; entities
+             hamt-empty              ; entities (HAMT)
              gravity
              (make-spatial-hash (config-cell-size config))
              config
              (make-time-acc (config-fixed-dt config)
                             (config-max-substeps config))
-             (make-hashtable equal-hash equal?))))  ; constraints
+             hamt-empty)))           ; constraints (HAMT)
 
 (doc "world? : Any → Boolean")
 (define (world? w)
   (and (pair? w) (eq? (car w) 'world)))
 
 (define (world-entities w) (list-ref w 1))
-  (doc 'type '(world-entities : World → Hashtable))
+  (doc 'type '(world-entities : World → HAMT))
 
 (define (world-gravity w) (list-ref w 2))
   (doc 'type '(world-gravity : World → Vec2))
@@ -152,7 +153,7 @@
   (doc 'type '(world-time-acc : World → TimeAcc))
 
 (define (world-constraints w) (list-ref w 6))
-  (doc 'type '(world-constraints : World → Hashtable))
+  (doc 'type '(world-constraints : World → HAMT))
 
 (define (world-with-time-acc w new-acc)
   (doc 'type '(world-with-time-acc : World × TimeAcc → World))
@@ -169,32 +170,32 @@
 (doc "world-add-entity! : World × Entity → Void")
 (doc "Add an entity to the world.")
 (define (world-add-entity! world entity)
-  (hashtable-set! (world-entities world)
-                  (entity-id entity)
-                  entity))
+  (set-car! (list-tail world 1)
+            (hamt-assoc (entity-id entity) entity (world-entities world))))
 
 (doc "world-remove-entity! : World × Any → Void")
 (doc "Remove an entity by id.")
 (define (world-remove-entity! world id)
-  (hashtable-delete! (world-entities world) id))
+  (set-car! (list-tail world 1)
+            (hamt-dissoc id (world-entities world))))
 
 (doc 'world-get-entity 'type 'World × Any → MaybeEntity)
 (doc "Get entity by id.")
 (define (world-get-entity world id)
-  (hashtable-ref (world-entities world) id #f))
+  (hamt-lookup id (world-entities world)))
 
 (doc 'world-entity-list 'type 'World → (List Entity))
 (doc "Get all entities as a list.")
 (define (world-entity-list world)
-  (let-values ([(keys vals) (hashtable-entries (world-entities world))])
-              (vector->list vals)))
+  (hamt-values (world-entities world)))
 
 (doc "world-update-entity! : World × Any × (Entity → Entity) → Void")
 (doc "Update an entity by applying a function.")
 (define (world-update-entity! world id f)
   (let ([entity (world-get-entity world id)])
        (when entity
-             (hashtable-set! (world-entities world) id (f entity)))))
+             (set-car! (list-tail world 1)
+                       (hamt-assoc id (f entity) (world-entities world))))))
 
 (doc 'section 'constraint)
 
@@ -202,51 +203,53 @@
 (doc "Add a constraint to the world.")
 (define (world-add-constraint! world constraint)
   (let ([id (constraint-id constraint)])
-       (hashtable-set! (world-constraints world) id constraint)))
+       (set-car! (list-tail world 6)
+                 (hamt-assoc id constraint (world-constraints world)))))
 
 (doc "world-remove-constraint! : World × Any → Void")
 (doc "Remove a constraint by id.")
 (define (world-remove-constraint! world id)
-  (hashtable-delete! (world-constraints world) id))
+  (set-car! (list-tail world 6)
+            (hamt-dissoc id (world-constraints world))))
 
 (doc 'world-get-constraint 'type 'World × Any → Constraint or #f)
 (doc "Get a constraint by id.")
 (define (world-get-constraint world id)
-  (hashtable-ref (world-constraints world) id #f))
+  (hamt-lookup id (world-constraints world)))
 
 (doc 'world-constraint-list 'type 'World → (List Constraint))
 (doc "Get all constraints as a list.")
 (define (world-constraint-list world)
-  (let-values ([(keys vals) (hashtable-entries (world-constraints world))])
-              (vector->list vals)))
+  (hamt-values (world-constraints world)))
 
 (doc "world-update-constraint! : World × Any × (Constraint → Constraint) → Void")
 (doc "Update a constraint by applying a function.")
 (define (world-update-constraint! world id f)
   (let ([constraint (world-get-constraint world id)])
        (when constraint
-             (hashtable-set! (world-constraints world) id (f constraint)))))
+             (set-car! (list-tail world 6)
+                       (hamt-assoc id (f constraint) (world-constraints world))))))
 
 (doc 'section 'force)
 
-(doc "A force accumulator for an entity")
+(doc "A force accumulator for an entity (mutable box holding HAMT)")
 (define (make-force-acc)
-  (make-hashtable equal-hash equal?))
+  (list hamt-empty))
 
 (doc "force-acc-add! : ForceAcc × Any × Vec2 → Void")
 (doc "Add force to an entity's accumulator.")
 (define (force-acc-add! acc id force)
-  (let ([current (hashtable-ref acc id (vec2 0 0))])
-       (hashtable-set! acc id (vec2-add current force))))
+  (let ([current (hamt-lookup-or id (car acc) (vec2 0 0))])
+       (set-car! acc (hamt-assoc id (vec2-add current force) (car acc)))))
 
 (doc 'force-acc-get 'type 'ForceAcc × Any → Vec2)
 (doc "Get accumulated force for an entity.")
 (define (force-acc-get acc id)
-  (hashtable-ref acc id (vec2 0 0)))
+  (hamt-lookup-or id (car acc) (vec2 0 0)))
 
 (doc "force-acc-clear! : ForceAcc → Void")
 (define (force-acc-clear! acc)
-  (hashtable-clear! acc))
+  (set-car! acc hamt-empty))
 
 (doc 'section 'world)
 
@@ -424,7 +427,7 @@
                                        (shape-aabb (entity-world-shape e))))
          entities)
         ;; Find collision pairs
-        (let ([checked (make-hashtable equal-hash equal?)]
+        (let ([checked (list hamt-empty)]  ; mutable box holding HAMT
               [collisions '()])
              (for-each
               (lambda (e)
@@ -434,10 +437,12 @@
                             (for-each
                              (lambda (id-b)
                                      (when (and (not (eq? id-a id-b))
-                                                (not (hashtable-ref checked
-                                                                    (make-pair-key id-a id-b) #f)))
+                                                (not (hamt-lookup (make-pair-key id-a id-b)
+                                                                  (car checked))))
                                            ;; Mark as checked
-                                           (hashtable-set! checked (make-pair-key id-a id-b) #t)
+                                           (set-car! checked
+                                                     (hamt-assoc (make-pair-key id-a id-b) #t
+                                                                 (car checked)))
                                            ;; Narrow phase with world-space shapes
                                            (let* ([ent-b (world-get-entity world id-b)]
                                                   [shape-b (entity-world-shape ent-b)]

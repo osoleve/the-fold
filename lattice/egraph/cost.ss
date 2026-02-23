@@ -1,5 +1,5 @@
 ;;; @module egraph/cost
-;;; @requires prelude egraph/egraph sort
+;;; @requires prelude hamt egraph/egraph sort
 ;;; lattice/egraph/cost.ss — Cost Models for E-Graph Extraction
 ;;;
 ;;; Cost models assign numeric costs to e-nodes, enabling extraction
@@ -12,6 +12,7 @@
 ;;; This is Lattice code: pure cost computation.
 
 (require 'prelude)
+(require 'hamt)
 (require 'egraph/egraph)
 (require 'sort)
 
@@ -55,57 +56,62 @@
 
 (doc 'section 'computation)
 
-;;; compute-costs : EGraph × CostModel → (Hashtable ClassId Nat)
+;;; compute-costs : EGraph × CostModel → HAMT ClassId Nat
 ;;; Compute minimum cost for each e-class using dynamic programming.
 ;;; Uses iterative refinement until costs stabilize.
 (define (compute-costs eg cost-model)
-  (doc 'type (-> EGraph CostModel (Hashtable ClassId Nat)))
+  (doc 'type (-> EGraph CostModel HAMT))
   (doc 'description "Compute minimum cost for each e-class.")
   (doc 'export #t)
-  (let ([costs (make-hashtable equal-hash equal?)]
-        [node-cost-fn (cost-model-fn cost-model)]
+  (let ([node-cost-fn (cost-model-fn cost-model)]
         [uf (egraph-uf eg)]
         [store (egraph-classes eg)])
     ;; Initialize all classes with infinite cost
-    (for-each
-     (lambda (root)
-       (hashtable-set! costs root +inf.0))
-     (uf-roots uf))
-    ;; Iteratively refine costs until fixpoint
-    (let loop ([changed #t]
-               [iterations 0])
-      (if (or (not changed) (> iterations 1000))
-          costs
-          (let ([any-changed #f])
-            (for-each
-             (lambda (root)
-               (let ([nodes (eclass-get-nodes store root)])
-                 (for-each
-                  (lambda (node)
-                    (let ([node-cost (compute-node-cost node costs node-cost-fn)])
-                      (when (< node-cost (hashtable-ref costs root +inf.0))
-                        (hashtable-set! costs root node-cost)
-                        (set! any-changed #t))))
-                  nodes)))
-             (uf-roots uf))
-            (loop any-changed (+ iterations 1)))))))
+    (let ([init-costs (fold-left (lambda (acc root)
+                                   (hamt-assoc root +inf.0 acc))
+                                 hamt-empty
+                                 (uf-roots uf))])
+      ;; Iteratively refine costs until fixpoint
+      (let loop ([costs init-costs]
+                 [changed #t]
+                 [iterations 0])
+        (if (or (not changed) (> iterations 1000))
+            costs
+            (let ([result
+                   (fold-left
+                    (lambda (state root)
+                      (let ([c (car state)]
+                            [any (cdr state)])
+                        (fold-left
+                         (lambda (st node)
+                           (let ([c2 (car st)]
+                                 [any2 (cdr st)]
+                                 [node-cost (compute-node-cost node (car st) node-cost-fn)])
+                             (if (< node-cost (hamt-lookup-or root (car st) +inf.0))
+                                 (cons (hamt-assoc root node-cost (car st)) #t)
+                                 st)))
+                         state
+                         (eclass-get-nodes store root))))
+                    (cons costs #f)
+                    (uf-roots uf))])
+              (loop (car result) (cdr result) (+ iterations 1))))))))
 
 ;;; compute-node-cost : ENode × CostTable × NodeCostFn → Nat
 ;;; Compute cost of a single e-node given child costs.
 (define (compute-node-cost node costs node-cost-fn)
-  (doc 'type (-> ENode (Hashtable ClassId Nat) NodeCostFn Nat))
+  (doc 'type (-> ENode HAMT NodeCostFn Nat))
   (doc 'description "Compute cost of an e-node using child costs.")
   (let ([child-cost-fn (lambda (class-id)
-                         (hashtable-ref costs class-id +inf.0))])
+                         (hamt-lookup-or class-id costs +inf.0))])
     (node-cost-fn node child-cost-fn)))
 
 ;;; class-cost : CostTable × ClassId → Nat
 ;;; Look up the computed cost for an e-class.
 (define (class-cost costs class-id)
-  (doc 'type (-> (Hashtable ClassId Nat) ClassId Nat))
+  (doc 'type (-> HAMT ClassId Nat))
   (doc 'description "Get computed cost for an e-class.")
   (doc 'export #t)
-  (hashtable-ref costs class-id +inf.0))
+  (hamt-lookup-or class-id costs +inf.0))
 
 ;;; ============================================================
 ;;; Basic Cost Models
@@ -156,18 +162,18 @@
 
 (doc 'section 'weighted-models)
 
-;;; make-weighted-cost : (Hashtable Symbol Nat) × Nat → CostModel
+;;; make-weighted-cost : HAMT Symbol Nat × Nat → CostModel
 ;;; Create a cost model with operator-specific weights.
 ;;; Operators not in the table get the default cost.
 (define (make-weighted-cost op-costs default-cost)
-  (doc 'type (-> (Hashtable Symbol Nat) Nat CostModel))
+  (doc 'type (-> HAMT Nat CostModel))
   (doc 'description "Create weighted cost model with operator-specific costs.")
   (doc 'export #t)
   (make-cost-model 'weighted
     (lambda (node child-cost)
       (let* ([op (enode-op node)]
              [base (if (symbol? op)
-                       (hashtable-ref op-costs op default-cost)
+                       (hamt-lookup-or op op-costs default-cost)
                        default-cost)]
              [children (enode-children node)]
              [child-sum (fold-left (lambda (acc i)
@@ -189,58 +195,25 @@
 ;;; - Division and special functions are more expensive
 
 (define cuda-op-costs
-  (let ([ht (make-hashtable symbol-hash eq?)])
-    ;; Memory operations (most expensive)
-    (hashtable-set! ht 'load 100)
-    (hashtable-set! ht 'store 100)
-    (hashtable-set! ht 'index 50)
-
-    ;; Basic arithmetic (cheap)
-    (hashtable-set! ht '+ 1)
-    (hashtable-set! ht '- 1)
-    (hashtable-set! ht '* 2)
-    (hashtable-set! ht 'neg 1)
-
-    ;; Division and modulo (more expensive)
-    (hashtable-set! ht '/ 10)
-    (hashtable-set! ht 'mod 10)
-    (hashtable-set! ht 'div 10)
-
-    ;; Special functions (transcendentals)
-    (hashtable-set! ht 'sqrt 15)
-    (hashtable-set! ht 'rsqrt 8)   ; Faster than sqrt on GPU
-    (hashtable-set! ht 'exp 20)
-    (hashtable-set! ht 'log 20)
-    (hashtable-set! ht 'sin 20)
-    (hashtable-set! ht 'cos 20)
-    (hashtable-set! ht 'tan 25)
-    (hashtable-set! ht 'pow 30)
-
-    ;; Fused operations (preferred - reduce memory traffic)
-    (hashtable-set! ht 'fma 3)     ; Fused multiply-add
-    (hashtable-set! ht 'fms 3)     ; Fused multiply-subtract
-    (hashtable-set! ht 'mad 3)     ; Multiply-add
-
-    ;; Comparisons and logic (cheap)
-    (hashtable-set! ht '< 1)
-    (hashtable-set! ht '<= 1)
-    (hashtable-set! ht '> 1)
-    (hashtable-set! ht '>= 1)
-    (hashtable-set! ht '= 1)
-    (hashtable-set! ht 'and 1)
-    (hashtable-set! ht 'or 1)
-    (hashtable-set! ht 'not 1)
-
-    ;; Control flow (prefer predication over branching)
-    (hashtable-set! ht 'if 5)
-    (hashtable-set! ht 'select 2)  ; Predicated select
-
-    ;; Vector operations (utilize SIMD)
-    (hashtable-set! ht 'vec4-add 1)
-    (hashtable-set! ht 'vec4-mul 2)
-    (hashtable-set! ht 'dot 4)
-
-    ht))
+  (alist->hamt
+   '(;; Memory operations (most expensive)
+     (load . 100) (store . 100) (index . 50)
+     ;; Basic arithmetic (cheap)
+     (+ . 1) (- . 1) (* . 2) (neg . 1)
+     ;; Division and modulo (more expensive)
+     (/ . 10) (mod . 10) (div . 10)
+     ;; Special functions (transcendentals)
+     (sqrt . 15) (rsqrt . 8) (exp . 20) (log . 20)
+     (sin . 20) (cos . 20) (tan . 25) (pow . 30)
+     ;; Fused operations (preferred - reduce memory traffic)
+     (fma . 3) (fms . 3) (mad . 3)
+     ;; Comparisons and logic (cheap)
+     (< . 1) (<= . 1) (> . 1) (>= . 1) (= . 1)
+     (and . 1) (or . 1) (not . 1)
+     ;; Control flow (prefer predication over branching)
+     (if . 5) (select . 2)
+     ;; Vector operations (utilize SIMD)
+     (vec4-add . 1) (vec4-mul . 2) (dot . 4))))
 
 (define cuda-cost
   (make-weighted-cost cuda-op-costs 5))
@@ -257,35 +230,18 @@
 ;;; - Branch misprediction can be costly
 
 (define cpu-op-costs
-  (let ([ht (make-hashtable symbol-hash eq?)])
-    ;; Memory (cheaper than GPU due to caching)
-    (hashtable-set! ht 'load 10)
-    (hashtable-set! ht 'store 10)
-    (hashtable-set! ht 'index 5)
-
-    ;; Basic arithmetic
-    (hashtable-set! ht '+ 1)
-    (hashtable-set! ht '- 1)
-    (hashtable-set! ht '* 3)
-    (hashtable-set! ht 'neg 1)
-
-    ;; Division (expensive)
-    (hashtable-set! ht '/ 20)
-    (hashtable-set! ht 'mod 20)
-    (hashtable-set! ht 'div 20)
-
-    ;; Special functions
-    (hashtable-set! ht 'sqrt 15)
-    (hashtable-set! ht 'exp 25)
-    (hashtable-set! ht 'log 25)
-    (hashtable-set! ht 'sin 25)
-    (hashtable-set! ht 'cos 25)
-    (hashtable-set! ht 'pow 40)
-
-    ;; Control flow
-    (hashtable-set! ht 'if 3)
-
-    ht))
+  (alist->hamt
+   '(;; Memory (cheaper than GPU due to caching)
+     (load . 10) (store . 10) (index . 5)
+     ;; Basic arithmetic
+     (+ . 1) (- . 1) (* . 3) (neg . 1)
+     ;; Division (expensive)
+     (/ . 20) (mod . 20) (div . 20)
+     ;; Special functions
+     (sqrt . 15) (exp . 25) (log . 25)
+     (sin . 25) (cos . 25) (pow . 40)
+     ;; Control flow
+     (if . 3))))
 
 (define cpu-cost
   (make-weighted-cost cpu-op-costs 3))
@@ -300,15 +256,11 @@
 ;;; Useful for embedded systems or instruction cache pressure.
 
 (define code-size-op-costs
-  (let ([ht (make-hashtable symbol-hash eq?)])
-    ;; All operations cost their instruction count
-    (hashtable-set! ht '+ 1)
-    (hashtable-set! ht '- 1)
-    (hashtable-set! ht '* 1)
-    (hashtable-set! ht '/ 1)
-    (hashtable-set! ht 'if 3)  ; Branch instructions
-    (hashtable-set! ht 'call 2)
-    ht))
+  (alist->hamt
+   '(;; All operations cost their instruction count
+     (+ . 1) (- . 1) (* . 1) (/ . 1)
+     (if . 3)    ; Branch instructions
+     (call . 2))))
 
 (define code-size-cost
   (make-weighted-cost code-size-op-costs 1))
@@ -319,11 +271,11 @@
 
 (doc 'section 'composite)
 
-;;; combine-costs : (List (CostModel × Weight)) × EGraph → Nat
+;;; combine-costs : (List (CostModel × Weight)) × EGraph → HAMT
 ;;; Compute weighted combination of multiple cost models for an e-graph.
 ;;; Each model is computed independently, then combined at the class level.
 (define (combine-costs eg models-and-weights)
-  (doc 'type (-> EGraph (List (Pair CostModel Nat)) (Hashtable ClassId Nat)))
+  (doc 'type (-> EGraph (List (Pair CostModel Nat)) HAMT))
   (doc 'description "Compute weighted combination of cost models.")
   (doc 'export #t)
   ;; Compute costs for each model independently
@@ -331,20 +283,19 @@
                             (cons (cdr mw)  ; weight
                                   (compute-costs eg (car mw))))
                           models-and-weights)]
-        [uf (egraph-uf eg)]
-        [combined (make-hashtable equal-hash equal?)])
+        [uf (egraph-uf eg)])
     ;; Combine costs per class
-    (for-each
-     (lambda (root)
+    (fold-left
+     (lambda (combined root)
        (let ([total (fold-left
                      (lambda (acc wc)
                        (+ acc (* (car wc)  ; weight
-                                 (hashtable-ref (cdr wc) root +inf.0))))
+                                 (hamt-lookup-or root (cdr wc) +inf.0))))
                      0
                      model-costs)])
-         (hashtable-set! combined root total)))
-     (uf-roots uf))
-    combined))
+         (hamt-assoc root total combined)))
+     hamt-empty
+     (uf-roots uf))))
 
 ;;; ============================================================
 ;;; Cost Analysis

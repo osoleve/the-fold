@@ -2,6 +2,7 @@
   (load "core/lang/module.ss"))
 (require 'homology)
 (require 'mesh-sdf)
+(require 'hamt)
 
 (doc 'module 'mesh-topology)
 (doc 'description "Topological analysis of triangle meshes via simplicial complex conversion")
@@ -31,27 +32,31 @@
         (quantize (vec3-z v))))
 
 (define (build-vertex-map triangles)
-  (doc 'type '(-> (List Triangle3) (Values HashTable (Vector Vec3))))
+  (doc 'type '(-> (List Triangle3) (Values HAMT (Vector Vec3))))
   (doc 'description "Build a map from vec3 positions to unique vertex indices")
-  (doc 'returns "1. Hash table: vec3-key → vertex-index, 2. Vector: vertex-index → vec3 (for debugging/visualization)")
-  (let ([key->idx (make-hashtable equal-hash equal?)]
-        [vertices '()]
-        [next-idx 0])
-    ;; Collect all triangle vertices
-    (for-each
-      (lambda (tri)
-        (for-each
-          (lambda (v)
-            (let ([key (vec3-key v)])
-              (unless (hashtable-ref key->idx key #f)
-                (hashtable-set! key->idx key next-idx)
-                (set! vertices (cons v vertices))
-                (set! next-idx (+ next-idx 1)))))
-          (list (triangle3-p1 tri)
-                (triangle3-p2 tri)
-                (triangle3-p3 tri))))
-      triangles)
-    (values key->idx (list->vector (reverse vertices)))))
+  (doc 'returns "1. HAMT: vec3-key → vertex-index, 2. Vector: vertex-index → vec3 (for debugging/visualization)")
+  (let* ([all-verts
+          (append-map (lambda (tri)
+                        (list (triangle3-p1 tri)
+                              (triangle3-p2 tri)
+                              (triangle3-p3 tri)))
+                      triangles)]
+         ;; Thread HAMT and vertex list through fold
+         [result
+          (fold-left
+           (lambda (acc v)
+             (let ([key (vec3-key v)]
+                   [h (car acc)]
+                   [verts (cadr acc)]
+                   [idx (caddr acc)])
+               (if (hamt-has-key? key h)
+                   acc
+                   (list (hamt-assoc key idx h)
+                         (cons v verts)
+                         (+ idx 1)))))
+           (list hamt-empty '() 0)
+           all-verts)])
+    (values (car result) (list->vector (reverse (cadr result))))))
 
 (doc 'section 'mesh-to-simplicial-complex-conversion)
 
@@ -70,9 +75,9 @@
     ;; Convert each triangle to a 2-simplex
     (let ([simplices
            (map (lambda (tri)
-                  (let ([i1 (hashtable-ref key->idx (vec3-key (triangle3-p1 tri)) #f)]
-                        [i2 (hashtable-ref key->idx (vec3-key (triangle3-p2 tri)) #f)]
-                        [i3 (hashtable-ref key->idx (vec3-key (triangle3-p3 tri)) #f)])
+                  (let ([i1 (hamt-lookup-or (vec3-key (triangle3-p1 tri)) key->idx #f)]
+                        [i2 (hamt-lookup-or (vec3-key (triangle3-p2 tri)) key->idx #f)]
+                        [i3 (hamt-lookup-or (vec3-key (triangle3-p3 tri)) key->idx #f)])
                     ;; Skip degenerate triangles (duplicate vertices)
                     (if (and (not (= i1 i2))
                              (not (= i2 i3))
@@ -145,22 +150,20 @@
 (define (mesh-edge-counts mesh)
   (doc 'export #t)
   (let-values ([(key->idx vertices) (build-vertex-map (mesh-triangles mesh))])
-    (let ([edge-count (make-hashtable equal-hash equal?)])
-      (for-each
-        (lambda (tri)
-          (let* ([i1 (hashtable-ref key->idx (vec3-key (triangle3-p1 tri)) #f)]
-                 [i2 (hashtable-ref key->idx (vec3-key (triangle3-p2 tri)) #f)]
-                 [i3 (hashtable-ref key->idx (vec3-key (triangle3-p3 tri)) #f)]
-                 [edges (list (edge-key i1 i2)
-                              (edge-key i2 i3)
-                              (edge-key i3 i1))])
-            (for-each
-              (lambda (e)
-                (let ([count (hashtable-ref edge-count e 0)])
-                  (hashtable-set! edge-count e (+ count 1))))
-              edges)))
-        (mesh-triangles mesh))
-      edge-count)))
+    (fold-left
+     (lambda (ec tri)
+       (let* ([i1 (hamt-lookup-or (vec3-key (triangle3-p1 tri)) key->idx #f)]
+              [i2 (hamt-lookup-or (vec3-key (triangle3-p2 tri)) key->idx #f)]
+              [i3 (hamt-lookup-or (vec3-key (triangle3-p3 tri)) key->idx #f)]
+              [edges (list (edge-key i1 i2)
+                           (edge-key i2 i3)
+                           (edge-key i3 i1))])
+         (fold-left
+          (lambda (ec e)
+            (hamt-assoc e (+ (hamt-lookup-or e ec 0) 1) ec))
+          ec edges)))
+     hamt-empty
+     (mesh-triangles mesh))))
 
 ;;; edge-key : Int × Int → (Int . Int)
 ;;; Create canonical edge key (smaller index first).
@@ -185,13 +188,13 @@
 (define (mesh-edges-are-manifold? mesh)
   (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
-    (let-values ([(keys) (hashtable-keys edge-counts)])
-      (let loop ([i 0])
-        (if (>= i (vector-length keys))
+    (let ([entries (hamt-entries edge-counts)])
+      (let loop ([es entries])
+        (if (null? es)
             #t
-            (let ([count (hashtable-ref edge-counts (vector-ref keys i) 0)])
+            (let ([count (cdar es)])
               (if (and (>= count 1) (<= count 2))
-                  (loop (+ i 1))
+                  (loop (cdr es))
                   #f)))))))
 
 ;;; mesh-vertices-are-manifold? : Mesh → Boolean
@@ -289,26 +292,25 @@
           ;; Process edges
           (for-each
             (lambda (edge)
-              (let ([i1 (hashtable-ref idx-map (car edge) #f)]
-                    [i2 (hashtable-ref idx-map (cdr edge) #f)])
+              (let ([i1 (hamt-lookup-or (car edge) idx-map #f)]
+                    [i2 (hamt-lookup-or (cdr edge) idx-map #f)])
                 (when (and i1 i2)
                   (union i1 i2))))
             edges)
-          ;; Count distinct roots
-          (let ([roots (make-hashtable equal-hash equal?)])
-            (do ([i 0 (+ i 1)]) [(= i n)]
-              (hashtable-set! roots (find i) #t))
-            (hashtable-size roots))))))
+          ;; Count distinct roots using threaded HAMT
+          (let ([roots (let loop ([i 0] [rs hamt-empty])
+                         (if (= i n) rs
+                             (loop (+ i 1) (hamt-assoc (find i) #t rs))))])
+            (hamt-size roots))))))
 
-;;; build-index-map : (List α) → HashTable
+;;; build-index-map : (List α) → HAMT
 ;;; Build a map from elements to their indices.
 (define (build-index-map lst)
-  (let ([ht (make-hashtable equal-hash equal?)])
-    (let loop ([remaining lst] [i 0])
-      (unless (null? remaining)
-        (hashtable-set! ht (car remaining) i)
-        (loop (cdr remaining) (+ i 1))))
-    ht))
+  (let loop ([remaining lst] [i 0] [h hamt-empty])
+    (if (null? remaining)
+        h
+        (loop (cdr remaining) (+ i 1)
+              (hamt-assoc (car remaining) i h)))))
 
 ;;; mesh-is-closed? : Mesh → Boolean
 ;;; Check if mesh is a closed surface (no boundary edges).
@@ -316,13 +318,13 @@
 (define (mesh-is-closed? mesh)
   (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
-    (let-values ([(keys) (hashtable-keys edge-counts)])
-      (let loop ([i 0])
-        (if (>= i (vector-length keys))
+    (let ([entries (hamt-entries edge-counts)])
+      (let loop ([es entries])
+        (if (null? es)
             #t
-            (let ([count (hashtable-ref edge-counts (vector-ref keys i) 0)])
+            (let ([count (cdar es)])
               (if (= count 2)
-                  (loop (+ i 1))
+                  (loop (cdr es))
                   #f)))))))
 
 ;;; mesh-boundary-edges : Mesh → (List (Int . Int))
@@ -330,32 +332,26 @@
 (define (mesh-boundary-edges mesh)
   (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
-    (let-values ([(keys) (hashtable-keys edge-counts)])
-      (let loop ([i 0] [result '()])
-        (if (>= i (vector-length keys))
-            (reverse result)
-            (let* ([edge (vector-ref keys i)]
-                   [count (hashtable-ref edge-counts edge 0)])
-              (loop (+ i 1)
-                    (if (= count 1)
-                        (cons edge result)
-                        result))))))))
+    (hamt-fold
+     (lambda (result edge count)
+       (if (= count 1)
+           (cons edge result)
+           result))
+     '()
+     edge-counts)))
 
 ;;; mesh-non-manifold-edges : Mesh → (List (Int . Int))
 ;;; Find non-manifold edges (shared by >2 triangles).
 (define (mesh-non-manifold-edges mesh)
   (doc 'export #t)
   (let ([edge-counts (mesh-edge-counts mesh)])
-    (let-values ([(keys) (hashtable-keys edge-counts)])
-      (let loop ([i 0] [result '()])
-        (if (>= i (vector-length keys))
-            (reverse result)
-            (let* ([edge (vector-ref keys i)]
-                   [count (hashtable-ref edge-counts edge 0)])
-              (loop (+ i 1)
-                    (if (> count 2)
-                        (cons edge result)
-                        result))))))))
+    (hamt-fold
+     (lambda (result edge count)
+       (if (> count 2)
+           (cons edge result)
+           result))
+     '()
+     edge-counts)))
 
 ;;; ============================================================
 ;;; MESH TOPOLOGY SUMMARY

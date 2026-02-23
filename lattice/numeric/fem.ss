@@ -1,6 +1,6 @@
 ;;; lattice/numeric/fem.ss --- Finite Element Method for 2D PDEs
 ;;; @module fem
-;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen
+;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt
 
 (require 'prelude)
 (require 'sort)
@@ -9,6 +9,7 @@
 (require 'sparse)
 (require 'iterative-solvers)
 (require 'mesh-gen)
+(require 'hamt)
 
 (doc 'module 'fem)
 (doc 'description "Finite Element Method: P1 elements on triangular meshes for elliptic PDEs")
@@ -28,7 +29,7 @@
 (doc make-fem-mesh 'description "Convert Delaunay triangulation to indexed FEM mesh")
 (define (make-fem-mesh triangles)
   ;; Extract unique nodes with tolerance-based deduplication
-  ;; Uses hashtable for O(1) amortized lookup instead of O(N) assoc
+  ;; Uses HAMT for O(log32 n) lookup instead of O(N) assoc
   (let* ([tolerance 1e-10]
          [point-key (lambda (p)
                       ;; Round to tolerance for hashing
@@ -36,30 +37,33 @@
                             (round (/ (point2-y p) tolerance))))]
          ;; Collect all unique points
          [all-points (append-map tri2-points triangles)]
-         ;; Build node list and index map using hashtable (O(1) lookup)
-         [node-map (make-hashtable equal-hash equal?)]
+         ;; Build node list and index map using threaded HAMT
          [nodes-vec (make-vector (length all-points) #f)]  ; Upper bound
-         [node-count-box (cons 0 #f)])  ; Use box for mutation
+         ;; Thread HAMT and counter through fold
+         [result
+          (fold-left
+           (lambda (acc p)
+             (let ([key (point-key p)]
+                   [node-map (car acc)]
+                   [idx (cdr acc)])
+               (if (hamt-has-key? key node-map)
+                   acc
+                   (begin
+                     (vector-set! nodes-vec idx p)
+                     (cons (hamt-assoc key idx node-map)
+                           (+ idx 1))))))
+           (cons hamt-empty 0)
+           all-points)]
+         [node-map (car result)]
+         [node-count (cdr result)])
 
-    ;; Populate node map and vector
-    (for-each
-     (lambda (p)
-       (let ([key (point-key p)])
-         (unless (hashtable-contains? node-map key)
-           (let ([idx (car node-count-box)])
-             (hashtable-set! node-map key idx)
-             (vector-set! nodes-vec idx p)
-             (set-car! node-count-box (+ idx 1))))))
-     all-points)
-
-    (let* ([node-count (car node-count-box)]
-           ;; Trim nodes vector to actual size
-           [nodes (let ([result (make-vector node-count)])
+    (let* ([;; Trim nodes vector to actual size
+            nodes (let ([result (make-vector node-count)])
                     (do ([i 0 (+ i 1)])
                         ((= i node-count) result)
                       (vector-set! result i (vector-ref nodes-vec i))))]
            ;; Convert triangles to element index triples
-           [point->index (lambda (p) (hashtable-ref node-map (point-key p) #f))]
+           [point->index (lambda (p) (hamt-lookup (point-key p) node-map))]
            [elements (map (lambda (tri)
                             (vector (point->index (tri2-p1 tri))
                                     (point->index (tri2-p2 tri))
@@ -281,30 +285,35 @@
   ;; A boundary edge appears in exactly one triangle.
   ;; Boundary nodes are endpoints of boundary edges.
   (let* ([ne (fem-mesh-num-elements mesh)]
-         [edge-counts (make-hashtable equal-hash equal?)])
-    ;; Count edge occurrences
-    (do ([e 0 (+ e 1)])
-        ((= e ne))
-      (let* ([elem (fem-mesh-element mesh e)]
-             [i0 (vector-ref elem 0)]
-             [i1 (vector-ref elem 1)]
-             [i2 (vector-ref elem 2)]
-             ;; Edges as sorted pairs for canonical form
-             [e01 (if (< i0 i1) (cons i0 i1) (cons i1 i0))]
-             [e12 (if (< i1 i2) (cons i1 i2) (cons i2 i1))]
-             [e20 (if (< i2 i0) (cons i2 i0) (cons i0 i2))])
-        (hashtable-update! edge-counts e01 (lambda (c) (+ c 1)) 0)
-        (hashtable-update! edge-counts e12 (lambda (c) (+ c 1)) 0)
-        (hashtable-update! edge-counts e20 (lambda (c) (+ c 1)) 0)))
-    ;; Collect boundary nodes
-    (let ([boundary-set (make-hashtable equal-hash equal?)])
-      (vector-for-each
-       (lambda (edge)
-         (when (= 1 (hashtable-ref edge-counts edge 0))
-           (hashtable-set! boundary-set (car edge) #t)
-           (hashtable-set! boundary-set (cdr edge) #t)))
-       (hashtable-keys edge-counts))
-      (sort-by < (vector->list (hashtable-keys boundary-set))))))
+         ;; Count edge occurrences using threaded HAMT
+         [edge-counts
+          (let loop ([e 0] [ec hamt-empty])
+            (if (= e ne)
+                ec
+                (let* ([elem (fem-mesh-element mesh e)]
+                       [i0 (vector-ref elem 0)]
+                       [i1 (vector-ref elem 1)]
+                       [i2 (vector-ref elem 2)]
+                       ;; Edges as sorted pairs for canonical form
+                       [e01 (if (< i0 i1) (cons i0 i1) (cons i1 i0))]
+                       [e12 (if (< i1 i2) (cons i1 i2) (cons i2 i1))]
+                       [e20 (if (< i2 i0) (cons i2 i0) (cons i0 i2))]
+                       [ec (hamt-assoc e01 (+ (hamt-lookup-or e01 ec 0) 1) ec)]
+                       [ec (hamt-assoc e12 (+ (hamt-lookup-or e12 ec 0) 1) ec)]
+                       [ec (hamt-assoc e20 (+ (hamt-lookup-or e20 ec 0) 1) ec)])
+                  (loop (+ e 1) ec))))]
+         ;; Collect boundary nodes from edges with count = 1
+         [boundary-set
+          (hamt-fold
+           (lambda (bset edge count)
+             (if (= 1 count)
+                 (hamt-assoc (cdr edge)
+                             #t
+                             (hamt-assoc (car edge) #t bset))
+                 bset))
+           hamt-empty
+           edge-counts)])
+    (sort-by < (hamt-keys boundary-set))))
 
 (doc apply-dirichlet-bc! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) FEMMesh Void))
 (doc apply-dirichlet-bc! 'description "Apply Dirichlet BC by elimination method (zeros row/col, sets diagonal to 1)")
@@ -316,18 +325,18 @@
   ;; 4. Set F_i = g(x_i, y_i)
 
   (let* ([n (sparse-coo-rows K)]
-         [bc-set (make-hashtable equal-hash equal?)]
+         [bc-set (fold-left (lambda (h i) (hamt-assoc i #t h))
+                            hamt-empty boundary-nodes)]
          [bc-values (make-vector n 0.0)]
          [rows (sparse-coo-row-indices K)]
          [cols (sparse-coo-col-indices K)]
          [vals (sparse-coo-values K)]
          [nnz (vector-length rows)])
 
-    ;; Mark boundary nodes and compute their values
+    ;; Compute boundary values
     (for-each
      (lambda (i)
        (let ([p (fem-mesh-node mesh i)])
-         (hashtable-set! bc-set i #t)
          (vector-set! bc-values i (g (point2-x p) (point2-y p)))))
      boundary-nodes)
 
@@ -356,7 +365,7 @@
                  [val (vector-ref vals k)])
              (when (and (= col i)
                         (not (= row i))
-                        (not (hashtable-ref bc-set row #f)))
+                        (not (hamt-lookup-or row bc-set #f)))
                ;; Subtract contribution from RHS before zeroing
                (vector-set! F row (- (vector-ref F row) (* val g-val)))
                (vector-set! vals k 0.0))))

@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module world3d
-;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d constraint-solver3d
+;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d constraint-solver3d hamt
 (require 'prelude)
 (require 'vec3)
 (require 'quaternion)
@@ -8,6 +8,7 @@
 (require 'shapes3d)
 (require 'collision-detection3d)
 (require 'constraint-solver3d)
+(require 'hamt)
 
 (doc 'module 'world3d)
 (doc 'description "3D Physics World - The physics world coordinates all 3D physics components: Body management (add, remove, query), Collision detection (broad + narrow phase), Collision resolution (impulse + correction), Constraint solving, Integration (forces, velocity, position).")
@@ -128,13 +129,17 @@
 (define (make-spatial-hash-3d cell-size)
   (list 'spatial-hash-3d
         cell-size
-        (make-hashtable equal-hash equal?)))
+        (cons hamt-empty '())))
 
 ;;; spatial-hash-3d-cell-size : SpatialHash3D → Number
 (define (spatial-hash-3d-cell-size h) (list-ref h 1))
 
-;;; spatial-hash-3d-table : SpatialHash3D → Hashtable
-(define (spatial-hash-3d-table h) (list-ref h 2))
+;;; spatial-hash-3d-cell : SpatialHash3D → Cell(HAMT)
+;;; Returns the mutable cell holding the HAMT table.
+(define (spatial-hash-3d-cell h) (list-ref h 2))
+
+;;; spatial-hash-3d-table : SpatialHash3D → HAMT
+(define (spatial-hash-3d-table h) (car (spatial-hash-3d-cell h)))
 
 ;;; spatial-hash-3d-key : SpatialHash3D × Vec3 → (Integer × Integer × Integer)
 ;;; Convert position to cell key.
@@ -172,37 +177,37 @@
 
 ;;; spatial-hash-3d-clear! : SpatialHash3D → Void
 (define (spatial-hash-3d-clear! hash)
-  (hashtable-clear! (spatial-hash-3d-table hash)))
+  (set-car! (spatial-hash-3d-cell hash) hamt-empty))
 
 ;;; spatial-hash-3d-insert! : SpatialHash3D × Any × AABB3D → Void
 ;;; Insert id into all cells overlapping its AABB.
 (define (spatial-hash-3d-insert! hash id aabb)
-  (let ([table (spatial-hash-3d-table hash)]
+  (let ([mcell (spatial-hash-3d-cell hash)]
         [keys (spatial-hash-3d-aabb-keys hash aabb)])
-       (for-each
-        (lambda (key)
-                (let ([current (hashtable-ref table key '())])
-                     (hashtable-set! table key (cons id current))))
-        keys)))
+       (set-car! mcell
+                 (fold-left (lambda (tbl key)
+                              (let ([current (hamt-lookup-or key tbl '())])
+                                   (hamt-assoc key (cons id current) tbl)))
+                            (car mcell) keys))))
 
 ;;; spatial-hash-3d-query : SpatialHash3D × AABB3D → (List Any)
 ;;; Query all ids in cells overlapping the AABB.
 (define (spatial-hash-3d-query hash aabb)
   (let* ([table (spatial-hash-3d-table hash)]
-         [keys (spatial-hash-3d-aabb-keys hash aabb)]
-         [seen (make-hashtable equal-hash equal?)]
-         [results '()])
-        (for-each
-         (lambda (key)
-                 (let ([ids (hashtable-ref table key '())])
-                      (for-each
-                       (lambda (id)
-                               (unless (hashtable-ref seen id #f)
-                                       (hashtable-set! seen id #t)
-                                       (set! results (cons id results))))
-                       ids)))
-         keys)
-        results))
+         [keys (spatial-hash-3d-aabb-keys hash aabb)])
+        (let loop ([ks keys] [seen hamt-empty] [results '()])
+             (if (null? ks)
+                 results
+                 (let ([ids (hamt-lookup-or (car ks) table '())])
+                      (let inner ([is ids] [s seen] [r results])
+                           (if (null? is)
+                               (loop (cdr ks) s r)
+                               (let ([id (car is)])
+                                    (if (hamt-lookup id s)
+                                        (inner (cdr is) s r)
+                                        (inner (cdr is)
+                                               (hamt-assoc id #t s)
+                                               (cons id r)))))))))))
 
 ;;; ====
 ;;; Physics World 3D
@@ -241,20 +246,23 @@
 (define (make-world-3d gravity)
   (let ([config (make-world-config-3d)])
        (list 'world-3d
-             (make-hashtable equal-hash equal?)  ; entities
+             (cons hamt-empty '())  ; entities (mutable cell → HAMT)
              gravity
              (make-spatial-hash-3d (config-3d-cell-size config))
              config
              (make-time-acc-3d (config-3d-fixed-dt config)
                                (config-3d-max-substeps config))
-             (make-hashtable equal-hash equal?))))  ; constraints
+             (cons hamt-empty '()))))  ; constraints (mutable cell → HAMT)
 
 ;;; world-3d? : Any → Boolean
 (define (world-3d? w)
   (and (pair? w) (eq? (car w) 'world-3d)))
 
-;;; world-3d-entities : World3D → Hashtable
-(define (world-3d-entities w) (list-ref w 1))
+;;; world-3d-entities-cell : World3D → Cell(HAMT)
+(define (world-3d-entities-cell w) (list-ref w 1))
+
+;;; world-3d-entities : World3D → HAMT
+(define (world-3d-entities w) (car (world-3d-entities-cell w)))
 
 ;;; world-3d-gravity : World3D → Vec3
 (define (world-3d-gravity w) (list-ref w 2))
@@ -268,18 +276,21 @@
 ;;; world-3d-time-acc : World3D → TimeAcc3D
 (define (world-3d-time-acc w) (list-ref w 5))
 
-;;; world-3d-constraints : World3D → Hashtable
-(define (world-3d-constraints w) (list-ref w 6))
+;;; world-3d-constraints-cell : World3D → Cell(HAMT)
+(define (world-3d-constraints-cell w) (list-ref w 6))
+
+;;; world-3d-constraints : World3D → HAMT
+(define (world-3d-constraints w) (car (world-3d-constraints-cell w)))
 
 ;;; world-3d-with-time-acc : World3D × TimeAcc3D → World3D
 (define (world-3d-with-time-acc w new-acc)
   (list 'world-3d
-        (world-3d-entities w)
+        (world-3d-entities-cell w)
         (world-3d-gravity w)
         (world-3d-spatial-hash w)
         (world-3d-config w)
         new-acc
-        (world-3d-constraints w)))
+        (world-3d-constraints-cell w)))
 
 ;;; ====
 ;;; Entity Management
@@ -287,28 +298,28 @@
 
 ;;; world-3d-add-entity! : World3D × Entity3D → Void
 (define (world-3d-add-entity! world entity)
-  (hashtable-set! (world-3d-entities world)
-                  (entity-3d-id entity)
-                  entity))
+  (let ([cell (world-3d-entities-cell world)])
+       (set-car! cell (hamt-assoc (entity-3d-id entity) entity (car cell)))))
 
 ;;; world-3d-remove-entity! : World3D × Any → Void
 (define (world-3d-remove-entity! world id)
-  (hashtable-delete! (world-3d-entities world) id))
+  (let ([cell (world-3d-entities-cell world)])
+       (set-car! cell (hamt-dissoc id (car cell)))))
 
 ;;; world-3d-get-entity : World3D × Any → Entity3D | #f
 (define (world-3d-get-entity world id)
-  (hashtable-ref (world-3d-entities world) id #f))
+  (hamt-lookup id (world-3d-entities world)))
 
 ;;; world-3d-entity-list : World3D → (List Entity3D)
 (define (world-3d-entity-list world)
-  (let-values ([(keys vals) (hashtable-entries (world-3d-entities world))])
-              (vector->list vals)))
+  (hamt-values (world-3d-entities world)))
 
 ;;; world-3d-update-entity! : World3D × Any × (Entity3D → Entity3D) → Void
 (define (world-3d-update-entity! world id f)
   (let ([entity (world-3d-get-entity world id)])
        (when entity
-             (hashtable-set! (world-3d-entities world) id (f entity)))))
+             (let ([cell (world-3d-entities-cell world)])
+                  (set-car! cell (hamt-assoc id (f entity) (car cell)))))))
 
 ;;; ====
 ;;; Constraint Management
@@ -316,21 +327,22 @@
 
 ;;; world-3d-add-constraint! : World3D × Constraint3D → Void
 (define (world-3d-add-constraint! world constraint)
-  (let ([id (constraint-3d-id constraint)])
-       (hashtable-set! (world-3d-constraints world) id constraint)))
+  (let ([id (constraint-3d-id constraint)]
+        [cell (world-3d-constraints-cell world)])
+       (set-car! cell (hamt-assoc id constraint (car cell)))))
 
 ;;; world-3d-remove-constraint! : World3D × Any → Void
 (define (world-3d-remove-constraint! world id)
-  (hashtable-delete! (world-3d-constraints world) id))
+  (let ([cell (world-3d-constraints-cell world)])
+       (set-car! cell (hamt-dissoc id (car cell)))))
 
 ;;; world-3d-get-constraint : World3D × Any → Constraint3D | #f
 (define (world-3d-get-constraint world id)
-  (hashtable-ref (world-3d-constraints world) id #f))
+  (hamt-lookup id (world-3d-constraints world)))
 
 ;;; world-3d-constraint-list : World3D → (List Constraint3D)
 (define (world-3d-constraint-list world)
-  (let-values ([(keys vals) (hashtable-entries (world-3d-constraints world))])
-              (vector->list vals)))
+  (hamt-values (world-3d-constraints world)))
 
 ;;; ====
 ;;; World Step
@@ -450,32 +462,30 @@
                  (spatial-hash-3d-insert! hash (entity-3d-id e)
                                           (shape3d-aabb (entity-3d-shape e))))
          entities)
-        ;; Find collision pairs
-        (let ([checked (make-hashtable equal-hash equal?)]
-              [collisions '()])
-             (for-each
-              (lambda (e)
-                      (let* ([id-a (entity-3d-id e)]
-                             [shape-a (entity-3d-shape e)]
-                             [candidates (spatial-hash-3d-query hash (shape3d-aabb shape-a))])
-                            (for-each
-                             (lambda (id-b)
-                                     (when (and (not (eq? id-a id-b))
-                                                (not (hashtable-ref checked
-                                                                    (make-pair-key-3d id-a id-b) #f)))
-                                           ;; Mark as checked
-                                           (hashtable-set! checked (make-pair-key-3d id-a id-b) #t)
-                                           ;; Narrow phase
-                                           (let* ([ent-b (world-3d-get-entity world id-b)]
-                                                  [shape-b (entity-3d-shape ent-b)]
-                                                  [manifold (shapes-manifold-3d shape-a shape-b)])
-                                                 (when manifold
-                                                       (set! collisions
-                                                             (cons (list e ent-b manifold)
-                                                                   collisions))))))
-                             candidates)))
-              entities)
-             collisions)))
+        ;; Find collision pairs using HAMT for checked set
+        (let outer ([es entities] [checked hamt-empty] [collisions '()])
+             (if (null? es)
+                 collisions
+                 (let* ([e (car es)]
+                        [id-a (entity-3d-id e)]
+                        [shape-a (entity-3d-shape e)]
+                        [candidates (spatial-hash-3d-query hash (shape3d-aabb shape-a))])
+                       (let inner ([cs candidates] [chk checked] [cols collisions])
+                            (if (null? cs)
+                                (outer (cdr es) chk cols)
+                                (let* ([id-b (car cs)]
+                                       [pair-key (make-pair-key-3d id-a id-b)])
+                                      (if (or (eq? id-a id-b)
+                                              (hamt-lookup pair-key chk))
+                                          (inner (cdr cs) chk cols)
+                                          (let* ([chk2 (hamt-assoc pair-key #t chk)]
+                                                 [ent-b (world-3d-get-entity world id-b)]
+                                                 [shape-b (entity-3d-shape ent-b)]
+                                                 [manifold (shapes-manifold-3d shape-a shape-b)])
+                                                (if manifold
+                                                    (inner (cdr cs) chk2
+                                                           (cons (list e ent-b manifold) cols))
+                                                    (inner (cdr cs) chk2 cols))))))))))))
 
 ;;; make-pair-key-3d : Any × Any → Any
 ;;; Create a canonical key for a pair of ids.

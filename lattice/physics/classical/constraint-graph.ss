@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module constraint-graph
-;;; @requires prelude simplicial-complex homology
+;;; @requires prelude simplicial-complex homology hamt
 (require 'prelude)
 (require 'simplicial-complex)
 (require 'homology)
+(require 'hamt)
 
 (doc 'module 'constraint-graph)
 (doc 'description "Graph algorithms for physics constraint systems: islands, ordering, parallelization")
@@ -27,40 +28,53 @@
 (doc 'make-constraint-graph 'description "Build graph from constraints; entities=nodes, constraints=edges")
 (define (make-constraint-graph constraints)
   ;; Build adjacency list and constraint lookup
-  (let ([adj (make-hashtable equal-hash equal?)]       ; entity-id -> list of neighbor ids
-        [entity-constraints (make-hashtable equal-hash equal?)]  ; entity-id -> list of constraints
-        [all-entities '()])
-    ;; Process each constraint
-    (for-each
-     (lambda (c)
-       (let ([entity-a (constraint-entity-a c)]
-             [entity-b (constraint-entity-b c)])
-         ;; Add entity-a
-         (unless (hashtable-contains? adj entity-a)
-           (hashtable-set! adj entity-a '())
-           (hashtable-set! entity-constraints entity-a '())
-           (set! all-entities (cons entity-a all-entities)))
-         ;; Add to a's constraint list
-         (hashtable-set! entity-constraints entity-a
-                         (cons c (hashtable-ref entity-constraints entity-a '())))
-         ;; If entity-b exists (not anchored to world)
-         (when entity-b
-           ;; Add entity-b
-           (unless (hashtable-contains? adj entity-b)
-             (hashtable-set! adj entity-b '())
-             (hashtable-set! entity-constraints entity-b '())
-             (set! all-entities (cons entity-b all-entities)))
-           ;; Add to b's constraint list
-           (hashtable-set! entity-constraints entity-b
-                           (cons c (hashtable-ref entity-constraints entity-b '())))
-           ;; Add edges (undirected: a->b and b->a)
-           (hashtable-set! adj entity-a
-                           (cons entity-b (hashtable-ref adj entity-a '())))
-           (hashtable-set! adj entity-b
-                           (cons entity-a (hashtable-ref adj entity-b '()))))))
-     constraints)
+  ;; Thread three accumulators: adj HAMT, entity-constraints HAMT, all-entities list
+  (let ([result
+         (fold-left
+          (lambda (state c)
+            (let ([adj (car state)]
+                  [ec (cadr state)]
+                  [ents (caddr state)]
+                  [entity-a (constraint-entity-a c)]
+                  [entity-b (constraint-entity-b c)])
+              ;; Ensure entity-a is registered
+              (let* ([new-ents (if (hamt-has-key? entity-a adj)
+                                  ents
+                                  (cons entity-a ents))]
+                     [adj (if (hamt-has-key? entity-a adj) adj
+                              (hamt-assoc entity-a '() adj))]
+                     [ec (if (hamt-has-key? entity-a ec) ec
+                             (hamt-assoc entity-a '() ec))]
+                     ;; Add to a's constraint list
+                     [ec (hamt-assoc entity-a
+                                     (cons c (hamt-lookup-or entity-a ec '()))
+                                     ec)])
+                ;; If entity-b exists (not anchored to world)
+                (if entity-b
+                    (let* ([new-ents (if (hamt-has-key? entity-b adj)
+                                        new-ents
+                                        (cons entity-b new-ents))]
+                           [adj (if (hamt-has-key? entity-b adj) adj
+                                    (hamt-assoc entity-b '() adj))]
+                           [ec (if (hamt-has-key? entity-b ec) ec
+                                   (hamt-assoc entity-b '() ec))]
+                           ;; Add to b's constraint list
+                           [ec (hamt-assoc entity-b
+                                           (cons c (hamt-lookup-or entity-b ec '()))
+                                           ec)]
+                           ;; Add edges (undirected: a->b and b->a)
+                           [adj (hamt-assoc entity-a
+                                            (cons entity-b (hamt-lookup-or entity-a adj '()))
+                                            adj)]
+                           [adj (hamt-assoc entity-b
+                                            (cons entity-a (hamt-lookup-or entity-b adj '()))
+                                            adj)])
+                      (list adj ec new-ents))
+                    (list adj ec new-ents)))))
+          (list hamt-empty hamt-empty '())
+          constraints)])
     ;; Return graph structure
-    (list 'constraint-graph adj entity-constraints (reverse all-entities) constraints)))
+    (list 'constraint-graph (car result) (cadr result) (reverse (caddr result)) constraints)))
 
 (doc 'constraint-graph? 'type '(-> Any Boolean))
 (define (constraint-graph? g)
@@ -74,12 +88,12 @@
 (doc 'cg-neighbors 'type '(-> ConstraintGraph EntityId (List EntityId)))
 (doc 'cg-neighbors 'description "Get neighbor entities of a given entity")
 (define (cg-neighbors graph entity-id)
-  (hashtable-ref (cg-adjacency graph) entity-id '()))
+  (hamt-lookup-or entity-id (cg-adjacency graph) '()))
 
 (doc 'cg-constraints-for 'type '(-> ConstraintGraph EntityId (List Constraint)))
 (doc 'cg-constraints-for 'description "Get constraints involving a given entity")
 (define (cg-constraints-for graph entity-id)
-  (hashtable-ref (cg-entity-constraints graph) entity-id '()))
+  (hamt-lookup-or entity-id (cg-entity-constraints graph) '()))
 
 ;;; ============================================================
 ;;; Section 2: Island Detection (Connected Components)
@@ -93,35 +107,36 @@ Each island can be solved independently, enabling parallel simulation.")
 (doc 'cg-find-islands 'description "Find all constraint islands (connected components)")
 (define (cg-find-islands graph)
   (let ([entities (cg-entities graph)]
-        [visited (make-hashtable equal-hash equal?)]
+        [visited (list hamt-empty)]  ; mutable box
         [islands '()])
     ;; BFS from each unvisited entity
     (for-each
      (lambda (start)
-       (unless (hashtable-ref visited start #f)
+       (unless (hamt-lookup start (car visited))
          (let ([island-entities '()]
                [island-constraints '()]
-               [constraint-set (make-hashtable equal-hash equal?)])
+               [constraint-set (list hamt-empty)])  ; mutable box
            ;; BFS
            (let bfs ([queue (list start)])
              (unless (null? queue)
                (let ([current (car queue)]
                      [rest (cdr queue)])
-                 (if (hashtable-ref visited current #f)
+                 (if (hamt-lookup current (car visited))
                      (bfs rest)
                      (begin
-                       (hashtable-set! visited current #t)
+                       (set-car! visited (hamt-assoc current #t (car visited)))
                        (set! island-entities (cons current island-entities))
                        ;; Collect constraints (avoid duplicates)
                        (for-each
                         (lambda (c)
-                          (unless (hashtable-ref constraint-set (constraint-id c) #f)
-                            (hashtable-set! constraint-set (constraint-id c) #t)
+                          (unless (hamt-lookup (constraint-id c) (car constraint-set))
+                            (set-car! constraint-set
+                                      (hamt-assoc (constraint-id c) #t (car constraint-set)))
                             (set! island-constraints (cons c island-constraints))))
                         (cg-constraints-for graph current))
                        ;; Add unvisited neighbors to queue
                        (let ([neighbors (filter
-                                          (lambda (n) (not (hashtable-ref visited n #f)))
+                                          (lambda (n) (not (hamt-lookup n (car visited))))
                                           (cg-neighbors graph current))])
                          (bfs (append rest neighbors))))))))
            ;; Record island
@@ -166,44 +181,48 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 (define (cg-find-sccs graph)
   (let ([entities (cg-entities graph)]
         [index-counter 0]
-        [indices (make-hashtable equal-hash equal?)]    ; entity -> index
-        [lowlinks (make-hashtable equal-hash equal?)]   ; entity -> lowlink
-        [on-stack (make-hashtable equal-hash equal?)]   ; entity -> boolean
+        [indices (list hamt-empty)]    ; mutable box: entity -> index
+        [lowlinks (list hamt-empty)]   ; mutable box: entity -> lowlink
+        [on-stack (list hamt-empty)]   ; mutable box: entity -> boolean
         [stack '()]
         [sccs '()])
 
     (define (strongconnect entity)
       ;; Set index and lowlink
-      (hashtable-set! indices entity index-counter)
-      (hashtable-set! lowlinks entity index-counter)
+      (set-car! indices (hamt-assoc entity index-counter (car indices)))
+      (set-car! lowlinks (hamt-assoc entity index-counter (car lowlinks)))
       (set! index-counter (+ index-counter 1))
       (set! stack (cons entity stack))
-      (hashtable-set! on-stack entity #t)
+      (set-car! on-stack (hamt-assoc entity #t (car on-stack)))
 
       ;; Consider successors
       (for-each
        (lambda (neighbor)
          (cond
           ;; Successor not yet visited
-          [(not (hashtable-contains? indices neighbor))
+          [(not (hamt-has-key? neighbor (car indices)))
            (strongconnect neighbor)
-           (hashtable-set! lowlinks entity
-                           (min (hashtable-ref lowlinks entity 0)
-                                (hashtable-ref lowlinks neighbor 0)))]
+           (set-car! lowlinks
+                     (hamt-assoc entity
+                                 (min (hamt-lookup-or entity (car lowlinks) 0)
+                                      (hamt-lookup-or neighbor (car lowlinks) 0))
+                                 (car lowlinks)))]
           ;; Successor on stack -> in current SCC
-          [(hashtable-ref on-stack neighbor #f)
-           (hashtable-set! lowlinks entity
-                           (min (hashtable-ref lowlinks entity 0)
-                                (hashtable-ref indices neighbor 0)))]))
+          [(hamt-lookup neighbor (car on-stack))
+           (set-car! lowlinks
+                     (hamt-assoc entity
+                                 (min (hamt-lookup-or entity (car lowlinks) 0)
+                                      (hamt-lookup-or neighbor (car indices) 0))
+                                 (car lowlinks)))]))
        (cg-neighbors graph entity))
 
       ;; If entity is root of SCC, pop stack and generate SCC
-      (when (= (hashtable-ref lowlinks entity 0)
-               (hashtable-ref indices entity 0))
+      (when (= (hamt-lookup-or entity (car lowlinks) 0)
+               (hamt-lookup-or entity (car indices) 0))
         (let loop ([scc-entities '()])
           (let ([w (car stack)])
             (set! stack (cdr stack))
-            (hashtable-set! on-stack w #f)
+            (set-car! on-stack (hamt-assoc w #f (car on-stack)))
             (if (equal? w entity)
                 ;; Complete SCC
                 (set! sccs (cons (cons entity scc-entities) sccs))
@@ -213,7 +232,7 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
     ;; Process all entities
     (for-each
      (lambda (entity)
-       (unless (hashtable-contains? indices entity)
+       (unless (hamt-has-key? entity (car indices))
          (strongconnect entity)))
      entities)
 
@@ -236,23 +255,22 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 (doc 'scc-internal-constraints 'type '(-> ConstraintGraph (List EntityId) (List Constraint)))
 (doc 'scc-internal-constraints 'description "Get constraints where both entities are in the SCC")
 (define (scc-internal-constraints graph entity-list)
-  (let ([entity-set (make-hashtable equal-hash equal?)]
-        [seen (make-hashtable equal-hash equal?)]
+  (let ([entity-set (fold-left (lambda (h e) (hamt-assoc e #t h))
+                               hamt-empty entity-list)]
+        [seen (list hamt-empty)]  ; mutable box
         [result '()])
-    ;; Build set for O(1) membership
-    (for-each (lambda (e) (hashtable-set! entity-set e #t)) entity-list)
     ;; Find internal constraints
     (for-each
      (lambda (entity)
        (for-each
         (lambda (c)
-          (unless (hashtable-ref seen (constraint-id c) #f)
-            (hashtable-set! seen (constraint-id c) #t)
+          (unless (hamt-lookup (constraint-id c) (car seen))
+            (set-car! seen (hamt-assoc (constraint-id c) #t (car seen)))
             (let ([a (constraint-entity-a c)]
                   [b (constraint-entity-b c)])
               ;; Internal if both endpoints in SCC (or b is #f for world anchor)
-              (when (and (hashtable-ref entity-set a #f)
-                         (or (not b) (hashtable-ref entity-set b #f)))
+              (when (and (hamt-lookup a entity-set)
+                         (or (not b) (hamt-lookup b entity-set)))
                 (set! result (cons c result))))))
         (cg-constraints-for graph entity)))
      entity-list)
@@ -266,24 +284,23 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 (doc 'cg-scc-dag 'description "Build DAG of SCCs for ordering constraint groups")
 (define (cg-scc-dag graph sccs)
   ;; Map entity to its SCC index
-  (let ([entity->scc (make-hashtable equal-hash equal?)]
-        [n (length sccs)])
-    ;; Build entity->scc mapping
-    (let loop ([ss sccs] [idx 0])
-      (unless (null? ss)
-        (for-each
-         (lambda (entity)
-           (hashtable-set! entity->scc entity idx))
-         (scc-entities (car ss)))
-        (loop (cdr ss) (+ idx 1))))
+  (let* ([n (length sccs)]
+         ;; Build entity->scc mapping via fold
+         [entity->scc
+          (let loop ([ss sccs] [idx 0] [h hamt-empty])
+            (if (null? ss)
+                h
+                (loop (cdr ss) (+ idx 1)
+                      (fold-left (lambda (h entity) (hamt-assoc entity idx h))
+                                 h (scc-entities (car ss))))))])
     ;; Build adjacency for SCC DAG
     (let ([adj (make-vector n '())])
       (for-each
        (lambda (c)
          (let* ([a (constraint-entity-a c)]
                 [b (constraint-entity-b c)]
-                [scc-a (hashtable-ref entity->scc a #f)]
-                [scc-b (and b (hashtable-ref entity->scc b #f))])
+                [scc-a (hamt-lookup a entity->scc)]
+                [scc-b (and b (hamt-lookup b entity->scc))])
            ;; Edge between different SCCs
            (when (and scc-a scc-b (not (= scc-a scc-b)))
              (unless (member scc-b (vector-ref adj scc-a))
@@ -383,45 +400,45 @@ Constraints with the same color can be solved in parallel.")
     ;; Greedy coloring
     (let loop ([i 0])
       (when (< i n)
-        ;; Find used colors among neighbors
-        (let ([used (make-eqv-hashtable)])
-          (for-each
-           (lambda (neighbor-idx)
-             (let ([c (vector-ref colors neighbor-idx)])
-               (when (>= c 0)
-                 (hashtable-set! used c #t))))
-           (vector-ref conflict-adj i))
+        ;; Find used colors among neighbors (build HAMT per iteration)
+        (let ([used (fold-left
+                     (lambda (h neighbor-idx)
+                       (let ([c (vector-ref colors neighbor-idx)])
+                         (if (>= c 0) (hamt-assoc c #t h) h)))
+                     hamt-empty
+                     (vector-ref conflict-adj i))])
           ;; Find smallest unused color
           (let find-color ([c 0])
-            (if (hashtable-ref used c #f)
+            (if (hamt-lookup c used)
                 (find-color (+ c 1))
                 (vector-set! colors i c))))
         (loop (+ i 1))))
     ;; Group constraints by color
-    (let ([groups (make-eqv-hashtable)])
-      (let loop ([i 0])
-        (when (< i n)
-          (let ([c (vector-ref colors i)])
-            (hashtable-set! groups c
-                            (cons (vector-ref constraint-vec i)
-                                  (hashtable-ref groups c '()))))
-          (loop (+ i 1))))
-      ;; Return as sorted list of groups
-      (let-values ([(keys vals) (hashtable-entries groups)])
-        (map reverse (vector->list vals))))))
+    (let ([groups
+           (let loop ([i 0] [h hamt-empty])
+             (if (>= i n)
+                 h
+                 (let ([c (vector-ref colors i)])
+                   (loop (+ i 1)
+                         (hamt-assoc c
+                                     (cons (vector-ref constraint-vec i)
+                                           (hamt-lookup-or c h '()))
+                                     h)))))])
+      ;; Return as list of groups
+      (map reverse (hamt-values groups)))))
 
 (doc 'build-constraint-conflicts 'type '(-> ConstraintGraph (List Constraint) (Vector (List Nat))))
 (doc 'build-constraint-conflicts 'description "Build adjacency: constraints conflict if they share an entity")
 (define (build-constraint-conflicts graph constraints)
   (let* ([n (length constraints)]
          [adj (make-vector n '())]
-         ;; Map constraint-id to index
-         [id->idx (make-hashtable equal-hash equal?)])
-    ;; Build id->idx mapping
-    (let loop ([cs constraints] [i 0])
-      (unless (null? cs)
-        (hashtable-set! id->idx (constraint-id (car cs)) i)
-        (loop (cdr cs) (+ i 1))))
+         ;; Map constraint-id to index (threaded fold)
+         [id->idx
+          (let loop ([cs constraints] [i 0] [h hamt-empty])
+            (if (null? cs)
+                h
+                (loop (cdr cs) (+ i 1)
+                      (hamt-assoc (constraint-id (car cs)) i h))))])
     ;; For each entity, mark constraints as conflicting
     (for-each
      (lambda (entity)
@@ -429,11 +446,11 @@ Constraints with the same color can be solved in parallel.")
          ;; All pairs conflict
          (for-each
           (lambda (c1)
-            (let ([i (hashtable-ref id->idx (constraint-id c1) #f)])
+            (let ([i (hamt-lookup (constraint-id c1) id->idx)])
               (when i
                 (for-each
                  (lambda (c2)
-                   (let ([j (hashtable-ref id->idx (constraint-id c2) #f)])
+                   (let ([j (hamt-lookup (constraint-id c2) id->idx)])
                      (when (and j (not (= i j)))
                        (unless (member j (vector-ref adj i))
                          (vector-set! adj i (cons j (vector-ref adj i)))))))
@@ -505,21 +522,22 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
 (define (cg->simplicial-complex graph)
   ;; Build vertex list from entity IDs (need numeric indices)
   (let* ([entities (cg-entities graph)]
-         [entity->idx (make-hashtable equal-hash equal?)]
-         [_ (let loop ([es entities] [i 0])
-              (unless (null? es)
-                (hashtable-set! entity->idx (car es) i)
-                (loop (cdr es) (+ i 1))))]
+         [entity->idx
+          (let loop ([es entities] [i 0] [h hamt-empty])
+            (if (null? es)
+                h
+                (loop (cdr es) (+ i 1)
+                      (hamt-assoc (car es) i h))))]
          ;; Start with vertices
-         [vertices (map (lambda (e) (vertex (hashtable-ref entity->idx e 0))) entities)]
+         [vertices (map (lambda (e) (vertex (hamt-lookup-or e entity->idx 0))) entities)]
          ;; Build edges from constraints (binary constraints only)
          [edges (filter-map
                  (lambda (c)
                    (let ([a (constraint-entity-a c)]
                          [b (constraint-entity-b c)])
                      (if b  ; Binary constraint (not world-anchored)
-                         (let ([ia (hashtable-ref entity->idx a #f)]
-                               [ib (hashtable-ref entity->idx b #f)])
+                         (let ([ia (hamt-lookup a entity->idx)]
+                               [ib (hamt-lookup b entity->idx)])
                            (if (and ia ib)
                                (edge ia ib)
                                #f))
@@ -565,11 +583,12 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
   ;; Bridge: edge (u,v) where low[v] > disc[u]
   (let* ([entities (cg-entities graph)]
          [n (length entities)]
-         [entity->idx (make-hashtable equal-hash equal?)]
-         [_ (let loop ([es entities] [i 0])
-              (unless (null? es)
-                (hashtable-set! entity->idx (car es) i)
-                (loop (cdr es) (+ i 1))))]
+         [entity->idx
+          (let loop ([es entities] [i 0] [h hamt-empty])
+            (if (null? es)
+                h
+                (loop (cdr es) (+ i 1)
+                      (hamt-assoc (car es) i h))))]
          [disc (make-vector n -1)]      ; Discovery time
          [low (make-vector n -1)]       ; Lowest reachable discovery time
          [parent (make-vector n -1)]    ; Parent in DFS tree
@@ -582,8 +601,8 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
              (let ([a (constraint-entity-a c)]
                    [b (constraint-entity-b c)])
                (if b  ; Binary constraint
-                   (let ([ia (hashtable-ref entity->idx a #f)]
-                         [ib (hashtable-ref entity->idx b #f)])
+                   (let ([ia (hamt-lookup a entity->idx)]
+                         [ib (hamt-lookup b entity->idx)])
                      (if (and ia ib)
                          (list ia ib c)
                          #f))
@@ -645,15 +664,15 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
          [constraints (cg-constraints graph)]
          ;; Find bridges in O(V+E)
          [bridges (cg-find-bridges graph)]
-         [bridge-ids (make-hashtable equal-hash equal?)]
-         [_ (for-each (lambda (c) (hashtable-set! bridge-ids (constraint-id c) #t)) bridges)]
+         [bridge-ids (fold-left (lambda (h c) (hamt-assoc (constraint-id c) #t h))
+                                hamt-empty bridges)]
          ;; Non-bridge binary constraints participate in cycles
          [cycle-constraints
           (if (> b1 0)
               (filter
                (lambda (c)
                  (and (constraint-entity-b c)  ; Binary constraint
-                      (not (hashtable-ref bridge-ids (constraint-id c) #f))))
+                      (not (hamt-lookup (constraint-id c) bridge-ids))))
                constraints)
               '())])
     `((cycle-count . ,b1)

@@ -9,6 +9,7 @@
 (require 'vec)
 (require 'geometry)
 (require 'heap)
+(require 'hamt)
 
 (doc 'module 'mesh-gen)
 (doc 'description "Mesh generation: Delaunay triangulation, quality metrics, and refinement")
@@ -36,13 +37,14 @@
 (doc make-triangulation 'type '(-> (Vector Point2) (List Triangle2) Hashtable (List Edge) Triangulation))
 (doc make-triangulation 'description "Create a triangulation with adjacency information")
 (define (make-triangulation points triangles adjacency boundary)
-  ;; Build point->index map for O(1) lookup in interpolation
-  (let ([point-index (make-hashtable equal-hash equal?)]
-        [n (vector-length points)])
-    (do ([i 0 (+ i 1)])
-        ((>= i n))
-      (let ([p (vector-ref points i)])
-        (hashtable-set! point-index (vertex-key p) i)))
+  ;; Build point->index map for O(log32 n) lookup in interpolation
+  (let* ([n (vector-length points)]
+         [point-index
+          (let loop ([i 0] [h hamt-empty])
+            (if (>= i n)
+                h
+                (let ([p (vector-ref points i)])
+                  (loop (+ i 1) (hamt-assoc (vertex-key p) i h)))))])
     (vector 'triangulation points triangles adjacency boundary (length triangles) point-index)))
 
 (doc triangulation? 'export #t)
@@ -106,9 +108,26 @@
 (doc vertex-key 'type '(-> Point2 (Cons Number Number)))
 (doc vertex-key 'description
      "Create a hashable key for a vertex. Uses cons pair instead of list
-      to reduce allocation (1 cell vs 2). For use with equal-hash hashtables.")
+      to reduce allocation (1 cell vs 2). For use with HAMT maps.")
 (define (vertex-key p)
   (cons (point2-x p) (point2-y p)))
+
+(doc collect-unique-points 'type '(-> (List Triangle2) (Vector Point2)))
+(doc collect-unique-points 'description
+     "Collect unique points from triangles using HAMT for deduplication")
+(define (collect-unique-points triangles)
+  (let ([h (fold-left
+            (lambda (h tri)
+              (let* ([p1 (tri2-p1 tri)]
+                     [p2 (tri2-p2 tri)]
+                     [p3 (tri2-p3 tri)]
+                     [h (if (hamt-has-key? (vertex-key p1) h) h (hamt-assoc (vertex-key p1) p1 h))]
+                     [h (if (hamt-has-key? (vertex-key p2) h) h (hamt-assoc (vertex-key p2) p2 h))]
+                     [h (if (hamt-has-key? (vertex-key p3) h) h (hamt-assoc (vertex-key p3) p3 h))])
+                h))
+            hamt-empty
+            triangles)])
+    (list->vector (hamt-values h))))
 
 (doc make-tri2 'type '(-> Point2 Point2 Point2 Triangle2))
 (doc make-tri2 'description "Create a 2D triangle from three points (CCW order)")
@@ -262,18 +281,17 @@
      "Find edges appearing exactly once using hash-based toggle.
       O(n) vs O(n²) for filter+count approach.")
 (define (find-boundary-edges-hash edges)
-  (let ([edge-map (make-hashtable equal-hash equal?)])
-    ;; Toggle: add on first occurrence, remove on second
-    (for-each
-     (lambda (e)
-       (let ([key (edge-key e)])
-         (if (hashtable-contains? edge-map key)
-             (hashtable-delete! edge-map key)
-             (hashtable-set! edge-map key e))))
-     edges)
+  (let ([edge-map
+         (fold-left
+          (lambda (em e)
+            (let ([key (edge-key e)])
+              (if (hamt-has-key? key em)
+                  (hamt-dissoc key em)
+                  (hamt-assoc key e em))))
+          hamt-empty
+          edges)])
     ;; Remaining entries appeared exactly once
-    (let-values ([(_ vals) (hashtable-entries edge-map)])
-      (vector->list vals))))
+    (hamt-values edge-map)))
 
 ;;; ============================================================
 ;;; Section: Segment Intersection (for Constrained Delaunay)
@@ -427,23 +445,28 @@
      "Build triangle adjacency: hash mapping each triangle to (n12 n23 n31).
       Each neighbor is the triangle sharing that edge, or #f if boundary.")
 (define (build-adjacency triangles)
-  (let ([edge-map (make-hashtable equal-hash equal?)]
-        [tri-vec (list->vector triangles)]
-        [n (length triangles)])
-    ;; Pass 1: map each edge to list of triangles sharing it
-    (do ([i 0 (+ i 1)])
-        ((>= i n))
-      (let* ([tri (vector-ref tri-vec i)]
-             [p1 (tri2-p1 tri)]
-             [p2 (tri2-p2 tri)]
-             [p3 (tri2-p3 tri)]
-             [e12 (canonical-edge-key p1 p2)]
-             [e23 (canonical-edge-key p2 p3)]
-             [e31 (canonical-edge-key p3 p1)])
-        (hashtable-update! edge-map e12 (lambda (v) (cons tri v)) '())
-        (hashtable-update! edge-map e23 (lambda (v) (cons tri v)) '())
-        (hashtable-update! edge-map e31 (lambda (v) (cons tri v)) '())))
+  (let* ([tri-vec (list->vector triangles)]
+         [n (length triangles)]
+         ;; Pass 1: map each edge to list of triangles sharing it (threaded HAMT)
+         [edge-map
+          (let loop ([i 0] [em hamt-empty])
+            (if (>= i n)
+                em
+                (let* ([tri (vector-ref tri-vec i)]
+                       [p1 (tri2-p1 tri)]
+                       [p2 (tri2-p2 tri)]
+                       [p3 (tri2-p3 tri)]
+                       [e12 (canonical-edge-key p1 p2)]
+                       [e23 (canonical-edge-key p2 p3)]
+                       [e31 (canonical-edge-key p3 p1)]
+                       [em (hamt-assoc e12 (cons tri (hamt-lookup-or e12 em '())) em)]
+                       [em (hamt-assoc e23 (cons tri (hamt-lookup-or e23 em '())) em)]
+                       [em (hamt-assoc e31 (cons tri (hamt-lookup-or e31 em '())) em)])
+                  (loop (+ i 1) em))))])
     ;; Pass 2: for each triangle, find its neighbors
+    ;; NOTE: adj uses make-eq-hashtable for triangle pointer identity —
+    ;; triangles are list objects where eq? identity matters for adjacency walking.
+    ;; This is a deliberate eq-identity exception; HAMT uses structural equality.
     (let ([adj (make-eq-hashtable)])
       (do ([i 0 (+ i 1)])
           ((>= i n) adj)
@@ -453,7 +476,7 @@
                [p3 (tri2-p3 tri)]
                [find-neighbor
                 (lambda (pa pb)
-                  (let ([others (hashtable-ref edge-map (canonical-edge-key pa pb) '())])
+                  (let ([others (hamt-lookup-or (canonical-edge-key pa pb) edge-map '())])
                     (let ([filtered (filter (lambda (t) (not (eq? t tri))) others)])
                       (if (null? filtered) #f (car filtered)))))]
                [n12 (find-neighbor p1 p2)]
@@ -625,9 +648,9 @@
                [p1 (tri2-p1 tri)]
                [p2 (tri2-p2 tri)]
                [p3 (tri2-p3 tri)]
-               ;; O(1) point index lookup via hash
+               ;; O(log32 n) point index lookup via HAMT
                [find-idx (lambda (p)
-                           (hashtable-ref point-index (vertex-key p) #f))]
+                           (hamt-lookup-or (vertex-key p) point-index #f))]
                [i1 (find-idx p1)]
                [i2 (find-idx p2)]
                [i3 (find-idx p3)])
@@ -762,14 +785,7 @@
          ;; Build adjacency for the refined mesh
          [adjacency (build-adjacency final-tris)]
          [boundary (find-boundary-edges final-tris adjacency)]
-         ;; Collect all unique points from triangles
-         [all-pts (let ([ht (make-hashtable equal-hash equal?)])
-                    (for-each (lambda (tri)
-                                (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
-                                (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
-                                (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
-                              final-tris)
-                    (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+         [all-pts (collect-unique-points final-tris)])
     (make-triangulation all-pts final-tris adjacency boundary)))
 
 ;;; ============================================================
@@ -778,102 +794,104 @@
 
 (doc 'section 'smoothing)
 
-(doc build-vertex-neighbors 'type '(-> (List Triangle2) Hashtable))
+(doc build-vertex-neighbors 'type '(-> (List Triangle2) HAMT))
 (doc build-vertex-neighbors 'description
-     "Build vertex adjacency: hash mapping each vertex to list of neighbor vertices")
+     "Build vertex adjacency: HAMT mapping each vertex key to list of neighbor vertices")
 (define (build-vertex-neighbors triangles)
-  (let ([neighbors (make-hashtable equal-hash equal?)])
-    (for-each
-     (lambda (tri)
-       (let* ([p1 (tri2-p1 tri)]
-              [p2 (tri2-p2 tri)]
-              [p3 (tri2-p3 tri)]
-              [k1 (vertex-key p1)]
-              [k2 (vertex-key p2)]
-              [k3 (vertex-key p3)])
-         ;; Add bidirectional edges
-         (hashtable-update! neighbors k1 (lambda (v) (cons p2 (cons p3 v))) '())
-         (hashtable-update! neighbors k2 (lambda (v) (cons p1 (cons p3 v))) '())
-         (hashtable-update! neighbors k3 (lambda (v) (cons p1 (cons p2 v))) '())))
-     triangles)
-    neighbors))
+  (fold-left
+   (lambda (neighbors tri)
+     (let* ([p1 (tri2-p1 tri)]
+            [p2 (tri2-p2 tri)]
+            [p3 (tri2-p3 tri)]
+            [k1 (vertex-key p1)]
+            [k2 (vertex-key p2)]
+            [k3 (vertex-key p3)]
+            ;; Add bidirectional edges
+            [neighbors (hamt-assoc k1 (cons p2 (cons p3 (hamt-lookup-or k1 neighbors '()))) neighbors)]
+            [neighbors (hamt-assoc k2 (cons p1 (cons p3 (hamt-lookup-or k2 neighbors '()))) neighbors)]
+            [neighbors (hamt-assoc k3 (cons p1 (cons p2 (hamt-lookup-or k3 neighbors '()))) neighbors)])
+       neighbors))
+   hamt-empty
+   triangles))
 
 (doc find-boundary-vertices 'type '(-> (List Triangle2) Hashtable (List Point2)))
 (doc find-boundary-vertices 'description "Find vertices on the mesh boundary")
 (define (find-boundary-vertices triangles adjacency)
   ;; A vertex is on the boundary if any of its edges is a boundary edge
-  (let ([boundary-verts (make-hashtable equal-hash equal?)]
-        [edge-counts (make-hashtable equal-hash equal?)])
-    ;; Count occurrences of each edge
-    (for-each
-     (lambda (tri)
-       (let* ([p1 (tri2-p1 tri)]
-              [p2 (tri2-p2 tri)]
-              [p3 (tri2-p3 tri)])
-         (for-each
-          (lambda (edge)
-            (hashtable-update! edge-counts edge (lambda (n) (+ n 1)) 0))
-          (list (canonical-edge-key p1 p2)
-                (canonical-edge-key p2 p3)
-                (canonical-edge-key p3 p1)))))
-     triangles)
-    ;; Find edges that appear only once (boundary edges)
-    (let-values ([(keys vals) (hashtable-entries edge-counts)])
-      (do ([i 0 (+ i 1)])
-          ((>= i (vector-length keys)))
-        (when (= 1 (vector-ref vals i))
-          (let* ([key (vector-ref keys i)]
-                 [x1 (list-ref key 0)] [y1 (list-ref key 1)]
-                 [x2 (list-ref key 2)] [y2 (list-ref key 3)]
-                 [p1 (make-point2 x1 y1)]
-                 [p2 (make-point2 x2 y2)])
-            (hashtable-set! boundary-verts (vertex-key p1) p1)
-            (hashtable-set! boundary-verts (vertex-key p2) p2)))))
-    (let-values ([(_ vals) (hashtable-entries boundary-verts)])
-      (vector->list vals))))
+  (let* ([;; Count occurrences of each edge using threaded HAMT
+          edge-counts
+          (fold-left
+           (lambda (ec tri)
+             (let* ([p1 (tri2-p1 tri)]
+                    [p2 (tri2-p2 tri)]
+                    [p3 (tri2-p3 tri)])
+               (fold-left
+                (lambda (ec edge)
+                  (hamt-assoc edge (+ (hamt-lookup-or edge ec 0) 1) ec))
+                ec
+                (list (canonical-edge-key p1 p2)
+                      (canonical-edge-key p2 p3)
+                      (canonical-edge-key p3 p1)))))
+           hamt-empty
+           triangles)]
+         ;; Find edges that appear only once (boundary edges) and collect their vertices
+         [boundary-verts
+          (hamt-fold
+           (lambda (bv key count)
+             (if (= 1 count)
+                 (let* ([x1 (list-ref key 0)] [y1 (list-ref key 1)]
+                        [x2 (list-ref key 2)] [y2 (list-ref key 3)]
+                        [p1 (make-point2 x1 y1)]
+                        [p2 (make-point2 x2 y2)])
+                   (hamt-assoc (vertex-key p2) p2
+                               (hamt-assoc (vertex-key p1) p1 bv)))
+                 bv))
+           hamt-empty
+           edge-counts)])
+    (hamt-values boundary-verts)))
 
 (doc laplacian-smooth-step 'type '(-> (List Triangle2) Number (List Point2) (List Triangle2)))
 (doc laplacian-smooth-step 'description
      "One iteration of Laplacian smoothing. Moves interior vertices toward neighbor centroid.")
 (define (laplacian-smooth-step triangles weight boundary-pts)
   (let* ([vertex-neighbors (build-vertex-neighbors triangles)]
-         [boundary-set (make-hashtable equal-hash equal?)]
-         [new-positions (make-hashtable equal-hash equal?)])
-    ;; Mark boundary vertices
-    (for-each
-     (lambda (p)
-       (hashtable-set! boundary-set (vertex-key p) #t))
-     boundary-pts)
-    ;; Calculate new positions for interior vertices
-    (let-values ([(keys _) (hashtable-entries vertex-neighbors)])
-      (do ([i 0 (+ i 1)])
-          ((>= i (vector-length keys)))
-        (let* ([key (vector-ref keys i)]
-               [x (car key)] [y (cdr key)]  ; vertex-key is a cons pair
-               [p (make-point2 x y)])
-          (if (hashtable-ref boundary-set key #f)
-              ;; Boundary vertex: don't move
-              (hashtable-set! new-positions key p)
-              ;; Interior vertex: move toward centroid of neighbors
-              (let* ([nbrs (hashtable-ref vertex-neighbors key '())]
-                     ;; Remove duplicates
-                     [unique-nbrs
-                      (let ([seen (make-hashtable equal-hash equal?)])
-                        (filter (lambda (n)
-                                  (let ([nk (vertex-key n)])
-                                    (if (hashtable-ref seen nk #f)
-                                        #f
-                                        (begin (hashtable-set! seen nk #t) #t))))
-                                nbrs))]
-                     [n (length unique-nbrs)])
-                (if (zero? n)
-                    (hashtable-set! new-positions key p)
-                    (let* ([cx (/ (apply + (map point2-x unique-nbrs)) n)]
-                           [cy (/ (apply + (map point2-y unique-nbrs)) n)]
-                           ;; Weighted blend: new = old + weight * (centroid - old)
-                           [new-x (+ x (* weight (- cx x)))]
-                           [new-y (+ y (* weight (- cy y)))])
-                      (hashtable-set! new-positions key (make-point2 new-x new-y)))))))))
+         [boundary-set (fold-left (lambda (h p) (hamt-assoc (vertex-key p) #t h))
+                                  hamt-empty boundary-pts)]
+         ;; Calculate new positions for all vertices, threading HAMT
+         [entries (hamt-entries vertex-neighbors)]
+         [new-positions
+          (fold-left
+           (lambda (np entry)
+             (let* ([key (car entry)]
+                    [x (car key)] [y (cdr key)]  ; vertex-key is a cons pair
+                    [p (make-point2 x y)])
+               (if (hamt-has-key? key boundary-set)
+                   ;; Boundary vertex: don't move
+                   (hamt-assoc key p np)
+                   ;; Interior vertex: move toward centroid of neighbors
+                   (let* ([nbrs (hamt-lookup-or key vertex-neighbors '())]
+                          ;; Remove duplicates using threaded HAMT
+                          [unique-nbrs
+                           (let dedup ([remaining nbrs] [seen hamt-empty] [acc '()])
+                             (if (null? remaining)
+                                 (reverse acc)
+                                 (let ([nk (vertex-key (car remaining))])
+                                   (if (hamt-has-key? nk seen)
+                                       (dedup (cdr remaining) seen acc)
+                                       (dedup (cdr remaining)
+                                              (hamt-assoc nk #t seen)
+                                              (cons (car remaining) acc))))))]
+                          [n (length unique-nbrs)])
+                     (if (zero? n)
+                         (hamt-assoc key p np)
+                         (let* ([cx (/ (apply + (map point2-x unique-nbrs)) n)]
+                                [cy (/ (apply + (map point2-y unique-nbrs)) n)]
+                                ;; Weighted blend: new = old + weight * (centroid - old)
+                                [new-x (+ x (* weight (- cx x)))]
+                                [new-y (+ y (* weight (- cy y)))])
+                           (hamt-assoc key (make-point2 new-x new-y) np)))))))
+           hamt-empty
+           entries)])
     ;; Rebuild triangles with new vertex positions
     (map (lambda (tri)
            (let* ([p1 (tri2-p1 tri)]
@@ -882,9 +900,9 @@
                   [k1 (vertex-key p1)]
                   [k2 (vertex-key p2)]
                   [k3 (vertex-key p3)])
-             (make-tri2 (hashtable-ref new-positions k1 p1)
-                        (hashtable-ref new-positions k2 p2)
-                        (hashtable-ref new-positions k3 p3))))
+             (make-tri2 (hamt-lookup-or k1 new-positions p1)
+                        (hamt-lookup-or k2 new-positions p2)
+                        (hamt-lookup-or k3 new-positions p3))))
          triangles)))
 
 (doc smooth-mesh 'export #t)
@@ -909,13 +927,7 @@
          ;; Rebuild triangulation structure
          [new-adjacency (build-adjacency smoothed)]
          [new-boundary (find-boundary-edges smoothed new-adjacency)]
-         [all-pts (let ([ht (make-hashtable equal-hash equal?)])
-                    (for-each (lambda (tri)
-                                (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
-                                (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
-                                (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
-                              smoothed)
-                    (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+         [all-pts (collect-unique-points smoothed)])
     (make-triangulation all-pts smoothed new-adjacency new-boundary)))
 
 ;;; ============================================================
@@ -1005,13 +1017,7 @@
                               (loop tris h2 (+ iter 1) skipped-set))))])))]))]
          [adjacency (build-adjacency final-tris)]
          [boundary (find-boundary-edges final-tris adjacency)]
-         [all-pts (let ([ht (make-hashtable equal-hash equal?)])
-                    (for-each (lambda (tri)
-                                (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
-                                (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
-                                (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
-                              final-tris)
-                    (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+         [all-pts (collect-unique-points final-tris)])
     (make-triangulation all-pts final-tris adjacency boundary)))
 
 (doc refine-mesh-uniform 'export #t)
@@ -1155,13 +1161,7 @@
                       non-crossing-tris)]
              [adjacency (build-adjacency inside-tris)]
              [boundary (find-boundary-edges inside-tris adjacency)]
-             [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
-                        (for-each (lambda (tri)
-                                    (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
-                                    (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
-                                    (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
-                                  inside-tris)
-                        (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+             [pts-vec (collect-unique-points inside-tris)])
         (make-triangulation pts-vec inside-tris adjacency boundary))))
 
 (doc triangulate-polygon-adaptive 'export #t)
@@ -1184,13 +1184,7 @@
           (if (>= iter max-iters)
               (let* ([adjacency (build-adjacency current-tris)]
                      [boundary (find-boundary-edges current-tris adjacency)]
-                     [pts-vec (let ([ht (make-hashtable equal-hash equal?)])
-                                (for-each (lambda (tri)
-                                            (hashtable-set! ht (vertex-key (tri2-p1 tri)) (tri2-p1 tri))
-                                            (hashtable-set! ht (vertex-key (tri2-p2 tri)) (tri2-p2 tri))
-                                            (hashtable-set! ht (vertex-key (tri2-p3 tri)) (tri2-p3 tri)))
-                                          current-tris)
-                                (list->vector (let-values ([(keys vals) (hashtable-entries ht)]) (vector->list vals))))])
+                     [pts-vec (collect-unique-points current-tris)])
                 (make-triangulation pts-vec current-tris adjacency boundary))
               (let ([large-tris (filter (lambda (t) (> (tri2-area t) max-area)) current-tris)])
                 (if (null? large-tris)
