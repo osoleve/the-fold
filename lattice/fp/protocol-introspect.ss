@@ -1,8 +1,9 @@
 ;;; lattice/fp/protocol-introspect.ss — Protocol Introspection
 ;;; @module protocol-introspect
-;;; @requires protocol
+;;; @requires protocol hamt
 
 (require 'protocol)
+(require 'hamt)
 
 (doc 'module 'protocol-introspect)
 (doc 'description "Protocol introspection and visualization tools. Provides reverse lookups (type → protocols), documentation storage, and ASCII visualization of protocol/type relationships.")
@@ -16,8 +17,8 @@
 
 (doc 'section 'documentation)
 
-(define *protocol-docs* (make-hashtable symbol-hash eq?))
-(doc *protocol-docs* 'type '(Hashtable Symbol ProtocolDoc))
+(define *protocol-docs* hamt-empty)
+(doc *protocol-docs* 'type '(HAMT Symbol ProtocolDoc))
 (doc *protocol-docs* 'description "Registry mapping protocol names to their documentation records")
 
 ;;; ProtocolDoc structure:
@@ -36,12 +37,12 @@
 ;;; register-protocol-doc! : Symbol × String × (Or Signature #f) × (Or Symbol #f) → Void
 ;;; Register documentation for a protocol.
 (define (register-protocol-doc! name docstring signature module)
-  (hashtable-set! *protocol-docs* name
-    (make-protocol-doc name docstring signature module)))
+  (set! *protocol-docs* (hamt-assoc name
+    (make-protocol-doc name docstring signature module) *protocol-docs*)))
 
 ;;; get-protocol-doc : Symbol → ProtocolDoc | #f
 (define (get-protocol-doc name)
-  (hashtable-ref *protocol-docs* name #f))
+  (hamt-lookup name *protocol-docs*))
 
 ;;; protocol-docstring : Symbol → String | #f
 ;;; Get just the docstring for a protocol.
@@ -71,15 +72,16 @@
 (define (all-type-tags)
   (doc 'type '(-> (List Symbol)))
   (doc 'description "List all type tags that implement any protocol")
-  (let ([seen (make-hashtable symbol-hash eq?)])
-    (for-each
-      (lambda (proto)
-        (for-each
-          (lambda (type-tag)
-            (hashtable-set! seen type-tag #t))
-          (protocol-implementations proto)))
-      (list-protocols))
-    (vector->list (hashtable-keys seen))))
+  (let ([seen (fold-left
+                (lambda (acc proto)
+                  (fold-left
+                    (lambda (inner type-tag)
+                      (hamt-assoc type-tag #t inner))
+                    acc
+                    (protocol-implementations proto)))
+                hamt-empty
+                (list-protocols))])
+    (hamt-keys seen)))
 
 ;;; ============================================================
 ;;; Protocol Description

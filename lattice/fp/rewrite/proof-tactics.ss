@@ -1,9 +1,10 @@
 ;;; @module rewrite/proof-tactics
-;;; @requires prelude engine rewrite/laws
+;;; @requires prelude engine rewrite/laws hamt
 
 (require 'prelude)
 (require 'engine)
 (require 'rewrite/laws)
+(require 'hamt)
 
 (doc 'module 'rewrite/proof-tactics)
 (doc 'purity 'partial)
@@ -572,9 +573,9 @@ This is Lattice code: pure, total, assumes perfect input.")
                 (let ([lhs (goal-lhs goal)]
                       [rhs (goal-rhs goal)]
                       [ctx (goal-context goal)])
-                     (search-dfs lhs rhs ctx depth (make-eq-hashtable)))))]))
+                     (search-dfs lhs rhs ctx depth hamt-empty))))]))
 
-;;; search-dfs : Expr x Expr x Context x Nat x Hashtable -> TacticResult
+;;; search-dfs : Expr x Expr x Context x Nat x HAMT -> TacticResult
 ;;; Depth-first search from current expression to target.
 (define (search-dfs current target ctx depth visited)
   (cond
@@ -587,13 +588,12 @@ This is Lattice code: pure, total, assumes perfect input.")
     (tactic-failure `(search-depth-exhausted ,current ,target))]
    
    ;; Cycle detection
-   [(hashtable-ref visited (expr->key current) #f)
+   [(hamt-lookup (expr->key current) visited)
     (tactic-failure `(cycle-detected ,current))]
-   
+
    [else
-    ;; Mark as visited
-    (hashtable-set! visited (expr->key current) #t)
-    
+    ;; Mark as visited (thread the HAMT)
+    (let ([visited (hamt-assoc (expr->key current) #t visited)])
     ;; Try each law
     (let try-laws ([laws (all-laws)])
          (if (null? laws)
@@ -614,7 +614,7 @@ This is Lattice code: pure, total, assumes perfect input.")
                                               `(trans (rewrite ,(rule-name law) ,bindings)
                                                 ,((tactic-builder sub-result)))))
                                      ;; Try next law
-                                     (try-laws (cdr laws)))))))))]))
+                                     (try-laws (cdr laws))))))))))]))
 
 ;;; ====
 ;;; Strategy Lifting

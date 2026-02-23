@@ -1,11 +1,12 @@
 ;;; lattice/linalg/sparse.ss — Sparse Matrix Operations
 ;;; @module sparse
-;;; @requires prelude vec matrix sort
+;;; @requires prelude vec matrix sort hamt
 
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'sparse)
 (doc 'purity 'partial)
@@ -592,71 +593,66 @@ Dependencies:
            (sparse-coo-add-impl a b))))
 
 ;;; sparse-coo-add-impl : SparseCOO × SparseCOO × [Num] → SparseCOO
-;;; Internal: assumes dimensions match. Uses sparse hash table accumulator.
+;;; Internal: assumes dimensions match. Uses HAMT accumulator.
 ;;; Drops values with |v| < epsilon to prevent floating-point fill-in.
 ;;; Complexity: O(nnz_a + nnz_b) space and time.
 (define (sparse-coo-add-impl a b . eps-arg)
   (let* ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
          [rows (sparse-coo-rows a)]
          [cols (sparse-coo-cols a)]
-         ;; Use hash table for sparse accumulation (key = row*cols+col)
-         [acc (make-hashtable equal-hash equal?)])
-        ;; Add entries from A
-        (let ([row-idx (sparse-coo-row-indices a)]
-              [col-idx (sparse-coo-col-indices a)]
-              [vals (sparse-coo-values a)]
-              [nnz-a (sparse-coo-nnz a)])
-             (do ([k 0 (+ k 1)])
-                 ((= k nnz-a))
-                 (let* ([i (vector-ref row-idx k)]
-                        [j (vector-ref col-idx k)]
-                        [key (cons i j)]
-                        [old (hashtable-ref acc key 0)])
-                       (hashtable-set! acc key (+ old (vector-ref vals k))))))
-        ;; Add entries from B
-        (let ([row-idx (sparse-coo-row-indices b)]
-              [col-idx (sparse-coo-col-indices b)]
-              [vals (sparse-coo-values b)]
-              [nnz-b (sparse-coo-nnz b)])
-             (do ([k 0 (+ k 1)])
-                 ((= k nnz-b))
-                 (let* ([i (vector-ref row-idx k)]
-                        [j (vector-ref col-idx k)]
-                        [key (cons i j)]
-                        [old (hashtable-ref acc key 0)])
-                       (hashtable-set! acc key (+ old (vector-ref vals k))))))
-        ;; Extract non-zeros from hash table (using tolerance)
-        (let-values ([(keys values) (hashtable-entries acc)])
-                    (let* ([n (vector-length keys)]
-                           ;; Filter out near-zeros and collect triplets
-                           [triplets (let loop ([k 0] [result '()])
-                                          (if (= k n)
-                                              result
-                                              (let ([v (vector-ref values k)])
-                                                   (if (< (abs v) eps)
-                                                       (loop (+ k 1) result)
-                                                       (let ([key (vector-ref keys k)])
-                                                            (loop (+ k 1)
-                                                                  (cons (list (car key) (cdr key) v)
-                                                                        result)))))))]
-                           ;; Sort by (row, col) for consistent output
-                           [sorted (sort-by (lambda (a b)
-                                                      (or (< (car a) (car b))
-                                                          (and (= (car a) (car b))
-                                                               (< (cadr a) (cadr b)))))
-                                              triplets)]
-                           [nnz (length sorted)]
-                           [out-rows (make-vector nnz 0)]
-                           [out-cols (make-vector nnz 0)]
-                           [out-vals (make-vector nnz 0)])
-                          ;; Fill output vectors from sorted triplets
-                          (do ([k 0 (+ k 1)]
-                               [ts sorted (cdr ts)])
-                              ((= k nnz) (make-sparse-coo rows cols out-rows out-cols out-vals))
-                              (let ([t (car ts)])
-                                   (vector-set! out-rows k (car t))
-                                   (vector-set! out-cols k (cadr t))
-                                   (vector-set! out-vals k (caddr t))))))))
+         ;; Accumulate entries from A into HAMT
+         [acc-a (let ([row-idx (sparse-coo-row-indices a)]
+                      [col-idx (sparse-coo-col-indices a)]
+                      [vals (sparse-coo-values a)]
+                      [nnz-a (sparse-coo-nnz a)])
+                  (let loop ([k 0] [acc hamt-empty])
+                    (if (= k nnz-a) acc
+                        (let* ([i (vector-ref row-idx k)]
+                               [j (vector-ref col-idx k)]
+                               [key (cons i j)]
+                               [old (hamt-lookup-or key acc 0)])
+                          (loop (+ k 1) (hamt-assoc key (+ old (vector-ref vals k)) acc))))))]
+         ;; Accumulate entries from B into same HAMT
+         [acc (let ([row-idx (sparse-coo-row-indices b)]
+                    [col-idx (sparse-coo-col-indices b)]
+                    [vals (sparse-coo-values b)]
+                    [nnz-b (sparse-coo-nnz b)])
+                (let loop ([k 0] [h acc-a])
+                  (if (= k nnz-b) h
+                      (let* ([i (vector-ref row-idx k)]
+                             [j (vector-ref col-idx k)]
+                             [key (cons i j)]
+                             [old (hamt-lookup-or key h 0)])
+                        (loop (+ k 1) (hamt-assoc key (+ old (vector-ref vals k)) h))))))])
+        ;; Extract non-zeros from HAMT (using tolerance)
+        (let* ([entries (hamt-entries acc)]
+               ;; Filter out near-zeros and collect triplets
+               [triplets (filter-map
+                          (lambda (entry)
+                            (let ([v (cdr entry)])
+                              (if (< (abs v) eps)
+                                  #f
+                                  (let ([key (car entry)])
+                                    (list (car key) (cdr key) v)))))
+                          entries)]
+               ;; Sort by (row, col) for consistent output
+               [sorted (sort-by (lambda (a b)
+                                          (or (< (car a) (car b))
+                                              (and (= (car a) (car b))
+                                                   (< (cadr a) (cadr b)))))
+                                  triplets)]
+               [nnz (length sorted)]
+               [out-rows (make-vector nnz 0)]
+               [out-cols (make-vector nnz 0)]
+               [out-vals (make-vector nnz 0)])
+              ;; Fill output vectors from sorted triplets
+              (do ([k 0 (+ k 1)]
+                   [ts sorted (cdr ts)])
+                  ((= k nnz) (make-sparse-coo rows cols out-rows out-cols out-vals))
+                  (let ([t (car ts)])
+                       (vector-set! out-rows k (car t))
+                       (vector-set! out-cols k (cadr t))
+                       (vector-set! out-vals k (caddr t)))))))
 
 ;;; ====
 ;;; Sparse Matrix Transpose
@@ -695,7 +691,7 @@ Dependencies:
 
 (doc sparse-csr-mul
      'type (-> SparseCSR SparseCSR [Num] (or SparseCSR Error))
-     'description "C = A * B where A is m×k and B is k×n. Uses sparse row accumulator (hash table). Drops values with |v| < epsilon. Complexity: O(nnz_a * avg_nnz_per_row_b) time.")
+     'description "C = A * B where A is m×k and B is k×n. Uses sparse row accumulator (HAMT). Drops values with |v| < epsilon. Complexity: O(nnz_a * avg_nnz_per_row_b) time.")
 (define (sparse-csr-mul a b . eps-arg)
   (let ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
         [ma (sparse-csr-rows a)] [ka (sparse-csr-cols a)]
@@ -713,39 +709,36 @@ Dependencies:
                    (let row-loop ([i 0] [triplets '()])
                         (if (= i ma)
                             triplets
-                            ;; FIX: Use equal-hash/equal? for column indices (fold-n5lm)
-                            ;; make-eq-hashtable uses eq? which fails for large integers
-                            (let ([row-acc (make-hashtable equal-hash equal?)]
-                                  [a-start (vector-ref a-row-ptrs i)]
-                                  [a-end (vector-ref a-row-ptrs (+ i 1))])
-                                 ;; For each non-zero A[i,k]
-                                 (do ([ak a-start (+ ak 1)])
-                                     ((= ak a-end))
-                                     (let ([k (vector-ref a-col-idx ak)]
-                                           [a-ik (vector-ref a-vals ak)])
-                                          ;; For each non-zero B[k,j]
-                                          (let ([b-start (vector-ref b-row-ptrs k)]
-                                                [b-end (vector-ref b-row-ptrs (+ k 1))])
-                                               (do ([bk b-start (+ bk 1)])
-                                                   ((= bk b-end))
-                                                   (let* ([j (vector-ref b-col-idx bk)]
-                                                          [b-kj (vector-ref b-vals bk)]
-                                                          [old (hashtable-ref row-acc j 0)])
-                                                         (hashtable-set! row-acc j (+ old (* a-ik b-kj))))))))
-                                 ;; Extract non-zeros from row accumulator (using tolerance)
-                                 (let-values ([(cols vals) (hashtable-entries row-acc)])
-                                             (let* ([n (vector-length cols)]
-                                                    [row-triplets
-                                                     (let loop ([k 0] [result '()])
-                                                          (if (= k n)
-                                                              result
-                                                              (let ([v (vector-ref vals k)])
-                                                                   (if (< (abs v) eps)
-                                                                       (loop (+ k 1) result)
-                                                                       (loop (+ k 1)
-                                                                             (cons (list i (vector-ref cols k) v)
-                                                                                   result))))))])
-                                                   (row-loop (+ i 1) (append row-triplets triplets)))))))]
+                            ;; Build row accumulator as HAMT
+                            (let* ([a-start (vector-ref a-row-ptrs i)]
+                                   [a-end (vector-ref a-row-ptrs (+ i 1))]
+                                   ;; Accumulate A[i,:] * B into HAMT
+                                   [row-acc
+                                    (let ak-loop ([ak a-start] [h hamt-empty])
+                                      (if (= ak a-end) h
+                                          (let ([k (vector-ref a-col-idx ak)]
+                                                [a-ik (vector-ref a-vals ak)])
+                                            (let ([b-start (vector-ref b-row-ptrs k)]
+                                                  [b-end (vector-ref b-row-ptrs (+ k 1))])
+                                              (let bk-loop ([bk b-start] [h2 h])
+                                                (if (= bk b-end)
+                                                    (ak-loop (+ ak 1) h2)
+                                                    (let* ([j (vector-ref b-col-idx bk)]
+                                                           [b-kj (vector-ref b-vals bk)]
+                                                           [old (hamt-lookup-or j h2 0)])
+                                                      (bk-loop (+ bk 1)
+                                                               (hamt-assoc j (+ old (* a-ik b-kj)) h2)))))))))]
+                                   ;; Extract non-zeros from row accumulator (using tolerance)
+                                   [entries (hamt-entries row-acc)]
+                                   [row-triplets
+                                    (filter-map
+                                     (lambda (entry)
+                                       (let ([v (cdr entry)])
+                                         (if (< (abs v) eps)
+                                             #f
+                                             (list i (car entry) v))))
+                                     entries)])
+                              (row-loop (+ i 1) (append row-triplets triplets)))))]
                   ;; Sort triplets by (row, col)
                   [sorted (sort-by (lambda (a b)
                                              (or (< (car a) (car b))

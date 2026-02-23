@@ -1,12 +1,13 @@
 ;;; lattice/numeric/polynomial.ss — Numeric Polynomial Operations
 ;;; @module numeric/polynomial
-;;; @requires prelude complex matrix matrix-decomp matrix-eigen
+;;; @requires prelude complex matrix matrix-decomp matrix-eigen hamt
 
 (require 'prelude)
 (require 'complex)
 (require 'matrix)
 (require 'matrix-decomp)
 (require 'matrix-eigen)
+(require 'hamt)
 
 (doc 'module 'numeric/polynomial)
 (doc 'description "Polynomial representation and operations for control theory, signal processing, and numerical analysis")
@@ -354,25 +355,26 @@
 ;;; Extract complex eigenvalues from QR algorithm result.
 ;;; eig-vec has real parts, complex-info has (index real imag) tuples.
 (define (poly-extract-complex-eigenvalues eig-vec complex-info)
-  (let ([n (vector-length eig-vec)]
-        [complex-indices (make-hashtable equal-hash equal?)])
-       ;; Mark indices that are part of complex pairs
-       (for-each
-        (lambda (info)
-                (let ([idx (car info)]
-                      [real (cadr info)]
-                      [imag (caddr info)])
-                     (hashtable-set! complex-indices idx (cons real imag))
-                     (hashtable-set! complex-indices (+ idx 1) (cons real (- imag)))))
-        complex-info)
-       ;; Build result list
-       (let loop ([i 0] [result '()])
-            (if (= i n)
-                (reverse result)
-                (let ([complex-pair (hashtable-ref complex-indices i #f)])
-                     (if complex-pair
-                         (loop (+ i 1) (cons (make-complex (car complex-pair) (cdr complex-pair)) result))
-                         (loop (+ i 1) (cons (make-complex (vector-ref eig-vec i) 0) result))))))))
+  (let* ([n (vector-length eig-vec)]
+         ;; Mark indices that are part of complex pairs
+         [complex-indices
+          (fold-left
+           (lambda (acc info)
+             (let ([idx (car info)]
+                   [real (cadr info)]
+                   [imag (caddr info)])
+               (hamt-assoc (+ idx 1) (cons real (- imag))
+                           (hamt-assoc idx (cons real imag) acc))))
+           hamt-empty
+           complex-info)])
+    ;; Build result list
+    (let loop ([i 0] [result '()])
+      (if (= i n)
+          (reverse result)
+          (let ([complex-pair (hamt-lookup i complex-indices)])
+            (if complex-pair
+                (loop (+ i 1) (cons (make-complex (car complex-pair) (cdr complex-pair)) result))
+                (loop (+ i 1) (cons (make-complex (vector-ref eig-vec i) 0) result))))))))
 
 ;;; ====
 ;;; Utility Functions

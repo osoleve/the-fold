@@ -1,6 +1,7 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'optics)
+(require 'hamt)
 
 (doc 'module 'optic-query)
 (doc 'description "Optic-Based Query Language")
@@ -230,24 +231,19 @@
 ;;; Uses hashtable for O(N) performance.
 (define (oquery-group-by s optic key-fn)
   (doc 'export #t)
-  (let ([targets (^.. s optic)]
-        [groups (make-hashtable equal-hash equal?)])
-    ;; Collect items into hashtable buckets
-    (for-each
-     (lambda (target)
-       (let* ([key (key-fn target)]
-              [existing (hashtable-ref groups key '())])
-         (hashtable-set! groups key (cons target existing))))
-     targets)
-    ;; Convert hashtable to alist, reversing to preserve order
-    (let-values ([(keys vals) (hashtable-entries groups)])
-      (let loop ([i 0] [result '()])
-        (if (>= i (vector-length keys))
-            result
-            (loop (+ i 1)
-                  (cons (cons (vector-ref keys i)
-                              (reverse (vector-ref vals i)))
-                        result)))))))
+  (let* ([targets (^.. s optic)]
+         ;; Collect items into HAMT buckets
+         [groups (fold-left
+                  (lambda (acc target)
+                    (let* ([key (key-fn target)]
+                           [existing (hamt-lookup-or key acc '())])
+                      (hamt-assoc key (cons target existing) acc)))
+                  hamt-empty
+                  targets)])
+    ;; Convert HAMT to alist, reversing to preserve order
+    (hamt-fold (lambda (acc k v)
+                 (cons (cons k (reverse v)) acc))
+               '() groups)))
 
 ;;; assoc-equal : k × Alist → Maybe (Pair k v)
 (define (assoc-equal key alist)

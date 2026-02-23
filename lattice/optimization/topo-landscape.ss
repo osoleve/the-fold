@@ -1,13 +1,14 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module topo-landscape
-;;; @requires prelude sort persistent convergence vec
+;;; @requires prelude sort persistent convergence vec hamt
 
 (require 'prelude)
 (require 'sort)
 (require 'persistent)
 (require 'convergence)
 (require 'vec)
+(require 'hamt)
 
 (doc 'module 'topo-landscape)
 (doc 'bridges '(optimization topology))
@@ -113,16 +114,13 @@ Useful for analyzing landscape around an optimization trajectory.")
 (define (deduplicate-points samples dim)
   (doc 'type '(-> (List (List Number)) Nat (List (List Number))))
   (doc 'description "Remove duplicate points (same coordinates, possibly different values)")
-  (let ([seen (make-hashtable equal-hash equal?)])
-    (let loop ([remaining samples] [acc '()])
-      (if (null? remaining) (reverse acc)
-          (let* ([pt (car remaining)]
-                 [key (list-head pt dim)])
-            (if (hashtable-ref seen key #f)
-                (loop (cdr remaining) acc)
-                (begin
-                  (hashtable-set! seen key #t)
-                  (loop (cdr remaining) (cons pt acc)))))))))
+  (let loop ([remaining samples] [seen hamt-empty] [acc '()])
+    (if (null? remaining) (reverse acc)
+        (let* ([pt (car remaining)]
+               [key (list-head pt dim)])
+          (if (hamt-has-key? key seen)
+              (loop (cdr remaining) seen acc)
+              (loop (cdr remaining) (hamt-assoc key #t seen) (cons pt acc)))))))
 
 (define (list-head lst n)
   (doc 'type '(-> (List α) Nat (List α)))
@@ -185,13 +183,12 @@ Each simplex's birth time becomes max(f(v)) over its vertices.")
     (make-filtration sorted)))
 
 (define (build-fval-lookup coords fvals)
-  (doc 'type '(-> (List (List Number)) (List Number) HashTable))
-  (let ([ht (make-hashtable equal-hash equal?)])
-    (for-each (lambda (c f) (hashtable-set! ht c f)) coords fvals)
-    ht))
+  (doc 'type '(-> (List (List Number)) (List Number) HAMT))
+  (fold-left (lambda (h c f) (hamt-assoc c f h))
+             hamt-empty coords fvals))
 
 (define (lookup-fval ht vertex-idx)
-  (doc 'type '(-> HashTable Nat Number))
+  (doc 'type '(-> HAMT Nat Number))
   (doc 'description "Look up function value for vertex index in the coordinate lookup table")
   ;; Vertices in rips-filtration are integer indices
   ;; We need to get the corresponding function value

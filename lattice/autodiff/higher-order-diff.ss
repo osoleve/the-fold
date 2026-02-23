@@ -1,5 +1,5 @@
 ;;; @module higher-order-diff
-;;; @requires prelude vec matrix comp-graph reverse-diff
+;;; @requires prelude vec matrix comp-graph reverse-diff hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -8,6 +8,7 @@
 (require 'matrix)
 (require 'comp-graph)
 (require 'reverse-diff)
+(require 'hamt)
 
 (doc 'module 'higher-order-diff)
 (doc 'description "Higher-Order Differentiation - Jacobian, Hessian, and vector-product utilities for efficient higher-order derivative computation")
@@ -213,32 +214,39 @@
          [n (length args)]
          [m (length outputs-list)])
         ;; Accumulate gradients weighted by v
-        (let ([grads (make-hashtable equal-hash equal?)])
-             ;; Initialize output gradients with v
-             (do ([i 0 (+ i 1)]
-                  [outs outputs-list (cdr outs)]
-                  [vs v (cdr vs)])
-                 ((= i m))
-                 (when (traced? (car outs))
-                       (hashtable-set! grads (traced-id (car outs)) (car vs))))
-             ;; Backward pass
-             (for-each
-              (lambda (entry)
-                      (let* ([result-id (car entry)]
-                             [input-ids (caddr entry)]
-                             [local-grads (cadddr entry)]
-                             [result-grad (hashtable-ref grads result-id 0)])
-                            (for-each
-                             (lambda (input-id local-grad)
-                                     (when input-id
-                                           (let ([current (hashtable-ref grads input-id 0)])
-                                                (hashtable-set! grads input-id
-                                                                (+ current (* result-grad local-grad))))))
-                             input-ids local-grads)))
-              (reverse-tape-entries tape))
-             ;; Extract gradient for each input
-             (map (lambda (targ) (hashtable-ref grads (traced-id targ) 0))
-                  traced-args))))))
+        (let* ([init-grads
+                ;; Initialize output gradients with v
+                (let loop ([i 0] [outs outputs-list] [vs v] [acc hamt-empty])
+                  (if (= i m) acc
+                      (loop (+ i 1) (cdr outs) (cdr vs)
+                            (if (traced? (car outs))
+                                (hamt-assoc (traced-id (car outs)) (car vs) acc)
+                                acc))))]
+               ;; Backward pass -- fold over tape entries, threading HAMT
+               [final-grads
+                (fold-left
+                 (lambda (grads entry)
+                   (let* ([result-id (car entry)]
+                          [input-ids (caddr entry)]
+                          [local-grads (cadddr entry)]
+                          [result-grad (hamt-lookup-or result-id grads 0)])
+                     (fold-left
+                      (lambda (g id-grad)
+                        (let ([input-id (car id-grad)]
+                              [local-grad (cdr id-grad)])
+                          (if input-id
+                              (hamt-assoc input-id
+                                          (+ (hamt-lookup-or input-id g 0)
+                                             (* result-grad local-grad))
+                                          g)
+                              g)))
+                      grads
+                      (map cons input-ids local-grads))))
+                 init-grads
+                 (reverse-tape-entries tape))])
+          ;; Extract gradient for each input
+          (map (lambda (targ) (hamt-lookup-or (traced-id targ) final-grads 0))
+               traced-args))))))
 
 ;;; ====
 ;;; Jacobian-Vector Product (JVP) - Forward Mode

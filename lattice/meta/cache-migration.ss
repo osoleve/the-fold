@@ -1,5 +1,6 @@
 (load "lattice/optics/bidirectional.ss")
 (load "lattice/optics/schema.ss")
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
 (doc 'module 'cache-migration)
 (doc 'description "Bidirectional cache format migrations for smooth upgrades")
@@ -11,21 +12,21 @@
 ;;; ============================================================
 
 ;;; Cache migrations indexed by (from-version . to-version)
-;;; Use equal-hash for cons cell keys
-(define *cache-migrations* (make-hashtable equal-hash equal?))
+(define *cache-migrations* hamt-empty)
 
 ;;; register-cache-migration! : Int -> Int -> PIso -> Void
 ;;; Register a migration between cache versions.
 (define (register-cache-migration! from-version to-version iso)
-  (hashtable-set! *cache-migrations*
-                  (cons from-version to-version)
-                  (make-migration
-                   (string->symbol (format "cache-v~a->v~a" from-version to-version))
-                   from-version to-version iso)))
+  (set! *cache-migrations*
+        (hamt-assoc (cons from-version to-version)
+                    (make-migration
+                     (string->symbol (format "cache-v~a->v~a" from-version to-version))
+                     from-version to-version iso)
+                    *cache-migrations*)))
 
 ;;; get-cache-migration : Int -> Int -> Migration | #f
 (define (get-cache-migration from to)
-  (hashtable-ref *cache-migrations* (cons from to) #f))
+  (hamt-lookup (cons from to) *cache-migrations*))
 
 ;;; ============================================================
 ;;; Part 2: Cache Version Detection
@@ -61,37 +62,37 @@
 (define (find-cache-migration-path from-version to-version)
   (if (= from-version to-version)
       '()  ; Already at target
-      (let ([visited (make-eqv-hashtable)]
-            [queue (list (list from-version '()))])
-        (hashtable-set! visited from-version #t)
-        (let bfs ()
+      (let ([all-keys (hamt-keys *cache-migrations*)])
+        (let bfs ([queue (list (list from-version '()))]
+                  [visited (hamt-assoc from-version #t hamt-empty)])
           (if (null? queue)
               #f  ; No path
               (let* ([current (car queue)]
                      [version (car current)]
                      [path (cadr current)])
-                (set! queue (cdr queue))
                 ;; Try all registered migrations from this version
-                (let check-migrations ([keys (vector->list (hashtable-keys *cache-migrations*))])
+                (let check-migrations ([keys all-keys]
+                                       [new-queue (cdr queue)]
+                                       [new-visited visited])
                   (if (null? keys)
-                      (bfs)  ; Continue BFS
+                      (bfs new-queue new-visited)  ; Continue BFS
                       (let* ([key (car keys)]
                              [from (car key)]
                              [to (cdr key)])
                         (if (not (= from version))
-                            (check-migrations (cdr keys))
-                            (let ([migration (hashtable-ref *cache-migrations* key #f)])
+                            (check-migrations (cdr keys) new-queue new-visited)
+                            (let ([migration (hamt-lookup key *cache-migrations*)])
                               (if (= to to-version)
                                   ;; Found target
                                   (reverse (cons migration path))
                                   ;; Not target, continue if not visited
-                                  (begin
-                                    (unless (hashtable-ref visited to #f)
-                                      (hashtable-set! visited to #t)
-                                      (set! queue
-                                            (append queue
-                                                    (list (list to (cons migration path))))))
-                                    (check-migrations (cdr keys)))))))))))))))
+                                  (if (hamt-has-key? to new-visited)
+                                      (check-migrations (cdr keys) new-queue new-visited)
+                                      (check-migrations
+                                        (cdr keys)
+                                        (append new-queue
+                                                (list (list to (cons migration path))))
+                                        (hamt-assoc to #t new-visited)))))))))))))))
 
 ;;; ============================================================
 ;;; Part 4: Apply Migrations
@@ -198,7 +199,7 @@
 ;;; list-cache-migrations : -> (List (Int . Int))
 ;;; List all registered cache migrations.
 (define (list-cache-migrations)
-  (vector->list (hashtable-keys *cache-migrations*)))
+  (hamt-keys *cache-migrations*))
 
 ;;; ============================================================
 ;;; Exports

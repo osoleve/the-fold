@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-detection
-;;; @requires prelude vec2
+;;; @requires prelude vec2 hamt
 (require 'prelude)
 (require 'vec2)
+(require 'hamt)
 
 (doc 'module 'collision-detection)
 (doc 'description "2D Collision Detection with AABB, Circle, and SAT")
@@ -632,8 +633,9 @@
 
 (doc 'make-spatial-hash 'type 'Number → SpatialHash)
 (doc "Create a spatial hash grid with given cell size.")
+(doc "Internal table stored in a mutable vector slot holding a HAMT.")
 (define (make-spatial-hash cell-size)
-  (list 'spatial-hash cell-size (make-hashtable equal-hash equal?)))
+  (list 'spatial-hash cell-size (vector hamt-empty)))
 
 (doc "spatial-hash? : Any → Boolean")
 (define (spatial-hash? s)
@@ -642,8 +644,12 @@
 (define (spatial-hash-cell-size s) (list-ref s 1))
   (doc 'type '(spatial-hash-cell-size : SpatialHash → Number))
 
-(define (spatial-hash-table s) (list-ref s 2))
-  (doc 'type '(spatial-hash-table : SpatialHash → Hashtable))
+(define (spatial-hash-table s) (vector-ref (list-ref s 2) 0))
+  (doc 'type '(spatial-hash-table : SpatialHash → HAMT))
+
+(define (spatial-hash-table-set! s new-table)
+  (doc 'type '(spatial-hash-table-set! : SpatialHash → HAMT → Void))
+  (vector-set! (list-ref s 2) 0 new-table))
 
 (doc 'point-to-cell 'type 'Vec2 × Number → (Int × Int))
 (doc "Convert point to cell coordinates.")
@@ -672,19 +678,19 @@
 (doc "spatial-hash-insert! : SpatialHash × Any × AABB → Void")
 (doc "Insert an object with its AABB into the spatial hash.")
 (define (spatial-hash-insert! hash obj aabb)
-  (let ([cell-size (spatial-hash-cell-size hash)]
-        [table (spatial-hash-table hash)]
-        [cells (aabb-to-cells aabb (spatial-hash-cell-size hash))])
-       (for-each
-        (lambda (cell)
-                (let ([current (hashtable-ref table cell '())])
-                     (hashtable-set! table cell (cons obj current))))
-        cells)))
+  (let ([cells (aabb-to-cells aabb (spatial-hash-cell-size hash))])
+    (spatial-hash-table-set!
+     hash
+     (fold-left
+      (lambda (tbl cell)
+        (hamt-assoc cell (cons obj (hamt-lookup-or cell tbl '())) tbl))
+      (spatial-hash-table hash)
+      cells))))
 
 (doc "spatial-hash-clear! : SpatialHash → Void")
 (doc "Clear all entries from spatial hash.")
 (define (spatial-hash-clear! hash)
-  (hashtable-clear! (spatial-hash-table hash)))
+  (spatial-hash-table-set! hash hamt-empty))
 
 (doc 'spatial-hash-query 'type 'SpatialHash × AABB → (List Any))
 (doc "Get all objects that might overlap with given AABB.")
@@ -692,17 +698,17 @@
   (let* ([cell-size (spatial-hash-cell-size hash)]
          [table (spatial-hash-table hash)]
          [cells (aabb-to-cells aabb cell-size)]
-         [result (make-hashtable equal-hash equal?)])
-        ;; Collect unique objects
-        (for-each
-         (lambda (cell)
-                 (for-each
-                  (lambda (obj)
-                          (hashtable-set! result obj #t))
-                  (hashtable-ref table cell '())))
-         cells)
-        (let-values ([(keys vals) (hashtable-entries result)])
-                    (vector->list keys))))
+         ;; Collect unique objects using HAMT as set
+         [result-set
+          (fold-left
+           (lambda (seen cell)
+             (fold-left
+              (lambda (s obj) (hamt-assoc obj #t s))
+              seen
+              (hamt-lookup-or cell table '())))
+           hamt-empty
+           cells)])
+    (hamt-keys result-set)))
 
 (doc 'section 'collision)
 
@@ -718,28 +724,28 @@
                  [shape (cdr item)])
                 (spatial-hash-insert! hash obj (shape-aabb shape))))
    items)
-  ;; Find pairs
-  (let ([pairs (make-hashtable equal-hash equal?)]
-        [n (length items)])
-       (let loop ([remaining items])
-            (if (null? remaining)
-                ;; Extract unique pairs
-                (let-values ([(keys vals) (hashtable-entries pairs)])
-                            (vector->list keys))
-                (let* ([item (car remaining)]
-                       [obj (car item)]
-                       [shape (cdr item)]
-                       [candidates (spatial-hash-query hash (shape-aabb shape))])
-                      ;; Check each candidate
-                      (for-each
-                       (lambda (other)
-                               (when (not (eq? obj other))
-                                     (let ([pair-key (if (< (equal-hash obj) (equal-hash other))
-                                                         (cons obj other)
-                                                         (cons other obj))])
-                                          (hashtable-set! pairs pair-key #t))))
-                       candidates)
-                      (loop (cdr remaining)))))))
+  ;; Find pairs using HAMT as set for deduplication
+  (let loop ([remaining items] [pairs hamt-empty])
+    (if (null? remaining)
+        ;; Extract unique pairs
+        (hamt-keys pairs)
+        (let* ([item (car remaining)]
+               [obj (car item)]
+               [shape (cdr item)]
+               [candidates (spatial-hash-query hash (shape-aabb shape))]
+               ;; Accumulate new pairs from candidates
+               [new-pairs
+                (fold-left
+                 (lambda (ps other)
+                   (if (eq? obj other)
+                       ps
+                       (let ([pair-key (if (< (equal-hash obj) (equal-hash other))
+                                           (cons obj other)
+                                           (cons other obj))])
+                         (hamt-assoc pair-key #t ps))))
+                 pairs
+                 candidates)])
+          (loop (cdr remaining) new-pairs)))))
 
 (doc 'narrow-phase 'type '(Object × Object) × (Object → Shape) → Manifold or #f)
 (doc "Perform narrow phase collision detection on a pair.")

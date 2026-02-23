@@ -1,9 +1,10 @@
 ;;; @module symbolic-diff
-;;; @requires diff reverse-diff
+;;; @requires diff reverse-diff hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'diff)
+(require 'hamt)
 
 (doc 'module 'symbolic-diff)
 (doc 'bridges '(autodiff fp))
@@ -181,24 +182,22 @@
 ;;; collect-like-terms : (List Expr) → (List Expr)
 ;;; Collect terms like x + x → 2*x
 (define (collect-like-terms terms)
-  (let ([table (make-hashtable equal-hash equal?)])
-       ;; Count coefficients
-       (for-each
-        (lambda (term)
-                (let-values ([(coef base) (extract-coefficient term)])
-                            (let ([current (hashtable-ref table base 0)])
-                                 (hashtable-set! table base (+ current coef)))))
-        terms)
-       ;; Rebuild terms from hashtable keys
-       (let ([keys (hashtable-keys table)])
-            (filter-map
-             (lambda (key)
-                     (let ([coef (hashtable-ref table key 0)])
-                          (cond
-                           [(= coef 0) #f]
-                           [(= coef 1) key]
-                           [else (product (num coef) key)])))
-             (vector->list keys)))))
+  (let ([table (fold-left
+                (lambda (acc term)
+                  (let-values ([(coef base) (extract-coefficient term)])
+                    (hamt-assoc base (+ (hamt-lookup-or base acc 0) coef) acc)))
+                hamt-empty
+                terms)])
+    ;; Rebuild terms from HAMT
+    (filter-map
+     (lambda (pair)
+       (let ([key (car pair)]
+             [coef (cdr pair)])
+         (cond
+           [(= coef 0) #f]
+           [(= coef 1) key]
+           [else (product (num coef) key)])))
+     (hamt-entries table))))
 
 ;;; extract-coefficient : Expr → (Values Number Expr)
 ;;; Extract numeric coefficient from a term.

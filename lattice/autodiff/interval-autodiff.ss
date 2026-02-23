@@ -1,5 +1,7 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (load "core/base/prelude.ss")
 (load "lattice/numeric/interval.ss")
+(require 'hamt)
 
 (doc 'module 'interval-autodiff)
 (doc 'description "Interval Automatic Differentiation - extends autodiff to produce interval-valued gradients for verified optimization")
@@ -299,35 +301,35 @@
 ;;; The backward pass computes interval bounds on gradients by propagating
 ;;; intervals through the chain rule.
 
-;;; interval-backward : IntervalTape x Nat x Interval -> Hashtable
+;;; interval-backward : IntervalTape x Nat x Interval -> HAMT
 ;;; Backward pass computing interval gradients for all variables.
-;;; Returns hashtable: id -> interval-gradient
+;;; Returns HAMT: id -> interval-gradient
 (define (interval-backward tape output-id seed-grad)
-  (let ([grads (make-hashtable equal-hash equal?)]
-        ;; Tape entries are stored newest-first (output operations first).
-        ;; We process from output toward inputs, so NO reverse needed.
-        [entries (interval-tape-entries tape)])
-    ;; Initialize output gradient
-    (hashtable-set! grads output-id seed-grad)
-    ;; Process tape from output toward inputs
-    (for-each
-     (lambda (entry)
+  (let ([entries (interval-tape-entries tape)])
+    ;; Process tape from output toward inputs, threading HAMT
+    (fold-left
+     (lambda (grads entry)
        (let* ([result-id (car entry)]
               [op-name (cadr entry)]
               [input-ids (caddr entry)]
               [local-grads (cadddr entry)]
-              [result-grad (hashtable-ref grads result-id (interval-singleton 0))])
+              [result-grad (hamt-lookup-or result-id grads (interval-singleton 0))])
          ;; Propagate gradient to inputs via chain rule
-         (for-each
-          (lambda (input-id local-grad)
-            (when input-id
-              (let* ([contrib (interval-mul result-grad local-grad)]
-                     [current (hashtable-ref grads input-id (interval-singleton 0))]
-                     [new-grad (interval-add current contrib)])
-                (hashtable-set! grads input-id new-grad))))
-          input-ids local-grads)))
-     entries)
-    grads))
+         (fold-left
+          (lambda (g id-grad)
+            (let ([input-id (car id-grad)]
+                  [local-grad (cdr id-grad)])
+              (if input-id
+                  (let* ([contrib (interval-mul result-grad local-grad)]
+                         [current (hamt-lookup-or input-id g (interval-singleton 0))]
+                         [new-grad (interval-add current contrib)])
+                    (hamt-assoc input-id new-grad g))
+                  g)))
+          grads
+          (map cons input-ids local-grads))))
+     ;; Initialize with output gradient
+     (hamt-assoc output-id seed-grad hamt-empty)
+     entries)))
 
 ;;; ============================================================================
 ;;; High-Level Interface
@@ -366,7 +368,7 @@
       [else
        (let ([grads (interval-backward tape output-id (interval-singleton 1))])
          (map (lambda (id)
-                (hashtable-ref grads id (interval-singleton 0)))
+                (hamt-lookup-or id grads (interval-singleton 0)))
               input-ids))])))
 
 ;; make-list is provided by prelude (alias for replicate)

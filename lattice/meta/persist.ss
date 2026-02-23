@@ -1,5 +1,6 @@
 (load "core/base/prelude.ss")
 (load "core/base/sha256.ss")
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
 (doc 'module 'persist)
 (doc 'description "Lattice index persistence — pure serialization and deserialization logic")
@@ -50,17 +51,15 @@
     (export-names ,(map car *kg-exports*))))
 
 ;;; serialize-docstrings : -> (List (Symbol . String))
-;;; Convert *docstrings* hashtable to alist for serialization
+;;; Convert *docstrings* HAMT to alist for serialization
 (define (serialize-docstrings)
-  (let-values ([(keys vals) (hashtable-entries *docstrings*)])
-              (map cons (vector->list keys) (vector->list vals))))
+  (hamt-entries *docstrings*))
 
 ;;; serialize-source-locs : -> (List (Symbol File Line))
-;;; Convert *source-locations* hashtable to list for serialization
+;;; Convert *source-locations* HAMT to list for serialization
 (define (serialize-source-locs)
-  (let-values ([(keys vals) (hashtable-entries *source-locations*)])
-              (map (lambda (k v) (list k (car v) (cdr v)))
-                   (vector->list keys) (vector->list vals))))
+  (map (lambda (kv) (list (car kv) (cadr kv) (cddr kv)))
+       (hamt-entries *source-locations*)))
 
 ;;; serialize-cache : String -> SExp
 ;;; Create full cache S-expression with fingerprint
@@ -128,20 +127,22 @@
 ;;; restore-docstrings! : (List (Symbol . String)) -> void
 ;;; Restore docstrings cache from alist
 (define (restore-docstrings! alist)
-  (set! *docstrings* (make-hashtable symbol-hash eq?))
-  (for-each (lambda (pair)
-                    (hashtable-set! *docstrings* (car pair) (cdr pair)))
-            (or alist '())))
+  (set! *docstrings*
+        (fold-left (lambda (acc pair)
+                     (hamt-assoc (car pair) (cdr pair) acc))
+                   hamt-empty
+                   (or alist '()))))
 
 ;;; restore-source-locs! : (List (Symbol File Line)) -> void
 ;;; Restore source locations cache from list
 (define (restore-source-locs! locs)
-  (set! *source-locations* (make-hashtable symbol-hash eq?))
-  (for-each (lambda (entry)
-                    (hashtable-set! *source-locations*
-                                    (car entry)
-                                    (cons (cadr entry) (caddr entry))))
-            (or locs '())))
+  (set! *source-locations*
+        (fold-left (lambda (acc entry)
+                     (hamt-assoc (car entry)
+                                (cons (cadr entry) (caddr entry))
+                                acc))
+                   hamt-empty
+                   (or locs '()))))
 
 ;;; ====
 ;;; REPL Interface

@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'lattice-find) (load "lattice/meta/search.ss"))
 (unless (top-level-bound? 'lattice-deps) (load "lattice/meta/dag.ss"))
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
 (doc 'module 'serendipity)
 (doc 'description "Serendipitous discovery for lattice navigation. Given a symbol, surfaces
@@ -19,7 +20,7 @@ didn't know to search for. Turns point queries into neighborhood browsing.")
 Returns up to 15 sibling exports (excluding the input symbol).")
 (define (co-module-exports sym)
   (ensure-indexed!)
-  (let ([mod (hashtable-ref *export-module-map* sym #f)])
+  (let ([mod (hamt-lookup sym *export-module-map*)])
     (if (not mod)
         '()
         ;; Find all exports mapped to the same module
@@ -28,7 +29,7 @@ Returns up to 15 sibling exports (excluding the input symbol).")
             (lambda (export-entry)
               (let ([name (car export-entry)])
                 (when (and (not (eq? name sym))
-                           (eq? mod (hashtable-ref *export-module-map* name #f)))
+                           (eq? mod (hamt-lookup name *export-module-map*)))
                   (set! siblings (cons name siblings)))))
             (kg-exports))
           (take-at-most 15 (reverse siblings))))))
@@ -37,7 +38,7 @@ Returns up to 15 sibling exports (excluding the input symbol).")
 (doc 'description "Find which module an export belongs to.")
 (define (export-module sym)
   (ensure-indexed!)
-  (hashtable-ref *export-module-map* sym #f))
+  (hamt-lookup sym *export-module-map*))
 
 (doc 'type '(-> Symbol (Maybe Symbol)))
 (doc 'description "Find which skill an export belongs to.")
@@ -57,14 +58,14 @@ These are the 'nearby but not adjacent' functions — same domain, different fac
 (define (co-skill-exports sym k)
   (ensure-indexed!)
   (let ([skill (lattice-export-source sym)]
-        [own-mod (hashtable-ref *export-module-map* sym #f)])
+        [own-mod (hamt-lookup sym *export-module-map*)])
     (if (not skill)
         '()
         (let ([results '()])
           (for-each
             (lambda (export-entry)
               (let* ([name (car export-entry)]
-                     [mod (hashtable-ref *export-module-map* name #f)])
+                     [mod (hamt-lookup name *export-module-map*)])
                 (when (and (not (eq? name sym))
                            mod
                            (not (eq? mod own-mod))
@@ -122,48 +123,38 @@ Returns a tagged alist with:
 (define (find-siblings skill-name own-deps)
   (if (null? own-deps)
       '()
-      (let ([siblings (make-eq-hashtable)])
-        (for-each
-          (lambda (dep)
-            ;; Find other skills that also depend on this dep
-            (for-each
-              (lambda (user)
-                (when (not (eq? user skill-name))
-                  (hashtable-set! siblings user #t)))
-              (lattice-uses dep)))
-          own-deps)
-        (vector->list (hashtable-keys siblings)))))
+      (let ([siblings (fold-left
+                        (lambda (acc dep)
+                          (fold-left
+                            (lambda (acc2 user)
+                              (if (eq? user skill-name)
+                                  acc2
+                                  (hamt-assoc user #t acc2)))
+                            acc
+                            (lattice-uses dep)))
+                        hamt-empty
+                        own-deps)])
+        (hamt-keys siblings))))
 
 (doc 'type '(-> Symbol (List Symbol) (List Symbol) (List Symbol)))
 (doc 'description "Find skills within 2 hops in the DAG (excluding self, deps, and dependents).")
 (define (find-nearby skill-name deps dependents)
-  (let ([seen (make-eq-hashtable)]
-        [nearby '()])
-    ;; Mark self, deps, and dependents as seen
-    (hashtable-set! seen skill-name #t)
-    (for-each (lambda (d) (hashtable-set! seen d #t)) deps)
-    (for-each (lambda (d) (hashtable-set! seen d #t)) dependents)
-    ;; 2-hop: deps of deps
-    (for-each
-      (lambda (dep)
-        (for-each
-          (lambda (dep2)
-            (unless (hashtable-ref seen dep2 #f)
-              (hashtable-set! seen dep2 #t)
-              (set! nearby (cons dep2 nearby))))
-          (lattice-deps dep)))
-      deps)
-    ;; 2-hop: dependents of dependents
-    (for-each
-      (lambda (dep)
-        (for-each
-          (lambda (dep2)
-            (unless (hashtable-ref seen dep2 #f)
-              (hashtable-set! seen dep2 #t)
-              (set! nearby (cons dep2 nearby))))
-          (lattice-uses dep)))
-      dependents)
-    (reverse nearby)))
+  (let* ([seen (hamt-assoc skill-name #t hamt-empty)]
+         [seen (fold-left (lambda (acc d) (hamt-assoc d #t acc)) seen deps)]
+         [seen (fold-left (lambda (acc d) (hamt-assoc d #t acc)) seen dependents)])
+    ;; 2-hop: deps of deps, then dependents of dependents
+    (let loop ([sources (append (append-map lattice-deps deps)
+                                (append-map lattice-uses dependents))]
+               [seen seen]
+               [nearby '()])
+      (if (null? sources)
+          (reverse nearby)
+          (let ([dep2 (car sources)])
+            (if (hamt-has-key? dep2 seen)
+                (loop (cdr sources) seen nearby)
+                (loop (cdr sources)
+                      (hamt-assoc dep2 #t seen)
+                      (cons dep2 nearby))))))))
 
 ;;; ====
 ;;; Unified Browse

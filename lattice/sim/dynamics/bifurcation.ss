@@ -1,6 +1,7 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'hamt)
 (require 'vec)
 (require 'matrix)
 (require 'svd)
@@ -2013,9 +2014,8 @@ At transcritical: returns 2 branches that exchange stability.")
 
 ;; Spatial hash for collision detection
 (define (make-spatial-hash p-min p-max fp-scale divisions)
-  (let ([dp (/ (- p-max p-min) divisions)]
-        [table (make-hashtable equal-hash equal?)])
-       (list 'spatial-hash p-min dp fp-scale table)))
+  (let ([dp (/ (- p-max p-min) divisions)])
+       (list 'spatial-hash p-min dp fp-scale hamt-empty)))
 
 (define (spatial-hash-cell hash param fp)
   ;; Use all dimensions of fp for proper multi-dimensional collision detection
@@ -2035,20 +2035,29 @@ At transcritical: returns 2 branches that exchange stability.")
                          (list (inexact->exact (floor (/ fp fp-scale)))))])
         (cons p-idx fp-indices)))
 
-(define (spatial-hash-register! hash param fp branch-id)
+(define (spatial-hash-register hash param fp branch-id)
   (let* ([table (car (cddddr hash))]
-         [cell (spatial-hash-cell hash param fp)])
-        (hashtable-set! table cell branch-id)))
+         [cell (spatial-hash-cell hash param fp)]
+         [new-table (hamt-assoc cell branch-id table)])
+    (list 'spatial-hash (cadr hash) (caddr hash) (cadddr hash) new-table)))
+
+(define (spatial-hash-register! hash param fp branch-id)
+  ;; Mutating compatibility wrapper: updates the HAMT table cell in place
+  (let* ([table (car (cddddr hash))]
+         [cell (spatial-hash-cell hash param fp)]
+         [new-table (hamt-assoc cell branch-id table)])
+    (set-car! (cddddr hash) new-table)))
 
 (define (spatial-hash-lookup hash param fp)
   (let* ([table (car (cddddr hash))]
          [cell (spatial-hash-cell hash param fp)])
-        (hashtable-ref table cell #f)))
+        (hamt-lookup cell table)))
 
-(define (register-branch-points! hash branch-id points)
-  (for-each (lambda (pt)
-              (spatial-hash-register! hash (car pt) (cadr pt) branch-id))
-            points))
+(define (register-branch-points hash branch-id points)
+  (fold-left (lambda (h pt)
+               (spatial-hash-register h (car pt) (cadr pt) branch-id))
+             hash
+             points))
 
 ;; Filter continuation data to bounds
 (define (filter-within-bounds cont-data p-min p-max)
@@ -2131,7 +2140,8 @@ At transcritical: returns 2 branches that exchange stability.")
                       (make-work-item 'branch-0-back start-param start-fp 'backward))])
 
         ;; Process queue
-        (let loop ([q queue])
+        (let loop ([q queue]
+                   [spatial-hash spatial-hash])
              (if (null? q)
                  ;; Done - build result
                  (make-bifurcation-diagram
@@ -2160,7 +2170,7 @@ At transcritical: returns 2 branches that exchange stability.")
                                        [else 'complete])])
 
                              ;; Register points in spatial hash
-                             (register-branch-points! spatial-hash branch-id filtered)
+                             (let ([spatial-hash (register-branch-points spatial-hash branch-id filtered)])
 
                              ;; Add branch to results
                              (set! branches (cons (cons branch-id filtered) branches))
@@ -2194,7 +2204,8 @@ At transcritical: returns 2 branches that exchange stability.")
                                     bifs)
 
                                    ;; Continue with remaining queue
-                                   (loop (append (cdr q) new-work)))))))))
+                                   (loop (append (cdr q) new-work)
+                                         spatial-hash)))))))))
 
 ;; Helper to check stability
 (define (stability-is-stable? stab)

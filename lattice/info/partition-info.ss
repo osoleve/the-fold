@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module partition-info
-;;; @requires prelude entropy
+;;; @requires prelude entropy hamt
 
 (require 'prelude)
+(require 'hamt)
 (require 'entropy)
 
 (doc 'module 'partition-info)
@@ -32,18 +33,15 @@
   (doc 'type '(-> Vector (List Nat)))
   (doc 'description "Count the size of each community in a label vector.
    Returns list of counts (one per distinct label), sorted by label.")
-  (let ([counts (make-hashtable equal-hash equal?)])
-    (let loop ([i 0])
-      (if (= i (vector-length labels))
-          ;; Extract counts sorted by label
-          (let* ([keys (vector->list (hashtable-keys counts))]
-                 [sorted-keys (sort-labels keys)])
-            (map (lambda (k) (hashtable-ref counts k 0)) sorted-keys))
-          (begin
-            (let ([lbl (vector-ref labels i)])
-              (hashtable-set! counts lbl
-                              (+ 1 (hashtable-ref counts lbl 0))))
-            (loop (+ i 1)))))))
+  (let loop ([i 0] [counts hamt-empty])
+    (if (= i (vector-length labels))
+        ;; Extract counts sorted by label
+        (let* ([keys (hamt-keys counts)]
+               [sorted-keys (sort-labels keys)])
+          (map (lambda (k) (hamt-lookup-or k counts 0)) sorted-keys))
+        (let ([lbl (vector-ref labels i)])
+          (loop (+ i 1)
+                (hamt-assoc lbl (+ 1 (hamt-lookup-or lbl counts 0)) counts))))))
 
 (define (sort-labels keys)
   (doc 'export #f)
@@ -113,34 +111,28 @@
                       (row-loop (+ r 1) (cons (reverse cols) rows))
                       (col-loop (+ c 1)
                                 (cons (vector-ref counts (+ (* r nb) c)) cols))))))
-          (let ([ai (hashtable-ref a-index (vector-ref labels-a i) 0)]
-                [bi (hashtable-ref b-index (vector-ref labels-b i) 0)])
+          (let ([ai (hamt-lookup-or (vector-ref labels-a i) a-index 0)]
+                [bi (hamt-lookup-or (vector-ref labels-b i) b-index 0)])
             (let ([idx (+ (* ai nb) bi)])
               (vector-set! counts idx (+ 1 (vector-ref counts idx))))
             (loop (+ i 1)))))))
 
 (define (unique-labels labels)
   (doc 'export #f)
-  (let ([seen (make-hashtable equal-hash equal?)]
-        [result '()])
-    (let loop ([i 0])
-      (if (= i (vector-length labels))
-          (sort-labels result)
-          (let ([lbl (vector-ref labels i)])
-            (unless (hashtable-ref seen lbl #f)
-              (hashtable-set! seen lbl #t)
-              (set! result (cons lbl result)))
-            (loop (+ i 1)))))))
+  (let loop ([i 0] [seen hamt-empty] [result '()])
+    (if (= i (vector-length labels))
+        (sort-labels result)
+        (let ([lbl (vector-ref labels i)])
+          (if (hamt-lookup lbl seen)
+              (loop (+ i 1) seen result)
+              (loop (+ i 1) (hamt-assoc lbl #t seen) (cons lbl result)))))))
 
 (define (label-index-map labels-list)
   (doc 'export #f)
-  (let ([ht (make-hashtable equal-hash equal?)])
-    (let loop ([ls labels-list] [i 0])
-      (if (null? ls)
-          ht
-          (begin
-            (hashtable-set! ht (car ls) i)
-            (loop (cdr ls) (+ i 1)))))))
+  (let loop ([ls labels-list] [i 0] [ht hamt-empty])
+    (if (null? ls)
+        ht
+        (loop (cdr ls) (+ i 1) (hamt-assoc (car ls) i ht)))))
 
 (doc 'section 'normalized-mutual-information)
 

@@ -1,8 +1,9 @@
 ;;; lattice/topology/persistent.ss — Persistent Homology for TDA
 ;;; @module persistent
-;;; @requires homology simplicial-complex
+;;; @requires homology simplicial-complex hamt
 
 (require 'homology)
+(require 'hamt)
 
 (doc 'module 'persistent)
 (doc 'description "Persistent homology for topological data analysis")
@@ -224,39 +225,40 @@ Column j's 'low' (index of lowest 1) gives the pairing.")
          [columns (build-boundary-columns simplices n simplex-to-idx)]
          ; Track low[j] = index of lowest 1 in column j, or -1 if zero
          [low (make-vector n -1)]
-         ; Track which column has a given low value (for left-to-right reduction)
-         [low-to-col (make-eqv-hashtable)]
          ; Paired simplices
-         [paired (make-vector n #f)]
-         [result-pairs '()])
-    ; Reduce columns left to right
-    (do ([j 0 (+ j 1)])
-        [(= j n)]
-      (reduce-column! columns j low low-to-col)
-      (let ([low-j (vector-ref low j)])
-        (when (>= low-j 0)
-          ; Column j has low = i, forming a persistence pair
-          (vector-set! paired j #t)
-          (vector-set! paired low-j #t)
-          (set! result-pairs (cons (cons low-j j) result-pairs)))))
-    ; Collect essential (unpaired) simplices by dimension
-    (let ([essential (collect-essential simplices paired n)])
-      (make-persistence-result
-        (reverse result-pairs)
-        essential
-        birth-times
-        simplices))))
+         [paired (make-vector n #f)])
+    ; Reduce columns left to right, threading low-to-col HAMT
+    (let ([result-pairs
+           (let loop ([j 0] [low-to-col hamt-empty] [rp '()])
+             (if (= j n)
+                 rp
+                 (let ([new-low-to-col (reduce-column! columns j low low-to-col)])
+                   (let ([low-j (vector-ref low j)])
+                     (if (>= low-j 0)
+                         (begin
+                           ; Column j has low = i, forming a persistence pair
+                           (vector-set! paired j #t)
+                           (vector-set! paired low-j #t)
+                           (loop (+ j 1) new-low-to-col (cons (cons low-j j) rp)))
+                         (loop (+ j 1) new-low-to-col rp))))))])
+      ; Collect essential (unpaired) simplices by dimension
+      (let ([essential (collect-essential simplices paired n)])
+        (make-persistence-result
+          (reverse result-pairs)
+          essential
+          birth-times
+          simplices)))))
 
 (define (build-simplex-index simplices n)
-  (doc 'type '(-> Vector Integer HashTable))
+  (doc 'type '(-> Vector Integer HAMT))
   (doc 'description "Map simplex vertices -> filtration index")
-  (let ([table (make-hashtable equal-hash equal?)])
-    (do ([i 0 (+ i 1)])
-        [(= i n) table]
-      (hashtable-set! table (simplex-vertices (vector-ref simplices i)) i))))
+  (let loop ([i 0] [table hamt-empty])
+    (if (= i n) table
+        (loop (+ i 1)
+              (hamt-assoc (simplex-vertices (vector-ref simplices i)) i table)))))
 
 (define (build-boundary-columns simplices n simplex-to-idx)
-  (doc 'type '(-> Vector Integer HashTable Vector))
+  (doc 'type '(-> Vector Integer HAMT Vector))
   (doc 'description "Build boundary matrix as sparse columns (sorted index lists)")
   (let ([columns (make-vector n '())])
     (do ([j 0 (+ j 1)])
@@ -265,7 +267,7 @@ Column j's 'low' (index of lowest 1) gives the pairing.")
              [facets (simplex-facets s)]
              [indices (filter-map
                         (lambda (f)
-                          (hashtable-ref simplex-to-idx (simplex-vertices f) #f))
+                          (hamt-lookup (simplex-vertices f) simplex-to-idx))
                         facets)])
         ; Store as sorted list (descending for easy low access)
         (vector-set! columns j (sort-by > indices))))))
@@ -273,26 +275,27 @@ Column j's 'low' (index of lowest 1) gives the pairing.")
 ;;; filter-map provided by prelude
 
 (define (reduce-column! columns j low low-to-col)
-  (doc 'type '(-> Vector Integer Vector HashTable Void))
-  (doc 'description "Reduce column j until its low is unique or zero")
-  (let loop ()
+  (doc 'type '(-> Vector Integer Vector HAMT HAMT))
+  (doc 'description "Reduce column j until its low is unique or zero. Returns updated low-to-col HAMT.")
+  (let loop ([low-to-col low-to-col])
     (let ([col-j (vector-ref columns j)])
       (if (null? col-j)
           ; Column is zero
-          (vector-set! low j -1)
+          (begin (vector-set! low j -1)
+                 low-to-col)
           (let ([low-j (car col-j)])  ; First element is lowest (descending order)
             ; Check if another column has the same low
-            (let ([other (hashtable-ref low-to-col low-j #f)])
+            (let ([other (hamt-lookup low-j low-to-col)])
               (if other
                   ; Add column 'other' to column j (XOR in Z_2)
                   (begin
                     (vector-set! columns j
                                  (symmetric-difference col-j (vector-ref columns other)))
-                    (loop))
+                    (loop low-to-col))
                   ; Column j's low is unique
                   (begin
                     (vector-set! low j low-j)
-                    (hashtable-set! low-to-col low-j j)))))))))
+                    (hamt-assoc low-j j low-to-col)))))))))
 
 (define (symmetric-difference lst1 lst2)
   (doc 'type '(-> (List Integer) (List Integer) (List Integer)))
@@ -312,23 +315,19 @@ Column j's 'low' (index of lowest 1) gives the pairing.")
 (define (collect-essential simplices paired n)
   (doc 'type '(-> Vector Vector Integer (List (List Integer))))
   (doc 'description "Collect unpaired simplices grouped by dimension")
-  (let ([by-dim (make-eqv-hashtable)])
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (unless (vector-ref paired i)
-        (let* ([s (vector-ref simplices i)]
-               [d (simplex-dim s)]
-               [existing (hashtable-ref by-dim d '())])
-          (hashtable-set! by-dim d (cons i existing)))))
+  (let ([by-dim
+         (let loop ([i 0] [acc hamt-empty])
+           (if (= i n) acc
+               (if (vector-ref paired i)
+                   (loop (+ i 1) acc)
+                   (let* ([s (vector-ref simplices i)]
+                          [d (simplex-dim s)]
+                          [existing (hamt-lookup-or d acc '())])
+                     (loop (+ i 1) (hamt-assoc d (cons i existing) acc))))))])
     ; Convert to sorted list of (dim . indices)
-    (let ([dims (sort-by < (hashtable-keys-list by-dim))])
-      (map (lambda (d) (cons d (reverse (hashtable-ref by-dim d '()))))
+    (let ([dims (sort-by < (hamt-keys by-dim))])
+      (map (lambda (d) (cons d (reverse (hamt-lookup-or d by-dim '()))))
            dims))))
-
-(define (hashtable-keys-list ht)
-  (doc 'type '(-> HashTable (List α)))
-  (let-values ([(keys vals) (hashtable-entries ht)])
-    (vector->list keys)))
 
 ;;; ============================================================
 ;;; Persistence Result Structure

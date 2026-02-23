@@ -1,6 +1,7 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'optic-query)
+(require 'hamt)
 
 (doc 'module 'query-macro)
 (doc 'description "Declarative Optic Query DSL")
@@ -409,22 +410,18 @@
 ;;; Group query results by a key function.
 (define (group-query q key-fn)
   (doc 'export #t)
-  (let ([results (run-query q)]
-        [groups (make-hashtable equal-hash equal?)])
-    (for-each
-     (lambda (item)
-       (let* ([key (key-fn item)]
-              [existing (hashtable-ref groups key '())])
-         (hashtable-set! groups key (cons item existing))))
-     results)
-    (let-values ([(keys vals) (hashtable-entries groups)])
-      (let loop ([i 0] [result '()])
-        (if (>= i (vector-length keys))
-            result
-            (loop (+ i 1)
-                  (cons (cons (vector-ref keys i)
-                              (reverse (vector-ref vals i)))
-                        result)))))))
+  (let* ([results (run-query q)]
+         [groups (fold-left
+                  (lambda (acc item)
+                    (let* ([key (key-fn item)]
+                           [existing (hamt-lookup-or key acc '())])
+                      (hamt-assoc key (cons item existing) acc)))
+                  hamt-empty
+                  results)])
+    ;; Convert HAMT to alist, reversing to preserve order
+    (hamt-fold (lambda (acc k v)
+                 (cons (cons k (reverse v)) acc))
+               '() groups)))
 
 ;;; ============================================================
 ;;; Part 8: Convenience Macros

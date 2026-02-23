@@ -1,4 +1,5 @@
 (load "lattice/data/sort.ss")
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
 (doc 'module 'xref)
 (doc 'description "Cross-reference tracking for function call relationships and impact analysis")
@@ -10,11 +11,11 @@
 ;;; Call graph indices
 ;;; callers: symbol -> (list of symbols that call it)
 ;;; callees: symbol -> (list of symbols it calls)
-(define *xref-callers* (make-hashtable symbol-hash eq?))
-(define *xref-callees* (make-hashtable symbol-hash eq?))
+(define *xref-callers* hamt-empty)
+(define *xref-callees* hamt-empty)
 
 ;;; Set of all known definitions (for filtering)
-(define *xref-known-defs* (make-eq-hashtable))
+(define *xref-known-defs* hamt-empty)
 
 (doc 'section 'symbol-extraction)
 
@@ -114,12 +115,15 @@
 
 ;;; remove-duplicates-sym : (List Symbol) -> (List Symbol)
 (define (remove-duplicates-sym lst)
-  (let ([seen (make-eq-hashtable)])
-    (filter (lambda (sym)
-              (if (hashtable-ref seen sym #f)
-                  #f
-                  (begin (hashtable-set! seen sym #t) #t)))
-            lst)))
+  (let loop ([remaining lst] [seen hamt-empty] [acc '()])
+    (if (null? remaining)
+        (reverse acc)
+        (let ([sym (car remaining)])
+          (if (hamt-has-key? sym seen)
+              (loop (cdr remaining) seen acc)
+              (loop (cdr remaining)
+                    (hamt-assoc sym #t seen)
+                    (cons sym acc)))))))
 
 (doc 'section 'cache-population)
 
@@ -128,81 +132,83 @@
 ;;; Each entry is (definer-name . callees-list).
 ;;; Called from boundary orchestrator after I/O.
 (define (populate-xref-cache! all-xrefs)
-  ;; Reset indices
-  (set! *xref-callers* (make-hashtable symbol-hash eq?))
-  (set! *xref-callees* (make-hashtable symbol-hash eq?))
-  (set! *xref-known-defs* (make-eq-hashtable))
-
   ;; First pass: collect all definitions
-  (for-each
-   (lambda (xref)
-     (hashtable-set! *xref-known-defs* (car xref) #t))
-   all-xrefs)
+  (set! *xref-known-defs*
+        (fold-left (lambda (acc xref)
+                     (hamt-assoc (car xref) #t acc))
+                   hamt-empty
+                   all-xrefs))
 
   ;; Second pass: build caller/callee indices
-  (for-each
-   (lambda (xref)
-     (let* ([caller (car xref)]
-            [all-refs (cdr xref)]
-            ;; Filter to only known definitions (not primitives)
-            [callees (filter (lambda (s)
-                               (and (not (eq? s caller))  ; No self-refs
-                                    (hashtable-ref *xref-known-defs* s #f)))
-                             all-refs)])
-       ;; Store callees for this function
-       (hashtable-set! *xref-callees* caller callees)
-       ;; Update callers for each callee
-       (for-each
-        (lambda (callee)
-          (let ([existing (hashtable-ref *xref-callers* callee '())])
-            (unless (memq caller existing)
-              (hashtable-set! *xref-callers* callee (cons caller existing)))))
-        callees)))
-   all-xrefs))
+  (let loop ([remaining all-xrefs]
+             [callers hamt-empty]
+             [callees hamt-empty])
+    (if (null? remaining)
+        (begin
+          (set! *xref-callers* callers)
+          (set! *xref-callees* callees))
+        (let* ([xref (car remaining)]
+               [caller (car xref)]
+               [all-refs (cdr xref)]
+               ;; Filter to only known definitions (not primitives)
+               [callee-list (filter (lambda (s)
+                                      (and (not (eq? s caller))
+                                           (hamt-has-key? s *xref-known-defs*)))
+                                    all-refs)]
+               ;; Store callees for this function
+               [new-callees (hamt-assoc caller callee-list callees)]
+               ;; Update callers for each callee
+               [new-callers (fold-left
+                              (lambda (acc callee)
+                                (let ([existing (hamt-lookup-or callee acc '())])
+                                  (if (memq caller existing)
+                                      acc
+                                      (hamt-assoc callee (cons caller existing) acc))))
+                              callers
+                              callee-list)])
+          (loop (cdr remaining) new-callers new-callees)))))
 
 (doc 'section 'query-api)
 
 ;;; xref-callers : Symbol -> (List Symbol)
 ;;; Get functions that call the given symbol
 (define (xref-callers sym)
-  (hashtable-ref *xref-callers* sym '()))
+  (hamt-lookup-or sym *xref-callers* '()))
 
 ;;; xref-callees : Symbol -> (List Symbol)
 ;;; Get functions that the given symbol calls
 (define (xref-callees sym)
-  (hashtable-ref *xref-callees* sym '()))
+  (hamt-lookup-or sym *xref-callees* '()))
 
 ;;; xref-callers-transitive : Symbol -> (List Symbol)
 ;;; Get all transitive callers (functions that directly or indirectly call sym)
 (define (xref-callers-transitive sym)
-  (let ([seen (make-eq-hashtable)]
-        [result '()])
-    (let loop ([to-visit (xref-callers sym)])
-      (if (null? to-visit)
-          result
-          (let ([current (car to-visit)])
-            (if (hashtable-ref seen current #f)
-                (loop (cdr to-visit))
-                (begin
-                  (hashtable-set! seen current #t)
-                  (set! result (cons current result))
-                  (loop (append (cdr to-visit) (xref-callers current))))))))))
+  (let loop ([to-visit (xref-callers sym)]
+             [seen hamt-empty]
+             [result '()])
+    (if (null? to-visit)
+        result
+        (let ([current (car to-visit)])
+          (if (hamt-has-key? current seen)
+              (loop (cdr to-visit) seen result)
+              (loop (append (cdr to-visit) (xref-callers current))
+                    (hamt-assoc current #t seen)
+                    (cons current result)))))))
 
 ;;; xref-callees-transitive : Symbol -> (List Symbol)
 ;;; Get all transitive callees (functions that sym directly or indirectly calls)
 (define (xref-callees-transitive sym)
-  (let ([seen (make-eq-hashtable)]
-        [result '()])
-    (let loop ([to-visit (xref-callees sym)])
-      (if (null? to-visit)
-          result
-          (let ([current (car to-visit)])
-            (if (hashtable-ref seen current #f)
-                (loop (cdr to-visit))
-                (begin
-                  (hashtable-set! seen current #t)
-                  (set! result (cons current result))
-                  (loop (append (cdr to-visit) (xref-callees current))))))))))
+  (let loop ([to-visit (xref-callees sym)]
+             [seen hamt-empty]
+             [result '()])
+    (if (null? to-visit)
+        result
+        (let ([current (car to-visit)])
+          (if (hamt-has-key? current seen)
+              (loop (cdr to-visit) seen result)
+              (loop (append (cdr to-visit) (xref-callees current))
+                    (hamt-assoc current #t seen)
+                    (cons current result)))))))
 
 (doc 'section 'pretty-printing)
 
@@ -251,9 +257,9 @@
 
 ;;; xref-stats : -> Void
 (define (xref-stats)
-  (let ([def-count (hashtable-size *xref-known-defs*)]
-        [caller-count (hashtable-size *xref-callers*)]
-        [callee-count (hashtable-size *xref-callees*)])
+  (let ([def-count (hamt-size *xref-known-defs*)]
+        [caller-count (hamt-size *xref-callers*)]
+        [callee-count (hamt-size *xref-callees*)])
     (printf "Cross-reference statistics:\n")
     (printf "  Known definitions: ~a\n" def-count)
     (printf "  Functions with callers: ~a\n" caller-count)
@@ -262,13 +268,13 @@
 ;;; xref-most-called : Int -> (List (Symbol . Count))
 ;;; Get most-called functions
 (define (xref-most-called n)
-  (let ([counts '()])
-    (vector-for-each
-      (lambda (sym)
-        (let ([callers (xref-callers sym)])
-          (when (pair? callers)
-            (set! counts (cons (cons sym (length callers)) counts)))))
-      (hashtable-keys *xref-callers*))
+  (let ([counts (hamt-fold
+                  (lambda (acc sym callers)
+                    (if (pair? callers)
+                        (cons (cons sym (length callers)) acc)
+                        acc))
+                  '()
+                  *xref-callers*)])
     (take-n-xref n
       (sort-by (lambda (a b) (> (cdr a) (cdr b))) counts))))
 

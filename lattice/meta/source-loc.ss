@@ -1,3 +1,5 @@
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+
 (doc 'module 'source-loc)
 (doc 'description "Source location tracking for jump-to-definition workflows")
 (doc 'layer 'lattice)
@@ -6,7 +8,7 @@
 (doc 'section 'state)
 
 ;;; Global source location cache: symbol -> (file . line)
-(define *source-locations* (make-hashtable symbol-hash eq?))
+(define *source-locations* hamt-empty)
 
 ;;; ====
 ;;; Pure Parsing (operates on string data, no I/O)
@@ -125,7 +127,7 @@
 ;;; Get the source location for a symbol
 (define (get-source-location sym)
   (guard (e [else #f])
-         (hashtable-ref *source-locations* sym #f)))
+         (hamt-lookup sym *source-locations*)))
 
 ;;; format-source-location : Symbol -> String | #f
 ;;; Get formatted "file:line" string for a symbol
@@ -138,7 +140,7 @@
 ;;; source-location-count : -> Nat
 ;;; Get number of indexed definitions
 (define (source-location-count)
-  (hashtable-size *source-locations*))
+  (hamt-size *source-locations*))
 
 ;;; ====
 ;;; Cache Population (called from boundary orchestrator)
@@ -153,26 +155,28 @@
          (if (and (top-level-bound? '*export-module-map*)
                   (top-level-bound? '*module-paths*))
              (lambda (sym)
-               (let ([mod (hashtable-ref *export-module-map* sym #f)])
+               (let ([mod (hamt-lookup sym *export-module-map*)])
                  (and mod (hashtable-ref *module-paths* mod #f))))
              (lambda (sym) #f))])
-    (for-each
-     (lambda (def)
-       (let ([name (car def)]
-             [file (cadr def)]
-             [line (caddr def)])
-         (let ([existing (hashtable-ref *source-locations* name #f)]
-               [canonical (canonical-file-for name)])
-           (cond
-             ;; No existing entry — store
-             [(not existing)
-              (hashtable-set! *source-locations* name (cons file line))]
-             ;; This file IS the canonical source — always overwrite
-             [(and canonical (string=? file canonical))
-              (hashtable-set! *source-locations* name (cons file line))]
-             ;; Existing file is already canonical — keep it
-             [(and canonical (string=? (car existing) canonical))
-              (void)]
-             ;; Neither is canonical — first wins (keep existing)
-             [else (void)]))))
-     defs)))
+    (set! *source-locations*
+          (fold-left
+           (lambda (acc def)
+             (let ([name (car def)]
+                   [file (cadr def)]
+                   [line (caddr def)])
+               (let ([existing (hamt-lookup name acc)]
+                     [canonical (canonical-file-for name)])
+                 (cond
+                   ;; No existing entry — store
+                   [(not existing)
+                    (hamt-assoc name (cons file line) acc)]
+                   ;; This file IS the canonical source — always overwrite
+                   [(and canonical (string=? file canonical))
+                    (hamt-assoc name (cons file line) acc)]
+                   ;; Existing file is already canonical — keep it
+                   [(and canonical (string=? (car existing) canonical))
+                    acc]
+                   ;; Neither is canonical — first wins (keep existing)
+                   [else acc]))))
+           hamt-empty
+           defs))))

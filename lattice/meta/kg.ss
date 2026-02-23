@@ -2,6 +2,7 @@
 (unless (top-level-bound? 'sha256) (load "core/base/sha256.ss"))
 (unless (top-level-bound? 'make-block) (load "core/blocks/block.ss"))
 (unless (top-level-bound? 'read-manifest) (load "lattice/meta/manifest.ss"))
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
 (doc 'module 'kg)
 (doc 'description "Lattice knowledge graph builder from manifest files")
@@ -237,13 +238,15 @@
 ;;; dedupe-by-car : (List (Symbol . Any)) -> (List (Symbol . Any))
 ;;; Remove entries with duplicate car values, keeping first occurrence
 (define (dedupe-by-car lst)
-  (let ([seen (make-eq-hashtable)])
-    (filter (lambda (entry)
-              (let ([name (car entry)])
-                (if (hashtable-ref seen name #f)
-                    #f
-                    (begin (hashtable-set! seen name #t) #t))))
-            lst)))
+  (let loop ([remaining lst] [seen hamt-empty] [acc '()])
+    (if (null? remaining)
+        (reverse acc)
+        (let ([name (caar remaining)])
+          (if (hamt-has-key? name seen)
+              (loop (cdr remaining) seen acc)
+              (loop (cdr remaining)
+                    (hamt-assoc name #t seen)
+                    (cons (car remaining) acc)))))))
 
 ;;; kg-deps : Symbol -> (List Symbol)
 ;;; Get dependencies for a skill

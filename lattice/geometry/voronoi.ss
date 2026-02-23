@@ -1,6 +1,6 @@
 ;;; lattice/geometry/voronoi.ss --- Voronoi diagrams via Delaunay duality
 ;;; @module voronoi
-;;; @requires prelude geometry/mesh-gen geometry/convex-hull sort
+;;; @requires prelude geometry/mesh-gen geometry/convex-hull sort hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -8,6 +8,7 @@
 (require 'mesh-gen)
 (require 'convex-hull)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'voronoi)
 (doc 'description "Voronoi diagram computation via Delaunay duality")
@@ -90,22 +91,22 @@
     (list (point2-x p1) (point2-y p1)
           (point2-x p2) (point2-y p2))))
 
-(doc build-edge-adjacency 'type '(-> (Vector Triangle2) Hashtable))
+(doc build-edge-adjacency 'type '(-> (Vector Triangle2) HAMT))
 (doc build-edge-adjacency 'description "Build mapping from edges to adjacent triangle indices")
 (define (build-edge-adjacency triangles)
-  (let ([adj (make-hashtable equal-hash equal?)])
-    (do ([i 0 (+ i 1)])
-        ((>= i (vector-length triangles)) adj)
-      (let* ([tri (vector-ref triangles i)]
-             [p1 (tri2-p1 tri)]
-             [p2 (tri2-p2 tri)]
-             [p3 (tri2-p3 tri)]
-             [e1 (voronoi-edge-key (canonical-edge p1 p2))]
-             [e2 (voronoi-edge-key (canonical-edge p2 p3))]
-             [e3 (voronoi-edge-key (canonical-edge p3 p1))])
-        (hashtable-update! adj e1 (lambda (v) (cons i v)) '())
-        (hashtable-update! adj e2 (lambda (v) (cons i v)) '())
-        (hashtable-update! adj e3 (lambda (v) (cons i v)) '())))))
+  (let loop ([i 0] [adj hamt-empty])
+    (if (>= i (vector-length triangles)) adj
+        (let* ([tri (vector-ref triangles i)]
+               [p1 (tri2-p1 tri)]
+               [p2 (tri2-p2 tri)]
+               [p3 (tri2-p3 tri)]
+               [e1 (voronoi-edge-key (canonical-edge p1 p2))]
+               [e2 (voronoi-edge-key (canonical-edge p2 p3))]
+               [e3 (voronoi-edge-key (canonical-edge p3 p1))]
+               [adj1 (hamt-assoc e1 (cons i (hamt-lookup-or e1 adj '())) adj)]
+               [adj2 (hamt-assoc e2 (cons i (hamt-lookup-or e2 adj1 '())) adj1)]
+               [adj3 (hamt-assoc e3 (cons i (hamt-lookup-or e3 adj2 '())) adj2)])
+          (loop (+ i 1) adj3)))))
 
 ;;; ============================================================
 ;;; Section: Site-to-Triangle Mapping
@@ -116,17 +117,15 @@
 (doc build-site-triangles 'type '(-> (Vector Point2) (Vector Triangle2) (Vector (List Int))))
 (doc build-site-triangles 'description "For each site, find all triangles containing it")
 (define (build-site-triangles sites triangles)
-  ;; Build site index lookup for O(1) access
-  (let ([site-index (make-hashtable equal-hash equal?)]
-        [n (vector-length sites)]
-        [result (make-vector (vector-length sites) '())])
-    ;; Build index: point -> site index
-    (do ([i 0 (+ i 1)])
-        ((>= i n))
-      (let ([site (vector-ref sites i)])
-        (hashtable-set! site-index
-                        (list (point2-x site) (point2-y site))
-                        i)))
+  ;; Build site index lookup as HAMT for O(log32 N) access
+  (let* ([n (vector-length sites)]
+         [site-index
+          (let loop ([i 0] [idx hamt-empty])
+            (if (>= i n) idx
+                (let ([site (vector-ref sites i)])
+                  (loop (+ i 1)
+                        (hamt-assoc (list (point2-x site) (point2-y site)) i idx)))))]
+         [result (make-vector (vector-length sites) '())])
     ;; Single pass through triangles - O(M) instead of O(N*M)
     (do ([ti 0 (+ ti 1)])
         ((>= ti (vector-length triangles)) result)
@@ -137,7 +136,7 @@
         (for-each
          (lambda (p)
            (let ([key (list (point2-x p) (point2-y p))])
-             (let ([idx (hashtable-ref site-index key #f)])
+             (let ([idx (hamt-lookup key site-index)])
                (when idx
                  (vector-set! result idx (cons ti (vector-ref result idx)))))))
          (list p1 p2 p3))))))
@@ -232,35 +231,38 @@
                                                      circumcenters))))])
         (make-voronoi sites circumcenters edges cells unbounded))))
 
-(doc find-unbounded-sites 'type '(-> Hashtable (Vector Point2) (Vector Boolean)))
+(doc find-unbounded-sites 'type '(-> HAMT (Vector Point2) (Vector Boolean)))
 (doc find-unbounded-sites 'description "Find sites that touch boundary edges (unbounded cells)")
 (define (find-unbounded-sites edge-adj sites)
   (let ([n (vector-length sites)]
-        [unbounded (make-vector (vector-length sites) #f)])
+        [unbounded (make-vector (vector-length sites) #f)]
+        [entries (hamt-entries edge-adj)])
     ;; A site is unbounded if it touches any boundary edge
     ;; (boundary edge = edge with only 1 adjacent triangle)
-    (let-values ([(keys vals) (hashtable-entries edge-adj)])
-      (do ([i 0 (+ i 1)])
-          ((>= i (vector-length keys)) unbounded)
-        (let ([tri-list (vector-ref vals i)])
-          (when (= (length tri-list) 1)
-            ;; Boundary edge - mark both endpoints as unbounded
-            (let* ([ek (vector-ref keys i)]
-                   [edge-pts (edge-key->points ek)]
-                   [s1 (find-site-index sites (car edge-pts))]
-                   [s2 (find-site-index sites (cdr edge-pts))])
-              (when (>= s1 0) (vector-set! unbounded s1 #t))
-              (when (>= s2 0) (vector-set! unbounded s2 #t)))))))))
+    (for-each
+     (lambda (entry)
+       (let ([ek (car entry)]
+             [tri-list (cdr entry)])
+         (when (= (length tri-list) 1)
+           ;; Boundary edge - mark both endpoints as unbounded
+           (let* ([edge-pts (edge-key->points ek)]
+                  [s1 (find-site-index sites (car edge-pts))]
+                  [s2 (find-site-index sites (cdr edge-pts))])
+             (when (>= s1 0) (vector-set! unbounded s1 #t))
+             (when (>= s2 0) (vector-set! unbounded s2 #t))))))
+     entries)
+    unbounded))
 
-(doc build-voronoi-edges 'type '(-> (Vector Triangle2) Hashtable (Vector Point2) (List VoronoiEdge)))
+(doc build-voronoi-edges 'type '(-> (Vector Triangle2) HAMT (Vector Point2) (List VoronoiEdge)))
 (doc build-voronoi-edges 'description "Build Voronoi edges from triangle adjacency")
 (define (build-voronoi-edges triangles edge-adj sites)
-  (let-values ([(keys vals) (hashtable-entries edge-adj)])
-    (let loop ([i 0] [edges '()])
-      (if (>= i (vector-length keys))
+  (let ([entries (hamt-entries edge-adj)])
+    (let loop ([remaining entries] [edges '()])
+      (if (null? remaining)
           edges
-          (let* ([ek (vector-ref keys i)]
-                 [tri-list (vector-ref vals i)]
+          (let* ([entry (car remaining)]
+                 [ek (car entry)]
+                 [tri-list (cdr entry)]
                  [edge-pts (edge-key->points ek)]
                  [s1 (find-site-index sites (car edge-pts))]
                  [s2 (find-site-index sites (cdr edge-pts))])
@@ -269,13 +271,12 @@
               [(= (length tri-list) 2)
                (let ([t1 (car tri-list)]
                      [t2 (cadr tri-list)])
-                 (loop (+ i 1) (cons (make-voronoi-edge t1 t2 s1 s2) edges)))]
+                 (loop (cdr remaining) (cons (make-voronoi-edge t1 t2 s1 s2) edges)))]
               ;; Boundary edge: one circumcenter, extends to infinity
-              ;; We mark this with -1 for the "infinite" endpoint
               [(= (length tri-list) 1)
                (let ([t1 (car tri-list)])
-                 (loop (+ i 1) (cons (make-voronoi-edge t1 -1 s1 s2) edges)))]
-              [else (loop (+ i 1) edges)]))))))
+                 (loop (cdr remaining) (cons (make-voronoi-edge t1 -1 s1 s2) edges)))]
+              [else (loop (cdr remaining) edges)]))))))
 
 (define (edge-key->points key)
   ;; Reconstruct points from edge key (x1 y1 x2 y2)

@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module meta/module-manifest
-;;; @requires prelude sha256 sort
+;;; @requires prelude sha256 sort hamt
 (require 'prelude)
 (require 'sha256)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'meta/module-manifest)
 (doc 'description "Content-addressed module manifests. Builds canonical, hashable
@@ -144,7 +145,7 @@ Returns: (manifest-diff (added ...) (removed ...) (changed ...) (same-count N)).
       (lambda (entry)
         (let* ([name (car entry)]
                [new-path (cdr entry)]
-               [old-path (hashtable-ref old-table name #f)])
+               [old-path (hamt-lookup name old-table)])
           (cond
             [(not old-path)
              (set! added (cons entry added))]
@@ -157,7 +158,7 @@ Returns: (manifest-diff (added ...) (removed ...) (changed ...) (same-count N)).
     (for-each
       (lambda (entry)
         (let ([name (car entry)])
-          (unless (hashtable-ref new-table name #f)
+          (unless (hamt-lookup name new-table)
             (set! removed (cons entry removed)))))
       old-entries)
     (list 'manifest-diff
@@ -166,13 +167,11 @@ Returns: (manifest-diff (added ...) (removed ...) (changed ...) (same-count N)).
           (list 'changed (reverse changed))
           (list 'same-count same-count))))
 
-(doc 'type '(-> (List (Pair Symbol String)) (Hashtable Symbol String)))
+(doc 'type '(-> (List (Pair Symbol String)) HAMT))
 (define (entries->table entries)
-  (let ([ht (make-eq-hashtable)])
-    (for-each
-      (lambda (e) (hashtable-set! ht (car e) (cdr e)))
-      entries)
-    ht))
+  (fold-left (lambda (acc e) (hamt-assoc (car e) (cdr e) acc))
+             hamt-empty
+             entries))
 
 (doc 'type '(-> Alist Boolean))
 (doc 'description "True if the diff shows no changes.")
@@ -354,21 +353,17 @@ source of truth explicit.")
 
 (doc 'type '(-> (List (Pair Symbol String)) (List (Pair String Nat))))
 (define (count-by-layer entries)
-  (let ([counts (make-hashtable string-hash string=?)])
-    (for-each
-      (lambda (e)
-        (let* ([path (cdr e)]
-               [layer (cond
-                        [(string-starts-with? path "core/") "core"]
-                        [(string-starts-with? path "lattice/") "lattice"]
-                        [(string-starts-with? path "boundary/") "boundary"]
-                        [else "other"])]
-               [current (hashtable-ref counts layer 0)])
-          (hashtable-set! counts layer (+ current 1))))
-      entries)
-    (let-values ([(keys vals) (hashtable-entries counts)])
-      (let loop ([i 0] [acc '()])
-        (if (>= i (vector-length keys))
-            (sort-by (lambda (a b) (string<? (car a) (car b))) acc)
-            (loop (+ i 1)
-                  (cons (cons (vector-ref keys i) (vector-ref vals i)) acc)))))))
+  (let ([counts (fold-left
+                  (lambda (acc e)
+                    (let* ([path (cdr e)]
+                           [layer (cond
+                                    [(string-starts-with? path "core/") "core"]
+                                    [(string-starts-with? path "lattice/") "lattice"]
+                                    [(string-starts-with? path "boundary/") "boundary"]
+                                    [else "other"])]
+                           [current (hamt-lookup-or layer acc 0)])
+                      (hamt-assoc layer (+ current 1) acc)))
+                  hamt-empty
+                  entries)])
+    (sort-by (lambda (a b) (string<? (car a) (car b)))
+             (hamt-entries counts))))

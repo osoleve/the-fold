@@ -1,11 +1,12 @@
 ;;; lattice/data/collection-utils.ss — Collection Utilities
 ;;; @module collection-utils
-;;; @requires prelude block sha256
+;;; @requires prelude block sha256 hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'block)
 (require 'sha256)
+(require 'hamt)
 
 (doc 'module 'collection-utils)
 (doc 'description "Collection Utilities for Block Collections — Higher-order functions for working with block collections. Collections are blocks with multiple refs - this library provides functional programming primitives for transforming and querying them")
@@ -166,18 +167,15 @@
 
 (define (collection-group-by fs key-fn collection)
   (doc 'type '(-> FSCap (-> Block A) Block (List (Pair A (List Block)))))
-  (doc 'description "Group collection members by key function. Returns association list: ((key1 . [blocks...]) (key2 . [blocks...]) ...). Uses hash table internally for O(N) complexity instead of O(N*G)")
-  (let ([groups (make-hashtable equal-hash equal?)])
-       (fold-collection
-        fs
-        (lambda (acc block)
-                (let* ([key (key-fn block)]
-                       [existing (hashtable-ref groups key '())])
-                      (hashtable-set! groups key (cons block existing)))
-                acc)
-        '() collection)
-       (let-values ([(keys vals) (hashtable-entries groups)])
-                   (map cons (vector->list keys) (vector->list vals)))))
+  (doc 'description "Group collection members by key function. Returns association list: ((key1 . [blocks...]) (key2 . [blocks...]) ...). Uses HAMT internally for O(N log32 N) complexity instead of O(N*G)")
+  (let ([groups (fold-collection
+                 fs
+                 (lambda (acc block)
+                   (let* ([key (key-fn block)]
+                          [existing (hamt-lookup-or key acc '())])
+                     (hamt-assoc key (cons block existing) acc)))
+                 hamt-empty collection)])
+    (hamt-entries groups)))
 
 (doc 'section 'collection-construction)
 

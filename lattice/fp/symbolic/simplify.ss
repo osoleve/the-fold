@@ -1,8 +1,9 @@
 ;;; @module simplify
-;;; @requires sort expr
+;;; @requires sort expr hamt
 
 (require 'sort)
 (require 'expr)
+(require 'hamt)
 
 (doc 'module 'simplify)
 (doc 'description "Comprehensive algebraic simplification for symbolic expressions")
@@ -95,20 +96,19 @@
 (define (collect-like-terms terms)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Collect like terms: x + x → 2*x")
-  (let ([table (make-hashtable equal-hash equal?)])
-       ;; Count coefficients
-       (for-each
-        (lambda (term)
-                (let-values ([(coef base) (extract-coefficient term)])
-                            (let ([current (hashtable-ref table base 0)])
-                                 (hashtable-set! table base (+ current coef)))))
-        terms)
-       ;; Rebuild terms from hashtable keys in deterministic order
-       (let* ([keys (vector->list (hashtable-keys table))]
+  (let ([table (fold-left
+                (lambda (acc term)
+                  (let-values ([(coef base) (extract-coefficient term)])
+                    (let ([current (hamt-lookup-or base acc 0)])
+                      (hamt-assoc base (+ current coef) acc))))
+                hamt-empty
+                terms)])
+       ;; Rebuild terms from HAMT keys in deterministic order
+       (let* ([keys (hamt-keys table)]
               [sorted-keys (sort-by (lambda (a b) (< (expr-complexity a) (expr-complexity b))) keys)])
              (filter-map
               (lambda (key)
-                      (let ([coef (hashtable-ref table key 0)])
+                      (let ([coef (hamt-lookup-or key table 0)])
                            (cond
                             [(= coef 0) #f]
                             [(= coef 1) key]
@@ -175,20 +175,19 @@
 (define (collect-like-bases factors)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Collect terms with same base: x * x → x^2")
-  (let ([table (make-hashtable equal-hash equal?)])
-       ;; Sum exponents for each base
-       (for-each
-        (lambda (factor)
-                (let-values ([(base exp) (extract-base-exponent factor)])
-                            (let ([current (hashtable-ref table base (num 0))])
-                                 (hashtable-set! table base (sum current exp)))))
-        factors)
+  (let ([table (fold-left
+                (lambda (acc factor)
+                  (let-values ([(base exp) (extract-base-exponent factor)])
+                    (let ([current (hamt-lookup-or base acc (num 0))])
+                      (hamt-assoc base (sum current exp) acc))))
+                hamt-empty
+                factors)])
        ;; Rebuild factors in deterministic order (sorted by complexity)
-       (let* ([keys (vector->list (hashtable-keys table))]
+       (let* ([keys (hamt-keys table)]
               [sorted-keys (sort-by (lambda (a b) (< (expr-complexity a) (expr-complexity b))) keys)])
              (filter-map
               (lambda (key)
-                      (let ([exp (simplify (hashtable-ref table key (num 0)))])
+                      (let ([exp (simplify (hamt-lookup-or key table (num 0)))])
                            (cond
                             [(and (num? exp) (= (num-val exp) 0)) #f]
                             [(and (num? exp) (= (num-val exp) 1)) key]

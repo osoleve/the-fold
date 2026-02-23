@@ -1,9 +1,10 @@
 ;;; @module rewrite/laws
-;;; @requires prelude rule engine
+;;; @requires prelude rule engine hamt
 
 (require 'prelude)
 (require 'rule)
 (require 'engine)
+(require 'hamt)
 
 (doc 'module 'rewrite/laws)
 (doc 'purity 'partial)
@@ -25,23 +26,23 @@ This is Lattice code: pure, total, assumes reasonable input.")
 
 (doc 'section "Law Registry")
 
-(define *law-registry* (make-eq-hashtable))
+(define *law-registry* hamt-empty)
 (doc *law-registry* 'description "Global registry of all laws")
 
 (define (register-law! law)
   (doc 'type (-> Rule Void))
   (doc 'description "Add a law to the registry.")
-  (hashtable-set! *law-registry* (rule-name law) law))
+  (set! *law-registry* (hamt-assoc (rule-name law) law *law-registry*)))
 
 ;;; get-law : Symbol → Rule | #f
 ;;; Retrieve a law by name.
 (define (get-law name)
-  (hashtable-ref *law-registry* name #f))
+  (hamt-lookup name *law-registry*))
 
 ;;; all-laws : → (List Rule)
 ;;; Get all registered laws.
 (define (all-laws)
-  (vector->list (hashtable-values *law-registry*)))
+  (hamt-values *law-registry*))
 
 ;;; laws-by-category : Symbol → (List Rule)
 ;;; Get all laws in a category.
@@ -52,7 +53,7 @@ This is Lattice code: pure, total, assumes reasonable input.")
 ;;; law-names : → (List Symbol)
 ;;; Get all law names.
 (define (law-names)
-  (vector->list (hashtable-keys *law-registry*)))
+  (hamt-keys *law-registry*))
 
 ;;; law-categories : → (List Symbol)
 ;;; Get all unique categories.

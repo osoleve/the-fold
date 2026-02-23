@@ -279,7 +279,7 @@
     (let ([kinds '(iso lens prism affine traversal grate)])
       (for-each
        (lambda (k)
-         (assert-true (pair? (hashtable-ref *diff-kind-registry* k #f))))
+         (assert-true (pair? (hamt-lookup k *diff-kind-registry*))))
        kinds))))
 
 (run-all-tests)

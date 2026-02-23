@@ -1,7 +1,8 @@
 ;;; @module homology
-;;; @requires simplicial-complex
+;;; @requires simplicial-complex hamt
 
 (require 'simplicial-complex)
+(require 'hamt)
 
 (doc 'module 'homology)
 (doc 'description "Computes homology groups and Betti numbers for simplicial complexes")
@@ -189,9 +190,9 @@ Betti number B_k = dim(H_k) = nullity(d_k) - rank(d_{k+1})")
   (doc 'example "For a 1-cycle in a graph, the null space basis vectors indicate which edges participate in the cycle")
   (let-values ([(rref pivots) (z2-rref matrix)])
     (let* ([cols (z2-matrix-cols matrix)]
-           [pivot-set (list->hashtable-set pivots)]
+           [pivot-set (list->hamt-set pivots)]
            ; Free columns are those not in pivot-set
-           [free-cols (filter (lambda (c) (not (hashtable-set-member? pivot-set c)))
+           [free-cols (filter (lambda (c) (not (hamt-set-member? pivot-set c)))
                               (iota cols))])
       (if (null? free-cols)
           '()  ; Trivial null space
@@ -220,15 +221,13 @@ Betti number B_k = dim(H_k) = nullity(d_k) - rank(d_{k+1})")
           (loop (cdr ps) (+ row 1)))))
     (vector->list vec)))
 
-(define (list->hashtable-set lst)
-  (doc 'description "Helper: list->hashtable-set using hash table for O(1) membership")
-  (let ([ht (make-hashtable equal-hash equal?)])
-    (for-each (lambda (x) (hashtable-set! ht x #t)) lst)
-    ht))
+(define (list->hamt-set lst)
+  (doc 'description "Helper: list->hamt-set using HAMT for O(log32 N) membership")
+  (fold-left (lambda (acc x) (hamt-assoc x #t acc)) hamt-empty lst))
 
-(define (hashtable-set-member? set x)
-  (doc 'description "Helper: hashtable-set-member?")
-  (hashtable-ref set x #f))
+(define (hamt-set-member? set x)
+  (doc 'description "Helper: hamt-set-member?")
+  (hamt-lookup x set))
 
 (doc 'section 'boundary-matrices)
 
@@ -243,20 +242,18 @@ Betti number B_k = dim(H_k) = nullity(d_k) - rank(d_{k+1})")
       [else (loop (cdr remaining) (+ idx 1))])))
 
 (define (build-simplex-index-table simplices)
-  (doc 'type '(-> (List Simplex) HashTable))
-  (doc 'description "Build a hash table mapping simplex vertices -> index for O(1) lookup")
+  (doc 'type '(-> (List Simplex) HAMT))
+  (doc 'description "Build a HAMT mapping simplex vertices -> index for O(log32 N) lookup")
   (doc 'note "Key is the sorted vertex list (canonical form)")
-  (let ([table (make-hashtable equal-hash equal?)])
-    (let loop ([remaining simplices] [idx 0])
-      (unless (null? remaining)
-        (hashtable-set! table (simplex-vertices (car remaining)) idx)
-        (loop (cdr remaining) (+ idx 1))))
-    table))
+  (let loop ([remaining simplices] [idx 0] [table hamt-empty])
+    (if (null? remaining) table
+        (loop (cdr remaining) (+ idx 1)
+              (hamt-assoc (simplex-vertices (car remaining)) idx table)))))
 
 (define (simplex-index-fast table s)
-  (doc 'type '(-> HashTable Simplex (Or Integer #f)))
-  (doc 'description "O(1) lookup using pre-built index table")
-  (hashtable-ref table (simplex-vertices s) #f))
+  (doc 'type '(-> HAMT Simplex (Or Integer #f)))
+  (doc 'description "O(log32 N) lookup using pre-built index HAMT")
+  (hamt-lookup (simplex-vertices s) table))
 
 (define (sc-boundary-matrix sc k)
   (doc 'export #t)

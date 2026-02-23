@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'sort-by) (load "lattice/data/sort.ss"))
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 (unless (top-level-bound? 'kg-build!) (load "lattice/meta/kg.ss"))
 (unless (top-level-bound? 'bm25-create) (load "lattice/meta/bm25.ss"))
 (unless (top-level-bound? 'get-docstring) (load "lattice/meta/docstrings.ss"))
@@ -23,7 +24,7 @@
 (define *module-cache* '())
 
 (doc *export-module-map* 'description "Reverse map: export symbol → module require path (e.g., make-group → group)")
-(define *export-module-map* (make-eq-hashtable))
+(define *export-module-map* hamt-empty)
 
 (doc *search-ready* 'description "Flag indicating search indices are built")
 (define *search-ready* #f)
@@ -38,10 +39,10 @@
   (set! *module-index* (bm25-create))
   (set! *export-index* (bm25-create))
   (set! *module-cache* '())
-  (set! *export-module-map* (make-eq-hashtable))
+  (set! *export-module-map* hamt-empty)
 
   ;; Build docstring cache only if not already populated from cache
-  (when (zero? (hashtable-size *docstrings*))
+  (when (zero? (hamt-size *docstrings*))
         (build-docstring-cache!))
 
   ;; Index all skills
@@ -100,9 +101,9 @@
                                                             (for-each
                                                              (lambda (sym)
                                                                      (when (and (symbol? sym)
-                                                                                (not (hashtable-ref *export-module-map* sym #f)))
-                                                                           (hashtable-set! *export-module-map*
-                                                                                          sym module-name)))
+                                                                                (not (hamt-lookup sym *export-module-map*)))
+                                                                           (set! *export-module-map*
+                                                                                 (hamt-assoc sym module-name *export-module-map*))))
                                                              export-syms)))))
                                   exports-raw))))))
    (kg-skills))
@@ -120,8 +121,9 @@
                                         (for-each
                                          (lambda (sym)
                                                  (when (and (symbol? sym)
-                                                            (not (hashtable-ref *export-module-map* sym #f)))
-                                                       (hashtable-set! *export-module-map* sym mod-name)))
+                                                            (not (hamt-lookup sym *export-module-map*)))
+                                                       (set! *export-module-map*
+                                                             (hamt-assoc sym mod-name *export-module-map*))))
                                          syms))))))
               mod-names)))
 
@@ -133,7 +135,7 @@
                   [doc-terms (docstring-terms export-name)]
                   [all-terms (append name-terms doc-terms)]
                   [docstring (get-docstring export-name)]
-                  [module (hashtable-ref *export-module-map* export-name #f)]
+                  [module (hamt-lookup export-name *export-module-map*)]
                   [data `((name . ,export-name)
                           ,@(if module `((module . ,module)) '())
                           ,@(if docstring `((docstring . ,docstring)) '()))])
@@ -212,7 +214,7 @@
    ;; Check exports
    [(assq sym (kg-exports))
     => (lambda (entry)
-               (let ([mod (hashtable-ref *export-module-map* sym #f)])
+               (let ([mod (hamt-lookup sym *export-module-map*)])
                     (list sym 1.0 'export
                           `((name . ,sym)
                             ,@(if mod `((module . ,mod)) '())))))]
@@ -265,7 +267,7 @@
                                 [name-str (string-downcase (symbol->string export-name))])
                                (if (and (>= (string-length name-str) prefix-len)
                                         (string=? (substring name-str 0 prefix-len) prefix-str))
-                                   (let ([mod (hashtable-ref *export-module-map* export-name #f)])
+                                   (let ([mod (hamt-lookup export-name *export-module-map*)])
                                         (list export-name 0.9 'export
                                               `((name . ,export-name)
                                                 ,@(if mod `((module . ,mod)) '()))))
@@ -296,7 +298,7 @@
                          (let* ([export-name (car export-entry)]
                                 [name-str (string-downcase (symbol->string export-name))])
                                (if (string-contains? name-str substr-str)
-                                   (let ([mod (hashtable-ref *export-module-map* export-name #f)])
+                                   (let ([mod (hamt-lookup export-name *export-module-map*)])
                                         (list export-name 0.8 'export
                                               `((name . ,export-name)
                                                 ,@(if mod `((module . ,mod)) '()))))

@@ -1,3 +1,6 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'hamt)
+
 (doc 'module 'query-dsl)
 (doc 'description "Datalog-style Declarative Query Language for The Fold")
 (doc 'note "A composable, declarative query DSL for querying blocks in the store. Inspired by Datalog's pattern matching and relational algebra.")
@@ -287,29 +290,33 @@
 ;;; Returns all reachable blocks within depth limit.
 (define (refs-transitive fs start-hash max-depth)
   (doc 'export #t)
-  (let ([visited (make-hashtable bytevector-hash bytevector=?)]
-        [result '()])
-       (let bfs ([frontier (list start-hash)]
-                 [depth 0])
-            (if (or (null? frontier) (>= depth max-depth))
-                (reverse result)
-                (let ([next-frontier '()])
-                     (for-each
-                      (lambda (hash)
-                              (unless (hashtable-ref visited hash #f)
-                                      (hashtable-set! visited hash #t)
-                                      (let ([block (store-get fs hash)])
-                                           (when block
-                                                 (set! result (cons block result))
-                                                 (let ([refs (block-refs block)])
-                                                      (let add-refs ([i 0])
-                                                           (when (< i (vector-length refs))
-                                                                 (let ([ref-hash (vector-ref refs i)])
-                                                                      (unless (hashtable-ref visited ref-hash #f)
-                                                                              (set! next-frontier (cons ref-hash next-frontier))))
-                                                                 (add-refs (+ i 1)))))))))
-                      frontier)
-                     (bfs next-frontier (+ depth 1)))))))
+  (let bfs ([frontier (list start-hash)]
+            [depth 0]
+            [visited hamt-empty]
+            [result '()])
+       (if (or (null? frontier) (>= depth max-depth))
+           (reverse result)
+           (let process-frontier ([remaining frontier]
+                                  [visited visited]
+                                  [result result]
+                                  [next-frontier '()])
+             (if (null? remaining)
+                 (bfs next-frontier (+ depth 1) visited result)
+                 (let ([hash (car remaining)])
+                   (if (hamt-lookup hash visited)
+                       (process-frontier (cdr remaining) visited result next-frontier)
+                       (let ([visited (hamt-assoc hash #t visited)]
+                             [block (store-get fs hash)])
+                         (if block
+                             (let gather-refs ([i 0] [nf next-frontier])
+                               (if (>= i (vector-length (block-refs block)))
+                                   (process-frontier (cdr remaining) visited (cons block result) nf)
+                                   (let ([ref-hash (vector-ref (block-refs block) i)])
+                                     (if (hamt-lookup ref-hash visited)
+                                         (gather-refs (+ i 1) nf)
+                                         (gather-refs (+ i 1) (cons ref-hash nf))))))
+                             (process-frontier (cdr remaining) visited result next-frontier))))))))))
+
 
 ;;; ====
 ;;; Section 5: Aggregation Functions
@@ -478,20 +485,21 @@
   (doc 'export #t)
   (let* ([all-blocks (store-all-blocks fs)]
          [all-hashes (map hash-block all-blocks)]
-         [referenced-hashes (make-hashtable bytevector-hash bytevector=?)])
-        ;; Collect all referenced hashes
-        (for-each
-         (lambda (block)
-                 (let ([refs (block-refs block)])
-                      (let loop ([i 0])
-                           (when (< i (vector-length refs))
-                                 (hashtable-set! referenced-hashes (vector-ref refs i) #t)
-                                 (loop (+ i 1))))))
-         all-blocks)
+         ;; Collect all referenced hashes
+         [referenced-hashes
+          (fold-left
+           (lambda (acc block)
+             (let ([refs (block-refs block)])
+               (let loop ([i 0] [acc acc])
+                 (if (>= i (vector-length refs))
+                     acc
+                     (loop (+ i 1) (hamt-assoc (vector-ref refs i) #t acc))))))
+           hamt-empty
+           all-blocks)])
         ;; Filter to blocks not in referenced set
         (filter
          (lambda (block)
-                 (not (hashtable-ref referenced-hashes (hash-block block) #f)))
+                 (not (hamt-lookup (hash-block block) referenced-hashes)))
          all-blocks)))
 
 ;;; ====

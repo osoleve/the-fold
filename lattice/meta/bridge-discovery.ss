@@ -1,9 +1,10 @@
 ;;; @module bridge-discovery
-;;; @requires prelude
+;;; @requires prelude hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'hamt)
 
 (doc 'module 'bridge-discovery)
 (doc 'description "Bridge discovery for the skill lattice. Identifies modules that
@@ -19,17 +20,17 @@
 
 (doc 'section 'registry)
 
-(doc *bridge-registry* 'type '(Hashtable Symbol (List Symbol)))
+(doc *bridge-registry* 'type '(HAMT Symbol (List Symbol)))
 (doc *bridge-registry* 'description "Maps module names to the list of top-level skill
   domains they bridge. Populated by register-bridge! calls below.")
-(define *bridge-registry* (make-eq-hashtable))
+(define *bridge-registry* hamt-empty)
 
 (doc register-bridge! 'type '(-> Symbol (List Symbol) Void))
 (doc register-bridge! 'description "Register a module as bridging the given skill domains.
   Domains should be top-level lattice directory names (e.g., optics, autodiff, linalg).")
 (doc register-bridge! 'export #t)
 (define (register-bridge! module-name domains)
-  (hashtable-set! *bridge-registry* module-name domains))
+  (set! *bridge-registry* (hamt-assoc module-name domains *bridge-registry*)))
 
 ;;; ====================================================================
 ;;; Known Bridge Declarations
@@ -123,11 +124,10 @@
   Returns an alist of (module-name . bridged-domains).")
 (doc lattice-bridges 'export #t)
 (define (lattice-bridges)
-  (let ([keys (vector->list (hashtable-keys *bridge-registry*))])
-    (map (lambda (k) (cons k (hashtable-ref *bridge-registry* k '())))
-         (sort (lambda (a b)
-                 (string<? (symbol->string a) (symbol->string b)))
-               keys))))
+  (let ([entries (hamt-entries *bridge-registry*)])
+    (sort (lambda (a b)
+            (string<? (symbol->string (car a)) (symbol->string (car b))))
+          entries)))
 
 (doc lattice-bridges-for 'type '(-> Symbol (List (Pair Symbol (List Symbol)))))
 (doc lattice-bridges-for 'description "List modules that bridge a given skill domain to
@@ -144,20 +144,19 @@
   if the module has no bridge annotation.")
 (doc bridge-domains 'export #t)
 (define (bridge-domains module-name)
-  (let ([result (hashtable-ref *bridge-registry* module-name #f)])
-    (or result #f)))
+  (hamt-lookup module-name *bridge-registry*))
 
 (doc bridge? 'type '(-> Symbol Boolean))
 (doc bridge? 'description "Check whether a module has a bridge annotation.")
 (doc bridge? 'export #t)
 (define (bridge? module-name)
-  (hashtable-contains? *bridge-registry* module-name))
+  (hamt-has-key? module-name *bridge-registry*))
 
 (doc bridge-count 'type '(-> Nat))
 (doc bridge-count 'description "Return the number of registered bridge modules.")
 (doc bridge-count 'export #t)
 (define (bridge-count)
-  (hashtable-size *bridge-registry*))
+  (hamt-size *bridge-registry*))
 
 ;;; ====================================================================
 ;;; Automatic Bridge Candidate Detection

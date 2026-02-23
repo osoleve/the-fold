@@ -1,9 +1,10 @@
 ;;; lattice/fp/meta/combinators.ss — FP Combinators
 ;;; @module combinators
-;;; @requires prelude sort
+;;; @requires prelude sort hamt
 
 (require 'prelude)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'combinators)
 (doc 'description "Practical FP combinators — Higher-order function utilities and combinators for functional programming patterns without requiring full type class machinery. Features: function composition (compose, pipe), currying and partial application, common combinators (id, const, flip, on), tuple operations, function lifting and application, logical combinators, Maybe/Option operations, Either/Result operations.")
@@ -473,13 +474,13 @@
 
 (define (memoize f)
   (doc 'type '(-> (-> α β) (-> α β)))
-  (doc 'description "Memoize a function (using eq? hash)")
-  (let ([cache (make-hashtable equal-hash equal?)])
+  (doc 'description "Memoize a function (using persistent HAMT cache)")
+  (let ([cache hamt-empty])
        (lambda (x)
-               (let ([cached (hashtable-ref cache x 'not-found)])
+               (let ([cached (hamt-lookup-or x cache 'not-found)])
                     (if (eq? cached 'not-found)
                         (let ([result (f x)])
-                             (hashtable-set! cache x result)
+                             (set! cache (hamt-assoc x result cache))
                              result)
                         cached)))))
 

@@ -1,11 +1,12 @@
 ;;; lattice/data/graph/graph-primitives.ss — Pure Graph Data Structures
 ;;; @module graph-primitives
-;;; @requires prelude sort
+;;; @requires prelude sort hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'graph-primitives)
 (doc 'description "Pure graph data structures: visited sets, queues, stacks, hash utilities, cycle utilities.
@@ -37,27 +38,25 @@
                           16777619)  ; FNV prime
                        #xFFFFFFFF))))))
 
-;;; make-visited : → HashTable
-;;; Create an empty visited set (hash table).
+;;; make-visited : → HAMT
+;;; Create an empty visited set.
 (define (make-visited)
-  (make-hashtable bytevector-hash bytevector=?))
+  hamt-empty)
 
-;;; visited-add : HashTable Hash → HashTable
-;;; Add a hash to the visited set. Mutates and returns the table.
+;;; visited-add : HAMT Hash → HAMT
+;;; Add a hash to the visited set. Returns new HAMT.
 (define (visited-add visited hash)
-  (hashtable-set! visited hash #t)
-  visited)
+  (hamt-assoc hash #t visited))
 
-;;; visited-contains? : HashTable Hash → Boolean
-;;; Check if hash is in visited set. O(1) lookup.
+;;; visited-contains? : HAMT Hash → Boolean
+;;; Check if hash is in visited set. O(log32 n) lookup.
 (define (visited-contains? visited hash)
-  (hashtable-ref visited hash #f))
+  (hamt-lookup hash visited))
 
-;;; visited-remove : HashTable Hash → HashTable
+;;; visited-remove : HAMT Hash → HAMT
 ;;; Remove a hash from the visited set. Used for backtracking.
 (define (visited-remove visited hash)
-  (hashtable-delete! visited hash)
-  visited)
+  (hamt-dissoc hash visited))
 
 ;;; --- Queue Operations (for BFS) ---
 ;;; Using Okasaki's two-list queue for amortized O(1) operations.
@@ -204,12 +203,11 @@
 ;;; Uses hash table for O(N) complexity instead of O(N*M).
 (define (same-hash-set? lst1 lst2)
   (and (= (length lst1) (length lst2))
-       (let ([hash-set (make-hashtable equal-hash equal?)])
-            (for-each (lambda (h) (hashtable-set! hash-set h #t)) lst2)
+       (let ([hash-set (fold-left (lambda (acc h) (hamt-assoc h #t acc)) hamt-empty lst2)])
             (let loop ([l lst1])
                  (if (null? l)
                      #t
-                     (and (hashtable-contains? hash-set (car l))
+                     (and (hamt-has-key? (car l) hash-set)
                           (loop (cdr l))))))))
 
 

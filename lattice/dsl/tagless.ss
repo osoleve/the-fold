@@ -1,7 +1,8 @@
 ;;; @module tagless
-;;; @requires prelude
+;;; @requires prelude hamt
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'hamt)
 
 (doc 'module 'tagless)
 (doc 'description "Tagless Final DSL Pattern - Alternative to Free monads that avoids intermediate data structures")
@@ -582,18 +583,20 @@
 ;;; Memoize pure operations (requires operations to be referentially transparent).
 (define (with-memoization d)
   (doc 'export #t)
-  (let ([cache (make-hashtable equal-hash equal?)])
+  (let ([cache-cell (list hamt-empty)])  ; mutable cell holding HAMT
        (make-dict (list 'memoized (dict-tag d))
                   (map (lambda (op)
                                (cons (car op)
                                      (lambda args
-                                             (let ([key (cons (car op) args)])
-                                                  (let ([cached (hashtable-ref cache key 'not-found)])
-                                                       (if (eq? cached 'not-found)
-                                                           (let ([result (apply (cdr op) args)])
-                                                                (hashtable-set! cache key result)
-                                                                result)
-                                                           cached))))))
+                                             (let* ([key (cons (car op) args)]
+                                                    [cache (car cache-cell)]
+                                                    [sentinel (list 'not-found)]
+                                                    [cached (hamt-lookup-or key cache sentinel)])
+                                                   (if (eq? cached sentinel)
+                                                       (let ([result (apply (cdr op) args)])
+                                                            (set-car! cache-cell (hamt-assoc key result cache))
+                                                            result)
+                                                       cached)))))
                        (dict-ops d)))))
 
 ;;; ====

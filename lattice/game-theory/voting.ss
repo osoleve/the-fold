@@ -1,10 +1,11 @@
 ;;; lattice/game-theory/voting.ss — Social Choice and Voting Rules
 ;;; @module voting
-;;; @requires prelude
+;;; @requires prelude hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'hamt)
 (require 'sort)
 
 (doc 'module 'voting)
@@ -346,15 +347,16 @@
       '()
       (let ([candidates (profile-candidates profile)])
         ;; Build defeat relation: who beats whom?
-        (let ([dominated-by (make-eq-hashtable)])
-          ;; For each candidate, record who beats them
-          (for-each
-           (lambda (c)
-             (hashtable-set! dominated-by c
-               (filter (lambda (other)
-                         (> (pairwise-margin other c profile) 0))
-                       (remove c candidates))))
-           candidates)
+        (let ([dominated-by
+               (fold-left
+                (lambda (acc c)
+                  (hamt-assoc c
+                    (filter (lambda (other)
+                              (> (pairwise-margin other c profile) 0))
+                            (remove c candidates))
+                    acc))
+                hamt-empty
+                candidates)])
           ;; Iteratively remove dominated candidates
           ;; A candidate is removable if beaten by someone not being removed
           (let loop ([remaining candidates])
@@ -424,11 +426,10 @@
     (for-each
      (lambda (ranking)
        ;; Build position lookup for this ranking: candidate -> position
-       (let ([pos-of (make-eq-hashtable)])
-         (let loop ([r ranking] [p 0])
-           (unless (null? r)
-             (hashtable-set! pos-of (car r) p)
-             (loop (cdr r) (+ p 1))))
+       (let ([pos-of (let loop ([r ranking] [p 0] [acc hamt-empty])
+                       (if (null? r)
+                           acc
+                           (loop (cdr r) (+ p 1) (hamt-assoc (car r) p acc))))])
          ;; For each pair (i, j), if candidate[i] ranked higher, increment margin
          (do ([i 0 (+ i 1)])
              ((>= i n))
@@ -439,7 +440,7 @@
                (unless (= i j)
                  (let ([cj (list-ref candidates j)])
                    ;; If ci ranked higher (smaller position) than cj, +1 to margin[i][j]
-                   (when (< (hashtable-ref pos-of ci n) (hashtable-ref pos-of cj n))
+                   (when (< (hamt-lookup-or ci pos-of n) (hamt-lookup-or cj pos-of n))
                      (vector-set! row j (+ (vector-ref row j) 1))
                      (vector-set! (vector-ref matrix j) i
                                   (- (vector-ref (vector-ref matrix j) i) 1))))))))))

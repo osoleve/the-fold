@@ -1,10 +1,11 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module optic-functors
-;;; @requires prelude reverse-diff traced-optics functor-general
+;;; @requires prelude reverse-diff traced-optics functor-general hamt
 (require 'prelude)
 (require 'reverse-diff)
 (require 'traced-optics)
 (require 'functor-general)
+(require 'hamt)
 
 (doc 'module 'optic-functors)
 (doc 'description "Categorical bridge from optics tower to autodiff.
@@ -112,7 +113,7 @@ Each entry is a triple (lift-fn, extract-fn, update-fn):
   extract-fn : (focus, grads) → gradient
   update-fn  : (optic, s, gradient, rate) → s'")
 
-(define *diff-kind-registry* (make-eq-hashtable))
+(define *diff-kind-registry* hamt-empty)
 
 (define (register-diff-kind! kind lift-fn extract-fn update-fn)
   (doc 'export #t)
@@ -121,11 +122,11 @@ Each entry is a triple (lift-fn, extract-fn, update-fn):
                          (-> Optic Any Any Number Any)
                          Void))
   (doc 'description "Register AD behavior for an optic kind.")
-  (hashtable-set! *diff-kind-registry* kind
-                  (list lift-fn extract-fn update-fn)))
+  (set! *diff-kind-registry*
+        (hamt-assoc kind (list lift-fn extract-fn update-fn) *diff-kind-registry*)))
 
 (define (lookup-diff-kind kind)
-  (or (hashtable-ref *diff-kind-registry* kind #f)
+  (or (hamt-lookup kind *diff-kind-registry*)
       (error 'lookup-diff-kind "No AD behavior registered for optic kind" kind)))
 
 (define (diff-kind-lift kind) (car (lookup-diff-kind kind)))

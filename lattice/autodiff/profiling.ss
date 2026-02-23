@@ -1,5 +1,5 @@
 ;;; @module profiling
-;;; @requires prelude comp-graph reverse-diff sort
+;;; @requires prelude comp-graph reverse-diff sort hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -7,6 +7,7 @@
 (require 'comp-graph)
 (require 'reverse-diff)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'profiling)
 (doc 'description "Performance Profiling for Autodiff - utilities for profiling and debugging autodiff performance")
@@ -21,20 +22,16 @@
   (doc 'type '(-> MutableTape Stats))
   (let* ([entries (reverse-tape-entries tape)]
          [size (length entries)]
-         [op-counts (make-hashtable symbol-hash eq?)])
-        ;; Count operations by type
-        (for-each
-         (lambda (entry)
-                 (let* ([op-name (cadr entry)]
-                        [current (hashtable-ref op-counts op-name 0)])
-                       (hashtable-set! op-counts op-name (+ current 1))))
-         entries)
+         [op-counts (fold-left
+                     (lambda (acc entry)
+                       (let ([op-name (cadr entry)])
+                         (hamt-assoc op-name (+ (hamt-lookup-or op-name acc 0) 1) acc)))
+                     hamt-empty
+                     entries)])
         ;; Build result
-        (let-values ([(keys vals) (hashtable-entries op-counts)])
-                    (list (cons 'size size)
-                          (cons 'ops (map cons
-                                          (vector->list keys)
-                                          (vector->list vals)))))))
+        (list (cons 'size size)
+              (cons 'ops (hamt-fold (lambda (acc k v) (cons (cons k v) acc))
+                                    '() op-counts)))))
 
 ;;; tape-size : MutableTape → Nat
 (define (tape-size tape)
@@ -74,19 +71,21 @@
 (define (graph-depth g)
   (if (null? (comp-graph-nodes g))
       0
-      (let ([depths (make-hashtable equal-hash equal?)])
-           ;; Compute depth for each node (memoized)
+      ;; Compute depth for each node (memoized via HAMT)
+      ;; We use a boxed HAMT to allow the memoization closure to update it
+      (let ([depths-box (box hamt-empty)])
            (letrec ([compute-depth
                      (lambda (id)
-                             (or (hashtable-ref depths id #f)
-                                 (let* ([node (graph-get-node g id)]
-                                        [input-ids (extract-input-ids node g)]
-                                        [d (if (null? input-ids)
-                                               0
-                                               (+ 1 (apply max
-                                                           (map compute-depth input-ids))))])
-                                       (hashtable-set! depths id d)
-                                       d)))])
+                             (let ([cached (hamt-lookup id (unbox depths-box))])
+                               (or cached
+                                   (let* ([node (graph-get-node g id)]
+                                          [input-ids (extract-input-ids node g)]
+                                          [d (if (null? input-ids)
+                                                 0
+                                                 (+ 1 (apply max
+                                                             (map compute-depth input-ids))))])
+                                     (set-box! depths-box (hamt-assoc id d (unbox depths-box)))
+                                     d))))])
                    ;; Compute depth for all nodes, return max
                    (graph-fold-nodes
                     (lambda (acc id node)
@@ -114,16 +113,13 @@
 
 ;;; tally-ops : (List Symbol) → (AList Symbol Nat)
 (define (tally-ops ops)
-  (let ([counts (make-hashtable symbol-hash eq?)])
-       (for-each
-        (lambda (op)
-                (hashtable-set! counts op
-                                (+ 1 (hashtable-ref counts op 0))))
-        ops)
-       (let-values ([(keys vals) (hashtable-entries counts)])
-                   (map cons
-                        (vector->list keys)
-                        (vector->list vals)))))
+  (let ([counts (fold-left
+                 (lambda (acc op)
+                   (hamt-assoc op (+ 1 (hamt-lookup-or op acc 0)) acc))
+                 hamt-empty
+                 ops)])
+    (hamt-fold (lambda (acc k v) (cons (cons k v) acc))
+               '() counts)))
 
 ;;; ====
 ;;; Timing Utilities

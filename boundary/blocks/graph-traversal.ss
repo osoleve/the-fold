@@ -239,7 +239,9 @@
                                      (lambda (neighbor)
                                              (dfs neighbor new-path new-path-set))
                                      (get-outgoing-hashes fs current))
-                                    (hashtable-delete! path-set current)
+                                    ;; No need to remove current from path-set:
+                                    ;; HAMT is persistent, so path-set never had current added.
+                                    ;; Backtracking is handled by the structural sharing of HAMTs.
                                     (set! global-visited (visited-add global-visited current)))]))))
         all-hashes)
        (unique-cycles cycles)))

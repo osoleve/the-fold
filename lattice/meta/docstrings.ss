@@ -1,3 +1,5 @@
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+
 (doc 'module 'docstrings)
 (doc 'description "Extract ;;; docstrings from source files and associate them with function definitions for improved search indexing.")
 (doc 'layer 'lattice)
@@ -7,7 +9,7 @@
 (doc 'section 'state)
 
 (doc *docstrings* 'description "Global docstring cache: symbol -> string")
-(define *docstrings* (make-hashtable symbol-hash eq?))
+(define *docstrings* hamt-empty)
 
 (doc 'section 'pure-parsing)
 
@@ -127,10 +129,11 @@
 ;;; Populate the cache from a list of (symbol . docstring) pairs.
 ;;; Called from boundary orchestrator after I/O.
 (define (populate-docstrings! entries)
-  (for-each
-   (lambda (entry)
-           (hashtable-set! *docstrings* (car entry) (cdr entry)))
-   entries))
+  (set! *docstrings*
+        (fold-left (lambda (acc entry)
+                     (hamt-assoc (car entry) (cdr entry) acc))
+                   hamt-empty
+                   entries)))
 
 (doc 'section 'cache-lookup)
 
@@ -138,7 +141,7 @@
 (doc get-docstring 'description "Get the docstring for a function")
 (define (get-docstring sym)
   (guard (e [else #f])
-         (hashtable-ref *docstrings* sym #f)))
+         (hamt-lookup sym *docstrings*)))
 
 (doc docstring-terms 'type (-> Symbol (List Symbol)))
 (doc docstring-terms 'description "Get search terms from a function's docstring")

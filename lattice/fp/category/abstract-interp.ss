@@ -1,8 +1,9 @@
 ;;; @module abstract-interp
-;;; @requires adjunction interval
+;;; @requires adjunction interval hamt
 
 (require 'adjunction)
 (require 'interval)
+(require 'hamt)
 
 (doc 'module 'abstract-interp)
 (doc 'description "Abstract Interpretation via Galois Connections. Provides domains and abstract semantics for static analysis: Signs⊣Embed, Intervals⊣Embed, Types⊣Erase, Reach⊣Concrete.")
@@ -460,7 +461,7 @@
 ;;; Create an empty abstract environment.
 (define (make-abstract-env domain)
   (doc 'export #t)
-  (list 'abstract-env domain (make-hashtable equal-hash equal?)))
+  (list 'abstract-env domain hamt-empty))
 
 (define (abstract-env? x)
   (and (pair? x) (eq? (car x) 'abstract-env)))
@@ -471,14 +472,12 @@
 ;;; env-lookup : AbstractEnv × Symbol → AbstractValue
 (define (env-lookup env var)
   (doc 'export #t)
-  (hashtable-ref (env-table env) var (domain-bottom (env-domain env))))
+  (hamt-lookup-or var (env-table env) (domain-bottom (env-domain env))))
 
 ;;; env-extend : AbstractEnv × Symbol × AbstractValue → AbstractEnv
 (define (env-extend env var val)
   (doc 'export #t)
-  (let ([new-table (hashtable-copy (env-table env) #t)])  ; #t = mutable copy
-    (hashtable-set! new-table var val)
-    (list 'abstract-env (env-domain env) new-table)))
+  (list 'abstract-env (env-domain env) (hamt-assoc var val (env-table env))))
 
 ;;; env-join : AbstractEnv × AbstractEnv → AbstractEnv
 ;;; Join environments pointwise.
@@ -486,23 +485,25 @@
   (doc 'export #t)
   (let* ([domain (env-domain env1)]
          [join (domain-join domain)]
-         [new-table (make-hashtable equal-hash equal?)]
-         [keys1 (hashtable-keys (env-table env1))]
-         [keys2 (hashtable-keys (env-table env2))])
-    ;; Join all keys from both environments
-    (vector-for-each
-     (lambda (k)
-       (let ([v1 (env-lookup env1 k)]
-             [v2 (env-lookup env2 k)])
-         (hashtable-set! new-table k (join v1 v2))))
-     keys1)
-    (vector-for-each
-     (lambda (k)
-       (unless (hashtable-contains? new-table k)
-         (let ([v2 (env-lookup env2 k)])
-           (hashtable-set! new-table k v2))))
-     keys2)
-    (list 'abstract-env domain new-table)))
+         [keys1 (hamt-keys (env-table env1))]
+         [keys2 (hamt-keys (env-table env2))])
+    ;; Start with keys from env1, joining with env2 values
+    (let* ([merged (fold-left
+                    (lambda (acc k)
+                      (let ([v1 (env-lookup env1 k)]
+                            [v2 (env-lookup env2 k)])
+                        (hamt-assoc k (join v1 v2) acc)))
+                    hamt-empty
+                    keys1)]
+           ;; Add keys only in env2
+           [merged (fold-left
+                    (lambda (acc k)
+                      (if (hamt-has-key? k acc)
+                          acc
+                          (hamt-assoc k (env-lookup env2 k) acc)))
+                    merged
+                    keys2)])
+      (list 'abstract-env domain merged))))
 
 ;;; ============================================================================
 ;;; Section 8: Abstract Interpreter for Simple Expressions

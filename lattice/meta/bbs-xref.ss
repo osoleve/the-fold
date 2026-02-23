@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module meta/bbs-xref
-;;; @requires prelude
+;;; @requires prelude hamt
 (require 'prelude)
+(require 'hamt)
 
 (doc 'module 'meta/bbs-xref)
 (doc 'description "Bidirectional cross-references between BBS issues and lattice entities.
@@ -133,9 +134,9 @@ Returns a list of (type . name) pairs.")
 (doc 'description "Create an empty cross-reference index.")
 (define (make-xref-index)
   (vector xref-index-tag
-          (make-eq-hashtable)    ; skill → issue-ids
-          (make-eq-hashtable)    ; module → issue-ids
-          (make-eq-hashtable)))  ; export → issue-ids
+          hamt-empty    ; skill → issue-ids
+          hamt-empty    ; module → issue-ids
+          hamt-empty))  ; export → issue-ids
 
 (define (xref-index? x)
   (and (vector? x)
@@ -155,15 +156,17 @@ Returns a list of (type . name) pairs.")
         (when parsed
           (let* ([type (car parsed)]
                  [name (cdr parsed)]
-                 [table (case type
-                          [(skill) (xref-idx-skills idx)]
-                          [(module) (xref-idx-modules idx)]
-                          [(export) (xref-idx-exports idx)]
-                          [else #f])])
-            (when table
-              (let ([existing (hashtable-ref table name '())])
+                 [slot (case type
+                         [(skill) 1]
+                         [(module) 2]
+                         [(export) 3]
+                         [else #f])])
+            (when slot
+              (let* ([table (vector-ref idx slot)]
+                     [existing (hamt-lookup-or name table '())])
                 (unless (member issue-id existing)
-                  (hashtable-set! table name (cons issue-id existing)))))))))
+                  (vector-set! idx slot
+                               (hamt-assoc name (cons issue-id existing) table)))))))))
     labels))
 
 (doc 'type '(-> XRefIndex (List (Pair String (List Symbol))) XRefIndex))
@@ -185,29 +188,29 @@ Returns a list of (type . name) pairs.")
 (doc 'type '(-> XRefIndex Symbol (List String)))
 (doc 'description "Find all issue IDs referencing a given skill.")
 (define (xref-issues-for-skill idx skill-name)
-  (hashtable-ref (xref-idx-skills idx) skill-name '()))
+  (hamt-lookup-or skill-name (xref-idx-skills idx) '()))
 
 (doc 'type '(-> XRefIndex Symbol (List String)))
 (doc 'description "Find all issue IDs referencing a given module.")
 (define (xref-issues-for-module idx module-name)
-  (hashtable-ref (xref-idx-modules idx) module-name '()))
+  (hamt-lookup-or module-name (xref-idx-modules idx) '()))
 
 (doc 'type '(-> XRefIndex Symbol (List String)))
 (doc 'description "Find all issue IDs referencing a given export.")
 (define (xref-issues-for-export idx export-name)
-  (hashtable-ref (xref-idx-exports idx) export-name '()))
+  (hamt-lookup-or export-name (xref-idx-exports idx) '()))
 
 (doc 'type '(-> XRefIndex Alist))
 (doc 'description "Summary statistics for the cross-reference index.")
 (define (xref-summary idx)
   (list 'xref-summary
-        (list 'skills (hashtable-size (xref-idx-skills idx)))
-        (list 'modules (hashtable-size (xref-idx-modules idx)))
-        (list 'exports (hashtable-size (xref-idx-exports idx)))
+        (list 'skills (hamt-size (xref-idx-skills idx)))
+        (list 'modules (hamt-size (xref-idx-modules idx)))
+        (list 'exports (hamt-size (xref-idx-exports idx)))
         (list 'total-refs
-              (+ (hashtable-size (xref-idx-skills idx))
-                 (hashtable-size (xref-idx-modules idx))
-                 (hashtable-size (xref-idx-exports idx))))))
+              (+ (hamt-size (xref-idx-skills idx))
+                 (hamt-size (xref-idx-modules idx))
+                 (hamt-size (xref-idx-exports idx))))))
 
 ;;; ============================================================
 ;;; Label Merging

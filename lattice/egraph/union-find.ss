@@ -1,5 +1,5 @@
 ;;; @module egraph/union-find
-;;; @requires prelude
+;;; @requires prelude hamt
 ;;; lattice/egraph/union-find.ss — Disjoint Set (Union-Find) Data Structure
 ;;;
 ;;; Classic union-find with path compression and union by rank.
@@ -20,6 +20,7 @@
 ;;; This is Lattice code: pure operations where possible, mutation clearly marked.
 
 (require 'prelude)
+(require 'hamt)
 
 (doc 'module 'egraph/union-find)
 (doc 'description "Disjoint set data structure for e-class equivalence tracking")
@@ -203,16 +204,18 @@
                     (cons i acc)
                     acc))))))
 
-;;; uf-all-sets-table : UnionFind → Hashtable
-;;; Internal: Build hashtable mapping root → list of members in O(N).
+;;; uf-all-sets-table : UnionFind → HAMT
+;;; Internal: Build HAMT mapping root → list of members in O(N).
 (define (uf-all-sets-table uf)
-  (let ([n (uf-size uf)]
-        [table (make-eqv-hashtable)])
-    (do ([i 0 (+ i 1)])
-        ((>= i n) table)
-      (let ([root (uf-find uf i)])
-        (hashtable-set! table root
-                        (cons i (hashtable-ref table root '())))))))
+  (let ([n (uf-size uf)])
+    (let loop ([i 0] [table hamt-empty])
+      (if (>= i n)
+          table
+          (let ([root (uf-find uf i)])
+            (loop (+ i 1)
+                  (hamt-assoc root
+                              (cons i (hamt-lookup-or root table '()))
+                              table)))))))
 
 ;;; uf-all-sets : UnionFind → (List (List Id))
 ;;; Get all sets as lists of members. O(N) single pass.
@@ -221,7 +224,7 @@
   (doc 'description "List all equivalence classes as lists of member IDs. O(N) complexity.")
   (doc 'export #t)
   (let ([table (uf-all-sets-table uf)])
-    (map (lambda (root) (reverse (hashtable-ref table root '())))
+    (map (lambda (root) (reverse (hamt-lookup-or root table '())))
          (uf-roots uf))))
 
 ;;; uf-set-members : UnionFind × Id → (List Id)
@@ -232,7 +235,7 @@
   (doc 'export #t)
   (let ([root (uf-find uf id)]
         [table (uf-all-sets-table uf)])
-    (reverse (hashtable-ref table root '()))))
+    (reverse (hamt-lookup-or root table '()))))
 
 ;;; uf-set-size : UnionFind × Id → Nat
 ;;; Get the size of the set containing id.

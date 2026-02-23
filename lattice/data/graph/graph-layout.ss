@@ -1,12 +1,13 @@
 ;;; lattice/data/graph/graph-layout.ss --- Force-directed graph layout algorithms
 ;;; @module graph-layout
-;;; @requires prelude linalg/vec optics
+;;; @requires prelude linalg/vec optics hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'vec)
 (require 'optics)
+(require 'hamt)
 
 (doc 'module 'graph-layout)
 (doc 'description "Force-directed graph layout using Fruchterman-Reingold algorithm")
@@ -186,11 +187,11 @@
          ;; Convert to vector for O(1) access during edge loop (Gemini QA fix)
          [nodes-vec (list->vector nodes)]
          ;; Pre-compute id->index map for O(1) lookup (fixes O(E*N) bug)
-         [id-map (make-eq-hashtable)]
-         [_ (let build-map ([ns nodes] [i 0])
-              (when (pair? ns)
-                (hashtable-set! id-map (node-id (car ns)) i)
-                (build-map (cdr ns) (+ i 1))))]
+         [id-map (let build-map ([ns nodes] [i 0] [acc hamt-empty])
+                   (if (pair? ns)
+                       (build-map (cdr ns) (+ i 1)
+                                  (hamt-assoc (node-id (car ns)) i acc))
+                       acc))]
          ;; Calculate forces for each node
          [forces (make-vector n (vector 0.0 0.0))])
     ;; Repulsion between all pairs
@@ -210,8 +211,8 @@
      (lambda (edge)
        (let* ([id1 (car edge)]
               [id2 (cdr edge)]
-              [idx1 (hashtable-ref id-map id1 #f)]
-              [idx2 (hashtable-ref id-map id2 #f)])
+              [idx1 (hamt-lookup id1 id-map)]
+              [idx2 (hamt-lookup id2 id-map)])
          (when (and idx1 idx2)
            (let* ([node1 (vector-ref nodes-vec idx1)]
                   [node2 (vector-ref nodes-vec idx2)]

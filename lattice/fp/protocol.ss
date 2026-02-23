@@ -1,8 +1,9 @@
 ;;; lattice/fp/protocol.ss — Protocol Dispatch
 ;;; @module protocol
-;;; @requires prelude
+;;; @requires prelude hamt
 
 (require 'prelude)
+(require 'hamt)
 
 (doc 'module 'protocol)
 (doc 'description "A lightweight dispatch mechanism allowing types to register implementations for generic operations (protocols). Enables the Open/Closed Principle: extend behavior without modifying existing code.")
@@ -30,32 +31,30 @@ Type Dispatch:
 
 (doc 'section 'registry)
 
-(define *protocol-registry* (make-hashtable symbol-hash eq?))
-(doc *protocol-registry* 'type '(Hashtable Symbol (Hashtable Symbol Procedure)))
-(doc *protocol-registry* 'description "Global registry: Protocol Name -> (Type Tag -> Implementation). Structure: hashtable of hashtables")
+(define *protocol-registry* hamt-empty)
+(doc *protocol-registry* 'type '(HAMT Symbol (HAMT Symbol Procedure)))
+(doc *protocol-registry* 'description "Global registry: Protocol Name -> (Type Tag -> Implementation). Structure: HAMT of HAMTs")
 
 (define (register-protocol-impl! protocol-name type-tag impl)
   (doc 'type '(-> Symbol Symbol Procedure Void))
   (doc 'description "Register an implementation for a protocol and type")
-  (let ([type-table (hashtable-ref *protocol-registry* protocol-name #f)])
-    (unless type-table
-      (set! type-table (make-hashtable symbol-hash eq?))
-      (hashtable-set! *protocol-registry* protocol-name type-table))
-    (hashtable-set! type-table type-tag impl)))
+  (let ([type-table (hamt-lookup protocol-name *protocol-registry*)])
+    (let ([new-type-table (hamt-assoc type-tag impl (or type-table hamt-empty))])
+      (set! *protocol-registry* (hamt-assoc protocol-name new-type-table *protocol-registry*)))))
 
 (define (get-protocol-impl protocol-name type-tag)
   (doc 'type '(-> Symbol Symbol (Or Procedure #f)))
   (doc 'description "Look up implementation for protocol and type")
-  (let ([type-table (hashtable-ref *protocol-registry* protocol-name #f)])
+  (let ([type-table (hamt-lookup protocol-name *protocol-registry*)])
     (and type-table
-         (hashtable-ref type-table type-tag #f))))
+         (hamt-lookup type-tag type-table))))
 
 (define (protocol-implementations protocol-name)
   (doc 'type '(-> Symbol (List Symbol)))
   (doc 'description "List all types implementing a protocol")
-  (let ([type-table (hashtable-ref *protocol-registry* protocol-name #f)])
+  (let ([type-table (hamt-lookup protocol-name *protocol-registry*)])
     (if type-table
-        (vector->list (hashtable-keys type-table))
+        (hamt-keys type-table)
         '())))
 
 (doc 'section 'type-tag-extraction)
@@ -132,7 +131,7 @@ Type Dispatch:
 (define (protocol-exists? protocol-name)
   (doc 'type '(-> Symbol Boolean))
   (doc 'description "Check if a protocol has any implementations registered")
-  (hashtable-contains? *protocol-registry* protocol-name))
+  (hamt-has-key? protocol-name *protocol-registry*))
 
 (define (type-implements? type-tag protocol-name)
   (doc 'type '(-> Symbol Symbol Boolean))
@@ -142,7 +141,7 @@ Type Dispatch:
 (define (list-protocols)
   (doc 'type '(-> (List Symbol)))
   (doc 'description "List all registered protocol names")
-  (vector->list (hashtable-keys *protocol-registry*)))
+  (hamt-keys *protocol-registry*))
 
 (doc 'section 'exports)
 (doc 'exports "Core:

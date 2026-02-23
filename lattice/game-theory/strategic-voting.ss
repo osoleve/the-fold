@@ -1,10 +1,11 @@
 ;;; lattice/game-theory/strategic-voting.ss — Strategic Voting Equilibrium Analysis
 ;;; @module strategic-voting
-;;; @requires prelude voting
+;;; @requires prelude voting hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'hamt)
 (require 'voting)
 
 (doc 'module 'strategic-voting)
@@ -113,17 +114,18 @@
       (let* ([n (length true-profile)]
              [candidates (profile-candidates true-profile)]
              [all-ballots (permutations candidates)]  ; Compute once, reuse
-             [visited (make-hashtable equal-hash equal?)])
+             [visited hamt-empty])
         ;; Start from truthful profile
         (let loop ([current true-profile]
-                   [remaining-fuel fuel])
+                   [remaining-fuel fuel]
+                   [visited visited])
           (cond
             [(<= remaining-fuel 0)
              (list 'err 'fuel-exhausted)]
-            [(hashtable-ref visited current #f)
+            [(hamt-lookup current visited)
              (list 'err 'cycle)]
             [else
-             (hashtable-set! visited current #t)
+             (let ([visited (hamt-assoc current #t visited)])
              ;; Combined equilibrium check and improvement finding (single pass)
              (let find-improving-voter ([i 0])
                (if (>= i n)
@@ -146,9 +148,9 @@
                          (let* ([best-ballot (car (car (filter (lambda (bu) (= (cdr bu) max-utility))
                                                                ballot-utilities)))]
                                 [new-profile (list-set current i best-ballot)])
-                           (loop new-profile (- remaining-fuel 1)))
+                           (loop new-profile (- remaining-fuel 1) visited))
                          ;; No improvement for voter i, check next
-                         (find-improving-voter (+ i 1))))))])))))
+                         (find-improving-voter (+ i 1)))))))])))))
 
 ;;; all-strategic-equilibria : PreferenceProfile (Profile -> Candidate) -> (List PreferenceProfile)
 ;;; Find all Nash equilibria by exhaustive search.

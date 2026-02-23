@@ -1,5 +1,5 @@
 ;;; @module egraph/eclass
-;;; @requires prelude egraph/union-find
+;;; @requires prelude hamt egraph/union-find
 ;;; lattice/egraph/eclass.ss — E-Node and E-Class Representation
 ;;;
 ;;; E-nodes are operators applied to e-class IDs (not recursive terms).
@@ -14,6 +14,7 @@
 ;;; This is Lattice code: pure operations where possible, mutation clearly marked.
 
 (require 'prelude)
+(require 'hamt)
 (require 'egraph/union-find)
 
 (doc 'module 'egraph/eclass)
@@ -149,7 +150,7 @@
   (doc 'description "Create empty e-class data (nodes list, parents set).")
   (vector eclass-tag
           '()                      ; nodes: list of e-nodes
-          (make-eqv-hashtable)))   ; parents: hashtable of parent class IDs
+          hamt-empty))             ; parents: HAMT of parent class IDs → #t
 
 (define (eclass-data? x)
   (and (vector? x)
@@ -161,6 +162,9 @@
 
 (define (eclass-set-nodes! data nodes)
   (vector-set! data 1 nodes))
+
+(define (eclass-set-parents! data parents)
+  (vector-set! data 2 parents))
 
 ;;; ============================================================
 ;;; E-Class Store: Parallel Array to Union-Find
@@ -248,7 +252,8 @@
   (doc 'description "Record that parent-class references child-class.")
   (doc 'export #t)
   (let ([data (eclass-get-or-create! store child-class-id)])
-    (hashtable-set! (eclass-parents data) parent-class-id #t)))
+    (eclass-set-parents! data
+      (hamt-assoc parent-class-id #t (eclass-parents data)))))
 
 ;;; eclass-get-nodes : EClassStore × Id → (List ENode)
 ;;; Get all e-nodes in an e-class.
@@ -267,7 +272,7 @@
   (doc 'export #t)
   (let ([data (eclass-get store class-id)])
     (if data
-        (vector->list (hashtable-keys (eclass-parents data)))
+        (hamt-keys (eclass-parents data))
         '())))
 
 ;;; ============================================================
@@ -309,39 +314,43 @@
       [else
        (let* ([target-data (eclass-get-or-create! store new-root)]
               [target-parents (eclass-parents target-data)]
-              ;; Use hashtable for O(1) deduplication of affected parents
-              [affected-set (make-eqv-hashtable)])
+              [affected-set hamt-empty])
 
          ;; Helper: merge parents from a data block into both target-parents and affected-set
-         (define (merge-parents-from! data)
-           (when data
-             (for-each
-              (lambda (p)
-                (hashtable-set! target-parents p #t)
-                (hashtable-set! affected-set p #t))
-              (vector->list (hashtable-keys (eclass-parents data))))))
+         ;; Returns updated affected-set; target-parents is updated via eclass-set-parents!
+         (define (merge-parents-from! data aset)
+           (if data
+               (let ([parent-keys (hamt-keys (eclass-parents data))])
+                 (let loop ([ks parent-keys] [aset aset])
+                   (if (null? ks)
+                       aset
+                       (begin
+                         (eclass-set-parents! target-data
+                           (hamt-assoc (car ks) #t (eclass-parents target-data)))
+                         (loop (cdr ks) (hamt-assoc (car ks) #t aset))))))
+               aset))
 
          ;; Merge nodes and parents from data1 if not at root
          (when (and data1 (not (= id1 new-root)))
            (eclass-set-nodes! target-data
                              (append (eclass-nodes data1) (eclass-nodes target-data)))
-           (merge-parents-from! data1))
+           (set! affected-set (merge-parents-from! data1 affected-set)))
 
          ;; Merge nodes and parents from data2 if not at root and not same as data1
          (when (and data2 (not (= id2 new-root)) (not (= id2 id1)))
            (eclass-set-nodes! target-data
                              (append (eclass-nodes data2) (eclass-nodes target-data)))
-           (merge-parents-from! data2))
+           (set! affected-set (merge-parents-from! data2 affected-set)))
 
          ;; Also include parents that were already at root (before merge started)
-         ;; Note: target-parents is already the root's hashtable, so these are already there
-         ;; Just need to add them to affected-set if not already present
-         (for-each
-          (lambda (p) (hashtable-set! affected-set p #t))
-          (vector->list (hashtable-keys target-parents)))
+         ;; These are already in target-parents; just add to affected-set
+         (set! affected-set
+           (hamt-fold (lambda (acc k v) (hamt-assoc k #t acc))
+                      affected-set
+                      (eclass-parents target-data)))
 
          ;; Return affected parents as list
-         (vector->list (hashtable-keys affected-set)))])))
+         (hamt-keys affected-set))])))
 
 ;;; ============================================================
 ;;; Introspection
@@ -435,6 +444,6 @@
           (printf "  Nodes: ~a~n" (length (eclass-nodes data)))
           (for-each (lambda (n) (printf "    ~a~n" (enode->string n)))
                     (eclass-nodes data))
-          (printf "  Parents: ~a~n" (hashtable-keys (eclass-parents data))))
+          (printf "  Parents: ~a~n" (hamt-keys (eclass-parents data))))
         (printf "  (empty)~n"))))
 

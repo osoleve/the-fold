@@ -1,5 +1,5 @@
 ;;; @module sparse-autodiff
-;;; @requires prelude vec matrix sparse comp-graph reverse-diff higher-order-diff
+;;; @requires prelude vec matrix sparse comp-graph reverse-diff higher-order-diff hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -10,6 +10,7 @@
 (require 'comp-graph)
 (require 'reverse-diff)
 (require 'higher-order-diff)
+(require 'hamt)
 
 (doc 'module 'sparse-autodiff)
 (doc 'description "Sparse Automatic Differentiation - efficient autodiff for large, sparse systems using sparse matrix representations (COO, CSR, CSC)")
@@ -97,35 +98,33 @@
          [val1 (sparse-grad-values g1)]
          [idx2 (sparse-grad-indices g2)]
          [val2 (sparse-grad-values g2)]
-         ;; Use hashtable for O(nnz) memory instead of O(max-idx)
-         [acc (make-hashtable equal-hash equal?)])
-        ;; Accumulate from g1
-        (do ([k 0 (+ k 1)])
-            ((= k n1))
-            (let ([i (vector-ref idx1 k)]
-                  [v (vector-ref val1 k)])
-                 (hashtable-set! acc i (+ (hashtable-ref acc i 0) v))))
-        ;; Accumulate from g2
-        (do ([k 0 (+ k 1)])
-            ((= k n2))
-            (let ([i (vector-ref idx2 k)]
-                  [v (vector-ref val2 k)])
-                 (hashtable-set! acc i (+ (hashtable-ref acc i 0) v))))
-        ;; Convert hashtable to sparse gradient
-        (let-values ([(keys vals) (hashtable-entries acc)])
-                    (let* ([ks (vector->list keys)]
-                           [vs (vector->list vals)]
-                           ;; Filter out zeros
-                           [nz-pairs (filter (lambda (p) (not (= (cdr p) 0)))
-                                             (map cons ks vs))]
-                           [nnz (length nz-pairs)]
-                           [indices (make-vector nnz 0)]
-                           [values (make-vector nnz 0)])
-                          (do ([k 0 (+ k 1)]
-                               [ps nz-pairs (cdr ps)])
-                              ((= k nnz) (make-sparse-grad indices values))
-                              (vector-set! indices k (caar ps))
-                              (vector-set! values k (cdar ps)))))))
+         ;; Use HAMT for O(nnz) memory instead of O(max-idx)
+         ;; Accumulate from g1
+         [acc (let loop ([k 0] [h hamt-empty])
+                (if (= k n1) h
+                    (let ([i (vector-ref idx1 k)]
+                          [v (vector-ref val1 k)])
+                      (loop (+ k 1)
+                            (hamt-assoc i (+ (hamt-lookup-or i h 0) v) h)))))]
+         ;; Accumulate from g2
+         [acc (let loop ([k 0] [h acc])
+                (if (= k n2) h
+                    (let ([i (vector-ref idx2 k)]
+                          [v (vector-ref val2 k)])
+                      (loop (+ k 1)
+                            (hamt-assoc i (+ (hamt-lookup-or i h 0) v) h)))))]
+         ;; Convert HAMT to sparse gradient, filtering out zeros
+         [nz-pairs (hamt-fold (lambda (acc k v)
+                                (if (= v 0) acc (cons (cons k v) acc)))
+                              '() acc)]
+         [nnz (length nz-pairs)]
+         [indices (make-vector nnz 0)]
+         [values (make-vector nnz 0)])
+    (do ([k 0 (+ k 1)]
+         [ps nz-pairs (cdr ps)])
+        ((= k nnz) (make-sparse-grad indices values))
+        (vector-set! indices k (caar ps))
+        (vector-set! values k (cdar ps)))))
 
 ;;; sparse-grad-scale : Number × SparseGrad → SparseGrad
 (define (sparse-grad-scale k g)
@@ -494,38 +493,41 @@
 
 ;;; sparse-backward : SparseTape × Nat × Number × Nat → SparseGrad
 (define (sparse-backward tape output-id seed n)
-  (let ([grads (make-hashtable equal-hash equal?)])
-       ;; Initialize output gradient
-       (hashtable-set! grads output-id seed)
-       ;; Process tape in reverse
-       (for-each
-        (lambda (entry)
-                (let* ([result-id (car entry)]
-                       [input-ids (caddr entry)]
-                       [local-grads (cadddr entry)]
-                       [result-grad (hashtable-ref grads result-id 0)])
-                      (for-each
-                       (lambda (input-id local-grad)
-                               (when input-id
-                                     (let ([current (hashtable-ref grads input-id 0)])
-                                          (hashtable-set! grads input-id
-                                                          (+ current (* result-grad local-grad))))))
-                       input-ids local-grads)))
-        (sparse-tape-entries tape))
-       ;; Convert to sparse gradient (only non-zero entries)
-       (let-values ([(keys vals) (hashtable-entries grads)])
-                   (let* ([ks (vector->list keys)]
-                          [vs (vector->list vals)]
-                          [nz-pairs (filter (lambda (p) (not (= (cdr p) 0)))
-                                            (map cons ks vs))]
-                          [nnz (length nz-pairs)]
-                          [indices (make-vector nnz 0)]
-                          [values (make-vector nnz 0)])
-                         (do ([k 0 (+ k 1)]
-                              [ps nz-pairs (cdr ps)])
-                             ((= k nnz) (make-sparse-grad indices values))
-                             (vector-set! indices k (caar ps))
-                             (vector-set! values k (cdar ps)))))))
+  (let* (;; Process tape in reverse, threading HAMT
+         [final-grads
+          (fold-left
+           (lambda (grads entry)
+             (let* ([result-id (car entry)]
+                    [input-ids (caddr entry)]
+                    [local-grads (cadddr entry)]
+                    [result-grad (hamt-lookup-or result-id grads 0)])
+               (fold-left
+                (lambda (g id-grad)
+                  (let ([input-id (car id-grad)]
+                        [local-grad (cdr id-grad)])
+                    (if input-id
+                        (hamt-assoc input-id
+                                    (+ (hamt-lookup-or input-id g 0)
+                                       (* result-grad local-grad))
+                                    g)
+                        g)))
+                grads
+                (map cons input-ids local-grads))))
+           ;; Initialize with output gradient
+           (hamt-assoc output-id seed hamt-empty)
+           (sparse-tape-entries tape))]
+         ;; Convert to sparse gradient (only non-zero entries)
+         [nz-pairs (hamt-fold (lambda (acc k v)
+                                (if (= v 0) acc (cons (cons k v) acc)))
+                              '() final-grads)]
+         [nnz (length nz-pairs)]
+         [indices (make-vector nnz 0)]
+         [values (make-vector nnz 0)])
+    (do ([k 0 (+ k 1)]
+         [ps nz-pairs (cdr ps)])
+        ((= k nnz) (make-sparse-grad indices values))
+        (vector-set! indices k (caar ps))
+        (vector-set! values k (cdar ps)))))
 
 ;;; ====
 ;;; Graph Coloring for Efficient Jacobian Computation

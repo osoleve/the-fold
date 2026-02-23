@@ -1,3 +1,5 @@
+(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+
 (doc 'module 'docs)
 (doc 'description "S-expression doc form extraction for search and inspection")
 (doc 'layer 'lattice)
@@ -100,15 +102,14 @@
 ;;; doc-stats : -> (Alist Tag Nat)
 ;;; Count docs by tag
 (define (doc-stats)
-  (let ([counts (make-hashtable equal-hash equal?)])  ; Use equal? for non-symbol tags
-    (for-each
-     (lambda (doc)
-       (let* ([tag (caddr doc)]
-              [current (hashtable-ref counts tag 0)])
-         (hashtable-set! counts tag (+ current 1))))
-     *doc-index*)
-    (let-values ([(keys vals) (hashtable-entries counts)])
-      (map cons (vector->list keys) (vector->list vals)))))
+  (let ([counts (fold-left
+                  (lambda (acc doc)
+                    (let* ([tag (caddr doc)]
+                           [current (hamt-lookup-or tag acc 0)])
+                      (hamt-assoc tag (+ current 1) acc)))
+                  hamt-empty
+                  *doc-index*)])
+    (hamt-entries counts)))
 
 (doc 'section 'pretty-printing)
 

@@ -1,5 +1,5 @@
 ;;; @module egraph/extract
-;;; @requires prelude egraph/cost egraph/saturation
+;;; @requires prelude hamt egraph/cost egraph/saturation
 ;;; lattice/egraph/extract.ss — Cost-Based E-Graph Extraction
 ;;;
 ;;; Extraction recovers a concrete term from an e-graph by choosing
@@ -14,6 +14,7 @@
 ;;; This is Lattice code: pure extraction logic.
 
 (require 'prelude)
+(require 'hamt)
 (require 'egraph/cost)
 (require 'egraph/saturation)
 
@@ -40,26 +41,28 @@
   (doc 'description "Create extraction state with precomputed best nodes.")
   (doc 'export #t)
   (let ([costs (compute-costs eg cost-model)]
-        [best-nodes (make-hashtable equal-hash equal?)]
         [uf (egraph-uf eg)]
         [store (egraph-classes eg)]
         [node-cost-fn (cost-model-fn cost-model)])
     ;; Find best node for each class
-    (for-each
-     (lambda (root)
-       (let ([best-node #f]
-             [best-cost +inf.0])
-         (for-each
-          (lambda (node)
-            (let ([c (compute-node-cost node costs node-cost-fn)])
-              (when (< c best-cost)
-                (set! best-cost c)
-                (set! best-node node))))
-          (eclass-get-nodes store root))
-         (when best-node
-           (hashtable-set! best-nodes root best-node))))
-     (uf-roots uf))
-    (vector extraction-state-tag eg costs best-nodes)))
+    (let ([best-nodes
+           (fold-left
+            (lambda (bn root)
+              (let ([best-node #f]
+                    [best-cost +inf.0])
+                (for-each
+                 (lambda (node)
+                   (let ([c (compute-node-cost node costs node-cost-fn)])
+                     (when (< c best-cost)
+                       (set! best-cost c)
+                       (set! best-node node))))
+                 (eclass-get-nodes store root))
+                (if best-node
+                    (hamt-assoc root best-node bn)
+                    bn)))
+            hamt-empty
+            (uf-roots uf))])
+      (vector extraction-state-tag eg costs best-nodes))))
 
 (define (extraction-state? x)
   (doc 'type (-> Any Boolean))
@@ -88,7 +91,7 @@
   (let* ([eg (state-egraph state)]
          [root (egraph-find eg class-id)]
          [best-nodes (state-best-nodes state)]
-         [best-node (hashtable-ref best-nodes root #f)])
+         [best-node (hamt-lookup root best-nodes)])
     (if (not best-node)
         ;; Shouldn't happen in a well-formed e-graph
         (error 'extract "no best node for class" root)
@@ -173,7 +176,7 @@
          [root (egraph-find eg class-id)]
          [costs (state-costs state)]
          [best-nodes (state-best-nodes state)]
-         [best (hashtable-ref best-nodes root #f)]
+         [best (hamt-lookup root best-nodes)]
          [all-nodes (eclass-get-nodes (egraph-classes eg) root)])
     (with-output-to-string
       (lambda ()

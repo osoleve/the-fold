@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-response
-;;; @requires prelude vec2 integrators
+;;; @requires prelude vec2 integrators hamt
 (require 'prelude)
 (require 'vec2)
 (require 'integrators)
+(require 'hamt)
 
 (doc 'module 'collision-response)
 (doc 'description "Impulse-based collision resolution for 2D physics")
@@ -482,31 +483,32 @@
                             (cons a (cons b bodies))))
                '()
                manifolds)]
-             ;; Build body table
-             [body-table (make-hashtable equal-hash equal?)])
-            ;; Initialize table with current bodies
-            (for-each
-             (lambda (b)
-                     (let ([key (body-pos b)])  ; Use position as key (simplified)
-                          (unless (hashtable-ref body-table key #f)
-                                  (hashtable-set! body-table key b))))
-             all-bodies)
-            ;; Resolve each collision
-            (for-each
-             (lambda (m)
-                     (let* ([mats (mat-fn m)]
-                            [mat-a (car mats)]
-                            [mat-b (cadr mats)]
-                            [result (resolve-with-correction m mat-a mat-b)]
-                            [new-a (car result)]
-                            [new-b (cadr result)])
-                           ;; Update table
-                           (hashtable-set! body-table (body-pos (manifold-body-a m)) new-a)
-                           (hashtable-set! body-table (body-pos (manifold-body-b m)) new-b)))
-             manifolds)
+             ;; Build body table as HAMT (position -> body, first occurrence wins)
+             [body-table
+              (fold-left
+               (lambda (tbl b)
+                 (let ([key (body-pos b)])
+                   (if (hamt-lookup key tbl)
+                       tbl
+                       (hamt-assoc key b tbl))))
+               hamt-empty
+               all-bodies)]
+             ;; Resolve each collision, threading the body table
+             [final-table
+              (fold-left
+               (lambda (tbl m)
+                 (let* ([mats (mat-fn m)]
+                        [mat-a (car mats)]
+                        [mat-b (cadr mats)]
+                        [result (resolve-with-correction m mat-a mat-b)]
+                        [new-a (car result)]
+                        [new-b (cadr result)])
+                   (hamt-assoc (body-pos (manifold-body-b m)) new-b
+                               (hamt-assoc (body-pos (manifold-body-a m)) new-a tbl))))
+               body-table
+               manifolds)])
             ;; Extract updated bodies
-            (let-values ([(keys vals) (hashtable-entries body-table)])
-                        (vector->list vals)))))
+            (hamt-values final-table))))
 
 (doc 'section 'iterative)
 

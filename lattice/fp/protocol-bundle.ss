@@ -1,8 +1,9 @@
 ;;; lattice/fp/protocol-bundle.ss — Protocol Bundles
 ;;; @module protocol-bundle
-;;; @requires protocol
+;;; @requires protocol hamt
 
 (require 'protocol)
+(require 'hamt)
 
 (doc 'module 'protocol-bundle)
 (doc 'purity 'partial)
@@ -49,19 +50,19 @@
 ;;; Bundle Registry (for introspection)
 ;;; ====
 
-(define *bundle-registry* (make-hashtable symbol-hash eq?))
+(define *bundle-registry* hamt-empty)
 
 ;;; register-bundle! : Bundle → Void
 (define (register-bundle! bundle)
-  (hashtable-set! *bundle-registry* (bundle-name bundle) bundle))
+  (set! *bundle-registry* (hamt-assoc (bundle-name bundle) bundle *bundle-registry*)))
 
 ;;; get-bundle : Symbol → Bundle | #f
 (define (get-bundle name)
-  (hashtable-ref *bundle-registry* name #f))
+  (hamt-lookup name *bundle-registry*))
 
 ;;; list-bundles : → (List Symbol)
 (define (list-bundles)
-  (vector->list (hashtable-keys *bundle-registry*)))
+  (hamt-keys *bundle-registry*))
 
 ;;; ====
 ;;; Bundle Definition Macro

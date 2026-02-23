@@ -1,11 +1,12 @@
 ;;; lattice/optics/block-optics.ss — Block Optics
 ;;; @module block-optics
-;;; @requires block optics
+;;; @requires block optics hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'block)
 (require 'optics)
+(require 'hamt)
 
 (doc 'module 'block-optics)
 (doc 'description "Optics for The Fold's Block System
@@ -285,22 +286,23 @@ Returns nothing if payload cannot be parsed as valid S-expression.")
   (doc 'type '(-> (-> Bytevector (Maybe Block)) Block (List Block)))
   (doc 'description "Collect all blocks reachable from a root block (DFS).
 Does not include duplicates (based on refs visited).")
-  (let ([visited (make-hashtable equal-hash equal?)])
-    ;; DFS with accumulator passed down for O(N) performance
-    (let dfs ([blk root] [acc '()])
+  ;; DFS with accumulator and visited HAMT threaded for O(N) performance
+  (let-values ([(result _visited)
+    (let dfs ([blk root] [acc '()] [visited hamt-empty])
       (let ([refs (block-refs blk)])
-        (let loop ([i 0] [acc (cons blk acc)])  ; Add current block to acc
+        (let loop ([i 0] [acc (cons blk acc)] [visited visited])
           (if (= i (vector-length refs))
-              acc
+              (values acc visited)
               (let ([ref (vector-ref refs i)])
-                (if (hashtable-ref visited ref #f)
+                (if (hamt-lookup ref visited)
                     ;; Already visited this ref
-                    (loop (+ i 1) acc)
+                    (loop (+ i 1) acc visited)
                     ;; New ref - mark visited and recurse with acc
-                    (begin
-                      (hashtable-set! visited ref #t)
-                      (let ([child (fetch ref)])
-                        (if child
-                            (loop (+ i 1) (dfs child acc))
-                            (loop (+ i 1) acc))))))))))))
+                    (let ([visited (hamt-assoc ref #t visited)]
+                          [child (fetch ref)])
+                      (if child
+                          (let-values ([(new-acc new-visited) (dfs child acc visited)])
+                            (loop (+ i 1) new-acc new-visited))
+                          (loop (+ i 1) acc visited)))))))))])
+    result))
 

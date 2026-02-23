@@ -1,11 +1,12 @@
 ;;; lattice/data/graph/graph-community.ss — Community Detection
 ;;; @module graph-community
-;;; @requires prelude sort
+;;; @requires prelude sort hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'sort)
+(require 'hamt)
 
 (doc 'module 'graph-community)
 (doc 'purity 'partial)
@@ -131,17 +132,15 @@
 ;;; Uses hashtable to handle sparse/large label values safely.
 (define (communities->partition labels)
   (let* ([n (vector-length labels)]
-         [groups (make-hashtable equal-hash equal?)])
-    ;; Group nodes by label using hashtable (handles sparse labels)
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-      (let* ([lbl (vector-ref labels i)]
-             [existing (hashtable-ref groups lbl '())])
-        (hashtable-set! groups lbl (cons i existing))))
-    ;; Collect all groups, sorted by label for deterministic output
-    (let* ([keys (hashtable-keys groups)]
-           [sorted-keys (sort-by < (vector->list keys))])
-      (map (lambda (k) (reverse (hashtable-ref groups k '()))) sorted-keys))))
+         ;; Group nodes by label using HAMT (handles sparse labels)
+         [groups (let loop ([i 0] [acc hamt-empty])
+                   (if (= i n) acc
+                       (let* ([lbl (vector-ref labels i)]
+                              [existing (hamt-lookup-or lbl acc '())])
+                         (loop (+ i 1) (hamt-assoc lbl (cons i existing) acc)))))]
+         ;; Collect all groups, sorted by label for deterministic output
+         [sorted-keys (sort-by < (hamt-keys groups))])
+    (map (lambda (k) (reverse (hamt-lookup-or k groups '()))) sorted-keys)))
 
 ;;; num-communities : Vector → Nat
 ;;; Count number of distinct communities.
@@ -612,21 +611,22 @@
 (doc community-induced-edges 'param 'nodes "List of node indices in the community")
 (doc community-induced-edges 'returns "List of edges (i . j) where both i and j are in nodes")
 (define (community-induced-edges adj nodes)
-  (let ([node-set (make-hashtable equal-hash equal?)]
-        [edges '()])
-    ;; Build set for O(1) membership
-    (for-each (lambda (n) (hashtable-set! node-set n #t)) nodes)
-    ;; Extract edges between community members (undirected: only i < j)
-    (for-each
-     (lambda (i)
-       (for-each
-        (lambda (j)
-          (when (and (< i j)
-                     (hashtable-ref node-set j #f)
-                     (> (matrix-ref adj i j) 0))
-            (set! edges (cons (cons i j) edges))))
-        nodes))
-     nodes)
+  (let* (;; Build set for O(1) membership
+         [node-set (fold-left (lambda (acc n) (hamt-assoc n #t acc)) hamt-empty nodes)]
+         ;; Extract edges between community members (undirected: only i < j)
+         [edges (fold-left
+                 (lambda (outer-acc i)
+                   (fold-left
+                    (lambda (inner-acc j)
+                      (if (and (< i j)
+                               (hamt-lookup j node-set)
+                               (> (matrix-ref adj i j) 0))
+                          (cons (cons i j) inner-acc)
+                          inner-acc))
+                    outer-acc
+                    nodes))
+                 '()
+                 nodes)])
     edges))
 
 (doc community-betti-numbers 'type '(-> Matrix (List Nat) (Pair Nat Nat)))
@@ -648,24 +648,22 @@
 (doc all-communities-betti 'returns "List of (original-label size B_0 B_1) tuples, preserving original community IDs")
 (define (all-communities-betti adj labels)
   (let* ([n (vector-length labels)]
-         [groups (make-hashtable equal-hash equal?)])
-    ;; Group nodes by label
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-      (let* ([lbl (vector-ref labels i)]
-             [existing (hashtable-ref groups lbl '())])
-        (hashtable-set! groups lbl (cons i existing))))
-    ;; Compute Betti numbers for each community, preserving original labels
-    (let* ([keys (hashtable-keys groups)]
-           [sorted-keys (sort-by < (vector->list keys))])
-      (map (lambda (lbl)
-             (let* ([nodes (reverse (hashtable-ref groups lbl '()))]
-                    [size (length nodes)]
-                    [betti (community-betti-numbers adj nodes)]
-                    [b0 (car betti)]
-                    [b1 (cdr betti)])
-               (list lbl size b0 b1)))
-           sorted-keys))))
+         ;; Group nodes by label
+         [groups (let loop ([i 0] [acc hamt-empty])
+                   (if (= i n) acc
+                       (let* ([lbl (vector-ref labels i)]
+                              [existing (hamt-lookup-or lbl acc '())])
+                         (loop (+ i 1) (hamt-assoc lbl (cons i existing) acc)))))]
+         ;; Compute Betti numbers for each community, preserving original labels
+         [sorted-keys (sort-by < (hamt-keys groups))])
+    (map (lambda (lbl)
+           (let* ([nodes (reverse (hamt-lookup-or lbl groups '()))]
+                  [size (length nodes)]
+                  [betti (community-betti-numbers adj nodes)]
+                  [b0 (car betti)]
+                  [b1 (cdr betti)])
+             (list lbl size b0 b1)))
+         sorted-keys)))
 
 (doc community-homology-quality 'type '(-> Nat Nat Nat Num))
 (doc community-homology-quality 'description "Compute topological quality score for a community")

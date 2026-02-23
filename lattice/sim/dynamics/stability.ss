@@ -1,6 +1,7 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'hamt)
 (require 'vec)
 (require 'matrix)
 (require 'matrix-decomp)
@@ -479,20 +480,21 @@
   ;; complex-info has entries like (index real-part imag-part)
   (let* ([n (vector-length real-vec)]
          [result (make-vector n #f)]
-         [info-table (make-eq-hashtable)])
-        ;; First, mark indices that are complex pairs
-        (for-each (lambda (entry)
-                    (let ([idx (car entry)]
-                          [real-part (cadr entry)]
-                          [imag-part (caddr entry)])
-                         (hashtable-set! info-table idx (cons real-part imag-part))
-                         (hashtable-set! info-table (+ idx 1) (cons real-part (- imag-part)))))
-                  complex-info)
+         ;; Build info-table from complex-info entries
+         [info-table
+          (fold-left (lambda (acc entry)
+                       (let ([idx (car entry)]
+                             [real-part (cadr entry)]
+                             [imag-part (caddr entry)])
+                         (hamt-assoc (+ idx 1) (cons real-part (- imag-part))
+                                    (hamt-assoc idx (cons real-part imag-part) acc))))
+                     hamt-empty
+                     complex-info)])
         ;; Build eigenvalue list
         (let loop ([i 0] [acc '()])
              (if (>= i n)
                  (reverse acc)
-                 (let ([complex-entry (hashtable-ref info-table i #f)])
+                 (let ([complex-entry (hamt-lookup i info-table)])
                       (if complex-entry
                           (loop (+ i 1)
                                 (cons (make-complex (car complex-entry) (cdr complex-entry)) acc))
