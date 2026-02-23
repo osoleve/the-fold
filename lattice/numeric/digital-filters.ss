@@ -242,23 +242,17 @@
                 (vector-set! x-hist j (vector-ref x-hist (- j 1))))
             (vector-set! x-hist 0 (vector-ref signal i))
             ;; Compute output
-            (let ([sum 0.0])
-                 ;; Feedforward (b coefficients)
-                 (do ([j 0 (+ j 1)])
-                     ((= j nb))
-                     (set! sum (+ sum (* (vector-ref b j) (vector-ref x-hist j)))))
-                 ;; Feedback (a coefficients, skip a0)
-                 (do ([j 1 (+ j 1)])
-                     ((= j na))
-                     (set! sum (- sum (* (vector-ref a j) (vector-ref y-hist j)))))
-                 ;; Normalize by a0
-                 (set! sum (/ sum a0))
+            (let* ([ff (range-fold sum 0.0 j 0 nb
+                         (+ sum (* (vector-ref b j) (vector-ref x-hist j))))]
+                   [fb (range-fold sum 0.0 j 1 na
+                         (+ sum (* (vector-ref a j) (vector-ref y-hist j))))]
+                   [y (/ (- ff fb) a0)])
                  ;; Shift output history
                  (do ([j (- na 1) (- j 1)])
                      ((= j 0))
                      (vector-set! y-hist j (vector-ref y-hist (- j 1))))
-                 (vector-set! y-hist 0 sum)
-                 (vector-set! output i sum)))))
+                 (vector-set! y-hist 0 y)
+                 (vector-set! output i y)))))
 
 ;;; ====
 ;;; Biquad Sections (Second Order Sections)
@@ -610,23 +604,17 @@
             (vector-set! x-hist j (vector-ref x-hist (- j 1))))
         (vector-set! x-hist 0 sample)
         ;; Compute output
-        (let ([sum 0.0])
-             ;; Feedforward
-             (do ([j 0 (+ j 1)])
-                 ((= j nb))
-                 (set! sum (+ sum (* (vector-ref b j) (vector-ref x-hist j)))))
-             ;; Feedback
-             (do ([j 1 (+ j 1)])
-                 ((= j na))
-                 (set! sum (- sum (* (vector-ref a j) (vector-ref y-hist j)))))
-             ;; Normalize
-             (set! sum (/ sum a0))
+        (let* ([ff (range-fold sum 0.0 j 0 nb
+                     (+ sum (* (vector-ref b j) (vector-ref x-hist j))))]
+               [fb (range-fold sum 0.0 j 1 na
+                     (+ sum (* (vector-ref a j) (vector-ref y-hist j))))]
+               [y (/ (- ff fb) a0)])
              ;; Shift output history
              (do ([j (- na 1) (- j 1)])
                  ((= j 0))
                  (vector-set! y-hist j (vector-ref y-hist (- j 1))))
-             (vector-set! y-hist 0 sum)
-             sum)))
+             (vector-set! y-hist 0 y)
+             y)))
 
 ;;; filter-reset! : Filter-State → void
 ;;; Reset filter state to zero.

@@ -680,17 +680,15 @@
             (let back ([i (- n 1)])
               (if (< i 0)
                   x
-                  (let ([row (vector-ref aug i)]
-                        [sum (vector-ref row n)])
-                    (do ([j (+ i 1) (+ j 1)])
-                        ((= j n))
-                      (set! sum (- sum (* (vector-ref row j) (vector-ref x j)))))
-                    (let ([pivot (vector-ref row i)])
-                      (if (< (abs pivot) 1e-15)
-                          #f  ; Singular
-                          (begin
-                            (vector-set! x i (/ sum pivot))
-                            (back (- i 1)))))))))
+                  (let* ([row (vector-ref aug i)]
+                         [sum (range-fold s (vector-ref row n) j (+ i 1) n
+                                (- s (* (vector-ref row j) (vector-ref x j))))]
+                         [pivot (vector-ref row i)])
+                    (if (< (abs pivot) 1e-15)
+                        #f  ; Singular
+                        (begin
+                          (vector-set! x i (/ sum pivot))
+                          (back (- i 1))))))))
           ;; Find pivot
           (let* ([max-row k]
                  [max-val (abs (vector-ref (vector-ref aug k) k))])
@@ -890,13 +888,13 @@
   (let ([dim (metric-dim metric)])
     (if (not (= dim 2))
         (error 'geodesic-spray "only 2D supported for now")
-        (let ([endpoints '()])
-          (do ([i 0 (+ i 1)])
-              ((= i n-rays) (reverse endpoints))
-            (let* ([angle (* 2 3.141592653589793 (/ i n-rays))]
-                   [v (vector (* radius (cos angle)) (* radius (sin angle)))]
-                   [endpoint (exp-map metric p v n-steps)])
-              (set! endpoints (cons endpoint endpoints))))))))
+        (let loop ([i 0] [endpoints '()])
+          (if (= i n-rays)
+              (reverse endpoints)
+              (let* ([angle (* 2 3.141592653589793 (/ i n-rays))]
+                     [v (vector (* radius (cos angle)) (* radius (sin angle)))]
+                     [endpoint (exp-map metric p v n-steps)])
+                (loop (+ i 1) (cons endpoint endpoints))))))))
 
 ;;; ============================================================================
 ;;; Christoffel Symbol Caching

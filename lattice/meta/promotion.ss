@@ -83,24 +83,25 @@ Runs structural, purity, testing, documentation, and boundary checks.")
 (define (check-manifest-fields sexp)
   (if (not (pair? sexp))
       (list (make-issue 'error 'manifest "manifest.sexp is not a valid S-expression"))
-      (let ([issues '()])
-        ;; Check for (skill name ...) form
-        (unless (eq? 'skill (car sexp))
-          (set! issues (cons (make-issue 'error 'manifest
-                               "manifest must start with (skill name ...)") issues)))
-        ;; Check required fields
-        (let ([body (if (and (pair? sexp) (pair? (cddr sexp))) (cddr sexp) '())])
-          (for-each
-            (lambda (required)
-              (unless (assq required body)
-                (set! issues (cons (make-issue 'error 'manifest
-                                     (string-append "missing required field: "
-                                                    (symbol->string required)))
-                                   issues))))
-            '(version tier path purity deps description exports modules))
-          (when (null? issues)
-            (set! issues (list (make-issue 'pass 'manifest "manifest.sexp is valid"))))
-          (reverse issues)))))
+      (let* ([skill-issue
+              (if (eq? 'skill (car sexp)) '()
+                  (list (make-issue 'error 'manifest
+                           "manifest must start with (skill name ...)")))]
+             [body (if (and (pair? sexp) (pair? (cddr sexp))) (cddr sexp) '())]
+             [field-issues
+              (fold-left
+               (lambda (acc required)
+                 (if (assq required body) acc
+                     (cons (make-issue 'error 'manifest
+                              (string-append "missing required field: "
+                                             (symbol->string required)))
+                           acc)))
+               '()
+               '(version tier path purity deps description exports modules))]
+             [issues (append skill-issue field-issues)])
+        (if (null? issues)
+            (list (make-issue 'pass 'manifest "manifest.sexp is valid"))
+            (reverse issues)))))
 
 ;;; Check: README.sexp exists and validates.
 (doc 'type '(-> String (List CheckResult)))
@@ -134,16 +135,17 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                                files)])
     (if (null? source-files)
         (list (make-issue 'warning 'purity "no source files found"))
-        (let ([issues '()])
-          (for-each
-            (lambda (file)
-              (let ([contents (read-file-string (string-append dir "/" file))])
-                (when contents
-                  (unless (str-contains? contents "(doc 'purity '")
-                    (set! issues (cons (make-issue 'error 'purity
-                                         (string-append file ": missing purity annotation"))
-                                       issues))))))
-            source-files)
+        (let ([issues
+               (fold-left
+                (lambda (acc file)
+                  (let ([contents (read-file-string (string-append dir "/" file))])
+                    (if (and contents (not (str-contains? contents "(doc 'purity '")))
+                        (cons (make-issue 'error 'purity
+                                 (string-append file ": missing purity annotation"))
+                              acc)
+                        acc)))
+                '()
+                source-files)])
           (if (null? issues)
               (list (make-issue 'pass 'purity
                        (string-append "all " (number->string (length source-files))
@@ -162,17 +164,22 @@ Runs structural, purity, testing, documentation, and boundary checks.")
          [test-files (filter (lambda (f) (string-prefix? f "test-")) files)])
     (if (null? source-files)
         (list (make-issue 'warning 'tests "no source files found"))
-        (let ([issues '()]
-              [tested 0])
-          (for-each
-            (lambda (src)
-              (let ([expected-test (string-append "test-" src)])
-                (if (member expected-test test-files)
-                    (set! tested (+ tested 1))
-                    (set! issues (cons (make-issue 'warning 'tests
-                                         (string-append src ": no matching test-" src))
-                                       issues)))))
-            source-files)
+        (let* ([result
+                (fold-left
+                 (lambda (acc src)
+                   (let ([tested (car acc)]
+                         [issues (cdr acc)]
+                         [expected-test (string-append "test-" src)])
+                     (if (member expected-test test-files)
+                         (cons (+ tested 1) issues)
+                         (cons tested
+                               (cons (make-issue 'warning 'tests
+                                        (string-append src ": no matching test-" src))
+                                     issues)))))
+                 (cons 0 '())
+                 source-files)]
+               [tested (car result)]
+               [issues (cdr result)])
           (cons (make-issue (if (> tested 0) 'pass 'warning) 'tests
                    (string-append (number->string tested) "/"
                                   (number->string (length source-files))
@@ -189,21 +196,24 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                                files)])
     (if (null? source-files)
         (list (make-issue 'warning 'headers "no source files found"))
-        (let ([issues '()])
-          (for-each
-            (lambda (file)
-              (let ([contents (read-file-string (string-append dir "/" file))])
-                (when contents
-                  (unless (str-contains? contents ";;; @module")
-                    (set! issues (cons (make-issue 'warning 'headers
-                                         (string-append file ": missing @module annotation"))
-                                       issues)))
-                  (unless (or (str-contains? contents "(require '")
-                              (str-contains? contents "(doc 'module '"))
-                    (set! issues (cons (make-issue 'warning 'headers
-                                         (string-append file ": no require or module doc"))
-                                       issues))))))
-            source-files)
+        (let ([issues
+               (fold-left
+                (lambda (acc file)
+                  (let ([contents (read-file-string (string-append dir "/" file))])
+                    (if (not contents) acc
+                        (let* ([acc (if (str-contains? contents ";;; @module") acc
+                                        (cons (make-issue 'warning 'headers
+                                                 (string-append file ": missing @module annotation"))
+                                              acc))]
+                               [acc (if (or (str-contains? contents "(require '")
+                                            (str-contains? contents "(doc 'module '"))
+                                        acc
+                                        (cons (make-issue 'warning 'headers
+                                                 (string-append file ": no require or module doc"))
+                                              acc))])
+                          acc))))
+                '()
+                source-files)])
           (if (null? issues)
               (list (make-issue 'pass 'headers "all source files have proper headers"))
               (reverse issues))))))
@@ -213,20 +223,24 @@ Runs structural, purity, testing, documentation, and boundary checks.")
 (define (check-boundaries dir)
   (let* ([files (list-scheme-files dir)]
          [source-files (filter (lambda (f) (not (string-prefix? f "test-"))) files)]
-         [violations '()])
-    (for-each
-      (lambda (file)
-        (let ([contents (read-file-string (string-append dir "/" file))])
-          (when contents
-            (when (str-contains? contents "(load \"boundary/")
-              (set! violations (cons (make-issue 'error 'boundaries
-                                       (string-append file ": loads from boundary/"))
-                                     violations)))
-            (when (str-contains? contents "(require 'boundary/")
-              (set! violations (cons (make-issue 'error 'boundaries
-                                       (string-append file ": requires from boundary/"))
-                                     violations))))))
-      source-files)
+         [violations
+          (fold-left
+           (lambda (acc file)
+             (let ([contents (read-file-string (string-append dir "/" file))])
+               (if (not contents) acc
+                   (let* ([acc (if (str-contains? contents "(load \"boundary/")
+                                   (cons (make-issue 'error 'boundaries
+                                            (string-append file ": loads from boundary/"))
+                                         acc)
+                                   acc)]
+                          [acc (if (str-contains? contents "(require 'boundary/")
+                                   (cons (make-issue 'error 'boundaries
+                                            (string-append file ": requires from boundary/"))
+                                         acc)
+                                   acc)])
+                     acc))))
+           '()
+           source-files)])
     (if (null? violations)
         (list (make-issue 'pass 'boundaries "no boundary layer violations"))
         (reverse violations))))
@@ -246,19 +260,22 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                      "(delete-file" "(system " "(call-with-port"
                      "(display " "(display)" "(printf " "(printf\n"
                      "(current-input-port)" "(current-output-port)")]
-         [issues '()])
-    (for-each
-      (lambda (file)
-        (let ([contents (read-file-string (string-append dir "/" file))])
-          (when contents
-            (for-each
-              (lambda (marker)
-                (when (str-contains? contents marker)
-                  (set! issues (cons (make-issue 'warning 'impurity
-                                       (string-append file ": contains '" marker "'"))
-                                     issues))))
-              markers))))
-      source-files)
+         [issues
+          (fold-left
+           (lambda (acc file)
+             (let ([contents (read-file-string (string-append dir "/" file))])
+               (if (not contents) acc
+                   (fold-left
+                    (lambda (inner-acc marker)
+                      (if (str-contains? contents marker)
+                          (cons (make-issue 'warning 'impurity
+                                   (string-append file ": contains '" marker "'"))
+                                inner-acc)
+                          inner-acc))
+                    acc
+                    markers))))
+           '()
+           source-files)])
     (if (null? issues)
         (list (make-issue 'pass 'impurity "no impurity markers in source files"))
         (reverse issues))))

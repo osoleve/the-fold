@@ -439,17 +439,15 @@
               (do ([i 0 (+ i 1)])
                   ((= i n))
                 (let ([start (vector-ref row-ptrs i)]
-                      [end (vector-ref row-ptrs (+ i 1))]
-                      [sum 0.0]
-                      [diag 1.0])
-                  (do ([k start (+ k 1)])
-                      ((= k end))
-                    (let ([j (vector-ref col-indices k)]
-                          [v (vector-ref vals k)])
-                      (if (= j i)
-                          (set! diag v)
-                          (set! sum (+ sum (* v (vector-ref x j)))))))
-                  (vector-set! x-new i (/ (- (vector-ref b i) sum) diag))))
+                      [end (vector-ref row-ptrs (+ i 1))])
+                  (let inner ([k start] [sum 0.0] [diag 1.0])
+                    (if (= k end)
+                        (vector-set! x-new i (/ (- (vector-ref b i) sum) diag))
+                        (let ([j (vector-ref col-indices k)]
+                              [v (vector-ref vals k)])
+                          (if (= j i)
+                              (inner (+ k 1) sum v)
+                              (inner (+ k 1) (+ sum (* v (vector-ref x j))) diag)))))))
               (do ([i 0 (+ i 1)])
                   ((= i n))
                 (vector-set! x i (vector-ref x-new i)))

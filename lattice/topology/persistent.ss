@@ -141,42 +141,42 @@ the Čech complex (which requires all points to fit in a ball of radius ε/2).")
   (doc 'type '(-> Vector Vector Integer Integer Number (List (Pair Simplex Number))))
   (doc 'description "Build all Rips simplices up to max-dim with birth times")
   (doc 'note "Uses recursive combination generation for arbitrary dimensions")
-  (let ([result '()])
-    ; Add vertices at time 0
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (set! result (cons (cons (make-simplex (list i)) 0.0) result)))
-    ; Add k-simplices for k = 1 to max-dim
-    (do ([k 1 (+ k 1)])
-        [(> k max-dim) result]
-      (set! result (append result (rips-k-simplices dist-matrix n k max-epsilon))))))
+  ;; Collect vertex pairs, then append k-simplex pairs for each dimension
+  (let ([vertex-pairs
+         (let loop ([i 0] [acc '()])
+           (if (= i n)
+               acc
+               (loop (+ i 1) (cons (cons (make-simplex (list i)) 0.0) acc))))])
+    (let loop ([k 1] [result vertex-pairs])
+      (if (> k max-dim)
+          result
+          (loop (+ k 1)
+                (append result (rips-k-simplices dist-matrix n k max-epsilon)))))))
 
 (define (rips-k-simplices dist-matrix n k max-epsilon)
   (doc 'type '(-> Vector Integer Integer Number (List (Pair Simplex Number))))
   (doc 'description "Build all k-simplices (k+1 vertices) for Rips complex")
-  (let ([result '()])
-    (for-each-combination
-      (iota n) (+ k 1)
-      (lambda (vertices)
-        (let ([max-d (max-pairwise-distance dist-matrix vertices)])
-          (when (<= max-d max-epsilon)
-            (set! result (cons (cons (make-simplex vertices) max-d) result))))))
-    result))
+  (fold-combinations
+    (iota n) (+ k 1)
+    (lambda (acc vertices)
+      (let ([max-d (max-pairwise-distance dist-matrix vertices)])
+        (if (<= max-d max-epsilon)
+            (cons (cons (make-simplex vertices) max-d) acc)
+            acc)))
+    '()))
 
 (define (max-pairwise-distance dist-matrix vertices)
   (doc 'type '(-> Vector (List Integer) Number))
   (doc 'description "Maximum pairwise distance among vertices (Rips diameter)")
-  (let ([max-d 0.0])
-    (let loop-i ([vs vertices])
-      (unless (null? vs)
+  (let loop-i ([vs vertices] [max-d 0.0])
+    (if (null? vs)
+        max-d
         (let ([i (car vs)])
-          (let loop-j ([ws (cdr vs)])
-            (unless (null? ws)
-              (let ([j (car ws)])
-                (set! max-d (max max-d (dist-ref dist-matrix i j)))
-                (loop-j (cdr ws)))))
-          (loop-i (cdr vs)))))
-    max-d))
+          (let loop-j ([ws (cdr vs)] [max-d max-d])
+            (if (null? ws)
+                (loop-i (cdr vs) max-d)
+                (loop-j (cdr ws)
+                        (max max-d (dist-ref dist-matrix i (car ws))))))))))
 
 (define (for-each-combination lst k proc)
   (doc 'type '(-> (List α) Integer (-> (List α) Void) Void))
@@ -193,6 +193,23 @@ the Čech complex (which requires all points to fit in a ball of radius ε/2).")
                 (lambda (combo) (proc (cons first combo))))
               ; Combinations not including first
               (for-each-combination rest k proc))))))
+
+(define (fold-combinations lst k f init)
+  (doc 'type '(-> (List α) Integer (-> β (List α) β) β β))
+  (doc 'description "Fold f over each k-combination of lst, threading accumulator")
+  (if (< (length lst) k)
+      init
+      (if (= k 0)
+          (f init '())
+          (if (= k (length lst))
+              (f init lst)
+              (let ([first (car lst)]
+                    [rest (cdr lst)])
+                ;; Fold over combinations including first, then those without
+                (let ([acc (fold-combinations rest (- k 1)
+                             (lambda (a combo) (f a (cons first combo)))
+                             init)])
+                  (fold-combinations rest k f acc)))))))
 
 ;;; ============================================================
 ;;; Persistence Algorithm (Standard Reduction)

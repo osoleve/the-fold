@@ -51,13 +51,12 @@
 (define (ridge-diagnostics X y beta lambda n p)
   (let* ([fitted (matrix-vec-mul X beta)]
          [residuals (make-vector n)]
-         [sse 0])
-        ;; Compute residuals and SSE
-        (do ([i 0 (+ i 1)])
-            [(= i n)]
-            (let ([r (- (vector-ref y i) (vector-ref fitted i))])
-                 (vector-set! residuals i r)
-                 (set! sse (+ sse (* r r)))))
+         ;; Compute residuals and SSE
+         [sse (do ([i 0 (+ i 1)]
+                   [acc 0 (let ([r (- (vector-ref y i) (vector-ref fitted i))])
+                            (vector-set! residuals i r)
+                            (+ acc (* r r)))])
+                  [(= i n) acc])])
         (let* ([df-residual (- n p)]  ; Approximate
                [mse (if (> df-residual 0) (/ sse df-residual) 0)]
                [r-squared (compute-r-squared-ridge y fitted)]
@@ -131,18 +130,15 @@
         (let loop ([iter 0])
              (if (>= iter max-iter)
                  (lasso-finalize X y beta n p)
-                 (let* ([max-change 0])
-                       ;; Update each coefficient
-                       (do ([j 0 (+ j 1)])
-                           [(= j p)]
-                           (let* ([old-beta-j (vector-ref beta j)]
-                                  ;; Compute partial residual
-                                  [rho (lasso-partial-residual X y beta j n)]
-                                  [norm-sq (vector-ref col-norms j)]
-                                  ;; Soft-thresholding
-                                  [new-beta-j (soft-threshold rho (* lambda n) norm-sq)])
-                                 (vector-set! beta j new-beta-j)
-                                 (set! max-change (max max-change (abs (- new-beta-j old-beta-j))))))
+                 (let ([max-change
+                        (do ([j 0 (+ j 1)]
+                             [mc 0 (let* ([old-beta-j (vector-ref beta j)]
+                                          [rho (lasso-partial-residual X y beta j n)]
+                                          [norm-sq (vector-ref col-norms j)]
+                                          [new-beta-j (soft-threshold rho (* lambda n) norm-sq)])
+                                     (vector-set! beta j new-beta-j)
+                                     (max mc (abs (- new-beta-j old-beta-j))))])
+                            [(= j p) mc])])
                        ;; Check convergence
                        (if (< max-change tol)
                            (lasso-finalize X y beta n p)
@@ -180,12 +176,11 @@
 (define (lasso-finalize X y beta n p)
   (let* ([fitted (matrix-vec-mul X beta)]
          [residuals (make-vector n)]
-         [sse 0])
-        (do ([i 0 (+ i 1)])
-            [(= i n)]
-            (let ([r (- (vector-ref y i) (vector-ref fitted i))])
-                 (vector-set! residuals i r)
-                 (set! sse (+ sse (* r r)))))
+         [sse (do ([i 0 (+ i 1)]
+                   [acc 0 (let ([r (- (vector-ref y i) (vector-ref fitted i))])
+                            (vector-set! residuals i r)
+                            (+ acc (* r r)))])
+                  [(= i n) acc])])
         (let* ([df-residual (- n (count-nonzero beta))]
                [mse (if (> df-residual 0) (/ sse df-residual) 0)]
                [r-squared (compute-r-squared-ridge y fitted)]
@@ -244,18 +239,17 @@
         (let loop ([iter 0])
              (if (>= iter max-iter)
                  (lasso-finalize X y beta n p)
-                 (let* ([max-change 0])
-                       (do ([j 0 (+ j 1)])
-                           [(= j p)]
-                           (let* ([old-beta-j (vector-ref beta j)]
-                                  [rho (lasso-partial-residual X y beta j n)]
-                                  [norm-sq (vector-ref col-norms j)]
-                                  ;; Elastic net update
-                                  [l1-penalty (* lambda alpha n)]
-                                  [l2-penalty (* lambda (- 1 alpha) n)]
-                                  [new-beta-j (elastic-net-update rho l1-penalty l2-penalty norm-sq)])
-                                 (vector-set! beta j new-beta-j)
-                                 (set! max-change (max max-change (abs (- new-beta-j old-beta-j))))))
+                 (let ([max-change
+                        (do ([j 0 (+ j 1)]
+                             [mc 0 (let* ([old-beta-j (vector-ref beta j)]
+                                          [rho (lasso-partial-residual X y beta j n)]
+                                          [norm-sq (vector-ref col-norms j)]
+                                          [l1-penalty (* lambda alpha n)]
+                                          [l2-penalty (* lambda (- 1 alpha) n)]
+                                          [new-beta-j (elastic-net-update rho l1-penalty l2-penalty norm-sq)])
+                                     (vector-set! beta j new-beta-j)
+                                     (max mc (abs (- new-beta-j old-beta-j))))])
+                            [(= j p) mc])])
                        (if (< max-change tol)
                            (lasso-finalize X y beta n p)
                            (loop (+ iter 1))))))))
@@ -297,30 +291,30 @@
 ;;; cv-error-for-lambda : Matrix × Vec × Num × Nat × Symbol × Num × Nat → Num
 ;;; Compute CV error for a single lambda.
 (define (cv-error-for-lambda X y lambda k method alpha n)
-  (let* ([fold-size (quotient n k)]
-         [total-error 0])
-        (do ([fold 0 (+ fold 1)])
-            [(= fold k) (/ total-error n)]
-            (let* ([start (* fold fold-size)]
-                   [end (if (= fold (- k 1)) n (+ start fold-size))]
-                   ;; Split into train and test
-                   [train-test (split-fold X y start end n)]
-                   [X-train (car train-test)]
-                   [y-train (cadr train-test)]
-                   [X-test (caddr train-test)]
-                   [y-test (cadddr train-test)]
-                   ;; Fit model on training data
-                   [model (case method
-                                [(ridge) (ridge-fit X-train y-train lambda)]
-                                [(lasso) (lasso-fit X-train y-train lambda)]
-                                [(elastic-net) (elastic-net-fit X-train y-train lambda alpha)]
-                                [else (ridge-fit X-train y-train lambda)])]
-                   ;; Predict on test data
-                   [fold-error (if (and (pair? model) (eq? (car model) 'error))
-                                   1e10
-                                   (compute-mse-test X-test y-test
-                                                     (linear-model-coefficients model)))])
-                  (set! total-error (+ total-error (* fold-error (- end start))))))))
+  (let ([fold-size (quotient n k)])
+    (do ([fold 0 (+ fold 1)]
+         [total-error 0
+           (let* ([start (* fold fold-size)]
+                  [end (if (= fold (- k 1)) n (+ start fold-size))]
+                  ;; Split into train and test
+                  [train-test (split-fold X y start end n)]
+                  [X-train (car train-test)]
+                  [y-train (cadr train-test)]
+                  [X-test (caddr train-test)]
+                  [y-test (cadddr train-test)]
+                  ;; Fit model on training data
+                  [model (case method
+                               [(ridge) (ridge-fit X-train y-train lambda)]
+                               [(lasso) (lasso-fit X-train y-train lambda)]
+                               [(elastic-net) (elastic-net-fit X-train y-train lambda alpha)]
+                               [else (ridge-fit X-train y-train lambda)])]
+                  ;; Predict on test data
+                  [fold-error (if (and (pair? model) (eq? (car model) 'error))
+                                  1e10
+                                  (compute-mse-test X-test y-test
+                                                    (linear-model-coefficients model)))])
+             (+ total-error (* fold-error (- end start))))])
+        [(= fold k) (/ total-error n)])))
 
 ;;; split-fold : Matrix × Vec × Nat × Nat × Nat → (List Matrix Vec Matrix Vec)
 ;;; Split data into train (excluding fold) and test (fold only).

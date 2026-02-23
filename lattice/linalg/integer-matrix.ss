@@ -600,9 +600,8 @@
   (let* ([n (matrix-rows mat)])
     (if (= n 0)
         1  ; Empty matrix has det = 1
-        (let ([data (int-mat-copy (matrix-data mat))]
-              [sign 1])
-          (let loop ([k 0] [prev-pivot 1])
+        (let ([data (int-mat-copy (matrix-data mat))])
+          (let loop ([k 0] [prev-pivot 1] [sign 1])
             (if (>= k (- n 1))
                 ;; Final element is the determinant
                 (* sign (int-mat-ref data n (- n 1) (- n 1)))
@@ -614,10 +613,11 @@
                                     [else (search (+ i 1))]))])
                   (if (not pivot-idx)
                       0  ; Zero column means det = 0
-                      (begin
-                        (when (not (= pivot-idx k))
-                          (swap-rows! data n n k pivot-idx)
-                          (set! sign (- sign)))
+                      (let ([next-sign (if (= pivot-idx k)
+                                           sign
+                                           (begin
+                                             (swap-rows! data n n k pivot-idx)
+                                             (- sign)))])
                         ;; Bareiss elimination
                         (let ([pivot (int-mat-ref data n k k)])
                           (do ([i (+ k 1) (+ i 1)])
@@ -630,7 +630,8 @@
                                                     (int-mat-ref data n k j)))
                                               prev-pivot)])
                                 (int-mat-set! data n i j new-val))))
-                          (loop (+ k 1) pivot)))))))))))
+                          (loop (+ k 1) pivot next-sign)))))))))))
+
 
 ;;; matrix-adjugate : Matrix Int → Matrix Int
 ;;; Compute adjugate (classical adjoint) of matrix.
