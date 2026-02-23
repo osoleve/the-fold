@@ -20,6 +20,20 @@
       (assert-true (< (abs (- (vector-ref du 1) 3.0)) 0.001))
       (assert-true (< (abs (- (vector-ref du 2) 5.0)) 0.001))))
 
+  (define-test "diff-backward computes backward differences"
+    (let* ([u '#(0.0 1.0 4.0 9.0)]  ; u = x² at x=0,1,2,3
+           [h 1.0]
+           [du (diff-backward u h)])
+      ;; Backward diff at grid point j: (u_j - u_{j-1}) / h
+      ;; result[0] = backward at j=1: (1-0)/1 = 1  (approx u'(1) = 2)
+      ;; result[1] = backward at j=2: (4-1)/1 = 3  (approx u'(2) = 4)
+      ;; result[2] = backward at j=3: (9-4)/1 = 5  (approx u'(3) = 6)
+      ;; Same values as forward, but grid-aligned to points 1,2,3 not 0,1,2
+      (assert-equal 3 (vector-length du))
+      (assert-true (< (abs (- (vector-ref du 0) 1.0)) 0.001))
+      (assert-true (< (abs (- (vector-ref du 1) 3.0)) 0.001))
+      (assert-true (< (abs (- (vector-ref du 2) 5.0)) 0.001))))
+
   (define-test "diff-central computes central differences"
     (let* ([u '#(0.0 1.0 4.0 9.0 16.0)]  ; u = x²
            [h 1.0]

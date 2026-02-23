@@ -1,12 +1,13 @@
 ;;; lattice/data/graph/graph-community.ss — Community Detection
 ;;; @module graph-community
-;;; @requires prelude sort hamt
+;;; @requires prelude sort hamt iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'sort)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'graph-community)
 (doc 'purity 'partial)
@@ -64,10 +65,7 @@
                    (car rest1)
                    42)]
          ;; Initialize: each node in its own community
-         [labels (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! labels i i))
+         [labels (vec-tabulate n i i)])
         ;; Iterate until convergence
         (let loop ([iter 0] [changed #t])
              (if (or (>= iter max-iter) (not changed))
@@ -172,18 +170,20 @@
                                         (+ (vector-ref degrees i)
                                            (matrix-ref adj i j))))))
              ;; Compute modularity sum
-             (let ([sum 0])
-                  (do ([i 0 (+ i 1)])
-                      ((= i n))
-                      (do ([j 0 (+ j 1)])
-                          ((= j n))
-                          (when (= (vector-ref labels i) (vector-ref labels j))
-                                (let* ([a-ij (matrix-ref adj i j)]
-                                       [ki (vector-ref degrees i)]
-                                       [kj (vector-ref degrees j)]
-                                       [expected (/ (* ki kj) two-m)])
-                                      (set! sum (+ sum (- a-ij expected)))))))
-                  (/ sum two-m))))))
+             (let outer ([i 0] [sum 0])
+                  (if (= i n)
+                      (/ sum two-m)
+                      (let inner ([j 0] [sum sum])
+                           (if (= j n)
+                               (outer (+ i 1) sum)
+                               (inner (+ j 1)
+                                      (if (= (vector-ref labels i) (vector-ref labels j))
+                                          (let* ([a-ij (matrix-ref adj i j)]
+                                                 [ki (vector-ref degrees i)]
+                                                 [kj (vector-ref degrees j)]
+                                                 [expected (/ (* ki kj) two-m)])
+                                            (+ sum (- a-ij expected)))
+                                          sum))))))))))
 
 ;;; matrix-sum : Matrix → Num
 ;;; Sum all elements of a matrix.
@@ -263,28 +263,31 @@
          [start (if (pair? opts) (car opts) 0)]
          [in-mst (make-vector n #f)]
          [min-weight (make-vector n +inf.0)]
-         [parent (make-vector n -1)]
-         [mst-edges '()])
+         [parent (make-vector n -1)])
         (vector-set! min-weight start 0)
-        (do ([count 0 (+ count 1)])
-            ((= count n))
-            (let ([u (prim-find-min min-weight in-mst n)])
-                 (when u
-                       (vector-set! in-mst u #t)
-                       (when (>= (vector-ref parent u) 0)
-                             (set! mst-edges
-                                   (cons (list (vector-ref parent u) u
-                                               (matrix-ref adj (vector-ref parent u) u))
-                                         mst-edges)))
-                       (do ([v 0 (+ v 1)])
-                           ((= v n))
-                           (let ([w (matrix-ref adj u v)])
-                                (when (and (> w 0)
-                                           (not (vector-ref in-mst v))
-                                           (< w (vector-ref min-weight v)))
-                                      (vector-set! min-weight v w)
-                                      (vector-set! parent v u)))))))
-        (reverse mst-edges)))
+        (let loop ([count 0] [mst-edges '()])
+             (if (= count n)
+                 (reverse mst-edges)
+                 (let ([u (prim-find-min min-weight in-mst n)])
+                      (if (not u)
+                          (loop (+ count 1) mst-edges)
+                          (begin
+                            (vector-set! in-mst u #t)
+                            (let ([mst-edges
+                                   (if (>= (vector-ref parent u) 0)
+                                       (cons (list (vector-ref parent u) u
+                                                   (matrix-ref adj (vector-ref parent u) u))
+                                             mst-edges)
+                                       mst-edges)])
+                              (do ([v 0 (+ v 1)])
+                                  ((= v n))
+                                  (let ([w (matrix-ref adj u v)])
+                                       (when (and (> w 0)
+                                                  (not (vector-ref in-mst v))
+                                                  (< w (vector-ref min-weight v)))
+                                             (vector-set! min-weight v w)
+                                             (vector-set! parent v u))))
+                              (loop (+ count 1) mst-edges)))))))))
 
 ;;; prim-find-min : Vector × Vector × Nat → Nat | #f
 ;;; Find node with minimum weight not yet in MST. O(n) linear scan.
@@ -314,29 +317,28 @@
          [sorted-edges (sort-by (lambda (a b) (< (caddr a) (caddr b)))
                                   edges)]
          ;; Union-find data structures
-         [parent (make-vector n 0)]
+         [parent (vec-tabulate n i i)]
          [rank (make-vector n 0)]
-         [mst-edges '()]
-         [edge-count 0])
-        ;; Initialize union-find: each node is its own parent
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! parent i i))
-        ;; Process edges in order of weight
-        (for-each
-         (lambda (edge)
-                 (when (< edge-count (- n 1))  ; MST has n-1 edges
-                       (let* ([u (car edge)]
-                              [v (cadr edge)]
-                              [root-u (uf-find parent u)]
-                              [root-v (uf-find parent v)])
-                             ;; If different components, add edge
-                             (when (not (= root-u root-v))
-                                   (set! mst-edges (cons edge mst-edges))
-                                   (set! edge-count (+ edge-count 1))
-                                   (uf-union parent rank root-u root-v)))))
-         sorted-edges)
-        (reverse mst-edges)))
+         ;; Process edges in order of weight, accumulating MST edges
+         [result (fold-left
+                  (lambda (acc edge)
+                    (let ([mst-edges (car acc)]
+                          [edge-count (cdr acc)])
+                      (if (>= edge-count (- n 1))
+                          acc  ; MST complete, skip remaining
+                          (let* ([u (car edge)]
+                                 [v (cadr edge)]
+                                 [root-u (uf-find parent u)]
+                                 [root-v (uf-find parent v)])
+                            (if (= root-u root-v)
+                                acc  ; Same component, skip
+                                (begin
+                                  (uf-union parent rank root-u root-v)
+                                  (cons (cons edge mst-edges)
+                                        (+ edge-count 1))))))))
+                  (cons '() 0)
+                  sorted-edges)])
+        (reverse (car result))))
 
 ;;; uf-find : Vector × Nat → Nat
 ;;; Find root of node with path compression.
@@ -370,30 +372,36 @@
 ;;; Uses level-by-level BFS for O(n + m) complexity on sparse graphs.
 (define (connected-components adj)
   (let* ([n (matrix-rows adj)]
-         [labels (make-vector n -1)]
-         [component 0])
-        (do ([start 0 (+ start 1)])
-            ((= start n) labels)
-            (when (= (vector-ref labels start) -1)
-                  ;; Mark start node immediately to avoid re-queueing
-                  (vector-set! labels start component)
-                  ;; Level-by-level BFS (avoids O(n²) append)
-                  (let bfs ([current-level (list start)])
-                       (when (not (null? current-level))
-                             (let ([next-level '()])
-                                  (for-each
-                                   (lambda (node)
-                                           ;; Add unvisited neighbors to next level
-                                           (do ([j 0 (+ j 1)])
-                                               ((= j n))
-                                               (when (and (> (matrix-ref adj node j) 0)
-                                                          (= (vector-ref labels j) -1))
-                                                     ;; Mark visited when queued (not when processed)
-                                                     (vector-set! labels j component)
-                                                     (set! next-level (cons j next-level)))))
-                                   current-level)
-                                  (bfs next-level))))
-                  (set! component (+ component 1))))))
+         [labels (make-vector n -1)])
+        (let outer ([start 0] [component 0])
+             (if (= start n)
+                 labels
+                 (if (not (= (vector-ref labels start) -1))
+                     (outer (+ start 1) component)
+                     (begin
+                       ;; Mark start node immediately to avoid re-queueing
+                       (vector-set! labels start component)
+                       ;; Level-by-level BFS (avoids O(n^2) append)
+                       (let bfs ([current-level (list start)])
+                            (when (not (null? current-level))
+                                  (let ([next-level
+                                         (fold-left
+                                          (lambda (acc node)
+                                            ;; Add unvisited neighbors to next level
+                                            (let gather ([j 0] [acc acc])
+                                                 (if (= j n)
+                                                     acc
+                                                     (if (and (> (matrix-ref adj node j) 0)
+                                                              (= (vector-ref labels j) -1))
+                                                         (begin
+                                                           ;; Mark visited when queued (not when processed)
+                                                           (vector-set! labels j component)
+                                                           (gather (+ j 1) (cons j acc)))
+                                                         (gather (+ j 1) acc)))))
+                                          '()
+                                          current-level)])
+                                    (bfs next-level))))
+                       (outer (+ start 1) (+ component 1))))))))
 
 ;;; is-connected? : Matrix → Boolean
 ;;; Check if graph is connected.
@@ -428,10 +436,7 @@
           (if (ilp-optimal? result)
               ;; Extract x[0..n-1] from solution
               (let ([sol (ilp-result-x result)])
-                (let ([labels (make-vector n 0)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i n) labels)
-                    (vector-set! labels i (inexact->exact (round (vector-ref sol i)))))))
+                (vec-tabulate n i (inexact->exact (round (vector-ref sol i)))))
               ;; Fallback to all zeros if ILP fails
               (make-vector n 0))))))
 
@@ -506,11 +511,12 @@
     ;; First, compute x coefficients from row sums
     (do ([i 0 (+ i 1)])
         ((= i n))
-      (let ([row-sum 0])
-        (do ([j 0 (+ j 1)])
-            ((= j n))
-          (when (not (= i j))
-            (set! row-sum (+ row-sum (matrix-ref B i j)))))
+      (let ([row-sum (let sum-loop ([j 0] [acc 0])
+                       (if (= j n) acc
+                           (sum-loop (+ j 1)
+                                     (if (not (= i j))
+                                         (+ acc (matrix-ref B i j))
+                                         acc))))])
         ;; Negate because we minimize, and we want to maximize
         (vector-set! c i (* 2 row-sum))))
 
@@ -541,49 +547,42 @@
            [total-vars (+ num-vars num-slack)]
            [A (make-matrix num-constraints total-vars 0)]
            [b (make-vector num-constraints 0)]
-           [c-full (make-vector total-vars 0)]
-           [constraint-idx 0])
-
-      ;; Copy objective coefficients
-      (do ([i 0 (+ i 1)])
-          ((= i num-vars))
-        (vector-set! c-full i (vector-ref c i)))
-
-      ;; Add linearization constraints for each y[i,j]
-      (do ([i 0 (+ i 1)])
-          ((= i n))
-        (do ([j (+ i 1) (+ j 1)])
-            ((= j n))
-          (let ([y-idx (y-index i j)])
-            ;; Constraint 1: y[i,j] - x[i] + s = 0  (y <= x[i])
-            (matrix-set! A constraint-idx y-idx 1)
-            (matrix-set! A constraint-idx i -1)
-            (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
-            (vector-set! b constraint-idx 0)
-            (set! constraint-idx (+ constraint-idx 1))
-
-            ;; Constraint 2: y[i,j] - x[j] + s = 0  (y <= x[j])
-            (matrix-set! A constraint-idx y-idx 1)
-            (matrix-set! A constraint-idx j -1)
-            (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
-            (vector-set! b constraint-idx 0)
-            (set! constraint-idx (+ constraint-idx 1))
-
-            ;; Constraint 3: -y[i,j] + x[i] + x[j] + s = 1  (y >= x[i]+x[j]-1)
-            (matrix-set! A constraint-idx y-idx -1)
-            (matrix-set! A constraint-idx i 1)
-            (matrix-set! A constraint-idx j 1)
-            (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
-            (vector-set! b constraint-idx 1)
-            (set! constraint-idx (+ constraint-idx 1)))))
-
+           [c-full (vec-tabulate total-vars i
+                    (if (< i num-vars) (vector-ref c i) 0))]
+           ;; Add linearization constraints for each y_ij
+           [ci (let i-loop ([i 0] [ci 0])
+                 (if (= i n)
+                     ci
+                     (i-loop
+                      (+ i 1)
+                      (let j-loop ([j (+ i 1)] [ci ci])
+                        (if (= j n)
+                            ci
+                            (let ([y-idx (y-index i j)])
+                              ;; Constraint 1: y_ij - x_i + s = 0
+                              (matrix-set! A ci y-idx 1)
+                              (matrix-set! A ci i -1)
+                              (matrix-set! A ci (+ num-vars ci) 1)
+                              (vector-set! b ci 0)
+                              ;; Constraint 2: y_ij - x_j + s = 0
+                              (matrix-set! A (+ ci 1) y-idx 1)
+                              (matrix-set! A (+ ci 1) j -1)
+                              (matrix-set! A (+ ci 1) (+ num-vars (+ ci 1)) 1)
+                              (vector-set! b (+ ci 1) 0)
+                              ;; Constraint 3: -y_ij + x_i + x_j + s = 1
+                              (matrix-set! A (+ ci 2) y-idx -1)
+                              (matrix-set! A (+ ci 2) i 1)
+                              (matrix-set! A (+ ci 2) j 1)
+                              (matrix-set! A (+ ci 2) (+ num-vars (+ ci 2)) 1)
+                              (vector-set! b (+ ci 2) 1)
+                              (j-loop (+ j 1) (+ ci 3))))))))]) ;; close let-y, if-j, let-j, i-loop, if-i, let-i, [ci, bindings
       ;; Add binary constraints: x[i] + s = 1  (x <= 1)
-      (do ([i 0 (+ i 1)])
-          ((= i n))
-        (matrix-set! A constraint-idx i 1)
-        (matrix-set! A constraint-idx (+ num-vars constraint-idx) 1)
-        (vector-set! b constraint-idx 1)
-        (set! constraint-idx (+ constraint-idx 1)))
+      (let bin-loop ([i 0] [ci ci])
+        (when (< i n)
+          (matrix-set! A ci i 1)
+          (matrix-set! A ci (+ num-vars ci) 1)
+          (vector-set! b ci 1)
+          (bin-loop (+ i 1) (+ ci 1))))
 
       ;; Integer variables: x[0..n-1] and y[n..n+num-y-1]
       (let ([integer-vars (let loop ([i 0] [acc '()])
@@ -704,18 +703,17 @@
 (doc aggregate-community-quality 'returns "Size-weighted average quality score")
 (define (aggregate-community-quality adj labels)
   (let* ([betti-list (all-communities-betti adj labels)]
-         [n (vector-length labels)]
-         [weighted-sum 0.0])
-    (for-each
-     (lambda (entry)
+         [n (vector-length labels)])
+    (fold-left
+     (lambda (weighted-sum entry)
        (let* ([size (cadr entry)]
               [b0 (caddr entry)]
               [b1 (cadddr entry)]
               [quality (community-homology-quality size b0 b1)]
               [weight (/ size n)])
-         (set! weighted-sum (+ weighted-sum (* weight quality)))))
-     betti-list)
-    weighted-sum))
+         (+ weighted-sum (* weight quality))))
+     0.0
+     betti-list)))
 
 ;;; round-2 : Num → Num
 ;;; Round to 2 decimal places for display.

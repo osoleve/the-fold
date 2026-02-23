@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
+(require 'iteration)
 (require 'charts)
 (require 'tangent)
 
@@ -112,16 +113,14 @@
 (doc permutation-sign 'description "Compute the sign of a permutation: +1 for even, -1 for odd")
 (define (permutation-sign perm)
   (doc 'export #t)
-  (let ([inversions 0])
-    (let outer ([lst perm])
-      (when (not (null? lst))
-        (let inner ([rest (cdr lst)])
-          (when (not (null? rest))
-            (when (> (car lst) (car rest))
-              (set! inversions (+ inversions 1)))
-            (inner (cdr rest))))
-        (outer (cdr lst))))
-    (if (even? inversions) 1 -1)))
+  (let outer ([lst perm] [inversions 0])
+    (if (null? lst)
+        (if (even? inversions) 1 -1)
+        (let inner ([rest (cdr lst)] [inv inversions])
+          (if (null? rest)
+              (outer (cdr lst) inv)
+              (inner (cdr rest)
+                     (if (> (car lst) (car rest)) (+ inv 1) inv)))))))
 
 (doc shuffle-sign 'type '(-> MultiIndex MultiIndex (Or Int Bool)))
 (doc shuffle-sign 'description "Sign of the shuffle that interleaves two multi-indices, or #f if they overlap")
@@ -168,16 +167,15 @@
                         [(equal? x (car lst)) i]
                         [else (find-pos x (cdr lst) (+ i 1))]))])
     (let* ([mapped (map (lambda (x) (find-pos x to 0)) from)]
-           [inversions 0])
-      ;; Count inversions in mapped
-      (let outer ([lst mapped])
-        (when (not (null? lst))
-          (let inner ([rest (cdr lst)])
-            (when (not (null? rest))
-              (when (> (car lst) (car rest))
-                (set! inversions (+ inversions 1)))
-              (inner (cdr rest))))
-          (outer (cdr lst))))
+           [inversions
+            (let outer ([lst mapped] [inv 0])
+              (if (null? lst)
+                  inv
+                  (let inner ([rest (cdr lst)] [acc inv])
+                    (if (null? rest)
+                        (outer (cdr lst) acc)
+                        (inner (cdr rest)
+                               (if (> (car lst) (car rest)) (+ acc 1) acc))))))])
       (if (even? inversions) 1 -1))))
 
 ;;; ============================================================================
@@ -258,9 +256,8 @@
   (let* ([n (chart-dim chart)]
          [k (length idx)]
          [num-components (binomial n k)]
-         [components (make-vector num-components 0)]
-         [offset (multi-index->offset n idx)])
-    (vector-set! components offset 1)
+         [offset (multi-index->offset n idx)]
+         [components (vec-tabulate num-components i (if (= i offset) 1 0))])
     (make-k-form point chart k components)))
 
 ;;; ============================================================================
@@ -378,24 +375,24 @@
              [new-comps (make-vector num-k 0)])
         (for-each
          (lambda (idx-J)
-           (let ([offset-J (multi-index->offset n idx-J)]
-                 [sum 0])
-             (for-each
-              (lambda (idx-I)
-                (let ([omega-I (vector-ref old-comps (multi-index->offset n idx-I))])
-                  (when (not (= omega-I 0))
-                    ;; Build k×k submatrix J⁻¹_{I,J}: rows from I, cols from J
-                    (let ([submat (make-matrix k k 0)])
-                      (do ([row 0 (+ row 1)])
-                          ((= row k))
-                          (let ([i (list-ref idx-I row)])
-                            (do ([col 0 (+ col 1)])
-                                ((= col k))
-                                (let ([j (list-ref idx-J col)])
-                                  (matrix-set! submat row col (matrix-ref J-inv i j))))))
-                      (let ([det (matrix-det-small submat)])
-                        (set! sum (+ sum (* omega-I det))))))))
-              indices-k)
+           (let* ([offset-J (multi-index->offset n idx-J)]
+                  [sum (fold-left
+                        (lambda (acc idx-I)
+                          (let ([omega-I (vector-ref old-comps (multi-index->offset n idx-I))])
+                            (if (= omega-I 0)
+                                acc
+                                ;; Build k×k submatrix J⁻¹_{I,J}: rows from I, cols from J
+                                (let ([submat (make-matrix k k 0)])
+                                  (do ([row 0 (+ row 1)])
+                                      ((= row k))
+                                      (let ([i (list-ref idx-I row)])
+                                        (do ([col 0 (+ col 1)])
+                                            ((= col k))
+                                            (let ([j (list-ref idx-J col)])
+                                              (matrix-set! submat row col (matrix-ref J-inv i j))))))
+                                  (+ acc (* omega-I (matrix-det-small submat)))))))
+                        0
+                        indices-k)])
              (vector-set! new-comps offset-J sum)))
          indices-k)
         (make-k-form point new-chart k new-comps))])))
@@ -683,26 +680,26 @@
                                     tv
                                     (tangent-change-chart tv chart))))
                              vectors)]
-             [result 0])
+)
         ;; For each basis k-form dx^I with component ω_I,
         ;; compute ω_I * det of k×k submatrix formed by rows I
-        (for-each
-         (lambda (idx)
+        (fold-left
+         (lambda (result idx)
            (let ([omega-I (vector-ref comps (multi-index->offset n idx))])
-             (when (not (= omega-I 0))
-               ;; Build k×k matrix: row j is [v_j^{i₁}, v_j^{i₂}, ...]
-               (let ([submat (make-matrix k k 0)])
-                 (do ([j 0 (+ j 1)])
-                     ((= j k))
-                     (let ([vj (list-ref vec-comps j)])
-                       (do ([col 0 (+ col 1)])
-                           ((= col k))
-                           (let ([row-idx (list-ref idx col)])
-                             (matrix-set! submat j col (vector-ref vj row-idx))))))
-                 (let ([det (matrix-det-small submat)])
-                   (set! result (+ result (* omega-I det))))))))
-         indices)
-        result)])))
+             (if (= omega-I 0)
+                 result
+                 ;; Build k×k matrix: row j is [v_j^{i₁}, v_j^{i₂}, ...]
+                 (let ([submat (make-matrix k k 0)])
+                   (do ([j 0 (+ j 1)])
+                       ((= j k))
+                       (let ([vj (list-ref vec-comps j)])
+                         (do ([col 0 (+ col 1)])
+                             ((= col k))
+                             (let ([row-idx (list-ref idx col)])
+                               (matrix-set! submat j col (vector-ref vj row-idx))))))
+                   (+ result (* omega-I (matrix-det-small submat)))))))
+         0
+         indices))])))
 
 (doc matrix-det-small 'type '(-> Matrix Num))
 (doc matrix-det-small 'description "Determinant for small matrices (up to 4x4)")
@@ -760,24 +757,24 @@
                 ;; where J_{J,I} is the k×k submatrix with rows J and columns I
                 (for-each
                  (lambda (idx-I)
-                   (let ([offset-I (multi-index->offset n-source idx-I)]
-                         [sum 0])
-                     (for-each
-                      (lambda (idx-J)
-                        (let ([omega-J (vector-ref kf-comps (multi-index->offset n-target idx-J))])
-                          (when (not (= omega-J 0))
-                            ;; Build k×k submatrix J_{J,I}
-                            (let ([submat (make-matrix k k 0)])
-                              (do ([row 0 (+ row 1)])
-                                  ((= row k))
-                                  (let ([j (list-ref idx-J row)])
-                                    (do ([col 0 (+ col 1)])
-                                        ((= col k))
-                                        (let ([i (list-ref idx-I col)])
-                                          (matrix-set! submat row col (matrix-ref J j i))))))
-                              (let ([det (matrix-det-small submat)])
-                                (set! sum (+ sum (* omega-J det))))))))
-                      indices-k-target)
+                   (let* ([offset-I (multi-index->offset n-source idx-I)]
+                          [sum (fold-left
+                                (lambda (acc idx-J)
+                                  (let ([omega-J (vector-ref kf-comps (multi-index->offset n-target idx-J))])
+                                    (if (= omega-J 0)
+                                        acc
+                                        ;; Build k×k submatrix J_{J,I}
+                                        (let ([submat (make-matrix k k 0)])
+                                          (do ([row 0 (+ row 1)])
+                                              ((= row k))
+                                              (let ([j (list-ref idx-J row)])
+                                                (do ([col 0 (+ col 1)])
+                                                    ((= col k))
+                                                    (let ([i (list-ref idx-I col)])
+                                                      (matrix-set! submat row col (matrix-ref J j i))))))
+                                          (+ acc (* omega-J (matrix-det-small submat)))))))
+                                0
+                                indices-k-target)])
                      (vector-set! result offset-I sum)))
                  indices-k-source)
                 (make-k-form source-point source-chart k result)))))))
@@ -859,25 +856,25 @@
 (doc integrate-1-form-line 'param "steps: number of integration steps")
 (define (integrate-1-form-line omega-field gamma t0 t1 steps)
   (doc 'export #t)
-  (let* ([dt (/ (- t1 t0) steps)]
-         [result 0])
-    (do ([i 0 (+ i 1)])
-        ((= i steps) result)
-        (let* ([t (+ t0 (* i dt))]
-               [t-mid (+ t (/ dt 2))]
-               [p (gamma t-mid)]
-               [omega (omega-field p)]
-               ;; Compute tangent vector to curve: dγ/dt
-               [p-plus (gamma (+ t-mid (* 0.5 dt)))]
-               [p-minus (gamma (- t-mid (* 0.5 dt)))]
-               [chart (k-form-chart omega)]
-               [c-plus (chart-apply chart p-plus)]
-               [c-minus (chart-apply chart p-minus)]
-               [tangent-comps (vec-scale (/ 1.0 dt) (vec-sub c-plus c-minus))]
-               [tangent (make-tangent-vector p chart tangent-comps)]
-               ;; Evaluate ω(dγ/dt) and multiply by dt
-               [integrand (k-form-apply omega (list tangent))])
-          (set! result (+ result (* integrand dt)))))))
+  (let ([dt (/ (- t1 t0) steps)])
+    (do ([i 0 (+ i 1)]
+         [result 0
+                 (let* ([t (+ t0 (* i dt))]
+                        [t-mid (+ t (/ dt 2))]
+                        [p (gamma t-mid)]
+                        [omega (omega-field p)]
+                        ;; Compute tangent vector to curve: dγ/dt
+                        [p-plus (gamma (+ t-mid (* 0.5 dt)))]
+                        [p-minus (gamma (- t-mid (* 0.5 dt)))]
+                        [chart (k-form-chart omega)]
+                        [c-plus (chart-apply chart p-plus)]
+                        [c-minus (chart-apply chart p-minus)]
+                        [tangent-comps (vec-scale (/ 1.0 dt) (vec-sub c-plus c-minus))]
+                        [tangent (make-tangent-vector p chart tangent-comps)]
+                        ;; Evaluate ω(dγ/dt) and multiply by dt
+                        [integrand (k-form-apply omega (list tangent))])
+                   (+ result (* integrand dt)))])
+        ((= i steps) result))))
 
 (doc integrate-2-form-surface 'type '(-> (Point → KForm) (Num Num → Point) Num Num Num Num Nat Nat Num))
 (doc integrate-2-form-surface 'description "Integrate a 2-form over a parameterized surface")
@@ -890,33 +887,34 @@
   (doc 'export #t)
   (let* ([du (/ (- u1 u0) u-steps)]
          [dv (/ (- v1 v0) v-steps)]
-         [eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
-         [result 0])
-    (do ([i 0 (+ i 1)])
-        ((= i u-steps) result)
-        (do ([j 0 (+ j 1)])
-            ((= j v-steps))
-            (let* ([u (+ u0 (* i du) (/ du 2))]
-                   [v (+ v0 (* j dv) (/ dv 2))]
-                   [p (sigma u v)]
-                   [omega (omega-field p)]
-                   [chart (k-form-chart omega)]
-                   ;; Compute tangent vectors ∂σ/∂u and ∂σ/∂v
-                   [p-u+ (sigma (+ u eps) v)]
-                   [p-u- (sigma (- u eps) v)]
-                   [p-v+ (sigma u (+ v eps))]
-                   [p-v- (sigma u (- v eps))]
-                   [c-u+ (chart-apply chart p-u+)]
-                   [c-u- (chart-apply chart p-u-)]
-                   [c-v+ (chart-apply chart p-v+)]
-                   [c-v- (chart-apply chart p-v-)]
-                   [du-vec (vec-scale (/ 1.0 (* 2 eps)) (vec-sub c-u+ c-u-))]
-                   [dv-vec (vec-scale (/ 1.0 (* 2 eps)) (vec-sub c-v+ c-v-))]
-                   [tangent-u (make-tangent-vector p chart du-vec)]
-                   [tangent-v (make-tangent-vector p chart dv-vec)]
-                   ;; Evaluate ω(∂σ/∂u, ∂σ/∂v) and multiply by du dv
-                   [integrand (k-form-apply omega (list tangent-u tangent-v))])
-              (set! result (+ result (* integrand du dv))))))))
+         [eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
+    (do ([i 0 (+ i 1)]
+         [result 0
+                 (do ([j 0 (+ j 1)]
+                      [row-sum result
+                               (let* ([u (+ u0 (* i du) (/ du 2))]
+                                      [v (+ v0 (* j dv) (/ dv 2))]
+                                      [p (sigma u v)]
+                                      [omega (omega-field p)]
+                                      [chart (k-form-chart omega)]
+                                      ;; Compute tangent vectors ∂σ/∂u and ∂σ/∂v
+                                      [p-u+ (sigma (+ u eps) v)]
+                                      [p-u- (sigma (- u eps) v)]
+                                      [p-v+ (sigma u (+ v eps))]
+                                      [p-v- (sigma u (- v eps))]
+                                      [c-u+ (chart-apply chart p-u+)]
+                                      [c-u- (chart-apply chart p-u-)]
+                                      [c-v+ (chart-apply chart p-v+)]
+                                      [c-v- (chart-apply chart p-v-)]
+                                      [du-vec (vec-scale (/ 1.0 (* 2 eps)) (vec-sub c-u+ c-u-))]
+                                      [dv-vec (vec-scale (/ 1.0 (* 2 eps)) (vec-sub c-v+ c-v-))]
+                                      [tangent-u (make-tangent-vector p chart du-vec)]
+                                      [tangent-v (make-tangent-vector p chart dv-vec)]
+                                      ;; Evaluate ω(∂σ/∂u, ∂σ/∂v) and multiply by du dv
+                                      [integrand (k-form-apply omega (list tangent-u tangent-v))])
+                                 (+ row-sum (* integrand du dv)))])
+                     ((= j v-steps) row-sum))])
+        ((= i u-steps) result))))
 
 ;;; ============================================================================
 ;;; Utility
@@ -929,8 +927,5 @@
    [else (for-all pred (cdr lst))]))
 
 (define (vec-copy v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-        (vector-set! result i (vector-ref v i)))))
+  (let ([n (vector-length v)])
+    (vec-tabulate n i (vector-ref v i))))

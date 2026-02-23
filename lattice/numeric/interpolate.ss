@@ -1,6 +1,6 @@
 ;;; lattice/numeric/interpolate.ss — Numerical Interpolation
 ;;; @module interpolate
-;;; @requires prelude vec matrix matrix-decomp matrix-solvers numeric/polynomial
+;;; @requires prelude vec matrix matrix-decomp matrix-solvers numeric/polynomial iteration
 
 (require 'prelude)
 (require 'vec)
@@ -8,6 +8,7 @@
 (require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'numeric/polynomial)
+(require 'iteration)
 
 (doc 'module 'interpolate)
 (doc 'description "Numerical interpolation, splines, Bezier curves, and curve fitting")
@@ -305,26 +306,23 @@
                         ;; Solve with Thomas algorithm O(n) instead of matrix-solve O(n³)
                         (thomas-algorithm a-sub b-diag c-sup d-rhs)))]
                  ;; Full M vector with M_0 = M_n = 0
-                 [M (let ([v (make-vector n 0)])
-                      (do ([i 1 (+ i 1)])
-                          ((>= i n-1))
-                        (vector-set! v i (vector-ref M-interior (- i 1))))
-                      v)]
+                 [M (vec-tabulate n i
+                      (if (and (> i 0) (< i n-1))
+                          (vector-ref M-interior (- i 1))
+                          0))]
                  ;; Build spline coefficients
-                 [spline (make-vector n-1 #f)])
-            (do ([i 0 (+ i 1)])
-                ((>= i n-1))
-              (let* ([hi (vector-ref h i)]
-                     [yi (list-ref ys i)]
-                     [yi+1 (list-ref ys (+ i 1))]
-                     [Mi (vector-ref M i)]
-                     [Mi+1 (vector-ref M (+ i 1))]
-                     [a yi]
-                     [b (- (/ (- yi+1 yi) hi)
-                           (/ (* hi (+ (* 2 Mi) Mi+1)) 6))]
-                     [c (/ Mi 2)]
-                     [d (/ (- Mi+1 Mi) (* 6 hi))])
-                (vector-set! spline i (list a b c d))))
+                 [spline (vec-tabulate n-1 i
+                           (let* ([hi (vector-ref h i)]
+                                  [yi (list-ref ys i)]
+                                  [yi+1 (list-ref ys (+ i 1))]
+                                  [Mi (vector-ref M i)]
+                                  [Mi+1 (vector-ref M (+ i 1))]
+                                  [a yi]
+                                  [b (- (/ (- yi+1 yi) hi)
+                                        (/ (* hi (+ (* 2 Mi) Mi+1)) 6))]
+                                  [c (/ Mi 2)]
+                                  [d (/ (- Mi+1 Mi) (* 6 hi))])
+                             (list a b c d)))])
             spline)))))
 
 ;;; Helper for matrix-set! (not in base matrix.ss)

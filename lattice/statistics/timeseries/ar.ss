@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ar
-;;; @requires prelude matrix matrix-decomp matrix-solvers result-types summary-stats acf-pacf
+;;; @requires prelude iteration matrix matrix-decomp matrix-solvers result-types summary-stats acf-pacf
 (require 'prelude)
+(require 'iteration)
 (require 'matrix)
 (require 'matrix-decomp)
 (require 'matrix-solvers)
@@ -47,11 +48,8 @@
 
 ;;; center-series : Vec × Num → Vec
 (define (center-series xs mean)
-  (let* ([n (vector-length xs)]
-         [centered (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) centered]
-            (vector-set! centered i (- (vector-ref xs i) mean)))))
+  (let ([n (vector-length xs)])
+       (vec-tabulate n i (- (vector-ref xs i) mean))))
 
 ;;; make-toeplitz-matrix : Vec × Nat → Matrix
 ;;; Create symmetric Toeplitz matrix from ACF.
@@ -155,8 +153,7 @@
 ;;; Uses psi-weights (impulse response function).
 (define (ar-forecast-se phi sigma h)
   (let* ([p (vector-length phi)]
-         [psi (make-vector h 0)]
-         [se (make-vector h)])
+         [psi (make-vector h 0)])
         ;; Compute psi weights recursively
         ;; psi_0 = 1, psi_j = sum_{k=1}^{min(j,p)} phi_k * psi_{j-k}
         (vector-set! psi 0 1)
@@ -170,15 +167,10 @@
                                               (vector-ref psi (- j k)))))))])
                  (vector-set! psi j sum)))
         ;; Forecast variance at horizon h: sigma^2 * sum_{j=0}^{h-1} psi_j^2
-        (do ([t 0 (+ t 1)])
-            [(= t h) se]
-            (let ([var (* sigma sigma
-                          (let loop ([j 0] [s 0])
-                               (if (> j t)
-                                   s
-                                   (loop (+ j 1)
-                                         (+ s (expt (vector-ref psi j) 2))))))])
-                 (vector-set! se t (sqrt var))))))
+        (vec-tabulate h t
+          (sqrt (* sigma sigma
+                   (range-fold s 0 j 0 (+ t 1)
+                     (+ s (expt (vector-ref psi j) 2))))))))
 
 ;;; ====
 ;;; Model Selection

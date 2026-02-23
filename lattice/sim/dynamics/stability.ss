@@ -9,6 +9,7 @@
 (require 'svd)
 (require 'complex)
 (require 'ode-system)
+(require 'iteration)
 
 (doc 'module 'stability)
 (doc 'description "Fixed point detection, linearization, eigenvalue analysis, and stability classification for continuous-time dynamical systems")
@@ -133,18 +134,14 @@
   (doc 'type '(-> Matrix Vec Matrix))
   (doc 'description "Create augmented matrix [A|b]")
   (let* ([n (matrix-rows a)]
-         [data (make-vector (* n (+ n 1)) 0)])
-        ;; Copy A into augmented matrix
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (do ([j 0 (+ j 1)])
-                ((= j n))
-                (vector-set! data (+ (* i (+ n 1)) j)
-                             (matrix-ref a i j)))
-            ;; Copy b column
-            (vector-set! data (+ (* i (+ n 1)) n)
-                         (vector-ref b i)))
-        (list 'matrix n (+ n 1) data)))
+         [nc (+ n 1)]
+         [data (vec-tabulate (* n nc) k
+                 (let ([i (quotient k nc)]
+                       [j (remainder k nc)])
+                      (if (< j n)
+                          (matrix-ref a i j)
+                          (vector-ref b i))))])
+        (list 'matrix n nc data)))
 
 (define (gaussian-eliminate-with-pivot aug n)
   (doc 'type '(-> Matrix Nat (Option Vec)))
@@ -201,11 +198,10 @@
        (let loop ([i (- n 1)])
             (if (< i 0)
                 x
-                (let ([sum 0])
-                     (do ([j (+ i 1) (+ j 1)])
-                         ((= j n))
-                         (set! sum (+ sum (* (vector-ref data (+ (* i nc) j))
-                                             (vector-ref x j)))))
+                (let ([sum (do ([j (+ i 1) (+ j 1)]
+                                [s 0 (+ s (* (vector-ref data (+ (* i nc) j))
+                                             (vector-ref x j)))])
+                               ((= j n) s))])
                      (let ([diag (vector-ref data (+ (* i nc) i))])
                           (if (< (abs diag) 1e-12)
                               #f  ; Singular
@@ -311,13 +307,10 @@
                                                    (- (vector-ref aug (+ (* i (* n 2)) j))
                                                       (* factor (vector-ref aug (+ (* k (* n 2)) j)))))))))))
         ;; Extract inverse from right half
-        (let ([inv-data (make-vector (* n n) 0)])
-             (do ([i 0 (+ i 1)])
-                 ((= i n))
-                 (do ([j 0 (+ j 1)])
-                     ((= j n))
-                     (vector-set! inv-data (+ (* i n) j)
-                                  (vector-ref aug (+ (* i (* n 2)) (+ n j))))))
+        (let ([inv-data (vec-tabulate (* n n) k
+                          (let ([i (quotient k n)]
+                                [j (remainder k n)])
+                               (vector-ref aug (+ (* i (* n 2)) (+ n j)))))])
              (list 'matrix n n inv-data))))
 
 (doc 'section '2x2-eigenvalue-computation)

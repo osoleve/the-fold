@@ -134,38 +134,39 @@ Returns: (manifest-diff (added ...) (removed ...) (changed ...) (same-count N)).
          [new-entries (manifest-entries new-manifest)]
          [old-table (entries->table old-entries)]
          [new-table (entries->table new-entries)]
-         [old-names (map car old-entries)]
-         [new-names (map car new-entries)]
-         [added '()]
-         [removed '()]
-         [changed '()]
-         [same-count 0])
-    ;; Find additions and changes
-    (for-each
-      (lambda (entry)
-        (let* ([name (car entry)]
-               [new-path (cdr entry)]
-               [old-path (hamt-lookup name old-table)])
-          (cond
-            [(not old-path)
-             (set! added (cons entry added))]
-            [(not (string=? old-path new-path))
-             (set! changed (cons (list name old-path new-path) changed))]
-            [else
-             (set! same-count (+ same-count 1))])))
-      new-entries)
-    ;; Find removals
-    (for-each
-      (lambda (entry)
-        (let ([name (car entry)])
-          (unless (hamt-lookup name new-table)
-            (set! removed (cons entry removed)))))
-      old-entries)
+         ;; Find additions and changes: accumulate (added changed same-count)
+         [ac-result
+          (fold-left
+           (lambda (acc entry)
+             (let* ([name (car entry)]
+                    [new-path (cdr entry)]
+                    [old-path (hamt-lookup name old-table)]
+                    [added (car acc)]
+                    [changed (cadr acc)]
+                    [same-count (caddr acc)])
+               (cond
+                 [(not old-path)
+                  (list (cons entry added) changed same-count)]
+                 [(not (string=? old-path new-path))
+                  (list added (cons (list name old-path new-path) changed) same-count)]
+                 [else
+                  (list added changed (+ same-count 1))])))
+           (list '() '() 0)
+           new-entries)]
+         ;; Find removals
+         [removed
+          (fold-left
+           (lambda (acc entry)
+             (if (hamt-lookup (car entry) new-table)
+                 acc
+                 (cons entry acc)))
+           '()
+           old-entries)])
     (list 'manifest-diff
-          (list 'added (reverse added))
+          (list 'added (reverse (car ac-result)))
           (list 'removed (reverse removed))
-          (list 'changed (reverse changed))
-          (list 'same-count same-count))))
+          (list 'changed (reverse (cadr ac-result)))
+          (list 'same-count (caddr ac-result)))))
 
 (doc 'type '(-> (List (Pair Symbol String)) HAMT))
 (define (entries->table entries)
@@ -254,17 +255,17 @@ should be derived from manifest.sexp files.")
 Returns: (manifest-split (core ...) (lattice ...)).")
 (define (manifest-split manifest)
   (let* ([entries (manifest-entries manifest)]
-         [core '()]
-         [lattice '()])
-    (for-each
-      (lambda (e)
-        (if (core-bootstrap-entry? e)
-            (set! core (cons e core))
-            (set! lattice (cons e lattice))))
-      entries)
+         [result
+          (fold-left
+           (lambda (acc e)
+             (if (core-bootstrap-entry? e)
+                 (cons (cons e (car acc)) (cdr acc))
+                 (cons (car acc) (cons e (cdr acc)))))
+           (cons '() '())
+           entries)])
     (list 'manifest-split
-          (list 'core (reverse core))
-          (list 'lattice (reverse lattice)))))
+          (list 'core (reverse (car result)))
+          (list 'lattice (reverse (cdr result))))))
 
 ;;; ====
 ;;; Consistency Checking

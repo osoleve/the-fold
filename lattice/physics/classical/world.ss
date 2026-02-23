@@ -427,18 +427,19 @@
                                        (shape-aabb (entity-world-shape e))))
          entities)
         ;; Find collision pairs
-        (let ([checked (list hamt-empty)]  ; mutable box holding HAMT
-              [collisions '()])
-             (for-each
-              (lambda (e)
+        (let ([checked (list hamt-empty)])  ; mutable box holding HAMT
+             (fold-left
+              (lambda (collisions e)
                       (let* ([id-a (entity-id e)]
                              [shape-a (entity-world-shape e)]
                              [candidates (spatial-hash-query hash (shape-aabb shape-a))])
-                            (for-each
-                             (lambda (id-b)
-                                     (when (and (not (eq? id-a id-b))
-                                                (not (hamt-lookup (make-pair-key id-a id-b)
-                                                                  (car checked))))
+                            (fold-left
+                             (lambda (collisions id-b)
+                                     (if (or (eq? id-a id-b)
+                                             (hamt-lookup (make-pair-key id-a id-b)
+                                                          (car checked)))
+                                         collisions
+                                         (begin
                                            ;; Mark as checked
                                            (set-car! checked
                                                      (hamt-assoc (make-pair-key id-a id-b) #t
@@ -447,13 +448,12 @@
                                            (let* ([ent-b (world-get-entity world id-b)]
                                                   [shape-b (entity-world-shape ent-b)]
                                                   [manifold (shapes-manifold shape-a shape-b)])
-                                                 (when manifold
-                                                       (set! collisions
-                                                             (cons (list e ent-b manifold)
-                                                                   collisions))))))
-                             candidates)))
-              entities)
-             collisions)))
+                                                 (if manifold
+                                                     (cons (list e ent-b manifold)
+                                                           collisions)
+                                                     collisions)))))
+                             collisions candidates)))
+              '() entities))))
 
 (doc 'make-pair-key 'type 'Any × Any → Any)
 (doc "Create a canonical key for a pair of ids.")
@@ -549,18 +549,18 @@
 (doc "Cast ray through world, returning closest hit with full shape testing.")
 (define (world-raycast-closest world ray)
   (let* ([entities (world-entity-list world)]
-         [best-hit #f]
-         [best-entity #f]
-         [best-dist (ray2-max-dist ray)])
-        (for-each
-         (lambda (e)
-                 (let* ([shape (entity-world-shape e)]  ; Use world-space shape
-                        [hit (ray2-shape ray shape)])
-                       (when (and hit (< (hit-info-distance hit) best-dist))
-                             (set! best-hit hit)
-                             (set! best-entity e)
-                             (set! best-dist (hit-info-distance hit)))))
-         entities)
+         [result (fold-left
+                  (lambda (best e)
+                          (let* ([shape (entity-world-shape e)]
+                                 [hit (ray2-shape ray shape)]
+                                 [best-dist (caddr best)])
+                                (if (and hit (< (hit-info-distance hit) best-dist))
+                                    (list hit e (hit-info-distance hit))
+                                    best)))
+                  (list #f #f (ray2-max-dist ray))
+                  entities)]
+         [best-hit (car result)]
+         [best-entity (cadr result)])
         (if best-hit
             (cons best-entity best-hit)
             #f)))
@@ -569,14 +569,14 @@
 (doc "Cast ray through world, returning all hits sorted by distance.")
 (define (world-raycast-all world ray)
   (let* ([entities (world-entity-list world)]
-         [hits '()])
-        (for-each
-         (lambda (e)
-                 (let* ([shape (entity-world-shape e)]  ; Use world-space shape
-                        [hit (ray2-shape ray shape)])
-                       (when hit
-                             (set! hits (cons (cons e hit) hits)))))
-         entities)
+         [hits (fold-left
+                (lambda (acc e)
+                        (let* ([shape (entity-world-shape e)]  ; Use world-space shape
+                               [hit (ray2-shape ray shape)])
+                              (if hit
+                                  (cons (cons e hit) acc)
+                                  acc)))
+                '() entities)])
         ;; Sort by distance
         (sort-by (lambda (a b)
                            (< (hit-info-distance (cdr a))

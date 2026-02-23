@@ -22,11 +22,11 @@
 (define-syntax vec-do!
   (syntax-rules ()
                 [(_ idx vec body ...)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([idx 0 (+ idx 1)])
-                          ((= idx n))
-                          body ...))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([idx 0 (+ idx 1)])
+                           ((= idx n))
+                           body ...))]))
 
 ;;; vec-map-idx! : (idx-var src-vec result-vec body) -> result-vec
 ;;; Map over source vector with index, storing results in result vector.
@@ -37,12 +37,12 @@
 (define-syntax vec-map-idx!
   (syntax-rules ()
                 [(_ idx src result body)
-                 (let ([s src]
-                       [r result]
-                       [n (vector-length src)])
-                      (do ([idx 0 (+ idx 1)])
-                          ((= idx n) r)
-                          (vector-set! r idx body)))]))
+                 (let* ([s src]
+                        [r result]
+                        [n (vector-length s)])
+                       (do ([idx 0 (+ idx 1)])
+                           ((= idx n) r)
+                           (vector-set! r idx body)))]))
 
 ;;; vec-map-idx : (idx-var vec body) -> new-vector
 ;;; Map over vector with index access, creating a new result vector.
@@ -68,11 +68,11 @@
 (define-syntax vec-fold-idx
   (syntax-rules ()
                 [(_ acc init idx vec body)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([idx 0 (+ idx 1)]
-                           [acc init body])
-                          ((= idx n) acc)))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([idx 0 (+ idx 1)]
+                            [acc init body])
+                           ((= idx n) acc)))]))
 
 ;;; vec-fold : (acc-var init elem-var vec body) -> final-acc
 ;;; Fold over vector elements (no index). Body computes new accumulator.
@@ -82,11 +82,11 @@
 (define-syntax vec-fold
   (syntax-rules ()
                 [(_ acc init elem vec body)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([i 0 (+ i 1)]
-                           [acc init (let ([elem (vector-ref v i)]) body)])
-                          ((= i n) acc)))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([i 0 (+ i 1)]
+                            [acc init (let ([elem (vector-ref v i)]) body)])
+                           ((= i n) acc)))]))
 
 ;;; vec-zip-do! : (idx-var vec1 vec2 body ...) -> unspecified
 ;;; Iterate over two vectors simultaneously by index.
@@ -97,12 +97,12 @@
 (define-syntax vec-zip-do!
   (syntax-rules ()
                 [(_ idx vec1 vec2 body ...)
-                 (let ([v1 vec1]
-                       [v2 vec2]
-                       [n (vector-length vec1)])
-                      (do ([idx 0 (+ idx 1)])
-                          ((= idx n))
-                          body ...))]))
+                 (let* ([v1 vec1]
+                        [v2 vec2]
+                        [n (vector-length v1)])
+                       (do ([idx 0 (+ idx 1)])
+                           ((= idx n))
+                           body ...))]))
 
 ;;; vec-zip-map-idx : (idx-var vec1 vec2 body) -> new-vector
 ;;; Map over two vectors by index, creating result.
@@ -128,11 +128,11 @@
 (define-syntax vec-any?
   (syntax-rules ()
                 [(_ elem vec pred)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([i 0 (+ i 1)]
-                           [found #f (or found (let ([elem (vector-ref v i)]) pred))])
-                          ((or (= i n) found) found)))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([i 0 (+ i 1)]
+                            [found #f (or found (let ([elem (vector-ref v i)]) pred))])
+                           ((or (= i n) found) found)))]))
 
 ;;; vec-all? : (elem-var vec pred) -> boolean
 ;;; Check if all elements satisfy predicate.
@@ -142,11 +142,11 @@
 (define-syntax vec-all?
   (syntax-rules ()
                 [(_ elem vec pred)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([i 0 (+ i 1)]
-                           [all #t (and all (let ([elem (vector-ref v i)]) pred))])
-                          ((or (= i n) (not all)) all)))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([i 0 (+ i 1)]
+                            [all #t (and all (let ([elem (vector-ref v i)]) pred))])
+                           ((or (= i n) (not all)) all)))]))
 
 ;;; ====
 ;;; Matrix Iteration Macros
@@ -218,12 +218,12 @@
 (define-syntax matrix-row-do!
   (syntax-rules ()
                 [(_ j row cols data body ...)
-                 (let ([c cols]
-                       [start (* row cols)]
-                       [d data])
-                      (do ([j 0 (+ j 1)])
-                          ((= j c))
-                          body ...))]))
+                 (let* ([c cols]
+                        [start (* row c)]
+                        [d data])
+                       (do ([j 0 (+ j 1)])
+                           ((= j c))
+                           body ...))]))
 
 ;;; matrix-col-do! : (i-var col-idx rows cols data body ...) -> unspecified
 ;;; Iterate over a single column of a matrix.
@@ -282,11 +282,11 @@
 (define-syntax vec-do-reverse!
   (syntax-rules ()
                 [(_ idx vec body ...)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([idx (- n 1) (- idx 1)])
-                          ((< idx 0))
-                          body ...))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([idx (- n 1) (- idx 1)])
+                           ((< idx 0))
+                           body ...))]))
 
 ;;; vec-fold-reverse : (acc-var init idx-var vec body) -> final-acc
 ;;; Fold over vector in reverse order (right fold).
@@ -296,11 +296,11 @@
 (define-syntax vec-fold-reverse
   (syntax-rules ()
                 [(_ acc init idx vec body)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([idx (- n 1) (- idx 1)]
-                           [acc init body])
-                          ((< idx 0) acc)))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([idx (- n 1) (- idx 1)]
+                            [acc init body])
+                           ((< idx 0) acc)))]))
 
 ;;; ====
 ;;; Conditional Iteration with Early Exit
@@ -314,11 +314,11 @@
 (define-syntax vec-find-idx
   (syntax-rules ()
                 [(_ idx vec pred)
-                 (let ([v vec]
-                       [n (vector-length vec)])
-                      (do ([idx 0 (+ idx 1)]
-                           [found #f (if pred idx #f)])
-                          ((or (= idx n) found) found)))]))
+                 (let* ([v vec]
+                        [n (vector-length v)])
+                       (do ([idx 0 (+ idx 1)]
+                            [found #f (if pred idx #f)])
+                           ((or (= idx n) found) found)))]))
 
 ;;; ====
 ;;; Triple-Nested Loops (Matrix Multiplication Pattern)

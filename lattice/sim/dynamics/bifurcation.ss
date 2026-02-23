@@ -9,6 +9,7 @@
 (require 'ode-system)
 (require 'sim/stability)
 (require 'chaos)
+(require 'iteration)
 
 (doc 'module 'bifurcation)
 (doc 'description "Bifurcation analysis for dynamical systems: parameter continuation, bifurcation detection (saddle-node, transcritical, pitchfork, Hopf, period-doubling), bifurcation diagrams, and normal form computation")
@@ -286,35 +287,24 @@
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [new-cols (+ cols 1)]
-         [data (make-vector (* rows new-cols) 0)])
-        ;; Copy M
-        (do ([i 0 (+ i 1)])
-            ((= i rows))
-            (do ([j 0 (+ j 1)])
-                ((= j cols))
-                (vector-set! data (+ (* i new-cols) j)
-                             (matrix-ref m i j)))
-            ;; Add column from v
-            (vector-set! data (+ (* i new-cols) cols)
-                         (vector-ref v i)))
+         [data (vec-tabulate (* rows new-cols) k
+                 (let ([i (quotient k new-cols)]
+                       [j (remainder k new-cols)])
+                      (if (< j cols)
+                          (matrix-ref m i j)
+                          (vector-ref v i))))])
         (list 'matrix rows new-cols data)))
 
 (define (extract-column m col)
   (doc 'type '(-> Matrix Nat Vec))
   (doc 'description "Extract column col from matrix as vector")
-  (let* ([rows (matrix-rows m)]
-         [v (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) v)
-            (vector-set! v i (matrix-ref m i col)))))
+  (let ([rows (matrix-rows m)])
+       (vec-tabulate rows i (matrix-ref m i col))))
 
 (define (subvector v start len)
   (doc 'type '(-> Vec Nat Nat Vec))
   (doc 'description "Extract subvector v[start:start+len]")
-  (let ([result (make-vector len 0)])
-       (do ([i 0 (+ i 1)])
-           ((= i len) result)
-           (vector-set! result i (vector-ref v (+ start i))))))
+  (vec-tabulate len i (vector-ref v (+ start i))))
 
 (define (arclength-predict fp param tangent ds)
   (doc 'type '(-> Vec Number (Pair Vec Number) Number (Pair Vec Number)))
@@ -369,11 +359,10 @@
          ;; Build bordered matrix (n+1) x (n+1)
          [bordered (make-bordered-matrix jac-x jac-p tangent-x tangent-p)]
          ;; Build RHS: [f; 0]
-         [rhs (make-vector (+ n 1) 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! rhs i (vector-ref rhs-f i)))
-        (vector-set! rhs n 0.0)  ; Arclength constraint RHS
+         [rhs (vec-tabulate (+ n 1) i
+                (if (< i n)
+                    (vector-ref rhs-f i)
+                    0.0))])
         ;; Solve
         (let ([solution (solve-linear-system bordered rhs)])
              (if (not solution)
@@ -386,23 +375,21 @@
   (doc 'description "Build the (n+1)x(n+1) bordered matrix for arclength continuation")
   (let* ([n (matrix-rows jac-x)]
          [size (+ n 1)]
-         [data (make-vector (* size size) 0)])
-        ;; Copy J_x into top-left n×n block
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (do ([j 0 (+ j 1)])
-                ((= j n))
-                (vector-set! data (+ (* i size) j)
-                             (matrix-ref jac-x i j)))
-            ;; J_p column
-            (vector-set! data (+ (* i size) n)
-                         (vector-ref jac-p i)))
-        ;; Bottom row: tangent
-        (do ([j 0 (+ j 1)])
-            ((= j n))
-            (vector-set! data (+ (* n size) j)
-                         (vector-ref tangent-x j)))
-        (vector-set! data (+ (* n size) n) tangent-p)
+         [data (vec-tabulate (* size size) k
+                 (let ([i (quotient k size)]
+                       [j (remainder k size)])
+                      (cond
+                       ;; Top-left n×n block: J_x
+                       [(and (< i n) (< j n))
+                        (matrix-ref jac-x i j)]
+                       ;; Right column (rows 0..n-1): J_p
+                       [(and (< i n) (= j n))
+                        (vector-ref jac-p i)]
+                       ;; Bottom row (cols 0..n-1): tangent_x
+                       [(and (= i n) (< j n))
+                        (vector-ref tangent-x j)]
+                       ;; Bottom-right corner: tangent_p
+                       [else tangent-p])))])
         (list 'matrix size size data)))
 
 (define (orient-tangent new-tangent old-tangent)
@@ -1693,10 +1680,7 @@ newly-created branches by perturbing along the critical eigenvector.")
                   (if (> min-val 1e-6)
                       #f  ; No near-zero singular value - not at a bifurcation
                       ;; Extract the corresponding column of V
-                      (let ([eigenvec (make-vector n 0)])
-                           (do ([i 0 (+ i 1)])
-                               ((= i n) eigenvec)
-                               (vector-set! eigenvec i (matrix-ref v i min-idx)))))))))
+                      (vec-tabulate n i (matrix-ref v i min-idx)))))))
 
 (define (find-min-singular-value-index sigma n)
   (doc 'type '(-> Matrix Nat Nat))

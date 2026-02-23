@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
+(require 'iteration)
 (require 'curvature)
 (require 'sort)
 
@@ -59,20 +60,14 @@
 (define (geodesic-acceleration metric coords velocity)
   (doc 'export #t)
   (let* ([n (metric-dim metric)]
-         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
-         [accel (make-vector n 0)])
+         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)])
     ;; a^k = -Σ_{ij} Γ^k_{ij} v^i v^j
-    (do ([k 0 (+ k 1)])
-        ((= k n) accel)
-      (let ([sum 0])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-            (set! sum (+ sum (* (christoffel-ref gamma k i j)
-                                (vector-ref velocity i)
-                                (vector-ref velocity j))))))
-        (vector-set! accel k (- sum))))))
+    (vec-tabulate n k
+      (- (range-fold outer 0 i 0 n
+           (range-fold inner outer j 0 n
+             (+ inner (* (christoffel-ref gamma k i j)
+                         (vector-ref velocity i)
+                         (vector-ref velocity j)))))))))
 
 ;;; geodesic-derivative : Metric × GeodesicState → (Vec . Vec)
 ;;; Compute the derivative of the geodesic state (for RK4 integration).
@@ -685,17 +680,15 @@
             (let back ([i (- n 1)])
               (if (< i 0)
                   x
-                  (let ([row (vector-ref aug i)]
-                        [sum (vector-ref row n)])
-                    (do ([j (+ i 1) (+ j 1)])
-                        ((= j n))
-                      (set! sum (- sum (* (vector-ref row j) (vector-ref x j)))))
-                    (let ([pivot (vector-ref row i)])
-                      (if (< (abs pivot) 1e-15)
-                          #f  ; Singular
-                          (begin
-                            (vector-set! x i (/ sum pivot))
-                            (back (- i 1)))))))))
+                  (let* ([row (vector-ref aug i)]
+                         [sum (range-fold s (vector-ref row n) j (+ i 1) n
+                                (- s (* (vector-ref row j) (vector-ref x j))))]
+                         [pivot (vector-ref row i)])
+                    (if (< (abs pivot) 1e-15)
+                        #f  ; Singular
+                        (begin
+                          (vector-set! x i (/ sum pivot))
+                          (back (- i 1))))))))
           ;; Find pivot
           (let* ([max-row k]
                  [max-val (abs (vector-ref (vector-ref aug k) k))])
@@ -743,20 +736,14 @@
 ;;; Uses cached Christoffel symbols when possible.
 (define (parallel-transport-derivative metric coords velocity V)
   (let* ([n (metric-dim metric)]
-         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)]
-         [dV (make-vector n 0)])
+         [gamma (cached-christoffel-symbols metric coords *geodesic-epsilon*)])
     ;; dV^k/dt = -Σ_{ij} Γ^k_{ij} v^i V^j
-    (do ([k 0 (+ k 1)])
-        ((= k n) dV)
-      (let ([sum 0])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-            (set! sum (+ sum (* (christoffel-ref gamma k i j)
-                                (vector-ref velocity i)
-                                (vector-ref V j))))))
-        (vector-set! dV k (- sum))))))
+    (vec-tabulate n k
+      (- (range-fold outer 0 i 0 n
+           (range-fold inner outer j 0 n
+             (+ inner (* (christoffel-ref gamma k i j)
+                         (vector-ref velocity i)
+                         (vector-ref V j)))))))))
 
 ;;; parallel-transport-step : Metric × GeodesicState × Vec × Num → (GeodesicState . Vec)
 ;;; Take one RK4 step for both geodesic and parallel transport.
@@ -901,13 +888,13 @@
   (let ([dim (metric-dim metric)])
     (if (not (= dim 2))
         (error 'geodesic-spray "only 2D supported for now")
-        (let ([endpoints '()])
-          (do ([i 0 (+ i 1)])
-              ((= i n-rays) (reverse endpoints))
-            (let* ([angle (* 2 3.141592653589793 (/ i n-rays))]
-                   [v (vector (* radius (cos angle)) (* radius (sin angle)))]
-                   [endpoint (exp-map metric p v n-steps)])
-              (set! endpoints (cons endpoint endpoints))))))))
+        (let loop ([i 0] [endpoints '()])
+          (if (= i n-rays)
+              (reverse endpoints)
+              (let* ([angle (* 2 3.141592653589793 (/ i n-rays))]
+                     [v (vector (* radius (cos angle)) (* radius (sin angle)))]
+                     [endpoint (exp-map metric p v n-steps)])
+                (loop (+ i 1) (cons endpoint endpoints))))))))
 
 ;;; ============================================================================
 ;;; Christoffel Symbol Caching

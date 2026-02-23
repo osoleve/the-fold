@@ -256,25 +256,29 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 (doc 'scc-internal-constraints 'description "Get constraints where both entities are in the SCC")
 (define (scc-internal-constraints graph entity-list)
   (let ([entity-set (fold-left (lambda (h e) (hamt-assoc e #t h))
-                               hamt-empty entity-list)]
-        [seen (list hamt-empty)]  ; mutable box
-        [result '()])
-    ;; Find internal constraints
-    (for-each
-     (lambda (entity)
-       (for-each
-        (lambda (c)
-          (unless (hamt-lookup (constraint-id c) (car seen))
-            (set-car! seen (hamt-assoc (constraint-id c) #t (car seen)))
-            (let ([a (constraint-entity-a c)]
-                  [b (constraint-entity-b c)])
-              ;; Internal if both endpoints in SCC (or b is #f for world anchor)
-              (when (and (hamt-lookup a entity-set)
-                         (or (not b) (hamt-lookup b entity-set)))
-                (set! result (cons c result))))))
-        (cg-constraints-for graph entity)))
-     entity-list)
-    (reverse result)))
+                               hamt-empty entity-list)])
+    ;; Fold over entities and their constraints, threading seen-set and result
+    (let ([final
+           (fold-left
+            (lambda (state entity)
+              (fold-left
+               (lambda (state c)
+                 (let ([seen (car state)]
+                       [result (cdr state)])
+                   (if (hamt-lookup (constraint-id c) seen)
+                       state
+                       (let ([seen (hamt-assoc (constraint-id c) #t seen)]
+                             [a (constraint-entity-a c)]
+                             [b (constraint-entity-b c)])
+                         (if (and (hamt-lookup a entity-set)
+                                  (or (not b) (hamt-lookup b entity-set)))
+                             (cons seen (cons c result))
+                             (cons seen result))))))
+               state
+               (cg-constraints-for graph entity)))
+            (cons hamt-empty '())
+            entity-list)])
+      (reverse (cdr final)))))
 
 (doc 'scc-size 'type '(-> SCC Nat))
 (define (scc-size scc)
@@ -339,8 +343,7 @@ ensuring dependencies are resolved before dependents.")
 (doc 'toposort-dag 'description "Topological sort on adjacency vector; returns #f if cyclic")
 (define (toposort-dag adj)
   (let* ([n (vector-length adj)]
-         [in-degree (make-vector n 0)]
-         [result '()])
+         [in-degree (make-vector n 0)])
     ;; Calculate in-degrees
     (let loop ([i 0])
       (when (< i n)
@@ -356,28 +359,29 @@ ensuring dependencies are resolved before dependents.")
                        (if (= 0 (vector-ref in-degree i))
                            (loop (+ i 1) (cons i q))
                            (loop (+ i 1) q))))])
-      ;; Kahn's algorithm
-      (let process ([q queue])
-        (unless (null? q)
-          (let ([node (car q)]
-                [rest (cdr q)])
-            (set! result (cons node result))
-            ;; Decrease in-degree of neighbors
-            (let ([new-queue
-                   (fold-left
-                    (lambda (q neighbor)
-                      (let ([new-deg (- (vector-ref in-degree neighbor) 1)])
-                        (vector-set! in-degree neighbor new-deg)
-                        (if (= new-deg 0)
-                            (cons neighbor q)
-                            q)))
-                    rest
-                    (vector-ref adj node))])
-              (process new-queue)))))
-      ;; Check if all nodes processed
-      (if (= (length result) n)
-          (reverse result)
-          #f))))
+      ;; Kahn's algorithm — thread result through recursive process
+      (let ([result
+             (let process ([q queue] [result '()])
+               (if (null? q)
+                   result
+                   (let ([node (car q)]
+                         [rest (cdr q)])
+                     ;; Decrease in-degree of neighbors
+                     (let ([new-queue
+                            (fold-left
+                             (lambda (q neighbor)
+                               (let ([new-deg (- (vector-ref in-degree neighbor) 1)])
+                                 (vector-set! in-degree neighbor new-deg)
+                                 (if (= new-deg 0)
+                                     (cons neighbor q)
+                                     q)))
+                             rest
+                             (vector-ref adj node))])
+                       (process new-queue (cons node result))))))])
+        ;; Check if all nodes processed
+        (if (= (length result) n)
+            (reverse result)
+            #f)))))
 
 ;;; ============================================================
 ;;; Section 5: Graph Coloring for Parallel Solving

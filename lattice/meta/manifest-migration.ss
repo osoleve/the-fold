@@ -179,15 +179,16 @@
 ;;; lint-manifest : SExp -> (List String)
 ;;; Check manifest for issues, suggest migrations.
 (define (lint-manifest manifest)
-  (let ([issues '()])
-    ;; Check for deprecated field names
-    (when (assq 'deps manifest)
-      (set! issues (cons "Warning: 'deps' is deprecated, use 'dependencies'" issues)))
-    ;; Check for missing recommended fields
-    (unless (assq 'stability manifest)
-      (set! issues (cons "Hint: Consider adding 'stability' field" issues)))
-    (unless (assq 'schema-version manifest)
-      (set! issues (cons "Hint: Consider adding explicit 'schema-version'" issues)))
+  (let* ([issues '()]
+         [issues (if (assq 'deps manifest)
+                     (cons "Warning: 'deps' is deprecated, use 'dependencies'" issues)
+                     issues)]
+         [issues (if (not (assq 'stability manifest))
+                     (cons "Hint: Consider adding 'stability' field" issues)
+                     issues)]
+         [issues (if (not (assq 'schema-version manifest))
+                     (cons "Hint: Consider adding explicit 'schema-version'" issues)
+                     issues)])
     (reverse issues)))
 
 ;;; ============================================================

@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
+(require 'iteration)
 (require 'charts)
 
 (doc 'module 'tangent)
@@ -635,16 +636,12 @@
   (let* ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))]
          [coords (chart-apply chart point)]
          [n (chart-dim chart)]
-         [grad (make-vector n 0)])
-    ;; Compute gradient: (∂f/∂xⁱ)
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-        (let ([coords-plus (vec-copy coords)]
-              [coords-minus (vec-copy coords)])
-          (vector-set! coords-plus i (+ (vector-ref coords i) eps))
-          (vector-set! coords-minus i (- (vector-ref coords i) eps))
-          (let ([deriv (/ (- (f coords-plus) (f coords-minus)) (* 2 eps))])
-            (vector-set! grad i deriv))))
+         [grad (vec-tabulate n i
+                 (let ([coords-plus (vec-copy coords)]
+                       [coords-minus (vec-copy coords)])
+                   (vector-set! coords-plus i (+ (vector-ref coords i) eps))
+                   (vector-set! coords-minus i (- (vector-ref coords i) eps))
+                   (/ (- (f coords-plus) (f coords-minus)) (* 2 eps))))])
     (make-cotangent-vector point chart grad)))
 
 ;;; ============================================================================
@@ -686,10 +683,7 @@
          [dY-matrix (make-vector n #f)]
          ;; Scratch buffers for coordinate perturbation (reuse to reduce allocation)
          [coords-plus (vec-copy coords)]
-         [coords-minus (vec-copy coords)]
-         ;; Result components
-         [result (make-vector n 0)])
-
+         [coords-minus (vec-copy coords)])
     ;; Phase 1: Compute all partial derivatives (O(N) field evaluations)
     ;; For each direction i, perturb and evaluate X and Y once
     (do ([i 0 (+ i 1)])
@@ -708,13 +702,10 @@
                [Y-minus (tangent-vector-components (Y p-minus))]
                ;; Compute derivative vectors: dX/dx^i and dY/dx^i
                [inv-2eps (/ 1.0 (* 2 eps))]
-               [dXi (make-vector n 0)]
-               [dYi (make-vector n 0)])
-          ;; Compute each component of the derivative
-          (do ([k 0 (+ k 1)])
-              ((= k n))
-              (vector-set! dXi k (* inv-2eps (- (vector-ref X-plus k) (vector-ref X-minus k))))
-              (vector-set! dYi k (* inv-2eps (- (vector-ref Y-plus k) (vector-ref Y-minus k)))))
+               [dXi (vec-tabulate n k
+                      (* inv-2eps (- (vector-ref X-plus k) (vector-ref X-minus k))))]
+               [dYi (vec-tabulate n k
+                      (* inv-2eps (- (vector-ref Y-plus k) (vector-ref Y-minus k))))])
           ;; Store in matrices
           (vector-set! dX-matrix i dXi)
           (vector-set! dY-matrix i dYi))
@@ -725,19 +716,14 @@
 
     ;; Phase 2: Compute bracket components (purely algebraic, O(N²) arithmetic ops)
     ;; [X, Y]^k = Σ_i (X^i * ∂Y^k/∂x^i - Y^i * ∂X^k/∂x^i)
-    (do ([k 0 (+ k 1)])
-        ((= k n))
-        (let ([bracket-k 0])
-          (do ([i 0 (+ i 1)])
-              ((= i n))
-              (let ([Xi (vector-ref X-comps i)]
-                    [Yi (vector-ref Y-comps i)]
-                    [dYk-dxi (vector-ref (vector-ref dY-matrix i) k)]
-                    [dXk-dxi (vector-ref (vector-ref dX-matrix i) k)])
-                (set! bracket-k (+ bracket-k (- (* Xi dYk-dxi) (* Yi dXk-dxi))))))
-          (vector-set! result k bracket-k)))
-
-    (make-tangent-vector point chart result)))
+    (let ([result (vec-tabulate n k
+                    (range-fold bracket-k 0 i 0 n
+                      (let ([Xi (vector-ref X-comps i)]
+                            [Yi (vector-ref Y-comps i)]
+                            [dYk-dxi (vector-ref (vector-ref dY-matrix i) k)]
+                            [dXk-dxi (vector-ref (vector-ref dX-matrix i) k)])
+                        (+ bracket-k (- (* Xi dYk-dxi) (* Yi dXk-dxi))))))])
+      (make-tangent-vector point chart result))))
 
 ;;; lie-bracket-field : (Point → TangentVector) × (Point → TangentVector) × Chart × [Num]
 ;;;                     → (Point → TangentVector)

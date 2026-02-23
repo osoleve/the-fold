@@ -1,6 +1,6 @@
 ;;; lattice/data/graph/graph-matrix.ss — Graph Matrix Representation
 ;;; @module graph-matrix
-;;; @requires prelude vec matrix sparse heap
+;;; @requires prelude vec matrix sparse heap iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -9,6 +9,7 @@
 (require 'matrix)
 (require 'sparse)
 (require 'heap)
+(require 'iteration)
 
 (doc 'module 'graph-matrix)
 (doc 'bridges '(data linalg))
@@ -346,15 +347,12 @@
 (define (degree-matrix m . mode-opt)
   (let* ([mode (if (null? mode-opt) 'out (car mode-opt))]
          [n (adjacency-matrix-node-count m)]
-         [degrees (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! degrees i
-                         (case mode
-                               [(out) (adjacency-out-degree m i)]
-                               [(in) (adjacency-in-degree m i)]
-                               [(total) (+ (adjacency-out-degree m i)
-                                           (adjacency-in-degree m i))])))
+         [degrees (vec-tabulate n i
+                    (case mode
+                          [(out) (adjacency-out-degree m i)]
+                          [(in) (adjacency-in-degree m i)]
+                          [(total) (+ (adjacency-out-degree m i)
+                                      (adjacency-in-degree m i))]))])
         (diagonal degrees)))
 
 ;;; degree-matrix-sparse : Matrix|SparseCSR × [Symbol] → SparseCSR
@@ -362,15 +360,12 @@
 (define (degree-matrix-sparse m . mode-opt)
   (let* ([mode (if (null? mode-opt) 'out (car mode-opt))]
          [n (adjacency-matrix-node-count m)]
-         [degrees (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! degrees i
-                         (case mode
-                               [(out) (adjacency-out-degree m i)]
-                               [(in) (adjacency-in-degree m i)]
-                               [(total) (+ (adjacency-out-degree m i)
-                                           (adjacency-in-degree m i))])))
+         [degrees (vec-tabulate n i
+                    (case mode
+                          [(out) (adjacency-out-degree m i)]
+                          [(in) (adjacency-in-degree m i)]
+                          [(total) (+ (adjacency-out-degree m i)
+                                      (adjacency-in-degree m i))]))])
         (sparse-diagonal degrees)))
 
 ;;; ====
@@ -381,46 +376,46 @@
 ;;; Create adjacency matrix for complete graph K_n.
 ;;; If weighted is #t, all edges have weight 1.
 (define (complete-graph n . opts)
-  (let ([data (make-vector (* n n) 1)])
-       ;; Zero out diagonal (no self-loops)
-       (do ([i 0 (+ i 1)])
-           ((= i n) (list 'matrix n n data))
-           (vector-set! data (+ (* i n) i) 0))))
+  (let ([data (vec-tabulate (* n n) k
+               (let ([i (quotient k n)] [j (remainder k n)])
+                 (if (= i j) 0 1)))])
+       (list 'matrix n n data)))
 
 ;;; cycle-graph : Nat × [Boolean] → Matrix
 ;;; Create adjacency matrix for cycle graph C_n.
 ;;; If directed is #f (default), creates undirected cycle.
 (define (cycle-graph n . opts)
-  (let ([directed (if (null? opts) #f (car opts))]
-        [data (make-vector (* n n) 0)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) (list 'matrix n n data))
-           (let ([next (remainder (+ i 1) n)])
-                (vector-set! data (+ (* i n) next) 1)
-                (unless directed
-                        (vector-set! data (+ (* next n) i) 1))))))
+  (let* ([directed (if (null? opts) #f (car opts))]
+         [data (vec-tabulate (* n n) k
+                 (let ([i (quotient k n)] [j (remainder k n)])
+                   (if (or (= j (remainder (+ i 1) n))
+                           (and (not directed)
+                                (= i (remainder (+ j 1) n))))
+                       1 0)))])
+        (list 'matrix n n data)))
 
 ;;; path-graph : Nat × [Boolean] → Matrix
 ;;; Create adjacency matrix for path graph P_n.
 ;;; If directed is #f (default), creates undirected path.
 (define (path-graph n . opts)
-  (let ([directed (if (null? opts) #f (car opts))]
-        [data (make-vector (* n n) 0)])
-       (do ([i 0 (+ i 1)])
-           ((= i (- n 1)) (list 'matrix n n data))
-           (vector-set! data (+ (* i n) (+ i 1)) 1)
-           (unless directed
-                   (vector-set! data (+ (* (+ i 1) n) i) 1)))))
+  (let* ([directed (if (null? opts) #f (car opts))]
+         [data (vec-tabulate (* n n) k
+                 (let ([i (quotient k n)] [j (remainder k n)])
+                   (if (or (and (< i (- n 1)) (= j (+ i 1)))
+                           (and (not directed)
+                                (< j (- n 1)) (= i (+ j 1))))
+                       1 0)))])
+        (list 'matrix n n data)))
 
 ;;; star-graph : Nat → Matrix
 ;;; Create adjacency matrix for star graph S_n (center at node 0).
 (define (star-graph n)
-  (let ([data (make-vector (* n n) 0)])
-       ;; Center (node 0) connects to all others
-       (do ([i 1 (+ i 1)])
-           ((= i n) (list 'matrix n n data))
-           (vector-set! data i 1)         ; 0 -> i
-           (vector-set! data (* i n) 1)))); i -> 0
+  (let ([data (vec-tabulate (* n n) k
+               (let ([i (quotient k n)] [j (remainder k n)])
+                 (if (or (and (= i 0) (> j 0))    ; 0 -> j
+                         (and (= j 0) (> i 0)))   ; i -> 0
+                     1 0)))])
+       (list 'matrix n n data)))
 
 ;;; bipartite-graph : Nat × Nat × (List (Nat × Nat)) → Matrix
 ;;; Create bipartite graph with m nodes in first partition,

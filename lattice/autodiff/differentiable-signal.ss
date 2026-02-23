@@ -172,13 +172,15 @@ Convolution Gradient:
                (let ([result (make-vector m 0)])
                     (do ([j 0 (+ j 1)])
                         ((= j m) result)
-                        (let ([sum 0])
-                             (do ([i 0 (+ i 1)])
-                                 ((= i n))
-                                 (let ([out-idx (+ i j)])
-                                      (when (and (>= out-idx 0) (< out-idx grad-len))
-                                            (set! sum (+ sum (* (vector-ref signal i)
-                                                                (vector-ref output-grad out-idx)))))))
+                        (let ([sum (let loop ([i 0] [s 0])
+                                       (if (= i n)
+                                           s
+                                           (let ([out-idx (+ i j)])
+                                                (loop (+ i 1)
+                                                      (if (and (>= out-idx 0) (< out-idx grad-len))
+                                                          (+ s (* (vector-ref signal i)
+                                                                  (vector-ref output-grad out-idx)))
+                                                          s)))))])
                              (vector-set! result j sum))))]
               [(same)
                ;; For same mode
@@ -186,13 +188,15 @@ Convolution Gradient:
                      [offset (quotient m 2)])
                     (do ([j 0 (+ j 1)])
                         ((= j m) result)
-                        (let ([sum 0])
-                             (do ([i 0 (+ i 1)])
-                                 ((= i n))
-                                 (let ([out-idx (+ i (- offset) j)])
-                                      (when (and (>= out-idx 0) (< out-idx grad-len))
-                                            (set! sum (+ sum (* (vector-ref signal i)
-                                                                (vector-ref output-grad out-idx)))))))
+                        (let ([sum (let loop ([i 0] [s 0])
+                                       (if (= i n)
+                                           s
+                                           (let ([out-idx (+ i (- offset) j)])
+                                                (loop (+ i 1)
+                                                      (if (and (>= out-idx 0) (< out-idx grad-len))
+                                                          (+ s (* (vector-ref signal i)
+                                                                  (vector-ref output-grad out-idx)))
+                                                          s)))))])
                              (vector-set! result j sum))))]
               [(valid)
                ;; For valid mode, output has length n - m + 1
@@ -200,13 +204,15 @@ Convolution Gradient:
                (let ([result (make-vector m 0)])
                     (do ([j 0 (+ j 1)])
                         ((= j m) result)
-                        (let ([sum 0])
-                             (do ([i 0 (+ i 1)])
-                                 ((= i grad-len))
-                                 (let ([sig-idx (+ i j)])
-                                      (when (< sig-idx n)
-                                            (set! sum (+ sum (* (vector-ref signal sig-idx)
-                                                                (vector-ref output-grad i)))))))
+                        (let ([sum (let loop ([i 0] [s 0])
+                                       (if (= i grad-len)
+                                           s
+                                           (let ([sig-idx (+ i j)])
+                                                (loop (+ i 1)
+                                                      (if (< sig-idx n)
+                                                          (+ s (* (vector-ref signal sig-idx)
+                                                                  (vector-ref output-grad i)))
+                                                          s)))))])
                              (vector-set! result j sum))))]
               [else (error 'convolve-vjp-kernel "invalid mode" mode)])))
 
@@ -438,15 +444,15 @@ Convolution Gradient:
   (doc 'type '(-> (Vector Complex) (Vector Complex) (Values Number (Vector Complex))))
   (doc 'description "Mean squared error gradient in spectral domain")
   (let* ([n (vector-length X1)]
-         [total 0]
          [grad (make-vector n)])
-        (do ([k 0 (+ k 1)])
-            ((= k n) (values (/ total n) grad))
-            (let* ([d (complex-sub (vector-ref X1 k) (vector-ref X2 k))]
-                   [d-mag-sq (+ (* (complex-real d) (complex-real d))
-                                (* (complex-imag d) (complex-imag d)))])
-                  (set! total (+ total d-mag-sq))
-                  (vector-set! grad k (complex-scale (/ 2.0 n) d))))))
+        (let loop ([k 0] [total 0])
+             (if (= k n)
+                 (values (/ total n) grad)
+                 (let* ([d (complex-sub (vector-ref X1 k) (vector-ref X2 k))]
+                        [d-mag-sq (+ (* (complex-real d) (complex-real d))
+                                     (* (complex-imag d) (complex-imag d)))])
+                       (vector-set! grad k (complex-scale (/ 2.0 n) d))
+                       (loop (+ k 1) (+ total d-mag-sq)))))))
 
 (define (spectral-mse-signal-grad signal target-spectrum)
   (doc 'type '(-> (Vector Number) (Vector Complex) (Vector Number)))

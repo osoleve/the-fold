@@ -128,28 +128,30 @@
   (doc 'export #t)
   (doc 'type '(-> Mesh Camera Vec3 Number Number String))
   (doc 'description "Render mesh to colored ASCII string; width/height in characters")
-  (let ([result '()])
-       (do ([y 0 (+ y 1)])
-           ((>= y height) (apply string-append (reverse result)))
-           (do ([x 0 (+ x 1)])
-               ((>= x width))
-               (let* ([u (- (* 2.0 (/ x width)) 1.0)]
-                      [v (- 1.0 (* 2.0 (/ y height)))]  ; Flip Y
-                      [ray (camera-ray cam u v)]
-                      [color (render-pixel-color mesh ray light-dir)])
-                     (if color
-                         (let* ([r (car color)]
-                                [g (cadr color)]
-                                [b (caddr color)]
-                                [intensity (/ (+ r g b) 3.0)]
-                                [ch (intensity->char intensity)]
-                                [ansi-code (rgb->ansi256 r g b)])
-                               (set! result (cons (string-append
-                                                   (ansi-fg ansi-code)
-                                                   (string ch))
-                                                  result)))
-                         (set! result (cons " " result)))))
-           (set! result (cons (string-append ansi-reset "\n") result)))))
+  (let render-rows ([y 0] [result '()])
+       (if (>= y height)
+           (apply string-append (reverse result))
+           (let render-cols ([x 0] [result result])
+                (if (>= x width)
+                    (render-rows (+ y 1)
+                                 (cons (string-append ansi-reset "\n") result))
+                    (let* ([u (- (* 2.0 (/ x width)) 1.0)]
+                           [v (- 1.0 (* 2.0 (/ y height)))]  ; Flip Y
+                           [ray (camera-ray cam u v)]
+                           [color (render-pixel-color mesh ray light-dir)])
+                          (render-cols (+ x 1)
+                                       (if color
+                                           (let* ([r (car color)]
+                                                  [g (cadr color)]
+                                                  [b (caddr color)]
+                                                  [intensity (/ (+ r g b) 3.0)]
+                                                  [ch (intensity->char intensity)]
+                                                  [ansi-code (rgb->ansi256 r g b)])
+                                                 (cons (string-append
+                                                        (ansi-fg ansi-code)
+                                                        (string ch))
+                                                       result))
+                                           (cons " " result)))))))))
 
 (doc 'section 'animation)
 

@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module t-test
-;;; @requires prelude result-types summary-stats stat/distributions
+;;; @requires prelude iteration result-types summary-stats stat/distributions
 (require 'prelude)
+(require 'iteration)
 (require 'result-types)
 (require 'summary-stats)
 (require 'stat/distributions)
@@ -146,11 +147,8 @@
          [n (vector-length xs)])
         (if (not (= n (vector-length ys)))
             (error 't-test-paired "samples must have equal length")
-            (let* ([diffs (make-vector n)]
-                   [_ (do ([i 0 (+ i 1)])
-                          [(= i n)]
-                          (vector-set! diffs i (- (vector-ref xs i)
-                                                  (vector-ref ys i))))]
+            (let* ([diffs (vec-tabulate n i (- (vector-ref xs i)
+                                                (vector-ref ys i)))]
                    [result (t-test-one-sample diffs 0 confidence)])
                   ;; Re-label as paired test
                   (make-test-result 't-test-paired

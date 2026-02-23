@@ -1,12 +1,13 @@
 ;;; lattice/numeric/digital-filters.ss — Digital Filter Library
 ;;; @module digital-filters
-;;; @requires prelude complex dft convolution vec
+;;; @requires prelude complex dft convolution vec iteration
 
 (require 'prelude)
 (require 'complex)
 (require 'dft)
 (require 'convolution)
 (require 'vec)
+(require 'iteration)
 
 (doc 'module 'digital-filters)
 (doc 'description "Comprehensive digital filter library: FIR, IIR, Butterworth, Chebyshev, frequency response analysis, real-time filtering")
@@ -29,13 +30,10 @@
   (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
-      (let ([result (make-vector n)]
-            [denom (- n 1)])
-           (do ([i 0 (+ i 1)])
-               ((= i n) result)
-               (vector-set! result i
-                            (- 0.54
-                               (* 0.46 (cos (/ (* 2 (pi-value) i) denom)))))))))
+      (let ([denom (- n 1)])
+        (vec-tabulate n i
+          (- 0.54
+             (* 0.46 (cos (/ (* 2 (pi-value) i) denom))))))))
 
 ;;; hann-window : Integer → (Vector Number)
 ;;; Hann window: 0.5 * (1 - cos(2*pi*n/(N-1)))
@@ -43,12 +41,9 @@
   (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
-      (let ([result (make-vector n)]
-            [denom (- n 1)])
-           (do ([i 0 (+ i 1)])
-               ((= i n) result)
-               (vector-set! result i
-                            (* 0.5 (- 1 (cos (/ (* 2 (pi-value) i) denom)))))))))
+      (let ([denom (- n 1)])
+        (vec-tabulate n i
+          (* 0.5 (- 1 (cos (/ (* 2 (pi-value) i) denom))))))))
 
 ;;; blackman-window : Integer → (Vector Number)
 ;;; Blackman window: 0.42 - 0.5*cos(2*pi*n/(N-1)) + 0.08*cos(4*pi*n/(N-1))
@@ -56,14 +51,11 @@
   (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
-      (let ([result (make-vector n)]
-            [denom (- n 1)])
-           (do ([i 0 (+ i 1)])
-               ((= i n) result)
-               (vector-set! result i
-                            (+ 0.42
-                               (- (* 0.5 (cos (/ (* 2 (pi-value) i) denom))))
-                               (* 0.08 (cos (/ (* 4 (pi-value) i) denom)))))))))
+      (let ([denom (- n 1)])
+        (vec-tabulate n i
+          (+ 0.42
+             (- (* 0.5 (cos (/ (* 2 (pi-value) i) denom))))
+             (* 0.08 (cos (/ (* 4 (pi-value) i) denom))))))))
 
 ;;; kaiser-window : Integer × Number → (Vector Number)
 ;;; Kaiser window with shape parameter beta.
@@ -72,15 +64,13 @@
   (doc 'export #t)
   (if (= n 1)
       (vector 1.0)
-      (let* ([result (make-vector n)]
-             [i0-beta (bessel-i0 beta)]
+      (let* ([i0-beta (bessel-i0 beta)]
              [half (/ (- n 1) 2.0)])
-            (do ([i 0 (+ i 1)])
-                ((= i n) result)
-                (let* ([x (/ (- i half) half)]
-                       [arg (* beta (sqrt (max 0 (- 1 (* x x)))))])
-                      (vector-set! result i
-                                   (/ (bessel-i0 arg) i0-beta)))))))
+        (vec-tabulate n i
+          (let* ([x (/ (- i half) half)]
+                 [arg (* beta (sqrt (max 0 (- 1 (* x x)))))])
+            (/ (bessel-i0 arg) i0-beta))))))
+
 
 ;;; bessel-i0 : Number → Number
 ;;; Modified Bessel function of the first kind, order 0.
@@ -135,16 +125,14 @@
   (doc 'export #t)
   (let* ([n (+ order 1)]
          [half (/ order 2.0)]
-         [window (window-fn n)]
-         [coeffs (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) coeffs)
-            (let* ([idx (- i half)]
-                   [h (if (= idx 0)
-                          cutoff
-                          (* cutoff (sinc (* cutoff idx))))]
-                   [w (vector-ref window i)])
-                  (vector-set! coeffs i (* h w))))))
+         [window (window-fn n)])
+    (vec-tabulate n i
+      (let* ([idx (- i half)]
+             [h (if (= idx 0)
+                    cutoff
+                    (* cutoff (sinc (* cutoff idx))))]
+             [w (vector-ref window i)])
+        (* h w)))))
 
 ;;; fir-highpass : Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR highpass filter using spectral inversion.
@@ -153,13 +141,11 @@
   (doc 'export #t)
   (let* ([lp (fir-lowpass cutoff order window-fn)]
          [n (vector-length lp)]
-         [half (quotient n 2)]
-         [result (make-vector n)])
-        ;; Spectral inversion: negate all coefficients and add 1 to center
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (let ([val (- (vector-ref lp i))])
-                 (vector-set! result i (if (= i half) (+ 1 val) val))))))
+         [half (quotient n 2)])
+    ;; Spectral inversion: negate all coefficients and add 1 to center
+    (vec-tabulate n i
+      (let ([val (- (vector-ref lp i))])
+        (if (= i half) (+ 1 val) val)))))
 
 ;;; fir-bandpass : Number × Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR bandpass filter.
@@ -168,13 +154,10 @@
   (doc 'export #t)
   (let* ([lp-high (fir-lowpass high order window-fn)]
          [lp-low (fir-lowpass low order window-fn)]
-         [n (vector-length lp-high)]
-         [result (make-vector n)])
-        ;; Bandpass = lowpass(high) - lowpass(low)
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i
-                         (- (vector-ref lp-high i) (vector-ref lp-low i))))))
+         [n (vector-length lp-high)])
+    ;; Bandpass = lowpass(high) - lowpass(low)
+    (vec-tabulate n i
+      (- (vector-ref lp-high i) (vector-ref lp-low i)))))
 
 ;;; fir-bandstop : Number × Number × Integer × (Integer → Vector) → (Vector Number)
 ;;; Design FIR bandstop (notch) filter.
@@ -183,13 +166,11 @@
   (doc 'export #t)
   (let* ([bp (fir-bandpass low high order window-fn)]
          [n (vector-length bp)]
-         [half (quotient n 2)]
-         [result (make-vector n)])
-        ;; Bandstop = 1 - bandpass (spectral inversion)
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (let ([val (- (vector-ref bp i))])
-                 (vector-set! result i (if (= i half) (+ 1 val) val))))))
+         [half (quotient n 2)])
+    ;; Bandstop = 1 - bandpass (spectral inversion)
+    (vec-tabulate n i
+      (let ([val (- (vector-ref bp i))])
+        (if (= i half) (+ 1 val) val)))))
 
 ;;; ====
 ;;; FIR Filter Application
@@ -261,23 +242,17 @@
                 (vector-set! x-hist j (vector-ref x-hist (- j 1))))
             (vector-set! x-hist 0 (vector-ref signal i))
             ;; Compute output
-            (let ([sum 0.0])
-                 ;; Feedforward (b coefficients)
-                 (do ([j 0 (+ j 1)])
-                     ((= j nb))
-                     (set! sum (+ sum (* (vector-ref b j) (vector-ref x-hist j)))))
-                 ;; Feedback (a coefficients, skip a0)
-                 (do ([j 1 (+ j 1)])
-                     ((= j na))
-                     (set! sum (- sum (* (vector-ref a j) (vector-ref y-hist j)))))
-                 ;; Normalize by a0
-                 (set! sum (/ sum a0))
+            (let* ([ff (range-fold sum 0.0 j 0 nb
+                         (+ sum (* (vector-ref b j) (vector-ref x-hist j))))]
+                   [fb (range-fold sum 0.0 j 1 na
+                         (+ sum (* (vector-ref a j) (vector-ref y-hist j))))]
+                   [y (/ (- ff fb) a0)])
                  ;; Shift output history
                  (do ([j (- na 1) (- j 1)])
                      ((= j 0))
                      (vector-set! y-hist j (vector-ref y-hist (- j 1))))
-                 (vector-set! y-hist 0 sum)
-                 (vector-set! output i sum)))))
+                 (vector-set! y-hist 0 y)
+                 (vector-set! output i y)))))
 
 ;;; ====
 ;;; Biquad Sections (Second Order Sections)
@@ -423,13 +398,10 @@
 ;;; vector-scale-real : (Vector (Or Complex Number)) × Number → (Vector Number)
 ;;; Scale vector and extract real parts.
 (define (vector-scale-real v scale)
-  (let* ([n (vector-length v)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (let ([val (vector-ref v i)])
-                 (vector-set! result i
-                              (* scale (if (complex? val) (complex-real val) val)))))))
+  (let ([n (vector-length v)])
+    (vec-tabulate n i
+      (let ([val (vector-ref v i)])
+        (* scale (if (complex? val) (complex-real val) val))))))
 
 ;;; poly-from-roots : (List Complex) → (Vector Complex)
 ;;; Build polynomial coefficients from roots.
@@ -529,15 +501,13 @@
   (doc 'export #t)
   (let* ([b (iir-filter-b filter)]
          [a (iir-filter-a filter)]
-         [freqs (make-vector n-points)]
-         [response (make-vector n-points)])
-        (do ([i 0 (+ i 1)])
-            ((= i n-points) (cons freqs response))
-            (let* ([w (/ (* (pi-value) i) n-points)]
-                   [ejw (make-polar 1 w)]
-                   [h (eval-transfer-function b a ejw)])
-                  (vector-set! freqs i w)
-                  (vector-set! response i h)))))
+         [freqs (vec-tabulate n-points i
+                  (/ (* (pi-value) i) n-points))]
+         [response (vec-tabulate n-points i
+                     (let* ([w (/ (* (pi-value) i) n-points)]
+                            [ejw (make-polar 1 w)])
+                       (eval-transfer-function b a ejw)))])
+    (cons freqs response)))
 
 ;;; eval-transfer-function : Vector × Vector × Complex → Complex
 ;;; Evaluate H(z) = B(z)/A(z) at z.
@@ -572,14 +542,12 @@
   (let* ([fr (freqz filter n-points)]
          [freqs (car fr)]
          [response (cdr fr)]
-         [mag-db (make-vector n-points)])
-        (do ([i 0 (+ i 1)])
-            ((= i n-points) (cons freqs mag-db))
-            (let ([mag (complex-magnitude (vector-ref response i))])
-                 (vector-set! mag-db i
-                              (if (< mag 1e-20)
-                                  -400  ; Very small = very negative dB
-                                  (* 20 (log10 mag))))))))
+         [mag-db (vec-tabulate n-points i
+                   (let ([mag (complex-magnitude (vector-ref response i))])
+                     (if (< mag 1e-20)
+                         -400  ; Very small = very negative dB
+                         (* 20 (log10 mag)))))])
+    (cons freqs mag-db)))
 
 ;;; log10 : Number → Number
 (define (log10 x)
@@ -592,10 +560,9 @@
   (let* ([fr (freqz filter n-points)]
          [freqs (car fr)]
          [response (cdr fr)]
-         [phase (make-vector n-points)])
-        (do ([i 0 (+ i 1)])
-            ((= i n-points) (cons freqs phase))
-            (vector-set! phase i (complex-angle (vector-ref response i))))))
+         [phase (vec-tabulate n-points i
+                  (complex-angle (vector-ref response i)))])
+    (cons freqs phase)))
 
 ;;; ====
 ;;; Real-time Filtering State
@@ -637,23 +604,17 @@
             (vector-set! x-hist j (vector-ref x-hist (- j 1))))
         (vector-set! x-hist 0 sample)
         ;; Compute output
-        (let ([sum 0.0])
-             ;; Feedforward
-             (do ([j 0 (+ j 1)])
-                 ((= j nb))
-                 (set! sum (+ sum (* (vector-ref b j) (vector-ref x-hist j)))))
-             ;; Feedback
-             (do ([j 1 (+ j 1)])
-                 ((= j na))
-                 (set! sum (- sum (* (vector-ref a j) (vector-ref y-hist j)))))
-             ;; Normalize
-             (set! sum (/ sum a0))
+        (let* ([ff (range-fold sum 0.0 j 0 nb
+                     (+ sum (* (vector-ref b j) (vector-ref x-hist j))))]
+               [fb (range-fold sum 0.0 j 1 na
+                     (+ sum (* (vector-ref a j) (vector-ref y-hist j))))]
+               [y (/ (- ff fb) a0)])
              ;; Shift output history
              (do ([j (- na 1) (- j 1)])
                  ((= j 0))
                  (vector-set! y-hist j (vector-ref y-hist (- j 1))))
-             (vector-set! y-hist 0 sum)
-             sum)))
+             (vector-set! y-hist 0 y)
+             y)))
 
 ;;; filter-reset! : Filter-State → void
 ;;; Reset filter state to zero.

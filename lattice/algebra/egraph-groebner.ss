@@ -177,18 +177,17 @@
   (doc 'type (-> Term (List Symbol)))
   (doc 'description "Extract sorted list of variables from an e-graph term.")
   (doc 'export #t)
-  (let ([vars '()])
-    (let collect ([t term])
-      (cond
-        [(symbol? t)
-         (unless (memq t '(+ - * / ^ neg))
-           (unless (memq t vars)
-             (set! vars (cons t vars))))]
-        [(pair? t)
-         (for-each collect (cdr t))]
-        [else (void)]))
-    (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
-               vars)))
+  (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+           (let collect ([t term] [vars '()])
+             (cond
+               [(symbol? t)
+                (if (and (not (memq t '(+ - * / ^ neg)))
+                         (not (memq t vars)))
+                    (cons t vars)
+                    vars)]
+               [(pair? t)
+                (fold-left (lambda (acc child) (collect child acc)) vars (cdr t))]
+               [else vars]))))
 
 ;;; ============================================================
 ;;; Polynomial Equivalence
@@ -230,13 +229,10 @@
   (doc 'type (-> Term Term (List Term) Field Boolean))
   (doc 'description "Test polynomial equivalence modulo an ideal.")
   (doc 'export #t)
-  (let* ([vars (let ([all-vars '()])
-                 (set! all-vars (union-symbols all-vars (eterm-variables t1)))
-                 (set! all-vars (union-symbols all-vars (eterm-variables t2)))
-                 (for-each (lambda (r) (set! all-vars (union-symbols all-vars (eterm-variables r))))
-                           relations)
-                 (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
-                            all-vars))]
+  (let* ([vars (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+                        (fold-left (lambda (acc r) (union-symbols acc (eterm-variables r)))
+                                   (union-symbols (eterm-variables t1) (eterm-variables t2))
+                                   relations))]
          [ordering (make-ordering 'grevlex vars)]
          [p1 (eterm->mpoly t1 F vars ordering)]
          [p2 (eterm->mpoly t2 F vars ordering)]
@@ -284,11 +280,10 @@
   (doc 'type (-> (List Term) Field (List Rule)))
   (doc 'description "Generate e-graph rewrite rules from polynomial relations over a field.")
   (doc 'export #t)
-  (let* ([vars (let ([all-vars '()])
-                 (for-each (lambda (r) (set! all-vars (union-symbols all-vars (eterm-variables r))))
-                           relations)
-                 (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
-                            all-vars))]
+  (let* ([vars (sort-by (lambda (a b) (string<? (symbol->string a) (symbol->string b)))
+                        (fold-left (lambda (acc r) (union-symbols acc (eterm-variables r)))
+                                   '()
+                                   relations))]
          [ordering (make-ordering 'grevlex vars)]
          ;; Convert to polynomials
          [polys (filter (lambda (x) x)
@@ -486,10 +481,9 @@
   (doc 'type (-> Term (List Term) Field Term))
   (doc 'description "Reduce term modulo relations over a specific field.")
   (doc 'export #t)
-  (let* ([vars (let ([all-vars (eterm-variables term)])
-                 (for-each (lambda (r) (set! all-vars (union-symbols all-vars (eterm-variables r))))
-                           relations)
-                 all-vars)]
+  (let* ([vars (fold-left (lambda (acc r) (union-symbols acc (eterm-variables r)))
+                          (eterm-variables term)
+                          relations)]
          [ordering (make-ordering 'grevlex vars)]
          [p (eterm->mpoly term F vars ordering)]
          [rel-polys (filter (lambda (x) x)

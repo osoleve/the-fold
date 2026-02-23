@@ -1,11 +1,12 @@
 ;;; lattice/data/graph/shortest-path.ss — Shortest Path Algorithms
 ;;; @module shortest-path
-;;; @requires prelude graph-matrix
+;;; @requires prelude graph-matrix iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'graph-matrix)
+(require 'iteration)
 
 (doc 'module 'shortest-path)
 (doc 'description "Unified shortest path algorithms on adjacency matrices.
@@ -39,10 +40,8 @@ negative-weight cycle is reachable from the source.")
 (doc bellman-ford 'note "Time: O(V*E). Space: O(V). Handles negative edges but detects negative cycles.")
 (define (bellman-ford adj source)
   (let* ([n (adjacency-matrix-node-count adj)]
-         [dist (make-vector n *infinity*)]
+         [dist (vec-tabulate n i (if (= i source) 0 *infinity*))]
          [pred (make-vector n -1)])
-    ;; Initialize source
-    (vector-set! dist source 0)
     ;; Collect edges once for efficiency
     (let ([edges (bellman-ford-collect-edges adj n)])
       ;; Relax all edges (n-1) times

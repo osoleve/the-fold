@@ -426,23 +426,24 @@
   (doc 'param 'y "Response vector")
   (doc 'param 'k "Number of folds")
   (let* ([n (matrix-rows X)]
-         [fold-size (quotient n k)]
-         [total-error 0])
-    (do ([fold 0 (+ fold 1)])
-        [(= fold k) (/ total-error n)]
-      (let* ([start (* fold fold-size)]
-             [end (if (= fold (- k 1)) n (+ start fold-size))]
-             [split (cv-split X y start end n)]
-             [X-train (car split)]
-             [y-train (cadr split)]
-             [X-test (caddr split)]
-             [y-test (cadddr split)]
-             [model (fit-fn X-train y-train)])
-        (if (and (pair? model) (eq? (car model) 'error))
-            (set! total-error (+ total-error (* 1e10 (- end start))))
-            (let* ([predictions (model-predict model X-test)]
-                   [fold-mse (compute-mse predictions y-test)])
-              (set! total-error (+ total-error (* fold-mse (- end start))))))))))
+         [fold-size (quotient n k)])
+    (do ([fold 0 (+ fold 1)]
+         [total-error 0
+          (let* ([start (* fold fold-size)]
+                 [end (if (= fold (- k 1)) n (+ start fold-size))]
+                 [split (cv-split X y start end n)]
+                 [X-train (car split)]
+                 [y-train (cadr split)]
+                 [X-test (caddr split)]
+                 [y-test (cadddr split)]
+                 [model (fit-fn X-train y-train)])
+            (if (and (pair? model) (eq? (car model) 'error))
+                (+ total-error (* 1e10 (- end start)))
+                (let* ([predictions (model-predict model X-test)]
+                       [fold-mse (compute-mse predictions y-test)])
+                  (+ total-error (* fold-mse (- end start))))))])
+        [(= fold k) (/ total-error n)])))
+
 
 ;;; cv-split : Matrix × Vec × Nat × Nat × Nat → (List Matrix Vec Matrix Vec)
 ;;; Split data into train (excluding fold) and test (fold only).
@@ -453,10 +454,10 @@
          [X-train-data (make-vector (* n-train p))]
          [X-test-data (make-vector (* n-test p))]
          [y-train (make-vector n-train)]
-         [y-test (make-vector n-test)]
-         [train-idx 0]
-         [test-idx 0])
-    (do ([i 0 (+ i 1)])
+         [y-test (make-vector n-test)])
+    (do ([i 0 (+ i 1)]
+         [train-idx 0 (if (and (>= i start) (< i end)) train-idx (+ train-idx 1))]
+         [test-idx 0 (if (and (>= i start) (< i end)) (+ test-idx 1) test-idx)])
         [(= i n)]
       (if (and (>= i start) (< i end))
           ;; Test set
@@ -465,16 +466,14 @@
             (do ([j 0 (+ j 1)])
                 [(= j p)]
               (vector-set! X-test-data (+ (* test-idx p) j)
-                           (matrix-ref X i j)))
-            (set! test-idx (+ test-idx 1)))
+                           (matrix-ref X i j))))
           ;; Train set
           (begin
             (vector-set! y-train train-idx (vector-ref y i))
             (do ([j 0 (+ j 1)])
                 [(= j p)]
               (vector-set! X-train-data (+ (* train-idx p) j)
-                           (matrix-ref X i j)))
-            (set! train-idx (+ train-idx 1)))))
+                           (matrix-ref X i j))))))
     (list (list 'matrix n-train p X-train-data)
           y-train
           (list 'matrix n-test p X-test-data)

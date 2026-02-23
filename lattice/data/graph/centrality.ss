@@ -1,6 +1,6 @@
 ;;; lattice/data/graph/centrality.ss — Graph Centrality Measures
 ;;; @module centrality
-;;; @requires prelude sort
+;;; @requires prelude sort iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -9,6 +9,7 @@
 (require 'vec)
 (require 'matrix)
 (require 'graph-matrix)
+(require 'iteration)
 
 (doc 'module 'centrality)
 (doc 'purity 'partial)
@@ -126,10 +127,7 @@
 (doc eigenvector-average-oscillation 'description "Average two oscillating vectors and normalize; for period-2 oscillation, averaging recovers the true eigenvector")
 (define (eigenvector-average-oscillation v1 v2)
   (let* ([n (vector-length v1)]
-         [avg (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! avg i (/ (+ (vector-ref v1 i) (vector-ref v2 i)) 2.0)))
+         [avg (vec-tabulate n i (/ (+ (vector-ref v1 i) (vector-ref v2 i)) 2.0))])
         ;; Normalize
         (let ([norm (vec-norm avg)])
              (if (< norm 1e-15)
@@ -243,14 +241,11 @@
 (doc closeness-centrality 'note "Standard closeness can give misleading results for disconnected graphs; use harmonic=true. Harmonic closeness: H(v) = Σ 1/d(v,u)")
 (define (closeness-centrality dist . opts)
   (let* ([n (matrix-rows dist)]
-         [harmonic (if (pair? opts) (car opts) #f)]
-         [result (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i
-                         (if harmonic
-                             (harmonic-closeness-node dist i n)
-                             (standard-closeness-node dist i n))))))
+         [harmonic (if (pair? opts) (car opts) #f)])
+        (vec-tabulate n i
+          (if harmonic
+              (harmonic-closeness-node dist i n)
+              (standard-closeness-node dist i n)))))
 
 (doc standard-closeness-node 'type '(-> Matrix Nat Nat Num))
 (doc standard-closeness-node 'description "Standard closeness for a single node")
@@ -315,9 +310,7 @@
         (let ([norm (if (> n 2)
                         (* 2.0 (- n 1) (- n 2))
                         1.0)])
-             (do ([i 0 (+ i 1)])
-                 ((= i n) cb)
-                 (vector-set! cb i (/ (vector-ref cb i) norm))))))
+             (vec-tabulate n i (/ (vector-ref cb i) norm)))))
 
 (doc betweenness-from-source 'type '(-> Matrix Nat Vec Nat Void))
 (doc betweenness-from-source 'description "Brandes' algorithm: BFS from source, then accumulate dependencies; uses level-by-level BFS")
@@ -405,19 +398,19 @@
 (define (centrality-correlation c1 c2)
   (let* ([n (vector-length c1)]
          [mean1 (/ (vec-fold + 0 c1) n)]
-         [mean2 (/ (vec-fold + 0 c2) n)]
-         [num 0] [den1 0] [den2 0])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (let ([d1 (- (vector-ref c1 i) mean1)]
-                  [d2 (- (vector-ref c2 i) mean2)])
-                 (set! num (+ num (* d1 d2)))
-                 (set! den1 (+ den1 (* d1 d1)))
-                 (set! den2 (+ den2 (* d2 d2)))))
-        (let ([denom (sqrt (* den1 den2))])
-             (if (< denom 1e-15)
-                 0
-                 (/ num denom)))))
+         [mean2 (/ (vec-fold + 0 c2) n)])
+        (let loop ([i 0] [num 0] [den1 0] [den2 0])
+             (if (= i n)
+                 (let ([denom (sqrt (* den1 den2))])
+                      (if (< denom 1e-15)
+                          0
+                          (/ num denom)))
+                 (let ([d1 (- (vector-ref c1 i) mean1)]
+                       [d2 (- (vector-ref c2 i) mean2)])
+                      (loop (+ i 1)
+                            (+ num (* d1 d2))
+                            (+ den1 (* d1 d1))
+                            (+ den2 (* d2 d2))))))))
 
 (doc all-centralities 'type '(-> Matrix (List (Pair Symbol Vec))))
 (doc all-centralities 'description "Compute all centrality measures for comparison; returns alist of (name . scores) pairs")

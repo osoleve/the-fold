@@ -215,23 +215,22 @@ Supports:
 ;;; Find leaving variable using minimum ratio test with Bland's rule.
 ;;; Returns index in basis, or 'unbounded if unbounded.
 (define (find-leaving-variable xB direction basis)
-  (let* ([m (vector-length xB)]
-         [min-ratio +inf.0]
-         [min-idx #f])
-    (do ([i 0 (+ i 1)])
-        [(= i m)
-         (if min-idx min-idx 'unbounded)]
-      (let ([di (vector-ref direction i)])
-        (when (> di *lp-tolerance*)
-          (let* ([ratio (/ (vector-ref xB i) di)]
-                 [basis-idx (vector-ref basis i)])
-            ;; Bland's rule: if tie, prefer smaller basis index
-            (when (or (< ratio (- min-ratio *lp-tolerance*))
-                      (and (< (abs (- ratio min-ratio)) *lp-tolerance*)
-                           (or (not min-idx)
-                               (< basis-idx (vector-ref basis min-idx)))))
-              (set! min-ratio ratio)
-              (set! min-idx i))))))))
+  (let ([m (vector-length xB)])
+    (let loop ([i 0] [min-ratio +inf.0] [min-idx #f])
+      (if (= i m)
+          (if min-idx min-idx 'unbounded)
+          (let ([di (vector-ref direction i)])
+            (if (> di *lp-tolerance*)
+                (let* ([ratio (/ (vector-ref xB i) di)]
+                       [basis-idx (vector-ref basis i)])
+                  ;; Bland's rule: if tie, prefer smaller basis index
+                  (if (or (< ratio (- min-ratio *lp-tolerance*))
+                          (and (< (abs (- ratio min-ratio)) *lp-tolerance*)
+                               (or (not min-idx)
+                                   (< basis-idx (vector-ref basis min-idx)))))
+                      (loop (+ i 1) ratio i)
+                      (loop (+ i 1) min-ratio min-idx)))
+                (loop (+ i 1) min-ratio min-idx)))))))
 
 ;;; update-basis : Vec x Nat x Nat -> Vec
 ;;; Replace leaving variable with entering variable in basis.
@@ -514,18 +513,17 @@ Supports:
              [B-inv (matrix-inverse B)])
         (if (and (pair? B-inv) (eq? (car B-inv) 'error))
             B-inv
-            (let ([reduced (compute-reduced-costs c A basis B-inv)]
-                  [ranges '()])
+            (let ([reduced (compute-reduced-costs c A basis B-inv)])
               ;; For non-basic variables, reduced cost gives allowable increase
-              (do ([j 0 (+ j 1)])
-                  [(= j n) (reverse ranges)]
-                (let ([is-basic (vec-contains? basis j)]
-                      [rc (vector-ref reduced j)])
-                  (set! ranges
-                        (cons (list j
-                                    (if is-basic -inf.0 rc)
-                                    (if is-basic +inf.0 (- rc)))
-                              ranges)))))))))
+              (do ([j 0 (+ j 1)]
+                   [ranges '()
+                           (let ([is-basic (vec-contains? basis j)]
+                                 [rc (vector-ref reduced j)])
+                             (cons (list j
+                                         (if is-basic -inf.0 rc)
+                                         (if is-basic +inf.0 (- rc)))
+                                   ranges))])
+                  [(= j n) (reverse ranges)]))))))
 
 ;;; lp-rhs-ranges : LP x LPResult -> Vec | Error
 ;;; Compute allowable ranges for RHS values b.
@@ -548,24 +546,23 @@ Supports:
               (do ([i 0 (+ i 1)])
                   [(= i m) ranges]
                 ;; Column i of B^-1 determines sensitivity to b_i
-                (let ([B-inv-col (matrix-col B-inv i)]
-                      [min-delta -inf.0]
-                      [max-delta +inf.0])
-                  (do ([k 0 (+ k 1)])
-                      [(= k m)]
-                    (let ([coef (vector-ref B-inv-col k)]
-                          [xk (vector-ref xB (vector-ref basis k))])
-                      (cond
-                        [(> coef *lp-tolerance*)
-                         ;; xk - coef * delta >= 0 => delta <= xk/coef
-                         (set! max-delta (min max-delta (/ xk coef)))]
-                        [(< coef (- *lp-tolerance*))
-                         ;; xk - coef * delta >= 0 => delta >= xk/coef
-                         (set! min-delta (max min-delta (/ xk coef)))])))
-                  (vector-set! ranges i
-                              (list (+ (vector-ref b i) min-delta)
-                                    (+ (vector-ref b i) max-delta))))))))))
-
+                (let ([B-inv-col (matrix-col B-inv i)])
+                  (let delta-loop ([k 0] [min-delta -inf.0] [max-delta +inf.0])
+                    (if (= k m)
+                        (vector-set! ranges i
+                                    (list (+ (vector-ref b i) min-delta)
+                                          (+ (vector-ref b i) max-delta)))
+                        (let ([coef (vector-ref B-inv-col k)]
+                              [xk (vector-ref xB (vector-ref basis k))])
+                          (cond
+                            [(> coef *lp-tolerance*)
+                             ;; xk - coef * delta >= 0 => delta <= xk/coef
+                             (delta-loop (+ k 1) min-delta (min max-delta (/ xk coef)))]
+                            [(< coef (- *lp-tolerance*))
+                             ;; xk - coef * delta >= 0 => delta >= xk/coef
+                             (delta-loop (+ k 1) (max min-delta (/ xk coef)) max-delta)]
+                            [else
+                             (delta-loop (+ k 1) min-delta max-delta)])))))))))))
 ;;; ====
 ;;; Duality Verification
 ;;; ====

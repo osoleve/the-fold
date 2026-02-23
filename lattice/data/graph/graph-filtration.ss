@@ -1,9 +1,10 @@
 ;;; lattice/data/graph/graph-filtration.ss — Bridge from graph edge-weight filtration to persistent homology
 ;;; @module graph-filtration
-;;; @requires prelude graph-matrix simplicial-complex persistent
+;;; @requires prelude iteration graph-matrix simplicial-complex persistent
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
+(require 'iteration)
 (require 'graph-matrix)
 (require 'simplicial-complex)
 (require 'persistent)
@@ -29,16 +30,17 @@
   (doc 'type '(-> Matrix (List Number)))
   (doc 'description "Extract sorted unique positive edge weights from an adjacency matrix.
   Treats the matrix as undirected (only considers upper triangle i < j).")
-  (let* ([n (matrix-rows m)]
-         [weights '()])
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (let ([w (matrix-ref m i j)])
-          (when (> w 0)
-            (set! weights (cons w weights))))))
-    (unique-sorted-numbers (sort-by < weights))))
+  (let ([n (matrix-rows m)])
+    (unique-sorted-numbers
+     (sort-by <
+       (do ([i 0 (+ i 1)]
+            [weights '()
+                     (do ([j (+ i 1) (+ j 1)]
+                          [ws weights
+                              (let ([w (matrix-ref m i j)])
+                                (if (> w 0) (cons w ws) ws))])
+                         [(= j n) ws])])
+           [(= i n) weights])))))
 
 (define (unique-sorted-numbers lst)
   (doc 'type '(-> (List Number) (List Number)))
@@ -72,27 +74,37 @@
   pre-add vertex simplices at time 0.")
 (define (graph-weight-filtration m)
   (let* ([n (matrix-rows m)]
-         [vertex-birth (make-vector n +inf.0)]
-         [pairs '()])
-    ;; Collect edges with weights, record earliest birth for each vertex
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (do ([j (+ i 1) (+ j 1)])
-          [(= j n)]
-        (let ([w (matrix-ref m i j)])
-          (when (> w 0)
-            (set! pairs (cons (cons (make-simplex (list i j)) w) pairs))
-            (when (< w (vector-ref vertex-birth i))
-              (vector-set! vertex-birth i w))
-            (when (< w (vector-ref vertex-birth j))
-              (vector-set! vertex-birth j w))))))
-    ;; Add vertex simplices at their earliest edge birth time
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (let ([b (vector-ref vertex-birth i)])
-        (when (< b +inf.0)
-          (set! pairs (cons (cons (make-simplex (list i)) b) pairs)))))
-    (make-filtration pairs)))
+         ;; Collect edge simplices with weights
+         [edge-pairs
+          (let loop-i ([i 0] [acc '()])
+            (if (>= i n) acc
+                (loop-i (+ i 1)
+                        (let loop-j ([j (+ i 1)] [acc acc])
+                          (if (>= j n) acc
+                              (let ([w (matrix-ref m i j)])
+                                (loop-j (+ j 1)
+                                        (if (> w 0)
+                                            (cons (cons (make-simplex (list i j)) w) acc)
+                                            acc))))))))]
+         ;; Compute earliest birth time per vertex via tabulation:
+         ;; for vertex i, scan full row for minimum positive weight
+         [vertex-birth
+          (vec-tabulate n i
+            (let row-min ([j 0] [best +inf.0])
+              (if (>= j n) best
+                  (let ([w (matrix-ref m i j)])
+                    (row-min (+ j 1)
+                             (if (and (> w 0) (< w best)) w best))))))]
+         ;; Build vertex simplices for non-isolated vertices
+         [vertex-pairs
+          (let loop ([i 0] [acc '()])
+            (if (>= i n) acc
+                (let ([b (vector-ref vertex-birth i)])
+                  (loop (+ i 1)
+                        (if (< b +inf.0)
+                            (cons (cons (make-simplex (list i)) b) acc)
+                            acc)))))])
+    (make-filtration (append edge-pairs vertex-pairs))))
 
 ;;; ============================================================
 ;;; Graph Rips Filtration
@@ -113,16 +125,18 @@
   (k+1 choose 2) edges. Complexity is exponential in max-dim.")
 (define (graph-rips-filtration m max-dim)
   (let* ([n (matrix-rows m)]
-         [pairs '()])
-    ;; Add vertices at time 0 (all vertices present from the start in Rips)
-    (do ([i 0 (+ i 1)])
-        [(= i n)]
-      (set! pairs (cons (cons (make-simplex (list i)) 0.0) pairs)))
-    ;; Add k-simplices for k = 1 to max-dim
-    (do ([k 1 (+ k 1)])
-        [(> k max-dim)]
-      (set! pairs (append pairs (rips-k-simplices-from-graph m n k))))
-    (make-filtration pairs)))
+         ;; Add vertices at time 0 (all vertices present from the start in Rips)
+         [vertex-pairs
+          (do ([i 0 (+ i 1)]
+               [acc '() (cons (cons (make-simplex (list i)) 0.0) acc)])
+              [(= i n) acc])]
+         ;; Add k-simplices for k = 1 to max-dim
+         [all-pairs
+          (do ([k 1 (+ k 1)]
+               [pairs vertex-pairs
+                      (append pairs (rips-k-simplices-from-graph m n k))])
+              [(> k max-dim) pairs])])
+    (make-filtration all-pairs)))
 
 (define (rips-k-simplices-from-graph m n k)
   (doc 'type '(-> Matrix Integer Integer (List (Pair Simplex Number))))

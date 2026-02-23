@@ -39,13 +39,15 @@
 
 (doc diff-backward 'export #t)
 (doc diff-backward 'type '(-> Vector Number Vector))
-(doc diff-backward 'description "Backward difference: (u_i - u_{i-1}) / h. Result has n-1 elements.")
+(doc diff-backward 'description "Backward difference: (u_j - u_{j-1}) / h for j=1..n-1. Result has n-1 elements.")
+(doc diff-backward 'note "result[k] approximates u'(x_{k+1}), vs diff-forward where result[k] approximates u'(x_k)")
 (define (diff-backward u h)
   (let* ([n (vector-length u)]
          [inv-h (/ 1.0 h)])
-    (vec-tabulate (- n 1) i
-      (* inv-h (- (vector-ref u (+ i 1))
-                  (vector-ref u i))))))
+    (vec-tabulate (- n 1) k
+      (let ([j (+ k 1)])  ;; backward diff at grid point j
+        (* inv-h (- (vector-ref u j)
+                    (vector-ref u (- j 1))))))))
 
 (doc diff-central 'export #t)
 (doc diff-central 'type '(-> Vector Number Vector))
@@ -437,17 +439,15 @@
               (do ([i 0 (+ i 1)])
                   ((= i n))
                 (let ([start (vector-ref row-ptrs i)]
-                      [end (vector-ref row-ptrs (+ i 1))]
-                      [sum 0.0]
-                      [diag 1.0])
-                  (do ([k start (+ k 1)])
-                      ((= k end))
-                    (let ([j (vector-ref col-indices k)]
-                          [v (vector-ref vals k)])
-                      (if (= j i)
-                          (set! diag v)
-                          (set! sum (+ sum (* v (vector-ref x j)))))))
-                  (vector-set! x-new i (/ (- (vector-ref b i) sum) diag))))
+                      [end (vector-ref row-ptrs (+ i 1))])
+                  (let inner ([k start] [sum 0.0] [diag 1.0])
+                    (if (= k end)
+                        (vector-set! x-new i (/ (- (vector-ref b i) sum) diag))
+                        (let ([j (vector-ref col-indices k)]
+                              [v (vector-ref vals k)])
+                          (if (= j i)
+                              (inner (+ k 1) sum v)
+                              (inner (+ k 1) (+ sum (* v (vector-ref x j))) diag)))))))
               (do ([i 0 (+ i 1)])
                   ((= i n))
                 (vector-set! x i (vector-ref x-new i)))

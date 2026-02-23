@@ -1,11 +1,12 @@
 ;;; lattice/numeric/convolution.ss — Convolution and Correlation
 ;;; @module convolution
-;;; @requires prelude complex dft vec
+;;; @requires prelude complex dft vec iteration
 
 (require 'prelude)
 (require 'complex)
 (require 'dft)
 (require 'vec)
+(require 'iteration)
 
 (doc 'module 'convolution)
 (doc 'description "Comprehensive convolution and correlation implementations for signal processing, filtering, template matching, and feature extraction")
@@ -37,18 +38,14 @@
          [m (vector-length kernel)])
         (if (or (= n 0) (= m 0))
             (vector)  ; Empty input => empty output
-            (let* ([output-len (+ n m -1)]
-                   [result (make-vector output-len 0)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i output-len) result)
-                      (let ([sum 0])
-                           (do ([j 0 (+ j 1)])
-                               ((= j m)
-                                (vector-set! result i sum))
-                               (let ([k (- i j)])
-                                    (when (and (>= k 0) (< k n))
-                                          (set! sum (+ sum (* (vector-ref signal k)
-                                                              (vector-ref kernel j)))))))))))))
+            (let ([output-len (+ n m -1)])
+                 (vec-tabulate output-len i
+                   (range-fold sum 0 j 0 m
+                     (let ([k (- i j)])
+                          (if (and (>= k 0) (< k n))
+                              (+ sum (* (vector-ref signal k)
+                                        (vector-ref kernel j)))
+                              sum))))))))
 
 ;;; convolve-direct-same : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Compute 'same' mode convolution (output length = signal length).
@@ -57,18 +54,14 @@
   (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m (vector-length kernel)]
-         [result (make-vector n 0)]
          [offset (quotient m 2)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (let ([sum 0])
-                 (do ([j 0 (+ j 1)])
-                     ((= j m)
-                      (vector-set! result i sum))
-                     (let ([k (- (+ i offset) j)])
-                          (when (and (>= k 0) (< k n))
-                                (set! sum (+ sum (* (vector-ref signal k)
-                                                    (vector-ref kernel j)))))))))))
+        (vec-tabulate n i
+          (range-fold sum 0 j 0 m
+            (let ([k (- (+ i offset) j)])
+                 (if (and (>= k 0) (< k n))
+                     (+ sum (* (vector-ref signal k)
+                               (vector-ref kernel j)))
+                     sum))))))
 
 ;;; convolve-direct-valid : Vector[Number] × Vector[Number] → Vector[Number]
 ;;; Compute 'valid' mode convolution (only complete overlaps).
@@ -81,15 +74,10 @@
          [output-len (max 0 (+ (- n m) 1))])
         (if (= output-len 0)
             (vector)
-            (let ([result (make-vector output-len 0)])
-                 (do ([i 0 (+ i 1)])
-                     ((= i output-len) result)
-                     (let ([sum 0])
-                          (do ([j 0 (+ j 1)])
-                              ((= j m)
-                               (vector-set! result i sum))
-                              (set! sum (+ sum (* (vector-ref signal (+ i j))
-                                                  (vector-ref kernel j)))))))))))
+            (vec-tabulate output-len i
+              (range-fold sum 0 j 0 m
+                (+ sum (* (vector-ref signal (+ i j))
+                          (vector-ref kernel j))))))))
 
 ;;; ====
 ;;; FFT-based Convolution (Frequency Domain)
@@ -115,23 +103,14 @@
          [signal-fft (fft-radix2 signal-padded)]
          [kernel-fft (fft-radix2 kernel-padded)]
          ;; Multiply in frequency domain
-         [product (make-vector fft-size)]
+         [product (vec-tabulate fft-size i
+                    (complex-mul (vector-ref signal-fft i)
+                                 (vector-ref kernel-fft i)))]
          ;; Transform back to time domain
-         [result-complex #f]
-         [result #f])
-        ;; Element-wise multiplication
-        (do ([i 0 (+ i 1)])
-            ((= i fft-size))
-            (vector-set! product i
-                         (complex-mul (vector-ref signal-fft i)
-                                      (vector-ref kernel-fft i))))
-        ;; Inverse FFT
-        (set! result-complex (ifft-radix2 product))
+         [result-complex (ifft-radix2 product)])
         ;; Extract real part and trim to correct length
-        (set! result (make-vector output-len))
-        (do ([i 0 (+ i 1)])
-            ((= i output-len) result)
-            (vector-set! result i (complex-real (vector-ref result-complex i))))))
+        (vec-tabulate output-len i
+          (complex-real (vector-ref result-complex i)))))
 
 ;;; convolve : Vector[Number] × Vector[Number] × Symbol → Vector[Number]
 ;;; Compute convolution with automatic algorithm selection.
@@ -159,22 +138,17 @@
                     [(same)
                      ;; Trim to same length as signal
                      (let* ([n (vector-length signal)]
-                            [offset (quotient m 2)]
-                            [trimmed (make-vector n)])
-                           (do ([i 0 (+ i 1)])
-                               ((= i n) trimmed)
-                               (vector-set! trimmed i (vector-ref result-full (+ i offset)))))]
+                            [offset (quotient m 2)])
+                           (vec-tabulate n i
+                             (vector-ref result-full (+ i offset))))]
                     [(valid)
                      ;; Trim to valid region
                      (let* ([n (vector-length signal)]
                             [output-len (max 0 (+ (- n m) 1))])
                            (if (= output-len 0)
                                (vector)
-                               (let ([trimmed (make-vector output-len)])
-                                    (do ([i 0 (+ i 1)])
-                                        ((= i output-len) trimmed)
-                                        (vector-set! trimmed i
-                                                     (vector-ref result-full (+ i (- m 1))))))))]
+                               (vec-tabulate output-len i
+                                 (vector-ref result-full (+ i (- m 1))))))]
                     [else (error 'convolve "invalid mode" mode)]))])))
 
 ;;; ====
@@ -192,43 +166,29 @@
          [m (vector-length kernel)])
         (case mode
               [(full)
-               (let* ([output-len (+ n m -1)]
-                      [result (make-vector output-len 0)])
-                     (do ([i 0 (+ i 1)])
-                         ((= i output-len) result)
-                         (let ([sum 0])
-                              (do ([j 0 (+ j 1)])
-                                  ((= j m)
-                                   (vector-set! result i sum))
-                                  (let ([k (- i (- m 1) (- j))])
-                                       (when (and (>= k 0) (< k n))
-                                             (set! sum (+ sum (* (vector-ref signal k)
-                                                                 (vector-ref kernel j))))))))))]
+               (let ([output-len (+ n m -1)])
+                    (vec-tabulate output-len i
+                      (range-fold sum 0 j 0 m
+                        (let ([k (- i (- m 1) (- j))])
+                             (if (and (>= k 0) (< k n))
+                                 (+ sum (* (vector-ref signal k)
+                                           (vector-ref kernel j)))
+                                 sum)))))]
               [(same)
-               (let* ([result (make-vector n 0)]
-                      [offset (quotient m 2)])
-                     (do ([i 0 (+ i 1)])
-                         ((= i n) result)
-                         (let ([sum 0])
-                              (do ([j 0 (+ j 1)])
-                                  ((= j m)
-                                   (vector-set! result i sum))
-                                  (let ([k (+ i j (- offset))])
-                                       (when (and (>= k 0) (< k n))
-                                             (set! sum (+ sum (* (vector-ref signal k)
-                                                                 (vector-ref kernel j))))))))))]
+               (let ([offset (quotient m 2)])
+                    (vec-tabulate n i
+                      (range-fold sum 0 j 0 m
+                        (let ([k (+ i j (- offset))])
+                             (if (and (>= k 0) (< k n))
+                                 (+ sum (* (vector-ref signal k)
+                                           (vector-ref kernel j)))
+                                 sum)))))]
               [(valid)
-               (let* ([output-len (max 0 (+ (- n m) 1))]
-                      [result (make-vector output-len 0)])
-                     (do ([i 0 (+ i 1)])
-                         ((= i output-len) result)
-                         (let ([sum 0])
-                              (do ([j 0 (+ j 1)])
-                                  ((= j m)
-                                   (vector-set! result i sum))
-                                  (set! sum (+ sum (* (vector-ref signal (+ i j))
-                                                      (vector-ref kernel j)))))))
-                     result)]
+               (let ([output-len (max 0 (+ (- n m) 1))])
+                    (vec-tabulate output-len i
+                      (range-fold sum 0 j 0 m
+                        (+ sum (* (vector-ref signal (+ i j))
+                                  (vector-ref kernel j))))))]
               [else (error 'correlate-direct "invalid mode" mode)])))
 
 ;;; correlate : Vector[Number] × Vector[Number] × Symbol → Vector[Number]
@@ -268,21 +228,21 @@
 ;;; Useful for detecting matched filter hits.
 (define (find-peaks signal threshold)
   (doc 'export #t)
-  (let ([n (vector-length signal)]
-        [peaks '()])
+  (let ([n (vector-length signal)])
        (if (< n 3)
            ;; Not enough points for peak detection
            (vector)
-           (begin
-            (do ([i 1 (+ i 1)])
-                ((= i (- n 1)) (list->vector (reverse peaks)))
-                (let ([curr (vector-ref signal i)]
-                      [prev (vector-ref signal (- i 1))]
-                      [next (vector-ref signal (+ i 1))])
-                     (when (and (> curr threshold)
-                                (>= curr prev)
-                                (>= curr next))
-                           (set! peaks (cons i peaks)))))))))
+           (do ([i 1 (+ i 1)]
+                [peaks '()
+                       (let ([curr (vector-ref signal i)]
+                             [prev (vector-ref signal (- i 1))]
+                             [next (vector-ref signal (+ i 1))])
+                            (if (and (> curr threshold)
+                                     (>= curr prev)
+                                     (>= curr next))
+                                (cons i peaks)
+                                peaks))])
+               ((= i (- n 1)) (list->vector (reverse peaks)))))))
 
 ;;; ====
 ;;; Utility Functions
@@ -292,11 +252,9 @@
 ;;; Reverse a vector (for convolution/correlation conversion).
 (define (vector-reverse v)
   (doc 'export #t)
-  (let* ([n (vector-length v)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (vector-ref v (- n 1 i))))))
+  (let ([n (vector-length v)])
+       (vec-tabulate n i
+         (vector-ref v (- n 1 i)))))
 
 ;;; normalize-signal : Vector[Number] → Vector[Number]
 ;;; Normalize signal to have zero mean and unit variance.
@@ -306,35 +264,19 @@
   (let ([n (vector-length signal)])
        (if (= n 0)
            (vector)  ; Empty input => empty output
-           (let* ([;; Calculate mean
-                   sum 0]
-                  [mean 0]
-                  ;; Calculate variance
-                  [var-sum 0]
-                  [variance 0]
-                  [stddev 0]
-                  [result (make-vector n)])
-                 ;; Compute mean
-                 (do ([i 0 (+ i 1)])
-                     ((= i n))
-                     (set! sum (+ sum (vector-ref signal i))))
-                 (set! mean (/ sum n))
-                 ;; Compute variance
-                 (do ([i 0 (+ i 1)])
-                     ((= i n))
-                     (let ([diff (- (vector-ref signal i) mean)])
-                          (set! var-sum (+ var-sum (* diff diff)))))
-                 (set! variance (/ var-sum n))
-                 (set! stddev (sqrt variance))
-                 ;; Normalize
+           (let* ([mean (/ (range-fold sum 0 i 0 n
+                             (+ sum (vector-ref signal i)))
+                           n)]
+                  [variance (/ (range-fold var-sum 0 i 0 n
+                                 (let ([diff (- (vector-ref signal i) mean)])
+                                      (+ var-sum (* diff diff))))
+                               n)]
+                  [stddev (sqrt variance)])
                  (if (< stddev 1e-10)
                      ;; Signal is constant, return zeros
-                     result
-                     (begin
-                      (do ([i 0 (+ i 1)])
-                          ((= i n) result)
-                          (vector-set! result i
-                                       (/ (- (vector-ref signal i) mean) stddev)))))))))
+                     (make-vector n 0)
+                     (vec-tabulate n i
+                       (/ (- (vector-ref signal i) mean) stddev)))))))
 
 ;;; ====
 ;;; 2D Convolution (for images, matrices)
@@ -380,21 +322,12 @@
                    ;; FFT
                    [signal-fft (fft-radix2 signal-padded)]
                    [kernel-fft (fft-radix2 kernel-padded)]
-                   ;; Multiply
-                   [product (make-vector fft-size)]
-                   ;; IFFT
-                   [result-complex #f]
-                   [result (make-vector n)])
-                  ;; Element-wise multiply
-                  (do ([i 0 (+ i 1)])
-                      ((= i fft-size))
-                      (vector-set! product i
-                                   (complex-mul (vector-ref signal-fft i)
-                                                (vector-ref kernel-fft i))))
-                  ;; Inverse transform
-                  (set! result-complex (ifft-radix2 product))
+                   ;; Multiply in frequency domain
+                   [product (vec-tabulate fft-size i
+                              (complex-mul (vector-ref signal-fft i)
+                                           (vector-ref kernel-fft i)))]
+                   ;; Inverse transform
+                   [result-complex (ifft-radix2 product)])
                   ;; Extract real part (trim if padded)
-                  (do ([i 0 (+ i 1)])
-                      ((= i n) result)
-                      (vector-set! result i
-                                   (complex-real (vector-ref result-complex i))))))))
+                  (vec-tabulate n i
+                    (complex-real (vector-ref result-complex i)))))))

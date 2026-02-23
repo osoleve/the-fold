@@ -1,6 +1,6 @@
 ;;; lattice/data/graph/spectral-community.ss — Spectral Community Detection Bridge
 ;;; @module spectral-community
-;;; @requires prelude graph-matrix graph-laplacian graph-community
+;;; @requires prelude graph-matrix graph-laplacian graph-community iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -8,6 +8,7 @@
 (require 'graph-matrix)
 (require 'graph-laplacian)
 (require 'graph-community)
+(require 'iteration)
 
 (doc 'module 'spectral-community)
 (doc 'bridges '(data linalg))
@@ -42,12 +43,8 @@
          [num-comp (num-communities comp-labels)])
     (if (> num-comp 1)
         ;; Disconnected: first component gets label 0, rest get label 1
-        (let ([labels (make-vector n 0)]
-              [first-comp (vector-ref comp-labels 0)])
-          (do ([i 0 (+ i 1)])
-              ((= i n) labels)
-            (when (not (= (vector-ref comp-labels i) first-comp))
-              (vector-set! labels i 1))))
+        (let ([first-comp (vector-ref comp-labels 0)])
+          (vec-tabulate n i (if (= (vector-ref comp-labels i) first-comp) 0 1)))
         ;; Connected: use Fiedler vector
         (let ([result (spectral-partition adj)])
           (if (and (pair? result) (eq? (car result) 'error))

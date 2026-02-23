@@ -1,10 +1,11 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ma
-;;; @requires prelude result-types summary-stats acf-pacf
+;;; @requires prelude result-types summary-stats acf-pacf iteration
 (require 'prelude)
 (require 'result-types)
 (require 'summary-stats)
 (require 'acf-pacf)
+(require 'iteration)
 
 (doc 'module 'ma)
 (doc 'description "Moving Average Models — MA(q) model fitting and forecasting")
@@ -51,41 +52,31 @@
   (let* ([n (vector-length xs)]
          [k (vector-length weights)]
          [m (- n k -1)]
-         [result (make-vector m)]
          ;; Normalize weights
          [weight-sum (let loop ([i 0] [s 0])
                           (if (= i k)
                               s
                               (loop (+ i 1) (+ s (vector-ref weights i)))))]
-         [norm-weights (let ([v (make-vector k)])
-                            (do ([i 0 (+ i 1)])
-                                [(= i k) v]
-                                (vector-set! v i
-                                             (/ (vector-ref weights i)
-                                                (max weight-sum 1e-10)))))])
-        (do ([t 0 (+ t 1)])
-            [(= t m) result]
-            (let ([val (let loop ([j 0] [s 0])
-                            (if (= j k)
-                                s
-                                (loop (+ j 1)
-                                      (+ s (* (vector-ref norm-weights j)
-                                              (vector-ref xs (+ t j)))))))])
-                 (vector-set! result t val)))))
+         [norm-weights (vec-tabulate k i
+                        (/ (vector-ref weights i)
+                           (max weight-sum 1e-10)))])
+        (vec-tabulate m t
+          (let loop ([j 0] [s 0])
+               (if (= j k)
+                   s
+                   (loop (+ j 1)
+                         (+ s (* (vector-ref norm-weights j)
+                                 (vector-ref xs (+ t j))))))))))
 
 ;;; exponential-moving-average : Vec × Num → Vec
 ;;; Exponential moving average (same length as input).
 ;;; Alpha in (0, 1): higher = more weight on recent.
 (define (exponential-moving-average xs alpha)
   (doc 'export #t)
-  (let* ([n (vector-length xs)]
-         [result (make-vector n)])
-        (vector-set! result 0 (vector-ref xs 0))
-        (do ([i 1 (+ i 1)])
-            [(= i n) result]
-            (vector-set! result i
-                         (+ (* alpha (vector-ref xs i))
-                            (* (- 1 alpha) (vector-ref result (- i 1))))))))
+  (let ([n (vector-length xs)])
+       (vec-scan n (vector-ref xs 0) i prev
+         (+ (* alpha (vector-ref xs i))
+            (* (- 1 alpha) prev)))))
 
 ;;; ====
 ;;; MA(q) Model Fitting
@@ -109,10 +100,7 @@
                    [acf-vals (acf centered q)]
                    ;; Compute autocovariances (gamma)
                    [gamma0 (autocovariance-ma centered 0)]
-                   [gammas (make-vector (+ q 1))]
-                   [_ (do ([k 0 (+ k 1)])
-                          [(> k q)]
-                          (vector-set! gammas k (autocovariance-ma centered k)))]
+                   [gammas (vec-tabulate (+ q 1) k (autocovariance-ma centered k))]
                    ;; Run innovations algorithm
                    [result (innovations-algorithm gammas q)])
                   (if (and (pair? result) (eq? (car result) 'error))
@@ -126,11 +114,7 @@
 
 ;;; center-series-ma : Vec × Num → Vec
 (define (center-series-ma xs mean)
-  (let* ([n (vector-length xs)]
-         [centered (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) centered]
-            (vector-set! centered i (- (vector-ref xs i) mean)))))
+  (vec-tabulate (vector-length xs) i (- (vector-ref xs i) mean)))
 
 ;;; autocovariance-ma : Vec × Nat → Num
 (define (autocovariance-ma xs k)
@@ -262,27 +246,21 @@
          ;; Get recent residuals
          [centered (center-series-ma xs mean)]
          [residuals (ma-compute-residuals centered theta q)]
-         ;; Generate forecasts
-         [forecasts (make-vector h)]
          ;; Extend residuals for forecasting (future residuals = 0)
-         [extended-res (make-vector (+ n h) 0)]
-         [_ (do ([i 0 (+ i 1)])
-                [(= i n)]
-                (vector-set! extended-res i (vector-ref residuals i)))])
-        ;; Compute forecasts
-        (do ([t 0 (+ t 1)])
-            [(= t h)]
-            (let* ([sum (let loop ([j 1] [s 0])
-                             (if (or (> j q) (> j (+ n t)))
-                                 s
-                                 (let ([res-idx (- (+ n t) j)])
-                                      (if (< res-idx 0)
-                                          s
-                                          (loop (+ j 1)
-                                                (+ s (* (vector-ref theta (- j 1))
-                                                        (vector-ref extended-res res-idx))))))))]
-                   [fc (+ mean sum)])
-                  (vector-set! forecasts t fc)))
+         [extended-res (vec-tabulate (+ n h) i
+                         (if (< i n) (vector-ref residuals i) 0))]
+         ;; Generate forecasts
+         [forecasts (vec-tabulate h t
+                      (+ mean
+                         (let loop ([j 1] [s 0])
+                              (if (or (> j q) (> j (+ n t)))
+                                  s
+                                  (let ([res-idx (- (+ n t) j)])
+                                       (if (< res-idx 0)
+                                           s
+                                           (loop (+ j 1)
+                                                 (+ s (* (vector-ref theta (- j 1))
+                                                         (vector-ref extended-res res-idx))))))))))])
         ;; Compute forecast standard errors
         (let* ([forecast-se (ma-forecast-se theta sigma q h)]
                [z (standard-normal-quantile-ma 0.975)]
@@ -299,19 +277,17 @@
 ;;; ma-forecast-se : Vec × Num × Nat × Nat → Vec
 ;;; Compute forecast standard errors for MA(q).
 (define (ma-forecast-se theta sigma q h)
-  (let* ([se (make-vector h)])
-        (do ([t 0 (+ t 1)])
-            [(= t h) se]
-            ;; For MA(q), forecast error variance at horizon h:
-            ;; Var(e_{n+h}) = sigma^2 * (1 + theta_1^2 + ... + theta_{min(h-1,q)}^2)
-            ;; But beyond q steps, it's just sigma^2 * (1 + sum of all theta^2)
-            (let* ([max-j (min t q)]
-                   [sum (let loop ([j 0] [s 0])
-                             (if (>= j max-j)
-                                 s
-                                 (loop (+ j 1)
-                                       (+ s (expt (vector-ref theta j) 2)))))])
-                  (vector-set! se t (* sigma (sqrt (+ 1 sum))))))))
+  ;; For MA(q), forecast error variance at horizon h:
+  ;; Var(e_{n+h}) = sigma^2 * (1 + theta_1^2 + ... + theta_{min(h-1,q)}^2)
+  ;; But beyond q steps, it's just sigma^2 * (1 + sum of all theta^2)
+  (vec-tabulate h t
+    (let* ([max-j (min t q)]
+           [sum (let loop ([j 0] [s 0])
+                     (if (>= j max-j)
+                         s
+                         (loop (+ j 1)
+                               (+ s (expt (vector-ref theta j) 2)))))])
+          (* sigma (sqrt (+ 1 sum))))))
 
 ;;; make-forecast-result : Vec × Vec × Vec × Num → ForecastResult
 (define (make-forecast-result forecasts lower upper confidence)
@@ -383,18 +359,12 @@
        (list 'matrix p p data)))
 
 (define (make-r-vector acf-vals p)
-  (let ([r (make-vector p)])
-       (do ([k 0 (+ k 1)])
-           [(= k p) r]
-           (vector-set! r k (vector-ref acf-vals (+ k 1))))))
+  (vec-tabulate p k (vector-ref acf-vals (+ k 1))))
 
 (define (solve-toeplitz R r p)
   ;; Simple Gaussian elimination for small systems
   (let* ([A (cadddr R)]
-         [b (let ([v (make-vector p)])
-                 (do ([i 0 (+ i 1)])
-                     [(= i p) v]
-                     (vector-set! v i (vector-ref r i))))]
+         [b (vec-tabulate p i (vector-ref r i))]
          [x (make-vector p 0)])
         ;; Forward elimination (simplified, not production-grade)
         ;; For now, use iterative refinement for small systems
@@ -418,18 +388,14 @@
                       (vector-set! x i xi-new))))))
 
 (define (compute-ar-residuals centered phi p)
-  (let* ([n (vector-length centered)]
-         [residuals (make-vector n 0)])
-        (do ([t 0 (+ t 1)])
-            [(= t n) residuals]
-            (if (< t p)
-                (vector-set! residuals t (vector-ref centered t))
-                (let* ([sum (let loop ([k 0] [s 0])
-                                 (if (= k p)
-                                     s
-                                     (loop (+ k 1)
-                                           (+ s (* (vector-ref phi k)
-                                                   (vector-ref centered (- t k 1)))))))]
-                       [et (- (vector-ref centered t) sum)])
-                      (vector-set! residuals t et))))))
+  (vec-tabulate (vector-length centered) t
+    (if (< t p)
+        (vector-ref centered t)
+        (let ([sum (let loop ([k 0] [s 0])
+                        (if (= k p)
+                            s
+                            (loop (+ k 1)
+                                  (+ s (* (vector-ref phi k)
+                                          (vector-ref centered (- t k 1)))))))])
+             (- (vector-ref centered t) sum)))))
 

@@ -1,6 +1,6 @@
 ;;; lattice/numeric/fem.ss --- Finite Element Method for 2D PDEs
 ;;; @module fem
-;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt
+;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt iteration
 
 (require 'prelude)
 (require 'sort)
@@ -10,6 +10,7 @@
 (require 'iterative-solvers)
 (require 'mesh-gen)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'fem)
 (doc 'description "Finite Element Method: P1 elements on triangular meshes for elliptic PDEs")
@@ -58,10 +59,7 @@
          [node-count (cdr result)])
 
     (let* ([;; Trim nodes vector to actual size
-            nodes (let ([result (make-vector node-count)])
-                    (do ([i 0 (+ i 1)])
-                        ((= i node-count) result)
-                      (vector-set! result i (vector-ref nodes-vec i))))]
+            nodes (vec-tabulate node-count i (vector-ref nodes-vec i))]
            ;; Convert triangles to element index triples
            [point->index (lambda (p) (hamt-lookup (point-key p) node-map))]
            [elements (map (lambda (tri)
@@ -201,55 +199,62 @@
 (doc assemble-stiffness 'type '(-> FEMMesh SparseCOO))
 (doc assemble-stiffness 'description "Assemble global stiffness matrix in COO format")
 (define (assemble-stiffness mesh)
-  (let* ([n (fem-mesh-num-nodes mesh)]
-         [ne (fem-mesh-num-elements mesh)]
-         [triplets '()])
-    ;; Loop over elements
-    (do ([e 0 (+ e 1)])
-        ((= e ne))
-      (let* ([elem (fem-mesh-element mesh e)]
-             [pts (fem-mesh-element-nodes mesh e)]
-             [Ke (element-stiffness (car pts) (cadr pts) (caddr pts))]
-             [i0 (vector-ref elem 0)]
-             [i1 (vector-ref elem 1)]
-             [i2 (vector-ref elem 2)]
-             [indices (vector i0 i1 i2)])
-        ;; Add contributions to global matrix
-        (do ([li 0 (+ li 1)])
-            ((= li 3))
-          (do ([lj 0 (+ lj 1)])
-              ((= lj 3))
-            (let ([gi (vector-ref indices li)]
-                  [gj (vector-ref indices lj)]
-                  [val (matrix-ref Ke li lj)])
-              (set! triplets (cons (list gi gj val) triplets)))))))
-    ;; Convert to sparse COO
-    (sparse-coo-from-triplets n n triplets)))
+  (let ([n (fem-mesh-num-nodes mesh)]
+        [ne (fem-mesh-num-elements mesh)])
+    ;; Accumulate triplets over elements via named let
+    (let loop-e ([e 0] [triplets '()])
+      (if (= e ne)
+          (sparse-coo-from-triplets n n triplets)
+          (let* ([elem (fem-mesh-element mesh e)]
+                 [pts (fem-mesh-element-nodes mesh e)]
+                 [Ke (element-stiffness (car pts) (cadr pts) (caddr pts))]
+                 [i0 (vector-ref elem 0)]
+                 [i1 (vector-ref elem 1)]
+                 [i2 (vector-ref elem 2)]
+                 [indices (vector i0 i1 i2)])
+            ;; Add contributions to global matrix
+            (loop-e (+ e 1)
+                    (let loop-i ([li 0] [triplets triplets])
+                      (if (= li 3)
+                          triplets
+                          (loop-i (+ li 1)
+                                  (let loop-j ([lj 0] [triplets triplets])
+                                    (if (= lj 3)
+                                        triplets
+                                        (loop-j (+ lj 1)
+                                                (cons (list (vector-ref indices li)
+                                                            (vector-ref indices lj)
+                                                            (matrix-ref Ke li lj))
+                                                      triplets)))))))))))))
 
 (doc assemble-mass 'type '(-> FEMMesh SparseCOO))
 (doc assemble-mass 'description "Assemble global mass matrix in COO format")
 (define (assemble-mass mesh)
-  (let* ([n (fem-mesh-num-nodes mesh)]
-         [ne (fem-mesh-num-elements mesh)]
-         [triplets '()])
-    (do ([e 0 (+ e 1)])
-        ((= e ne))
-      (let* ([elem (fem-mesh-element mesh e)]
-             [pts (fem-mesh-element-nodes mesh e)]
-             [Me (element-mass (car pts) (cadr pts) (caddr pts))]
-             [i0 (vector-ref elem 0)]
-             [i1 (vector-ref elem 1)]
-             [i2 (vector-ref elem 2)]
-             [indices (vector i0 i1 i2)])
-        (do ([li 0 (+ li 1)])
-            ((= li 3))
-          (do ([lj 0 (+ lj 1)])
-              ((= lj 3))
-            (let ([gi (vector-ref indices li)]
-                  [gj (vector-ref indices lj)]
-                  [val (matrix-ref Me li lj)])
-              (set! triplets (cons (list gi gj val) triplets)))))))
-    (sparse-coo-from-triplets n n triplets)))
+  (let ([n (fem-mesh-num-nodes mesh)]
+        [ne (fem-mesh-num-elements mesh)])
+    (let loop-e ([e 0] [triplets '()])
+      (if (= e ne)
+          (sparse-coo-from-triplets n n triplets)
+          (let* ([elem (fem-mesh-element mesh e)]
+                 [pts (fem-mesh-element-nodes mesh e)]
+                 [Me (element-mass (car pts) (cadr pts) (caddr pts))]
+                 [i0 (vector-ref elem 0)]
+                 [i1 (vector-ref elem 1)]
+                 [i2 (vector-ref elem 2)]
+                 [indices (vector i0 i1 i2)])
+            (loop-e (+ e 1)
+                    (let loop-i ([li 0] [triplets triplets])
+                      (if (= li 3)
+                          triplets
+                          (loop-i (+ li 1)
+                                  (let loop-j ([lj 0] [triplets triplets])
+                                    (if (= lj 3)
+                                        triplets
+                                        (loop-j (+ lj 1)
+                                                (cons (list (vector-ref indices li)
+                                                            (vector-ref indices lj)
+                                                            (matrix-ref Me li lj))
+                                                      triplets)))))))))))))
 
 (doc assemble-load 'type '(-> FEMMesh (-> Number Number Number) Vector))
 (doc assemble-load 'description "Assemble global load vector for source term f(x,y)")
@@ -481,14 +486,11 @@
 (doc vec-div-pointwise 'type '(-> Vector Vector Vector))
 (doc vec-div-pointwise 'description "Element-wise division z_i = x_i / y_i")
 (define (vec-div-pointwise x y)
-  (let* ([n (vector-length x)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (let ([yi (vector-ref y i)])
-        (vector-set! result i (if (< (abs yi) 1e-30)
-                                  0.0
-                                  (/ (vector-ref x i) yi)))))))
+  (vec-tabulate (vector-length x) i
+    (let ([yi (vector-ref y i)])
+      (if (< (abs yi) 1e-30)
+          0.0
+          (/ (vector-ref x i) yi)))))
 
 (doc sparse-pcg 'type '(-> SparseCSR Vector Vector (List Vector Number Nat)))
 (doc sparse-pcg 'description "Preconditioned conjugate gradient with Jacobi preconditioning")
@@ -542,25 +544,16 @@
           (loop (+ i 1) (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
 
 (define (vec-add v1 v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (+ (vector-ref v1 i) (vector-ref v2 i))))))
+  (vec-tabulate (vector-length v1) i
+    (+ (vector-ref v1 i) (vector-ref v2 i))))
 
 (define (vec-sub v1 v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (- (vector-ref v1 i) (vector-ref v2 i))))))
+  (vec-tabulate (vector-length v1) i
+    (- (vector-ref v1 i) (vector-ref v2 i))))
 
 (define (vec-scale s v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (* s (vector-ref v i))))))
+  (vec-tabulate (vector-length v) i
+    (* s (vector-ref v i))))
 
 ;;; ============================================================
 ;;; Section: FEM Solver
@@ -848,19 +841,26 @@
 (doc fem-l2-error 'type '(-> FEMMesh Vector (-> Number Number Number) Number))
 (doc fem-l2-error 'description "Compute L² error between FEM solution and exact solution")
 (define (fem-l2-error mesh solution exact)
-  ;; ∫(u - u_exact)² dΩ ≈ Σ_e (A_e/3) Σ_i (u_i - exact(x_i, y_i))²
-  (let ([ne (fem-mesh-num-elements mesh)]
-        [error-sq 0.0])
-    (do ([e 0 (+ e 1)])
-        ((= e ne) (sqrt error-sq))
-      (let* ([pts (fem-mesh-element-nodes mesh e)]
-             [elem (fem-mesh-element mesh e)]
-             [area (abs (element-area (car pts) (cadr pts) (caddr pts)))])
-        (do ([i 0 (+ i 1)])
-            ((= i 3))
-          (let* ([p (list-ref pts i)]
-                 [idx (vector-ref elem i)]
-                 [u-fem (vector-ref solution idx)]
-                 [u-exact (exact (point2-x p) (point2-y p))]
-                 [diff (- u-fem u-exact)])
-            (set! error-sq (+ error-sq (* (/ area 3.0) (* diff diff))))))))))
+  ;; L2 error: integral (u - u_exact)^2 dO, approximated per element
+  (let ([ne (fem-mesh-num-elements mesh)])
+    (sqrt
+      (let loop-e ([e 0] [esq 0.0])
+        (if (= e ne)
+            esq
+            (let* ([pts (fem-mesh-element-nodes mesh e)]
+                   [elem (fem-mesh-element mesh e)]
+                   [area (abs (element-area (car pts) (cadr pts) (caddr pts)))])
+              (loop-e
+                (+ e 1)
+                (let loop-i ([i 0] [esq esq])
+                  (if (= i 3)
+                      esq
+                      (let* ([p (list-ref pts i)]
+                             [idx (vector-ref elem i)]
+                             [u-fem (vector-ref solution idx)]
+                             [u-exact (exact (point2-x p) (point2-y p))]
+                             [diff (- u-fem u-exact)])
+                        (loop-i (+ i 1)
+                                (+ esq (* (/ area 3.0) (* diff diff)))))))))))
+      )))
+

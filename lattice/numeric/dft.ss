@@ -1,10 +1,11 @@
 ;;; lattice/numeric/dft.ss — DFT/FFT Implementation
 ;;; @module dft
-;;; @requires prelude complex vec
+;;; @requires prelude complex vec iteration
 
 (require 'prelude)
 (require 'complex)
 (require 'vec)
+(require 'iteration)
 
 (doc 'module 'dft)
 (doc 'description "Comprehensive DFT/FFT implementation for signal processing, spectral analysis, and convolution operations")
@@ -46,12 +47,10 @@
 (define (bit-reverse-copy v)
   (doc 'export #t)
   (let* ([n (vector-length v)]
-         [nbits (log2-int n)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (let ([j (bit-reverse i nbits)])
-                 (vector-set! result j (vector-ref v i))))))
+         [nbits (log2-int n)])
+        ;; bit-reverse is its own inverse, so result[j] = v[bit-reverse(j)]
+        (vec-tabulate n j
+          (vector-ref v (bit-reverse j nbits)))))
 
 ;;; ====
 ;;; Naive DFT (O(N²))
@@ -125,10 +124,8 @@
                    [theta (/ (* -1 two-pi) m)]
                    ;; FIX: Precompute twiddle factors for this stage (fold-tg01)
                    ;; Twiddles only depend on j, not k, so cache them per stage
-                   [twiddles (let ([tw (make-vector m/2)])
-                                  (do ([j 0 (+ j 1)])
-                                      ((= j m/2) tw)
-                                      (vector-set! tw j (make-polar 1 (* theta j)))))])
+                   [twiddles (vec-tabulate m/2 j
+                               (make-polar 1 (* theta j)))])
                   ;; Process all groups for this stage
                   (do ([k 0 (+ k m)])
                       ((>= k n))
@@ -228,21 +225,15 @@
 ;;; Convert real-valued vector to complex vector.
 (define (real->complex-vec v)
   (doc 'export #t)
-  (let* ([n (vector-length v)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (make-complex (vector-ref v i) 0)))))
+  (vec-tabulate (vector-length v) i
+    (make-complex (vector-ref v i) 0)))
 
 ;;; complex->real-vec : Vector[Complex] → Vector[Number]
 ;;; Extract real parts from complex vector.
 (define (complex->real-vec v)
   (doc 'export #t)
-  (let* ([n (vector-length v)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (complex-real (vector-ref v i))))))
+  (vec-tabulate (vector-length v) i
+    (complex-real (vector-ref v i))))
 
 ;;; dft-real : Vector[Number] → Vector[Complex]
 ;;; Compute DFT of real-valued signal.
@@ -264,32 +255,23 @@
 ;;; Compute magnitude spectrum from DFT output.
 (define (magnitude-spectrum X)
   (doc 'export #t)
-  (let* ([n (vector-length X)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (complex-magnitude (vector-ref X i))))))
+  (vec-tabulate (vector-length X) i
+    (complex-magnitude (vector-ref X i))))
 
 ;;; phase-spectrum : Vector[Complex] → Vector[Number]
 ;;; Compute phase spectrum from DFT output.
 (define (phase-spectrum X)
   (doc 'export #t)
-  (let* ([n (vector-length X)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (complex-angle (vector-ref X i))))))
+  (vec-tabulate (vector-length X) i
+    (complex-angle (vector-ref X i))))
 
 ;;; power-spectrum : Vector[Complex] → Vector[Number]
 ;;; Compute power spectrum (magnitude squared).
 (define (power-spectrum X)
   (doc 'export #t)
-  (let* ([n (vector-length X)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (let ([mag (complex-magnitude (vector-ref X i))])
-                 (vector-set! result i (* mag mag))))))
+  (vec-tabulate (vector-length X) i
+    (let ([mag (complex-magnitude (vector-ref X i))])
+         (* mag mag))))
 
 ;;; ====
 ;;; Frequency Bins
@@ -300,11 +282,8 @@
 ;;; Returns vector of frequencies [0, fs/n, 2*fs/n, ..., (n-1)*fs/n]
 (define (freq-bins n fs)
   (doc 'export #t)
-  (let ([result (make-vector n)]
-        [df (/ fs n)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (vector-set! result i (* i df)))))
+  (let ([df (/ fs n)])
+       (vec-tabulate n i (* i df))))
 
 ;;; ====
 ;;; Zero Padding

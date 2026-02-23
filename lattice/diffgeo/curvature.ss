@@ -3,6 +3,7 @@
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
+(require 'iteration)
 (require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'charts)
@@ -190,33 +191,22 @@
          ;; Compute partial derivatives of metric: ∂_l g_{ij}
          ;; dg[l] is the matrix of ∂g_{ij}/∂x^l
          [dg (compute-metric-derivatives m coords eps n)]
-         ;; Allocate result: Γ[k][i][j]
-         [gamma (make-vector n #f)])
-
-    ;; Compute each Γ^k_ij
-    (do ([k 0 (+ k 1)])
-        ((= k n) gamma)
-        (let ([gamma-k (make-vector n #f)])
-          (do ([i 0 (+ i 1)])
-              ((= i n))
-              (let ([gamma-ki (make-vector n 0)])
-                (do ([j 0 (+ j 1)])
-                    ((= j n))
-                    ;; Γ^k_ij = ½ Σ_l g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})
-                    (let ([sum 0])
-                      (do ([l 0 (+ l 1)])
-                          ((= l n))
-                          (let* ([g-kl (matrix-ref g-inv k l)]
-                                 [dg-i (vector-ref dg i)]  ; ∂g/∂x^i matrix
-                                 [dg-j (vector-ref dg j)]
-                                 [dg-l (vector-ref dg l)]
-                                 [term1 (matrix-ref dg-i j l)]   ; ∂_i g_{jl}
-                                 [term2 (matrix-ref dg-j i l)]   ; ∂_j g_{il}
-                                 [term3 (matrix-ref dg-l i j)])  ; ∂_l g_{ij}
-                            (set! sum (+ sum (* g-kl (- (+ term1 term2) term3))))))
-                      (vector-set! gamma-ki j (* 0.5 sum))))
-                (vector-set! gamma-k i gamma-ki)))
-          (vector-set! gamma k gamma-k)))))
+         ;; Compute Γ[k][i][j]
+         [gamma (vec-tabulate n k
+                  (vec-tabulate n i
+                    (vec-tabulate n j
+                      ;; Γ^k_ij = ½ Σ_l g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})
+                      (* 0.5
+                         (range-fold sum 0 l 0 n
+                           (let* ([g-kl (matrix-ref g-inv k l)]
+                                  [dg-i (vector-ref dg i)]  ; ∂g/∂x^i matrix
+                                  [dg-j (vector-ref dg j)]
+                                  [dg-l (vector-ref dg l)]
+                                  [term1 (matrix-ref dg-i j l)]   ; ∂_i g_{jl}
+                                  [term2 (matrix-ref dg-j i l)]   ; ∂_j g_{il}
+                                  [term3 (matrix-ref dg-l i j)])  ; ∂_l g_{ij}
+                             (+ sum (* g-kl (- (+ term1 term2) term3)))))))))])
+    gamma))
 
 ;;; compute-metric-derivatives : Metric × Vec × Num × Nat → (Vector Matrix)
 ;;; Helper: compute ∂g_{ij}/∂x^l for all l.
@@ -281,17 +271,15 @@
                     ((= k n))
                     ;; R^l_{ijk} = ∂_j Γ^l_{ik} - ∂_k Γ^l_{ij}
                     ;;           + Σ_m (Γ^l_{jm} Γ^m_{ik} - Γ^l_{km} Γ^m_{ij})
-                    (let ([term1 (dgamma-ref dgamma j l i k)]   ; ∂_j Γ^l_{ik}
-                          [term2 (dgamma-ref dgamma k l i j)]   ; ∂_k Γ^l_{ij}
-                          [sum 0])
-                      ;; Product terms
-                      (do ([mm 0 (+ mm 1)])
-                          ((= mm n))
-                          (set! sum (+ sum
-                                       (- (* (christoffel-ref gamma l j mm)
-                                             (christoffel-ref gamma mm i k))
-                                          (* (christoffel-ref gamma l k mm)
-                                             (christoffel-ref gamma mm i j))))))
+                    (let* ([term1 (dgamma-ref dgamma j l i k)]   ; ∂_j Γ^l_{ik}
+                           [term2 (dgamma-ref dgamma k l i j)]   ; ∂_k Γ^l_{ij}
+                           ;; Product terms
+                           [sum (do ([mm 0 (+ mm 1)]
+                                     [s 0 (+ s (- (* (christoffel-ref gamma l j mm)
+                                                     (christoffel-ref gamma mm i k))
+                                                  (* (christoffel-ref gamma l k mm)
+                                                     (christoffel-ref gamma mm i j))))])
+                                    ((= mm n) s))])
                       (array-4d-set! R l i j k (+ (- term1 term2) sum)))))))))
 
 ;;; compute-christoffel-derivatives : Metric × Vec × Num × Nat → 4D-Array
@@ -326,18 +314,10 @@
 
 ;;; 4D array helpers
 (define (make-4d-array n)
-  (let ([arr (make-vector n #f)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) arr)
-        (let ([arr-i (make-vector n #f)])
-          (do ([j 0 (+ j 1)])
-              ((= j n))
-              (let ([arr-ij (make-vector n #f)])
-                (do ([k 0 (+ k 1)])
-                    ((= k n))
-                    (vector-set! arr-ij k (make-vector n 0)))
-                (vector-set! arr-i j arr-ij)))
-          (vector-set! arr i arr-i)))))
+  (vec-tabulate n i
+    (vec-tabulate n j
+      (vec-tabulate n k
+        (make-vector n 0)))))
 
 (define (array-4d-ref arr i j k l)
   (vector-ref (vector-ref (vector-ref (vector-ref arr i) j) k) l))
@@ -377,10 +357,9 @@
         ((= i n) ric)
         (do ([j 0 (+ j 1)])
             ((= j n))
-            (let ([sum 0])
-              (do ([k 0 (+ k 1)])
-                  ((= k n))
-                  (set! sum (+ sum (riemann-ref R k i k j))))
+            (let ([sum (do ([k 0 (+ k 1)]
+                           [s 0 (+ s (riemann-ref R k i k j))])
+                          ((= k n) s))])
               (matrix-set! ric i j sum))))))
 
 ;;; ============================================================================
@@ -399,15 +378,14 @@
   (let* ([eps (if (null? epsilon-arg) *curvature-epsilon* (car epsilon-arg))]
          [n (metric-dim m)]
          [ric (ricci-tensor m coords eps)]
-         [g-inv (metric-inverse m coords)]
-         [R 0])
+         [g-inv (metric-inverse m coords)])
     ;; R = Σ_{ij} g^{ij} R_{ij}
-    (do ([i 0 (+ i 1)])
-        ((= i n) R)
-        (do ([j 0 (+ j 1)])
-            ((= j n))
-            (set! R (+ R (* (matrix-ref g-inv i j)
-                            (matrix-ref ric i j))))))))
+    (do ([i 0 (+ i 1)]
+         [R 0 (do ([j 0 (+ j 1)]
+                   [s R (+ s (* (matrix-ref g-inv i j)
+                                (matrix-ref ric i j)))])
+                  ((= j n) s))])
+        ((= i n) R))))
 
 ;;; ============================================================================
 ;;; Surface Curvatures (2D surfaces embedded in R³)
@@ -693,36 +671,36 @@
          [R (riemann-tensor m coords eps)]
          ;; Compute R(X,Y,Y,X) = Σ_{ijkl} R_{ijkl} X^i Y^j Y^k X^l
          ;; where R_{ijkl} = g_{lm} R^m_{ijk}
-         [numerator 0]
          [gXX (metric-inner-product m coords X X)]
          [gYY (metric-inner-product m coords Y Y)]
          [gXY (metric-inner-product m coords X Y)]
-         [denominator (- (* gXX gYY) (* gXY gXY))])
-
-    ;; Compute R(X,Y,Y,X)
-    (do ([i 0 (+ i 1)])
-        ((= i n))
-        (do ([j 0 (+ j 1)])
-            ((= j n))
-            (do ([k 0 (+ k 1)])
-                ((= k n))
-                (do ([l 0 (+ l 1)])
-                    ((= l n))
-                    ;; R_{ijkl} = Σ_m g_{lm} R^m_{ijk}
-                    (let ([R-ijkl 0])
-                      (do ([mm 0 (+ mm 1)])
-                          ((= mm n))
-                          (set! R-ijkl (+ R-ijkl
-                                          (* (matrix-ref g l mm)
-                                             (riemann-ref R mm i j k)))))
-                      ;; R(X,Y,Y,X) = R_{ijkl} Y^i X^j Y^k X^l
-                      ;; Note: X^j Y^k (not Y^j Y^k) avoids symmetric/antisymmetric cancellation
-                      (set! numerator (+ numerator
-                                         (* R-ijkl
-                                            (vector-ref Y i)
-                                            (vector-ref X j)
-                                            (vector-ref Y k)
-                                            (vector-ref X l)))))))))
+         [denominator (- (* gXX gYY) (* gXY gXY))]
+         ;; Compute R(X,Y,Y,X)
+         [numerator
+          (do ([i 0 (+ i 1)]
+               [num 0
+                    (do ([j 0 (+ j 1)]
+                         [num-j num
+                                (do ([k 0 (+ k 1)]
+                                     [num-k num-j
+                                            (do ([l 0 (+ l 1)]
+                                                 [num-l num-k
+                                                        ;; R_{ijkl} = Σ_m g_{lm} R^m_{ijk}
+                                                        (let ([R-ijkl
+                                                               (do ([mm 0 (+ mm 1)]
+                                                                    [s 0 (+ s (* (matrix-ref g l mm)
+                                                                                 (riemann-ref R mm i j k)))])
+                                                                   ((= mm n) s))])
+                                                          ;; R(X,Y,Y,X) = R_{ijkl} Y^i X^j Y^k X^l
+                                                          (+ num-l (* R-ijkl
+                                                                      (vector-ref Y i)
+                                                                      (vector-ref X j)
+                                                                      (vector-ref Y k)
+                                                                      (vector-ref X l))))])
+                                                ((= l n) num-l))])
+                                    ((= k n) num-k))])
+                        ((= j n) num-j))])
+              ((= i n) num))])
 
     (if (< (abs denominator) 1e-15)
         0  ; Degenerate plane

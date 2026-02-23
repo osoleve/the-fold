@@ -62,59 +62,49 @@
 (doc 'type "-> HealthReport")
 (doc 'description "Run health checks on the lattice")
 (define (lattice-health)
-  (let* ([issues '()]
-         [warnings '()]
-         [skills (kg-skills)])
-
-        ;; Check for cycles (using new detailed validator)
-        (let ([cycle-errors (lattice-validate-all)])
-             (for-each
-              (lambda (err)
-                      (set! issues (cons err issues)))
-              cycle-errors))
-        
-        ;; Check for missing manifests (skills referenced but not defined)
-        (for-each
-         (lambda (skill-name)
-                 (let ([deps (kg-deps skill-name)])
-                      (for-each
-                       (lambda (dep)
-                               (unless (memq dep skills)
-                                       (set! issues (cons `(missing-dep ,skill-name ,dep) issues))))
-                       deps)))
-         skills)
-        
-        ;; Check for skills without descriptions
-        (for-each
-         (lambda (skill-name)
-                 (let* ([data (kg-skill-data skill-name)]
-                        [desc (if data (cdr (or (assq 'description data) '(description . ""))) "")])
-                       (when (or (not desc) (string=? desc ""))
-                             (set! warnings (cons `(no-description ,skill-name) warnings)))))
-         skills)
-        
-        ;; Check for skills without keywords
-        (for-each
-         (lambda (skill-name)
-                 (let* ([data (kg-skill-data skill-name)]
-                        [keywords (if data (cdr (or (assq 'keywords data) '(keywords . ()))) '())])
-                       (when (or (not keywords) (null? keywords))
-                             (set! warnings (cons `(no-keywords ,skill-name) warnings)))))
-         skills)
-        
-        ;; Check for excessive dependencies
-        (for-each
-         (lambda (skill-name)
-                 (let ([deps (kg-deps skill-name)])
-                      (when (> (length deps) 5)
-                            (set! warnings (cons `(many-deps ,skill-name ,(length deps)) warnings)))))
-         skills)
-        
-        ;; Build report
-        (let ([healthy (and (null? issues) (null? warnings))])
-             `((healthy . ,healthy)
-               (issues . ,(reverse issues))
-               (warnings . ,(reverse warnings))))))
+  (let* ([skills (kg-skills)]
+         ;; Seed issues with cycle errors
+         [cycle-issues (reverse (lattice-validate-all))]
+         ;; Fold over skills, accumulating issues and warnings
+         [result
+          (fold-left
+           (lambda (acc skill-name)
+             (let ([issues (car acc)]
+                   [warnings (cdr acc)]
+                   [deps (kg-deps skill-name)]
+                   [data (kg-skill-data skill-name)])
+               ;; Check for missing deps
+               (let ([new-issues
+                      (fold-left
+                       (lambda (is dep)
+                         (if (memq dep skills) is
+                             (cons `(missing-dep ,skill-name ,dep) is)))
+                       issues
+                       deps)])
+                 ;; Check description, keywords, excessive deps
+                 (let* ([desc (if data (cdr (or (assq 'description data) '(description . ""))) "")]
+                        [keywords (if data (cdr (or (assq 'keywords data) '(keywords . ()))) '())]
+                        [new-warnings
+                         (let* ([w warnings]
+                                [w (if (or (not desc) (string=? desc ""))
+                                       (cons `(no-description ,skill-name) w)
+                                       w)]
+                                [w (if (or (not keywords) (null? keywords))
+                                       (cons `(no-keywords ,skill-name) w)
+                                       w)]
+                                [w (if (> (length deps) 5)
+                                       (cons `(many-deps ,skill-name ,(length deps)) w)
+                                       w)])
+                           w)])
+                   (cons new-issues new-warnings)))))
+           (cons cycle-issues '())
+           skills)]
+         [issues (car result)]
+         [warnings (cdr result)]
+         [healthy (and (null? issues) (null? warnings))])
+    `((healthy . ,healthy)
+      (issues . ,(reverse issues))
+      (warnings . ,(reverse warnings)))))
 
 ;;; lattice-health-pretty : -> void
 ;;; Print health report
@@ -182,38 +172,36 @@
 (define (lattice-coverage)
   (let* ([skills (kg-skills)]
          [total (length skills)]
-         [with-desc 0]
-         [with-keywords 0]
-         [with-aliases 0]
-         [with-modules 0])
-        
-        (for-each
-         (lambda (skill-name)
-                 (let ([data (kg-skill-data skill-name)])
-                      (when data
-                            (let ([desc (cdr (or (assq 'description data) '(description . "")))]
-                                  [kw (cdr (or (assq 'keywords data) '(keywords . ())))]
-                                  [al (cdr (or (assq 'aliases data) '(aliases . ())))]
-                                  [mods (kg-modules skill-name)])
-                                 (when (and desc (not (string=? desc "")))
-                                       (set! with-desc (+ 1 with-desc)))
-                                 (when (and kw (not (null? kw)))
-                                       (set! with-keywords (+ 1 with-keywords)))
-                                 (when (and al (not (null? al)))
-                                       (set! with-aliases (+ 1 with-aliases)))
-                                 (unless (null? mods)
-                                         (set! with-modules (+ 1 with-modules)))))))
-         skills)
-        
-        `((total . ,total)
-          (with-description . ,with-desc)
-          (with-keywords . ,with-keywords)
-          (with-aliases . ,with-aliases)
-          (with-modules . ,with-modules)
-          (description-pct . ,(if (= total 0) 0 (* 100 (/ with-desc total))))
-          (keywords-pct . ,(if (= total 0) 0 (* 100 (/ with-keywords total))))
-          (aliases-pct . ,(if (= total 0) 0 (* 100 (/ with-aliases total))))
-          (modules-pct . ,(if (= total 0) 0 (* 100 (/ with-modules total)))))))
+         ;; Fold over skills accumulating 4 counters as a single list
+         [counts
+          (fold-left
+           (lambda (acc skill-name)
+             (let ([data (kg-skill-data skill-name)]
+                   [d (car acc)] [k (cadr acc)] [a (caddr acc)] [m (cadddr acc)])
+               (if (not data) acc
+                   (let ([desc (cdr (or (assq 'description data) '(description . "")))]
+                         [kw (cdr (or (assq 'keywords data) '(keywords . ())))]
+                         [al (cdr (or (assq 'aliases data) '(aliases . ())))]
+                         [mods (kg-modules skill-name)])
+                     (list (if (and desc (not (string=? desc ""))) (+ 1 d) d)
+                           (if (and kw (not (null? kw))) (+ 1 k) k)
+                           (if (and al (not (null? al))) (+ 1 a) a)
+                           (if (not (null? mods)) (+ 1 m) m))))))
+           (list 0 0 0 0)
+           skills)]
+         [with-desc (car counts)]
+         [with-keywords (cadr counts)]
+         [with-aliases (caddr counts)]
+         [with-modules (cadddr counts)])
+    `((total . ,total)
+      (with-description . ,with-desc)
+      (with-keywords . ,with-keywords)
+      (with-aliases . ,with-aliases)
+      (with-modules . ,with-modules)
+      (description-pct . ,(if (= total 0) 0 (* 100 (/ with-desc total))))
+      (keywords-pct . ,(if (= total 0) 0 (* 100 (/ with-keywords total))))
+      (aliases-pct . ,(if (= total 0) 0 (* 100 (/ with-aliases total))))
+      (modules-pct . ,(if (= total 0) 0 (* 100 (/ with-modules total)))))))
 
 ;;; lattice-coverage-pretty : -> void
 ;;; Print coverage report
@@ -293,29 +281,31 @@
 ;;; lattice-purity-report : -> void
 ;;; Report on purity of skills
 (define (lattice-purity-report)
-  (let ([total 0]
-        [pure 0]
-        [partial 0]
-        [unknown 0])
-       (for-each
-        (lambda (skill-name)
-                (let* ([data (kg-skill-data skill-name)]
-                       [purity (if data
-                                   (let ([p (assq 'purity data)])
-                                        (if p (cdr p) 'unknown))
-                                   'unknown)])
-                      (set! total (+ 1 total))
-                      (case purity
-                            [(total) (set! pure (+ 1 pure))]
-                            [(partial) (set! partial (+ 1 partial))]
-                            [else (set! unknown (+ 1 unknown))])))
-        (kg-skills))
-       (printf "Purity Report\n")
-       (printf "====\n\n")
-       (printf "Total:    ~a skills\n" total)
-       (printf "Pure:     ~a (~a%)\n" pure (round-to (* 100 (/ pure total)) 1))
-       (printf "Partial:  ~a (~a%)\n" partial (round-to (* 100 (/ partial total)) 1))
-       (printf "Unknown:  ~a (~a%)\n" unknown (round-to (* 100 (/ unknown total)) 1))))
+  (let* ([counts
+          (fold-left
+           (lambda (acc skill-name)
+             (let* ([data (kg-skill-data skill-name)]
+                    [purity (if data
+                                (let ([p (assq 'purity data)])
+                                  (if p (cdr p) 'unknown))
+                                'unknown)]
+                    [tot (car acc)] [pu (cadr acc)] [pa (caddr acc)] [unk (cadddr acc)])
+               (case purity
+                 [(total)   (list (+ 1 tot) (+ 1 pu) pa unk)]
+                 [(partial) (list (+ 1 tot) pu (+ 1 pa) unk)]
+                 [else      (list (+ 1 tot) pu pa (+ 1 unk))])))
+           (list 0 0 0 0)
+           (kg-skills))]
+         [total (car counts)]
+         [pure (cadr counts)]
+         [partial (caddr counts)]
+         [unknown (cadddr counts)])
+    (printf "Purity Report\n")
+    (printf "====\n\n")
+    (printf "Total:    ~a skills\n" total)
+    (printf "Pure:     ~a (~a%)\n" pure (round-to (* 100 (/ pure total)) 1))
+    (printf "Partial:  ~a (~a%)\n" partial (round-to (* 100 (/ partial total)) 1))
+    (printf "Unknown:  ~a (~a%)\n" unknown (round-to (* 100 (/ unknown total)) 1))))
 
 ;;; ====
 ;;; Convenience Functions
