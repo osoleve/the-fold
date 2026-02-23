@@ -46,33 +46,36 @@
         (build-docstring-cache!))
 
   ;; Index all skills
-  (for-each
-   (lambda (skill-name)
+  (set! *skill-index*
+        (fold-left
+         (lambda (idx skill-name)
            (let ([manifest-data (kg-skill-data skill-name)])
-                (when manifest-data
-                      (let ([terms (skill->terms manifest-data)])
-                           (set! *skill-index*
-                                 (bm25-add-doc *skill-index* skill-name terms manifest-data))))))
-   (kg-skills))
+             (if manifest-data
+                 (let ([terms (skill->terms manifest-data)])
+                   (bm25-add-doc idx skill-name terms manifest-data))
+                 idx)))
+         *skill-index*
+         (kg-skills)))
 
   ;; Index all modules and build module cache
-  (for-each
-   (lambda (skill-name)
-           (let ([modules (kg-modules skill-name)])
-                (for-each
-                 (lambda (mod-entry)
-                         (let* ([mod-key (car mod-entry)]
-                                [mod-data `((name . ,mod-key)
-                                            (skill . ,skill-name))])
-                               ;; Add to module cache for fast lookup
-                               (set! *module-cache* (cons mod-entry *module-cache*))
-                               ;; Extract module name from key (e.g., 'linalg/vec -> 'vec)
-                               (let* ([key-str (symbol->string mod-key)]
-                                      [terms (tokenize key-str)])
-                                     (set! *module-index*
-                                           (bm25-add-doc *module-index* mod-key terms mod-data)))))
-                 modules)))
-   (kg-skills))
+  (let ([acc (fold-left
+              (lambda (acc skill-name)
+                (let ([modules (kg-modules skill-name)])
+                  (fold-left
+                   (lambda (acc mod-entry)
+                     (let* ([mod-key (car mod-entry)]
+                            [mod-data `((name . ,mod-key)
+                                        (skill . ,skill-name))]
+                            [key-str (symbol->string mod-key)]
+                            [terms (tokenize key-str)])
+                       (cons (cons mod-entry (car acc))
+                             (bm25-add-doc (cdr acc) mod-key terms mod-data))))
+                   acc
+                   modules)))
+              (cons *module-cache* *module-index*)
+              (kg-skills))])
+    (set! *module-cache* (car acc))
+    (set! *module-index* (cdr acc)))
 
   ;; Build export→module reverse mapping from manifest grouped exports
   ;; Manifest exports format: ((module-name sym1 sym2 ...) ...)
@@ -128,8 +131,9 @@
               mod-names)))
 
   ;; Index all exports (with docstrings and module info)
-  (for-each
-   (lambda (export-entry)
+  (set! *export-index*
+        (fold-left
+         (lambda (idx export-entry)
            (let* ([export-name (car export-entry)]
                   [name-terms (export->terms export-name)]
                   [doc-terms (docstring-terms export-name)]
@@ -139,9 +143,9 @@
                   [data `((name . ,export-name)
                           ,@(if module `((module . ,module)) '())
                           ,@(if docstring `((docstring . ,docstring)) '()))])
-                 (set! *export-index*
-                       (bm25-add-doc *export-index* export-name all-terms data))))
-   (kg-exports))
+             (bm25-add-doc idx export-name all-terms data)))
+         *export-index*
+         (kg-exports)))
 
   (set! *search-ready* #t)
   (printf "Search indices built:\n")

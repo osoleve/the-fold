@@ -103,17 +103,11 @@
          [signal-fft (fft-radix2 signal-padded)]
          [kernel-fft (fft-radix2 kernel-padded)]
          ;; Multiply in frequency domain
-         [product (make-vector fft-size)]
+         [product (vec-tabulate fft-size i
+                    (complex-mul (vector-ref signal-fft i)
+                                 (vector-ref kernel-fft i)))]
          ;; Transform back to time domain
-         [result-complex #f])
-        ;; Element-wise multiplication (IMPERATIVE — mutates product in-place)
-        (do ([i 0 (+ i 1)])
-            ((= i fft-size))
-            (vector-set! product i
-                         (complex-mul (vector-ref signal-fft i)
-                                      (vector-ref kernel-fft i))))
-        ;; Inverse FFT
-        (set! result-complex (ifft-radix2 product))
+         [result-complex (ifft-radix2 product)])
         ;; Extract real part and trim to correct length
         (vec-tabulate output-len i
           (complex-real (vector-ref result-complex i)))))
@@ -234,21 +228,21 @@
 ;;; Useful for detecting matched filter hits.
 (define (find-peaks signal threshold)
   (doc 'export #t)
-  (let ([n (vector-length signal)]
-        [peaks '()])
+  (let ([n (vector-length signal)])
        (if (< n 3)
            ;; Not enough points for peak detection
            (vector)
-           (begin
-            (do ([i 1 (+ i 1)])
-                ((= i (- n 1)) (list->vector (reverse peaks)))
-                (let ([curr (vector-ref signal i)]
-                      [prev (vector-ref signal (- i 1))]
-                      [next (vector-ref signal (+ i 1))])
-                     (when (and (> curr threshold)
-                                (>= curr prev)
-                                (>= curr next))
-                           (set! peaks (cons i peaks)))))))))
+           (do ([i 1 (+ i 1)]
+                [peaks '()
+                       (let ([curr (vector-ref signal i)]
+                             [prev (vector-ref signal (- i 1))]
+                             [next (vector-ref signal (+ i 1))])
+                            (if (and (> curr threshold)
+                                     (>= curr prev)
+                                     (>= curr next))
+                                (cons i peaks)
+                                peaks))])
+               ((= i (- n 1)) (list->vector (reverse peaks)))))))
 
 ;;; ====
 ;;; Utility Functions
@@ -328,18 +322,12 @@
                    ;; FFT
                    [signal-fft (fft-radix2 signal-padded)]
                    [kernel-fft (fft-radix2 kernel-padded)]
-                   ;; Multiply
-                   [product (make-vector fft-size)]
-                   ;; IFFT
-                   [result-complex #f])
-                  ;; Element-wise multiply (IMPERATIVE — mutates product in-place)
-                  (do ([i 0 (+ i 1)])
-                      ((= i fft-size))
-                      (vector-set! product i
-                                   (complex-mul (vector-ref signal-fft i)
-                                                (vector-ref kernel-fft i))))
-                  ;; Inverse transform
-                  (set! result-complex (ifft-radix2 product))
+                   ;; Multiply in frequency domain
+                   [product (vec-tabulate fft-size i
+                              (complex-mul (vector-ref signal-fft i)
+                                           (vector-ref kernel-fft i)))]
+                   ;; Inverse transform
+                   [result-complex (ifft-radix2 product)])
                   ;; Extract real part (trim if padded)
                   (vec-tabulate n i
                     (complex-real (vector-ref result-complex i)))))))
