@@ -185,6 +185,41 @@
       (assert-equal (* 999 999) (hamt-lookup 999 half)))))
 
 ;;; ============================================================
+;;; Hash Collisions (synthetic)
+;;; ============================================================
+;;; Force collisions by inserting keys that produce the same hash
+;;; fragment at the first level. Integer keys often cluster.
+
+(test-group "hamt-collisions"
+  ;; Build a HAMT with enough integer keys to guarantee some share
+  ;; hash prefixes (pigeonhole: 33 keys in 32 slots = at least 1 collision)
+  (define h
+    (let loop ([i 0] [h hamt-empty])
+      (if (= i 100) h
+          (loop (+ i 1) (hamt-assoc (* i 997) i h)))))
+
+  (define-test "all 100 keys retrievable despite hash pressure"
+    (let loop ([i 0])
+      (when (< i 100)
+        (assert-equal i (hamt-lookup (* i 997) h))
+        (loop (+ i 1)))))
+
+  (define-test "size correct under hash pressure"
+    (assert-equal 100 (hamt-size h)))
+
+  (define-test "deletion works under hash pressure"
+    (let ([h2 (hamt-dissoc (* 50 997) h)])
+      (assert-equal 99 (hamt-size h2))
+      (assert-false (hamt-lookup (* 50 997) h2))
+      (assert-equal 49 (hamt-lookup (* 49 997) h2))
+      (assert-equal 51 (hamt-lookup (* 51 997) h2))))
+
+  (define-test "update works under hash pressure"
+    (let ([h2 (hamt-assoc (* 25 997) 'updated h)])
+      (assert-equal 'updated (hamt-lookup (* 25 997) h2))
+      (assert-equal 100 (hamt-size h2)))))
+
+;;; ============================================================
 ;;; Fold
 ;;; ============================================================
 
