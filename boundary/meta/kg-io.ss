@@ -1,5 +1,7 @@
 (load "boundary/meta/file-io.ss")
 (load "lattice/meta/kg.ss")
+(unless (top-level-bound? 'extract-docs-from-file)
+  (load "boundary/meta/docs-io.ss"))
 
 (doc 'module 'kg-io)
 (doc 'description "I/O layer for knowledge graph — manifest discovery, reading, CAS persistence,
@@ -44,10 +46,47 @@ Manifests are an import mechanism, not the primary store.")
 ;;; Build Pipeline
 ;;; ====
 
+(doc kg-extract-type-sigs! 'type (-> Void))
+(doc kg-extract-type-sigs! 'description "Scan lattice source files for (doc fn 'type ...) forms.
+Extracts type annotations and populates the KG type signature map.
+Only considers symbols that are known exports in the KG.")
+(define (kg-extract-type-sigs!)
+  (let ([known-exports (let loop ([exports (kg-exports)] [seen hamt-empty])
+                         (if (null? exports) seen
+                             (loop (cdr exports)
+                                   (hamt-assoc (caar exports) #t seen))))]
+        [type-pairs '()])
+    ;; Scan source files under lattice/ and core/
+    (for-each
+     (lambda (root)
+       (let ([files (find-scheme-files root)])
+         (for-each
+          (lambda (file)
+            (guard (e [else (void)])  ; skip files that fail to parse
+              (let ([docs (extract-docs-from-file file)])
+                (for-each
+                 (lambda (doc-entry)
+                   ;; doc-entry: (file line tag content target?)
+                   (let ([tag (caddr doc-entry)]
+                         [content (cadddr doc-entry)]
+                         [target (if (> (length doc-entry) 4) (list-ref doc-entry 4) #f)])
+                     (when (and (eq? tag 'type)
+                                target
+                                (symbol? target)
+                                (hamt-lookup target known-exports)
+                                (pair? content))
+                       (set! type-pairs
+                             (cons (cons target (car content)) type-pairs)))))
+                 docs))))
+          files)))
+     '("lattice" "core"))
+    (kg-populate-types! type-pairs)))
+
 (doc kg-build! 'type (-> Bytevector))
 (doc kg-build! 'description "Build knowledge graph from all manifests in lattice/.
 Discovers manifest files, parses them, creates blocks in CAS, extracts
-concepts from keywords, and builds the root. Returns root hash.")
+concepts from keywords, type signatures from doc forms, and builds the root.
+Returns root hash.")
 (define (kg-build!)
   (kg-reset!)
   (let ([manifests (find-manifests "lattice")])
@@ -65,15 +104,18 @@ concepts from keywords, and builds the root. Returns root hash.")
     (kg-build-deps!)
     ;; Phase 3: Extract concepts from keywords (KG-first: concepts are first-class)
     (kg-extract-concepts!)
-    ;; Phase 4: Build root block (anchors the entire graph in CAS)
+    ;; Phase 4: Extract type signatures from doc forms
+    (kg-extract-type-sigs!)
+    ;; Phase 5: Build root block (anchors the entire graph in CAS)
     (let ([root-hash (kg-build-root!)])
-      ;; Phase 5: Persist root hash for fast reload
+      ;; Phase 6: Persist root hash for fast reload
       (kg-save-root! root-hash)
-      (printf "Knowledge graph built: ~a skills, ~a modules, ~a exports, ~a concepts, ~a edges\n"
+      (printf "Knowledge graph built: ~a skills, ~a modules, ~a exports, ~a concepts, ~a type-sigs, ~a edges\n"
               (length *kg-skills*)
               (length *kg-modules*)
               (length *kg-exports*)
               (length *kg-concepts*)
+              (hamt-size *kg-type-sigs*)
               (length *kg-edges*))
       root-hash)))
 

@@ -491,6 +491,77 @@
             )
 
 ;;; ====
+;;; Type Signature Tests (fold-zy0z)
+;;; ====
+
+(test-group type-sig-tests
+
+            (define-test test-type-sigs-populated
+              "Type signatures are extracted during build"
+              (kg-ensure!)
+              (assert-true (> (kg-type-count) 0)))
+
+            (define-test test-type-sig-lookup
+              "Can look up type for a known export"
+              (kg-ensure!)
+              ;; foldr has a type annotation: (-> (-> α β β) β (List α) β)
+              (let ([type (kg-export-type 'foldr)])
+                (assert-true (if type #t #f))))
+
+            (define-test test-type-sig-unknown
+              "Unknown exports return #f for type"
+              (kg-ensure!)
+              (assert-false (kg-export-type 'xyznonexistent-symbol-123)))
+
+            (define-test test-typed-exports-list
+              "kg-typed-exports returns non-empty list"
+              (kg-ensure!)
+              (let ([typed (kg-typed-exports)])
+                (assert-true (> (length typed) 0))
+                ;; Each entry is (symbol . type-expr)
+                (let ([first (car typed)])
+                  (assert-true (symbol? (car first))))))
+
+            (define-test test-type-sig-in-stats
+              "kg-stats includes type-sigs count"
+              (kg-ensure!)
+              (let ([stats (kg-stats)])
+                (assert-true (if (assq 'type-sigs stats) #t #f))
+                (assert-true (> (cdr (assq 'type-sigs stats)) 0))))
+
+            (define-test test-type-sig-terms
+              "type-sig->terms tokenizes type expressions"
+              (lattice-ensure!)
+              ;; (-> Matrix Vector) should produce tokens including matrix, vector
+              (let ([terms (type-sig->terms '(-> Matrix Vector))])
+                (assert-true (> (length terms) 0))
+                (assert-true (if (memq 'matrix terms) #t #f))
+                (assert-true (if (memq 'vector terms) #t #f))
+                (assert-true (if (memq 'arrow terms) #t #f))))
+
+            (define-test test-type-sig-in-search-results
+              "Search results include type data for typed exports"
+              (lattice-ensure!)
+              ;; Search for foldr which has a type annotation
+              (let ([results (lattice-find "foldr" 5 'export)])
+                (when (> (length results) 0)
+                  (let* ([first (car results)]
+                         [data (cadddr first)]
+                         [typ (and data (assq 'type data))])
+                    ;; foldr should have type data
+                    (when (eq? (car first) 'foldr)
+                      (assert-true (if typ #t #f)))))))
+
+            (define-test test-type-search-finds-typed-exports
+              "Searching for a type name surfaces typed exports"
+              (lattice-ensure!)
+              ;; Searching "Matrix" should find functions with Matrix in their type
+              (let ([results (lattice-find "matrix" 20 'export)])
+                (assert-true (> (length results) 0))))
+
+            )
+
+;;; ====
 ;;; CAS Round-Trip Tests (fold-zy11)
 ;;; ====
 
@@ -553,6 +624,13 @@
               (lattice-index!)
               (let ([results (lattice-find "matrix")])
                 (assert-true (> (length results) 0))))
+
+            (define-test test-cas-round-trip-type-sigs
+              ;; Type sigs should survive CAS round-trip
+              (assert-true (> (kg-type-count) 0))
+              ;; A specific known type should exist
+              (let ([type (kg-export-type 'foldr)])
+                (assert-true (if type #t #f))))
 
             )
 

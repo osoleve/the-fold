@@ -48,6 +48,7 @@ hash is the identity of the entire lattice state.")
 (define KG-SKILL-INDEX 'kg/skill-index)
 (define KG-CONCEPT-INDEX 'kg/concept-index)
 (define KG-EDGE-INDEX 'kg/edge-index)
+(define KG-TYPE-INDEX 'kg/type-index)
 (define KG-ROOT 'kg/root)
 
 ;;; Legacy aliases for backward compatibility
@@ -155,15 +156,16 @@ blocks are the domains being bridged.")
               (string->utf8 (format "~a" (length edge-hashes)))
               (list->vector edge-hashes)))
 
-(doc make-kg-root 'type (-> Block Block Block Block))
-(doc make-kg-root 'description "Create KG root block. refs[0]=skill-index, refs[1]=concept-index, refs[2]=edge-index.
-The root hash IS the identity of the entire knowledge graph.")
-(define (make-kg-root skill-idx concept-idx edge-idx)
+(doc make-kg-root 'type (-> Block Block Block Block Block))
+(doc make-kg-root 'description "Create KG root block. refs[0]=skill-index, refs[1]=concept-index,
+refs[2]=edge-index, refs[3]=type-index. The root hash IS the identity of the entire knowledge graph.")
+(define (make-kg-root skill-idx concept-idx edge-idx type-idx)
   (make-block KG-ROOT
-              (string->utf8 (format "~s" `((version . 1))))
+              (string->utf8 (format "~s" `((version . 2))))
               (vector (hash-block skill-idx)
                       (hash-block concept-idx)
-                      (hash-block edge-idx))))
+                      (hash-block edge-idx)
+                      (hash-block type-idx))))
 
 ;;; ====
 ;;; CAS Storage
@@ -190,6 +192,9 @@ The root hash IS the identity of the entire knowledge graph.")
 (define *kg-skill-data* '())    ; ((name . manifest-data) ...) - for quick lookup
 (define *kg-loaded* #f)         ; Explicit flag for initialization state
 
+;;; Type signature map (populated from doc forms)
+(define *kg-type-sigs* hamt-empty)   ; symbol → type-expr (e.g., make-vec2 → (-> Number Number Vec2))
+
 ;;; Concept reverse maps (populated during build)
 (define *kg-skill-concepts* hamt-empty)   ; skill-name → (List concept-name)
 (define *kg-concept-skills* hamt-empty)   ; concept-name → (List skill-name)
@@ -206,6 +211,7 @@ The root hash IS the identity of the entire knowledge graph.")
   (set! *kg-index-root* #f)
   (set! *kg-skill-data* '())
   (set! *kg-loaded* #f)
+  (set! *kg-type-sigs* hamt-empty)
   (set! *kg-skill-concepts* hamt-empty)
   (set! *kg-concept-skills* hamt-empty))
 
@@ -355,6 +361,32 @@ independently and skills are connected through them.")
      (hamt-entries keyword-skills))))
 
 ;;; ====
+;;; Type Signature Population
+;;; ====
+
+(doc kg-populate-types! 'type (-> (List (Pair Symbol Any)) Void))
+(doc kg-populate-types! 'description "Populate the type signature map from extracted (symbol . type-expr) pairs.
+Called by boundary layer after scanning source files for (doc fn 'type ...) forms.")
+(define (kg-populate-types! type-pairs)
+  (set! *kg-type-sigs*
+        (fold-left
+         (lambda (m pair)
+           (if (hamt-lookup (car pair) m)
+               m  ; first-found wins
+               (hamt-assoc (car pair) (cdr pair) m)))
+         hamt-empty
+         type-pairs)))
+
+(doc make-type-index 'type (-> HAMT Block))
+(doc make-type-index 'description "Create a type index block storing all type signatures.
+Serializes the type HAMT as an alist in the payload.")
+(define (make-type-index type-sigs-hamt)
+  (let ([entries (hamt-entries type-sigs-hamt)])
+    (make-block KG-TYPE-INDEX
+                (string->utf8 (format "~s" entries))
+                (vector))))
+
+;;; ====
 ;;; Root Construction
 ;;; ====
 
@@ -367,10 +399,12 @@ independently and skills are connected through them.")
          [skill-idx (make-skill-index skill-hashes)]
          [concept-idx (make-concept-index concept-hashes)]
          [edge-idx (make-edge-index edge-hashes)]
+         [type-idx (make-type-index *kg-type-sigs*)]
          [skill-idx-hash (kg-store-block! skill-idx)]
          [concept-idx-hash (kg-store-block! concept-idx)]
          [edge-idx-hash (kg-store-block! edge-idx)]
-         [root (make-kg-root skill-idx concept-idx edge-idx)]
+         [type-idx-hash (kg-store-block! type-idx)]
+         [root (make-kg-root skill-idx concept-idx edge-idx type-idx)]
          [root-hash (kg-store-block! root)])
     (set! *kg-index-root* root-hash)
     (set! *kg-loaded* #t)
@@ -533,6 +567,26 @@ Returns (skill-name . shared-concept-count) sorted by overlap.")
                 (loop (cdr lst) (+ n 1) (cons (car lst) acc))))))))
 
 ;;; ====
+;;; Type Query API
+;;; ====
+
+(doc kg-export-type 'type (-> Symbol (Maybe SExpr)))
+(doc kg-export-type 'description "Get the type signature for an export. Returns the type expression
+(e.g., (-> Matrix Vector)) or #f if no type annotation exists.")
+(define (kg-export-type sym)
+  (hamt-lookup sym *kg-type-sigs*))
+
+(doc kg-typed-exports 'type (-> (List (Pair Symbol SExpr))))
+(doc kg-typed-exports 'description "Get all exports that have type signatures")
+(define (kg-typed-exports)
+  (hamt-entries *kg-type-sigs*))
+
+(doc kg-type-count 'type (-> Int))
+(doc kg-type-count 'description "Number of exports with type annotations")
+(define (kg-type-count)
+  (hamt-size *kg-type-sigs*))
+
+;;; ====
 ;;; Statistics
 ;;; ====
 
@@ -543,6 +597,7 @@ Returns (skill-name . shared-concept-count) sorted by overlap.")
     (modules . ,(length *kg-modules*))
     (exports . ,(length *kg-exports*))
     (concepts . ,(length *kg-concepts*))
+    (type-sigs . ,(hamt-size *kg-type-sigs*))
     (dependencies . ,(length *kg-deps*))
     (edges . ,(length *kg-edges*))
     (root . ,*kg-index-root*)))
@@ -681,6 +736,17 @@ Returns #t if successful, #f if root or required blocks not found.")
                           (set! *kg-edges* (cons edge-block *kg-edges*)))))))
                 ;; Phase 4: Rebuild concept reverse maps from keywords
                 (kg-rebuild-concept-maps!)
+                ;; Phase 5: Load type signatures (v2 root has 4th ref)
+                (when (>= (vector-length refs) 4)
+                  (let* ([type-idx-hash (vector-ref refs 3)]
+                         [type-idx (fetch type-idx-hash)])
+                    (when type-idx
+                      (guard (e [else (void)])  ; graceful fallback if malformed
+                        (let* ([payload-str (utf8->string (block-payload type-idx))]
+                               [port (open-input-string payload-str)]
+                               [entries (read port)])
+                          (when (list? entries)
+                            (kg-populate-types! entries)))))))
                 ;; Done
                 (set! *kg-index-root* root-hash)
                 (set! *kg-loaded* #t)
@@ -698,5 +764,6 @@ Returns #t if successful, #f if root or required blocks not found.")
   (meta-printf "  (kg-concepts)         - List all concepts\n")
   (meta-printf "  (kg-concept-skills 'c) - Skills providing concept\n")
   (meta-printf "  (kg-skill-concepts 's) - Concepts of a skill\n")
+  (meta-printf "  (kg-export-type 'fn)  - Get type signature\n")
   (meta-printf "  (kg-stats)            - Get statistics\n"))
 (set-top-level-value! '*kg-banner-shown* #t)

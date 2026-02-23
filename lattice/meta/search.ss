@@ -165,19 +165,22 @@
                                          syms))))))
               mod-names)))
 
-  ;; Index all exports (with docstrings and module info)
+  ;; Index all exports (with docstrings, module info, and type signatures)
   (set! *export-index*
         (fold-left
          (lambda (idx export-entry)
            (let* ([export-name (car export-entry)]
                   [name-terms (export->terms export-name)]
                   [doc-terms (docstring-terms export-name)]
-                  [all-terms (append name-terms doc-terms)]
+                  [type-expr (kg-export-type export-name)]
+                  [type-terms (if type-expr (type-sig->terms type-expr) '())]
+                  [all-terms (append name-terms doc-terms type-terms)]
                   [docstring (get-docstring export-name)]
                   [module (hamt-lookup export-name *export-module-map*)]
                   [data `((name . ,export-name)
                           ,@(if module `((module . ,module)) '())
-                          ,@(if docstring `((docstring . ,docstring)) '()))])
+                          ,@(if docstring `((docstring . ,docstring)) '())
+                          ,@(if type-expr `((type . ,type-expr)) '()))])
              (bm25-add-doc idx export-name all-terms data)))
          *export-index*
          (kg-exports)))
@@ -196,6 +199,24 @@
           (when (null? (kg-skills))
                 (kg-build!))
           (lattice-index!)))
+
+(doc 'section 'type-sig-indexing)
+
+;;; type-sig->terms : SExpr -> (List Symbol)
+;;; Tokenize a type expression into searchable terms.
+;;; (-> Matrix Vector) → (matrix vector arrow function)
+;;; (List (Pair Symbol String)) → (list pair symbol string)
+(define (type-sig->terms type-expr)
+  (cond
+    [(symbol? type-expr)
+     (let ([s (string-downcase (symbol->string type-expr))])
+       (cond
+         [(string=? s "->") '(arrow function)]
+         [(string=? s "...") '(variadic)]
+         [else (tokenize s)]))]
+    [(pair? type-expr)
+     (append-map type-sig->terms type-expr)]
+    [else '()]))
 
 (doc 'section 'concept-boost)
 
@@ -558,10 +579,13 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                        (printf "\n")]
                       [(export)
                        (let ([mod (and data (assq 'module data))]
-                             [doc (and data (assq 'docstring data))])
+                             [doc (and data (assq 'docstring data))]
+                             [typ (and data (assq 'type data))])
                          (if mod
                              (printf "~a [export] (~a)  (require '~a)\n" id (round-to score 2) (cdr mod))
                              (printf "~a [export] (~a)\n" id (round-to score 2)))
+                         (when typ
+                               (printf "  : ~s\n" (cdr typ)))
                          (when (and doc (string? (cdr doc)) (> (string-length (cdr doc)) 0))
                                (printf "  ~a\n" (truncate-string (cdr doc) 80))))]
                       [(module)
@@ -745,10 +769,12 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                    '())))]
         [(export)
          (let ([mod (assq 'module data)]
-               [doc (assq 'docstring data)])
+               [doc (assq 'docstring data)]
+               [typ (assq 'type data)])
            `(,@(if mod `((module . ,(cdr mod))
                          (require . ,(cdr mod)))
                    '())
+             ,@(if typ `((type . ,(cdr typ))) '())
              ,@(if (and doc (string? (cdr doc))
                         (> (string-length (cdr doc)) 0))
                    `((docstring . ,(cdr doc)))
