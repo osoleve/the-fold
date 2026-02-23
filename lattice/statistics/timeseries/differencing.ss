@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module differencing
-;;; @requires prelude
+;;; @requires prelude iteration
 (require 'prelude)
+(require 'iteration)
 
 (doc 'module 'differencing)
 (doc 'description "Time Series Differencing — Differencing and integration for time series")
@@ -15,14 +16,9 @@
 (doc 'section 'simple-differencing)
 (define (vec-diff xs)
   (doc 'export #t)
-  (let* ([n (vector-length xs)]
-         [m (- n 1)]
-         [result (make-vector m)])
-        (do ([i 0 (+ i 1)])
-            [(= i m) result]
-            (vector-set! result i
-                         (- (vector-ref xs (+ i 1))
-                            (vector-ref xs i))))))
+  (vec-tabulate (- (vector-length xs) 1) i
+    (- (vector-ref xs (+ i 1))
+       (vector-ref xs i))))
 
 ;;; difference : Vec × Nat → Vec
 ;;; d-th order difference.
@@ -43,14 +39,9 @@
 ;;; Result has length n-k.
 (define (lag-diff xs k)
   (doc 'export #t)
-  (let* ([n (vector-length xs)]
-         [m (- n k)]
-         [result (make-vector m)])
-        (do ([i 0 (+ i 1)])
-            [(= i m) result]
-            (vector-set! result i
-                         (- (vector-ref xs (+ i k))
-                            (vector-ref xs i))))))
+  (vec-tabulate (- (vector-length xs) k) i
+    (- (vector-ref xs (+ i k))
+       (vector-ref xs i))))
 
 ;;; seasonal-difference : Vec × Nat × Nat → Vec
 ;;; Seasonal differencing of order D with period s.
@@ -71,14 +62,8 @@
 ;;; If x' = diff(x), then integrate(x', x[0]) = x
 (define (integrate diffs init)
   (doc 'export #t)
-  (let* ([n (vector-length diffs)]
-         [result (make-vector (+ n 1))])
-        (vector-set! result 0 init)
-        (do ([i 0 (+ i 1)])
-            [(= i n) result]
-            (vector-set! result (+ i 1)
-                         (+ (vector-ref result i)
-                            (vector-ref diffs i))))))
+  (vec-scan (+ (vector-length diffs) 1) init t acc
+    (+ acc (vector-ref diffs (- t 1)))))
 
 ;;; integrate-from-last : Vec × Num → Vec
 ;;; Integrate backward from last value.
@@ -139,11 +124,8 @@
 ;;; subvec : Vec × Nat × Nat → Vec
 ;;; Extract subvector from start to end (exclusive).
 (define (subvec v start end)
-  (let* ([len (- end start)]
-         [result (make-vector len)])
-        (do ([i 0 (+ i 1)])
-            [(= i len) result]
-            (vector-set! result i (vector-ref v (+ start i))))))
+  (vec-tabulate (- end start) i
+    (vector-ref v (+ start i))))
 
 ;;; ====
 ;;; Log Transform
@@ -153,20 +135,14 @@
 ;;; Apply log transform (for variance stabilization).
 (define (log-transform xs)
   (doc 'export #t)
-  (let* ([n (vector-length xs)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) result]
-            (vector-set! result i (log (max (vector-ref xs i) 1e-10))))))
+  (vec-tabulate (vector-length xs) i
+    (log (max (vector-ref xs i) 1e-10))))
 
 ;;; exp-transform : Vec → Vec
 ;;; Inverse of log transform.
 (define (exp-transform xs)
-  (let* ([n (vector-length xs)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) result]
-            (vector-set! result i (exp (vector-ref xs i))))))
+  (vec-tabulate (vector-length xs) i
+    (exp (vector-ref xs i))))
 
 ;;; box-cox : Vec × Num → Vec
 ;;; Box-Cox transformation.
@@ -174,24 +150,16 @@
 ;;; lambda != 0: (x^lambda - 1) / lambda
 (define (box-cox xs lambda)
   (doc 'export #t)
-  (let* ([n (vector-length xs)]
-         [result (make-vector n)])
-        (if (< (abs lambda) 1e-10)
-            (log-transform xs)
-            (do ([i 0 (+ i 1)])
-                [(= i n) result]
-                (let ([x (max (vector-ref xs i) 1e-10)])
-                     (vector-set! result i
-                                  (/ (- (expt x lambda) 1) lambda)))))))
+  (if (< (abs lambda) 1e-10)
+      (log-transform xs)
+      (vec-tabulate (vector-length xs) i
+        (let ([x (max (vector-ref xs i) 1e-10)])
+          (/ (- (expt x lambda) 1) lambda)))))
 
 ;;; box-cox-inverse : Vec × Num → Vec
 (define (box-cox-inverse ys lambda)
-  (let* ([n (vector-length ys)]
-         [result (make-vector n)])
-        (if (< (abs lambda) 1e-10)
-            (exp-transform ys)
-            (do ([i 0 (+ i 1)])
-                [(= i n) result]
-                (let ([y (vector-ref ys i)])
-                     (vector-set! result i
-                                  (expt (+ 1 (* lambda y)) (/ 1 lambda))))))))
+  (if (< (abs lambda) 1e-10)
+      (exp-transform ys)
+      (vec-tabulate (vector-length ys) i
+        (let ([y (vector-ref ys i)])
+          (expt (+ 1 (* lambda y)) (/ 1 lambda))))))

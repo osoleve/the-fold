@@ -114,11 +114,8 @@
   (let ([len (vector-length v)])
        (if (> n len)
            `(error out-of-bounds ,n ,len)
-           (let* ([result (make-vector n 0)]
-                  [src v])
-                 (range-do! i 0 n
-                            (vector-set! result i (vector-ref src i)))
-                 result))))
+           (let ([src v])
+                (vec-tabulate n i (vector-ref src i))))))
 
 (define (vec-drop v n)
   (doc 'type '(-> (Vec a) Nat (Or (Vec a) Error)))
@@ -126,13 +123,10 @@
   (let ([len (vector-length v)])
        (if (> n len)
            `(error out-of-bounds ,n ,len)
-           (let* ([new-len (- len n)]
-                  [result (make-vector new-len 0)]
-                  [src v]
-                  [offset n])
-                 (range-do! i 0 new-len
-                            (vector-set! result i (vector-ref src (+ offset i))))
-                 result))))
+           (let ([new-len (- len n)]
+                 [src v]
+                 [offset n])
+                (vec-tabulate new-len i (vector-ref src (+ offset i)))))))
 
 (define (vec-slice v start end)
   (doc 'type '(-> (Vec a) Nat Nat (Or (Vec a) Error)))
@@ -143,13 +137,10 @@
         [(> end len) `(error out-of-bounds ,end ,len)]
         [(> start end) `(error invalid-range ,start ,end)]
         [else
-         (let* ([new-len (- end start)]
-                [result (make-vector new-len 0)]
-                [src v]
-                [offset start])
-               (range-do! i 0 new-len
-                          (vector-set! result i (vector-ref src (+ offset i))))
-               result)])))
+         (let ([new-len (- end start)]
+               [src v]
+               [offset start])
+              (vec-tabulate new-len i (vector-ref src (+ offset i))))])))
 
 (doc 'section 'vector-arithmetic)
 
@@ -341,10 +332,7 @@
 (define (vec-range n)
   (doc 'type '(-> Nat (Vec Nat)))
   (doc 'description "Vector of [0, 1, 2, ..., n-1]")
-  (let ([result (make-vector n 0)])
-       (range-do! i 0 n
-                  (vector-set! result i i))
-       result))
+  (vec-tabulate n i i))
 
 (define (vec-linspace start end n)
   (doc 'type '(-> Num Num Nat (Vec Num)))
@@ -353,11 +341,8 @@
       (if (= n 1)
           (vector start)
           (vector))
-      (let* ([step (/ (- end start) (- n 1))]
-             [result (make-vector n 0)])
-            (range-do! i 0 n
-                       (vector-set! result i (+ start (* i step))))
-            result)))
+      (let ([step (/ (- end start) (- n 1))])
+            (vec-tabulate n i (+ start (* i step))))))
 
 (define (vec-unit n k)
   (doc 'type '(-> Nat Nat (Vec Num)))

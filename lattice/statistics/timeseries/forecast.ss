@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module forecast
-;;; @requires prelude
+;;; @requires prelude iteration
 (require 'prelude)
+(require 'iteration)
 
 (doc 'module 'forecast)
 (doc 'description "Forecasting Utilities — Forecast accuracy metrics and utilities")
@@ -112,11 +113,8 @@
 (define (naive-forecast xs h)
   (doc 'export #t)
   (let* ([n (vector-length xs)]
-         [last-val (vector-ref xs (- n 1))]
-         [forecasts (make-vector h)])
-        (do ([i 0 (+ i 1)])
-            [(= i h) forecasts]
-            (vector-set! forecasts i last-val))))
+         [last-val (vector-ref xs (- n 1))])
+        (vec-tabulate h i last-val)))
 
 ;;; drift-forecast : Vec × Nat → Vec
 ;;; Drift forecast: extend the line from first to last observation.
@@ -126,24 +124,17 @@
   (let* ([n (vector-length xs)]
          [first-val (vector-ref xs 0)]
          [last-val (vector-ref xs (- n 1))]
-         [slope (/ (- last-val first-val) (max (- n 1) 1))]
-         [forecasts (make-vector h)])
-        (do ([i 1 (+ i 1)])
-            [(> i h) forecasts]
-            (vector-set! forecasts (- i 1)
-                         (+ last-val (* i slope))))))
+         [slope (/ (- last-val first-val) (max (- n 1) 1))])
+        (vec-tabulate h i (+ last-val (* (+ i 1) slope)))))
 
 ;;; seasonal-naive-forecast : Vec × Nat × Nat → Vec
 ;;; Seasonal naive: forecast = value from same season last period.
 (define (seasonal-naive-forecast xs period h)
   (doc 'export #t)
-  (let* ([n (vector-length xs)]
-         [forecasts (make-vector h)])
-        (do ([i 0 (+ i 1)])
-            [(= i h) forecasts]
-            (let ([idx (- n period (- period (modulo (+ i 1) period)))])
-                 (vector-set! forecasts i
-                              (vector-ref xs (max 0 (min idx (- n 1)))))))))
+  (let ([n (vector-length xs)])
+       (vec-tabulate h i
+         (let ([idx (- n period (- period (modulo (+ i 1) period)))])
+              (vector-ref xs (max 0 (min idx (- n 1))))))))
 
 ;;; mean-forecast : Vec × Nat → Vec
 ;;; Mean forecast: predict the mean of all observations.
@@ -154,11 +145,8 @@
                        (if (= i n)
                            s
                            (loop (+ i 1) (+ s (vector-ref xs i)))))
-                  n)]
-         [forecasts (make-vector h)])
-        (do ([i 0 (+ i 1)])
-            [(= i h) forecasts]
-            (vector-set! forecasts i mean))))
+                  n)])
+        (vec-tabulate h i mean)))
 
 ;;; ====
 ;;; Forecast Intervals
@@ -180,17 +168,16 @@
                          (max (- n 1) 1)))]
          ;; Get z-score for confidence level
          [z (standard-normal-quantile-approx (+ 0.5 (/ confidence 2)))]
-         [lower (make-vector h)]
-         [upper (make-vector h)])
-        ;; Intervals widen with horizon (simple approximation)
-        (do ([i 0 (+ i 1)])
-            [(= i h)]
-            (let* ([fc (vector-ref forecasts i)]
-                   ;; SE grows with sqrt of horizon for random walk
-                   [se (* sigma (sqrt (+ i 1)))]
-                   [margin (* z se)])
-                  (vector-set! lower i (- fc margin))
-                  (vector-set! upper i (+ fc margin))))
+         [lower (vec-tabulate h i
+                  (let* ([fc (vector-ref forecasts i)]
+                         [se (* sigma (sqrt (+ i 1)))]
+                         [margin (* z se)])
+                        (- fc margin)))]
+         [upper (vec-tabulate h i
+                  (let* ([fc (vector-ref forecasts i)]
+                         [se (* sigma (sqrt (+ i 1)))]
+                         [margin (* z se)])
+                        (+ fc margin)))])
         (list 'forecast-interval-result forecasts lower upper confidence)))
 
 ;;; standard-normal-quantile-approx : Num → Num
@@ -244,12 +231,9 @@
 (define (tracking-signal actual forecast)
   (doc 'export #t)
   (let* ([n (min (vector-length actual) (vector-length forecast))]
-         [errors (make-vector n)]
-         [_ (do ([i 0 (+ i 1)])
-                [(= i n)]
-                (vector-set! errors i
-                             (- (vector-ref actual i)
-                                (vector-ref forecast i))))]
+         [errors (vec-tabulate n i
+                   (- (vector-ref actual i)
+                      (vector-ref forecast i)))]
          [cfe (let loop ([i 0] [s 0])
                    (if (= i n)
                        s
@@ -283,18 +267,12 @@
                    [test-end (min (+ train-end horizon) n)]
                    [test-len (- test-end train-end)]
                    ;; Extract training data
-                   [train (let ([v (make-vector train-end)])
-                               (do ([j 0 (+ j 1)])
-                                   [(= j train-end) v]
-                                   (vector-set! v j (vector-ref xs j))))]
+                   [train (vec-tabulate train-end j (vector-ref xs j))]
                    ;; Fit model and generate forecast
                    [model (fit-fn train)]
                    [forecast (forecast-fn model test-len)]
                    ;; Extract test data
-                   [test (let ([v (make-vector test-len)])
-                              (do ([j 0 (+ j 1)])
-                                  [(= j test-len) v]
-                                  (vector-set! v j (vector-ref xs (+ train-end j)))))]
+                   [test (vec-tabulate test-len j (vector-ref xs (+ train-end j)))]
                    ;; Compute RMSE
                    [fold-rmse (rmse test forecast)])
                   (vector-set! rmses i fold-rmse)))))

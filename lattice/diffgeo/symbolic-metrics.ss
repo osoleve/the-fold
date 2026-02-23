@@ -1,6 +1,9 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @module symbolic-metrics
+;;; @requires curvature iteration
 (require 'curvature)
+(require 'iteration)
 
 (doc 'module 'symbolic-metrics)
 (doc 'description "Exact symbolic metric derivatives for standard coordinate systems")
@@ -78,13 +81,9 @@
          (diagonal (vector 1 (* r r)))))
      ;; deriv-fn: (r, θ) → [∂g/∂r, ∂g/∂θ]
      (lambda (coords)
-       (let* ([r (vector-ref coords 0)]
-              [dg (make-vector 2 #f)])
-         ;; ∂g/∂r = diag(0, 2r)
-         (vector-set! dg 0 (diagonal (vector 0 (* 2 r))))
-         ;; ∂g/∂θ = 0
-         (vector-set! dg 1 zero-2x2)
-         dg)))))
+       (let ([r (vector-ref coords 0)])
+         (vector (diagonal (vector 0 (* 2 r)))  ; ∂g/∂r = diag(0, 2r)
+                 zero-2x2))))))                  ; ∂g/∂θ = 0
 
 ;;; ----------------------------------------------------------------------------
 ;;; Spherical Metric: g = diag(1, r², r²sin²θ)
@@ -115,15 +114,10 @@
               [r2 (* r r)]
               [sin-theta (sin theta)]
               [cos-theta (cos theta)]
-              [sin2-theta (* sin-theta sin-theta)]
-              [dg (make-vector 3 #f)])
-         ;; ∂g/∂r = diag(0, 2r, 2r·sin²θ)
-         (vector-set! dg 0 (diagonal (vector 0 (* 2 r) (* 2 r sin2-theta))))
-         ;; ∂g/∂θ = diag(0, 0, r²·2sinθcosθ)
-         (vector-set! dg 1 (diagonal (vector 0 0 (* r2 2 sin-theta cos-theta))))
-         ;; ∂g/∂φ = 0
-         (vector-set! dg 2 zero-3x3)
-         dg)))))
+              [sin2-theta (* sin-theta sin-theta)])
+         (vector (diagonal (vector 0 (* 2 r) (* 2 r sin2-theta)))        ; ∂g/∂r
+                 (diagonal (vector 0 0 (* r2 2 sin-theta cos-theta)))    ; ∂g/∂θ
+                 zero-3x3))))))                                           ; ∂g/∂φ = 0
 
 ;;; ----------------------------------------------------------------------------
 ;;; Cylindrical Metric: g = diag(1, ρ², 1)
@@ -146,15 +140,10 @@
          (diagonal (vector 1 (* rho rho) 1))))
      ;; deriv-fn: (ρ, φ, z) → [∂g/∂ρ, ∂g/∂φ, ∂g/∂z]
      (lambda (coords)
-       (let* ([rho (vector-ref coords 0)]
-              [dg (make-vector 3 #f)])
-         ;; ∂g/∂ρ = diag(0, 2ρ, 0)
-         (vector-set! dg 0 (diagonal (vector 0 (* 2 rho) 0)))
-         ;; ∂g/∂φ = 0
-         (vector-set! dg 1 zero-3x3)
-         ;; ∂g/∂z = 0
-         (vector-set! dg 2 zero-3x3)
-         dg)))))
+       (let ([rho (vector-ref coords 0)])
+         (vector (diagonal (vector 0 (* 2 rho) 0))  ; ∂g/∂ρ
+                 zero-3x3                            ; ∂g/∂φ = 0
+                 zero-3x3))))))                      ; ∂g/∂z = 0
 
 ;;; ----------------------------------------------------------------------------
 ;;; Euclidean Metric: g = I (identity)
@@ -191,33 +180,20 @@
          [g (metric-at* m coords)]
          [g-inv (matrix-inverse g)]
          ;; Get exact derivatives
-         [dg ((metric-symbolic-deriv-fn m) coords)]
-         ;; Allocate result: Γ[k][i][j]
-         [gamma (make-vector n #f)])
+         [dg ((metric-symbolic-deriv-fn m) coords)])
 
     ;; Compute each Γ^k_ij = ½ Σ_l g^{kl} (∂_i g_{jl} + ∂_j g_{il} - ∂_l g_{ij})
-    (do ([k 0 (+ k 1)])
-        ((= k n) gamma)
-        (let ([gamma-k (make-vector n #f)])
-          (do ([i 0 (+ i 1)])
-              ((= i n))
-              (let ([gamma-ki (make-vector n 0)]
-                    [dg-i (vector-ref dg i)])  ; Hoisted from l-loop
-                (do ([j 0 (+ j 1)])
-                    ((= j n))
-                    (let ([sum 0]
-                          [dg-j (vector-ref dg j)])  ; Hoisted from l-loop
-                      (do ([l 0 (+ l 1)])
-                          ((= l n))
-                          (let* ([g-kl (matrix-ref g-inv k l)]
-                                 [dg-l (vector-ref dg l)]
-                                 [term1 (matrix-ref dg-i j l)]
-                                 [term2 (matrix-ref dg-j i l)]
-                                 [term3 (matrix-ref dg-l i j)])
-                            (set! sum (+ sum (* g-kl (- (+ term1 term2) term3))))))
-                      (vector-set! gamma-ki j (* 0.5 sum))))
-                (vector-set! gamma-k i gamma-ki)))
-          (vector-set! gamma k gamma-k)))))
+    (vec-tabulate n k
+      (vec-tabulate n i
+        (let ([dg-i (vector-ref dg i)])
+          (vec-tabulate n j
+            (let ([dg-j (vector-ref dg j)])
+              (* 0.5
+                 (range-fold sum 0 l 0 n
+                   (+ sum (* (matrix-ref g-inv k l)
+                             (- (+ (matrix-ref dg-i j l)
+                                   (matrix-ref dg-j i l))
+                                (matrix-ref (vector-ref dg l) i j)))))))))))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Unified Interface: Auto-detect symbolic vs numerical
@@ -244,19 +220,14 @@
   (doc 'note "Non-zero: Γ^r_{θθ} = -r, Γ^θ_{rθ} = Γ^θ_{θr} = 1/r")
   (doc 'note "Returns +inf.0 at r=0 (coordinate singularity)")
   (let* ([r (vector-ref coords 0)]
-         [gamma (make-vector 2 #f)])
-    ;; Γ^r (k=0)
-    (let ([gamma-r (make-vector 2 #f)])
-      (vector-set! gamma-r 0 (vector 0 0))        ; Γ^r_{r*}
-      (vector-set! gamma-r 1 (vector 0 (- r)))    ; Γ^r_{θθ} = -r
-      (vector-set! gamma 0 gamma-r))
-    ;; Γ^θ (k=1) - note: 1/r diverges at r=0 (coordinate singularity)
-    (let ([gamma-theta (make-vector 2 #f)]
-          [inv-r (/ 1.0 r)])  ; Let IEEE 754 handle r=0 → +inf.0
-      (vector-set! gamma-theta 0 (vector 0 inv-r))    ; Γ^θ_{rθ} = 1/r
-      (vector-set! gamma-theta 1 (vector inv-r 0))    ; Γ^θ_{θr} = 1/r
-      (vector-set! gamma 1 gamma-theta))
-    gamma))
+         [inv-r (/ 1.0 r)])  ; Let IEEE 754 handle r=0 → +inf.0
+    (vector
+     ;; Γ^r (k=0)
+     (vector (vector 0 0)            ; Γ^r_{r*}
+             (vector 0 (- r)))       ; Γ^r_{θθ} = -r
+     ;; Γ^θ (k=1) - note: 1/r diverges at r=0 (coordinate singularity)
+     (vector (vector 0 inv-r)        ; Γ^θ_{rθ} = 1/r
+             (vector inv-r 0)))))    ; Γ^θ_{θr} = 1/r
 
 (define (spherical-christoffel-exact coords)
   (doc 'export #t)
@@ -269,27 +240,20 @@
          [sin-t (sin theta)]
          [cos-t (cos theta)]
          [inv-r (/ 1.0 r)]            ; Let IEEE 754 handle r=0 → +inf.0
-         [cot-t (/ cos-t sin-t)]      ; Let IEEE 754 handle sin=0 → ±inf.0
-         [gamma (make-vector 3 #f)])
-    ;; Γ^r (k=0)
-    (let ([gr (make-vector 3 #f)])
-      (vector-set! gr 0 (vector 0 0 0))
-      (vector-set! gr 1 (vector 0 (- r) 0))                           ; Γ^r_{θθ} = -r
-      (vector-set! gr 2 (vector 0 0 (- (* r sin-t sin-t))))           ; Γ^r_{φφ} = -r·sin²θ
-      (vector-set! gamma 0 gr))
-    ;; Γ^θ (k=1)
-    (let ([gt (make-vector 3 #f)])
-      (vector-set! gt 0 (vector 0 inv-r 0))                           ; Γ^θ_{rθ} = 1/r
-      (vector-set! gt 1 (vector inv-r 0 0))                           ; Γ^θ_{θr} = 1/r
-      (vector-set! gt 2 (vector 0 0 (- (* sin-t cos-t))))             ; Γ^θ_{φφ} = -sinθcosθ
-      (vector-set! gamma 1 gt))
-    ;; Γ^φ (k=2)
-    (let ([gp (make-vector 3 #f)])
-      (vector-set! gp 0 (vector 0 0 inv-r))                           ; Γ^φ_{rφ} = 1/r
-      (vector-set! gp 1 (vector 0 0 cot-t))                           ; Γ^φ_{θφ} = cotθ
-      (vector-set! gp 2 (vector inv-r cot-t 0))                       ; Γ^φ_{φr} = 1/r, Γ^φ_{φθ} = cotθ
-      (vector-set! gamma 2 gp))
-    gamma))
+         [cot-t (/ cos-t sin-t)])     ; Let IEEE 754 handle sin=0 → ±inf.0
+    (vector
+     ;; Γ^r (k=0)
+     (vector (vector 0 0 0)
+             (vector 0 (- r) 0)                         ; Γ^r_{θθ} = -r
+             (vector 0 0 (- (* r sin-t sin-t))))        ; Γ^r_{φφ} = -r·sin²θ
+     ;; Γ^θ (k=1)
+     (vector (vector 0 inv-r 0)                         ; Γ^θ_{rθ} = 1/r
+             (vector inv-r 0 0)                         ; Γ^θ_{θr} = 1/r
+             (vector 0 0 (- (* sin-t cos-t))))          ; Γ^θ_{φφ} = -sinθcosθ
+     ;; Γ^φ (k=2)
+     (vector (vector 0 0 inv-r)                         ; Γ^φ_{rφ} = 1/r
+             (vector 0 0 cot-t)                         ; Γ^φ_{θφ} = cotθ
+             (vector inv-r cot-t 0)))))                 ; Γ^φ_{φr} = 1/r, Γ^φ_{φθ} = cotθ
 
 (define (cylindrical-christoffel-exact coords)
   (doc 'export #t)
@@ -298,27 +262,20 @@
   (doc 'note "Non-zero: Γ^ρ_{φφ} = -ρ, Γ^φ_{ρφ} = Γ^φ_{φρ} = 1/ρ")
   (doc 'note "Returns +inf.0 at ρ=0 (coordinate singularity)")
   (let* ([rho (vector-ref coords 0)]
-         [inv-rho (/ 1.0 rho)]        ; Let IEEE 754 handle ρ=0 → +inf.0
-         [gamma (make-vector 3 #f)])
-    ;; Γ^ρ (k=0)
-    (let ([gr (make-vector 3 #f)])
-      (vector-set! gr 0 (vector 0 0 0))
-      (vector-set! gr 1 (vector 0 (- rho) 0))    ; Γ^ρ_{φφ} = -ρ
-      (vector-set! gr 2 (vector 0 0 0))
-      (vector-set! gamma 0 gr))
-    ;; Γ^φ (k=1)
-    (let ([gp (make-vector 3 #f)])
-      (vector-set! gp 0 (vector 0 inv-rho 0))    ; Γ^φ_{ρφ} = 1/ρ
-      (vector-set! gp 1 (vector inv-rho 0 0))    ; Γ^φ_{φρ} = 1/ρ
-      (vector-set! gp 2 (vector 0 0 0))
-      (vector-set! gamma 1 gp))
-    ;; Γ^z (k=2) - all zero
-    (let ([gz (make-vector 3 #f)])
-      (vector-set! gz 0 (vector 0 0 0))
-      (vector-set! gz 1 (vector 0 0 0))
-      (vector-set! gz 2 (vector 0 0 0))
-      (vector-set! gamma 2 gz))
-    gamma))
+         [inv-rho (/ 1.0 rho)])       ; Let IEEE 754 handle ρ=0 → +inf.0
+    (vector
+     ;; Γ^ρ (k=0)
+     (vector (vector 0 0 0)
+             (vector 0 (- rho) 0)              ; Γ^ρ_{φφ} = -ρ
+             (vector 0 0 0))
+     ;; Γ^φ (k=1)
+     (vector (vector 0 inv-rho 0)              ; Γ^φ_{ρφ} = 1/ρ
+             (vector inv-rho 0 0)              ; Γ^φ_{φρ} = 1/ρ
+             (vector 0 0 0))
+     ;; Γ^z (k=2) - all zero
+     (vector (vector 0 0 0)
+             (vector 0 0 0)
+             (vector 0 0 0)))))
 
 ;;; ----------------------------------------------------------------------------
 ;;; Help

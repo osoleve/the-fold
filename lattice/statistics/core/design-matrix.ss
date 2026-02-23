@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module design-matrix
-;;; @requires prelude matrix summary-stats
+;;; @requires prelude matrix summary-stats iteration
 (require 'prelude)
 (require 'matrix)
 (require 'summary-stats)
+(require 'iteration)
 
 (doc 'module 'design-matrix)
 (doc 'description "Design Matrix Construction — Utilities for constructing design matrices for regression")
@@ -22,17 +23,12 @@
   (doc 'description "Prepend a column of 1s to the matrix")
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
-         [new-data (make-vector (* m (+ n 1)))])
-        (do ([i 0 (+ i 1)])
-            [(= i m)]
-            ;; Set intercept column
-            (vector-set! new-data (* i (+ n 1)) 1)
-            ;; Copy existing columns
-            (do ([j 0 (+ j 1)])
-                [(= j n)]
-                (vector-set! new-data (+ (* i (+ n 1)) j 1)
-                             (matrix-ref X i j))))
-        (list 'matrix m (+ n 1) new-data)))
+         [w (+ n 1)]
+         [new-data (vec-tabulate (* m w) k
+                     (let ([i (quotient k w)]
+                           [j (remainder k w)])
+                       (if (= j 0) 1 (matrix-ref X i (- j 1)))))])
+        (list 'matrix m w new-data)))
 
 (define (has-intercept? X)
   (doc 'type '(-> Matrix Bool))
@@ -79,24 +75,15 @@
   (doc 'export #t)
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
-         [means (make-vector n)]
-         [stds (make-vector n)]
-         [new-data (make-vector (* m n))])
-        ;; Compute means and stds
-        (do ([j 0 (+ j 1)])
-            [(= j n)]
-            (vector-set! means j (column-mean X j))
-            (vector-set! stds j (column-std X j)))
-        ;; Standardize
-        (do ([i 0 (+ i 1)])
-            [(= i m)]
-            (do ([j 0 (+ j 1)])
-                [(= j n)]
-                (let* ([mu (vector-ref means j)]
-                       [s (vector-ref stds j)]
-                       [x (matrix-ref X i j)]
-                       [z (if (= s 0) 0 (/ (- x mu) s))])
-                      (vector-set! new-data (+ (* i n) j) z))))
+         [means (vec-tabulate n j (column-mean X j))]
+         [stds  (vec-tabulate n j (column-std X j))]
+         [new-data (vec-tabulate (* m n) k
+                     (let* ([i (quotient k n)]
+                            [j (remainder k n)]
+                            [mu (vector-ref means j)]
+                            [s (vector-ref stds j)]
+                            [x (matrix-ref X i j)])
+                       (if (= s 0) 0 (/ (- x mu) s))))])
         (values (list 'matrix m n new-data) means stds)))
 
 ;;; unstandardize-coefficients : Vec × Vec × Vec → Vec
@@ -203,25 +190,17 @@
   (let* ([m (matrix-rows X)]
          [n (matrix-cols X)]
          [total-cols (+ n (* n degree))]  ; original + powers
-         [new-data (make-vector (* m total-cols))])
-        ;; Copy original columns
-        (do ([i 0 (+ i 1)])
-            [(= i m)]
-            (do ([j 0 (+ j 1)])
-                [(= j n)]
-                (vector-set! new-data (+ (* i total-cols) j)
-                             (matrix-ref X i j))))
-        ;; Add polynomial terms for each original column
-        (do ([i 0 (+ i 1)])
-            [(= i m)]
-            (do ([j 0 (+ j 1)])
-                [(= j n)]
-                (let ([x (matrix-ref X i j)])
-                     (do ([d 2 (+ d 1)])
-                         [(> d degree)]
-                         (let ([col (+ n (* j degree) (- d 2))])
-                              (vector-set! new-data (+ (* i total-cols) col)
-                                           (expt x d)))))))
+         [new-data (vec-tabulate (* m total-cols) k
+                     (let ([i (quotient k total-cols)]
+                           [j (remainder k total-cols)])
+                       (if (< j n)
+                           ;; Original column
+                           (matrix-ref X i j)
+                           ;; Polynomial term: which original col and what degree?
+                           (let* ([off (- j n)]
+                                  [src-col (quotient off degree)]
+                                  [d (+ (remainder off degree) 2)])
+                             (expt (matrix-ref X i src-col) d)))))])
         (list 'matrix m total-cols new-data)))
 
 ;;; ====
@@ -242,22 +221,16 @@
   (let* ([m (matrix-rows X1)]
          [n1 (matrix-cols X1)]
          [n2 (matrix-cols X2)]
-         [n (+ n1 n2)]
-         [data (make-vector (* m n))])
+         [n (+ n1 n2)])
         (if (not (= m (matrix-rows X2)))
             (error 'cbind "matrices must have same number of rows")
-            (begin
-             (do ([i 0 (+ i 1)])
-                 [(= i m)]
-                 ;; Copy from X1
-                 (do ([j 0 (+ j 1)])
-                     [(= j n1)]
-                     (vector-set! data (+ (* i n) j) (matrix-ref X1 i j)))
-                 ;; Copy from X2
-                 (do ([j 0 (+ j 1)])
-                     [(= j n2)]
-                     (vector-set! data (+ (* i n) n1 j) (matrix-ref X2 i j))))
-             (list 'matrix m n data)))))
+            (let ([data (vec-tabulate (* m n) k
+                          (let ([i (quotient k n)]
+                                [j (remainder k n)])
+                            (if (< j n1)
+                                (matrix-ref X1 i j)
+                                (matrix-ref X2 i (- j n1)))))])
+              (list 'matrix m n data)))))
 
 ;;; rbind : Matrix × Matrix → Matrix
 ;;; Bind rows of two matrices.
@@ -265,24 +238,16 @@
   (let* ([m1 (matrix-rows X1)]
          [m2 (matrix-rows X2)]
          [m (+ m1 m2)]
-         [n (matrix-cols X1)]
-         [data (make-vector (* m n))])
+         [n (matrix-cols X1)])
         (if (not (= n (matrix-cols X2)))
             (error 'rbind "matrices must have same number of columns")
-            (begin
-             ;; Copy X1
-             (do ([i 0 (+ i 1)])
-                 [(= i m1)]
-                 (do ([j 0 (+ j 1)])
-                     [(= j n)]
-                     (vector-set! data (+ (* i n) j) (matrix-ref X1 i j))))
-             ;; Copy X2
-             (do ([i 0 (+ i 1)])
-                 [(= i m2)]
-                 (do ([j 0 (+ j 1)])
-                     [(= j n)]
-                     (vector-set! data (+ (* (+ m1 i) n) j) (matrix-ref X2 i j))))
-             (list 'matrix m n data)))))
+            (let ([data (vec-tabulate (* m n) k
+                          (let ([i (quotient k n)]
+                                [j (remainder k n)])
+                            (if (< i m1)
+                                (matrix-ref X1 i j)
+                                (matrix-ref X2 (- i m1) j))))])
+              (list 'matrix m n data)))))
 
 ;;; ====
 ;;; Orthogonal Polynomial Bases
@@ -387,13 +352,11 @@
                   (if (= x-range 0)
                       0
                       (- (* 2 (/ (- x x-min) x-range)) 1)))]
-         [data (make-vector (* n ncols))])
-    (do ([i 0 (+ i 1)])
-        ((= i n) (list 'matrix n ncols data))
-      (let ([xi (scale (vector-ref xs i))])
-        (do ([d 0 (+ d 1)])
-            ((> d degree))
-          (vector-set! data (+ (* i ncols) d) (legendre-p d xi)))))))
+         [data (vec-tabulate (* n ncols) k
+                 (let ([i (quotient k ncols)]
+                       [d (remainder k ncols)])
+                   (legendre-p d (scale (vector-ref xs i)))))])
+    (list 'matrix n ncols data)))
 
 ;;; chebyshev-features : (Vector Num) × Nat → Matrix
 ;;; Create design matrix with Chebyshev polynomial basis.
@@ -410,13 +373,11 @@
                   (if (= x-range 0)
                       0
                       (- (* 2 (/ (- x x-min) x-range)) 1)))]
-         [data (make-vector (* n ncols))])
-    (do ([i 0 (+ i 1)])
-        ((= i n) (list 'matrix n ncols data))
-      (let ([xi (scale (vector-ref xs i))])
-        (do ([d 0 (+ d 1)])
-            ((> d degree))
-          (vector-set! data (+ (* i ncols) d) (chebyshev-t d xi)))))))
+         [data (vec-tabulate (* n ncols) k
+                 (let ([i (quotient k ncols)]
+                       [d (remainder k ncols)])
+                   (chebyshev-t d (scale (vector-ref xs i)))))])
+    (list 'matrix n ncols data)))
 
 ;;; hermite-features : (Vector Num) × Nat → Matrix
 ;;; Create design matrix with Hermite polynomial basis.
@@ -433,13 +394,11 @@
                   (if (= sigma 0)
                       0
                       (/ (- x mu) sigma)))]
-         [data (make-vector (* n ncols))])
-    (do ([i 0 (+ i 1)])
-        ((= i n) (list 'matrix n ncols data))
-      (let ([xi (scale (vector-ref xs i))])
-        (do ([d 0 (+ d 1)])
-            ((> d degree))
-          (vector-set! data (+ (* i ncols) d) (hermite-h d xi)))))))
+         [data (vec-tabulate (* n ncols) k
+                 (let ([i (quotient k ncols)]
+                       [d (remainder k ncols)])
+                   (hermite-h d (scale (vector-ref xs i)))))])
+    (list 'matrix n ncols data)))
 
 ;;; laguerre-features : (Vector Num) × Nat → Matrix
 ;;; Create design matrix with Laguerre polynomial basis.
@@ -452,13 +411,11 @@
          ;; Shift to [0, ∞)
          [x-min (vec-min xs)]
          [scale (lambda (x) (- x x-min))]
-         [data (make-vector (* n ncols))])
-    (do ([i 0 (+ i 1)])
-        ((= i n) (list 'matrix n ncols data))
-      (let ([xi (scale (vector-ref xs i))])
-        (do ([d 0 (+ d 1)])
-            ((> d degree))
-          (vector-set! data (+ (* i ncols) d) (laguerre-l d xi)))))))
+         [data (vec-tabulate (* n ncols) k
+                 (let ([i (quotient k ncols)]
+                       [d (remainder k ncols)])
+                   (laguerre-l d (scale (vector-ref xs i)))))])
+    (list 'matrix n ncols data)))
 
 ;;; orthogonal-features : (Vector Num) × Nat × Symbol → Matrix
 ;;; Create design matrix with specified orthogonal polynomial basis.
