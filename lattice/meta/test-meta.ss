@@ -338,6 +338,72 @@
             )
 
 ;;; ====
+;;; Concept Tests (KG-first architecture)
+;;; ====
+
+(test-group concept-tests
+
+            (define-test test-concepts-populated
+              (kg-ensure!)
+              (assert-true (> (length (kg-concepts)) 0)))
+
+            (define-test test-concept-skills-lookup
+              (kg-ensure!)
+              ;; 'matrix' should be a concept (keyword in linalg manifest)
+              (let ([skills (kg-concept-skills 'matrix)])
+                (assert-true (list? skills))
+                (assert-true (> (length skills) 0))))
+
+            (define-test test-skill-concepts-lookup
+              (kg-ensure!)
+              ;; linalg should have concepts (from its keywords)
+              (let ([concepts (kg-skill-concepts 'linalg)])
+                (assert-true (list? concepts))
+                (assert-true (> (length concepts) 0))))
+
+            (define-test test-shared-concepts
+              (kg-ensure!)
+              ;; linalg and geometry should share at least some concepts
+              (let ([shared (kg-shared-concepts 'linalg 'geometry)])
+                (assert-true (list? shared))))
+
+            (define-test test-related-by-concept
+              (kg-ensure!)
+              (let ([related (kg-related-by-concept 'linalg 5)])
+                (assert-true (list? related))
+                ;; linalg should be related to something
+                (assert-true (> (length related) 0))
+                ;; Each entry should be (skill-name . count)
+                (let ([first (car related)])
+                  (assert-true (symbol? (car first)))
+                  (assert-true (number? (cdr first))))))
+
+            (define-test test-concept-bridge
+              (kg-ensure!)
+              ;; concept-bridge should return a list (possibly empty)
+              (let ([bridge (kg-concept-bridge 'linalg 'geometry)])
+                (assert-true (list? bridge))))
+
+            (define-test test-kg-stats-includes-concepts
+              (kg-ensure!)
+              (let ([stats (kg-stats)])
+                (assert-true (if (assq 'concepts stats) #t #f))
+                (assert-true (> (cdr (assq 'concepts stats)) 0))
+                (assert-true (if (assq 'edges stats) #t #f))
+                (assert-true (> (cdr (assq 'edges stats)) 0))))
+
+            (define-test test-cas-stores-blocks
+              (kg-ensure!)
+              ;; After build, skill blocks should be in the CAS
+              (let ([skill-block (kg-skill 'linalg)])
+                (when skill-block
+                  (let* ([hash (hash-block skill-block)]
+                         [fetched (fetch hash)])
+                    (assert-true (if fetched #t #f))))))
+
+            )
+
+;;; ====
 ;;; Summary
 ;;; ====
 

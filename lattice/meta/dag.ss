@@ -1,5 +1,5 @@
 (unless (top-level-bound? 'sort-by) (load "lattice/data/sort.ss"))
-(unless (top-level-bound? 'kg-build!) (load "lattice/meta/kg.ss"))
+(unless (top-level-bound? 'kg-skills) (load "lattice/meta/kg.ss"))
 
 (doc 'module 'dag)
 (doc 'description "Tools for navigating the skill dependency DAG. Find dependencies, dependents, paths, and structural queries.")

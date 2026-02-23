@@ -1,4 +1,4 @@
-(unless (top-level-bound? 'kg-build!) (load "lattice/meta/kg.ss"))
+(unless (top-level-bound? 'kg-skills) (load "lattice/meta/kg.ss"))
 (unless (top-level-bound? 'lattice-deps) (load "lattice/meta/dag.ss"))
 
 (doc 'module 'inspect)

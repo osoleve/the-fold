@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'sort-by) (load "lattice/data/sort.ss"))
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
-(unless (top-level-bound? 'kg-build!) (load "lattice/meta/kg.ss"))
+(unless (top-level-bound? 'kg-skills) (load "lattice/meta/kg.ss"))
 (unless (top-level-bound? 'bm25-create) (load "lattice/meta/bm25.ss"))
 (unless (top-level-bound? 'get-docstring) (load "lattice/meta/docstrings.ss"))
 

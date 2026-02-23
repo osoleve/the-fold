@@ -141,12 +141,62 @@
   (printf "  (lattice-tier-0)          - Tier 0 foundational skills\n")
   (printf "  (lattice-leaves)          - Skills with no dependents\n")
   (printf "  (lattice-tiers)           - Skills grouped by tier\n\n")
+  (printf "CONCEPTS:\n")
+  (printf "  (lk 'concept)             - Skills providing concept\n")
+  (printf "  (lkk 'skill)              - Concepts of a skill\n")
+  (printf "  (lkb 'skill-a 'skill-b)   - Concept bridge between skills\n")
+  (printf "  (lkr 'skill)              - Skills related by shared concepts\n\n")
   (printf "DISCOVERY:\n")
   (printf "  (lr 'sym)                 - Browse related (pretty-print)\n")
   (printf "  (lrr 'sym)               - Browse related (raw alist)\n"))
 
+(doc 'section 'concept-functions)
+
+(doc lk 'type (-> Symbol Void))
+(doc lk 'description "Show skills that provide a concept")
+(define (lk concept-name)
+  (let ([skills (kg-concept-skills concept-name)])
+    (if (null? skills)
+        (printf "No skills found for concept: ~a\n" concept-name)
+        (begin
+          (printf "Concept '~a' is provided by:\n" concept-name)
+          (for-each (lambda (s) (printf "  ~a\n" s)) skills)))))
+
+(doc lkk 'type (-> Symbol Void))
+(doc lkk 'description "Show concepts of a skill")
+(define (lkk skill-name)
+  (let ([concepts (kg-skill-concepts skill-name)])
+    (if (null? concepts)
+        (printf "No concepts found for skill: ~a\n" skill-name)
+        (begin
+          (printf "Skill '~a' provides concepts:\n" skill-name)
+          (for-each (lambda (c) (printf "  ~a\n" c)) concepts)))))
+
+(doc lkb 'type (-> Symbol Symbol Void))
+(doc lkb 'description "Show concept bridge between two skills")
+(define (lkb skill-a skill-b)
+  (let ([bridge (kg-concept-bridge skill-a skill-b)])
+    (if (null? bridge)
+        (printf "No concept bridge between ~a and ~a\n" skill-a skill-b)
+        (begin
+          (printf "~a <-> ~a bridged by concepts:\n" skill-a skill-b)
+          (for-each (lambda (c) (printf "  ~a\n" c)) bridge)))))
+
+(doc lkr 'type (-> Symbol Void))
+(doc lkr 'description "Show skills related by shared concepts")
+(define (lkr skill-name)
+  (let ([related (kg-related-by-concept skill-name 10)])
+    (if (null? related)
+        (printf "No concept-related skills for: ~a\n" skill-name)
+        (begin
+          (printf "Skills related to '~a' by shared concepts:\n" skill-name)
+          (for-each
+           (lambda (pair)
+             (printf "  ~a (~a shared concepts)\n" (car pair) (cdr pair)))
+           related)))))
+
 (doc 'section 'repl-interface)
 
-(meta-printf "\nmeta.ss loaded — Unified lattice tooling\n")
+(meta-printf "\nmeta.ss loaded — KG-first lattice tooling\n")
 (meta-printf "  (lattice-init!)  - Initialize (build KG + indices)\n")
 (meta-printf "  (lattice-help)   - Show quick reference\n")

@@ -12,7 +12,7 @@
 ;;; ====
 
 (define LATTICE-CACHE-PATH ".fold-repl/lattice-cache.sexp")
-(define LATTICE-CACHE-VERSION 3)  ; Bump: module-aware source location resolution
+(define LATTICE-CACHE-VERSION 4)  ; Bump: KG-first architecture with concepts
 
 ;;; ====
 ;;; Pure Helpers
@@ -48,7 +48,10 @@
     (skill-names ,(map car *kg-skills*))
     (skill-data ,*kg-skill-data*)
     (module-names ,(map car *kg-modules*))
-    (export-names ,(map car *kg-exports*))))
+    (export-names ,(map car *kg-exports*))
+    (concept-names ,(map car *kg-concepts*))
+    (skill-concepts ,(hamt-entries *kg-skill-concepts*))
+    (concept-skills ,(hamt-entries *kg-concept-skills*))))
 
 ;;; serialize-docstrings : -> (List (Symbol . String))
 ;;; Convert *docstrings* HAMT to alist for serialization
@@ -114,7 +117,10 @@
   (let ([skill-names (kg-state-field kg-state 'skill-names)]
         [skill-data (kg-state-field kg-state 'skill-data)]
         [module-names (kg-state-field kg-state 'module-names)]
-        [export-names (kg-state-field kg-state 'export-names)])
+        [export-names (kg-state-field kg-state 'export-names)]
+        [concept-names (kg-state-field kg-state 'concept-names)]
+        [skill-concepts (kg-state-field kg-state 'skill-concepts)]
+        [concept-skills (kg-state-field kg-state 'concept-skills)])
        ;; Restore skills as (name . #f) since we only need names for search
        (set! *kg-skills* (map (lambda (n) (cons n #f)) (or skill-names '())))
        (set! *kg-skill-data* (or skill-data '()))
@@ -122,6 +128,19 @@
        (set! *kg-modules* (map (lambda (n) (cons n #f)) (or module-names '())))
        (set! *kg-exports* (map (lambda (n) (cons n #f)) (or export-names '())))
        (set! *kg-deps* '())  ; Deps can be recomputed from skill-data if needed
+       ;; Restore concepts
+       (set! *kg-concepts* (map (lambda (n) (cons n #f)) (or concept-names '())))
+       ;; Restore concept reverse maps
+       (set! *kg-skill-concepts*
+             (fold-left (lambda (acc pair)
+                          (hamt-assoc (car pair) (cdr pair) acc))
+                        hamt-empty
+                        (or skill-concepts '())))
+       (set! *kg-concept-skills*
+             (fold-left (lambda (acc pair)
+                          (hamt-assoc (car pair) (cdr pair) acc))
+                        hamt-empty
+                        (or concept-skills '())))
        (set! *kg-loaded* #t)))
 
 ;;; restore-docstrings! : (List (Symbol . String)) -> void
