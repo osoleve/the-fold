@@ -18,20 +18,27 @@
 (doc 'section 'initialization)
 
 (doc lattice-init! 'type (-> Void))
-(doc lattice-init! 'description "Initialize the lattice tooling (build KG and search indices). Uses cache if valid, otherwise rebuilds and caches")
+(doc lattice-init! 'description "Initialize the lattice tooling.
+Priority chain: CAS root → sexp cache → full manifest build.
+The CAS path is the KG-first fast path — if a root hash exists and
+all blocks are in the store, we skip both cache and manifest parsing.")
 (define (lattice-init!)
-  (if (lattice-load-cache!)
-      ;; Cache loaded - docstrings and source-locs already restored
-      (begin
-        (lattice-index!)
-        (printf "\nLattice tooling initialized (from cache)!\n"))
-      ;; No valid cache, full rebuild
-      (begin
-        (kg-build!)
-        (lattice-index!)
-        (build-source-location-cache!)
-        (lattice-save-cache!)
-        (printf "\nLattice tooling initialized!\n")))
+  (cond
+   ;; Priority 1: CAS-first — load from content-addressed store
+   [(kg-load-from-root!)
+    (lattice-index!)
+    (printf "\nLattice tooling initialized (from CAS)!\n")]
+   ;; Priority 2: sexp cache — legacy fast path
+   [(lattice-load-cache!)
+    (lattice-index!)
+    (printf "\nLattice tooling initialized (from cache)!\n")]
+   ;; Priority 3: full manifest build
+   [else
+    (kg-build!)
+    (lattice-index!)
+    (build-source-location-cache!)
+    (lattice-save-cache!)
+    (printf "\nLattice tooling initialized!\n")])
   (printf "  Use (lf \"query\") to search\n")
   (printf "  Use (li 'skill) to inspect a skill\n")
   (printf "  Use (lef \"file.ss\") to list exports from any file\n")
@@ -42,18 +49,22 @@
   (printf "  Use (lh) for health check\n"))
 
 (doc lattice-init-quiet! 'type (-> Void))
-(doc lattice-init-quiet! 'description "Initialize silently (for REPL startup). Uses cache if valid - very fast startup")
+(doc lattice-init-quiet! 'description "Initialize silently (for REPL startup).
+Priority chain: CAS root → sexp cache → full manifest build.")
 (define (lattice-init-quiet!)
-  (if (lattice-load-cache!)
-      ;; Cache loaded - docstrings and source-locs already restored
-      ;; Just build the BM25 indices (fast, in-memory only)
-      (lattice-index!)
-      ;; No cache - full rebuild
-      (begin
-        (kg-build!)
-        (lattice-index!)
-        (build-source-location-cache!)
-        (lattice-save-cache!))))
+  (cond
+   ;; Priority 1: CAS-first
+   [(kg-load-from-root!)
+    (lattice-index!)]
+   ;; Priority 2: sexp cache
+   [(lattice-load-cache!)
+    (lattice-index!)]
+   ;; Priority 3: full rebuild
+   [else
+    (kg-build!)
+    (lattice-index!)
+    (build-source-location-cache!)
+    (lattice-save-cache!)]))
 
 (doc lattice-ensure! 'type (-> Void))
 (doc lattice-ensure! 'description "Initialize only if not already ready. Use this in tests.")

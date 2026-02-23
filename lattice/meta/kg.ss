@@ -58,28 +58,14 @@ hash is the identity of the entire lattice state.")
 ;;; ====
 
 (doc make-skill-entity 'type (-> ManifestData Block))
-(doc make-skill-entity 'description "Create a skill entity block from manifest data")
+(doc make-skill-entity 'description "Create a skill entity block from manifest data.
+Stores the FULL manifest alist as payload so the KG can be reconstructed
+entirely from CAS without needing manifest files.")
 (define (make-skill-entity manifest-data)
-  (let* ([name (cdr (assq 'name manifest-data))]
-         [version (cdr (assq 'version manifest-data))]
-         [tier (cdr (assq 'tier manifest-data))]
-         [purity (cdr (assq 'purity manifest-data))]
-         [stability (cdr (assq 'stability manifest-data))]
-         [description (cdr (assq 'description manifest-data))]
-         [keywords (cdr (assq 'keywords manifest-data))]
-         [aliases (cdr (assq 'aliases manifest-data))]
-         [payload (format "~s"
-                          `((name . ,name)
-                            (version . ,version)
-                            (tier . ,tier)
-                            (purity . ,purity)
-                            (stability . ,stability)
-                            (description . ,description)
-                            (keywords . ,keywords)
-                            (aliases . ,aliases)))])
-        (make-block KG-SKILL
-                    (string->utf8 payload)
-                    (vector))))
+  (let ([payload (format "~s" manifest-data)])
+    (make-block KG-SKILL
+                (string->utf8 payload)
+                (vector))))
 
 (doc make-module-entity 'type (-> Symbol String String Block Block))
 (doc make-module-entity 'description "Create a module entity block linked to its skill")
@@ -565,9 +551,40 @@ Returns (skill-name . shared-concept-count) sorted by overlap.")
 ;;; CAS Hydration (load KG from stored blocks)
 ;;; ====
 
+(doc kg-rebuild-concept-maps! 'type (-> Void))
+(doc kg-rebuild-concept-maps! 'description "Rebuild concept reverse maps from manifest keywords.
+Used during CAS hydration to restore *kg-skill-concepts* and *kg-concept-skills*
+without traversing edge blocks.")
+(define (kg-rebuild-concept-maps!)
+  (for-each
+   (lambda (skill-entry)
+     (let* ([skill-name (car skill-entry)]
+            [data (kg-skill-data skill-name)]
+            [keywords (if data
+                         (let ([k (assq 'keywords data)])
+                           (if (and k (list? (cdr k))) (cdr k) '()))
+                         '())])
+       (for-each
+        (lambda (kw)
+          (when (and (symbol? kw) (assq kw *kg-concepts*))
+            ;; Update skill → concepts map
+            (let ([existing (or (hamt-lookup skill-name *kg-skill-concepts*) '())])
+              (unless (memq kw existing)
+                (set! *kg-skill-concepts*
+                      (hamt-assoc skill-name (cons kw existing) *kg-skill-concepts*))))
+            ;; Update concept → skills map
+            (let ([existing (or (hamt-lookup kw *kg-concept-skills*) '())])
+              (unless (memq skill-name existing)
+                (set! *kg-concept-skills*
+                      (hamt-assoc kw (cons skill-name existing) *kg-concept-skills*))))))
+        keywords)))
+   *kg-skills*))
+
 (doc kg-load-from-cas! 'type (-> Bytevector Boolean))
 (doc kg-load-from-cas! 'description "Load knowledge graph from CAS using root hash.
 Traverses the block tree: root → indexes → entities.
+Fully hydrates all state: skills, manifest data, modules, exports,
+concepts, edges, and concept reverse maps.
 Returns #t if successful, #f if root or required blocks not found.")
 (define (kg-load-from-cas! root-hash)
   (let ([root-block (fetch root-hash)])
@@ -584,7 +601,7 @@ Returns #t if successful, #f if root or required blocks not found.")
               #f
               (begin
                 (kg-reset!)
-                ;; Hydrate skills from skill index
+                ;; Phase 1: Hydrate skills with full manifest data, modules, exports
                 (let ([skill-refs (block-refs skill-idx)])
                   (do ([i 0 (+ i 1)])
                       ((= i (vector-length skill-refs)))
@@ -594,9 +611,51 @@ Returns #t if successful, #f if root or required blocks not found.")
                         (let* ([payload-str (utf8->string (block-payload skill-block))]
                                [port (open-input-string payload-str)]
                                [data (read port)]
-                               [name (cdr (assq 'name data))])
-                          (set! *kg-skills* (cons (cons name skill-block) *kg-skills*)))))))
-                ;; Hydrate concepts from concept index
+                               [name (cdr (assq 'name data))]
+                               [skill-path (let ([p (assq 'path data)])
+                                             (if p (cdr p) ""))]
+                               [modules-raw (let ([m (assq 'modules data)])
+                                              (if (and m (list? (cdr m))) (cdr m) '()))]
+                               [exports-raw (let ([e (assq 'exports data)])
+                                              (if (and e (list? (cdr e))) (cdr e) '()))])
+                          ;; Store skill + manifest data
+                          (set! *kg-skills* (cons (cons name skill-block) *kg-skills*))
+                          (set! *kg-skill-data* (cons (cons name data) *kg-skill-data*))
+                          ;; Reconstruct modules from manifest data
+                          (for-each
+                           (lambda (mod)
+                             (let ([entries (parse-module-entry mod skill-path)])
+                               (for-each
+                                (lambda (entry)
+                                  (let* ([mod-name (car entry)]
+                                         [mod-key (string->symbol
+                                                   (format "~a/~a" name mod-name))])
+                                    (set! *kg-modules*
+                                          (cons (cons mod-key #f) *kg-modules*))))
+                                entries)))
+                           modules-raw)
+                          ;; Reconstruct exports from manifest data
+                          (for-each
+                           (lambda (export-group)
+                             (when (pair? export-group)
+                               (let* ([first-sym (car export-group)]
+                                      [mod-key (if (symbol? first-sym)
+                                                   (string->symbol
+                                                    (format "~a/~a" name first-sym))
+                                                   #f)]
+                                      [is-grouped (and mod-key
+                                                       (assq mod-key *kg-modules*))]
+                                      [export-syms (if is-grouped
+                                                       (cdr export-group)
+                                                       export-group)])
+                                 (for-each
+                                  (lambda (export-name)
+                                    (when (symbol? export-name)
+                                      (set! *kg-exports*
+                                            (cons (cons export-name #f) *kg-exports*))))
+                                  export-syms))))
+                           exports-raw))))))
+                ;; Phase 2: Hydrate concepts from concept index
                 (let ([concept-refs (block-refs concept-idx)])
                   (do ([i 0 (+ i 1)])
                       ((= i (vector-length concept-refs)))
@@ -607,8 +666,9 @@ Returns #t if successful, #f if root or required blocks not found.")
                                [port (open-input-string payload-str)]
                                [data (read port)]
                                [name (cdr (assq 'name data))])
-                          (set! *kg-concepts* (cons (cons name concept-block) *kg-concepts*)))))))
-                ;; Hydrate edges from edge index
+                          (set! *kg-concepts*
+                                (cons (cons name concept-block) *kg-concepts*)))))))
+                ;; Phase 3: Hydrate edges from edge index
                 (let ([edge-refs (block-refs edge-idx)])
                   (do ([i 0 (+ i 1)])
                       ((= i (vector-length edge-refs)))
@@ -616,11 +676,12 @@ Returns #t if successful, #f if root or required blocks not found.")
                            [edge-block (fetch edge-hash)])
                       (when edge-block
                         (let ([tag (block-tag edge-block)])
-                          (cond
-                           [(eq? tag KG-DEPENDS-ON)
-                            (set! *kg-deps* (cons edge-block *kg-deps*))]
-                           [else (void)])
+                          (when (eq? tag KG-DEPENDS-ON)
+                            (set! *kg-deps* (cons edge-block *kg-deps*)))
                           (set! *kg-edges* (cons edge-block *kg-edges*)))))))
+                ;; Phase 4: Rebuild concept reverse maps from keywords
+                (kg-rebuild-concept-maps!)
+                ;; Done
                 (set! *kg-index-root* root-hash)
                 (set! *kg-loaded* #t)
                 #t))))))

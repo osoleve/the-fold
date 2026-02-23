@@ -404,6 +404,72 @@
             )
 
 ;;; ====
+;;; CAS Round-Trip Tests (fold-zy11)
+;;; ====
+
+(test-group cas-round-trip-tests
+
+            ;; Build KG, save root, reset, load from CAS, verify all state
+            (define-test test-cas-round-trip-skills
+              (kg-ensure!)
+              (let ([original-skills (kg-skills)]
+                    [root-hash *kg-index-root*])
+                ;; Reset and reload from CAS
+                (kg-reset!)
+                (assert-true (null? (kg-skills)))
+                (assert-true (if (kg-load-from-cas! root-hash) #t #f))
+                ;; Skills should be restored
+                (assert-equal (length original-skills) (length (kg-skills)))
+                ;; Specific skill should exist
+                (assert-true (if (memq 'linalg (kg-skills)) #t #f))))
+
+            (define-test test-cas-round-trip-skill-data
+              ;; After CAS load, skill-data should have full manifest info
+              (assert-true (kg-initialized?))
+              (let ([data (kg-skill-data 'linalg)])
+                (assert-true (if data #t #f))
+                ;; Should have key manifest fields
+                (assert-true (if (assq 'name data) #t #f))
+                (assert-true (if (assq 'path data) #t #f))
+                (assert-true (if (assq 'modules data) #t #f))
+                (assert-true (if (assq 'exports data) #t #f))))
+
+            (define-test test-cas-round-trip-modules
+              ;; Modules should be reconstructed from manifest data
+              (let ([mods (kg-modules 'linalg)])
+                (assert-true (> (length mods) 0))))
+
+            (define-test test-cas-round-trip-exports
+              ;; Exports should be reconstructed from manifest data
+              (let ([exports (kg-exports)])
+                (assert-true (> (length exports) 0))))
+
+            (define-test test-cas-round-trip-deps
+              ;; Dependencies should work after CAS load
+              (let ([deps (kg-deps 'optimization)])
+                (assert-true (if (memq 'autodiff deps) #t #f))
+                (assert-true (if (memq 'linalg deps) #t #f))))
+
+            (define-test test-cas-round-trip-concepts
+              ;; Concepts should be restored
+              (assert-true (> (length (kg-concepts)) 0))
+              ;; Concept reverse maps should be rebuilt
+              (let ([skills (kg-concept-skills 'matrix)])
+                (assert-true (list? skills))
+                (assert-true (> (length skills) 0)))
+              (let ([concepts (kg-skill-concepts 'linalg)])
+                (assert-true (list? concepts))
+                (assert-true (> (length concepts) 0))))
+
+            (define-test test-cas-round-trip-search-ready
+              ;; After CAS load + index, search should work
+              (lattice-index!)
+              (let ([results (lattice-find "matrix")])
+                (assert-true (> (length results) 0))))
+
+            )
+
+;;; ====
 ;;; Summary
 ;;; ====
 
