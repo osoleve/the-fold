@@ -82,6 +82,8 @@ Example:
 (define (coll-any? coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
   (doc 'description "Check if any element satisfies predicate. Skips pred after first match via or short-circuit.")
+  (doc 'note "Predicate calls are O(k) but fold still traverses O(n) elements.
+True early termination requires a coll-fold-while protocol (future work).")
   (if (coll-fold coll
                  (lambda (acc elem)
                    (or acc (pred elem)))
@@ -91,6 +93,8 @@ Example:
 (define (coll-all? coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
   (doc 'description "Check if all elements satisfy predicate. Skips pred after first mismatch via and short-circuit.")
+  (doc 'note "Predicate calls are O(k) but fold still traverses O(n) elements.
+True early termination requires a coll-fold-while protocol (future work).")
   (if (coll-fold coll
                  (lambda (acc elem)
                    (and acc (pred elem)))
@@ -118,6 +122,8 @@ Example:
 (define (coll-find coll pred)
   (doc 'type '(-> Collection (-> Element Boolean) (Maybe Element)))
   (doc 'description "Find first element satisfying predicate, or #f. Skips pred after match found.")
+  (doc 'note "Predicate calls are O(k) but fold still traverses O(n) elements.
+True early termination requires a coll-fold-while protocol (future work).")
   (coll-fold coll
              (lambda (acc elem)
                (if acc acc

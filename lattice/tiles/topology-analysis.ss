@@ -1,5 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'tiles/core 'simplicial-complex 'homology 'sort)
+(require 'tiles/core 'simplicial-complex 'homology 'sort 'hamt)
 
 (doc 'module 'tiles/topology-analysis)
 (doc 'description "Topological analysis of game boards using simplicial homology.
@@ -28,7 +28,7 @@ Adding 2-simplices (faces) for filled squares ensures β₁ counts terrain holes
                                     (let ([tile (board-get board c)])
                                       (and tile (tile-walkable? tile))))
                                   (board-coords board))]
-         ;; Build index for O(1) membership check
+         ;; Build HAMT set for O(log32 n) membership check
          [walkable-set (coords->set walkable-coords)]
          ;; Create vertices (0-simplices)
          [vertices (map (lambda (c) (make-simplex (list (coord->vertex-id c))))
@@ -36,22 +36,18 @@ Adding 2-simplices (faces) for filled squares ensures β₁ counts terrain holes
          ;; Create edges (1-simplices) for adjacent walkable pairs
          [edges (collect-edges walkable-coords walkable-set neighbor-fn)]
          ;; Create faces (2-simplices) for filled 2×2 squares
-         ;; This collapses graph cycles, making β₁ count terrain holes correctly
          [faces (collect-square-faces walkable-coords walkable-set neighbor-fn)])
     (sc-from-simplices (append vertices edges faces))))
 
 (define (coords->set coords)
-  (doc 'description "Build hashtable set for O(1) membership")
-  (let ([ht (make-hashtable coord-hash coord-equal?)])
-    (for-each (lambda (c) (hashtable-set! ht c #t)) coords)
-    ht))
+  (doc 'description "Build HAMT set for membership testing")
+  (fold-left (lambda (h c) (hamt-assoc c #t h)) hamt-empty coords))
 
 (define (coord-in-set? set c)
-  (hashtable-ref set c #f))
+  (hamt-has-key? c set))
 
 (define (coord->vertex-id c)
   (doc 'description "Convert coordinate to unique vertex identifier for simplicial complex")
-  ;; Use a list as vertex ID (works with generic<? comparison in simplicial-complex)
   (list (coord-x c) (coord-y c)))
 
 (define (vertex-id->coord v)
@@ -60,22 +56,24 @@ Adding 2-simplices (faces) for filled squares ensures β₁ counts terrain holes
 
 (define (collect-edges coords walkable-set neighbor-fn)
   (doc 'description "Collect all edges between adjacent walkable tiles")
-  (let ([edges '()]
-        [seen (make-hashtable equal-hash equal?)])
-    (for-each
-      (lambda (c)
-        (let ([v1 (coord->vertex-id c)])
-          (for-each
-            (lambda (n)
-              (when (coord-in-set? walkable-set n)
-                (let* ([v2 (coord->vertex-id n)]
-                       [edge-key (if (vertex<? v1 v2) (cons v1 v2) (cons v2 v1))])
-                  (unless (hashtable-ref seen edge-key #f)
-                    (hashtable-set! seen edge-key #t)
-                    (set! edges (cons (make-simplex (list v1 v2)) edges))))))
-            (neighbor-fn c))))
-      coords)
-    edges))
+  (let outer ([cs coords] [edges '()] [seen hamt-empty])
+    (if (null? cs)
+        edges
+        (let* ([c (car cs)]
+               [v1 (coord->vertex-id c)])
+          (let inner ([ns (neighbor-fn c)] [edges edges] [seen seen])
+            (if (null? ns)
+                (outer (cdr cs) edges seen)
+                (let ([n (car ns)])
+                  (if (not (coord-in-set? walkable-set n))
+                      (inner (cdr ns) edges seen)
+                      (let* ([v2 (coord->vertex-id n)]
+                             [edge-key (if (vertex<? v1 v2) (cons v1 v2) (cons v2 v1))])
+                        (if (hamt-has-key? edge-key seen)
+                            (inner (cdr ns) edges seen)
+                            (inner (cdr ns)
+                                   (cons (make-simplex (list v1 v2)) edges)
+                                   (hamt-assoc edge-key #t seen))))))))))))
 
 (define (vertex<? v1 v2)
   (doc 'description "Ordering on vertex IDs for canonical edge representation")
@@ -88,43 +86,35 @@ Adding 2-simplices (faces) for filled squares ensures β₁ counts terrain holes
 For each coordinate (x,y), check if (x,y), (x+1,y), (x,y+1), (x+1,y+1) are all walkable
 AND mutually adjacent. If so, triangulate the square into 2 triangles.
 This 'fills in' solid walkable regions so β₁ counts terrain holes, not graph cycles.")
-  (let ([faces '()]
-        [seen (make-hashtable equal-hash equal?)])
-    (for-each
-      (lambda (c)
-        (let* ([x (coord-x c)]
+  (let outer ([cs coords] [faces '()] [seen hamt-empty])
+    (if (null? cs)
+        faces
+        (let* ([c (car cs)]
+               [x (coord-x c)]
                [y (coord-y c)]
-               ;; The 4 corners of a potential 2×2 square with c at top-left
-               [c00 c]                        ; (x, y)
-               [c10 (coord (+ x 1) y)]        ; (x+1, y)
-               [c01 (coord x (+ y 1))]        ; (x, y+1)
-               [c11 (coord (+ x 1) (+ y 1))]) ; (x+1, y+1)
-          ;; Check if all 4 corners are walkable
-          (when (and (coord-in-set? walkable-set c00)
-                     (coord-in-set? walkable-set c10)
-                     (coord-in-set? walkable-set c01)
-                     (coord-in-set? walkable-set c11))
-            ;; Check if all 4 edges exist (corners are mutually adjacent)
-            ;; For square grid with ortho neighbors: c00-c10, c00-c01, c10-c11, c01-c11
-            (when (and (coords-adjacent? c00 c10 neighbor-fn)
-                       (coords-adjacent? c00 c01 neighbor-fn)
-                       (coords-adjacent? c10 c11 neighbor-fn)
-                       (coords-adjacent? c01 c11 neighbor-fn))
-              ;; Create unique key for this square (use top-left corner)
-              (let ([square-key (list x y)])
-                (unless (hashtable-ref seen square-key #f)
-                  (hashtable-set! seen square-key #t)
-                  ;; Triangulate: split square into 2 triangles along diagonal
-                  ;; Triangle 1: (x,y), (x+1,y), (x+1,y+1)
-                  ;; Triangle 2: (x,y), (x,y+1), (x+1,y+1)
-                  (let ([v00 (coord->vertex-id c00)]
-                        [v10 (coord->vertex-id c10)]
-                        [v01 (coord->vertex-id c01)]
-                        [v11 (coord->vertex-id c11)])
-                    (set! faces (cons (make-simplex (list v00 v10 v11)) faces))
-                    (set! faces (cons (make-simplex (list v00 v01 v11)) faces)))))))))
-      coords)
-    faces))
+               [c00 c]
+               [c10 (coord (+ x 1) y)]
+               [c01 (coord x (+ y 1))]
+               [c11 (coord (+ x 1) (+ y 1))]
+               [square-key (list x y)])
+          (if (and (coord-in-set? walkable-set c00)
+                   (coord-in-set? walkable-set c10)
+                   (coord-in-set? walkable-set c01)
+                   (coord-in-set? walkable-set c11)
+                   (coords-adjacent? c00 c10 neighbor-fn)
+                   (coords-adjacent? c00 c01 neighbor-fn)
+                   (coords-adjacent? c10 c11 neighbor-fn)
+                   (coords-adjacent? c01 c11 neighbor-fn)
+                   (not (hamt-has-key? square-key seen)))
+              (let ([v00 (coord->vertex-id c00)]
+                    [v10 (coord->vertex-id c10)]
+                    [v01 (coord->vertex-id c01)]
+                    [v11 (coord->vertex-id c11)])
+                (outer (cdr cs)
+                       (cons (make-simplex (list v00 v01 v11))
+                             (cons (make-simplex (list v00 v10 v11)) faces))
+                       (hamt-assoc square-key #t seen)))
+              (outer (cdr cs) faces seen))))))
 
 (define (coords-adjacent? c1 c2 neighbor-fn)
   (doc 'description "Check if two coordinates are adjacent according to neighbor-fn")
@@ -249,90 +239,81 @@ O(V+E) time complexity.")
                                       (and tile (tile-walkable? tile))))
                                   (board-coords board))]
          [n (length walkable-coords)]
-         ;; Map coords to indices for array access
-         [coord->idx (make-hashtable coord-hash coord-equal?)]
          [idx->coord (make-vector n)])
-    ;; Handle empty/single-node graphs
     (if (< n 2)
         '()
-        (begin
-          ;; Build index mappings
-          (let build-idx ([coords walkable-coords] [i 0])
-            (unless (null? coords)
-              (hashtable-set! coord->idx (car coords) i)
-              (vector-set! idx->coord i (car coords))
-              (build-idx (cdr coords) (+ i 1))))
+        ;; Build coord->idx HAMT and idx->coord vector
+        (let* ([idx-map
+                (let build-idx ([coords walkable-coords] [i 0] [acc hamt-empty])
+                  (if (null? coords)
+                      acc
+                      (begin
+                        (vector-set! idx->coord i (car coords))
+                        (build-idx (cdr coords) (+ i 1)
+                                   (hamt-assoc (car coords) i acc)))))]
+               ;; Build adjacency list (only walkable neighbors)
+               [adj (make-vector n '())]
+               [_ (for-each
+                    (lambda (c)
+                      (let ([i (hamt-lookup c idx-map)])
+                        (when i
+                          (let ([neighbors (filter-map
+                                            (lambda (nc)
+                                              (hamt-lookup nc idx-map))
+                                            (neighbor-fn c))])
+                            (vector-set! adj i neighbors)))))
+                    walkable-coords)]
+               ;; DFS state (dense integer-indexed — vectors are correct here)
+               [disc (make-vector n -1)]
+               [low (make-vector n -1)]
+               [parent (make-vector n -1)]
+               [subtree (make-vector n 1)]
+               [time-counter (list 0)]
+               [bridges '()])
 
-          ;; Build adjacency list (only walkable neighbors)
-          (let* ([adj (make-vector n '())]
-                 [_ (for-each
-                      (lambda (c)
-                        (let ([i (hashtable-ref coord->idx c #f)])
-                          (when i
-                            (let ([neighbors (filter-map
-                                               (lambda (nc)
-                                                 (hashtable-ref coord->idx nc #f))
-                                               (neighbor-fn c))])
-                              (vector-set! adj i neighbors)))))
-                      walkable-coords)]
-                 ;; DFS state
-                 [disc (make-vector n -1)]      ; discovery time
-                 [low (make-vector n -1)]       ; lowest reachable discovery time
-                 [parent (make-vector n -1)]    ; parent in DFS tree
-                 [subtree (make-vector n 1)]    ; subtree size (starts at 1 for self)
-                 [time-counter (list 0)]        ; mutable counter (boxed in list)
-                 [bridges '()])                 ; result accumulator
+          ;; DFS function - returns subtree size
+          (letrec ([dfs
+                    (lambda (u)
+                      (let ([current-time (car time-counter)])
+                        (vector-set! disc u current-time)
+                        (vector-set! low u current-time)
+                        (set-car! time-counter (+ current-time 1))
 
-            ;; DFS function - returns subtree size
-            (letrec ([dfs
-                      (lambda (u)
-                        (let ([current-time (car time-counter)])
-                          ;; Set discovery time and low value
-                          (vector-set! disc u current-time)
-                          (vector-set! low u current-time)
-                          (set-car! time-counter (+ current-time 1))
+                        (for-each
+                          (lambda (v)
+                            (cond
+                              [(= (vector-ref disc v) -1)
+                               (vector-set! parent v u)
+                               (dfs v)
+                               (vector-set! subtree u
+                                 (+ (vector-ref subtree u)
+                                    (vector-ref subtree v)))
+                               (vector-set! low u (min (vector-ref low u)
+                                                       (vector-ref low v)))
+                               (when (> (vector-ref low v) (vector-ref disc u))
+                                 (let* ([size1 (vector-ref subtree v)]
+                                        [size2 (- n size1)]
+                                        [weight (* size1 size2)])
+                                   (set! bridges
+                                     (cons (list (cons (vector-ref idx->coord u)
+                                                       (vector-ref idx->coord v))
+                                                 size1
+                                                 size2
+                                                 weight)
+                                           bridges))))]
+                              [(not (= v (vector-ref parent u)))
+                               (vector-set! low u (min (vector-ref low u)
+                                                       (vector-ref disc v)))]))
+                          (vector-ref adj u))))])
 
-                          ;; Visit all neighbors
-                          (for-each
-                            (lambda (v)
-                              (cond
-                                ;; Not visited yet - tree edge
-                                [(= (vector-ref disc v) -1)
-                                 (vector-set! parent v u)
-                                 (dfs v)
-                                 ;; Accumulate subtree size
-                                 (vector-set! subtree u
-                                   (+ (vector-ref subtree u)
-                                      (vector-ref subtree v)))
-                                 ;; Update low[u] from child
-                                 (vector-set! low u (min (vector-ref low u)
-                                                         (vector-ref low v)))
-                                 ;; Check if (u,v) is a bridge
-                                 (when (> (vector-ref low v) (vector-ref disc u))
-                                   (let* ([size1 (vector-ref subtree v)]
-                                          [size2 (- n size1)]
-                                          [weight (* size1 size2)])
-                                     (set! bridges
-                                       (cons (list (cons (vector-ref idx->coord u)
-                                                         (vector-ref idx->coord v))
-                                                   size1
-                                                   size2
-                                                   weight)
-                                             bridges))))]
-                                ;; Back edge (not to parent)
-                                [(not (= v (vector-ref parent u)))
-                                 (vector-set! low u (min (vector-ref low u)
-                                                         (vector-ref disc v)))]))
-                            (vector-ref adj u))))])
+            ;; Run DFS from each unvisited vertex (handles disconnected components)
+            (let run-dfs ([i 0])
+              (when (< i n)
+                (when (= (vector-ref disc i) -1)
+                  (dfs i))
+                (run-dfs (+ i 1))))
 
-              ;; Run DFS from each unvisited vertex (handles disconnected components)
-              (let run-dfs ([i 0])
-                (when (< i n)
-                  (when (= (vector-ref disc i) -1)
-                    (dfs i))
-                  (run-dfs (+ i 1))))
-
-              bridges))))))
+            bridges)))))
 
 (doc board-bottleneck-score 'export #t)
 (doc board-bottleneck-score 'type '(-> Board (-> Coord (List Coord)) Coord Number))
@@ -344,7 +325,6 @@ A tile on a bridge connecting two 50-node regions scores 2500.
 A tile on a bridge to a 2-node dead-end scores just 2*(n-2).")
 (define (board-bottleneck-score board neighbor-fn tile-coord)
   (let ([weighted-bridges (find-bridges-with-weights board neighbor-fn)])
-    ;; Sum weights of all bridges involving this tile
     (fold-left
       +
       0
@@ -362,29 +342,26 @@ Returns alist of (coord . score) for all tiles with non-zero scores.
 O(V+E) total vs O(V × (V+E)) when calling board-bottleneck-score per-tile.
 Useful for heatmap visualization or finding all high-value positions.")
 (define (board-bottleneck-scores-all board neighbor-fn)
-  (let ([weighted-bridges (find-bridges-with-weights board neighbor-fn)]
-        [scores (make-hashtable coord-hash coord-equal?)])
-    ;; Accumulate weights for each bridge endpoint
-    (for-each
-      (lambda (wb)
-        (let* ([edge (weighted-bridge-edge wb)]
-               [c1 (car edge)]
-               [c2 (cdr edge)]
-               [weight (weighted-bridge-weight wb)])
-          ;; Add weight to first endpoint
-          (hashtable-set! scores c1
-            (+ (hashtable-ref scores c1 0) weight))
-          ;; Add weight to second endpoint
-          (hashtable-set! scores c2
-            (+ (hashtable-ref scores c2 0) weight))))
-      weighted-bridges)
-    ;; Convert to sorted alist (highest scores first)
-    (let-values ([(keys vals) (hashtable-entries scores)])
-      (let ([key-list (vector->list keys)]
-            [val-list (vector->list vals)])
-        (merge-sort-by
-          (lambda (a b) (> (cdr a) (cdr b)))
-          (map cons key-list val-list))))))
+  (let* ([weighted-bridges (find-bridges-with-weights board neighbor-fn)]
+         ;; Accumulate weights for each bridge endpoint using HAMT
+         [scores
+          (fold-left
+            (lambda (acc wb)
+              (let* ([edge (weighted-bridge-edge wb)]
+                     [c1 (car edge)]
+                     [c2 (cdr edge)]
+                     [weight (weighted-bridge-weight wb)]
+                     [s1 (hamt-lookup-or c1 acc 0)]
+                     [s2 (hamt-lookup-or c2 acc 0)])
+                (hamt-assoc c2 (+ s2 weight)
+                  (hamt-assoc c1 (+ s1 weight) acc))))
+            hamt-empty
+            weighted-bridges)]
+         ;; Convert to sorted alist (highest scores first)
+         [score-list (hamt-entries scores)])
+    (merge-sort-by
+      (lambda (a b) (> (cdr a) (cdr b)))
+      score-list)))
 
 (doc board-most-critical-bridges 'export #t)
 (doc board-most-critical-bridges 'type

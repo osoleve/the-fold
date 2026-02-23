@@ -435,7 +435,10 @@
 ;;; Staged fixed-point combinator.
 (define (stage-fix f)
   (doc 'export #t)
-  (let* ([rec-name '%stage-rec]
+  (doc 'note "Uses reserved name %__stage-fix-rec__ in generated letrec.
+User staged expressions must not bind this symbol. Deterministic naming
+is required for content-addressable code generation.")
+  (let* ([rec-name '%__stage-fix-rec__]
          [dummy (make-code 1 rec-name)]
          [body (f dummy)])
         (make-code (code-stage body)

@@ -1,5 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'tiles/core)
+(require 'tiles/core 'hamt)
 
 (doc 'module 'tiles/visibility)
 (doc 'description "Line of sight and field of view algorithms for tile-based games")
@@ -18,10 +18,10 @@
   (let ([line (line-fn origin target)])
        (let loop ([coords line])
             (cond
-             [(null? coords) #t] ; Reached target without blocking
-             [(equal? (car coords) target) #t] ; Reached target
-             [(blocks-vision-fn (car coords)) #f] ; Blocked by this tile
-             [else (loop (cdr coords))])))) ; Continue along line
+             [(null? coords) #t]
+             [(equal? (car coords) target) #t]
+             [(blocks-vision-fn (car coords)) #f]
+             [else (loop (cdr coords))]))))
 
 (define (board-has-los? board origin target line-fn)
   (doc 'export #t)
@@ -44,38 +44,38 @@
   (doc 'param 'blocks-vision-fn "Predicate checking if coordinate blocks vision")
   (doc 'returns "List of visible coordinates")
   (doc 'note "More sophisticated algorithms (shadowcasting) could be added later")
-  (let ([visible (make-hashtable equal-hash equal?)])
-       ;; Origin is always visible
-       (hashtable-set! visible origin #t)
-       ;; Use BFS to explore tiles in range
-       (let loop ([queue (list origin)]
-                  [visited (make-hashtable equal-hash equal?)]
-                  [distance (make-hashtable equal-hash equal?)])
-            (hashtable-set! visited origin #t)
-            (hashtable-set! distance origin 0)
-            (if (null? queue)
-                (vector->list (hashtable-keys visible))
-                (let* ([current (car queue)]
-                       [rest-q (cdr queue)]
-                       [current-dist (hashtable-ref distance current 0)])
-                      (if (>= current-dist max-radius)
-                          (loop rest-q visited distance)
-                          (let* ([neighbors (neighbor-fn current)]
-                                 [valid-neighbors
-                                  (filter (lambda (n)
-                                                  (and (board-get board n) ; Tile exists
-                                                       (not (hashtable-ref visited n #f))))
-                                          neighbors)])
-                                ;; Check LOS for each neighbor
-                                (for-each
-                                 (lambda (n)
-                                         (hashtable-set! visited n #t)
-                                         (hashtable-set! distance n (+ current-dist 1))
-                                         ;; Check if we have LOS to this neighbor
-                                         (when (has-line-of-sight? board origin n line-fn blocks-vision-fn)
-                                               (hashtable-set! visible n #t)))
-                                 valid-neighbors)
-                                (loop (append rest-q valid-neighbors) visited distance))))))))
+  (let loop ([queue (list origin)]
+             [visited (hamt-assoc origin #t hamt-empty)]
+             [distance (hamt-assoc origin 0 hamt-empty)]
+             [visible (hamt-assoc origin #t hamt-empty)])
+       (if (null? queue)
+           (hamt-keys visible)
+           (let* ([current (car queue)]
+                  [rest-q (cdr queue)]
+                  [current-dist (hamt-lookup-or current distance 0)])
+             (if (>= current-dist max-radius)
+                 (loop rest-q visited distance visible)
+                 (let* ([neighbors (neighbor-fn current)]
+                        [valid-neighbors
+                         (filter (lambda (n)
+                                   (and (board-get board n)
+                                        (not (hamt-has-key? n visited))))
+                                 neighbors)])
+                   ;; Thread all HAMT state through neighbor processing
+                   (let process ([ns valid-neighbors]
+                                 [vis visited]
+                                 [dist distance]
+                                 [viz visible])
+                     (if (null? ns)
+                         (loop (append rest-q valid-neighbors) vis dist viz)
+                         (let* ([n (car ns)]
+                                [new-vis (hamt-assoc n #t vis)]
+                                [new-dist (hamt-assoc n (+ current-dist 1) dist)]
+                                [new-viz (if (has-line-of-sight?
+                                              board origin n line-fn blocks-vision-fn)
+                                             (hamt-assoc n #t viz)
+                                             viz)])
+                           (process (cdr ns) new-vis new-dist new-viz))))))))))
 
 (define (board-fov board origin max-radius neighbor-fn line-fn)
   (doc 'export #t)

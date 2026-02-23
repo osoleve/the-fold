@@ -446,10 +446,9 @@
   (doc 'type '(-> (-> Value Value Value) HAMT HAMT HAMT))
   (doc 'description "Merge two HAMTs with conflict resolution function")
   (hamt-fold (lambda (acc k v)
-               (let ([existing (hamt-lookup k acc)])
-                 (if existing
-                     (hamt-assoc k (f existing v) acc)
-                     (hamt-assoc k v acc))))
+               (if (hamt-has-key? k acc)
+                   (hamt-assoc k (f (hamt-lookup k acc) v) acc)
+                   (hamt-assoc k v acc)))
              h1 h2))
 
 ;;; ============================================================

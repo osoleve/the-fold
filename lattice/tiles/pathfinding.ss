@@ -1,5 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'tiles/core)
+(require 'tiles/core 'hamt)
 
 (doc 'module 'tiles/pathfinding)
 (doc 'description "Generic pathfinding algorithms: BFS, Dijkstra, A*")
@@ -42,15 +42,15 @@
 
 (define (reconstruct-path came-from start goal)
   (doc 'description "Reconstruct path from came-from map")
-  (doc 'type '(-> Hashtable Coord Coord (List Coord)))
+  (doc 'type '(-> HAMT Coord Coord (List Coord)))
   (doc 'returns "List of coordinates from start to goal, or #f if no path")
   (let loop ([current goal] [path '()])
        (if (equal? current start)
            (cons start path)
-           (let ([prev (hashtable-ref came-from current #f)])
+           (let ([prev (hamt-lookup current came-from)])
                 (if prev
                     (loop prev (cons current path))
-                    #f))))) ; No path found
+                    #f)))))
 
 (doc 'section 'bfs)
 
@@ -63,29 +63,29 @@
   (doc 'param 'neighbor-fn "Function returning list of neighbors")
   (doc 'param 'walkable-fn "Predicate checking if coordinate is walkable")
   (doc 'returns "List of coordinates from start to goal, or #f if no path")
-  (let ([queue (list start)]
-        [visited (make-hashtable equal-hash equal?)]
-        [came-from (make-hashtable equal-hash equal?)])
-       (hashtable-set! visited start #t)
-       (let loop ([q queue])
-            (if (null? q)
-                #f ; No path found
-                (let ([current (car q)]
-                      [rest-q (cdr q)])
-                     (if (equal? current goal)
-                         (reconstruct-path came-from start goal)
-                         (let* ([neighbors (neighbor-fn current)]
-                                [valid-neighbors
-                                 (filter (lambda (n)
-                                                 (and (walkable-fn n)
-                                                      (not (hashtable-ref visited n #f))))
-                                         neighbors)])
-                               (for-each
-                                (lambda (n)
-                                        (hashtable-set! visited n #t)
-                                        (hashtable-set! came-from n current))
-                                valid-neighbors)
-                               (loop (append rest-q valid-neighbors)))))))))
+  (let loop ([q (list start)]
+             [visited (hamt-assoc start #t hamt-empty)]
+             [came-from hamt-empty])
+       (if (null? q)
+           #f
+           (let ([current (car q)]
+                 [rest-q (cdr q)])
+                (if (equal? current goal)
+                    (reconstruct-path came-from start goal)
+                    (let* ([neighbors (neighbor-fn current)]
+                           [valid-neighbors
+                            (filter (lambda (n)
+                                           (and (walkable-fn n)
+                                                (not (hamt-has-key? n visited))))
+                                    neighbors)])
+                          (let update ([ns valid-neighbors]
+                                       [v visited]
+                                       [cf came-from])
+                               (if (null? ns)
+                                   (loop (append rest-q valid-neighbors) v cf)
+                                   (update (cdr ns)
+                                           (hamt-assoc (car ns) #t v)
+                                           (hamt-assoc (car ns) current cf))))))))))
 
 (doc 'section 'dijkstra)
 
@@ -99,33 +99,33 @@
   (doc 'param 'cost-fn "Function returning movement cost for a coordinate")
   (doc 'param 'walkable-fn "Predicate checking if coordinate is walkable")
   (doc 'returns "List of coordinates from start to goal, or #f if no path")
-  (let ([pq (pqueue-insert (make-pqueue) 0 start)]
-        [cost-so-far (make-hashtable equal-hash equal?)]
-        [came-from (make-hashtable equal-hash equal?)])
-       (hashtable-set! cost-so-far start 0)
-       (let loop ([queue pq])
-            (if (pqueue-empty? queue)
-                #f ; No path found
-                (let-values ([(current priority new-queue) (pqueue-pop queue)])
-                            (if (equal? current goal)
-                                (reconstruct-path came-from start goal)
-                                (let* ([current-cost (hashtable-ref cost-so-far current 0)]
-                                       [neighbors (neighbor-fn current)]
-                                       [valid-neighbors (filter walkable-fn neighbors)])
-                                      (let process-neighbors ([ns valid-neighbors] [q new-queue])
-                                           (if (null? ns)
-                                               (loop q)
-                                               (let* ([next (car ns)]
-                                                      [new-cost (+ current-cost (cost-fn next))]
-                                                      [old-cost (hashtable-ref cost-so-far next #f)])
-                                                     (if (or (not old-cost) (< new-cost old-cost))
-                                                         (begin
-                                                          (hashtable-set! cost-so-far next new-cost)
-                                                          (hashtable-set! came-from next current)
-                                                          (process-neighbors
-                                                           (cdr ns)
-                                                           (pqueue-insert q new-cost next)))
-                                                         (process-neighbors (cdr ns) q))))))))))))
+  (let loop ([queue (pqueue-insert (make-pqueue) 0 start)]
+             [cost-so-far (hamt-assoc start 0 hamt-empty)]
+             [came-from hamt-empty])
+       (if (pqueue-empty? queue)
+           #f
+           (let-values ([(current priority new-queue) (pqueue-pop queue)])
+             (if (equal? current goal)
+                 (reconstruct-path came-from start goal)
+                 (let* ([current-cost (hamt-lookup-or current cost-so-far 0)]
+                        [neighbors (neighbor-fn current)]
+                        [valid-neighbors (filter walkable-fn neighbors)])
+                   (let process-neighbors ([ns valid-neighbors]
+                                           [q new-queue]
+                                           [csf cost-so-far]
+                                           [cf came-from])
+                     (if (null? ns)
+                         (loop q csf cf)
+                         (let* ([next (car ns)]
+                                [new-cost (+ current-cost (cost-fn next))]
+                                [old-cost (hamt-lookup next csf)])
+                           (if (or (not old-cost) (< new-cost old-cost))
+                               (process-neighbors
+                                (cdr ns)
+                                (pqueue-insert q new-cost next)
+                                (hamt-assoc next new-cost csf)
+                                (hamt-assoc next current cf))
+                               (process-neighbors (cdr ns) q csf cf)))))))))))
 
 (doc 'section 'astar)
 
@@ -141,33 +141,34 @@
   (doc 'param 'walkable-fn "Predicate checking if coordinate is walkable")
   (doc 'returns "List of coordinates from start to goal, or #f if no path")
   (doc 'note "Heuristic must be admissible (never overestimate) for A* to be optimal")
-  (let ([pq (pqueue-insert (make-pqueue) 0 start)]
-        [cost-so-far (make-hashtable equal-hash equal?)]
-        [came-from (make-hashtable equal-hash equal?)])
-       (hashtable-set! cost-so-far start 0)
-       (let loop ([queue pq])
-            (if (pqueue-empty? queue)
-                #f ; No path found
-                (let-values ([(current priority new-queue) (pqueue-pop queue)])
-                            (if (equal? current goal)
-                                (reconstruct-path came-from start goal)
-                                (let* ([current-cost (hashtable-ref cost-so-far current 0)]
-                                       [neighbors (neighbor-fn current)]
-                                       [valid-neighbors (filter walkable-fn neighbors)])
-                                      (let process-neighbors ([ns valid-neighbors] [q new-queue])
-                                           (if (null? ns)
-                                               (loop q)
-                                               (let* ([next (car ns)]
-                                                      [new-cost (+ current-cost (cost-fn next))]
-                                                      [old-cost (hashtable-ref cost-so-far next #f)])
-                                                     (if (or (not old-cost) (< new-cost old-cost))
-                                                         (let ([f-score (+ new-cost (heuristic-fn next goal))])
-                                                              (hashtable-set! cost-so-far next new-cost)
-                                                              (hashtable-set! came-from next current)
-                                                              (process-neighbors
-                                                               (cdr ns)
-                                                               (pqueue-insert q f-score next)))
-                                                         (process-neighbors (cdr ns) q))))))))))))
+  (let loop ([queue (pqueue-insert (make-pqueue) 0 start)]
+             [cost-so-far (hamt-assoc start 0 hamt-empty)]
+             [came-from hamt-empty])
+       (if (pqueue-empty? queue)
+           #f
+           (let-values ([(current priority new-queue) (pqueue-pop queue)])
+             (if (equal? current goal)
+                 (reconstruct-path came-from start goal)
+                 (let* ([current-cost (hamt-lookup-or current cost-so-far 0)]
+                        [neighbors (neighbor-fn current)]
+                        [valid-neighbors (filter walkable-fn neighbors)])
+                   (let process-neighbors ([ns valid-neighbors]
+                                           [q new-queue]
+                                           [csf cost-so-far]
+                                           [cf came-from])
+                     (if (null? ns)
+                         (loop q csf cf)
+                         (let* ([next (car ns)]
+                                [new-cost (+ current-cost (cost-fn next))]
+                                [old-cost (hamt-lookup next csf)])
+                           (if (or (not old-cost) (< new-cost old-cost))
+                               (let ([f-score (+ new-cost (heuristic-fn next goal))])
+                                 (process-neighbors
+                                  (cdr ns)
+                                  (pqueue-insert q f-score next)
+                                  (hamt-assoc next new-cost csf)
+                                  (hamt-assoc next current cf)))
+                               (process-neighbors (cdr ns) q csf cf)))))))))))
 
 (doc 'section 'board-integration)
 
@@ -219,32 +220,34 @@
   (doc 'description "Find all coordinates reachable within N movement points")
   (doc 'type '(-> Coord Integer (-> Coord (List Coord)) (-> Coord Bool) (-> Coord Number) (List (Pair Coord Number))))
   (doc 'returns "List of (coord . cost) pairs")
-  (let ([visited (make-hashtable equal-hash equal?)]
-        [results '()])
-       (hashtable-set! visited start 0)
-       (let loop ([queue (list (cons start 0))])
-            (if (null? queue)
-                results
-                (let* ([current-entry (car queue)]
-                       [current (car current-entry)]
-                       [current-cost (cdr current-entry)]
-                       [rest-q (cdr queue)])
-                      (set! results (cons current-entry results))
-                      (let* ([neighbors (neighbor-fn current)]
-                             [valid-neighbors (filter walkable-fn neighbors)]
-                             [new-entries
-                              (filter-map
-                               (lambda (n)
-                                       (let ([new-cost (+ current-cost (cost-fn n))])
-                                            (if (and (<= new-cost max-cost)
-                                                     (or (not (hashtable-ref visited n #f))
-                                                         (< new-cost (hashtable-ref visited n 0))))
-                                                (begin
-                                                 (hashtable-set! visited n new-cost)
-                                                 (cons n new-cost))
-                                                #f)))
-                               valid-neighbors)])
-                            (loop (append rest-q new-entries))))))))
+  (let loop ([queue (list (cons start 0))]
+             [visited (hamt-assoc start 0 hamt-empty)]
+             [results '()])
+       (if (null? queue)
+           results
+           (let* ([current-entry (car queue)]
+                  [current (car current-entry)]
+                  [current-cost (cdr current-entry)]
+                  [rest-q (cdr queue)]
+                  [results (cons current-entry results)]
+                  [neighbors (neighbor-fn current)]
+                  [valid-neighbors (filter walkable-fn neighbors)])
+             ;; Process neighbors, threading visited HAMT
+             (let process ([ns valid-neighbors]
+                           [vis visited]
+                           [new-entries '()])
+               (if (null? ns)
+                   (loop (append rest-q new-entries) vis results)
+                   (let* ([n (car ns)]
+                          [new-cost (+ current-cost (cost-fn n))]
+                          [old-cost (hamt-lookup n vis)])
+                     (if (and (<= new-cost max-cost)
+                              (or (not old-cost)
+                                  (< new-cost old-cost)))
+                         (process (cdr ns)
+                                  (hamt-assoc n new-cost vis)
+                                  (cons (cons n new-cost) new-entries))
+                         (process (cdr ns) vis new-entries)))))))))
 
 (define (board-reachable board start max-cost neighbor-fn)
   (doc 'export #t)

@@ -220,6 +220,80 @@
       (assert-equal 100 (hamt-size h2)))))
 
 ;;; ============================================================
+;;; True Hash Collisions (same 32-bit hash, different keys)
+;;; ============================================================
+;;; These exercise the hamt-collision node path (alist-based
+;;; bucket for keys that produce identical hashes).
+
+(test-group "hamt-true-collisions"
+  ;; Verified collision pairs: same (fxlogand (equal-hash k) #x7FFFFFFF)
+  ;; k2430 and k4084 both hash to 24494962
+  ;; k10872 and k15993 both hash to 1859062013
+  (define k1 'k2430)
+  (define k2 'k4084)
+  (define k3 'k10872)
+  (define k4 'k15993)
+
+  (define-test "insert two keys with same hash"
+    (let* ([h (hamt-assoc k1 "first" hamt-empty)]
+           [h (hamt-assoc k2 "second" h)])
+      (assert-equal "first" (hamt-lookup k1 h))
+      (assert-equal "second" (hamt-lookup k2 h))
+      (assert-equal 2 (hamt-size h))))
+
+  (define-test "update value in collision bucket"
+    (let* ([h (hamt-assoc k1 "old" hamt-empty)]
+           [h (hamt-assoc k2 "other" h)]
+           [h (hamt-assoc k1 "new" h)])
+      (assert-equal "new" (hamt-lookup k1 h))
+      (assert-equal "other" (hamt-lookup k2 h))
+      (assert-equal 2 (hamt-size h))))
+
+  (define-test "delete from collision bucket"
+    (let* ([h (hamt-assoc k1 1 hamt-empty)]
+           [h (hamt-assoc k2 2 h)]
+           [h (hamt-dissoc k1 h)])
+      (assert-false (hamt-lookup k1 h))
+      (assert-equal 2 (hamt-lookup k2 h))
+      (assert-equal 1 (hamt-size h))))
+
+  (define-test "delete last from collision demotes to leaf"
+    (let* ([h (hamt-assoc k1 1 hamt-empty)]
+           [h (hamt-assoc k2 2 h)]
+           [h (hamt-dissoc k1 h)]
+           [h (hamt-dissoc k2 h)])
+      (assert-true (hamt-empty? h))))
+
+  (define-test "has-key? works in collision bucket"
+    (let* ([h (hamt-assoc k1 1 hamt-empty)]
+           [h (hamt-assoc k2 2 h)])
+      (assert-true (hamt-has-key? k1 h))
+      (assert-true (hamt-has-key? k2 h))
+      (assert-false (hamt-has-key? 'nonexistent h))))
+
+  (define-test "multiple collision pairs coexist"
+    (let* ([h (hamt-assoc k1 "a" hamt-empty)]
+           [h (hamt-assoc k2 "b" h)]
+           [h (hamt-assoc k3 "c" h)]
+           [h (hamt-assoc k4 "d" h)])
+      (assert-equal "a" (hamt-lookup k1 h))
+      (assert-equal "b" (hamt-lookup k2 h))
+      (assert-equal "c" (hamt-lookup k3 h))
+      (assert-equal "d" (hamt-lookup k4 h))
+      (assert-equal 4 (hamt-size h))))
+
+  (define-test "fold traverses collision entries"
+    (let* ([h (hamt-assoc k1 10 hamt-empty)]
+           [h (hamt-assoc k2 20 h)])
+      (assert-equal 30 (hamt-fold (lambda (acc k v) (+ acc v)) 0 h))))
+
+  (define-test "merge-with on collision keys"
+    (let* ([h1 (hamt-assoc k1 10 hamt-empty)]
+           [h2 (hamt-assoc k1 20 hamt-empty)])
+      (let ([m (hamt-merge-with + h1 h2)])
+        (assert-equal 30 (hamt-lookup k1 m))))))
+
+;;; ============================================================
 ;;; Fold
 ;;; ============================================================
 
@@ -318,7 +392,13 @@
 
   (define-test "merge-with resolves conflicts"
     (let ([m (hamt-merge-with + ha hb)])
-      (assert-equal 101 (hamt-lookup 'b m)))))  ; 2 + 99
+      (assert-equal 101 (hamt-lookup 'b m))))  ; 2 + 99
+
+  (define-test "merge-with handles #f values correctly"
+    (let* ([h1 (hamt-assoc 'k #f hamt-empty)]
+           [h2 (hamt-assoc 'k 1 hamt-empty)]
+           [m (hamt-merge-with (lambda (a b) 'merged) h1 h2)])
+      (assert-equal 'merged (hamt-lookup 'k m)))))
 
 ;;; ============================================================
 ;;; Conversions

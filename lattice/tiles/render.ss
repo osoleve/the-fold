@@ -1,5 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'tiles/core)
+(require 'tiles/core 'hamt)
 
 (doc 'module 'tiles/render)
 (doc 'description "ASCII art rendering for tile-based boards")
@@ -55,9 +55,8 @@
   (doc 'returns "String containing rendered board with overlay")
   (let ([width (cdr (assq 'width meta))]
         [height (cdr (assq 'height meta))]
-        [overlay-set (let ([ht (make-hashtable equal-hash equal?)])
-                          (for-each (lambda (c) (hashtable-set! ht c #t)) overlay)
-                          ht)])
+        [overlay-set (fold-left (lambda (h c) (hamt-assoc c #t h))
+                               hamt-empty overlay)])
        (let loop-y ([y 0] [lines '()])
             (if (>= y height)
                 (apply string-append (reverse lines))
@@ -68,7 +67,7 @@
                                               (reverse (cons "\n" chars)))
                                        lines))
                          (let* ([coord (cons x y)]
-                                [in-overlay? (hashtable-ref overlay-set coord #f)]
+                                [in-overlay? (hamt-lookup coord overlay-set)]
                                 [tile (board-get board coord)]
                                 [char (cond
                                        [in-overlay? overlay-char]
@@ -124,9 +123,8 @@
   (doc 'type '(-> Board MetaData (-> Tile String) (List Coord) String String))
   (let* ([radius (cdr (assq 'radius meta))]
          [coords (board-tiles board)]
-         [overlay-set (let ([ht (make-hashtable equal-hash equal?)])
-                           (for-each (lambda (c) (hashtable-set! ht c #t)) overlay)
-                           ht)]
+         [overlay-set (fold-left (lambda (h c) (hamt-assoc c #t h))
+                                hamt-empty overlay)]
          ;; Find bounds
          [min-q (apply min (map (lambda (entry)
                                         (let ([c (car entry)])
@@ -156,7 +154,7 @@
                                                      (reverse (cons "\n" chars)))
                                               lines))
                                 (let* ([coord (cons q r)]
-                                       [in-overlay? (hashtable-ref overlay-set coord #f)]
+                                       [in-overlay? (hamt-lookup coord overlay-set)]
                                        [tile (board-get board coord)]
                                        [char (cond
                                               [in-overlay? (string-append overlay-char " ")]
