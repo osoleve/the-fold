@@ -9,8 +9,8 @@
 (doc 'section 'coordinates)
 (doc 'note "Coordinate system: (row, col, orientation) where orientation is 'up or 'down")
 
-(define-record-type triangle-coord%
-  (fields row col orientation))
+;;; Triangle coords: ((row . col) . orientation)
+;;; Cons-based for structural equality under equal? (needed by dict)
 
 (define (triangle-coord row col orientation)
   (doc 'export #t)
@@ -19,12 +19,12 @@
   (doc 'param 'orientation "Must be 'up or 'down")
   (if (not (memq orientation '(up down)))
       (error 'triangle-coord "Orientation must be 'up or 'down" orientation)
-      (make-triangle-coord% row col orientation)))
+      (cons (cons row col) orientation)))
 
 ;;; Accessors
-(define (triangle-row t) (triangle-coord%-row t))
-(define (triangle-col t) (triangle-coord%-col t))
-(define (triangle-orientation t) (triangle-coord%-orientation t))
+(define (triangle-row t) (caar t))
+(define (triangle-col t) (cdar t))
+(define (triangle-orientation t) (cdr t))
 
 ;;; triangle-coord-equal? : TriangleCoord × TriangleCoord → Boolean
 (define (triangle-coord-equal? t1 t2)
@@ -184,16 +184,12 @@
     (doc 'description "Create rectangular triangular board. Each (row, col) contains 2 triangles.")
     (doc 'type '(-> Integer Integer Board))
     (make-board 'triangle
-                `((rows . ,rows) (cols . ,cols))
-                triangle-coord-hash
-                triangle-coord-equal?)]
+                `((rows . ,rows) (cols . ,cols)))]
    [(rows cols default-tile)
     (doc 'description "Create rectangular triangular board with default tile fill")
     (doc 'type '(-> Integer Integer Tile Board))
     (let ([board (make-board 'triangle
-                             `((rows . ,rows) (cols . ,cols))
-                             triangle-coord-hash
-                             triangle-coord-equal?)])
+                             `((rows . ,rows) (cols . ,cols)))])
          (let loop-r ([r 0] [b board])
               (if (>= r rows)
                   b

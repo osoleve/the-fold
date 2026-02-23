@@ -40,10 +40,10 @@
 
 ;;; Create turn state
 (define turn-order '(u1 u2 u3))
-(define max-actions (make-hashtable equal-hash equal?))
-(hashtable-set! max-actions 'u1 2)
-(hashtable-set! max-actions 'u2 2)
-(hashtable-set! max-actions 'u3 3)
+(define max-actions
+  (dict-assoc 'u1 2
+    (dict-assoc 'u2 2
+      (dict-assoc 'u3 3 dict-empty))))
 
 (define turns (make-turn-state turn-order max-actions))
 

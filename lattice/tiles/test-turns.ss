@@ -2,6 +2,7 @@
 ;;; Run with: scheme --script lattice/tiles/test-turns.ss
 
 (load "core/testing/test-framework.ss")
+(load "lattice/data/dict.ss")
 (load "lattice/tiles/core.ss")
 (load "lattice/tiles/square.ss")
 (load "lattice/tiles/pathfinding.ss")
@@ -14,14 +15,11 @@
 ;;; ============================================================
 
 (define (make-max-actions . pairs)
-  ;; pairs: (id ap id ap ...)
-  (let ([ht (make-hashtable equal-hash equal?)])
-    (let loop ([ps pairs])
-      (if (or (null? ps) (null? (cdr ps)))
-          ht
-          (begin
-            (hashtable-set! ht (car ps) (cadr ps))
-            (loop (cddr ps)))))))
+  ;; pairs: (id ap id ap ...) → Dict
+  (let loop ([ps pairs] [acc dict-empty])
+    (if (or (null? ps) (null? (cdr ps)))
+        acc
+        (loop (cddr ps) (dict-assoc (car ps) (cadr ps) acc)))))
 
 ;;; ============================================================
 ;;; Turn State Construction
@@ -42,12 +40,12 @@
       (assert-equal 2 (turn-actions-remaining ts 'bob))))
 
   (define-test "empty order has no active unit"
-    (let* ([max-ap (make-hashtable equal-hash equal?)]
+    (let* ([max-ap dict-empty]
            [ts (make-turn-state '() max-ap)])
       (assert-false (turn-current-unit ts))))
 
   (define-test "default AP is 2 for unlisted units"
-    (let* ([max-ap (make-hashtable equal-hash equal?)]
+    (let* ([max-ap dict-empty]
            [ts (make-turn-state '(alice) max-ap)])
       (assert-equal 2 (turn-actions-remaining ts 'alice))))
 

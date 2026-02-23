@@ -351,6 +351,7 @@
     "data/test-sort-properties.ss"
     "data/test-avl-properties.ss"
     "data/test-heap-properties.ss"
+    "data/test-hamt.ss"
     "data/test-chase-lev-deque.ss"
     "data/test-collection-protocol.ss"
     "data/test-collection-utils.ss"

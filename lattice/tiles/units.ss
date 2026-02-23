@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'tiles/core 'pathfinding 'visibility)
+;;; @requires tiles/core dict pathfinding visibility
+(require 'tiles/core 'dict 'pathfinding 'visibility)
 
 (doc 'module 'tiles/units)
 (doc 'description "Unit/entity management: creation, placement, movement, visibility")
@@ -40,7 +41,7 @@
                     new-props)))
 
 (doc 'section 'game-state)
-(doc 'note "Game state maintains two hashtables: coord→unit and unit→coord")
+(doc 'note "Game state maintains two persistent dicts: coord→unit and unit→coord")
 
 (define-record-type game-state%
   (fields board coord->unit unit->coord))
@@ -49,9 +50,7 @@
   (doc 'export #t)
   (doc 'description "Create initial game state with empty units")
   (doc 'type '(-> Board GameState))
-  (make-game-state% board
-                    (make-hashtable equal-hash equal?)
-                    (make-hashtable equal-hash equal?)))
+  (make-game-state% board dict-empty dict-empty))
 
 ;;; game-board : GameState → Board
 ;;; Get the board from game state
@@ -62,47 +61,42 @@
   (doc 'export #t)
   (doc 'description "Place unit at coordinate. Removes unit from old position if it exists.")
   (doc 'type '(-> GameState Unit Coord GameState))
-  (let ([c->u (hashtable-copy (game-state%-coord->unit gs) #t)]
-        [u->c (hashtable-copy (game-state%-unit->coord gs) #t)])
-       ;; Remove unit from old position if it exists
-       (let ([old-coord (hashtable-ref u->c (unit%-id unit) #f)])
-            (when old-coord
-                  (hashtable-delete! c->u old-coord)))
-       ;; Place unit at new position
-       (hashtable-set! c->u coord unit)
-       (hashtable-set! u->c (unit%-id unit) coord)
-       (make-game-state% (game-state%-board gs) c->u u->c)))
+  (let* ([c->u (game-state%-coord->unit gs)]
+         [u->c (game-state%-unit->coord gs)]
+         [old-coord (dict-lookup (unit%-id unit) u->c)]
+         ;; Remove unit from old position if it exists
+         [c->u (if old-coord (dict-dissoc old-coord c->u) c->u)]
+         ;; Place unit at new position
+         [c->u (dict-assoc coord unit c->u)]
+         [u->c (dict-assoc (unit%-id unit) coord u->c)])
+    (make-game-state% (game-state%-board gs) c->u u->c)))
 
 ;;; game-remove-unit : GameState × Symbol → GameState
 ;;; Remove a unit by ID
 (define (game-remove-unit gs unit-id)
-  (let ([c->u (hashtable-copy (game-state%-coord->unit gs) #t)]
-        [u->c (hashtable-copy (game-state%-unit->coord gs) #t)]
-        [coord (hashtable-ref (game-state%-unit->coord gs) unit-id #f)])
-       (when coord
-             (hashtable-delete! c->u coord)
-             (hashtable-delete! u->c unit-id))
-       (make-game-state% (game-state%-board gs) c->u u->c)))
+  (let* ([c->u (game-state%-coord->unit gs)]
+         [u->c (game-state%-unit->coord gs)]
+         [coord (dict-lookup unit-id u->c)]
+         [c->u (if coord (dict-dissoc coord c->u) c->u)]
+         [u->c (dict-dissoc unit-id u->c)])
+    (make-game-state% (game-state%-board gs) c->u u->c)))
 
 ;;; game-get-unit-at : GameState × Coord → Unit | #f
 ;;; Get unit at coordinate
 (define (game-get-unit-at gs coord)
   (doc 'export #t)
-  (hashtable-ref (game-state%-coord->unit gs) coord #f))
+  (dict-lookup coord (game-state%-coord->unit gs)))
 
 ;;; game-get-unit-coord : GameState × Symbol → Coord | #f
 ;;; Get coordinate of unit by ID
 (define (game-get-unit-coord gs unit-id)
-  (hashtable-ref (game-state%-unit->coord gs) unit-id #f))
+  (dict-lookup unit-id (game-state%-unit->coord gs)))
 
 ;;; game-all-units : GameState → (List (Coord . Unit))
 ;;; Get all units with their positions
 (define (game-all-units gs)
   (doc 'export #t)
-  (let ([c->u (game-state%-coord->unit gs)])
-       (map (lambda (coord)
-                    (cons coord (hashtable-ref c->u coord #f)))
-            (vector->list (hashtable-keys c->u)))))
+  (dict-entries (game-state%-coord->unit gs)))
 
 ;;; game-units-by-team : GameState × Symbol → (List (Coord . Unit))
 ;;; Get all units of a specific team

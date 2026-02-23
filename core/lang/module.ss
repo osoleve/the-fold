@@ -161,6 +161,7 @@ Dependencies:
  (register-module-path! 'graph-primitives "lattice/data/graph/graph-primitives.ss")
  (register-module-path! 'heap "lattice/data/heap.ss")
  (register-module-path! 'avl-tree "lattice/data/avl-tree.ss")
+ (register-module-path! 'hamt "lattice/data/hamt.ss")
  (register-module-path! 'chase-lev-deque "lattice/data/chase-lev-deque.ss")
  (register-module-path! 'collection-protocol "lattice/data/collection-protocol.ss")
  (register-module-path! 'collection-impl "lattice/data/collection-impl.ss")

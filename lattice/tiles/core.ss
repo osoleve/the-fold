@@ -1,5 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module tiles/core
+;;; @requires prelude dict
 (require 'prelude)
+(require 'dict)
 
 (doc 'module 'tiles/core)
 (doc 'description "BoardCraft Core Types and Utilities - Common types, protocols, and utilities used across all tile shapes. This is the foundation that specific tile implementations build upon.")
@@ -80,7 +83,7 @@
 
 (doc 'section 'board-protocol)
 
-(doc 'note "A Board is a mapping from Coordinates to Tiles. Boards are immutable hash tables. Operations: (make-board shape-type) → Board, (board-get board coord) → Tile | #f, (board-set board coord tile) → Board, (board-remove board coord) → Board, (board-tiles board) → (List (Coord . Tile)), (board-coords board) → (List Coord), (board-shape board) → Symbol")
+(doc 'note "A Board is a mapping from Coordinates to Tiles. Boards use persistent dictionaries (immutable). Operations: (make-board shape-type meta) → Board, (board-get board coord) → Tile | #f, (board-set board coord tile) → Board, (board-remove board coord) → Board, (board-tiles board) → (List (Coord . Tile)), (board-coords board) → (List Coord), (board-shape board) → Symbol")
 
 (define-record-type board%
   (fields shape
@@ -88,14 +91,10 @@
           meta))
 
 (doc make-board 'type '(-> Symbol Alist Board))
-(doc make-board 'description "Create a board with optional custom hash/equality functions")
+(doc make-board 'description "Create a board with an empty persistent tile dictionary")
 (doc make-board 'export #t)
-(define make-board
-  (case-lambda
-   [(shape-type meta)
-    (make-board% shape-type (make-hashtable coord-hash coord-equal?) meta)]
-   [(shape-type meta hash-func eq-func)
-    (make-board% shape-type (make-hashtable hash-func eq-func) meta)]))
+(define (make-board shape-type meta)
+  (make-board% shape-type dict-empty meta))
 
 (define (board-shape b)
   (doc 'type '(-> Board Symbol))
@@ -108,27 +107,24 @@
 (define (board-get board coord)
   (doc 'export #t)
   (doc 'type '(-> Board Coordinate (Maybe Tile)))
-  (hashtable-ref (board%-tiles board) coord #f))
+  (dict-lookup coord (board%-tiles board)))
 
 (define (board-set board coord tile)
   (doc 'export #t)
   (doc 'type '(-> Board Coordinate Tile Board))
-  (let ([new-tiles (hashtable-copy (board%-tiles board) #t)])
-       (hashtable-set! new-tiles coord tile)
-       (make-board% (board-shape board) new-tiles (board-meta board))))
+  (make-board% (board-shape board)
+               (dict-assoc coord tile (board%-tiles board))
+               (board-meta board)))
 
 (define (board-remove board coord)
   (doc 'type '(-> Board Coordinate Board))
-  (let ([new-tiles (hashtable-copy (board%-tiles board) #t)])
-       (hashtable-delete! new-tiles coord)
-       (make-board% (board-shape board) new-tiles (board-meta board))))
+  (make-board% (board-shape board)
+               (dict-dissoc coord (board%-tiles board))
+               (board-meta board)))
 
 (define (board-tiles board)
   (doc 'type '(-> Board (List (Pair Coordinate Tile))))
-  (let ([ht (board%-tiles board)])
-       (map (lambda (coord)
-                    (cons coord (hashtable-ref ht coord #f)))
-            (vector->list (hashtable-keys ht)))))
+  (dict-entries (board%-tiles board)))
 
 (define (board-coords board)
   (doc 'export #t)
@@ -139,7 +135,7 @@
   (doc 'export #t)
   (doc 'type '(-> Board Integer))
   (doc 'description "Returns the number of tiles currently stored on the board. NOTE: This counts stored tiles, not theoretical capacity. For an empty sparse board (created without default-tile), this returns 0. For geometric capacity (e.g., how many hexes fit in the radius), use shape-specific functions like hex-board-capacity.")
-  (hashtable-size (board%-tiles board)))
+  (dict-size (board%-tiles board)))
 
 (define (board-empty? board)
   (doc 'type '(-> Board Boolean))
