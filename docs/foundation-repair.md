@@ -8,13 +8,15 @@
 
 | Metric | Pre-Migration | Current |
 |---|---|---|
-| Total mutation operations | ~4,700 | ~2,500 (hashtable ops eliminated, `vector-set!`/`set!` remain) |
+| Total mutation operations | ~4,700 | ~2,100 (P0-P4: hashtable+vector-set!+set! reductions) |
 | Chez hashtable creation sites | ~95 in ~69 files | 18 in 9 files (all documented exceptions) |
 | Residual hashtable operations | ~537 | ~65 across 21 files (reads + exceptions) |
 | `vector-set!` | 1,343 in 137 files | ~893 in ~110 files (P3 in progress) |
 | ~~Files falsely claiming `'total` purity~~ | ~~181 of 405~~ | **FIXED** (P1) |
 | P0–P2 completion | — | **ALL DONE** |
+| P4 completion | — | **DONE** (remaining ~292 are justified STATE-MACHINE/GUARD) |
 | P3 `vector-set!` eliminated | — | ~316 across 47 files (pilots + batches 1-7) |
+| P4 bare `set!` eliminated | — | ~141 across 31 files (batches 1-3) |
 
 ---
 
@@ -24,7 +26,7 @@
 |---|---|---|
 | `vector-set!` | 1,412 in 152 files | `numeric/` (227), `statistics/` (211), `linalg/` (190), `diffgeo/` (115), `data/` (131) |
 | ~~Chez hash tables~~ | ~~537 in 69 files~~ | **MIGRATED** (P1+P2) — 67 files migrated to HAMT. Residual: 18 creation sites in 9 files (see P2 exceptions below) |
-| `set!` | ~795 in 222 files | `diffgeo/geodesics.ss` (26), `fp/meta/dsl.ss` (20), `data/graph/graph-community.ss` (16) |
+| `set!` | ~795 in 222 files → **~292 in ~107 files** (P4) | Remaining: STATE-MACHINE (crypto, ODE, DSL evaluators), GUARD (forward-decl, flags), pivot-search patterns |
 | ~~`list-sort` (Chez built-in)~~ | ~~16 in 10 files~~ | **FIXED** (P0) — replaced with Fold-native `sort-by` |
 | ~~`eval`~~ | ~~6 in 3 files~~ | **FIXED** (P0) — replaced with protocol dispatch |
 | ~~`call/cc`~~ | ~~3 in 1 file~~ | **FIXED** (P0) — replaced with fold-based short-circuit |
@@ -215,4 +217,66 @@ QA fix: `polynomial-features` generated powers up to x^(degree+1) instead of x^d
 Remaining scope:
 - ~893 `vector-set!` across ~110 files. The vast majority are legitimately imperative: iterative solvers (Gauss-Seidel, SOR, CG, GMRES), ODE integrators (RK4, Dormand-Prince), autodiff tapes, in-place algorithms (FFT butterflies, Fisher-Yates shuffle, Gaussian elimination), and scatter/accumulate patterns.
 - Further conversion would require new combinators (e.g., `vec-scatter`, `vec-accumulate`) or API-level refactors to pure functional threading — tracked as future work.
-- Eliminate ~795 bare `(set! ...)` across 222 files — many are loop accumulators convertible to `fold-left`/named `let`/`range-fold`
+### P4 — Bare `set!` elimination: DONE
+
+Converted accumulator and result-capture patterns to functional equivalents (named `let`, `fold-left`, `range-fold`, `do` iteration variables). ~141 bare `set!` eliminated across 31 files in 3 batches. Down from ~795 → ~292.
+
+**Batch 1** (`5dcf246e`): 11 files, 59 `set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `meta/analytics.ss` | 13 | 0 | `fold-left` with compound accumulators (issues/warnings pair, counter lists) |
+| `meta/promotion.ss` | 11 | 0 | `fold-left` with cons-pair accumulators across 6 check functions |
+| `data/graph/graph-community.ss` | 16 | 4 | Named `let` loops, `fold-left` for MST/components/modularity |
+| `numeric/digital-filters.ss` | 8 | 2 | `range-fold` for IIR feedforward/feedback accumulators |
+| `statistics/regression/regularized.ss` | 7 | 2 | `do` iteration variables for SSE/max-change accumulators |
+| `numeric/finite-diff.ss` | 10 | 8 | Named `let` for Jacobi inner-loop sum/diag |
+| `topology/persistent.ss` | 8 | 4 | Named `let` loops + new `fold-combinations` combinator |
+| `numeric/fem.ss` | 8 | 5 | Triple-nested named `let` for stiffness/mass assembly |
+| `physics/classical/constraint-graph.ss` | 10 | 8 | `fold-left` for SCC constraints, threaded result in toposort |
+| `diffgeo/geodesics.ss` | 24 | 22 | `range-fold` for back-substitution, named `let` for endpoint accumulation |
+| `linalg/integer-matrix.ss` | 7 | 6 | Loop variable for determinant sign tracking |
+
+**Batch 2** (`3b3daf71`): 15 files, 63 `set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `linalg/graph-laplacian.ss` | 9 | 0 | Named `let` loops for conductance/ratio-cut/normalized-cut accumulators |
+| `optimization/lp.ss` | 5 | 0 | Named `let` for leaving-variable/RHS-range accumulators |
+| `algebra/egraph-groebner.ss` | 6 | 0 | `fold-left` for variable collection across relations |
+| `diffgeo/forms.ss` | 7 | 0 | `fold-left` for k-form apply/pullback, `do` variables for integration |
+| `diffgeo/curvature.ss` | 5 | 0 | `do` iteration variables for Riemann/Ricci/scalar curvature sums |
+| `physics/classical/world.ss` | 5 | 0 | `fold-left` for collision detection, raycast closest/all |
+| `statistics/core/model-protocol.ss` | 4 | 0 | `do` iteration variables for CV scoring and fold splitting |
+| `autodiff/differentiable-signal.ss` | 4 | 0 | Named `let` for convolution VJP and spectral MSE gradient |
+| `sim/dynamics/attractor-render.ss` | 5 | 0 | Threaded named `let` for frame rendering |
+| `data/graph/centrality.ss` | 5 | 2 | Named `let` for correlation accumulators |
+| `data/graph/graph-filtration.ss` | 5 | 2 | `do` iteration variables for weight/pair collection |
+| `egraph/eclass.ss` | 5 | 3 | `do` iteration variables for node-count/all-nodes |
+| `control-systems/discrete-control.ss` | 4 | 2 | Named `let` for sample rate accumulation |
+| `numeric/spectral-pde.ss` | 4 | 2 | Named `let` for back-substitution and error estimate |
+| `sim/dynamics/stability.ss` | 3 | 2 | `do` iteration variable for back-substitute sum |
+
+Audited with 0 conversions (all STATE-MACHINE/GUARD): `fp/parsing/parser-examples.ss` (5, forward-decl), `autodiff/optic-functors.ss` (4, registry+callback), `game-theory/coop-games.ss` (4, cross-phase row counter).
+
+**Batch 3** (`d9079df0`): 5 files, 19 `set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `meta/module-manifest.ss` | 6 | 0 | `fold-left` for manifest-diff (4 accumulators) and manifest-split |
+| `meta/search.ss` | 13 | 9 | `fold-left` to replace in-loop `set!` in lattice-index! |
+| `meta/manifest-migration.ss` | 3 | 0 | `let*` shadow bindings for lint-manifest |
+| `numeric/convolution.ss` | 3 | 0 | `vec-tabulate` + `do` variables for convolution and peak-finding |
+| `geometry/ascii-render.ss` | 3 | 0 | Threaded named `let` for frame rendering |
+
+Audited with 0 conversions: `meta/kg.ss` (12, global builder STATE-MACHINE), `meta/persist.ss` (8, cache restore), `meta/xref.ss` (3, global assignments), `linalg/matrix-solvers.ss` (3, Levinson-Durbin), `sim/dynamics/bifurcation.ss` (12, LU/branch STATE-MACHINE).
+
+**P4 remaining scope:** ~292 bare `set!` across ~107 files. Virtually all are justified:
+- **Crypto** (sha512, blake2b): hash compression state — inherently mutable
+- **DSL evaluator** (fp/meta/dsl.ss): stack machine semantics
+- **Recursive AD** (higher-order-diff.ss): tape-based reverse-mode
+- **ODE integrators** (geodesics.ss): interleaved RK4/Dormand-Prince state
+- **Graph algorithms** (constraint-graph.ss, graph-community.ss): BFS/DFS/Tarjan state
+- **Pivot search** (various solvers): conditional best-tracking patterns
+- **Forward declarations** (parser-examples.ss): mutually-recursive parser defs
+- **Module-level state** (meta/ files): initialization flags, global caches
