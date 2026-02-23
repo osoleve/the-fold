@@ -2,12 +2,31 @@
 (load "lattice/meta/kg.ss")
 (unless (top-level-bound? 'extract-docs-from-file)
   (load "boundary/meta/docs-io.ss"))
+(unless (top-level-bound? 'scan-skill-all-exports)
+  (load "boundary/meta/exports-io.ss"))
+(unless (top-level-bound? 'exports-of)
+  (load "boundary/introspect/exports.ss"))
+(unless (top-level-bound? 'hydrate-cas!)
+  (load "boundary/storage/cas-persist.ss"))
 
 (doc 'module 'kg-io)
 (doc 'description "I/O layer for knowledge graph — manifest discovery, reading, CAS persistence,
 and build orchestration. In KG-first mode, the CAS is the source of truth.
 Manifests are an import mechanism, not the primary store.")
 (doc 'layer 'boundary)
+
+(doc *kg-enrich-from-source?* 'type Boolean)
+(doc *kg-enrich-from-source?* 'description "When #t, enrich manifest exports/modules by scanning source files during kg-build!.")
+(define *kg-enrich-from-source?* #t)
+
+(doc *kg-export-inference-allowlist* 'type '(List Symbol))
+(doc *kg-export-inference-allowlist* 'description "Skills allowed to use broad exports-of fallback when manifest exports are empty.
+This is intentionally conservative to avoid flooding the KG with internal definitions.")
+(define *kg-export-inference-allowlist* '(meta))
+
+(doc *kg-hydrate-cas-on-load?* 'type Boolean)
+(doc *kg-hydrate-cas-on-load?* 'description "When #t, kg-load-from-root! hydrates in-memory CAS from disk before root lookup if needed.")
+(define *kg-hydrate-cas-on-load?* #t)
 
 ;;; ====
 ;;; Root Hash Persistence
@@ -46,23 +65,327 @@ Manifests are an import mechanism, not the primary store.")
 ;;; Build Pipeline
 ;;; ====
 
+;;; alist-set : Alist Symbol Any -> Alist
+;;; Set key in alist, preserving order when possible.
+(define (alist-set alist key value)
+  (let loop ([xs alist] [acc '()] [found #f])
+    (cond
+      [(null? xs)
+       (let ([base (reverse acc)])
+         (if found
+             base
+             (append base (list (cons key value)))))]
+      [(and (pair? (car xs)) (eq? (caar xs) key))
+       (loop (cdr xs) (cons (cons key value) acc) #t)]
+      [else
+       (loop (cdr xs) (cons (car xs) acc) found)])))
+
+;;; dedupe-symbols : (List Symbol) -> (List Symbol)
+(define (dedupe-symbols syms)
+  (let loop ([xs syms] [seen hamt-empty] [acc '()])
+    (if (null? xs)
+        (reverse acc)
+        (let ([s (car xs)])
+          (if (or (not (symbol? s)) (hamt-lookup s seen))
+              (loop (cdr xs) seen acc)
+              (loop (cdr xs)
+                    (hamt-assoc s #t seen)
+                    (cons s acc)))))))
+
+;;; string-prefix-kg? : String String -> Boolean
+(define (string-prefix-kg? prefix str)
+  (let ([plen (string-length prefix)]
+        [slen (string-length str)])
+    (and (>= slen plen)
+         (string=? prefix (substring str 0 plen)))))
+
+;;; string-contains-kg? : String String -> Boolean
+(define (string-contains-kg? haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+    (if (> n-len h-len)
+        #f
+        (let loop ([i 0])
+          (cond
+            [(> (+ i n-len) h-len) #f]
+            [(string=? (substring haystack i (+ i n-len)) needle) #t]
+            [else (loop (+ i 1))])))))
+
+;;; likely-public-export? : Symbol -> Boolean
+;;; Conservative filter for inferred (non-annotated) exports.
+(define (likely-public-export? sym)
+  (and (symbol? sym)
+       (let ([name (symbol->string sym)])
+         (and (not (string-prefix-kg? "*" name))
+              (not (string-prefix-kg? "%" name))
+              (not (string-prefix-kg? "test-" name))
+              (not (string-prefix-kg? "assert-" name))
+              (not (string-prefix-kg? "debug-" name))
+              (not (string-prefix-kg? "tmp-" name))
+              (not (string-prefix-kg? "unsafe-" name))
+              (not (string-contains-kg? name "internal"))
+              (not (string-contains-kg? name "private"))))))
+
+;;; meta-api-symbol? : Symbol -> Boolean
+;;; Additional quality gate for inferred exports in the meta skill.
+(define (meta-api-symbol? sym)
+  (and (likely-public-export? sym)
+       (let ([name (symbol->string sym)])
+         (or (string-prefix-kg? "kg-" name)
+             (string-prefix-kg? "lattice-" name)
+             (string-prefix-kg? "bm25-" name)
+             (string-prefix-kg? "xref-" name)
+             (string-prefix-kg? "doc-" name)
+             (string-prefix-kg? "lf" name)
+             (string-prefix-kg? "li" name)
+             (string-prefix-kg? "le" name)
+             (string-prefix-kg? "lm" name)
+             (string-prefix-kg? "ld" name)
+             (string-prefix-kg? "lu" name)
+             (string-prefix-kg? "ls" name)
+             (string-prefix-kg? "lh" name)
+             (string-prefix-kg? "lk" name)
+             (string-prefix-kg? "lc" name)
+             (string-prefix-kg? "lt" name)
+             (string-prefix-kg? "lr" name)))))
+
+;;; manifest-export-symbols : ManifestData -> (List Symbol)
+;;; Flatten exports regardless of grouped/flat manifest format.
+(define (manifest-export-symbols manifest-data)
+  (let* ([exports-entry (assq 'exports manifest-data)]
+         [exports-raw (if (and exports-entry (list? (cdr exports-entry)))
+                          (cdr exports-entry)
+                          '())])
+    (dedupe-symbols
+     (append-map
+      (lambda (item)
+        (cond
+          [(symbol? item) (list item)]
+          [(and (pair? item) (symbol? (car item)))
+           (filter symbol? (cdr item))]
+          [else '()]))
+      exports-raw))))
+
+;;; manifest-exports->groups : ManifestData -> (List (Pair (Maybe Symbol) (List Symbol)))
+;;; Group exports by module. Flat exports use #f as module key.
+(define (manifest-exports->groups manifest-data)
+  (let* ([exports-entry (assq 'exports manifest-data)]
+         [exports-raw (if (and exports-entry (list? (cdr exports-entry)))
+                          (cdr exports-entry)
+                          '())])
+    (let loop ([items exports-raw] [groups '()])
+      (if (null? items)
+          groups
+          (let ([it (car items)])
+            (cond
+              [(symbol? it)
+               (loop (cdr items)
+                     (group-add-exports groups #f (list it)))]
+              [(and (pair? it) (symbol? (car it)))
+               (loop (cdr items)
+                     (group-add-exports groups (car it) (filter symbol? (cdr it))))]
+              [else
+               (loop (cdr items) groups)]))))))
+
+;;; group-add-exports : Groups (Maybe Symbol) (List Symbol) -> Groups
+;;; Add symbols to a module group, deduplicating while preserving order.
+(define (group-add-exports groups module-name symbols)
+  (let ([entry (assoc module-name groups)])
+    (if entry
+        (map (lambda (g)
+               (if (equal? (car g) module-name)
+                   (cons module-name (dedupe-symbols (append (cdr g) symbols)))
+                   g))
+             groups)
+        (append groups (list (cons module-name (dedupe-symbols symbols)))))))
+
+;;; merge-exports-from-scan : ManifestData ScanResults -> (List Any)
+;;; Merge source-scanned exports into manifest exports while retaining existing entries.
+(define (merge-exports-from-scan manifest-data scan-results)
+  (let* ([base-groups (manifest-exports->groups manifest-data)]
+         [merged
+          (fold-left
+           (lambda (groups entry)
+             (let ([module-name (car entry)]
+                   [symbols (if (and (pair? (cdr entry)) (list? (cadr entry)))
+                                (cadr entry)
+                                '())])
+               (group-add-exports groups module-name (filter symbol? symbols))))
+           base-groups
+           scan-results)]
+         [flat-entry (assoc #f merged)]
+         [flat-syms (if flat-entry (dedupe-symbols (cdr flat-entry)) '())]
+         [mod-groups (filter (lambda (g) (car g)) merged)]
+         [mod-forms (map (lambda (g) (cons (car g) (dedupe-symbols (cdr g)))) mod-groups)])
+    (if (null? mod-forms)
+        flat-syms
+        (append flat-syms mod-forms))))
+
+;;; infer-exports-for-empty-manifest : ManifestData -> ScanResults
+;;; Fallback: if manifest exports are empty, infer grouped exports from module files.
+(define (infer-exports-for-empty-manifest manifest-data)
+  (let ([skill-name (cdr (or (assq 'name manifest-data) '(name . unknown)))])
+    (if (or (not (null? (manifest-export-symbols manifest-data)))
+            (not (memq skill-name *kg-export-inference-allowlist*)))
+      '()
+      (let* ([path-entry (assq 'path manifest-data)]
+             [skill-path (if (and path-entry (string? (cdr path-entry)))
+                             (cdr path-entry)
+                             "")]
+             [mods-entry (assq 'modules manifest-data)]
+             [mods-raw (if (and mods-entry (list? (cdr mods-entry)))
+                           (cdr mods-entry)
+                           '())]
+             [results '()])
+        (for-each
+         (lambda (mod)
+           (let ([entries (parse-module-entry mod skill-path)])
+             (for-each
+              (lambda (entry)
+                (let* ([mod-name (car entry)]
+                       [file-path (cdr entry)]
+                       [symbols (if (eq? skill-name 'meta)
+                                    (filter meta-api-symbol? (exports-of file-path))
+                                    (filter likely-public-export? (exports-of file-path)))])
+                  (when (pair? symbols)
+                    (set! results
+                          (cons (list mod-name symbols "" file-path) results)))))
+              entries)))
+         mods-raw)
+        (reverse results)))))
+
+;;; module-entry-name : Any -> (Maybe Symbol)
+(define (module-entry-name entry)
+  (and (pair? entry) (symbol? (car entry)) (car entry)))
+
+;;; merge-modules-from-scan : ManifestData ScanResults -> (List Any)
+;;; Add missing module entries discovered from source scan.
+(define (merge-modules-from-scan manifest-data scan-results)
+  (let* ([mods-entry (assq 'modules manifest-data)]
+         [mods-raw (if (and mods-entry (list? (cdr mods-entry)))
+                       (cdr mods-entry)
+                       '())]
+         [existing-names (fold-left
+                          (lambda (m entry)
+                            (let ([name (module-entry-name entry)])
+                              (if name (hamt-assoc name #t m) m)))
+                          hamt-empty
+                          mods-raw)])
+    (fold-left
+     (lambda (mods entry)
+       (let* ([mod-name (car entry)]
+              [desc (or (caddr entry) "")]
+              [path (cadddr entry)]
+              [file (basename path)])
+         (if (or (not (symbol? mod-name))
+                 (hamt-lookup mod-name existing-names))
+             mods
+             (begin
+               (set! existing-names (hamt-assoc mod-name #t existing-names))
+               (append mods (list (list mod-name file desc)))))))
+     mods-raw
+     scan-results)))
+
+;;; kg-enrich-manifest-from-source : ManifestData -> ManifestData
+;;; Merge source-derived exports/modules into parsed manifest data.
+(define (kg-enrich-manifest-from-source manifest-data)
+  (if (not *kg-enrich-from-source?*)
+      manifest-data
+      (let* ([path-entry (assq 'path manifest-data)]
+             [skill-dir (if (and path-entry (string? (cdr path-entry)))
+                            (cdr path-entry)
+                            #f)])
+        (if (or (not skill-dir) (not (file-directory? skill-dir)))
+            manifest-data
+            (let* ([scan-results (scan-skill-all-exports skill-dir)]
+                   [fallback-results (infer-exports-for-empty-manifest manifest-data)]
+                   [all-scan-results (append scan-results fallback-results)])
+              (if (null? scan-results)
+                  (if (null? fallback-results)
+                      manifest-data
+                      (let* ([merged-exports (merge-exports-from-scan manifest-data fallback-results)]
+                             [merged-modules (merge-modules-from-scan manifest-data fallback-results)]
+                             [m1 (alist-set manifest-data 'exports merged-exports)]
+                             [m2 (alist-set m1 'modules merged-modules)])
+                        m2))
+                  (let* ([merged-exports (merge-exports-from-scan manifest-data all-scan-results)]
+                         [merged-modules (merge-modules-from-scan manifest-data all-scan-results)]
+                         [m1 (alist-set manifest-data 'exports merged-exports)]
+                         [m2 (alist-set m1 'modules merged-modules)])
+                    m2)))))))
+
 (doc kg-extract-type-sigs! 'type (-> Void))
 (doc kg-extract-type-sigs! 'description "Scan lattice source files for (doc fn 'type ...) forms.
-Extracts type annotations and populates the KG type signature map.
+Also extracts contextual (doc 'type ...) forms from function define bodies.
 Only considers symbols that are known exports in the KG.")
+(define (doc-contextual-type-expr sexp)
+  (if (and (pair? sexp)
+           (eq? (car sexp) 'doc)
+           (pair? (cdr sexp)))
+      (let ([args (cdr sexp)])
+        (if (and (pair? (car args))
+                 (eq? (caar args) 'quote)
+                 (eq? (cadar args) 'type)
+                 (pair? (cdr args)))
+            (cadr args)
+            #f))
+      #f))
+
+(define (define-target-symbol sexp)
+  (if (and (pair? sexp)
+           (eq? (car sexp) 'define)
+           (pair? (cdr sexp)))
+      (let ([head (cadr sexp)])
+        (cond
+          [(symbol? head) head]
+          [(and (pair? head) (symbol? (car head))) (car head)]
+          [else #f]))
+      #f))
+
+(define (define-contextual-type-pair sexp)
+  (let ([target (define-target-symbol sexp)])
+    (if (not target)
+        #f
+        (let ([body (cddr sexp)])
+          (let loop ([forms body])
+            (if (null? forms)
+                #f
+                (let ([type-expr (doc-contextual-type-expr (car forms))])
+                  (if type-expr
+                      (cons target type-expr)
+                      (loop (cdr forms))))))))))
+
 (define (kg-extract-type-sigs!)
   (let ([known-exports (let loop ([exports (kg-exports)] [seen hamt-empty])
                          (if (null? exports) seen
                              (loop (cdr exports)
                                    (hamt-assoc (caar exports) #t seen))))]
+        [seen-targets hamt-empty]
         [type-pairs '()])
-    ;; Scan source files under lattice/ and core/
+    (define (normalize-type-expr type-expr)
+      (if (and (pair? type-expr)
+               (eq? (car type-expr) 'quote)
+               (pair? (cdr type-expr)))
+          (cadr type-expr)
+          type-expr))
+    (define (valid-type-expr? type-expr)
+      (or (symbol? type-expr) (pair? type-expr)))
+    (define (capture-type! target type-expr)
+      (let ([norm (normalize-type-expr type-expr)])
+        (when (and (symbol? target)
+                   (hamt-lookup target known-exports)
+                   (valid-type-expr? norm)
+                   (not (hamt-lookup target seen-targets)))
+          (set! seen-targets (hamt-assoc target #t seen-targets))
+          (set! type-pairs (cons (cons target norm) type-pairs)))))
+    ;; Scan source files under lattice/, core/, and boundary/.
     (for-each
      (lambda (root)
        (let ([files (find-scheme-files root)])
          (for-each
           (lambda (file)
             (guard (e [else (void)])  ; skip files that fail to parse
+              ;; Pass 1: targeted doc forms: (doc fn 'type ...)
               (let ([docs (extract-docs-from-file file)])
                 (for-each
                  (lambda (doc-entry)
@@ -73,14 +396,22 @@ Only considers symbols that are known exports in the KG.")
                      (when (and (eq? tag 'type)
                                 target
                                 (symbol? target)
-                                (hamt-lookup target known-exports)
                                 (pair? content))
-                       (set! type-pairs
-                             (cons (cons target (car content)) type-pairs)))))
-                 docs))))
+                       (capture-type! target (car content)))))
+                 docs))
+              ;; Pass 2: contextual doc forms inside defines:
+              ;; (define (fn ...) (doc 'type ...) ...)
+              (let ([sexps (read-all-sexps file)])
+                (when (and sexps (list? sexps))
+                  (for-each
+                   (lambda (sexp)
+                     (let ([pair (define-contextual-type-pair sexp)])
+                       (when pair
+                         (capture-type! (car pair) (cdr pair)))))
+                   sexps)))))
           files)))
-     '("lattice" "core"))
-    (kg-populate-types! type-pairs)))
+     '("lattice" "core" "boundary"))
+    (kg-populate-types! (reverse type-pairs))))
 
 (doc kg-build! 'type (-> Bytevector))
 (doc kg-build! 'description "Build knowledge graph from all manifests in lattice/.
@@ -91,15 +422,33 @@ Returns root hash.")
   (kg-reset!)
   (let ([manifests (find-manifests "lattice")])
     (printf "Found ~a manifests\n" (length manifests))
+    (let ([enriched-skills 0]
+          [added-exports 0]
+          [added-modules 0])
     ;; Phase 1: Add all skills (creates skill/module/export blocks in CAS)
     (for-each
      (lambda (manifest-path)
        (let* ([sexp (read-manifest-sexp manifest-path)]
-              [data (if sexp (parse-manifest sexp) #f)])
+              [data0 (if sexp (parse-manifest sexp) #f)])
+         (let ([data (if data0 (kg-enrich-manifest-from-source data0) #f)])
          (when data
+           (let* ([before-e (length (manifest-export-symbols data0))]
+                  [after-e (length (manifest-export-symbols data))]
+                  [mods0 (let ([m (assq 'modules data0)])
+                           (if (and m (list? (cdr m))) (length (cdr m)) 0))]
+                  [mods1 (let ([m (assq 'modules data)])
+                           (if (and m (list? (cdr m))) (length (cdr m)) 0))])
+             (when (> after-e before-e)
+               (set! enriched-skills (+ enriched-skills 1))
+               (set! added-exports (+ added-exports (- after-e before-e))))
+             (when (> mods1 mods0)
+               (set! added-modules (+ added-modules (- mods1 mods0)))))
            (printf "  Loading: ~a\n" (cdr (assq 'name data)))
-           (kg-add-skill! data))))
+           (kg-add-skill! data)))))
      manifests)
+    (when (> enriched-skills 0)
+      (printf "  Enriched ~a skills from source (+~a exports, +~a modules)\n"
+              enriched-skills added-exports added-modules))
     ;; Phase 2: Build dependency edges
     (kg-build-deps!)
     ;; Phase 3: Extract concepts from keywords (KG-first: concepts are first-class)
@@ -117,7 +466,7 @@ Returns root hash.")
               (length *kg-concepts*)
               (hamt-size *kg-type-sigs*)
               (length *kg-edges*))
-      root-hash)))
+      root-hash))))
 
 (doc kg-ensure! 'type (-> (Maybe Bytevector)))
 (doc kg-ensure! 'description "Build knowledge graph only if not already initialized.")
@@ -138,6 +487,12 @@ are in the CAS, we skip manifest parsing entirely. Returns #t on success.")
   (let ([root-hash (kg-load-root)])
     (if root-hash
         (begin
+          (when (and *kg-hydrate-cas-on-load?*
+                     (top-level-bound? 'hydrate-cas!)
+                     (not (stored? root-hash)))
+            (let ([loaded (hydrate-cas!)])
+              (when (> loaded 0)
+                (printf "Hydrated CAS from disk: ~a blocks\n" loaded))))
           (printf "Loading KG from CAS (root: ~a...)...\n"
                   (substring (hash->hex root-hash) 0 12))
           (if (kg-load-from-cas! root-hash)

@@ -215,7 +215,11 @@
          [(string=? s "...") '(variadic)]
          [else (tokenize s)]))]
     [(pair? type-expr)
-     (append-map type-sig->terms type-expr)]
+     (if (and (eq? (car type-expr) 'quote)
+              (pair? (cdr type-expr)))
+         (type-sig->terms (cadr type-expr))
+         (append (type-sig->terms (car type-expr))
+                 (type-sig->terms (cdr type-expr))))]
     [else '()]))
 
 (doc 'section 'concept-boost)

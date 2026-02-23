@@ -172,9 +172,12 @@ refs[2]=edge-index, refs[3]=type-index. The root hash IS the identity of the ent
 ;;; ====
 
 (doc kg-store-block! 'type (-> Block Bytevector))
-(doc kg-store-block! 'description "Store a KG block in the CAS and return its hash")
+(doc kg-store-block! 'description "Store a KG block in the CAS and return its hash.
+If CAS persistence is available, also persists to disk.")
 (define (kg-store-block! blk)
-  (store! blk))
+  (if (top-level-bound? 'store-persistent!)
+      (store-persistent! blk)
+      (store! blk)))
 
 ;;; ====
 ;;; Knowledge Graph State
@@ -299,15 +302,15 @@ refs[2]=edge-index, refs[3]=type-index. The root hash IS the identity of the ent
 ;;; ====
 
 (doc kg-extract-concepts! 'type (-> Void))
-(doc kg-extract-concepts! 'description "Extract concepts from skill keywords and descriptions.
-Keywords become concept nodes. Skills sharing keywords are linked to
+(doc kg-extract-concepts! 'description "Extract concepts from skill keywords and aliases.
+Keywords/aliases become concept nodes. Skills sharing these tags are linked to
 the same concept, creating cross-domain bridges automatically.
 This is the key insight of the KG-first design: concepts exist
 independently and skills are connected through them.")
 (define (kg-extract-concepts!)
-  ;; Collect all keywords across all skills
+  ;; Collect all concept tags across all skills
   (let ([keyword-skills hamt-empty])  ; keyword → (List skill-name)
-    ;; Phase 1: collect keyword → skills mapping
+    ;; Phase 1: collect concept → skills mapping
     (for-each
      (lambda (skill-entry)
        (let* ([skill-name (car skill-entry)]
@@ -315,24 +318,30 @@ independently and skills are connected through them.")
               [keywords (if data
                             (let ([k (assq 'keywords data)])
                               (if (and k (list? (cdr k))) (cdr k) '()))
-                            '())])
+                            '())]
+              [aliases (if data
+                           (let ([a (assq 'aliases data)])
+                             (if (and a (list? (cdr a))) (cdr a) '()))
+                           '())]
+              [concept-tags (append keywords aliases)])
          (for-each
           (lambda (kw)
             (when (symbol? kw)
               (let ([existing (or (hamt-lookup kw keyword-skills) '())])
-                (set! keyword-skills
-                      (hamt-assoc kw (cons skill-name existing) keyword-skills)))))
-          keywords)))
+                (unless (memq skill-name existing)
+                  (set! keyword-skills
+                        (hamt-assoc kw (cons skill-name existing) keyword-skills))))))
+          concept-tags)))
      *kg-skills*)
 
-    ;; Phase 2: create concept blocks for each keyword
+    ;; Phase 2: create concept blocks for each concept tag
     (for-each
      (lambda (kv)
        (let* ([concept-name (car kv)]
               [skill-names (cdr kv)]
               [concept-block (make-concept-entity
                               concept-name
-                              ""  ; description derived from context
+                              (format "Concept derived from manifest metadata: ~a" concept-name)
                               (list concept-name))]
               [concept-hash (kg-store-block! concept-block)])
          ;; Register concept
