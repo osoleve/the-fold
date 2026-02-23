@@ -67,6 +67,10 @@ PROCEDURE find-capability(need: String) -> List<Skill>
 | `(ld 'skill)` | Dependencies | `(ld 'autodiff)` |
 | `(lu 'skill)` | What uses this skill | `(lu 'linalg)` |
 | `(lc 'skill)` | Cycle check | `(lc 'fp)` |
+| `(lk 'concept)` | Skills providing concept | `(lk 'matrix)` |
+| `(lkk 'skill)` | Concepts of a skill | `(lkk 'linalg)` |
+| `(lkb 'a 'b)` | Concept bridge between skills | `(lkb 'linalg 'geometry)` |
+| `(lkr 'skill)` | Related by shared concepts | `(lkr 'linalg)` |
 
 **Testing commands:**
 
@@ -703,6 +707,10 @@ Grammar-driven code generation:
 (le 'skill)            ; List skill exports
 (ld 'skill)            ; Dependencies of skill
 (lu 'skill)            ; What uses this skill
+(lk 'concept)          ; Skills providing a concept
+(lkk 'skill)           ; Concepts of a skill
+(lkb 'a 'b)            ; Concept bridge between skills
+(lkr 'skill)           ; Related by shared concepts
 ```
 
 ### Optics

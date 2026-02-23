@@ -434,8 +434,8 @@ independently and skills are connected through them.")
 (define (kg-deps skill-name)
   (let ([data (kg-skill-data skill-name)])
        (if data
-           (let ([deps (cdr (assq 'deps data))])
-                (if (list? deps) deps '()))
+           (let ([d (assq 'deps data)])
+                (if (and d (list? (cdr d))) (cdr d) '()))
            '())))
 
 (doc kg-uses 'type (-> Symbol (List Symbol)))

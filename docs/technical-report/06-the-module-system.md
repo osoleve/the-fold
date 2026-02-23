@@ -176,15 +176,18 @@ The badge system transforms complexity analysis from "something you have to thin
 The `lattice/meta/` module provides agent-facing discovery tools:
 
 **Knowledge Graph** (`kg.ss`):
-- Parses all manifests into a CAS-backed graph
-- Entities: skills, modules, exports
-- Relations: depends-on, exports, contains
+- CAS-backed graph with content-addressed blocks
+- Entities: skills, modules, exports, concepts
+- Relations: depends-on, provides-concept, bridges
+- Single root hash identifies entire lattice state
 
 ```scheme
-(kg-build!)              ; Build KG from manifests
+(lattice-init!)          ; Load from CAS > cache > manifests
 (kg-skills)              ; List all skills
 (kg-deps 'autodiff)      ; → (linalg)
 (kg-uses 'linalg)        ; → (autodiff geometry physics/diff ...)
+(kg-concept-skills 'matrix) ; → (linalg geometry ...)
+(kg-skill-concepts 'linalg) ; → (matrix vector linear-algebra ...)
 ```
 
 **BM25 Search Engine** (`bm25.ss`):

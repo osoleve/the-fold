@@ -44,21 +44,52 @@ Manifests are transformed into CAS blocks for indexing and querying:
 
 | Block Tag | Contents | Purpose |
 |-----------|----------|---------|
-| `KG-SKILL` | Skill metadata | Root node for skill |
-| `KG-MODULE` | Module within skill | File-level granularity |
-| `KG-EXPORT` | Exported symbol | Function/value discovery |
+| `kg/skill` | Full manifest alist | Root node for skill |
+| `kg/module` | Module metadata | File-level granularity |
+| `kg/export` | Exported symbol | Function/value discovery |
+| `kg/concept` | Abstract idea (keyword) | Cross-domain semantic bridging |
+| `kg/depends-on` | Skill→skill edge | Dependency relationship |
+| `kg/provides-concept` | Skill→concept edge | Skill provides a concept |
+| `kg/skill-index` | Refs to all skill hashes | Index block |
+| `kg/concept-index` | Refs to all concept hashes | Index block |
+| `kg/edge-index` | Refs to all edge hashes | Index block |
+| `kg/root` | Refs to three indices | KG identity (single hash) |
 
-The knowledge graph is built by `kg-build!` which scans all manifest files, parses them, and stores the resulting blocks in the CAS. This happens lazily on first access, with subsequent queries hitting a warm cache.
+The root hash IS the identity of the entire knowledge graph—a single content address that covers every skill, concept, and relationship.
+
+**Initialization Priority Chain**:
+
+```scheme
+(lattice-init!)  ; or (lattice-init-quiet!) for REPL startup
+```
+
+Three-level priority chain, fastest first:
+
+1. **CAS root** (`kg-load-from-root!`): Load persisted root hash from `.fold-repl/kg-root.sexp`, traverse block tree to hydrate all state. No manifest parsing, no cache deserialization.
+2. **Sexp cache** (`lattice-load-cache!`): Legacy path. Deserialize `lattice-cache.sexp` with fingerprint validation.
+3. **Full manifest build** (`kg-build!`): Scan all `manifest.sexp` files, create blocks, extract concepts from keywords, build root, persist root hash and sexp cache.
 
 **Initialization Performance**:
 
 | Scenario | Time |
 |----------|------|
+| CAS root (warm) | <0.2s |
+| Sexp cache (warm) | <0.3s |
 | Cold start (no cache) | ~2.5s |
-| Warm start (cached) | <0.3s |
-| Incremental (one skill changed) | ~0.5s |
 
-The warm cache stores serialized BM25 indices and skill metadata, eliminating the need to re-scan the filesystem.
+**Concept Extraction**:
+
+Keywords from manifest files become first-class concept nodes. Skills sharing keywords are automatically linked through shared concepts, providing semantic bridging without manual annotation:
+
+```scheme
+> (kg-concepts)           ; ~657 concepts across 39 skills
+> (kg-concept-skills 'matrix)
+(linalg geometry physics/diff ...)
+> (kg-skill-concepts 'linalg)
+(matrix vector linear-algebra decomposition ...)
+> (kg-shared-concepts 'linalg 'geometry)
+(matrix vector transform ...)
+```
 
 ### 8.2 Semantic Search Infrastructure
 
@@ -162,12 +193,11 @@ The cycle checker uses DFS with a visited set, flagging any back-edges that woul
 
 ```scheme
 > (lattice-stats)
-((skills . 42)
- (modules . 198)
- (exports . 2714)
- (edges . 87)
- (max-depth . 4)
- (avg-deps . 2.1))
+((skills . 39)
+ (modules . 357)
+ (exports . 5723)
+ (concepts . 657)
+ (edges . 830))
 
 > (lattice-health)
 ((orphaned-skills . 0)
@@ -180,6 +210,15 @@ The cycle checker uses DFS with a visited set, flagging any back-edges that woul
  (skills-without-tests . 4)
  (coverage-pct . 90.5))
 ```
+
+**Concept Queries**:
+
+| Function | Alias | Returns |
+|----------|-------|---------|
+| `kg-concept-skills` | `lk` | Skills providing a concept |
+| `kg-skill-concepts` | `lkk` | Concepts of a skill |
+| `kg-concept-bridge` | `lkb` | Shared concepts between two skills |
+| `kg-related-by-concept` | `lkr` | Skills related by concept overlap |
 
 ### 8.4 Cross-Reference System
 
@@ -640,13 +679,14 @@ This enables agents to navigate and understand code using the same infrastructur
 
 The meta-tooling ecosystem follows several key design principles:
 
-**Everything Queryable Through Manifests**:
+**KG-First: The Graph IS the Source of Truth**:
 
-All skill metadata flows through manifest files. There's no hidden configuration—if a skill has dependencies, exports, or keywords, they're declared in its manifest. This enables:
+The knowledge graph is stored in the CAS as content-addressed blocks. Manifests are an *import mechanism*, not the primary store. Once built, the entire lattice state can be reconstructed from a single root hash without touching the filesystem. This enables:
 
-- Automated documentation generation
-- Dependency analysis without loading code
-- Search indexing from metadata alone
+- Instant startup via CAS hydration (no manifest parsing)
+- Immutable snapshots of lattice state
+- Concept-based semantic bridging across skills
+- Content deduplication of skill metadata
 
 **CAS-Native Persistence**:
 

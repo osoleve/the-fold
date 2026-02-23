@@ -27,6 +27,7 @@ all blocks are in the store, we skip both cache and manifest parsing.")
    ;; Priority 1: CAS-first — load from content-addressed store
    [(kg-load-from-root!)
     (lattice-index!)
+    (build-source-location-cache!)
     (printf "\nLattice tooling initialized (from CAS)!\n")]
    ;; Priority 2: sexp cache — legacy fast path
    [(lattice-load-cache!)
@@ -55,7 +56,8 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (cond
    ;; Priority 1: CAS-first
    [(kg-load-from-root!)
-    (lattice-index!)]
+    (lattice-index!)
+    (build-source-location-cache!)]
    ;; Priority 2: sexp cache
    [(lattice-load-cache!)
     (lattice-index!)]
