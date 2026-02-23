@@ -39,13 +39,15 @@
 
 (doc diff-backward 'export #t)
 (doc diff-backward 'type '(-> Vector Number Vector))
-(doc diff-backward 'description "Backward difference: (u_i - u_{i-1}) / h. Result has n-1 elements.")
+(doc diff-backward 'description "Backward difference: (u_j - u_{j-1}) / h for j=1..n-1. Result has n-1 elements.")
+(doc diff-backward 'note "result[k] approximates u'(x_{k+1}), vs diff-forward where result[k] approximates u'(x_k)")
 (define (diff-backward u h)
   (let* ([n (vector-length u)]
          [inv-h (/ 1.0 h)])
-    (vec-tabulate (- n 1) i
-      (* inv-h (- (vector-ref u (+ i 1))
-                  (vector-ref u i))))))
+    (vec-tabulate (- n 1) k
+      (let ([j (+ k 1)])  ;; backward diff at grid point j
+        (* inv-h (- (vector-ref u j)
+                    (vector-ref u (- j 1))))))))
 
 (doc diff-central 'export #t)
 (doc diff-central 'type '(-> Vector Number Vector))
