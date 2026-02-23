@@ -1,10 +1,11 @@
 ;;; lattice/linalg/iterative-solvers.ss — Iterative Linear System Solvers
 ;;; @module iterative-solvers
-;;; @requires prelude vec matrix
+;;; @requires prelude vec matrix iteration
 
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
+(require 'iteration)
 
 (doc 'module 'iterative-solvers)
 (doc 'purity 'partial)
@@ -104,24 +105,21 @@ Properties:
         [(>= iter max-iter)
          `(error no-convergence ,iter ,res)]
         [else
-         (let ([x-new (make-vector n 0.0)])
-              ;; Compute each component of x-new
-              (do ([i 0 (+ i 1)])
-                  ((= i n))
-                  (let ([a-ii (matrix-ref a i i)])
-                       (if (< (abs a-ii) *iterative-tolerance*)
-                           ;; Zero diagonal element - can't divide
-                           (vector-set! x-new i 0.0)
-                           ;; x_i = (b_i - Σ_{j≠i} a_ij * x_j) / a_ii
-                           (let ([sum (let loop ([j 0] [s 0.0])
-                                           (if (= j n)
-                                               s
-                                               (if (= j i)
-                                                   (loop (+ j 1) s)
-                                                   (loop (+ j 1)
-                                                         (+ s (* (matrix-ref a i j)
-                                                                 (vector-ref x j)))))))])
-                                (vector-set! x-new i (/ (- (vector-ref b i) sum) a-ii))))))
+         (let ([x-new (vec-tabulate n i
+                        (let ([a-ii (matrix-ref a i i)])
+                             (if (< (abs a-ii) *iterative-tolerance*)
+                                 ;; Zero diagonal element - can't divide
+                                 0.0
+                                 ;; x_i = (b_i - Σ_{j≠i} a_ij * x_j) / a_ii
+                                 (let ([sum (let loop ([j 0] [s 0.0])
+                                                 (if (= j n)
+                                                     s
+                                                     (if (= j i)
+                                                         (loop (+ j 1) s)
+                                                         (loop (+ j 1)
+                                                               (+ s (* (matrix-ref a i j)
+                                                                       (vector-ref x j)))))))])
+                                      (/ (- (vector-ref b i) sum) a-ii)))))])
               (jacobi-loop a b x-new (+ iter 1) max-iter tol n))])))
 
 (doc 'section 'gauss-seidel-iteration
@@ -525,8 +523,7 @@ Properties:
          [v1 (vec-scale (/ 1.0 beta) r0)]
          [_ (set! v-list (list v1))]
          ;; g = [beta, 0, 0, ..., 0]^T (right-hand side for least squares)
-         [g (make-vector (+ k 1) 0.0)]
-         [_ (vector-set! g 0 beta)]
+         [g (vec-tabulate (+ k 1) i (if (= i 0) beta 0.0))]
          ;; Givens rotation parameters
          [cs (make-vector k 0.0)]
          [sn (make-vector k 0.0)])
@@ -675,30 +672,21 @@ Properties:
 (doc vector-copy
      'type (-> Vec Vec))
 (define (vector-copy v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (vector-ref v i)))))
+  (vec-tabulate (vector-length v) i (vector-ref v i)))
 
 (doc make-jacobi-preconditioner
      'type (-> Matrix (-> Vec Vec))
      'description "Create Jacobi (diagonal) preconditioner")
 (define (make-jacobi-preconditioner a)
   (let* ([n (matrix-rows a)]
-         [diag-inv (make-vector n 0.0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (let ([d (matrix-ref a i i)])
-                 (vector-set! diag-inv i (if (> (abs d) *iterative-tolerance*)
-                                             (/ 1.0 d)
-                                             0.0))))
+         [diag-inv (vec-tabulate n i
+                     (let ([d (matrix-ref a i i)])
+                          (if (> (abs d) *iterative-tolerance*)
+                              (/ 1.0 d)
+                              0.0)))])
         (lambda (r)
-                (let ([z (make-vector n 0.0)])
-                     (do ([i 0 (+ i 1)])
-                         ((= i n) z)
-                         (vector-set! z i (* (vector-ref r i)
-                                             (vector-ref diag-inv i))))))))
+                (vec-tabulate n i (* (vector-ref r i)
+                                     (vector-ref diag-inv i))))))
 
 (doc is-diagonally-dominant?
      'type (-> Matrix Boolean)

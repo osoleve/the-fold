@@ -1,6 +1,6 @@
 ;;; lattice/game-theory/coop-games.ss — Cooperative Game Theory
 ;;; @module coop-games
-;;; @requires prelude vec matrix matrix-solvers lp
+;;; @requires prelude vec matrix matrix-solvers lp iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -9,6 +9,7 @@
 (require 'matrix)
 (require 'matrix-solvers)
 (require 'lp)
+(require 'iteration)
 
 (doc 'module 'coop-games)
 (doc 'description "Cooperative (Coalitional) Game Theory with transferable utility")
@@ -382,10 +383,7 @@
                    (let* ([x-full (lp-result-x result)]
                           [epsilon (vector-ref x-full n)]
                           ;; Extract allocation (first n variables)
-                          [alloc (let ([v (make-vector n 0)])
-                                   (do ([i 0 (+ i 1)])
-                                       [(= i n) v]
-                                     (vector-set! v i (vector-ref x-full i))))]
+                          [alloc (vec-tabulate n i (vector-ref x-full i))]
                           ;; Find coalitions that achieved this epsilon (tight constraints)
                           [newly-fixed (find-tight-coalitions g alloc epsilon unfixed-coalitions)])
                      (if (null? newly-fixed)
@@ -843,11 +841,7 @@
 ;;; random-permutation : Nat → (Vector Nat)
 ;;; Generate a random permutation of 0..n-1 using Fisher-Yates shuffle.
 (define (random-permutation n)
-  (let ([v (make-vector n)])
-    ;; Initialize with identity
-    (do ([i 0 (+ i 1)])
-        ((>= i n))
-      (vector-set! v i i))
+  (let ([v (vec-tabulate n i i)])
     ;; Fisher-Yates shuffle
     (do ([i (- n 1) (- i 1)])
         ((< i 1) v)
@@ -899,25 +893,14 @@
                                  (+ (vector-ref sums agent-idx) marginal))
                     (loop (+ i 1) with-agent))))))
           ;; Average and normalize to sum to 1
-          (let* ([avg-values (let ([v (make-vector n 0.0)])
-                               (do ([i 0 (+ i 1)])
-                                   ((>= i n) v)
-                                 (vector-set! v i (/ (vector-ref sums i) num-samples))))]
-                 [total (let loop ([i 0] [sum 0])
-                          (if (>= i n)
-                              sum
-                              (loop (+ i 1) (+ sum (vector-ref avg-values i)))))])
+          (let* ([avg-values (vec-tabulate n i (/ (vector-ref sums i) num-samples))]
+                 [total (vec-fold-idx sum 0 i avg-values (+ sum (vector-ref avg-values i)))])
             (if (= total 0)
                 ;; Equal split if no contributions
                 (let ([equal-share (/ 1.0 n)])
-                  (do ([i 0 (+ i 1)])
-                      ((>= i n) avg-values)
-                    (vector-set! avg-values i equal-share)))
+                  (vec-tabulate n i equal-share))
                 ;; Normalize to sum to 1
-                (begin
-                  (do ([i 0 (+ i 1)])
-                      ((>= i n) avg-values)
-                    (vector-set! avg-values i (/ (vector-ref avg-values i) total))))))))))
+                (vec-tabulate n i (/ (vector-ref avg-values i) total))))))))
 
 ;;; shapley-value-adaptive : CoopGame × Nat → (Vector Real)
 ;;; Automatically choose exact vs sampling based on game size.

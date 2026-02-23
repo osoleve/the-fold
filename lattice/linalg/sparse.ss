@@ -1,12 +1,13 @@
 ;;; lattice/linalg/sparse.ss — Sparse Matrix Operations
 ;;; @module sparse
-;;; @requires prelude vec matrix sort hamt
+;;; @requires prelude vec matrix sort hamt iteration
 
 (require 'prelude)
 (require 'vec)
 (require 'matrix)
 (require 'sort)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'sparse)
 (doc 'purity 'partial)
@@ -508,17 +509,13 @@ Dependencies:
             `(error dimension-mismatch ,cols ,n)
             (let ([row-ptrs (sparse-csr-row-ptrs m)]
                   [col-idx (sparse-csr-col-indices m)]
-                  [vals (sparse-csr-values m)]
-                  [result (make-vector rows 0)])
-                 (do ([i 0 (+ i 1)])
-                     ((= i rows) result)
-                     (let ([start (vector-ref row-ptrs i)]
-                           [end (vector-ref row-ptrs (+ i 1))])
-                          (do ([k start (+ k 1)]
-                               [sum 0 (+ sum (* (vector-ref vals k)
-                                                (vector-ref v (vector-ref col-idx k))))])
-                              ((= k end)
-                               (vector-set! result i sum)))))))))
+                  [vals (sparse-csr-values m)])
+                 (vec-tabulate rows i
+                   (let ([start (vector-ref row-ptrs i)]
+                         [end (vector-ref row-ptrs (+ i 1))])
+                        (range-fold sum 0 k start end
+                          (+ sum (* (vector-ref vals k)
+                                    (vector-ref v (vector-ref col-idx k)))))))))))
 
 ;;; sparse-csc-vec-mul : SparseCSC × Vec → Vec | Error
 ;;; y = A * x where A is sparse CSC. O(nnz).
@@ -786,28 +783,18 @@ Dependencies:
 ;;; sparse-identity : Nat → SparseCSR
 ;;; n×n sparse identity matrix.
 (define (sparse-identity n)
-  (let ([row-ptrs (make-vector (+ n 1) 0)]
-        [col-idx (make-vector n 0)]
+  (let ([row-ptrs (vec-tabulate (+ n 1) i i)]
+        [col-idx (vec-tabulate n i i)]
         [vals (make-vector n 1)])
-       (do ([i 0 (+ i 1)])
-           ((= i n))
-           (vector-set! row-ptrs i i)
-           (vector-set! col-idx i i))
-       (vector-set! row-ptrs n n)
        (make-sparse-csr n n row-ptrs col-idx vals)))
 
 ;;; sparse-diagonal : Vec → SparseCSR
 ;;; Create sparse diagonal matrix.
 (define (sparse-diagonal v)
   (let* ([n (vector-length v)]
-         [row-ptrs (make-vector (+ n 1) 0)]
-         [col-idx (make-vector n 0)]
+         [row-ptrs (vec-tabulate (+ n 1) i i)]
+         [col-idx (vec-tabulate n i i)]
          [vals (vec-copy v)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! row-ptrs i i)
-            (vector-set! col-idx i i))
-        (vector-set! row-ptrs n n)
         (make-sparse-csr n n row-ptrs col-idx vals)))
 
 ;;; ====

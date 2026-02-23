@@ -1,7 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module glm
-;;; @requires prelude matrix matrix-decomp matrix-solvers result-types families link-functions stat/distributions
+;;; @requires prelude iteration matrix matrix-decomp matrix-solvers result-types families link-functions stat/distributions
 (require 'prelude)
+(require 'iteration)
 (require 'matrix)
 (require 'matrix-decomp)
 (require 'matrix-solvers)
@@ -55,14 +56,8 @@
         (if (not (= n (vector-length y)))
             (list 'error 'dimension-mismatch n (vector-length y))
             ;; Initialize mu and eta
-            (let* ([mu-init (make-vector n)]
-                   [eta-init (make-vector n)])
-                  ;; Initialize mu from y
-                  (do ([i 0 (+ i 1)])
-                      [(= i n)]
-                      (let ([mu-i (init-fn (vector-ref y i))])
-                           (vector-set! mu-init i mu-i)
-                           (vector-set! eta-init i (g mu-i))))
+            (let* ([mu-init (vec-tabulate n i (init-fn (vector-ref y i)))]
+                   [eta-init (vec-tabulate n i (g (vector-ref mu-init i)))])
                   ;; Run IRLS
                   (irls-loop family link X y mu-init eta-init
                              0 max-iter tol n p)))))
@@ -94,32 +89,27 @@
          [g-inv (link-inverse link)]
          [g-deriv (link-derivative link)]
          ;; Compute working weights and response
-         [W (make-vector n)]
-         [z (make-vector n)])
-        ;; W_i = 1 / (V(mu_i) * g'(mu_i)²)
-        ;; z_i = eta_i + (y_i - mu_i) * g'(mu_i)
-        (do ([i 0 (+ i 1)])
-            [(= i n)]
-            (let* ([mu-i (vector-ref mu i)]
-                   [eta-i (vector-ref eta i)]
-                   [y-i (vector-ref y i)]
-                   [V-i (var-fn mu-i)]
-                   [g-prime-i (g-deriv mu-i)]
-                   [g-prime-sq (* g-prime-i g-prime-i)]
-                   [w-i (/ 1 (max (* V-i g-prime-sq) 1e-10))]
-                   [z-i (+ eta-i (* (- y-i mu-i) g-prime-i))])
-                  (vector-set! W i w-i)
-                  (vector-set! z i z-i)))
+         ;; W_i = 1 / (V(mu_i) * g'(mu_i)^2)
+         [W (vec-tabulate n i
+              (let* ([mu-i (vector-ref mu i)]
+                     [V-i (var-fn mu-i)]
+                     [g-prime-i (g-deriv mu-i)]
+                     [g-prime-sq (* g-prime-i g-prime-i)])
+                (/ 1 (max (* V-i g-prime-sq) 1e-10))))]
+         ;; z_i = eta_i + (y_i - mu_i) * g'(mu_i)
+         [z (vec-tabulate n i
+              (let* ([mu-i (vector-ref mu i)]
+                     [eta-i (vector-ref eta i)]
+                     [y-i (vector-ref y i)]
+                     [g-prime-i (g-deriv mu-i)])
+                (+ eta-i (* (- y-i mu-i) g-prime-i))))])
         ;; Solve weighted least squares: beta = (X'WX)^(-1) X'Wz
         (let ([beta (weighted-least-squares X z W n p)])
              (if (and (pair? beta) (eq? (car beta) 'error))
                  beta
                  ;; Compute new eta and mu
                  (let* ([eta-new (matrix-vec-mul X beta)]
-                        [mu-new (make-vector n)])
-                       (do ([i 0 (+ i 1)])
-                           [(= i n)]
-                           (vector-set! mu-new i (g-inv (vector-ref eta-new i))))
+                        [mu-new (vec-tabulate n i (g-inv (vector-ref eta-new i)))])
                        (list beta eta-new mu-new))))))
 
 ;;; weighted-least-squares : Matrix × Vec × Vec × Nat × Nat → Vec | Error
@@ -174,15 +164,12 @@
          ;; Compute beta from final eta
          [beta (matrix-least-squares X eta)]
          ;; Compute final working weights
-         [W (make-vector n)]
-         [_ (do ([i 0 (+ i 1)])
-                [(= i n)]
-                (let* ([mu-i (vector-ref mu i)]
-                       [V-i (var-fn mu-i)]
-                       [g-prime-i (g-deriv mu-i)]
-                       [g-prime-sq (* g-prime-i g-prime-i)]
-                       [w-i (/ 1 (max (* V-i g-prime-sq) 1e-10))])
-                      (vector-set! W i w-i)))]
+         [W (vec-tabulate n i
+              (let* ([mu-i (vector-ref mu i)]
+                     [V-i (var-fn mu-i)]
+                     [g-prime-i (g-deriv mu-i)]
+                     [g-prime-sq (* g-prime-i g-prime-i)])
+                (/ 1 (max (* V-i g-prime-sq) 1e-10))))]
          ;; Standard errors from (X'WX)^(-1)
          [se (compute-glm-se X W p)]
          ;; Z-values and p-values
@@ -225,44 +212,35 @@
         (let ([XtWX-inv (matrix-inverse XtWX)])
              (if (and (pair? XtWX-inv) (eq? (car XtWX-inv) 'error))
                  XtWX-inv
-                 (let ([se (make-vector p)])
-                      (do ([j 0 (+ j 1)])
-                          [(= j p) se]
-                          (vector-set! se j (sqrt (max (matrix-ref XtWX-inv j j) 0)))))))))
+                 (vec-tabulate p j (sqrt (max (matrix-ref XtWX-inv j j) 0)))))))
 
 ;;; compute-z-values : Vec × Vec → Vec
 (define (compute-z-values beta se)
-  (let* ([p (vector-length beta)]
-         [z (make-vector p)])
-        (do ([j 0 (+ j 1)])
-            [(= j p) z]
-            (let ([sej (vector-ref se j)])
-                 (vector-set! z j (if (= sej 0) 0 (/ (vector-ref beta j) sej)))))))
+  (let ([p (vector-length beta)])
+    (vec-tabulate p j
+      (let ([sej (vector-ref se j)])
+        (if (= sej 0) 0 (/ (vector-ref beta j) sej))))))
 
 ;;; compute-z-pvalues : Vec → Vec
 ;;; Two-tailed p-values from standard normal.
 (define (compute-z-pvalues z-values)
-  (let* ([p (vector-length z-values)]
-         [pv (make-vector p)])
-        (do ([j 0 (+ j 1)])
-            [(= j p) pv]
-            (let* ([z (abs (vector-ref z-values j))]
-                   [pval (* 2 (- 1 (probit-cdf z)))])
-                  (vector-set! pv j pval)))))
+  (let ([p (vector-length z-values)])
+    (vec-tabulate p j
+      (let* ([z (abs (vector-ref z-values j))]
+             [pval (* 2 (- 1 (probit-cdf z)))])
+        pval))))
 
 ;;; compute-deviance-residuals : GLMFamily × Vec × Vec → Vec
 ;;; Signed deviance residuals.
 (define (compute-deviance-residuals family y mu)
   (let* ([n (vector-length y)]
-         [dev-fn (family-deviance-contrib family)]
-         [r (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) r]
-            (let* ([yi (vector-ref y i)]
-                   [mui (vector-ref mu i)]
-                   [d (dev-fn yi mui)]
-                   [sign (if (>= (- yi mui) 0) 1 -1)])
-                  (vector-set! r i (* sign (sqrt (max d 0))))))))
+         [dev-fn (family-deviance-contrib family)])
+    (vec-tabulate n i
+      (let* ([yi (vector-ref y i)]
+             [mui (vector-ref mu i)]
+             [d (dev-fn yi mui)]
+             [sign (if (>= (- yi mui) 0) 1 -1)])
+        (* sign (sqrt (max d 0)))))))
 
 ;;; ====
 ;;; Convenience Wrappers
@@ -311,11 +289,8 @@
                      [else identity-link])]
          [g-inv (link-inverse link)]
          [eta (matrix-vec-mul X-new beta)]
-         [n (vector-length eta)]
-         [mu (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) mu]
-            (vector-set! mu i (g-inv (vector-ref eta i))))))
+         [n (vector-length eta)])
+        (vec-tabulate n i (g-inv (vector-ref eta i)))))
 
 ;;; glm-predict-linear : GLMResult × Matrix → Vec
 ;;; Predict on linear predictor scale (eta).
@@ -326,11 +301,8 @@
 ;;; Classify binary outcomes using threshold.
 (define (logistic-classify model X-new threshold)
   (let* ([probs (glm-predict model X-new)]
-         [n (vector-length probs)]
-         [classes (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            [(= i n) classes]
-            (vector-set! classes i (if (>= (vector-ref probs i) threshold) 1 0)))))
+         [n (vector-length probs)])
+    (vec-tabulate n i (if (>= (vector-ref probs i) threshold) 1 0))))
 
 ;;; ====
 ;;; Model Comparison

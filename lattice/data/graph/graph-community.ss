@@ -1,12 +1,13 @@
 ;;; lattice/data/graph/graph-community.ss — Community Detection
 ;;; @module graph-community
-;;; @requires prelude sort hamt
+;;; @requires prelude sort hamt iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'sort)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'graph-community)
 (doc 'purity 'partial)
@@ -64,10 +65,7 @@
                    (car rest1)
                    42)]
          ;; Initialize: each node in its own community
-         [labels (make-vector n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! labels i i))
+         [labels (vec-tabulate n i i)])
         ;; Iterate until convergence
         (let loop ([iter 0] [changed #t])
              (if (or (>= iter max-iter) (not changed))
@@ -314,14 +312,10 @@
          [sorted-edges (sort-by (lambda (a b) (< (caddr a) (caddr b)))
                                   edges)]
          ;; Union-find data structures
-         [parent (make-vector n 0)]
+         [parent (vec-tabulate n i i)]
          [rank (make-vector n 0)]
          [mst-edges '()]
          [edge-count 0])
-        ;; Initialize union-find: each node is its own parent
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (vector-set! parent i i))
         ;; Process edges in order of weight
         (for-each
          (lambda (edge)
@@ -428,10 +422,7 @@
           (if (ilp-optimal? result)
               ;; Extract x[0..n-1] from solution
               (let ([sol (ilp-result-x result)])
-                (let ([labels (make-vector n 0)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i n) labels)
-                    (vector-set! labels i (inexact->exact (round (vector-ref sol i)))))))
+                (vec-tabulate n i (inexact->exact (round (vector-ref sol i)))))
               ;; Fallback to all zeros if ILP fails
               (make-vector n 0))))))
 
@@ -541,13 +532,9 @@
            [total-vars (+ num-vars num-slack)]
            [A (make-matrix num-constraints total-vars 0)]
            [b (make-vector num-constraints 0)]
-           [c-full (make-vector total-vars 0)]
+           [c-full (vec-tabulate total-vars i
+                    (if (< i num-vars) (vector-ref c i) 0))]
            [constraint-idx 0])
-
-      ;; Copy objective coefficients
-      (do ([i 0 (+ i 1)])
-          ((= i num-vars))
-        (vector-set! c-full i (vector-ref c i)))
 
       ;; Add linearization constraints for each y[i,j]
       (do ([i 0 (+ i 1)])

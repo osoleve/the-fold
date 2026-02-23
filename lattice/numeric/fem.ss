@@ -1,6 +1,6 @@
 ;;; lattice/numeric/fem.ss --- Finite Element Method for 2D PDEs
 ;;; @module fem
-;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt
+;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt iteration
 
 (require 'prelude)
 (require 'sort)
@@ -10,6 +10,7 @@
 (require 'iterative-solvers)
 (require 'mesh-gen)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'fem)
 (doc 'description "Finite Element Method: P1 elements on triangular meshes for elliptic PDEs")
@@ -58,10 +59,7 @@
          [node-count (cdr result)])
 
     (let* ([;; Trim nodes vector to actual size
-            nodes (let ([result (make-vector node-count)])
-                    (do ([i 0 (+ i 1)])
-                        ((= i node-count) result)
-                      (vector-set! result i (vector-ref nodes-vec i))))]
+            nodes (vec-tabulate node-count i (vector-ref nodes-vec i))]
            ;; Convert triangles to element index triples
            [point->index (lambda (p) (hamt-lookup (point-key p) node-map))]
            [elements (map (lambda (tri)
@@ -481,14 +479,11 @@
 (doc vec-div-pointwise 'type '(-> Vector Vector Vector))
 (doc vec-div-pointwise 'description "Element-wise division z_i = x_i / y_i")
 (define (vec-div-pointwise x y)
-  (let* ([n (vector-length x)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (let ([yi (vector-ref y i)])
-        (vector-set! result i (if (< (abs yi) 1e-30)
-                                  0.0
-                                  (/ (vector-ref x i) yi)))))))
+  (vec-tabulate (vector-length x) i
+    (let ([yi (vector-ref y i)])
+      (if (< (abs yi) 1e-30)
+          0.0
+          (/ (vector-ref x i) yi)))))
 
 (doc sparse-pcg 'type '(-> SparseCSR Vector Vector (List Vector Number Nat)))
 (doc sparse-pcg 'description "Preconditioned conjugate gradient with Jacobi preconditioning")
@@ -542,25 +537,16 @@
           (loop (+ i 1) (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
 
 (define (vec-add v1 v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (+ (vector-ref v1 i) (vector-ref v2 i))))))
+  (vec-tabulate (vector-length v1) i
+    (+ (vector-ref v1 i) (vector-ref v2 i))))
 
 (define (vec-sub v1 v2)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (- (vector-ref v1 i) (vector-ref v2 i))))))
+  (vec-tabulate (vector-length v1) i
+    (- (vector-ref v1 i) (vector-ref v2 i))))
 
 (define (vec-scale s v)
-  (let* ([n (vector-length v)]
-         [result (make-vector n 0.0)])
-    (do ([i 0 (+ i 1)])
-        ((= i n) result)
-      (vector-set! result i (* s (vector-ref v i))))))
+  (vec-tabulate (vector-length v) i
+    (* s (vector-ref v i))))
 
 ;;; ============================================================
 ;;; Section: FEM Solver
