@@ -11,9 +11,10 @@
 | Total mutation operations | ~4,700 | ~2,500 (hashtable ops eliminated, `vector-set!`/`set!` remain) |
 | Chez hashtable creation sites | ~95 in ~69 files | 18 in 9 files (all documented exceptions) |
 | Residual hashtable operations | ~537 | ~65 across 21 files (reads + exceptions) |
-| `vector-set!` | 1,343 in 137 files | 1,412 in 152 files (unchanged, P3 target) |
+| `vector-set!` | 1,343 in 137 files | ~1,209 in 136 files (P3 in progress) |
 | ~~Files falsely claiming `'total` purity~~ | ~~181 of 405~~ | **FIXED** (P1) |
 | P0–P2 completion | — | **ALL DONE** |
+| P3 `vector-set!` eliminated | — | ~203 across 7 files (pilots + batch 1) |
 
 ---
 
@@ -105,7 +106,7 @@ Remaining P2 items:
 - `lattice/numeric/finite-diff.ss` — 13 build patterns → `vec-tabulate` + `range-fold` (50→28 `vector-set!`, 44% reduction). 10/10 tests pass.
 - `lattice/statistics/timeseries/exponential.ss` — SES/Holt/Holt-Winters scan patterns → `vec-scan` + `vec-tabulate` (33→10 `vector-set!`, 70% reduction). 202/202 statistics tests pass.
 
-### P3 — Deep numerical rewrite (very high effort):
+### P3 — Deep numerical rewrite (very high effort): IN PROGRESS
 
 Combinators are now available for mass migration. Three patterns identified:
 
@@ -115,7 +116,29 @@ Combinators are now available for mass migration. Three patterns identified:
 | Scan (sequential dep) | `vec-scan` | ~20 files | `exponential.ss`, `markov.ss`, `digital-filters.ss` |
 | In-place update | Keep imperative | ~50 files | Iterative solvers, convergence algorithms |
 
+**Batch 1** (`80cf0497`): 5 files, 79 `vector-set!` eliminated:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `diffgeo/symbolic-metrics.ss` | 41 | 0 | Nested `vec-tabulate` + `range-fold` for Christoffel tensor assembly |
+| `statistics/core/design-matrix.ss` | 19 | 4 | `vec-tabulate` with flat 2D indexing (`quotient`/`remainder`) |
+| `statistics/timeseries/forecast.ss` | 12 | 3 | `vec-tabulate` for naive/drift/seasonal/mean forecasts |
+| `statistics/timeseries/differencing.ss` | 11 | 2 | `vec-tabulate` + `vec-scan` for diffs/transforms/integrate |
+| `linalg/vec.ss` | 8 | 3 | `vec-tabulate` for take/drop/slice/range/linspace |
+
+Residual `vector-set!` in batch 1 (12 total): multi-pass accumulation (combine-forecasts), reverse scan (integrate-from-last), sparse conditional fills (dummy/one-hot encode), multi-region copy (vec-append), single-element set (vec-unit).
+
+**Cluster survey** (BUILD+SCAN convertibility):
+
+| Cluster | Total `vector-set!` | Convertible | Imperative |
+|---|---|---|---|
+| statistics/ | ~148 | ~54 | ~94 |
+| linalg/ | ~163 | ~32 | ~131 |
+| diffgeo/ | ~115 | ~50 | ~65 |
+| numeric/ | ~227 | TBD | TBD |
+| data/ | ~131 | TBD | TBD |
+
 Remaining scope:
-- Convert ~1,400 `vector-set!` across ~150 files using `vec-tabulate`/`vec-scan` where applicable
-- Primary clusters: `numeric/` (227), `statistics/` (211), `linalg/` (190), `diffgeo/` (115), `data/` (131)
+- ~1,209 `vector-set!` across 136 files (down from ~1,412 in 152)
+- Next targets: `statistics/timeseries/ar.ss` (SCAN-heavy), `statistics/timeseries/ma.ss`, `diffgeo/tangent.ss`, `diffgeo/curvature.ss`
 - Eliminate ~795 bare `(set! ...)` across 222 files — many are loop accumulators convertible to `fold-left`/named `let`/`range-fold`
