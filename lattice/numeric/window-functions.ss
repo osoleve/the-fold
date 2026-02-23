@@ -1,8 +1,9 @@
 ;;; lattice/numeric/window-functions.ss — Window Functions for Signal Processing
 ;;; @module window-functions
-;;; @requires prelude
+;;; @requires prelude iteration
 
 (require 'prelude)
+(require 'iteration)
 
 (doc 'module 'window-functions)
 (doc 'description "Window functions for signal processing: reduce spectral leakage, smooth signal boundaries for Fourier analysis")
@@ -23,10 +24,7 @@
 ;;; - Use when no windowing is desired
 (define (rectangular-window n)
   (doc 'export #t)
-  (let ([result (make-vector n)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (vector-set! result i 1.0))))
+  (vec-tabulate n i 1.0))
 
 ;;; hann-window : Integer → Vector[Number]
 ;;; Hann (Hanning) window.
@@ -39,13 +37,11 @@
 ;;; - End points go to zero
 (define (hann-window n)
   (doc 'export #t)
-  (let ([result (make-vector n)]
-        [two-pi (* 2 (pi-value))]
+  (let ([two-pi (* 2 (pi-value))]
         [n-1 (- n 1)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (let ([term (/ (* two-pi i) n-1)])
-                (vector-set! result i (* 0.5 (- 1 (cos term))))))))
+    (vec-tabulate n i
+      (let ([term (/ (* two-pi i) n-1)])
+        (* 0.5 (- 1 (cos term)))))))
 
 ;;; hamming-window : Integer → Vector[Number]
 ;;; Hamming window.
@@ -58,13 +54,11 @@
 ;;; - Optimized to minimize first side lobe
 (define (hamming-window n)
   (doc 'export #t)
-  (let ([result (make-vector n)]
-        [two-pi (* 2 (pi-value))]
+  (let ([two-pi (* 2 (pi-value))]
         [n-1 (- n 1)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (let ([term (/ (* two-pi i) n-1)])
-                (vector-set! result i (- 0.54 (* 0.46 (cos term))))))))
+    (vec-tabulate n i
+      (let ([term (/ (* two-pi i) n-1)])
+        (- 0.54 (* 0.46 (cos term)))))))
 
 ;;; blackman-window : Integer → Vector[Number]
 ;;; Blackman window.
@@ -76,18 +70,15 @@
 ;;; - Good for applications requiring low spectral leakage
 (define (blackman-window n)
   (doc 'export #t)
-  (let ([result (make-vector n)]
-        [two-pi (* 2 (pi-value))]
+  (let ([two-pi (* 2 (pi-value))]
         [four-pi (* 4 (pi-value))]
         [n-1 (- n 1)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (let ([term1 (/ (* two-pi i) n-1)]
-                 [term2 (/ (* four-pi i) n-1)])
-                (vector-set! result i
-                             (+ 0.42
-                                (- (* 0.5 (cos term1)))
-                                (* 0.08 (cos term2))))))))
+    (vec-tabulate n i
+      (let ([term1 (/ (* two-pi i) n-1)]
+            [term2 (/ (* four-pi i) n-1)])
+        (+ 0.42
+           (- (* 0.5 (cos term1)))
+           (* 0.08 (cos term2)))))))
 
 ;;; bartlett-window : Integer → Vector[Number]
 ;;; Bartlett (triangular) window.
@@ -99,12 +90,8 @@
 ;;; - Simple and computationally efficient
 (define (bartlett-window n)
   (doc 'export #t)
-  (let ([result (make-vector n)]
-        [n-1 (- n 1)]
-        [mid (/ (- n 1) 2.0)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (vector-set! result i (- 1 (/ (abs (- i mid)) mid))))))
+  (let ([mid (/ (- n 1) 2.0)])
+    (vec-tabulate n i (- 1 (/ (abs (- i mid)) mid)))))
 
 ;;; ====
 ;;; Kaiser Window (Parameterized)
@@ -149,16 +136,13 @@
 ;;; - beta = 8.6: For low side lobe applications
 (define (kaiser-window n beta)
   (doc 'export #t)
-  (let ([result (make-vector n)]
-        [denom (bessel-i0 beta)]
-        [n-1 (- n 1)]
+  (let ([denom (bessel-i0 beta)]
         [mid (/ (- n 1) 2.0)])
-       (do ([i 0 (+ i 1)])
-           ((= i n) result)
-           (let* ([x (/ (- i mid) mid)]
-                  [arg (* beta (sqrt (- 1 (* x x))))]
-                  [numer (bessel-i0 arg)])
-                 (vector-set! result i (/ numer denom))))))
+    (vec-tabulate n i
+      (let* ([x (/ (- i mid) mid)]
+             [arg (* beta (sqrt (- 1 (* x x))))]
+             [numer (bessel-i0 arg)])
+        (/ numer denom)))))
 
 ;;; ====
 ;;; Window Application
@@ -178,12 +162,9 @@
         (if (not (= n m))
             (error 'apply-window "signal and window must have same length"
                    (list 'signal-length n 'window-length m))
-            (let ([result (make-vector n)])
-                 (do ([i 0 (+ i 1)])
-                     ((= i n) result)
-                     (vector-set! result i
-                                  (* (vector-ref signal i)
-                                     (vector-ref window i))))))))
+            (vec-tabulate n i
+              (* (vector-ref signal i)
+                 (vector-ref window i))))))
 
 ;;; apply-window-complex : Vector[Complex] × Vector[Number] → Vector[Complex]
 ;;; Apply a window function to a complex-valued signal.
@@ -194,15 +175,11 @@
         (if (not (= n m))
             (error 'apply-window-complex "signal and window must have same length"
                    (list 'signal-length n 'window-length m))
-            (let ([result (make-vector n)])
-                 (do ([i 0 (+ i 1)])
-                     ((= i n) result)
-                     ;; Assuming complex-scale exists in complex.ss
-                     (let ([c (vector-ref signal i)]
-                           [w (vector-ref window i)])
-                          (vector-set! result i
-                                       (make-complex (* (complex-real c) w)
-                                                     (* (complex-imag c) w)))))))))
+            (vec-tabulate n i
+              (let ([c (vector-ref signal i)]
+                    [w (vector-ref window i)])
+                (make-complex (* (complex-real c) w)
+                              (* (complex-imag c) w)))))))
 
 ;;; ====
 ;;; Window Properties

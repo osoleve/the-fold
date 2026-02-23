@@ -128,6 +128,18 @@ Combinators are now available for mass migration. Three patterns identified:
 
 Residual `vector-set!` in batch 1 (12 total): multi-pass accumulation (combine-forecasts), reverse scan (integrate-from-last), sparse conditional fills (dummy/one-hot encode), multi-region copy (vec-append), single-element set (vec-unit).
 
+**Batch 2** (`17bd0ed5`): 5 files, 30 `vector-set!` eliminated + polynomial-features bug fix:
+
+| File | Before | After | Technique |
+|---|---|---|---|
+| `statistics/timeseries/ar.ss` | 16 | 14 | `vec-tabulate` for center-series, ar-forecast-se |
+| `statistics/timeseries/ma.ss` | 24 | 11 | `vec-scan` for exponential MA; `vec-tabulate` for gammas/forecasts |
+| `diffgeo/tangent.ss` | 12 | 8 | `vec-tabulate` + `range-fold` for lie-bracket derivatives/result |
+| `diffgeo/curvature.ss` | 16 | 10 | Nested `vec-tabulate` + `range-fold` for christoffel-symbols |
+| `linalg/matrix.ss` | 17 | 12 | `vec-tabulate` for row/col/diagonal/map/map2 |
+
+QA fix: `polynomial-features` generated powers up to x^(degree+1) instead of x^degree.
+
 **Cluster survey** (BUILD+SCAN convertibility):
 
 | Cluster | Total `vector-set!` | Convertible | Imperative |
@@ -135,10 +147,12 @@ Residual `vector-set!` in batch 1 (12 total): multi-pass accumulation (combine-f
 | statistics/ | ~148 | ~54 | ~94 |
 | linalg/ | ~163 | ~32 | ~131 |
 | diffgeo/ | ~115 | ~50 | ~65 |
-| numeric/ | ~227 | TBD | TBD |
-| data/ | ~131 | TBD | TBD |
+| numeric/ | ~228 | ~70 | ~158 |
+| data/ | ~132 | ~88 | ~44 |
+
+**P3 running totals:** 109 `vector-set!` eliminated across 10 files (batches 1-2).
 
 Remaining scope:
-- ~1,209 `vector-set!` across 136 files (down from ~1,412 in 152)
-- Next targets: `statistics/timeseries/ar.ss` (SCAN-heavy), `statistics/timeseries/ma.ss`, `diffgeo/tangent.ss`, `diffgeo/curvature.ss`
+- ~1,100 `vector-set!` across ~130 files
+- Next targets: `numeric/window-functions.ss` (100% convertible), `numeric/convolution.ss`, `data/graph-matrix.ss`, `data/graph-layout.ss`
 - Eliminate ~795 bare `(set! ...)` across 222 files — many are loop accumulators convertible to `fold-left`/named `let`/`range-fold`

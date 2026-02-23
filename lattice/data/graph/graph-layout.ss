@@ -1,6 +1,6 @@
 ;;; lattice/data/graph/graph-layout.ss --- Force-directed graph layout algorithms
 ;;; @module graph-layout
-;;; @requires prelude linalg/vec optics hamt
+;;; @requires prelude linalg/vec optics hamt iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -8,6 +8,7 @@
 (require 'vec)
 (require 'optics)
 (require 'hamt)
+(require 'iteration)
 
 (doc 'module 'graph-layout)
 (doc 'description "Force-directed graph layout using Fruchterman-Reingold algorithm")
@@ -184,49 +185,44 @@
   (let* ([nodes (graph-nodes graph)]
          [edges (graph-edges graph)]
          [n (length nodes)]
-         ;; Convert to vector for O(1) access during edge loop (Gemini QA fix)
+         ;; Convert to vector for O(1) access during force computation
          [nodes-vec (list->vector nodes)]
-         ;; Pre-compute id->index map for O(1) lookup (fixes O(E*N) bug)
+         ;; Pre-compute id->index map for O(1) lookup
          [id-map (let build-map ([ns nodes] [i 0] [acc hamt-empty])
                    (if (pair? ns)
                        (build-map (cdr ns) (+ i 1)
                                   (hamt-assoc (node-id (car ns)) i acc))
                        acc))]
-         ;; Calculate forces for each node
-         [forces (make-vector n (vector 0.0 0.0))])
-    ;; Repulsion between all pairs
-    (let loop-i ([i 0] [nodes-i nodes])
-      (when (< i n)
-        (let loop-j ([j (+ i 1)] [nodes-j (cdr nodes-i)])
-          (when (< j n)
-            (let* ([node-i (car nodes-i)]
-                   [node-j (car nodes-j)]
-                   [force (calculate-repulsion node-i node-j)])
-              (vector-set! forces i (vec-add (vector-ref forces i) force))
-              (vector-set! forces j (vec-sub (vector-ref forces j) force))
-              (loop-j (+ j 1) (cdr nodes-j)))))
-        (loop-i (+ i 1) (cdr nodes-i))))
-    ;; Attraction along edges (O(E) with hashtable)
-    (for-each
-     (lambda (edge)
-       (let* ([id1 (car edge)]
-              [id2 (cdr edge)]
-              [idx1 (hamt-lookup id1 id-map)]
-              [idx2 (hamt-lookup id2 id-map)])
-         (when (and idx1 idx2)
-           (let* ([node1 (vector-ref nodes-vec idx1)]
-                  [node2 (vector-ref nodes-vec idx2)]
-                  [force (calculate-attraction node1 node2)])
-             (vector-set! forces idx1 (vec-add (vector-ref forces idx1) force))
-             (vector-set! forces idx2 (vec-sub (vector-ref forces idx2) force))))))
-     edges)
-    ;; Central gravity (prevents disconnected components from drifting)
-    (let apply-gravity ([i 0] [ns nodes])
-      (when (pair? ns)
-        (let* ([pos (node-pos (car ns))]
-               [gravity (vec-scale (- *gravity-constant*) pos)])
-          (vector-set! forces i (vec-add (vector-ref forces i) gravity)))
-        (apply-gravity (+ i 1) (cdr ns))))
+         ;; Calculate forces for each node via tabulate
+         [forces (vec-tabulate n i
+                   (let* ([node-i (vector-ref nodes-vec i)]
+                          ;; Repulsion from all other nodes
+                          [repulsion
+                           (range-fold acc (vector 0.0 0.0) j 0 n
+                             (if (= i j) acc
+                                 (vec-add acc (calculate-repulsion
+                                               node-i (vector-ref nodes-vec j)))))]
+                          ;; Attraction from incident edges
+                          [attraction
+                           (fold-left
+                            (lambda (acc edge)
+                              (let* ([id1 (car edge)]
+                                     [id2 (cdr edge)]
+                                     [idx1 (hamt-lookup id1 id-map)]
+                                     [idx2 (hamt-lookup id2 id-map)])
+                                (cond
+                                  [(and idx1 idx2 (= idx1 i))
+                                   (vec-add acc (calculate-attraction
+                                                 node-i (vector-ref nodes-vec idx2)))]
+                                  [(and idx1 idx2 (= idx2 i))
+                                   (vec-sub acc (calculate-attraction
+                                                 (vector-ref nodes-vec idx1) node-i))]
+                                  [else acc])))
+                            (vector 0.0 0.0)
+                            edges)]
+                          ;; Central gravity
+                          [gravity (vec-scale (- *gravity-constant*) (node-pos node-i))])
+                     (vec-add (vec-add repulsion attraction) gravity)))])
     ;; Apply forces with damping
     (graph-set-nodes
      graph
@@ -322,13 +318,14 @@
   ;; Group nodes by depth
   (let* ([depths (map (lambda (id) (cons id (depth-fn id))) node-ids)]
          [max-depth (fold-left (lambda (m p) (max m (cdr p))) 0 depths)]
-         ;; Group by depth
-         [by-depth (make-vector (+ max-depth 1) '())])
-    (for-each
-     (lambda (p)
-       (let ([d (cdr p)])
-         (vector-set! by-depth d (cons (car p) (vector-ref by-depth d)))))
-     depths)
+         ;; Group by depth using vec-tabulate
+         [by-depth (vec-tabulate (+ max-depth 1) d
+                     (fold-left (lambda (acc p)
+                                  (if (= (cdr p) d)
+                                      (cons (car p) acc)
+                                      acc))
+                                '()
+                                depths))])
     ;; Position nodes: x based on depth, y spread within depth
     (let ([nodes '()])
       (do ([d 0 (+ d 1)])

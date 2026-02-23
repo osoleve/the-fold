@@ -1,11 +1,12 @@
 ;;; lattice/numeric/spectral-analysis.ss — Spectral Analysis Tools
 ;;; @module spectral-analysis
-;;; @requires prelude complex dft window-functions
+;;; @requires prelude complex dft window-functions iteration
 
 (require 'prelude)
 (require 'complex)
 (require 'dft)
 (require 'window-functions)
+(require 'iteration)
 
 (doc 'module 'spectral-analysis)
 (doc 'description "Spectral analysis tools: STFT, spectrograms, PSD estimation, Welch's method, periodogram analysis")
@@ -60,14 +61,9 @@
 (define (stft signal frame-len hop-len window-type)
   (doc 'export #t)
   (let* ([n (vector-length signal)]
-         ;; Calculate number of frames
-         [num-frames (+ 1 (quotient (- n frame-len) hop-len))]
-         [frames (make-vector num-frames)])
-        (do ([i 0 (+ i 1)])
-            ((= i num-frames) frames)
-            (let ([start (* i hop-len)])
-                 (vector-set! frames i
-                              (stft-frame signal start frame-len window-type))))))
+         [num-frames (+ 1 (quotient (- n frame-len) hop-len))])
+        (vec-tabulate num-frames i
+          (stft-frame signal (* i hop-len) frame-len window-type))))
 
 ;;; istft : Vector[Vector[Complex]] × Integer × Integer × Symbol → Vector[Number]
 ;;; Inverse Short-Time Fourier Transform (overlap-add reconstruction).
@@ -135,12 +131,8 @@
          [num-frames (vector-length stft-result)])
         (if (= num-frames 0)
             (make-vector 0)
-            (let* ([freq-bins (vector-length (vector-ref stft-result 0))]
-                   [result (make-vector num-frames)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i num-frames) result)
-                      (vector-set! result i
-                                   (magnitude-spectrum (vector-ref stft-result i))))))))
+            (vec-tabulate num-frames i
+              (magnitude-spectrum (vector-ref stft-result i))))))
 
 ;;; power-spectrogram : Vector[Number] × Integer × Integer × Symbol → Vector[Vector[Number]]
 ;;; Compute power spectrogram (magnitude squared) from STFT.
@@ -152,12 +144,8 @@
          [num-frames (vector-length stft-result)])
         (if (= num-frames 0)
             (make-vector 0)
-            (let* ([freq-bins (vector-length (vector-ref stft-result 0))]
-                   [result (make-vector num-frames)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i num-frames) result)
-                      (vector-set! result i
-                                   (power-spectrum (vector-ref stft-result i))))))))
+            (vec-tabulate num-frames i
+              (power-spectrum (vector-ref stft-result i))))))
 
 ;;; log-spectrogram : Vector[Number] × Integer × Integer × Symbol → Vector[Vector[Number]]
 ;;; Compute log-magnitude spectrogram in dB.
@@ -169,18 +157,11 @@
          [num-frames (vector-length spec)])
         (if (= num-frames 0)
             spec
-            (let* ([freq-bins (vector-length (vector-ref spec 0))]
-                   [result (make-vector num-frames)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i num-frames) result)
-                      (let* ([frame (vector-ref spec i)]
-                             [log-frame (make-vector freq-bins)])
-                            (do ([k 0 (+ k 1)])
-                                ((= k freq-bins))
-                                (let ([mag (vector-ref frame k)])
-                                     (vector-set! log-frame k
-                                                  (* 20 (log10 (+ mag 1e-10))))))
-                            (vector-set! result i log-frame)))))))
+            (vec-tabulate num-frames i
+              (let* ([frame (vector-ref spec i)]
+                     [freq-bins (vector-length frame)])
+                    (vec-tabulate freq-bins k
+                      (* 20 (log10 (+ (vector-ref frame k) 1e-10)))))))))
 
 ;;; ====
 ;;; Periodogram (Single-Frame PSD Estimate)
@@ -207,16 +188,12 @@
   (let* ([n (vector-length signal)]
          [window (make-window window-type n)]
          [windowed (apply-window signal window)]
-         [window-energy (window-energy window)]
-         [fft-result (dft-real windowed)]
-         [psd (make-vector n)])
-        ;; Compute |FFT|² / (N * window_energy)
-        (do ([k 0 (+ k 1)])
-            ((= k n) psd)
-            (let* ([X-k (vector-ref fft-result k)]
-                   [mag (complex-magnitude X-k)]
-                   [power (* mag mag)])
-                  (vector-set! psd k (/ power (* n window-energy)))))))
+         [win-energy (window-energy window)]
+         [fft-result (dft-real windowed)])
+        (vec-tabulate n k
+          (let* ([X-k (vector-ref fft-result k)]
+                 [mag (complex-magnitude X-k)])
+                (/ (* mag mag) (* n win-energy))))))
 
 ;;; ====
 ;;; Welch's Method (Averaged Periodogram)
@@ -308,12 +285,9 @@
 ;;; Returns: Time values for each frame center
 (define (spectrogram-times signal-len frame-len hop-len fs)
   (doc 'export #t)
-  (let* ([num-frames (+ 1 (quotient (- signal-len frame-len) hop-len))]
-         [times (make-vector num-frames)])
-        (do ([i 0 (+ i 1)])
-            ((= i num-frames) times)
-            (let ([sample (+ (* i hop-len) (quotient frame-len 2))])
-                 (vector-set! times i (/ sample fs))))))
+  (let ([num-frames (+ 1 (quotient (- signal-len frame-len) hop-len))])
+       (vec-tabulate num-frames i
+         (/ (+ (* i hop-len) (quotient frame-len 2)) fs))))
 
 ;;; ====
 ;;; Spectral Features

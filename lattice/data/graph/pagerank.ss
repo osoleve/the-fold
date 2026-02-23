@@ -1,6 +1,6 @@
 ;;; lattice/data/graph/pagerank.ss — PageRank Algorithm
 ;;; @module pagerank
-;;; @requires prelude
+;;; @requires prelude iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -9,6 +9,7 @@
 (require 'vec)
 (require 'matrix)
 (require 'graph-matrix)
+(require 'iteration)
 
 (doc 'module 'pagerank)
 (doc 'bridges '(data linalg))
@@ -48,26 +49,21 @@
         (if (not (= n m))
             `(error not-square ,n ,m)
             ;; Compute out-degrees (row sums - outgoing edges)
-            (let* ([out-degrees (make-vector n 0)]
-                   [_ (do ([i 0 (+ i 1)])
-                          ((= i n))
-                          (let ([row-sum (matrix-row-sum adj i)])
-                               (vector-set! out-degrees i row-sum)))]
+            (let* ([out-degrees (vec-tabulate n i (matrix-row-sum adj i))]
                    ;; Build transition matrix: M[j][i] = A[i][j] / out-degree(i)
-                   [trans-data (make-vector (* n n) 0)])
-                  (do ([i 0 (+ i 1)])
-                      ((= i n))
-                      (do ([j 0 (+ j 1)])
-                          ((= j n))
-                          (let ([a-ij (matrix-ref adj i j)]
-                                [out-deg-i (vector-ref out-degrees i)])
-                               ;; M[j][i] = A[i][j] / out-degree(i)
-                               ;; If out-degree is 0 (dangling node), distribute evenly to all
-                               (vector-set! trans-data (+ (* j n) i)
-                                            (if (= out-deg-i 0)
-                                                (/ 1.0 n)
-                                                (/ a-ij out-deg-i))))))
+                   ;; Flat index idx maps to row j = quotient(idx,n), col i = remainder(idx,n)
+                   [trans-data (vec-tabulate (* n n) idx
+                                 (let* ([j (quotient idx n)]
+                                        [i (remainder idx n)]
+                                        [a-ij (matrix-ref adj i j)]
+                                        [out-deg-i (vector-ref out-degrees i)])
+                                   ;; M[j][i] = A[i][j] / out-degree(i)
+                                   ;; If out-degree is 0 (dangling node), distribute evenly
+                                   (if (= out-deg-i 0)
+                                       (/ 1.0 n)
+                                       (/ a-ij out-deg-i))))])
                   (list 'matrix n n trans-data)))))
+
 
 ;;; matrix-row-sum : Matrix → Nat → Num
 ;;; Sum of elements in row i.
@@ -94,17 +90,14 @@
 (define (make-google-matrix transition-matrix damping-factor)
   (let* ([n (matrix-rows transition-matrix)]
          [teleport (/ (- 1.0 damping-factor) n)]
-         [google-data (make-vector (* n n) teleport)])
-        ;; Add damped transition probabilities
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (do ([j 0 (+ j 1)])
-                ((= j n))
-                (let* ([idx (+ (* i n) j)]
-                       [m-ij (matrix-ref transition-matrix i j)]
-                       [g-ij (+ (* damping-factor m-ij) teleport)])
-                      (vector-set! google-data idx g-ij))))
+         ;; G[i][j] = d*M[i][j] + (1-d)/N
+         [google-data (vec-tabulate (* n n) idx
+                        (let* ([i (quotient idx n)]
+                               [j (remainder idx n)]
+                               [m-ij (matrix-ref transition-matrix i j)])
+                          (+ (* damping-factor m-ij) teleport)))])
         (list 'matrix n n google-data)))
+
 
 (doc pagerank-from-matrix 'type '(-> Matrix [Num] [Nat] [Num] (Union Vec Error)))
 (doc pagerank-from-matrix 'description "Compute PageRank scores from adjacency matrix using power iteration")
@@ -224,20 +217,17 @@
                  (if (and (pair? trans) (eq? (car trans) 'error))
                      trans
                      ;; Build custom Google matrix with teleport vector
-                     (let* ([google-data (make-vector (* n n) 0)])
-                           (do ([i 0 (+ i 1)])
-                               ((= i n))
-                               (do ([j 0 (+ j 1)])
-                                   ((= j n))
-                                   (let* ([idx (+ (* i n) j)]
-                                          [m-ij (matrix-ref trans i j)]
-                                          [teleport (* (- 1.0 damping)
-                                                       (vector-ref teleport-vec i))]
-                                          [g-ij (+ (* damping m-ij) teleport)])
-                                         (vector-set! google-data idx g-ij))))
-                           (let* ([google (list 'matrix n n google-data)]
-                                  [v0 (make-vec n (/ 1.0 n))])
-                                 (pagerank-power-iteration google v0 max-iter tol))))))))
+                     (let* ([google-data
+                            (vec-tabulate (* n n) idx
+                              (let* ([i (quotient idx n)]
+                                     [j (remainder idx n)]
+                                     [m-ij (matrix-ref trans i j)]
+                                     [teleport (* (- 1.0 damping)
+                                                  (vector-ref teleport-vec i))])
+                                (+ (* damping m-ij) teleport)))]
+                           [google (list 'matrix n n google-data)]
+                           [v0 (make-vec n (/ 1.0 n))])
+                                 (pagerank-power-iteration google v0 max-iter tol)))))))
 
 (doc top-k-nodes 'type '(-> Vec Nat (List (Pair Nat Num))))
 (doc top-k-nodes 'description "Return top k nodes by PageRank score, sorted descending")
