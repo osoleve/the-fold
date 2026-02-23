@@ -864,10 +864,3 @@
                  [u-exact (exact (point2-x p) (point2-y p))]
                  [diff (- u-fem u-exact)])
             (set! error-sq (+ error-sq (* (/ area 3.0) (* diff diff))))))))))
-
-(printf "fem.ss loaded~n")
-(printf "  (make-fem-mesh triangles)           - Create indexed FEM mesh~n")
-(printf "  (fem-solve-poisson mesh f g)        - Solve -∇²u = f, u|∂Ω = g~n")
-(printf "  (fem-render-solution mesh u w h)    - ASCII heatmap~n")
-(printf "  (make-unit-square-mesh n)           - Unit square mesh~n")
-(printf "  (make-disk-mesh r n)                - Disk mesh~n")

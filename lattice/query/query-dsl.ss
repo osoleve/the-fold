@@ -660,10 +660,3 @@
 ;;; Display:
 ;;;   print-query-results      - Print block list
 ;;;   print-projection-results - Print projection results
-
-(printf "Query DSL loaded.\n")
-(printf "  Use (query fs expr) to execute queries.\n")
-(printf "  Examples:\n")
-(printf "    (query fs '(tag . entity))\n")
-(printf "    (query fs '(and (tag . entity) (payload-contains . \"Turing\")))\n")
-(printf "    (query fs '(select (tag payload-size) (where (tag . entity))))\n")

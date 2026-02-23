@@ -513,14 +513,3 @@
   (doc 'export #t)
   (lambda (it)
     (^. it optic)))
-
-;;; ============================================================
-;;; Module Load Message
-;;; ============================================================
-
-(printf "Declarative Query DSL loaded.\n")
-(printf "  Builder: from, where-clause, select-clause, order-by-clause\n")
-(printf "  Execution: run-query, q>, first-result\n")
-(printf "  Predicates: =?, >?, <?, >=?, <=?, between?, in?, like?\n")
-(printf "  Combinators: and?, or?, not?\n")
-(printf "  Aggregates: count-query, sum-query, avg-query, group-query\n")

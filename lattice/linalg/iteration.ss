@@ -363,3 +363,55 @@
                  (do ([k 0 (+ k 1)]
                       [sum 0 (+ sum (* get-a get-b))])
                      ((= k len) sum))]))
+
+;;; ====
+;;; Vector Construction Combinators
+;;; ====
+;;;
+;;; These encapsulate the "make-vector + do + vector-set!" pattern
+;;; behind a pure interface. The Rust codegen will pattern-match on
+;;; these to emit optimized kernels.
+
+(doc 'section 'vector-construction-combinators)
+
+;;; vec-tabulate : (size idx-var body) -> vector
+;;; Build a new vector of given size where each element is computed
+;;; from its index.
+;;;
+;;; Replaces: (let ([r (make-vector n 0)]) (do ([i 0 (+ i 1)]) ((= i n) r) (vector-set! r i expr)))
+;;;
+;;; Example:
+;;;   (vec-tabulate 5 i (* i i))          ; => #(0 1 4 9 16)
+;;;   (vec-tabulate n i (vector-ref u i))  ; copy of u
+(define-syntax vec-tabulate
+  (syntax-rules ()
+                [(_ size idx body)
+                 (let* ([len size]
+                        [result (make-vector len 0)])
+                       (do ([idx 0 (+ idx 1)])
+                           ((= idx len) result)
+                           (vector-set! result idx body)))]))
+
+;;; vec-scan : (size init idx-var acc-var body) -> vector
+;;; Left-to-right accumulation producing a vector. Element 0 gets init,
+;;; each subsequent element is computed from the previous accumulator.
+;;; Body should compute the next accumulator value; it's also stored
+;;; at position idx.
+;;;
+;;; Replaces: (vector-set! v 0 init) (do ([t 1 ...] [acc init expr]) ((= t n)) (vector-set! v t acc))
+;;;
+;;; Example:
+;;;   (vec-scan 5 0 i acc (+ acc i))       ; prefix sums: #(0 1 3 6 10)
+;;;   (vec-scan n x0 t prev (* alpha (vector-ref xs t) + (- 1 alpha) prev))
+(define-syntax vec-scan
+  (syntax-rules ()
+                [(_ size init idx acc body)
+                 (let* ([len size]
+                        [result (make-vector len 0)])
+                       (vector-set! result 0 init)
+                       (let loop ([idx 1] [acc init])
+                            (if (= idx len)
+                                result
+                                (let ([acc body])
+                                     (vector-set! result idx acc)
+                                     (loop (+ idx 1) acc)))))]))

@@ -536,15 +536,3 @@
           (loop (cdr remaining) (cons (cons key val) prefix) #t)]
          [else
           (loop (cdr remaining) (cons (car remaining) prefix) found)])))))
-
-;;; ============================================================
-;;; Module Load Message
-;;; ============================================================
-
-(printf "Optic Query Language loaded.\n")
-(printf "  Core: oquery, oquery-where, oquery-select, oquery-pipe\n")
-(printf "  Combinators: optic-where, optic-having, optic-select\n")
-(printf "  Aggregates: oquery-count, oquery-sum, oquery-any, oquery-all\n")
-(printf "  Groups: oquery-group-by, oquery-partition\n")
-(printf "  Joins: oquery-join, oquery-zip, oquery-union\n")
-(printf "  Builder: make-query, q-where, q-map, q-run\n")

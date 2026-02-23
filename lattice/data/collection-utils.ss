@@ -218,5 +218,3 @@
         (make-block (block-tag coll1)
                     (string->utf8 (format "merged (~a members)" (length combined)))
                     new-refs)))
-
-(printf "✓ Collection utilities loaded\n")

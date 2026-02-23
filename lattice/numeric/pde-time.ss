@@ -492,10 +492,3 @@
               [u-new (stepper u t dt-clamped)])
          (loop (+ t dt-clamped) u-new (+ steps 1)
                (cons (cons (+ t dt-clamped) (vector-copy u-new)) results)))])))
-
-(printf "pde-time.ss loaded\n")
-(printf "  Time stepping: forward-euler-step, backward-euler-*, crank-nicolson-*\n")
-(printf "  Method of lines: mol-euler-step, mol-rk4-step\n")
-(printf "  Stability: cfl-parabolic, cfl-hyperbolic\n")
-(printf "  Adaptive: integrate-adaptive\n")
-(printf "  Factory: make-time-stepper, integrate-pde\n")

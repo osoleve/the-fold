@@ -687,12 +687,3 @@
     (if (>= i iterations)
         pts
         (loop (lloyd-step pts x-min x-max y-min y-max) (+ i 1)))))
-
-(printf "voronoi.ss loaded~n")
-(printf "  (voronoi-diagram points)               - Compute Voronoi from points~n")
-(printf "  (voronoi-bounded points x0 x1 y0 y1)   - Bounded Voronoi~n")
-(printf "  (voronoi-bounded-cell vor i)           - Get cell polygon~n")
-(printf "  (voronoi-neighbors vor i)              - Find neighboring sites~n")
-(printf "  (voronoi-nearest-site vor query)       - Find nearest site~n")
-(printf "  (lloyd-relax points ... iterations)    - Lloyd relaxation~n")
-(printf "  (render-voronoi vor w h)               - ASCII visualization~n")

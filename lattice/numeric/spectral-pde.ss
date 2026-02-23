@@ -516,10 +516,3 @@
       (let ([err (abs (- (vector-ref computed i) (vector-ref exact i)))])
         (when (> err max-err)
           (set! max-err err))))))
-
-(printf "spectral-pde.ss loaded\n")
-(printf "  Fourier: fourier-diff, fourier-diff2, fourier-wavenumbers\n")
-(printf "  Fourier PDE: fourier-heat-exact-step, fourier-advection-exact-step\n")
-(printf "  Chebyshev: chebyshev-nodes, chebyshev-poly, chebyshev-diff-matrix\n")
-(printf "  Collocation: chebyshev-poisson-1d\n")
-(printf "  Utilities: periodic-grid, sample-function, spectral-error-estimate\n")

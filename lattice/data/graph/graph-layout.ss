@@ -362,12 +362,3 @@
                                 (map (lambda (to) (cons from to)) tos)))
                             adj-list)])
     (make-layout-graph node-ids edges)))
-
-(printf "✓ Graph layout loaded\n")
-(printf "  (make-layout-graph ids edges)     - Create layout graph\n")
-(printf "  (run-layout graph n)              - Run n force iterations\n")
-(printf "  (normalize-layout graph w h m)    - Fit to dimensions\n")
-(printf "  (hierarchical-layout ids edges f) - Tier-based layout\n")
-(printf "  (layout-from-adjacency adj)       - From adjacency list\n")
-(printf "  Optics: node-pos-lens, node-vel-lens, node-x-lens, node-y-lens\n")
-(printf "          graph-nodes-each, graph-all-positions, graph-all-velocities\n")

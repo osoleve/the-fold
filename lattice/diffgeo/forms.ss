@@ -934,29 +934,3 @@
     (do ([i 0 (+ i 1)])
         ((= i n) result)
         (vector-set! result i (vector-ref v i)))))
-
-;;; ============================================================================
-;;; REPL Interface
-;;; ============================================================================
-
-(printf "forms.ss loaded — Differential Forms and Exterior Calculus\n")
-(printf "  Construction:\n")
-(printf "    (make-k-form point chart degree components)\n")
-(printf "    (k-form-basis point chart multi-index)  - basis form dx^I\n")
-(printf "    (cotangent->1-form cv)                  - 1-form from cotangent\n")
-(printf "    (k-form-change-chart kf new-chart)      - express in different chart\n")
-(printf "  Wedge Product:\n")
-(printf "    (wedge α β)                            - α ∧ β\n")
-(printf "    (wedge* α β γ ...)                     - multiple wedge\n")
-(printf "  Interior Product:\n")
-(printf "    (interior-product v ω)                 - ι_v(ω)\n")
-(printf "  Exterior Derivative:\n")
-(printf "    (exterior-derivative ω-field p chart)  - dω at point\n")
-(printf "    (d-scalar f p chart)                   - df for scalar f\n")
-(printf "  Evaluation:\n")
-(printf "    (k-form-apply ω (list v₁ ... vₖ))      - ω(v₁,...,vₖ)\n")
-(printf "  Hodge Star:\n")
-(printf "    (hodge-star-euclidean ω)               - ★ω (Euclidean)\n")
-(printf "  Integration:\n")
-(printf "    (integrate-1-form-line ω γ t0 t1 n)    - ∫_γ ω\n")
-(printf "    (integrate-2-form-surface ω σ ...)     - ∫_σ ω\n")

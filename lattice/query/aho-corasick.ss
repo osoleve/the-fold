@@ -159,5 +159,3 @@
            (if (= sid 0)
                0
                (get-next automaton (ac-state-fail (vector-ref automaton sid)) ch)))))
-
-(printf "Aho-Corasick loaded (dogfooding Queue + Dict + Set!)\n")

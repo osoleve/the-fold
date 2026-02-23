@@ -727,31 +727,3 @@
     (if (< (abs denominator) 1e-15)
         0  ; Degenerate plane
         (/ numerator denominator))))
-
-;;; ============================================================================
-;;; REPL Interface
-;;; ============================================================================
-
-(printf "curvature.ss loaded — Curvature Computations\n")
-(printf "  Metric Tensors:\n")
-(printf "    (make-metric chart metric-fn)        - Create metric\n")
-(printf "    (make-euclidean-metric chart)        - Flat metric\n")
-(printf "    (make-polar-metric chart)            - Polar coords metric\n")
-(printf "    (make-spherical-metric chart)        - Spherical coords metric\n")
-(printf "  Christoffel Symbols:\n")
-(printf "    (christoffel-symbols metric coords)  - Connection coefficients\n")
-(printf "  Curvature Tensors:\n")
-(printf "    (riemann-tensor metric coords)       - Riemann tensor R^l_ijk\n")
-(printf "    (ricci-tensor metric coords)         - Ricci tensor R_ij\n")
-(printf "    (scalar-curvature metric coords)     - Scalar curvature R\n")
-(printf "    (sectional-curvature metric coords X Y) - Sectional curvature\n")
-(printf "  Surface Curvatures:\n")
-(printf "    (make-surface param-fn)              - Parametric surface\n")
-(printf "    (gaussian-curvature surf u v)        - Gaussian curvature K\n")
-(printf "    (mean-curvature surf u v)            - Mean curvature H\n")
-(printf "    (principal-curvatures surf u v)      - κ₁, κ₂\n")
-(printf "    (surface-classify surf u v)          - elliptic/hyperbolic/etc\n")
-(printf "  Standard Surfaces:\n")
-(printf "    (make-sphere-surface R)              - Sphere of radius R\n")
-(printf "    (make-torus-surface R r)             - Torus (R=major, r=minor)\n")
-(printf "    (make-saddle-surface)                - Hyperbolic paraboloid\n")

@@ -369,7 +369,3 @@
                          #t
                          (outer (+ i 1)))]
                     [else (outer (+ i 1))])))])))
-
-(printf "Query pattern matching loaded\n")
-(printf "  Advanced Datalog-style patterns with variable binding\n")
-  (printf "  Usage: (pattern-query fs '((?x rel ?y)) '((< ?y 100)))\n")

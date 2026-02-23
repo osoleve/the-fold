@@ -188,13 +188,3 @@ for meaningful small-world properties.")
                                        (rewire-d (+ d 1) g3))))))
                          ;; No rewire
                          (rewire-d (+ d 1) g2)))))))))))
-
-;;; ============================================================================
-;;; Load Complete
-;;; ============================================================================
-
-(printf "~c random-graphs loaded\n" #\x2713)
-(printf "  (erdos-renyi n p)       - G(n,p) random graph\n")
-(printf "  (barabasi-albert n m)   - Preferential attachment\n")
-(printf "  (watts-strogatz n k p)  - Small-world network\n")
-(printf "  Use: (with-random seed (erdos-renyi 10 0.3))\n")

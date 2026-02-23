@@ -455,15 +455,3 @@
     (do ([i 0 (+ i 1)])
         ((= i n) result)
         (vector-set! result i (vector-ref v i)))))
-
-;;; ====
-;;; REPL Interface
-;;; ====
-
-(printf "charts.ss loaded — Coordinate Charts and Atlases\n")
-(printf "  (make-chart name dim domain coord-map inverse) - Create chart\n")
-(printf "  (make-atlas name charts)                       - Create atlas\n")
-(printf "  (chart-apply chart point)                      - Get coordinates\n")
-(printf "  (transition-apply from to coords)              - Transform coords\n")
-(printf "  (transition-jacobian from to coords)           - Jacobian matrix\n")
-(printf "  (make-polar-chart), (make-spherical-chart)     - Standard charts\n")

@@ -950,30 +950,3 @@
          [scaled-v (vec-scale t (se3-alg-v delta-log))]
          [scaled-log (make-se3-alg scaled-omega scaled-v)])
     (se3-compose g1 (se3-exp scaled-log))))
-
-;;; ============================================================================
-;;; REPL Interface
-;;; ============================================================================
-
-(printf "lie-groups.ss loaded — Lie Groups and Algebras\n")
-(printf "  SO(2) - 2D Rotations:\n")
-(printf "    (make-so2 theta)           - Create rotation by angle θ\n")
-(printf "    (so2-exp xi)               - Exponential map: so(2) → SO(2)\n")
-(printf "    (so2-log g)                - Logarithm map: SO(2) → so(2)\n")
-(printf "  SO(3) - 3D Rotations:\n")
-(printf "    (make-so3 axis theta)      - Create rotation (axis-angle)\n")
-(printf "    (so3-exp xi)               - Rodrigues formula\n")
-(printf "    (so3-log g)                - Inverse Rodrigues\n")
-(printf "    (so3-hat v), (so3-vee m)   - Hat/vee isomorphisms\n")
-(printf "  SE(2), SE(3) - Rigid Transformations:\n")
-(printf "    (make-se2 R t), (make-se3 R t)\n")
-(printf "    (se2-exp xi), (se3-exp xi)\n")
-(printf "    (se2-log g), (se3-log g)\n")
-(printf "  Adjoint:\n")
-(printf "    (so3-adjoint g), (se3-adjoint g)\n")
-(printf "  BCH (Baker-Campbell-Hausdorff):\n")
-(printf "    (so3-bch-2 xi eta)         - Second-order approximation\n")
-(printf "    (so3-bch-4 xi eta)         - Fourth-order approximation\n")
-(printf "  Interpolation:\n")
-(printf "    (so3-interpolate g1 g2 t)  - SLERP\n")
-(printf "    (se3-interpolate g1 g2 t)\n")

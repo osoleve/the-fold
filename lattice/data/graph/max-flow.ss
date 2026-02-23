@@ -403,9 +403,3 @@ Nodes in left and right MUST be disjoint non-negative integers.")
             (edge-set-flow! (car es) 0)
             (loop-e (cdr es))))
         (loop-u (+ u 1))))))
-
-;;; ====
-;;; Load Complete
-;;; ====
-
-(printf "✓ Max-flow loaded (Edmonds-Karp, min-cut, bipartite matching)\n")

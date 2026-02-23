@@ -209,15 +209,3 @@
                      #t
                      (and (hamt-has-key? (car l) hash-set)
                           (loop (cdr l))))))))
-
-
-;;; ====
-;;; Load Complete
-;;; ====
-
-(printf "✓ Graph algorithms loaded (pure data structures)
-")
-(printf "  Data structures: visited-set, queue, stack, hash-utils, cycle-utils
-")
-(printf "  See graph-homology.ss for Betti numbers, cycle basis, tree detection
-")

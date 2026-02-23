@@ -708,5 +708,3 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
         (let ([result (f (car lst))])
           (loop (cdr lst)
                 (if result (cons result acc) acc))))))
-
-(printf "constraint-graph.ss loaded\n")

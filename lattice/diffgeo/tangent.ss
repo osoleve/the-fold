@@ -747,27 +747,3 @@
   (let ([eps (if (null? epsilon-arg) *jacobian-epsilon* (car epsilon-arg))])
     (lambda (point)
       (lie-bracket X Y point chart eps))))
-
-;;; ============================================================================
-;;; REPL Interface
-;;; ============================================================================
-
-(printf "tangent.ss loaded — Tangent and Cotangent Spaces\n")
-(printf "  Tangent Vectors:\n")
-(printf "    (make-tangent-vector point chart components)\n")
-(printf "    (tangent-add tv1 tv2), (tangent-scale k tv)\n")
-(printf "    (tangent-change-chart tv new-chart)\n")
-(printf "  Cotangent Vectors:\n")
-(printf "    (make-cotangent-vector point chart components)\n")
-(printf "    (covector-apply cv tv) - pairing ⟨ω, v⟩\n")
-(printf "    (cotangent-change-chart cv new-chart)\n")
-(printf "  Pushforward/Pullback:\n")
-(printf "    (pushforward f tv src-chart tgt-chart)\n")
-(printf "    (pullback-at f cv src-point src-chart tgt-chart)\n")
-(printf "  Spaces and Bundles:\n")
-(printf "    (make-tangent-space point chart)\n")
-(printf "    (make-tangent-bundle atlas)\n")
-(printf "    (differential f point chart) - df as 1-form\n")
-(printf "  Lie Bracket:\n")
-(printf "    (lie-bracket X Y point chart) - [X,Y] at point\n")
-(printf "    (lie-bracket-field X Y chart) - [X,Y] as vector field\n")
