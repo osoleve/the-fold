@@ -169,13 +169,16 @@ Priority chain: CAS root → sexp cache → full manifest build.")
 (doc 'section 'concept-functions)
 
 (doc lk 'type (-> Symbol Void))
-(doc lk 'description "Show skills that provide a concept")
+(doc lk 'description "Show skills that provide a concept (normalizes aliases)")
 (define (lk concept-name)
-  (let ([skills (kg-concept-skills concept-name)])
+  (let* ([canonical (concept-normalize concept-name)]
+         [skills (kg-concept-skills canonical)])
+    (when (not (eq? canonical concept-name))
+      (printf "  (~a -> ~a)\n" concept-name canonical))
     (if (null? skills)
-        (printf "No skills found for concept: ~a\n" concept-name)
+        (printf "No skills found for concept: ~a\n" canonical)
         (begin
-          (printf "Concept '~a' is provided by:\n" concept-name)
+          (printf "Concept '~a' is provided by:\n" canonical)
           (for-each (lambda (s) (printf "  ~a\n" s)) skills)))))
 
 (doc lkk 'type (-> Symbol Void))

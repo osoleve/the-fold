@@ -233,8 +233,9 @@ geometrically diminishing weight: direct=1, parent=0.5, grandparent=0.25, etc.")
 (define (concept-boost-for-query query-terms)
   (fold-left
    (lambda (boost-set term)
-     ;; Accumulate direct concept match (weight 1.0)
-     (let* ([skills (kg-concept-skills term)]
+     ;; Normalize alias → canonical before concept lookup
+     (let* ([term (concept-normalize term)]
+            [skills (kg-concept-skills term)]
             [bs1 (fold-left
                   (lambda (bs skill-name)
                     (let ([current (or (hamt-lookup skill-name bs) 0)])

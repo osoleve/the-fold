@@ -560,11 +560,10 @@ rather than replacing. Used by incremental builds to scope type extraction.")
                      sexps)))))
             files))))
      paths)
-    ;; Merge new types into existing map
+    ;; Merge new types into existing map (unconditional — updated sigs must overwrite)
     (for-each
      (lambda (pair)
-       (unless (hamt-lookup (car pair) *kg-type-sigs*)
-         (set! *kg-type-sigs* (hamt-assoc (car pair) (cdr pair) *kg-type-sigs*))))
+       (set! *kg-type-sigs* (hamt-assoc (car pair) (cdr pair) *kg-type-sigs*)))
      (reverse type-pairs))))
 
 (doc kg-incremental-build! 'type (-> (Maybe Bytevector)))
