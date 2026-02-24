@@ -24,7 +24,8 @@
     ;; ROOT: mathematics
     ;; ----------------------------------------------------------------
     (concept mathematics
-      (description "The domain of abstract structures, formal reasoning, and quantitative relationships underlying all computational skills."))
+      (description "The domain of abstract structures, formal reasoning, and quantitative relationships underlying all computational skills.")
+      (children (abstract-algebra linear-algebra number-theory differential-geometry computational-topology information-theory numerical-computing)))
 
     (concept abstract-algebra
       (description "The study of algebraic structures — groups, rings, fields, and modules — and the axioms and morphisms that govern them.")
@@ -181,7 +182,8 @@
     ;; ROOT: computation
     ;; ----------------------------------------------------------------
     (concept computation
-      (description "The domain of algorithms, data structures, languages, and the structures that make programs tractable and correct."))
+      (description "The domain of algorithms, data structures, languages, and the structures that make programs tractable and correct.")
+      (children (data-structures algorithms satisfiability automata-theory formal-languages equality-saturation)))
 
     (concept data-structures
       (description "Organized representations for efficient storage and retrieval: trees, graphs, heaps, queues, and spatial indices.")
@@ -275,7 +277,8 @@
     ;; ROOT: programming-paradigms
     ;; ----------------------------------------------------------------
     (concept programming-paradigms
-      (description "Organizing principles and abstractions for structuring programs: functional, categorical, logic, and declarative."))
+      (description "Organizing principles and abstractions for structuring programs: functional, categorical, logic, and declarative.")
+      (children (functional-programming category-theory logic-programming meta-programming)))
 
     (concept functional-programming
       (description "Programming with pure functions, immutable data, and compositional abstractions like monads and type classes.")
