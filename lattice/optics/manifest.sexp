@@ -54,6 +54,12 @@ Key features:
 
   (aliases (optics lens prism profunctor-optics))
 
+  (concepts
+    (concept optics-paradigm
+      (description "Composable data accessors (Lens, Prism, Traversal, Iso, Grate) for focused read/write on nested structures.")
+      (parent functional-programming)
+      (synonyms optics lens prism profunctor-optics profunctor strong-profunctor choice-profunctor closed-profunctor wander)))
+
   ;;; ====
   ;;; Exports
   ;;; ====

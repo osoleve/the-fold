@@ -13,6 +13,21 @@ Vietoris-Rips filtrations, persistence diagrams, and barcodes.")
              star link skeleton filtration tda z2-coefficients persistent-homology
              persistence-diagram barcode vietoris-rips bottleneck-distance))
   (aliases (topo simplicial persistent tda))
+
+  (concepts
+    (concept computational-topology
+      (description "Discrete topological invariants: simplicial complexes, homology, Betti numbers, and persistent homology.")
+      (parent mathematics)
+      (synonyms topology topo))
+    (concept simplicial-homology
+      (description "Chain complexes, boundary operators, Betti numbers, and Euler characteristic of simplicial complexes over Z2.")
+      (parent computational-topology)
+      (synonyms simplicial-complex simplicial betti-numbers euler-characteristic homology))
+    (concept persistent-homology
+      (description "Topological data analysis via filtrations: Vietoris-Rips complexes, persistence diagrams, and barcodes.")
+      (parent computational-topology)
+      (synonyms tda barcode persistence-diagram vietoris-rips persistent)))
+
   (exports
     (simplicial-complex
       ;; Simplex constructors and predicates

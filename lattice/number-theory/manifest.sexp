@@ -24,6 +24,24 @@
              fast-multiply bignum limb schoolbook))
   (aliases (modular mod-arith nt primes fast-mult))
 
+  (concepts
+    (concept number-theory
+      (description "Properties of integers: primality, modular arithmetic, factorization, and number-theoretic functions.")
+      (parent mathematics)
+      (synonyms nt))
+    (concept modular-arithmetic
+      (description "Arithmetic modulo an integer, including Chinese Remainder Theorem, Montgomery multiplication, and quadratic residues.")
+      (parent number-theory)
+      (synonyms modular mod-arith))
+    (concept primality
+      (description "Primality testing (Miller-Rabin), integer factorization (Pollard rho), Euler totient, and prime navigation.")
+      (parent number-theory)
+      (synonyms primes))
+    (concept fast-arithmetic
+      (description "Sub-quadratic multiplication algorithms: Karatsuba and Toom-Cook for large integer arithmetic.")
+      (parent number-theory)
+      (synonyms fast-mult)))
+
   (exports
    (modular
     mod+ mod- mod* mod-expt

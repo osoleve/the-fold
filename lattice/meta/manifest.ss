@@ -44,7 +44,7 @@
 (doc 'section 'parsing)
 
 (doc parse-manifest 'type (-> SExp (Maybe ManifestData)))
-(doc parse-manifest 'description "Parse a manifest s-expression into structured alist data. Returns #f if the input is not a valid manifest. ManifestData is an alist with keys: name, version, tier, path, purity, stability, fuel-bound, deps, description, keywords, aliases, exports, modules")
+(doc parse-manifest 'description "Parse a manifest s-expression into structured alist data. Returns #f if the input is not a valid manifest. ManifestData is an alist with keys: name, version, tier, path, purity, stability, fuel-bound, deps, description, keywords, aliases, exports, modules, concepts")
 (define (parse-manifest sexp)
   (if (and (pair? sexp) (eq? (car sexp) 'skill))
       (let ([name (cadr sexp)])
@@ -60,7 +60,8 @@
              (keywords . ,(flatten-single (manifest-field sexp 'keywords)))
              (aliases . ,(flatten-single (manifest-field sexp 'aliases)))
              (exports . ,(or (manifest-field sexp 'exports) '()))
-             (modules . ,(flatten-single (or (manifest-field sexp 'modules) '())))))
+             (modules . ,(flatten-single (or (manifest-field sexp 'modules) '())))
+             (concepts . ,(or (manifest-field sexp 'concepts) '()))))
       #f))
 
 (doc 'section 'accessors)

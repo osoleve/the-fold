@@ -18,6 +18,11 @@
              fov line-of-sight units turns tactical strategy roguelike))
   (aliases (boardcraft game-board grid-sdk tactical))
 
+  (concepts
+    (concept board-games
+      (description "Board game SDK for hex, square, and triangle grids: pathfinding, FOV, line-of-sight, and tactical reasoning.")
+      (synonyms board-game hex-grid square-grid pathfinding fov line-of-sight roguelike boardcraft game-board grid-sdk tactical)))
+
   (exports
    (core coord make-tile make-board board-get board-set board-coords
          board-size manhattan-distance chebyshev-distance euclidean-distance)

@@ -38,6 +38,31 @@
 
   (aliases (game games game-theory))
 
+  (concepts
+    (concept strategic-games
+      (description "Normal and extensive form games, Nash equilibrium, backward induction, and subgame perfect equilibrium.")
+      (parent game-and-decision-theory)
+      (synonyms nash-equilibrium best-response pure-nash mixed-nash))
+    (concept cooperative-games
+      (description "Coalitional games, Shapley value, core, nucleolus, Banzhaf index, and Nash bargaining solutions.")
+      (parent game-and-decision-theory)
+      (synonyms shapley-value cooperative-value banzhaf-index power-index))
+    (concept social-choice
+      (description "Voting systems (plurality, Borda, Schulze, STV, PAV), Condorcet winners, and Gibbard-Satterthwaite impossibility.")
+      (parent game-and-decision-theory)
+      (synonyms voting-rules plurality borda condorcet schulze))
+    (concept mechanism-design
+      (description "Auction theory (first-price, VCG, double), incentive compatibility, revelation principle, and Myerson optimal auctions.")
+      (parent game-and-decision-theory)
+      (synonyms vcg vickrey auction incentive-compatibility stable-matching gale-shapley two-sided-matching))
+    (concept evolutionary-game-theory
+      (description "Replicator dynamics, evolutionarily stable strategies (ESS), invasion analysis, and population dynamics.")
+      (parent game-and-decision-theory)
+      (synonyms replicator-dynamics evolutionarily-stable-strategy ess hawk-dove))
+    (concept multi-criteria-decision
+      (description "Decision making over multiple objectives: Pareto frontiers, weighted Borda, sensitivity analysis, and robustness.")
+      (parent game-and-decision-theory)))
+
   (exports
    ;; normal-form.ss — Strategic Form Games
    (normal-form
@@ -208,4 +233,4 @@
     clp-best-response-p1 clp-best-response-p2 clp-mutual-best-response
     clp-dominance-prune game->clp-nash game->clp-constrained-nash
     clp-find-pure-nash clp-constrained-nash
-    nash-solution->names nash-solutions->names))
+    nash-solution->names nash-solutions->names)))

@@ -20,6 +20,12 @@
              harel transition guard action event))
   (aliases (state-machines fsm statecharts))
 
+  (concepts
+    (concept automata-theory
+      (description "Formal models of computation: DFA, NFA, statecharts, and hierarchical state machines.")
+      (parent computation)
+      (synonyms automata state-machines fsm statecharts state-machine statechart harel hierarchical-state parallel-region)))
+
   (exports
    (statechart
     ;; State types and constructors

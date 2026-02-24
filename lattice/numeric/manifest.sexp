@@ -31,6 +31,31 @@
              method-of-lines rk4 cfl-condition parabolic hyperbolic adaptive))
   (aliases (signal dsp interp interval affine fem pde-time))
 
+  (concepts
+    (concept numerical-computing
+      (description "The domain of floating-point algorithms, approximation methods, and rigorous error analysis.")
+      (parent mathematics)
+      (synonyms numerics))
+    (concept signal-processing
+      (description "Digital processing of time-series signals: FFT, digital filters (FIR/IIR), wavelets, convolution, and spectral analysis.")
+      (parent numerical-computing)
+      (synonyms signal dsp fft dft fast-fourier-transform spectral-analysis digital-filter fir iir butterworth chebyshev biquad wavelet haar daubechies dwt))
+    (concept interpolation-approximation
+      (description "Constructing smooth functions from discrete data: polynomial interpolation, splines, Bezier, Chebyshev, and B-splines.")
+      (parent numerical-computing)
+      (synonyms interp interpolation spline bezier hermite lagrange))
+    (concept verified-computation
+      (description "Numerics with guaranteed error bounds: interval arithmetic, affine arithmetic, and rigorous enclosure methods.")
+      (parent numerical-computing)
+      (synonyms interval interval-arithmetic rigorous-bounds affine affine-arithmetic correlation-tracking dependency-problem))
+    (concept numerical-integration
+      (description "Numerical integration of ODEs: Euler, Runge-Kutta (RK4, DP45), symplectic integrators, and adaptive step control.")
+      (parent numerical-computing))
+    (concept pde-methods
+      (description "Numerical methods for partial differential equations: FEM on triangular meshes, Method of Lines, and Crank-Nicolson.")
+      (parent numerical-computing)
+      (synonyms fem pde-time finite-element-method poisson-equation elliptic-pde pde-time-stepping forward-euler backward-euler crank-nicolson method-of-lines rk4)))
+
   (exports
    (complex
     make-complex complex? complex-real complex-imag real-num->complex i-value

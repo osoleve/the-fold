@@ -20,6 +20,12 @@
              boundary defensive checking))
   (aliases (contracts))
 
+  (concepts
+    (concept validation-contracts
+      (description "Content-addressed declarative data shape specifications with structural and numeric constraints, hash-versioned.")
+      (parent system-design)
+      (synonyms validation contracts)))
+
   (exports
    (contract
     ;; Contract construction

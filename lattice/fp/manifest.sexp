@@ -30,6 +30,31 @@ Key design principles:
 
   (aliases (fp functional))
 
+  (concepts
+    (concept functional-programming
+      (description "Programming with pure functions, immutable data, and compositional abstractions like monads and type classes.")
+      (parent programming-paradigms)
+      (synonyms fp functional))
+    (concept type-classes
+      (description "Dictionary-passing polymorphism implementing Haskell-style abstractions: Functor, Monad, Traversable, Monoid.")
+      (parent functional-programming))
+    (concept monadic-programming
+      (description "Sequencing effects via monads: State, Reader, Writer, Continuation, Free, and algebraic effect handlers.")
+      (parent functional-programming))
+    (concept rewriting
+      (description "Term rewriting systems, rewrite rules, fusion optimization, and proof tactics for equational reasoning.")
+      (parent functional-programming))
+    (concept category-theory
+      (description "Abstract mathematical framework: functors, natural transformations, adjunctions, and Kan extensions applied to programming.")
+      (parent programming-paradigms))
+    (concept logic-programming
+      (description "Computation via unification and search: miniKanren-style relational goals, substitutions, and backtracking.")
+      (parent programming-paradigms))
+    (concept formal-languages
+      (description "Regular expressions, parser combinators, DFA-backed parsing, and the theory connecting languages to automata.")
+      (parent computation)
+      (synonyms parser-combinators monadic-parsing packrat-memoization regex-dfa)))
+
   ;;; ====
   ;;; Exports by Submodule
   ;;; ====

@@ -39,6 +39,27 @@
              betti-numbers loss-surface basin-counting saddle-detection))
   (aliases (optim opt minimize))
 
+  (concepts
+    (concept gradient-based-optimization
+      (description "First-order methods (SGD, Adam, Muon) and second-order methods (Newton, L-BFGS) for smooth objectives.")
+      (parent optimization)
+      (synonyms gradient-descent sgd adam muon rmsprop adagrad momentum lbfgs quasi-newton limited-memory-bfgs))
+    (concept constrained-optimization
+      (description "Optimization subject to equality or inequality constraints: LP via simplex, ILP via branch-and-bound, and contractors.")
+      (parent optimization)
+      (synonyms linear-programming simplex-method lp dual sensitivity-analysis))
+    (concept combinatorial-optimization
+      (description "Discrete optimization: ILP, weighted MaxSAT, knapsack, vertex cover, and set cover problems.")
+      (parent optimization)
+      (synonyms integer-programming ilp branch-and-bound gomory-cuts knapsack set-cover))
+    (concept global-optimization
+      (description "Finding the global minimum of non-convex functions: interval branch-and-bound with guaranteed enclosure.")
+      (parent optimization)
+      (synonyms interval-optimization global-minimum verified-optimization monotonicity-pruning))
+    (concept topological-optimization
+      (description "Using persistent homology to analyze loss surfaces: basin counting, saddle detection, and landscape comparison.")
+      (parent optimization)))
+
   (exports
    (line-search armijo-backtrack wolfe-line-search)
    (convergence converged? make-convergence-criteria)

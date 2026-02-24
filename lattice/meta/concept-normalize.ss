@@ -409,3 +409,110 @@ has no associated skills.")
 (define (concept-all)
   ;; *all-concepts* accumulates in reverse insertion order; return stable order.
   (reverse *all-concepts*))
+
+;;; ====================================================================
+;;; Ontology Builder (scan-derived)
+;;; ====================================================================
+
+(doc 'section 'builder)
+
+;;; concept-entry-field : SExp Symbol -> (Maybe Any)
+;;; Extract a field from a (concept name (field ...) ...) entry.
+(define (concept-entry-field entry field-name)
+  (and (pair? entry) (eq? (car entry) 'concept) (pair? (cdr entry))
+       (let ([fields (cddr entry)])
+         (let loop ([fs fields])
+           (cond
+             [(null? fs) #f]
+             [(and (pair? (car fs)) (eq? (caar fs) field-name))
+              (cdar fs)]
+             [else (loop (cdr fs))])))))
+
+(doc build-ontology-from-manifests 'type '(-> (List ManifestData) SExp))
+(doc build-ontology-from-manifests 'description "Build a concept-ontology sexp from manifest data.
+Each manifest's (concepts ...) block declares concept entries with name, description,
+optional parent, and optional synonyms.  Children are derived by inverting the parent
+map — never declared directly.  Cross-cutting concepts (with (cross-cutting #t)) are
+collected into a separate section.  Undeclared parents are auto-created as stub roots.")
+(doc build-ontology-from-manifests 'export #t)
+(define (build-ontology-from-manifests manifest-data-list)
+  (let ([concepts hamt-empty]       ; name -> (concept ...) entry
+        [cross-cutting-entries '()]  ; list of (concept ...) entries
+        [parent-map hamt-empty]      ; child -> parent
+        [all-names '()])             ; insertion-order names
+
+    ;; Phase 1: Collect concept entries from all manifests
+    (for-each
+     (lambda (manifest-data)
+       (let ([concepts-raw (let ([entry (assq 'concepts manifest-data)])
+                             (if (and entry (list? (cdr entry))) (cdr entry) '()))])
+         (for-each
+          (lambda (entry)
+            (when (and (pair? entry) (eq? (car entry) 'concept) (pair? (cdr entry)))
+              (let* ([name (cadr entry)]
+                     [is-cc (concept-entry-field entry 'cross-cutting)]
+                     [parent-field (concept-entry-field entry 'parent)])
+                (cond
+                  ;; Cross-cutting concept
+                  [(and is-cc (car is-cc))
+                   (set! cross-cutting-entries (cons entry cross-cutting-entries))]
+                  ;; Regular concept — first-seen wins
+                  [(hamt-lookup name concepts)
+                   (when (or (not (top-level-bound? '*meta-quiet*))
+                             (not (top-level-value '*meta-quiet*)))
+                     (format (current-error-port)
+                             "WARNING: concept '~a' declared in multiple manifests, keeping first~%"
+                             name))]
+                  [else
+                   (set! concepts (hamt-assoc name entry concepts))
+                   (set! all-names (cons name all-names))
+                   (when parent-field
+                     (set! parent-map
+                           (hamt-assoc name (car parent-field) parent-map)))]))))
+          concepts-raw)))
+     manifest-data-list)
+
+    ;; Phase 2: Auto-create stub roots for undeclared parents
+    (for-each
+     (lambda (name)
+       (let ([parent (hamt-lookup name parent-map)])
+         (when (and parent (not (hamt-lookup parent concepts)))
+           (let ([stub `(concept ,parent
+                          (description ,(string-append "Auto-created root for " (symbol->string parent))))])
+             (set! concepts (hamt-assoc parent stub concepts))
+             (set! all-names (cons parent all-names))))))
+     (reverse all-names))
+
+    ;; Phase 3: Derive children by inverting parent map
+    (let ([children-map hamt-empty])
+      (for-each
+       (lambda (name)
+         (let ([parent (hamt-lookup name parent-map)])
+           (when parent
+             (let ([existing (hamt-lookup parent children-map)])
+               (set! children-map
+                     (hamt-assoc parent
+                                 (append (or existing '()) (list name))
+                                 children-map))))))
+       (reverse all-names))
+
+      ;; Phase 4: Emit ontology sexp
+      (let ([concept-forms
+             (map (lambda (name)
+                    (let* ([entry (hamt-lookup name concepts)]
+                           [fields (cddr entry)]
+                           [desc-field (assq 'description fields)]
+                           [parent-field (assq 'parent fields)]
+                           [synonyms-field (assq 'synonyms fields)]
+                           [kids (hamt-lookup name children-map)])
+                      `(concept ,name
+                         ,@(if desc-field (list `(description ,(cadr desc-field))) '())
+                         ,@(if parent-field (list `(parent ,(cadr parent-field))) '())
+                         ,@(if (and kids (pair? kids)) (list `(children ,kids)) '())
+                         ,@(if synonyms-field (list `(synonyms ,@(cdr synonyms-field))) '()))))
+                  (reverse all-names))]
+            [cc-forms (reverse cross-cutting-entries)])
+        `(concept-ontology
+          (version 2)
+          (concepts ,@concept-forms)
+          (cross-cutting ,@cc-forms))))))

@@ -19,6 +19,11 @@
              pid-controller lqr pole-placement stability z-transform
              discrete-control continuous-to-discrete))
 
+  (concepts
+    (concept control-theory
+      (description "State-space models, transfer functions, PID controllers, LQR, Kalman filters, and H-infinity synthesis.")
+      (synonyms control-systems)))
+
   (exports
    (state-space
     ss? make-ss ss-from-lists

@@ -22,6 +22,12 @@
              computational-graph tape dual-numbers hyperdual monotonicity))
   (aliases (ad diff reverse-diff backprop))
 
+  (concepts
+    (concept automatic-differentiation
+      (description "Computing exact derivatives by propagating through computational graphs: forward mode (dual numbers), reverse mode (backprop).")
+      (parent machine-learning)
+      (synonyms autodiff ad diff reverse-diff backprop)))
+
   (exports
    (profiling tape-stats)
    (differentiable TC-Differentiable inst-Differentiable-Real

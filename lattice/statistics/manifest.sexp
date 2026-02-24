@@ -23,6 +23,12 @@
 
   (aliases (stats stat regression models))
 
+  (concepts
+    (concept statistical-modeling
+      (description "Linear models, GLM (logistic, Poisson), regularized regression (Ridge, Lasso), and time series (AR, MA, Holt-Winters).")
+      (parent probabilistic-reasoning)
+      (synonyms statistics stats stat regression models)))
+
   (exports
    ;; Core
    (summary-stats vec-mean vec-variance vec-std-dev vec-median vec-quantile

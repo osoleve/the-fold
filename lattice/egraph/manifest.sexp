@@ -33,6 +33,12 @@
 
   (aliases (egraph e-graph))
 
+  (concepts
+    (concept equality-saturation
+      (description "E-graphs that represent multiple equivalent program forms simultaneously for cost-based optimal extraction.")
+      (parent computation)
+      (synonyms egraph e-graph)))
+
   (exports
    (union-find
     make-uf uf? uf-make-set! uf-find uf-union! uf-same-set?

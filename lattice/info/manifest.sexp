@@ -18,6 +18,26 @@
              huffman-coding arithmetic-coding compression error-correction shannon))
   (aliases (information entropy coding))
 
+  (concepts
+    (concept information-theory
+      (description "Shannon's framework for quantifying information: entropy, mutual information, channel capacity, and coding.")
+      (parent mathematics)
+      (synonyms information))
+    (concept entropy-measures
+      (description "Shannon entropy and variants (Renyi, min, collision), KL divergence, mutual information, and related measures.")
+      (parent information-theory)
+      (synonyms entropy))
+    (concept channel-theory
+      (description "Communication channel models (BSC, BEC, AWGN), capacity computation via Blahut-Arimoto, and achievable rates.")
+      (parent information-theory))
+    (concept coding-theory
+      (description "Source coding (Huffman, arithmetic, LZ78) and channel coding (Hamming, parity) for compression and error correction.")
+      (parent information-theory)
+      (synonyms coding))
+    (concept rate-distortion
+      (description "The tradeoff between compression rate and reconstruction fidelity: R(D) curves, quantization, and Lloyd-Max.")
+      (parent information-theory)))
+
   (exports
    (entropy
     entropy entropy-normalized max-entropy entropy-ratio binary-entropy

@@ -22,6 +22,12 @@
              hopf saddle-node pitchfork period-doubling))
   (aliases (simulation simulation-stream chaos dynamics bifurcation))
 
+  (concepts
+    (concept dynamical-systems
+      (description "Continuous-time systems: ODE solvers, chaos detection (Lyapunov exponents), attractors, and bifurcation analysis.")
+      (parent physics-simulation)
+      (synonyms simulation simulation-stream chaos dynamics chaos-theory lyapunov-exponents strange-attractor poincare-section bifurcation hopf saddle-node pitchfork period-doubling feigenbaum)))
+
   (exports
    (simulation-stream sim-unfold simulate sim-scan)
    (ode-system make-autonomous-ode make-nonautonomous-ode lorenz-system

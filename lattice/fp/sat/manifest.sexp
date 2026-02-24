@@ -15,6 +15,20 @@
   (keywords (sat satisfiability cnf dpll cdcl clause-learning boolean constraint np-complete
              maxsat optimization vertex-cover independent-set diagnosis))
   (aliases (sat boolean-sat cdcl maxsat))
+
+  (concepts
+    (concept satisfiability
+      (description "Boolean constraint solving: SAT, MaxSAT, and CDCL solvers for NP-complete decision problems.")
+      (parent computation)
+      (synonyms sat boolean-sat))
+    (concept sat-solving
+      (description "CDCL SAT solving with two-watched literals, clause learning, non-chronological backtracking, and VSIDS heuristic.")
+      (parent satisfiability)
+      (synonyms cdcl))
+    (concept maxsat
+      (description "Optimization over weighted soft clauses: minimize unsatisfied constraints subject to hard clause satisfaction.")
+      (parent satisfiability)))
+
   (exports
    (sat sat-solve sat-satisfiable? sat-model sat-help)
    (sat var neg implies iff)

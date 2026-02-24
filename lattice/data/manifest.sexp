@@ -29,6 +29,43 @@
              keyed-collection spatial-collection priority-collection))
   (aliases (ds structures collections))
 
+  (concepts
+    (concept data-structures
+      (description "Organized representations for efficient storage and retrieval: trees, graphs, heaps, queues, and spatial indices.")
+      (parent computation)
+      (synonyms ds structures collections))
+    (concept tree-structures
+      (description "Hierarchical data structures including AVL trees, finger trees, and zippers for ordered key-value storage.")
+      (parent data-structures))
+    (concept graph-structures
+      (description "Adjacency matrices, graph algorithms (Dijkstra, Floyd-Warshall, BFS/DFS), centrality, and community detection.")
+      (parent data-structures)
+      (synonyms community-detection label-propagation modularity modularity-ilp pagerank eigenvector-centrality katz-centrality closeness-centrality betweenness-centrality))
+    (concept spatial-structures
+      (description "K-d trees, quadtrees, BVH, and octrees for efficient nearest-neighbor and range queries in 2D/3D space.")
+      (parent data-structures)
+      (synonyms bvh-tree bvh octree spatial-acceleration))
+    (concept priority-structures
+      (description "Heaps, priority queues, and leftist heaps providing O(log n) insert and min/max extraction.")
+      (parent data-structures))
+    (concept sequential-structures
+      (description "Stacks, queues, streams, difference lists, ropes, and ring buffers for ordered sequential access.")
+      (parent data-structures))
+    (concept sorting-algorithms
+      (description "Comparison-based and non-comparison sorting: merge sort, quicksort, heapsort, and their stable variants.")
+      (parent algorithms))
+    (concept graph-algorithms
+      (description "BFS, DFS, shortest paths, minimum spanning trees, topological sort, and connected components.")
+      (parent algorithms)
+      (synonyms shortest-path dijkstra floyd-warshall bfs dfs minimum-spanning-tree mst prim kruskal union-find))
+    (concept string-algorithms
+      (description "Pattern matching (Aho-Corasick) and string search algorithms operating over character sequences.")
+      (parent algorithms)
+      (synonyms aho-corasick multi-pattern-search string-matching))
+    (concept search-algorithms
+      (description "BFS, Dijkstra, A* pathfinding, and constraint-based search for combinatorial problem solving.")
+      (parent algorithms)))
+
   (exports
    (avl-tree
      avl-empty avl-empty? avl-node? avl-height avl-key avl-value avl-left avl-right

@@ -18,6 +18,30 @@
              toeplitz levinson-durbin spectral-clustering))
   (aliases (la lin-alg linear matrix-math))
 
+  (concepts
+    (concept linear-algebra
+      (description "The mathematics of vectors, matrices, linear maps, and their decompositions and solvers.")
+      (parent mathematics)
+      (synonyms la lin-alg linear matrix-math linalg))
+    (concept matrix-theory
+      (description "Dense matrix representations, arithmetic, decompositions (LU, QR, Cholesky), and direct solvers.")
+      (parent linear-algebra))
+    (concept vector-spaces
+      (description "Abstract vector operations including 2D, 3D, and n-dimensional vectors with norms, dot products, and transformations.")
+      (parent linear-algebra)
+      (synonyms quaternion rotation slerp rodrigues))
+    (concept eigenvalue-theory
+      (description "Computation of eigenvalues, eigenvectors, SVD, spectral decomposition, and related matrix properties.")
+      (parent linear-algebra)
+      (synonyms eigenvalue eigenvalues eigenvectors svd singular-value-decomposition))
+    (concept sparse-methods
+      (description "Efficient representations (COO, CSR, CSC) and algorithms for matrices with mostly zero entries.")
+      (parent linear-algebra))
+    (concept spectral-methods
+      (description "Graph Laplacians, spectral clustering, Fiedler vectors, and algebraic connectivity of graphs.")
+      (parent linear-algebra)
+      (synonyms spectral spectral-clustering graph-laplacian fiedler-vector algebraic-connectivity)))
+
   (exports
    (vec
     make-vec vec-from-list vec->list vec

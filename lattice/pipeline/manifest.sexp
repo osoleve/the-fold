@@ -19,6 +19,12 @@
              deliberation multi-model automation orchestration))
   (aliases (workflow agent-pipeline stages arrows))
 
+  (concepts
+    (concept agent-orchestration
+      (description "Multi-stage AI pipelines, LLM effects, council-based deliberation, and arrow-based workflow composition.")
+      (parent machine-learning)
+      (synonyms pipeline workflow agent-pipeline stages arrows council-deliberation multi-model llm-orchestration consensus)))
+
   (exports
    (stage
     ;; StageResult constructors and predicates

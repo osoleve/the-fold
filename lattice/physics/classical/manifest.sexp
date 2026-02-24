@@ -19,6 +19,12 @@
              constraint-islands scc parallel-solving))
   (aliases (physics-2d classical-physics))
 
+  (concepts
+    (concept rigid-body-physics
+      (description "2D and 3D rigid body simulation: collision detection/response, constraints, joints, and spatial hashing.")
+      (parent physics-simulation)
+      (synonyms rigid-body collision-detection impulse-response spatial-hash rigid-body-physics-2d physics-2d classical-physics physics/classical rigid-body-physics-3d physics-3d classical-physics-3d physics/classical3d)))
+
   (exports
    ;; No exports annotated with (doc 'export #t) yet
    )

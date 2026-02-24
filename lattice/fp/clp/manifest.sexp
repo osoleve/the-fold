@@ -22,6 +22,12 @@
 
   (aliases (clp fd ckanren constraint-logic))
 
+  (concepts
+    (concept constraint-logic-programming
+      (description "CLP(FD) combining miniKanren-style logic variables with finite-domain constraint propagation and arc consistency.")
+      (parent satisfiability)
+      (synonyms clp fd ckanren constraint-logic constraint-propagation arc-consistency contractors)))
+
   (exports
    ;; Domain operations
    make-domain domain-singleton domain-from-list

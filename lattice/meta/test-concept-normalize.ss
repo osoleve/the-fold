@@ -432,4 +432,186 @@
     (assert-equal "Scalar factor of eigenvector"
                   (concept-description 'eigenvalue))))
 
+;;; ====================================================================
+;;; build-ontology-from-manifests
+;;; ====================================================================
+
+;;; Helper: make a minimal manifest alist with a concepts field
+(define (make-test-manifest name concepts)
+  `((name . ,name)
+    (version . "0.1.0")
+    (tier . 0)
+    (path . ,(string-append "lattice/" (symbol->string name)))
+    (purity . total)
+    (stability . stable)
+    (fuel-bound . "O(?)")
+    (deps . ())
+    (description . "test")
+    (keywords . ())
+    (aliases . ())
+    (exports . ())
+    (modules . ())
+    (concepts . ,concepts)))
+
+(test-group "build-ontology-single"
+
+  (define-test "single manifest produces valid ontology sexp"
+    (let* ([m (make-test-manifest 'linalg
+               '((concept linear-algebra
+                   (description "Vectors and matrices")
+                   (parent mathematics)
+                   (synonyms la))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-true (concept-ontology-loaded?))
+      (assert-equal "Vectors and matrices" (concept-description 'linear-algebra))
+      (assert-equal 'linear-algebra (concept-normalize 'la))))
+
+  (define-test "concept with no parent is a root"
+    (let* ([m (make-test-manifest 'algebra
+               '((concept mathematics
+                   (description "Foundation"))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-true (concept-root? 'mathematics)))))
+
+(test-group "build-ontology-children-derived"
+
+  (define-test "children derived from parent declarations"
+    (let* ([m1 (make-test-manifest 'meta
+                '((concept mathematics
+                    (description "Foundation"))))]
+           [m2 (make-test-manifest 'linalg
+                '((concept linear-algebra
+                    (description "Vectors")
+                    (parent mathematics))))]
+           [m3 (make-test-manifest 'algebra
+                '((concept abstract-algebra
+                    (description "Groups and rings")
+                    (parent mathematics))))]
+           [ontology (build-ontology-from-manifests (list m1 m2 m3))])
+      (install-concept-ontology! ontology)
+      (assert-true (pair? (memq 'linear-algebra (concept-children 'mathematics))))
+      (assert-true (pair? (memq 'abstract-algebra (concept-children 'mathematics))))))
+
+  (define-test "multi-level children derived correctly"
+    (let* ([m (make-test-manifest 'linalg
+               '((concept mathematics
+                   (description "Root"))
+                 (concept linear-algebra
+                   (description "LA")
+                   (parent mathematics))
+                 (concept eigenvalue
+                   (description "Eigen")
+                   (parent linear-algebra))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-true (pair? (memq 'linear-algebra (concept-children 'mathematics))))
+      (assert-true (pair? (memq 'eigenvalue (concept-children 'linear-algebra))))
+      (assert-equal '() (concept-children 'eigenvalue))
+      ;; Ancestor chain works
+      (assert-equal '(linear-algebra mathematics) (concept-ancestors 'eigenvalue)))))
+
+(test-group "build-ontology-auto-roots"
+
+  (define-test "undeclared parent auto-created as root"
+    (let* ([m (make-test-manifest 'linalg
+               '((concept linear-algebra
+                   (description "LA")
+                   (parent mathematics))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      ;; mathematics was auto-created
+      (assert-true (concept-root? 'mathematics))
+      (assert-equal 'mathematics (concept-parent 'linear-algebra))
+      (assert-true (pair? (memq 'linear-algebra (concept-children 'mathematics)))))))
+
+(test-group "build-ontology-cross-cutting"
+
+  (define-test "cross-cutting concepts collected"
+    (let* ([m (make-test-manifest 'meta
+               '((concept composability
+                   (description "Combining pieces")
+                   (cross-cutting #t)
+                   (skills (fp optics dsl)))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-true (concept-cross-cutting? 'composability))
+      (assert-true (pair? (memq 'fp (concept-cross-cutting-skills 'composability))))))
+
+  (define-test "cross-cutting not in regular concepts"
+    (let* ([m (make-test-manifest 'meta
+               '((concept composability
+                   (description "Combining pieces")
+                   (cross-cutting #t)
+                   (skills (fp optics)))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      ;; Cross-cutting concepts should not have parents or be children
+      (assert-false (concept-parent 'composability)))))
+
+(test-group "build-ontology-conflict"
+
+  (define-test "first-seen-wins on duplicate concept"
+    (let* ([m1 (make-test-manifest 'linalg
+                '((concept linear-algebra
+                    (description "First"))))]
+           [m2 (make-test-manifest 'algebra
+                '((concept linear-algebra
+                    (description "Second"))))]
+           [ontology (build-ontology-from-manifests (list m1 m2))])
+      (install-concept-ontology! ontology)
+      (assert-equal "First" (concept-description 'linear-algebra)))))
+
+(test-group "build-ontology-round-trip"
+
+  (define-test "build → install → full hierarchy queries"
+    (let* ([m1 (make-test-manifest 'meta
+                '((concept mathematics
+                    (description "Foundation"))
+                  (concept computation
+                    (description "Algorithms and structures"))
+                  (concept composability
+                    (description "Combining pieces")
+                    (cross-cutting #t)
+                    (skills (fp optics)))))]
+           [m2 (make-test-manifest 'linalg
+                '((concept linear-algebra
+                    (description "Vectors, matrices")
+                    (parent mathematics)
+                    (synonyms la lin-alg))
+                  (concept eigenvalue-theory
+                    (description "Eigenvalues and SVD")
+                    (parent linear-algebra)
+                    (synonyms eigenvalue svd))))]
+           [m3 (make-test-manifest 'data
+                '((concept data-structures
+                    (description "Trees, graphs, heaps")
+                    (parent computation)
+                    (synonyms ds))))]
+           [ontology (build-ontology-from-manifests (list m1 m2 m3))])
+      (install-concept-ontology! ontology)
+      ;; Roots
+      (assert-true (concept-root? 'mathematics))
+      (assert-true (concept-root? 'computation))
+      (assert-false (concept-root? 'linear-algebra))
+      ;; Children derived
+      (assert-true (pair? (memq 'linear-algebra (concept-children 'mathematics))))
+      (assert-true (pair? (memq 'data-structures (concept-children 'computation))))
+      (assert-true (pair? (memq 'eigenvalue-theory (concept-children 'linear-algebra))))
+      ;; Synonyms
+      (assert-equal 'linear-algebra (concept-normalize 'la))
+      (assert-equal 'linear-algebra (concept-normalize 'lin-alg))
+      (assert-equal 'eigenvalue-theory (concept-normalize 'svd))
+      ;; Cross-cutting
+      (assert-true (concept-cross-cutting? 'composability))
+      ;; Validation clean
+      (assert-equal '() (validate-ontology))))
+
+  (define-test "empty manifests produce empty ontology"
+    (let ([ontology (build-ontology-from-manifests '())])
+      (install-concept-ontology! ontology)
+      (assert-equal '() (concept-all))
+      (assert-equal '() (concept-roots)))))
+
 (run-all-tests)

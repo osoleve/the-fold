@@ -32,6 +32,32 @@
              polynomial-reduction rewrite-rules))
   (aliases (abstract-algebra group-theory ring-theory polynomial-algebra galois-fields))
 
+  (concepts
+    (concept abstract-algebra
+      (description "The study of algebraic structures — groups, rings, fields, and modules — and the axioms and morphisms that govern them.")
+      (parent mathematics)
+      (synonyms algebra))
+    (concept group-theory
+      (description "The study of symmetry via groups: sets with an associative binary operation, identity, and inverses.")
+      (parent abstract-algebra))
+    (concept ring-theory
+      (description "Algebraic structures with two operations (addition, multiplication) satisfying distributivity; generalizes integers.")
+      (parent abstract-algebra))
+    (concept field-theory
+      (description "Algebraic structures where every nonzero element has a multiplicative inverse; enables exact polynomial division.")
+      (parent abstract-algebra)
+      (synonyms galois-fields galois-field finite-field gf2n binary-field aes-field))
+    (concept polynomial-algebra
+      (description "Arithmetic of polynomials over fields or rings, including GCD, factorization, interpolation, and Groebner bases.")
+      (parent abstract-algebra)
+      (synonyms groebner-basis groebner buchberger polynomial-reduction polynomial-identity egraph-groebner rewrite-rules normal-form))
+    (concept galois-theory
+      (description "The correspondence between field extensions and symmetry groups of polynomial roots, connecting solvability to group structure.")
+      (parent abstract-algebra))
+    (concept tropical-algebra
+      (description "Semirings over min/max and plus operations, modeling shortest paths and scheduling as algebraic structure.")
+      (parent abstract-algebra)))
+
   (exports
    (group make-group group? group-elements group-op group-identity
           group-inverse-fn group-equal-fn group-order group-compose

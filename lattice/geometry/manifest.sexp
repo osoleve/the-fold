@@ -27,6 +27,19 @@
              optics lenses traversals prisms functional-access))
   (aliases (geom 3d-geometry spatial))
 
+  (concepts
+    (concept computational-geometry
+      (description "Algorithms for geometric problems: convex hulls, Delaunay triangulation, Voronoi diagrams, and collision detection.")
+      (parent geometry)
+      (synonyms convex-hull graham-scan quickhull minkowski delaunay-triangulation voronoi lloyd-relaxation laplacian-smoothing))
+    (concept rendering-geometry
+      (description "Raymarching, BVH/octree acceleration structures, signed distance fields, and mesh-SDF computation for rendering.")
+      (parent geometry)
+      (synonyms marching-cubes isosurface sdf signed-distance-field))
+    (concept mesh-processing
+      (description "Triangular mesh generation, Laplacian smoothing, adaptive refinement, and topological validation via Betti numbers.")
+      (parent geometry)))
+
   (exports
    (geometry
     point3 line3 line3? line3-origin line3-direction

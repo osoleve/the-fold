@@ -418,16 +418,29 @@ Only considers symbols that are known exports in the KG.")
     (kg-populate-types! (reverse type-pairs))))
 
 ;;; kg-load-concept-ontology! : -> Void
-;;; Load the concept ontology from disk and install it. Guarded — if the file
-;;; is absent or malformed, prints a note and continues without ontology support.
+;;; Build concept ontology by scanning manifest files on disk for (concepts ...)
+;;; blocks.  Always reads from disk (not CAS-cached data) to ensure the ontology
+;;; reflects the current state of manifest files.  Children are derived from parent
+;;; declarations — never hand-maintained.
 ;;; Called internally by kg-build! and kg-incremental-build! before concept extraction.
 (define (kg-load-concept-ontology!)
   (guard (e [else
              (printf "  Note: concept ontology not loaded (~a)\n" (condition-message e))])
-    (when (file-exists? "lattice/meta/concept-ontology.sexp")
-      (let ([ontology (call-with-input-file "lattice/meta/concept-ontology.sexp" read)])
-        (install-concept-ontology! ontology)
-        (printf "  Concept ontology loaded: ~a concepts\n" (length (concept-all)))))))
+    (let* ([manifest-paths (find-manifests "lattice")]
+           [manifest-data-list
+            (filter-map
+             (lambda (path)
+               (guard (e [else #f])
+                 (let ([sexp (read-manifest-sexp path)])
+                   (if sexp (parse-manifest sexp) #f))))
+             manifest-paths)]
+           [ontology (build-ontology-from-manifests manifest-data-list)])
+      (install-concept-ontology! ontology)
+      (let ([issues (validate-ontology)])
+        (unless (null? issues)
+          (for-each (lambda (i) (printf "  ~a: ~a\n" (car i) (cdr i))) issues)))
+      (printf "  Concept ontology built from manifests: ~a concepts\n"
+              (length (concept-all))))))
 
 (doc kg-build! 'type (-> Bytevector))
 (doc kg-build! 'description "Build knowledge graph from all manifests in lattice/.

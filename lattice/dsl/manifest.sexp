@@ -19,6 +19,23 @@
              meta-programming language-design interpreters))
   (aliases (meta-dsl language-tools tagless))
 
+  (concepts
+    (concept meta-programming
+      (description "Programs that generate, analyze, or transform other programs: DSLs, staging, partial evaluation, and macros.")
+      (parent programming-paradigms))
+    (concept domain-specific-languages
+      (description "Embedded languages designed for narrow problem domains, built via tagless final, free monads, or interpreters.")
+      (parent meta-programming)
+      (synonyms dsl meta-dsl language-tools tagless tagless-final interpreter-composition free-monad algebraic-effects))
+    (concept partial-evaluation
+      (description "Specializing programs with respect to known inputs: online/offline PE, Futamura projections, and BTA annotation.")
+      (parent meta-programming)
+      (synonyms futamura-projections binding-time-analysis))
+    (concept multi-stage-programming
+      (description "Programs that generate and run code in multiple stages, enabling safe code generation with type-aware splicing.")
+      (parent meta-programming)
+      (synonyms code-generation splice staging)))
+
   (exports
    (tagless make-dict dict-ref dict-extend dict-merge
             make-expr-dict expr-lit expr-add expr-neg eval-expr-dict

@@ -23,6 +23,23 @@
              elbo reparameterization bayesian gradient-descent))
   (aliases (rand prng probability sampling vi))
 
+  (concepts
+    (concept probability-distributions
+      (description "Continuous and discrete distributions (Normal, Poisson, Beta, Dirichlet) with pure state-monad sampling.")
+      (parent probabilistic-reasoning)
+      (synonyms random rand prng probability sampling))
+    (concept bayesian-inference
+      (description "Conjugate models (Beta-Binomial, Normal-Normal, Gamma-Poisson), posterior computation, and Bayes factors.")
+      (parent probabilistic-reasoning))
+    (concept monte-carlo-methods
+      (description "Importance sampling, rejection sampling, Metropolis-Hastings MCMC, Gibbs sampling, and variance reduction.")
+      (parent probabilistic-reasoning)
+      (synonyms monte-carlo mcmc metropolis-hastings gibbs-sampling importance-sampling))
+    (concept variational-methods
+      (description "Variational inference via ELBO optimization, reparameterization trick, and mean-field Gaussian families.")
+      (parent probabilistic-reasoning)
+      (synonyms variational-inference elbo reparameterization vi)))
+
   (exports
    (prng
     ;; Bit manipulation

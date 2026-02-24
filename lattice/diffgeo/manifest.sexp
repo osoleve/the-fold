@@ -38,6 +38,30 @@
   (aliases (diffgeom manifolds smooth-manifolds lie-groups riemannian-geometry geodesics
             exterior-calculus cartan-calculus))
 
+  (concepts
+    (concept differential-geometry
+      (description "The mathematics of smooth manifolds, coordinate charts, tangent spaces, curvature, and geodesics.")
+      (parent mathematics)
+      (synonyms diffgeo diffgeom manifolds smooth-manifolds))
+    (concept manifold-theory
+      (description "Coordinate charts, atlases, transition functions, and the foundational apparatus of smooth manifolds.")
+      (parent differential-geometry))
+    (concept riemannian-geometry
+      (description "Metric tensors, Christoffel symbols, Riemann curvature tensor, Ricci tensor, and surface curvatures.")
+      (parent differential-geometry)
+      (synonyms riemannian-metric christoffel-symbols riemann-tensor ricci-tensor scalar-curvature))
+    (concept lie-groups
+      (description "Smooth groups SO(2), SO(3), SE(2), SE(3) with exponential/log maps, adjoints, and BCH approximations.")
+      (parent differential-geometry)
+      (synonyms lie-group so2 so3 se2 se3 exponential-map))
+    (concept exterior-calculus
+      (description "Differential forms, wedge product, exterior derivative, Hodge star, and integration of forms over manifolds.")
+      (parent differential-geometry)
+      (synonyms differential-forms wedge-product exterior-derivative hodge-star cartan-calculus))
+    (concept geodesics
+      (description "Shortest paths on Riemannian manifolds: numerical tracing, exponential maps, parallel transport, geodesic distance.")
+      (parent differential-geometry)))
+
   (exports
    (charts
     chart? chart-name chart-dim chart-domain-pred chart-coord-map chart-inverse-map

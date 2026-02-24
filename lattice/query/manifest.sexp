@@ -30,6 +30,12 @@
              optics optic-query declarative traversal))
   (aliases (search find filter block-query optic-query))
 
+  (concepts
+    (concept query-infrastructure
+      (description "Block query DSL, optic-based declarative queries, Aho-Corasick multi-pattern search, and SQL-like syntax.")
+      (parent system-design)
+      (synonyms optic-query declarative-query sql-like-dsl block-query block-query-dsl)))
+
   (exports
    (patterns-parse extract-tags extract-tag-positions parse-tag-at
                    format-tag tags->string has-tag? get-tag filter-tags-by-key

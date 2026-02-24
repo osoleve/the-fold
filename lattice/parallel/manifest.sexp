@@ -19,6 +19,11 @@
              pipeline sort chunking speculation race fuel-budget combinator))
   (aliases (par strategies))
 
+  (concepts
+    (concept parallel-computation
+      (description "Divide-and-conquer parallelism, parallel reduction, and scan/prefix operations.")
+      (synonyms parallel par strategies divide-and-conquer parallel-reduction scan-prefix)))
+
   (exports
    ;; strategies.ss
    (strategies
