@@ -28,14 +28,14 @@
 ;;; Fixtures
 ;;; ====================================================================
 
-;;; A minimal two-level ontology with synonym groups for testing.
+;;; A minimal two-level ontology with embedded synonyms for testing (v2 format).
 ;;; Hierarchy: mathematics → linear-algebra → eigenvalue-theory
 ;;;            mathematics → calculus
 ;;; Synonyms: linear-algebra ← la, lin-alg
-;;;           eigenvalue-theory ← eigenvalue
+;;;           eigenvalue-theory ← eigenvalue, eigen
 (define hier-ontology
   '(concept-ontology
-    (version 1)
+    (version 2)
     (concepts
       (concept mathematics
         (description "Foundation of quantitative reasoning")
@@ -43,16 +43,15 @@
       (concept linear-algebra
         (description "Vectors, matrices, linear maps")
         (parent mathematics)
-        (children (eigenvalue-theory)))
+        (children (eigenvalue-theory))
+        (synonyms la lin-alg))
       (concept calculus
         (description "Rates of change and accumulation")
         (parent mathematics))
       (concept eigenvalue-theory
         (description "Eigenvalues, eigenvectors, SVD")
-        (parent linear-algebra)))
-    (synonym-groups
-      (linear-algebra la lin-alg)
-      (eigenvalue-theory eigenvalue eigen))
+        (parent linear-algebra)
+        (synonyms eigenvalue eigen)))
     (cross-cutting
       (concept differentiability
         (description "Things that can be differentiated")
@@ -211,7 +210,7 @@
     ;; Uninstall ontology
     (kg-reset!)
     (install-concept-ontology!
-     '(concept-ontology (version 1) (concepts) (synonym-groups) (cross-cutting)))
+     '(concept-ontology (version 2) (concepts) (cross-cutting)))
     ;; Install empty ontology: ancestors should return empty for any concept
     ;; Actually, install-concept-ontology! marks it as loaded.
     ;; To test "not loaded" we need to reset the flag — we can't easily do that from here.
@@ -340,7 +339,7 @@
     ;; We can't truly test "not loaded" since install-concept-ontology! always marks it loaded.
     ;; Instead, reinstall an ontology with no synonym groups so la stays as la.
     (install-concept-ontology!
-     '(concept-ontology (version 1) (concepts) (synonym-groups) (cross-cutting)))
+     '(concept-ontology (version 2) (concepts) (cross-cutting)))
     (kg-reset!)
     ;; Re-add a skill with keyword 'la'
     (kg-add-skill!
@@ -365,7 +364,7 @@
     ;; kg-load-from-cas! doesn't break when concept-is-a edges are absent.
     ;; We construct a valid root without is-a edges manually.
     (install-concept-ontology!
-     '(concept-ontology (version 1) (concepts) (synonym-groups) (cross-cutting)))
+     '(concept-ontology (version 2) (concepts) (cross-cutting)))
     (kg-reset!)
     (kg-add-skill!
      `((name . compat-skill)

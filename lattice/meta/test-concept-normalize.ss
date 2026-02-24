@@ -17,7 +17,7 @@
 
 (define test-ontology
   '(concept-ontology
-    (version 1)
+    (version 2)
     (concepts
       (concept mathematics
         (description "Foundation of quantitative reasoning")
@@ -25,7 +25,8 @@
       (concept linear-algebra
         (description "Vectors, matrices, linear maps")
         (parent mathematics)
-        (children (eigenvalue svd)))
+        (children (eigenvalue svd))
+        (synonyms la lin-alg))
       (concept calculus
         (description "Rates of change")
         (parent mathematics))
@@ -34,10 +35,8 @@
         (parent linear-algebra))
       (concept svd
         (description "Singular value decomposition")
-        (parent linear-algebra)))
-    (synonym-groups
-      (linear-algebra la lin-alg)
-      (singular-value-decomposition svd))
+        (parent linear-algebra)
+        (synonyms singular-value-decomposition)))
     (cross-cutting
       (concept composability
         (description "Combining smaller pieces")
@@ -45,9 +44,8 @@
 
 (define empty-ontology
   '(concept-ontology
-    (version 1)
+    (version 2)
     (concepts)
-    (synonym-groups)
     (cross-cutting)))
 
 ;;; with-empty-ontology : thunk -> result
@@ -157,10 +155,10 @@
     (with-test-ontology (lambda ()
       (assert-equal 'unknown-thing (concept-normalize 'unknown-thing)))))
 
-  (define-test "svd alias normalizes to singular-value-decomposition"
+  (define-test "singular-value-decomposition alias normalizes to svd"
     (with-test-ontology (lambda ()
-      ;; svd appears as alias in synonym-group (singular-value-decomposition svd)
-      (assert-equal 'singular-value-decomposition (concept-normalize 'svd)))))
+      ;; singular-value-decomposition is a synonym of concept svd
+      (assert-equal 'svd (concept-normalize 'singular-value-decomposition)))))
 
   (define-test "canonical? true for linear-algebra"
     (with-test-ontology (lambda ()
@@ -418,10 +416,9 @@
     (install-concept-ontology! test-ontology)
     (install-concept-ontology!
       '(concept-ontology
-        (version 1)
+        (version 2)
         (concepts
           (concept alpha (description "Just alpha")))
-        (synonym-groups)
         (cross-cutting)))
     ;; Old concept gone
     (assert-equal "" (concept-description 'eigenvalue))

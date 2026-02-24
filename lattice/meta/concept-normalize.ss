@@ -61,15 +61,30 @@ and calls install-concept-ontology! to populate the module-level maps.")
 
 (doc 'section 'installation)
 
+;;; register-synonym! : Symbol Symbol -> Void
+;;; Register alias → canonical in *synonym-map* with collision detection.
+(define (register-synonym! alias canonical)
+  (when (symbol? alias)
+    (let ([existing (hamt-lookup alias *synonym-map*)])
+      (when (and existing (not (eq? existing canonical)))
+        (when (or (not (top-level-bound? '*meta-quiet*))
+                  (not (top-level-value '*meta-quiet*)))
+          (format (current-error-port)
+                  "WARNING: synonym collision — '~a' mapped to '~a', now remapped to '~a'~%"
+                  alias existing canonical)))
+      (set! *synonym-map* (hamt-assoc alias canonical *synonym-map*)))))
+
 ;;; parse-concept-entry : SExp -> Void
 ;;; Walk a single (concept name ...) entry and populate the maps.
+;;; In v2 format, also extracts (synonyms ...) and registers them.
 (define (parse-concept-entry entry)
   (when (and (pair? entry) (eq? (car entry) 'concept) (pair? (cdr entry)))
     (let* ([name (cadr entry)]
            [fields (cddr entry)]
            [desc-entry (assq 'description fields)]
            [parent-entry (assq 'parent fields)]
-           [children-entry (assq 'children fields)])
+           [children-entry (assq 'children fields)]
+           [synonyms-entry (assq 'synonyms fields)])
       ;; Description
       (when desc-entry
         (set! *description-map*
@@ -83,31 +98,24 @@ and calls install-concept-ontology! to populate the module-level maps.")
         (let ([kids (cadr children-entry)])
           (set! *children-map*
                 (hamt-assoc name (if (list? kids) kids '()) *children-map*))))
+      ;; Synonyms (v2): self-mapping + each alias → canonical
+      (when synonyms-entry
+        (register-synonym! name name)
+        (for-each (lambda (alias) (register-synonym! alias name))
+                  (cdr synonyms-entry)))
       ;; Track canonical name
       (set! *all-concepts* (cons name *all-concepts*)))))
 
 ;;; parse-synonym-group : SExp -> Void
 ;;; Walk a synonym group (canonical alias1 alias2 ...) and register all
 ;;; aliases, including the canonical form pointing to itself.
-;;; Detects collisions: if an alias already maps to a different canonical,
-;;; warns on stderr (silent data corruption otherwise).
+;;; Used for v1 ontology format.  v2 embeds synonyms in concept entries.
 (define (parse-synonym-group group)
   (when (and (pair? group) (symbol? (car group)))
-    (let ([canonical (car group)]
-          [all-names (cdr group)])
-      ;; canonical -> canonical
-      (set! *synonym-map* (hamt-assoc canonical canonical *synonym-map*))
-      ;; each alias -> canonical (with collision check)
-      (for-each (lambda (alias)
-                  (let ([existing (hamt-lookup alias *synonym-map*)])
-                    (when (and existing (not (eq? existing canonical)))
-                      (when (or (not (top-level-bound? '*meta-quiet*))
-                                (not (top-level-value '*meta-quiet*)))
-                        (format (current-error-port)
-                                "WARNING: synonym collision — '~a' mapped to '~a', now remapped to '~a'~%"
-                                alias existing canonical)))
-                    (set! *synonym-map* (hamt-assoc alias canonical *synonym-map*))))
-                all-names))))
+    (let ([canonical (car group)])
+      (register-synonym! canonical canonical)
+      (for-each (lambda (alias) (register-synonym! alias canonical))
+                (cdr group)))))
 
 ;;; parse-cross-cutting-entry : SExp -> Void
 ;;; Walk a (concept name ...) entry from the cross-cutting section.
@@ -131,12 +139,9 @@ and calls install-concept-ontology! to populate the module-level maps.")
 
 (doc install-concept-ontology! 'type '(-> SExp Void))
 (doc install-concept-ontology! 'description "Parse a concept-ontology sexp and populate
-the module-level maps.  Expected shape:
-  (concept-ontology
-    (version N)
-    (concepts     (concept name (description \"...\") (parent p) (children (c1 c2))) ...)
-    (synonym-groups (canonical alias1 ...) ...)
-    (cross-cutting  (concept name (description \"...\") (skills (s1 s2))) ...))
+the module-level maps.  Supports both v1 and v2 formats:
+  v1: (synonym-groups (canonical alias1 ...) ...) — separate section
+  v2: (synonyms alias1 ...) embedded in each concept entry
 Idempotent if called multiple times — maps are rebuilt from scratch each call.")
 (doc install-concept-ontology! 'export #t)
 (define (install-concept-ontology! ontology-sexp)
@@ -151,20 +156,111 @@ Idempotent if called multiple times — maps are rebuilt from scratch each call.
   ;; Walk top-level sections
   (when (and (pair? ontology-sexp)
              (eq? (car ontology-sexp) 'concept-ontology))
-    (let ([body (cdr ontology-sexp)])
-      ;; Concepts
+    (let* ([body (cdr ontology-sexp)]
+           [version-entry (assq 'version body)]
+           [version (if (and version-entry (pair? (cdr version-entry)))
+                        (cadr version-entry)
+                        1)])
+      ;; Concepts (both v1 and v2 — v2 also extracts embedded synonyms)
       (let ([concepts-section (assq 'concepts body)])
         (when concepts-section
           (for-each parse-concept-entry (cdr concepts-section))))
-      ;; Synonym groups
+      ;; Synonym groups — v1 only
       (let ([syn-section (assq 'synonym-groups body)])
         (when syn-section
-          (for-each parse-synonym-group (cdr syn-section))))
+          (if (>= version 2)
+              ;; Warn about deprecated section in v2
+              (when (or (not (top-level-bound? '*meta-quiet*))
+                        (not (top-level-value '*meta-quiet*)))
+                (format (current-error-port)
+                        "WARNING: v~a ontology has deprecated synonym-groups section (use embedded synonyms)~%"
+                        version))
+              ;; v1: process synonym groups normally
+              (for-each parse-synonym-group (cdr syn-section)))))
       ;; Cross-cutting
       (let ([cc-section (assq 'cross-cutting body)])
         (when cc-section
           (for-each parse-cross-cutting-entry (cdr cc-section))))))
   (set! *ontology-installed* #t))
+
+;;; ====================================================================
+;;; Validation
+;;; ====================================================================
+
+(doc 'section 'validation)
+
+(doc validate-ontology 'type '(-> (List (Pair Symbol String))))
+(doc validate-ontology 'description "Check structural integrity of the loaded ontology.
+Returns a list of (severity . message) pairs.  Severities: error, warning.
+Checks: orphaned children, dangling parents, synonym→unknown-concept.")
+(doc validate-ontology 'export #t)
+(define (validate-ontology)
+  (let ([issues '()])
+    ;; Check each concept's parent exists
+    (for-each
+     (lambda (name)
+       (let ([parent (hamt-lookup name *parent-map*)])
+         (when (and parent (not (memq parent *all-concepts*)))
+           (set! issues
+                 (cons (cons 'error
+                             (format #f "concept '~a' has parent '~a' which is not a known concept"
+                                     name parent))
+                       issues)))))
+     *all-concepts*)
+    ;; Check each concept's children exist
+    (for-each
+     (lambda (name)
+       (let ([kids (hamt-lookup name *children-map*)])
+         (when kids
+           (for-each
+            (lambda (kid)
+              (when (not (memq kid *all-concepts*))
+                (set! issues
+                      (cons (cons 'error
+                                  (format #f "concept '~a' lists child '~a' which is not a known concept"
+                                          name kid))
+                            issues))))
+            kids))))
+     *all-concepts*)
+    ;; Check synonym targets are known concepts
+    (for-each
+     (lambda (entry)
+       (let ([alias (car entry)]
+             [canonical (cdr entry)])
+         (when (and (not (memq canonical *all-concepts*))
+                    (not (hamt-has-key? canonical *cross-cutting-set*)))
+           (set! issues
+                 (cons (cons 'warning
+                             (format #f "synonym '~a' maps to '~a' which is not a known concept"
+                                     alias canonical))
+                       issues)))))
+     (hamt-entries *synonym-map*))
+    (reverse issues)))
+
+;;; ====================================================================
+;;; Manifest Alias Registration
+;;; ====================================================================
+
+(doc 'section 'manifest-aliases)
+
+(doc register-manifest-aliases! 'type '(-> (List (Pair Symbol (List Symbol))) Void))
+(doc register-manifest-aliases! 'description "Register manifest aliases into the synonym map.
+Takes a list of (skill-name . (alias1 alias2 ...)) pairs.
+Ontology-wins: only registers if alias isn't already claimed.")
+(doc register-manifest-aliases! 'export #t)
+(define (register-manifest-aliases! skill-alias-pairs)
+  (for-each
+   (lambda (pair)
+     (let ([skill-name (car pair)]
+           [aliases (cdr pair)])
+       (let ([canonical (concept-normalize skill-name)])
+         (for-each
+          (lambda (alias)
+            (when (and (symbol? alias)
+                       (not (hamt-lookup alias *synonym-map*)))
+              (set! *synonym-map* (hamt-assoc alias canonical *synonym-map*))))
+          aliases))))
+   skill-alias-pairs))
 
 ;;; ====================================================================
 ;;; Normalization

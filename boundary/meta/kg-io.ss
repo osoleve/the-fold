@@ -469,6 +469,19 @@ from doc forms, and builds the root. Returns root hash.")
     (kg-build-deps!)
     ;; Phase 2b: Load concept ontology (must happen before concept extraction)
     (kg-load-concept-ontology!)
+    ;; Phase 2c: Register manifest aliases into synonym map (ontology-wins)
+    (let ([alias-pairs
+           (filter-map
+            (lambda (entry)
+              (let* ([skill-name (car entry)]
+                     [data (cdr entry)]
+                     [aliases-entry (assq 'aliases data)])
+                (if (and aliases-entry (pair? (cdr aliases-entry)))
+                    (cons skill-name (cdr aliases-entry))
+                    #f)))
+            *kg-skill-data*)])
+      (when (pair? alias-pairs)
+        (register-manifest-aliases! alias-pairs)))
     ;; Phase 3: Extract concepts from keywords (KG-first: concepts are first-class)
     (kg-extract-concepts!)
     ;; Phase 4: Extract type signatures from doc forms
@@ -579,6 +592,19 @@ skills that changed, were added, or were removed. Returns root hash on success,
         ;; Step 1b: Load concept ontology (needed for hierarchy queries even if no changes)
         (begin
           (kg-load-concept-ontology!)
+          ;; Step 1c: Register manifest aliases (ontology-wins)
+          (let ([alias-pairs
+                 (filter-map
+                  (lambda (entry)
+                    (let* ([skill-name (car entry)]
+                           [data (cdr entry)]
+                           [aliases-entry (assq 'aliases data)])
+                      (if (and aliases-entry (pair? (cdr aliases-entry)))
+                          (cons skill-name (cdr aliases-entry))
+                          #f)))
+                  *kg-skill-data*)])
+            (when (pair? alias-pairs)
+              (register-manifest-aliases! alias-pairs)))
           ;; Step 2: Detect changes
           (let* ([manifests (find-manifests "lattice")]
                [current-fps (kg-compute-all-fingerprints manifests)]
@@ -646,6 +672,19 @@ skills that changed, were added, or were removed. Returns root hash on success,
                          (kg-build-deps!)
                          ;; Load ontology before concept extraction (idempotent if already loaded)
                          (kg-load-concept-ontology!)
+                         ;; Register manifest aliases (ontology-wins, idempotent)
+                         (let ([alias-pairs
+                                (filter-map
+                                 (lambda (entry)
+                                   (let* ([skill-name (car entry)]
+                                          [data (cdr entry)]
+                                          [aliases-entry (assq 'aliases data)])
+                                     (if (and aliases-entry (pair? (cdr aliases-entry)))
+                                         (cons skill-name (cdr aliases-entry))
+                                         #f)))
+                                 *kg-skill-data*)])
+                           (when (pair? alias-pairs)
+                             (register-manifest-aliases! alias-pairs)))
                          (kg-extract-concepts!)
                          ;; Targeted type extraction (only scan changed skill dirs)
                          (unless (null? affected-paths)

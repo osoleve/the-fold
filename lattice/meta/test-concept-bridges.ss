@@ -42,7 +42,7 @@
 
 (define test-ontology
   '(concept-ontology
-    (version 1)
+    (version 2)
     (concepts
       (concept mathematics
         (description "Foundation of quantitative reasoning")
@@ -50,22 +50,21 @@
       (concept linear-algebra
         (description "Vectors, matrices, linear maps")
         (parent mathematics)
-        (children (eigenvalue-theory)))
+        (children (eigenvalue-theory))
+        (synonyms la lin-alg))
       (concept calculus
         (description "Rates of change and accumulation")
         (parent mathematics))
       (concept eigenvalue-theory
         (description "Eigenvalues, eigenvectors, SVD")
-        (parent linear-algebra))
+        (parent linear-algebra)
+        (synonyms eigenvalue eigen))
       (concept computation
         (description "Computational structures")
         (children (data-structures)))
       (concept data-structures
         (description "Trees, graphs, maps")
         (parent computation)))
-    (synonym-groups
-      (linear-algebra la lin-alg)
-      (eigenvalue-theory eigenvalue eigen))
     (cross-cutting
       (concept differentiability
         (description "Things that can be differentiated")
