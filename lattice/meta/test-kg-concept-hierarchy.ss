@@ -168,10 +168,13 @@
     ;; 'differentiability' appears in cross-cutting section only — no skill references it
     (assert-true (pair? (assq 'differentiability *kg-concepts*))))
 
-  (define-test "differentiability has no skills in concept-skills map"
+  (define-test "differentiability links to declared skills in concept-skills map"
     (build-test-kg! hier-ontology)
+    ;; Cross-cutting concepts now link to their declared skills (if those skills exist in KG)
+    ;; The ontology declares differentiability → (autodiff calculus-skill)
+    ;; Only calculus-skill exists in our test KG
     (let ([skills (kg-concept-skills 'differentiability)])
-      (assert-equal '() skills))))
+      (assert-true (pair? (memq 'calculus-skill skills))))))
 
 ;;; ====================================================================
 ;;; Hierarchy Edges Created

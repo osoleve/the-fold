@@ -214,6 +214,9 @@ If CAS persistence is available, also persists to disk.")
 (define *kg-skill-concepts* hamt-empty)   ; skill-name → (List concept-name)
 (define *kg-concept-skills* hamt-empty)   ; concept-name → (List skill-name)
 
+;;; Bridge detection cache (populated lazily by kg-detect-bridges)
+(define *kg-bridge-cache* #f)             ; #f = not computed, list = cached results
+
 (doc kg-reset! 'type (-> Void))
 (doc kg-reset! 'description "Reset all knowledge graph state")
 (define (kg-reset!)
@@ -228,7 +231,8 @@ If CAS persistence is available, also persists to disk.")
   (set! *kg-loaded* #f)
   (set! *kg-type-sigs* hamt-empty)
   (set! *kg-skill-concepts* hamt-empty)
-  (set! *kg-concept-skills* hamt-empty))
+  (set! *kg-concept-skills* hamt-empty)
+  (set! *kg-bridge-cache* #f))
 
 (doc kg-remove-skill! 'type (-> Symbol Void))
 (doc kg-remove-skill! 'description "Remove a skill and all its associated state (modules, exports, edges)
@@ -428,11 +432,15 @@ independently and skills are connected through them.")
                 skill-names)))
            (hamt-entries concept-skills))
 
-          ;; Phase 3: add cross-cutting concepts even if no skill references them
+          ;; Phase 3: add cross-cutting concepts and link them to their skills
           ;; hamt-entries returns ((concept-name . skill-list) ...) pairs
           (for-each
            (lambda (kv)
-             (let ([cc-concept (car kv)])
+             (let* ([cc-concept (car kv)]
+                    [cc-skills (cdr kv)]
+                    ;; Only link skills that exist in the KG
+                    [valid-skills (filter (lambda (s) (assq s *kg-skills*)) cc-skills)])
+               ;; Create concept block if not already created
                (unless (assq cc-concept *kg-concepts*)
                  (let* ([desc (concept-description cc-concept)]
                         [concept-block (make-concept-entity cc-concept
@@ -440,7 +448,23 @@ independently and skills are connected through them.")
                                                             (list cc-concept))]
                         [concept-hash (kg-store-block! concept-block)])
                    (set! *kg-concepts* (cons (cons cc-concept concept-block) *kg-concepts*))
-                   (set! created-blocks (hamt-assoc cc-concept concept-block created-blocks))))))
+                   (set! created-blocks (hamt-assoc cc-concept concept-block created-blocks))))
+               ;; Update reverse maps: concept→skills and skill→concepts
+               (let ([existing-skills (or (hamt-lookup cc-concept *kg-concept-skills*) '())])
+                 (set! *kg-concept-skills*
+                       (hamt-assoc cc-concept
+                                   (fold-left (lambda (acc s) (if (memq s acc) acc (cons s acc)))
+                                              existing-skills valid-skills)
+                                   *kg-concept-skills*)))
+               (for-each
+                (lambda (skill-name)
+                  (let ([existing (or (hamt-lookup skill-name *kg-skill-concepts*) '())])
+                    (unless (memq cc-concept existing)
+                      (set! *kg-skill-concepts*
+                            (hamt-assoc skill-name
+                                        (cons cc-concept existing)
+                                        *kg-skill-concepts*)))))
+                valid-skills)))
            (hamt-entries *cross-cutting-skills*))
 
           ;; Phase 4: create is-a hierarchy edges for all created concept blocks
@@ -792,21 +816,156 @@ If ontology is not loaded, falls back to kg-shared-concepts (flat check).")
       (let ([concepts-a (kg-skill-concepts skill-a)]
             [concepts-b (kg-skill-concepts skill-b)])
         ;; Expand each concept list with its ancestors, then intersect
+        ;; The inner (if (memq c acc) acc (cons c acc)) deduplicates concepts
+        ;; that appear both as keywords and as ancestors of other keywords.
         (let ([expanded-a
                (fold-left
                 (lambda (acc c)
-                  (let ([ancs (kg-concept-ancestors c)])
-                    (fold-left (lambda (a x) (if (memq x a) a (cons x a))) (cons c acc) ancs)))
+                  (let ([ancs (kg-concept-ancestors c)]
+                        [acc (if (memq c acc) acc (cons c acc))])
+                    (fold-left (lambda (a x) (if (memq x a) a (cons x a))) acc ancs)))
                 '()
                 concepts-a)]
               [concepts-b-set
                (fold-left
                 (lambda (acc c)
-                  (let ([ancs (kg-concept-ancestors c)])
-                    (fold-left (lambda (a x) (if (memq x a) a (cons x a))) (cons c acc) ancs)))
+                  (let ([ancs (kg-concept-ancestors c)]
+                        [acc (if (memq c acc) acc (cons c acc))])
+                    (fold-left (lambda (a x) (if (memq x a) a (cons x a))) acc ancs)))
                 '()
                 concepts-b)])
           (filter (lambda (c) (memq c concepts-b-set)) expanded-a)))))
+
+;;; ====
+;;; Bridge Detection (zy13)
+;;; ====
+
+(doc 'section 'bridge-detection)
+
+;;; Helper: check if skill-a can reach skill-b through the dependency graph
+(define (kg-reachable? from to)
+  (let loop ([frontier (kg-deps from)] [visited (list from)])
+    (cond
+      [(null? frontier) #f]
+      [(eq? (car frontier) to) #t]
+      [(memq (car frontier) visited) (loop (cdr frontier) visited)]
+      [else (loop (append (kg-deps (car frontier)) (cdr frontier))
+                  (cons (car frontier) visited))])))
+
+(doc kg-bridge-score 'type (-> Symbol Symbol Alist))
+(doc kg-bridge-score 'description "Score the concept bridge between two skills.
+Returns an alist with:
+  score - overall bridge score (higher = more surprising overlap)
+  shared - all shared concepts (direct + hierarchical)
+  direct - concepts in both skills' flat concept lists
+  hierarchical - concepts only reachable through hierarchy expansion
+  cross-cutting - shared concepts flagged as cross-cutting
+  dep-connected - 'direct, 'transitive, or 'none")
+(define (kg-bridge-score skill-a skill-b)
+  (if (eq? skill-a skill-b)
+      '((score . 0) (shared) (direct) (hierarchical) (cross-cutting) (dep-connected . none))
+      (let* ([concepts-a (kg-skill-concepts skill-a)]
+             [concepts-b (kg-skill-concepts skill-b)]
+             [shared (kg-shared-concepts-transitive skill-a skill-b)]
+             ;; Classify each shared concept
+             [direct-shared (filter (lambda (c)
+                                      (and (memq c concepts-a) (memq c concepts-b)))
+                                    shared)]
+             [hierarchical (filter (lambda (c) (not (memq c direct-shared))) shared)]
+             [cross-cutting (filter (lambda (c)
+                                      (and (concept-ontology-loaded?)
+                                           (concept-cross-cutting? c)))
+                                    shared)]
+             ;; Dep connectivity
+             [a-deps-on-b (memq skill-b (kg-deps skill-a))]
+             [b-deps-on-a (memq skill-a (kg-deps skill-b))]
+             [direct-dep (or a-deps-on-b b-deps-on-a)]
+             [transitive-dep (and (not direct-dep)
+                                  (or (kg-reachable? skill-a skill-b)
+                                      (kg-reachable? skill-b skill-a)))]
+             [dep-type (cond [direct-dep 'direct]
+                             [transitive-dep 'transitive]
+                             [else 'none])]
+             ;; Raw score: 1.0 per direct, 0.5 per hierarchical, 1.5 bonus per cross-cutting
+             [raw-score (+ (* 1.0 (length direct-shared))
+                           (* 0.5 (length hierarchical))
+                           (* 1.5 (length cross-cutting)))]
+             ;; Surprise penalty for dep-connected pairs
+             [score (cond [(eq? dep-type 'direct) (* raw-score 0.3)]
+                          [(eq? dep-type 'transitive) (* raw-score 0.5)]
+                          [else raw-score])])
+        `((score . ,score)
+          (shared . ,shared)
+          (direct . ,direct-shared)
+          (hierarchical . ,hierarchical)
+          (cross-cutting . ,cross-cutting)
+          (dep-connected . ,dep-type)))))
+
+(doc kg-detect-bridges 'type (-> (List Alist)))
+(doc kg-detect-bridges 'description "Detect all concept bridges between skills, ranked by score.
+Scans all unique skill pairs, scores their concept overlap, and returns
+bridges with score > 0 sorted by score descending. Results are cached
+and invalidated by kg-reset!.
+Each entry: ((skills . (a b)) (score . N) (surprise . high|medium|low) ...)")
+(define (kg-detect-bridges)
+  (or *kg-bridge-cache*
+      (let* ([skills (kg-skills)]
+             [pairs (let outer ([remaining skills] [acc '()])
+                      (if (null? remaining)
+                          acc
+                          (let inner ([others (cdr remaining)]
+                                      [acc acc]
+                                      [a (car remaining)])
+                            (if (null? others)
+                                (outer (cdr remaining) acc)
+                                (inner (cdr others)
+                                       (cons (cons a (car others)) acc)
+                                       a)))))]
+             [scored
+              (filter-map
+               (lambda (pair)
+                 (let* ([a (car pair)]
+                        [b (cdr pair)]
+                        [bridge (kg-bridge-score a b)]
+                        [score (cdr (assq 'score bridge))])
+                   (if (> score 0)
+                       (let ([surprise
+                              (let ([dep (cdr (assq 'dep-connected bridge))])
+                                (cond [(and (>= score 2.0) (eq? dep 'none)) 'high]
+                                      [(and (>= score 1.0) (not (eq? dep 'direct))) 'medium]
+                                      [else 'low]))])
+                         `((skills . ,(list a b))
+                           (score . ,score)
+                           (surprise . ,surprise)
+                           (shared . ,(cdr (assq 'shared bridge)))
+                           (direct . ,(cdr (assq 'direct bridge)))
+                           (hierarchical . ,(cdr (assq 'hierarchical bridge)))
+                           (cross-cutting . ,(cdr (assq 'cross-cutting bridge)))
+                           (dep-connected . ,(cdr (assq 'dep-connected bridge)))))
+                       #f)))
+               pairs)]
+             [sorted (list-sort (lambda (a b)
+                                  (> (cdr (assq 'score a))
+                                     (cdr (assq 'score b))))
+                                scored)])
+        (set! *kg-bridge-cache* sorted)
+        sorted)))
+
+(doc kg-surprising-bridges 'type (-> Int (List Alist)))
+(doc kg-surprising-bridges 'description "Get the top k most surprising concept bridges.
+Filters to surprise = high or medium (excludes dep-connected low-surprise pairs).")
+(define (kg-surprising-bridges k)
+  (let* ([all (kg-detect-bridges)]
+         [surprising (filter (lambda (b)
+                               (let ([s (cdr (assq 'surprise b))])
+                                 (or (eq? s 'high) (eq? s 'medium))))
+                             all)])
+    (if (<= (length surprising) k)
+        surprising
+        (let loop ([lst surprising] [n 0] [acc '()])
+          (if (or (null? lst) (= n k))
+              (reverse acc)
+              (loop (cdr lst) (+ n 1) (cons (car lst) acc)))))))
 
 ;;; ====
 ;;; Type Query API

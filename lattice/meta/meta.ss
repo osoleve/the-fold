@@ -162,6 +162,11 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (printf "  (lkb 'skill-a 'skill-b)   - Concept bridge (with hierarchy fallback)\n")
   (printf "  (lkr 'skill)              - Skills related by shared concepts\n")
   (printf "  (lkh 'concept)            - Concept hierarchy (ancestors, children, skills)\n\n")
+  (printf "BRIDGES:\n")
+  (printf "  (lbc)                     - Top concept bridges by surprise\n")
+  (printf "  (lbc k)                   - Top k concept bridges\n")
+  (printf "  (lbc-all)                 - All bridges (including dep-connected)\n")
+  (printf "  (lb)                      - Module-level bridges (structural)\n\n")
   (printf "DISCOVERY:\n")
   (printf "  (lr 'sym)                 - Browse related (pretty-print)\n")
   (printf "  (lrr 'sym)               - Browse related (raw alist)\n"))
@@ -268,6 +273,87 @@ Priority chain: CAS root → sexp cache → full manifest build.")
                                               (symbol->string (car ss))
                                               (string-append ", " (symbol->string (car ss))))
                                           acc))))))))))
+
+(doc 'section 'bridge-detection)
+
+(doc lbc 'type (-> Void))
+(doc lbc 'description "Show top concept bridges ranked by surprise score.
+Optional argument k controls how many to show (default 15).
+Filters to surprise >= medium (non-dep-connected bridges).")
+(define lbc
+  (case-lambda
+    [() (lbc 15)]
+    [(k)
+     (let ([bridges (kg-surprising-bridges k)])
+       (if (null? bridges)
+           (printf "No surprising concept bridges found.\n")
+           (begin
+             (printf "\nConcept Bridges (~a shown, surprise >= medium)\n" (length bridges))
+             (printf "====\n\n")
+             (for-each
+              (lambda (b)
+                (let ([skills (cdr (assq 'skills b))]
+                      [score (cdr (assq 'score b))]
+                      [surprise (cdr (assq 'surprise b))]
+                      [shared (cdr (assq 'shared b))]
+                      [cc (cdr (assq 'cross-cutting b))])
+                  (printf "  ~a <-> ~a  score=~a [~a]\n"
+                          (car skills) (cadr skills)
+                          (round-to score 1) surprise)
+                  (printf "    shared: ~a\n"
+                          (apply string-append
+                                 (let fmt ([cs shared] [acc '()])
+                                   (if (null? cs) (reverse acc)
+                                       (fmt (cdr cs)
+                                            (cons (if (null? acc)
+                                                      (symbol->string (car cs))
+                                                      (string-append ", " (symbol->string (car cs))))
+                                                  acc))))))
+                  (unless (null? cc)
+                    (printf "    cross-cutting: ~a\n"
+                            (apply string-append
+                                   (let fmt ([cs cc] [acc '()])
+                                     (if (null? cs) (reverse acc)
+                                         (fmt (cdr cs)
+                                              (cons (if (null? acc)
+                                                        (symbol->string (car cs))
+                                                        (string-append ", " (symbol->string (car cs))))
+                                                    acc)))))))))
+              bridges)
+             (printf "\n"))))]))
+
+(doc lbc-all 'type (-> Void))
+(doc lbc-all 'description "Show all concept bridges including low-surprise dep-connected ones.")
+(define (lbc-all)
+  (let ([bridges (kg-detect-bridges)])
+    (if (null? bridges)
+        (printf "No concept bridges found.\n")
+        (begin
+          (printf "\nAll Concept Bridges (~a total)\n" (length bridges))
+          (printf "====\n\n")
+          (for-each
+           (lambda (b)
+             (let ([skills (cdr (assq 'skills b))]
+                   [score (cdr (assq 'score b))]
+                   [surprise (cdr (assq 'surprise b))]
+                   [dep (cdr (assq 'dep-connected b))]
+                   [shared (cdr (assq 'shared b))])
+               (printf "  ~a <-> ~a  score=~a [~a]~a\n"
+                       (car skills) (cadr skills)
+                       (round-to score 1) surprise
+                       (if (eq? dep 'none) ""
+                           (format " (dep: ~a)" dep)))
+               (printf "    ~a\n"
+                       (apply string-append
+                              (let fmt ([cs shared] [acc '()])
+                                (if (null? cs) (reverse acc)
+                                    (fmt (cdr cs)
+                                         (cons (if (null? acc)
+                                                   (symbol->string (car cs))
+                                                   (string-append ", " (symbol->string (car cs))))
+                                               acc))))))))
+           bridges)
+          (printf "\n")))))
 
 (doc 'section 'repl-interface)
 
