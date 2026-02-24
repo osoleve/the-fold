@@ -23,6 +23,12 @@
              angular-velocity inertia protocol 3d rigid-body-3d))
   (aliases (physics-lens physics-optics physics-lenses-3d))
 
+  (concepts
+    (concept physics-optics
+      (description "Optics (lenses, traversals, affines) for functional access to 2D and 3D physics state, enabling composable getters and setters over nested body structures.")
+      (parent physics-simulation)
+      (synonyms physics-lens physics-lenses-3d)))
+
   (exports
    ;; Generic body lenses (work with any body type)
    (lenses body-pos-lens body-vel-lens body-mass-lens

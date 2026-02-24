@@ -19,6 +19,12 @@
              autodiff trajectory optimization collision constraints))
   (aliases (diff-physics-3d diff-sim-3d))
 
+  (concepts
+    (concept differentiable-physics-3d
+      (description "3D differentiable physics with quaternion rotations and soft contact, enabling gradient-based trajectory and parameter optimization via checkpointed autodiff.")
+      (parent physics-simulation)
+      (synonyms diff-physics-3d diff-sim-3d physics/diff3d)))
+
   (exports
    (traced-vec3 traced-vec3))
 

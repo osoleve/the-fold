@@ -21,9 +21,9 @@
 
   (concepts
     (concept rigid-body-physics
-      (description "2D and 3D rigid body simulation: collision detection/response, constraints, joints, and spatial hashing.")
+      (description "2D rigid body simulation: collision detection/response, constraint solving, spatial hashing, and particle systems.")
       (parent physics-simulation)
-      (synonyms rigid-body collision-detection impulse-response spatial-hash rigid-body-physics-2d physics-2d classical-physics physics/classical rigid-body-physics-3d physics-3d classical-physics-3d physics/classical3d)))
+      (synonyms rigid-body collision-detection impulse-response spatial-hash rigid-body-physics-2d physics-2d classical-physics physics/classical)))
 
   (exports
    ;; No exports annotated with (doc 'export #t) yet

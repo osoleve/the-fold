@@ -8,12 +8,12 @@
   (deps (optics linalg random))
   (description "Generic dataset SDK for visual reasoning problems. Provides reusable framework for presentation, sampling, distractor generation, and export.")
   (keywords (dataset ml benchmark visual-reasoning sampling export))
-  (aliases (data sample-gen))
+  (aliases (sample-gen))
   (concepts
     (concept dataset-engineering
       (description "Structured dataset construction: sample schemas, parameter sampling, distractor generation, and JSONL export.")
       (parent machine-learning)
-      (synonyms dataset data sample-gen)))
+      (synonyms dataset sample-gen)))
   (exports
     (sample make-sample sample? sample-id sample-frames sample-question sample-options sample-answer sample-metadata sample-lens-question sample-lens-answer)
     (parameter make-param-range param-range? param-sample param-interpolate make-param-set param-set-sample)

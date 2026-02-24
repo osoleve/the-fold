@@ -15,7 +15,7 @@ Includes standard curves secp256k1 (Bitcoin) and P-256 (NIST).")
   (concepts
     (concept cryptographic-primitives
       (description "Hash functions (SHA-256/384/512, BLAKE2b), HMAC, and elliptic curve arithmetic (secp256k1, P-256, ECDH).")
-      (parent system-design)
+      (parent mathematics)
       (synonyms cryptography crypto hash hashing ec ecc sha256 sha512 sha384 blake2b hmac message-authentication elliptic-curve secp256k1 p256 ecdh ecdsa)))
   (exports
     (sha512

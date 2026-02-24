@@ -45,16 +45,15 @@
       (parent abstract-algebra))
     (concept field-theory
       (description "Algebraic structures where every nonzero element has a multiplicative inverse; enables exact polynomial division.")
-      (parent abstract-algebra)
-      (synonyms galois-fields galois-field finite-field gf2n binary-field aes-field))
+      (parent abstract-algebra))
     (concept polynomial-algebra
       (description "Arithmetic of polynomials over fields or rings, including GCD, factorization, interpolation, and Groebner bases.")
       (parent abstract-algebra)
       (synonyms groebner-basis groebner buchberger polynomial-reduction polynomial-identity egraph-groebner rewrite-rules normal-form))
     (concept finite-fields
       (description "Galois field arithmetic: GF(p), GF(p^n), GF(2^n), irreducible polynomial testing, and primitive element computation.")
-      (parent abstract-algebra)
-      (synonyms galois-theory galois-fields gf))
+      (parent field-theory)
+      (synonyms galois-fields galois-field finite-field gf gf2n binary-field aes-field))
     (concept tropical-algebra
       (description "Semirings over min/max and plus operations, modeling shortest paths and scheduling as algebraic structure.")
       (parent abstract-algebra)))

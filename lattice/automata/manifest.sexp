@@ -22,7 +22,7 @@
 
   (concepts
     (concept automata-theory
-      (description "Formal models of computation: DFA, NFA, statecharts, and hierarchical state machines.")
+      (description "Hierarchical state machines (statecharts) following Harel's semantics: nested states, parallel regions, guarded transitions, and event-driven execution.")
       (parent computation)
       (synonyms automata state-machines fsm statecharts state-machine statechart harel hierarchical-state parallel-region)))
 

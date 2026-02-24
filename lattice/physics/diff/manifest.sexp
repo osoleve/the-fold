@@ -20,9 +20,9 @@
 
   (concepts
     (concept differentiable-physics
-      (description "Physics simulation where autodiff traces through rollouts, enabling gradient-based policy and trajectory optimization.")
+      (description "2D differentiable physics simulation where autodiff traces through rollouts, enabling gradient-based policy and trajectory optimization.")
       (parent physics-simulation)
-      (synonyms differentiable-physics-2d diff-physics diff-sim physics/diff differentiable-physics-3d diff-physics-3d diff-sim-3d physics/diff3d physics-optics physics-lens physics-lenses-3d)))
+      (synonyms differentiable-physics-2d diff-physics diff-sim physics/diff)))
 
   (exports
    (traced-vec2 traced-vec2))

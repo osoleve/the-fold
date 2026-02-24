@@ -18,6 +18,12 @@
              constraints world spatial-hash inertia-tensor))
   (aliases (physics-3d classical-physics-3d))
 
+  (concepts
+    (concept rigid-body-physics-3d
+      (description "3D rigid body simulation with quaternion rotation, inertia tensors, collision detection for spheres and boxes, and constraint solving.")
+      (parent physics-simulation)
+      (synonyms physics-3d classical-physics-3d physics/classical3d)))
+
   (exports
    ;; No exports annotated with (doc 'export #t) yet
    )
