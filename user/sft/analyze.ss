@@ -97,6 +97,8 @@
         [(eq? (car body) 'weighted)
          (let* ([entries (cdr body)]
                 [total (fold-left + 0 (map car entries))]
+                [_ (when (<= total 0)
+                     (error 'expansion-trace "weights must sum to positive value" total))]
                 [result (run-state (random-float-range 0.0 total) rng)]
                 [r (car result)]
                 [rng2 (cdr result)]
@@ -132,6 +134,12 @@
                [(and (string? val) (eq? (caar cs) (string->symbol val)))
                 (trace-body (cadar cs) rng)]
                [else (loop (cdr cs))])))]
+        [(eq? (car body) 'join)
+         ;; join looks up context key as list, or falls back to expanding rule
+         (let ([entry (assq (caddr body) ctx)])
+           (if (and entry (list? (cdr entry)))
+               rng  ; context list — no rule expansion needed
+               (trace-expand (caddr body) rng)))]
         [else rng]))
     (trace-expand start rng)
     (reverse visited)))

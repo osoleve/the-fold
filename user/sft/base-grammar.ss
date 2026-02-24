@@ -118,14 +118,74 @@
           "Use provided module operations to satisfy the requested behavior."))
         (else ""))))))
 
+;;; --- Verify-expr decomposition ---
+
+(define (decompose-verify-checks verify-str . opts)
+  (doc 'description
+    "Extract individual check expressions from compound verify-expr.
+     Handles (and c1 c2 ...) and (let () defs... (and c1 c2 ...)).
+     Returns newline-separated string of up to max-checks assertions.")
+  (let ([max-checks (if (pair? opts) (car opts) 2)])
+    (guard (ex [else verify-str])
+      (let ([expr (read (open-input-string verify-str))])
+        (cond
+          ;; (and check1 check2 ...)
+          [(and (pair? expr) (eq? (car expr) 'and))
+           (format-checks (take-up-to max-checks (cdr expr)))]
+          ;; (let () body...) or (let* () body...) — extract from last form
+          [(and (pair? expr) (memq (car expr) '(let let*)))
+           (let ([last-form (last-body-form expr)])
+             (if (and (pair? last-form) (eq? (car last-form) 'and))
+                 (format-checks (take-up-to max-checks (cdr last-form)))
+                 verify-str))]
+          [else verify-str])))))
+
+(define (last-body-form let-expr)
+  (doc 'description "Extract the last body form from a let/let* expression")
+  ;; (let <maybe-name> <bindings> body1 body2 ... bodyN) → bodyN
+  (let* ([after-head (cdr let-expr)]  ; skip let/let*
+         ;; Skip optional name (named let)
+         [rest (if (and (pair? after-head)
+                        (symbol? (car after-head)))
+                   (cdr after-head)
+                   after-head)]
+         ;; Skip bindings
+         [body (if (pair? rest) (cdr rest) '())])
+    (if (pair? body)
+        (let loop ([forms body])
+          (if (null? (cdr forms))
+              (car forms)
+              (loop (cdr forms))))
+        #f)))
+
+(define (take-up-to n lst)
+  (let loop ([i 0] [l lst] [acc '()])
+    (if (or (>= i n) (null? l))
+        (reverse acc)
+        (loop (+ i 1) (cdr l) (cons (car l) acc)))))
+
+(define (format-checks checks)
+  (doc 'description "Format check s-expressions as newline-separated strings")
+  (let loop ([cs checks] [acc ""])
+    (if (null? cs)
+        acc
+        (let ([s (format "~a" (car cs))])
+          (loop (cdr cs)
+                (if (string=? acc "")
+                    s
+                    (string-append acc "\n" s)))))))
+
 ;;; --- Context builder ---
 
 (define (make-sft-context family category function-name prompt-body
                           . kwargs)
   (doc 'description "Build context alist for SFT prompt expansion")
-  (let* ([verify-expr (if (>= (length kwargs) 1) (car kwargs) #f)]
+  (let* ([verify-expr-raw (if (>= (length kwargs) 1) (car kwargs) #f)]
          [available-fns (if (>= (length kwargs) 2) (cadr kwargs) #f)]
          [known-issue (if (>= (length kwargs) 3) (caddr kwargs) #f)]
+         [verify-expr (if verify-expr-raw
+                          (decompose-verify-checks verify-expr-raw)
+                          #f)]
          [ctx `((family . ,family)
                 (category . ,category)
                 (function-name . ,function-name)

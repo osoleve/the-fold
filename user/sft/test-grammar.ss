@@ -218,7 +218,11 @@
                          '(0 1 2 3 4 5 6 7 8 9))]
            [heavy-count (length (filter (lambda (s) (string=? s "heavy")) results))])
       ;; At least 7 of 10 should be "heavy" with 99:1 odds
-      (assert-true (>= heavy-count 7)))))
+      (assert-true (>= heavy-count 7))))
+
+  (define-test "weighted with zero total errors"
+    (let ([g (make-grammar '((root . (weighted (0 "a") (0 "b")))))])
+      (assert-error (lambda () (expand g 'root '() rng0))))))
 
 ;;; ============================================================
 ;;; maybe combinator
@@ -447,7 +451,28 @@
     (let* ([g (make-grammar '((root . (when active (seq "[" (slot name) "]")))))]
            [ctx '((active . #t) (name . "test"))]
            [result (expand g 'root ctx rng0)])
-      (assert-equal "[test]" (car result)))))
+      (assert-equal "[test]" (car result))))
+
+  (define-test "collapse-blank-lines removes triple+ newlines"
+    (assert-equal "a\n\nb" (collapse-blank-lines "a\n\n\nb"))
+    (assert-equal "a\n\nb" (collapse-blank-lines "a\n\n\n\nb"))
+    (assert-equal "a\n\nb\n\nc" (collapse-blank-lines "a\n\n\n\nb\n\n\n\n\nc")))
+
+  (define-test "collapse-blank-lines preserves double newlines"
+    (assert-equal "a\n\nb" (collapse-blank-lines "a\n\nb"))
+    (assert-equal "a\nb" (collapse-blank-lines "a\nb")))
+
+  (define-test "expand-to-string collapses blank lines"
+    ;; Grammar that produces phantom blank lines from empty maybe + separator
+    (let* ([g (make-grammar
+                (list (cons 'root '(seq "A" "\n\n" (ref hint)
+                                        (maybe 0.0 (seq "\n\n" "never"))
+                                        "\n\n" "Z"))
+                      (cons 'hint "H")))]
+           [text (expand-to-string g 'root '() 0)])
+      ;; Without collapse we'd get "A\n\nH\n\n\n\nZ" (4 newlines)
+      ;; With collapse: "A\n\nH\n\nZ"
+      (assert-equal "A\n\nH\n\nZ" text))))
 
 ;;; ============================================================
 ;;; Analysis
@@ -566,5 +591,48 @@
       ;; Some rules may be dead if context doesn't trigger them,
       ;; but structurally they should all be reachable
       (assert-equal 0 (length dead)))))
+
+;;; ============================================================
+;;; Verify-expr decomposition
+;;; ============================================================
+
+(test-group "verify-decomposition"
+
+  (define-test "decompose simple (and ...) into individual checks"
+    (let ([result (decompose-verify-checks "(and (= x 1) (= y 2) (= z 3))")])
+      (assert-equal "(= x 1)\n(= y 2)" result)))
+
+  (define-test "decompose single-check (and ...) extracts it"
+    (let ([result (decompose-verify-checks "(and (= x 1))")])
+      ;; Single check inside and — unwrapped to just the check
+      (assert-equal "(= x 1)" result)))
+
+  (define-test "decompose bare expression passes through"
+    (let ([result (decompose-verify-checks "(equal? (f 1) 2)")])
+      (assert-equal "(equal? (f 1) 2)" result)))
+
+  (define-test "decompose let-wrapped (and ...)"
+    (let ([result (decompose-verify-checks
+                    "(let () (define (foo x) x) (and (= (foo 1) 1) (= (foo 2) 2)))")])
+      (assert-equal "(= (foo 1) 1)\n(= (foo 2) 2)" result)))
+
+  (define-test "decompose let*-wrapped expression"
+    (let ([result (decompose-verify-checks
+                    "(let* ([a 1] [b 2]) (and (= a 1) (= b 2)))")])
+      (assert-equal "(= a 1)\n(= b 2)" result)))
+
+  (define-test "decompose respects max-checks"
+    (let ([result (decompose-verify-checks "(and (= a 1) (= b 2) (= c 3))" 1)])
+      (assert-equal "(= a 1)" result)))
+
+  (define-test "decompose survives malformed input"
+    (let ([result (decompose-verify-checks "not valid scheme {{")])
+      (assert-equal "not valid scheme {{" result)))
+
+  (define-test "make-sft-context auto-decomposes verify-expr"
+    (let* ([ctx (make-sft-context "spec_to_code" "implementation" "foo" "body"
+                  "(and (= (foo 1) 1) (= (foo 2) 2))")]
+           [ve (cdr (assq 'verify-expr ctx))])
+      (assert-equal "(= (foo 1) 1)\n(= (foo 2) 2)" ve))))
 
 (run-all-tests)

@@ -88,6 +88,8 @@
   (if (null? entries)
       (cons "" rng)
       (let* ([total (fold-left + 0 (map car entries))]
+             [_ (when (<= total 0)
+                  (error 'expand-weighted "weights must sum to positive value" total))]
              [result (run-state (random-float-range 0.0 total) rng)]
              [r (car result)]
              [rng2 (cdr result)]
@@ -148,12 +150,28 @@
         ;; If not a context list, just expand the rule
         (expand grammar items-rule ctx rng))))
 
+;;; --- Post-processing ---
+
+(define (collapse-blank-lines s)
+  (doc 'description "Replace runs of 3+ newlines with exactly 2")
+  (let ([n (string-length s)])
+    (let loop ([i 0] [acc '()] [nl-run 0])
+      (if (>= i n)
+          (list->string (reverse acc))
+          (let ([c (string-ref s i)])
+            (if (char=? c #\newline)
+                (if (>= nl-run 2)
+                    (loop (+ i 1) acc (+ nl-run 1))
+                    (loop (+ i 1) (cons c acc) (+ nl-run 1)))
+                (loop (+ i 1) (cons c acc) 0)))))))
+
 ;;; --- Convenience ---
 
 (define (expand-to-string grammar rule-name ctx seed)
   (doc 'type '(-> Grammar Symbol Alist Int String))
   (doc 'description "Expand a rule with a seed, returning just the string")
-  (car (expand grammar rule-name ctx (make-pcg seed 0))))
+  (collapse-blank-lines
+    (car (expand grammar rule-name ctx (make-pcg seed 0)))))
 
 (define (expand-n grammar rule-name ctx seed n)
   (doc 'type '(-> Grammar Symbol Alist Int Int (List String)))
