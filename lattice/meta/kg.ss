@@ -1010,7 +1010,7 @@ Filters to surprise = high or medium (excludes dep-connected low-surprise pairs)
 ;;; ====
 
 (doc kg-rebuild-concept-maps! 'type (-> Void))
-(doc kg-rebuild-concept-maps! 'description "Rebuild concept reverse maps from manifest keywords.
+(doc kg-rebuild-concept-maps! 'description "Rebuild concept reverse maps from manifest keywords and aliases.
 Used during CAS hydration to restore *kg-skill-concepts* and *kg-concept-skills*
 without traversing edge blocks. When the ontology is loaded, keywords are normalized
 to canonical concept names before the lookup, matching the behavior of kg-extract-concepts!.")
@@ -1022,7 +1022,12 @@ to canonical concept names before the lookup, matching the behavior of kg-extrac
             [keywords (if data
                          (let ([k (assq 'keywords data)])
                            (if (and k (list? (cdr k))) (cdr k) '()))
-                         '())])
+                         '())]
+            [aliases (if data
+                        (let ([a (assq 'aliases data)])
+                          (if (and a (list? (cdr a))) (cdr a) '()))
+                        '())]
+            [raw-tags (append keywords aliases)])
        (for-each
         (lambda (kw)
           (when (symbol? kw)
@@ -1041,7 +1046,7 @@ to canonical concept names before the lookup, matching the behavior of kg-extrac
                   (unless (memq skill-name existing)
                     (set! *kg-concept-skills*
                           (hamt-assoc effective-kw (cons skill-name existing) *kg-concept-skills*))))))))
-        keywords)))
+        raw-tags)))
    *kg-skills*))
 
 (doc kg-load-from-cas! 'type (-> Bytevector Boolean))

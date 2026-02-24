@@ -48,7 +48,7 @@
       (parent abstract-algebra))
 
     (concept galois-theory
-      (description "Finite fields (GF(p), GF(p^n), GF(2^n)) and their extensions, essential for cryptography and coding theory.")
+      (description "The correspondence between field extensions and symmetry groups of polynomial roots, connecting solvability to group structure.")
       (parent abstract-algebra))
 
     (concept tropical-algebra
@@ -541,7 +541,7 @@
     (egraph e-graph equality-saturation)
     (domain-specific-languages dsl meta-dsl language-tools tagless)
     (automata state-machines fsm statecharts)
-    (random rand prng probability sampling vi)
+    (random rand prng probability sampling)
     (game-theory game games)
     (pipeline workflow agent-pipeline stages arrows)
     (knowledge-infrastructure meta lattice-meta lattice-tools skills)
@@ -560,7 +560,7 @@
     (groebner-basis groebner buchberger polynomial-reduction)
     (galois-field finite-field gf2n binary-field aes-field)
     (monte-carlo mcmc metropolis-hastings gibbs-sampling importance-sampling)
-    (variational-inference elbo reparameterization bayesian-optimization vi)
+    (variational-inference elbo reparameterization vi)
     (persistent-homology tda barcode persistence-diagram vietoris-rips)
     (simplicial-complex simplicial betti-numbers euler-characteristic homology)
     (eigenvalue-theory eigenvalue eigenvalues eigenvectors svd singular-value-decomposition spectral)

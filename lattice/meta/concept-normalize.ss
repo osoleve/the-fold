@@ -89,15 +89,24 @@ and calls install-concept-ontology! to populate the module-level maps.")
 ;;; parse-synonym-group : SExp -> Void
 ;;; Walk a synonym group (canonical alias1 alias2 ...) and register all
 ;;; aliases, including the canonical form pointing to itself.
+;;; Detects collisions: if an alias already maps to a different canonical,
+;;; warns on stderr (silent data corruption otherwise).
 (define (parse-synonym-group group)
   (when (and (pair? group) (symbol? (car group)))
     (let ([canonical (car group)]
           [all-names (cdr group)])
       ;; canonical -> canonical
       (set! *synonym-map* (hamt-assoc canonical canonical *synonym-map*))
-      ;; each alias -> canonical
+      ;; each alias -> canonical (with collision check)
       (for-each (lambda (alias)
-                  (set! *synonym-map* (hamt-assoc alias canonical *synonym-map*)))
+                  (let ([existing (hamt-lookup alias *synonym-map*)])
+                    (when (and existing (not (eq? existing canonical)))
+                      (when (or (not (top-level-bound? '*meta-quiet*))
+                                (not (top-level-value '*meta-quiet*)))
+                        (format (current-error-port)
+                                "WARNING: synonym collision — '~a' mapped to '~a', now remapped to '~a'~%"
+                                alias existing canonical)))
+                    (set! *synonym-map* (hamt-assoc alias canonical *synonym-map*))))
                 all-names))))
 
 ;;; parse-cross-cutting-entry : SExp -> Void
