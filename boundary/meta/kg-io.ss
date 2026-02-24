@@ -577,8 +577,11 @@ skills that changed, were added, or were removed. Returns root hash on success,
   (let ([loaded (kg-load-from-root!)])
     (if (not loaded)
         #f  ; No existing KG — caller should fall back to full build
-        ;; Step 2: Detect changes
-        (let* ([manifests (find-manifests "lattice")]
+        ;; Step 1b: Load concept ontology (needed for hierarchy queries even if no changes)
+        (begin
+          (kg-load-concept-ontology!)
+          ;; Step 2: Detect changes
+          (let* ([manifests (find-manifests "lattice")]
                [current-fps (kg-compute-all-fingerprints manifests)]
                [cached-fps (kg-load-fingerprints)])
           (if (null? cached-fps)
@@ -656,7 +659,7 @@ skills that changed, were added, or were removed. Returns root hash on success,
                                    (length *kg-skills*)
                                    (length *kg-concepts*)
                                    (hamt-size *kg-type-sigs*))
-                           root-hash)))))))))))
+                           root-hash))))))))))))
 
 ;;; ====
 ;;; CAS-First Loading

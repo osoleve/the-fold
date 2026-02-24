@@ -26,6 +26,7 @@ all blocks are in the store, we skip both cache and manifest parsing.")
   (cond
    ;; Priority 1: CAS-first — load from content-addressed store
    [(kg-load-from-root!)
+    (kg-load-concept-ontology!)
     (lattice-index!)
     (build-source-location-cache!)
     (printf "\nLattice tooling initialized (from CAS)!\n")]
@@ -56,6 +57,7 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (cond
    ;; Priority 1: CAS-first
    [(kg-load-from-root!)
+    (kg-load-concept-ontology!)
     (lattice-index!)
     (build-source-location-cache!)]
    ;; Priority 2: sexp cache
@@ -157,8 +159,9 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (printf "CONCEPTS:\n")
   (printf "  (lk 'concept)             - Skills providing concept\n")
   (printf "  (lkk 'skill)              - Concepts of a skill\n")
-  (printf "  (lkb 'skill-a 'skill-b)   - Concept bridge between skills\n")
-  (printf "  (lkr 'skill)              - Skills related by shared concepts\n\n")
+  (printf "  (lkb 'skill-a 'skill-b)   - Concept bridge (with hierarchy fallback)\n")
+  (printf "  (lkr 'skill)              - Skills related by shared concepts\n")
+  (printf "  (lkh 'concept)            - Concept hierarchy (ancestors, children, skills)\n\n")
   (printf "DISCOVERY:\n")
   (printf "  (lr 'sym)                 - Browse related (pretty-print)\n")
   (printf "  (lrr 'sym)               - Browse related (raw alist)\n"))
@@ -186,11 +189,17 @@ Priority chain: CAS root → sexp cache → full manifest build.")
           (for-each (lambda (c) (printf "  ~a\n" c)) concepts)))))
 
 (doc lkb 'type (-> Symbol Symbol Void))
-(doc lkb 'description "Show concept bridge between two skills")
+(doc lkb 'description "Show concept bridge between two skills, with transitive hierarchy fallback")
 (define (lkb skill-a skill-b)
   (let ([bridge (kg-concept-bridge skill-a skill-b)])
     (if (null? bridge)
-        (printf "No concept bridge between ~a and ~a\n" skill-a skill-b)
+        ;; Try transitive bridge via hierarchy
+        (let ([trans (kg-shared-concepts-transitive skill-a skill-b)])
+          (if (null? trans)
+              (printf "No concept bridge between ~a and ~a\n" skill-a skill-b)
+              (begin
+                (printf "~a <-> ~a bridged by concepts (via hierarchy):\n" skill-a skill-b)
+                (for-each (lambda (c) (printf "  ~a\n" c)) trans))))
         (begin
           (printf "~a <-> ~a bridged by concepts:\n" skill-a skill-b)
           (for-each (lambda (c) (printf "  ~a\n" c)) bridge)))))
@@ -207,6 +216,55 @@ Priority chain: CAS root → sexp cache → full manifest build.")
            (lambda (pair)
              (printf "  ~a (~a shared concepts)\n" (car pair) (cdr pair)))
            related)))))
+
+(doc lkh 'type (-> Symbol Void))
+(doc lkh 'description "Show concept hierarchy: ancestors, children, and providing skills")
+(define (lkh concept-name)
+  (let* ([canonical (concept-normalize concept-name)]
+         [ancestors (kg-concept-ancestors canonical)]
+         [children (concept-children canonical)]
+         [skills (kg-concept-skills canonical)]
+         [desc (concept-description canonical)]
+         [is-xc (concept-cross-cutting? canonical)])
+    (when (not (eq? canonical concept-name))
+      (printf "  (~a is an alias for ~a)\n" concept-name canonical))
+    (printf "Concept: ~a" canonical)
+    (when is-xc (printf " [cross-cutting]"))
+    (newline)
+    (unless (string=? desc "")
+      (printf "  ~a\n" desc))
+    (unless (null? ancestors)
+      (printf "  Ancestors: ~a\n"
+              (let build ([ancs ancestors] [parts '()])
+                (if (null? ancs)
+                    (apply string-append (reverse parts))
+                    (build (cdr ancs)
+                           (cons (if (null? parts)
+                                     (symbol->string (car ancs))
+                                     (string-append " > " (symbol->string (car ancs))))
+                                 parts))))))
+    (unless (null? children)
+      (printf "  Children: ~a\n"
+              (apply string-append
+                     (let fmt ([cs children] [acc '()])
+                       (if (null? cs) (reverse acc)
+                           (fmt (cdr cs)
+                                (cons (if (null? acc)
+                                          (symbol->string (car cs))
+                                          (string-append ", " (symbol->string (car cs))))
+                                      acc)))))))
+    (if (null? skills)
+        (printf "  No skills directly provide this concept\n")
+        (begin
+          (printf "  Skills: ~a\n"
+                  (apply string-append
+                         (let fmt ([ss skills] [acc '()])
+                           (if (null? ss) (reverse acc)
+                               (fmt (cdr ss)
+                                    (cons (if (null? acc)
+                                              (symbol->string (car ss))
+                                              (string-append ", " (symbol->string (car ss))))
+                                          acc))))))))))
 
 (doc 'section 'repl-interface)
 

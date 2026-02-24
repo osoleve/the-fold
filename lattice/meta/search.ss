@@ -227,17 +227,34 @@
 (doc concept-boost-for-query 'type (-> (List Symbol) HAMT))
 (doc concept-boost-for-query 'description "Build a skill→boost-count map from query terms that match concept names.
 Each query token is checked against the concept index. Skills linked to
-matching concepts accumulate a count, used as a multiplicative score boost.")
+matching concepts accumulate a count, used as a multiplicative score boost.
+When the concept ontology is loaded, ancestor concepts also contribute with
+geometrically diminishing weight: direct=1, parent=0.5, grandparent=0.25, etc.")
 (define (concept-boost-for-query query-terms)
   (fold-left
    (lambda (boost-set term)
-     (let ([skills (kg-concept-skills term)])
-       (fold-left
-        (lambda (bs skill-name)
-          (let ([current (or (hamt-lookup skill-name bs) 0)])
-            (hamt-assoc skill-name (+ current 1) bs)))
-        boost-set
-        skills)))
+     ;; Accumulate direct concept match (weight 1.0)
+     (let* ([skills (kg-concept-skills term)]
+            [bs1 (fold-left
+                  (lambda (bs skill-name)
+                    (let ([current (or (hamt-lookup skill-name bs) 0)])
+                      (hamt-assoc skill-name (+ current 1.0) bs)))
+                  boost-set
+                  skills)]
+            ;; Walk ancestor chain with diminishing weight
+            [ancestors (kg-concept-ancestors term)])
+       (let walk ([ancs ancestors] [weight 0.5] [bs bs1])
+         (if (or (null? ancs) (< weight 0.1))
+             bs
+             (let* ([anc (car ancs)]
+                    [anc-skills (kg-concept-skills anc)]
+                    [bs2 (fold-left
+                          (lambda (b skill-name)
+                            (let ([current (or (hamt-lookup skill-name b) 0)])
+                              (hamt-assoc skill-name (+ current weight) b)))
+                          bs
+                          anc-skills)])
+               (walk (cdr ancs) (* weight 0.5) bs2))))))
    hamt-empty
    query-terms))
 
