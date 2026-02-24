@@ -8,6 +8,10 @@
   (load "boundary/introspect/exports.ss"))
 (unless (top-level-bound? 'hydrate-cas!)
   (load "boundary/storage/cas-persist.ss"))
+(unless (top-level-bound? 'kg-load-fingerprints)
+  (load "boundary/meta/kg-incremental.ss"))
+(unless (top-level-bound? 'install-concept-ontology!)
+  (load "lattice/meta/concept-normalize.ss"))
 
 (doc 'module 'kg-io)
 (doc 'description "I/O layer for knowledge graph — manifest discovery, reading, CAS persistence,
@@ -413,11 +417,23 @@ Only considers symbols that are known exports in the KG.")
      '("lattice" "core" "boundary"))
     (kg-populate-types! (reverse type-pairs))))
 
+;;; kg-load-concept-ontology! : -> Void
+;;; Load the concept ontology from disk and install it. Guarded — if the file
+;;; is absent or malformed, prints a note and continues without ontology support.
+;;; Called internally by kg-build! and kg-incremental-build! before concept extraction.
+(define (kg-load-concept-ontology!)
+  (guard (e [else
+             (printf "  Note: concept ontology not loaded (~a)\n" (condition-message e))])
+    (when (file-exists? "lattice/meta/concept-ontology.sexp")
+      (let ([ontology (call-with-input-file "lattice/meta/concept-ontology.sexp" read)])
+        (install-concept-ontology! ontology)
+        (printf "  Concept ontology loaded: ~a concepts\n" (length (concept-all)))))))
+
 (doc kg-build! 'type (-> Bytevector))
 (doc kg-build! 'description "Build knowledge graph from all manifests in lattice/.
 Discovers manifest files, parses them, creates blocks in CAS, extracts
-concepts from keywords, type signatures from doc forms, and builds the root.
-Returns root hash.")
+concepts from keywords (normalized via ontology when available), type signatures
+from doc forms, and builds the root. Returns root hash.")
 (define (kg-build!)
   (kg-reset!)
   (let ([manifests (find-manifests "lattice")])
@@ -451,14 +467,18 @@ Returns root hash.")
               enriched-skills added-exports added-modules))
     ;; Phase 2: Build dependency edges
     (kg-build-deps!)
+    ;; Phase 2b: Load concept ontology (must happen before concept extraction)
+    (kg-load-concept-ontology!)
     ;; Phase 3: Extract concepts from keywords (KG-first: concepts are first-class)
     (kg-extract-concepts!)
     ;; Phase 4: Extract type signatures from doc forms
     (kg-extract-type-sigs!)
     ;; Phase 5: Build root block (anchors the entire graph in CAS)
     (let ([root-hash (kg-build-root!)])
-      ;; Phase 6: Persist root hash for fast reload
+      ;; Phase 6: Persist root hash + fingerprints for fast reload and incremental builds
       (kg-save-root! root-hash)
+      (let ([fps (kg-compute-all-fingerprints manifests)])
+        (kg-save-fingerprints! fps))
       (printf "Knowledge graph built: ~a skills, ~a modules, ~a exports, ~a concepts, ~a type-sigs, ~a edges\n"
               (length *kg-skills*)
               (length *kg-modules*)
@@ -469,11 +489,174 @@ Returns root hash.")
       root-hash))))
 
 (doc kg-ensure! 'type (-> (Maybe Bytevector)))
-(doc kg-ensure! 'description "Build knowledge graph only if not already initialized.")
+(doc kg-ensure! 'description "Initialize the knowledge graph. Tries three strategies in order:
+1. Already initialized → no-op
+2. CAS load + incremental update (fast path)
+3. Full rebuild from manifests (fallback)")
 (define (kg-ensure!)
-  (if (kg-initialized?)
-      #f
-      (kg-build!)))
+  (cond
+    [(kg-initialized?) #f]
+    [(kg-incremental-build!) => (lambda (root) root)]
+    [else (kg-build!)]))
+
+;;; ====
+;;; Incremental Build
+;;; ====
+
+(doc kg-extract-type-sigs-for-paths! 'type (-> (List String) Void))
+(doc kg-extract-type-sigs-for-paths! 'description "Extract type signatures only from source files
+under the given directory paths. Merges results into existing *kg-type-sigs* HAMT
+rather than replacing. Used by incremental builds to scope type extraction.")
+(define (kg-extract-type-sigs-for-paths! paths)
+  (let ([known-exports (let loop ([exports (kg-exports)] [seen hamt-empty])
+                         (if (null? exports) seen
+                             (loop (cdr exports)
+                                   (hamt-assoc (caar exports) #t seen))))]
+        [seen-targets (let ([entries (hamt-entries *kg-type-sigs*)])
+                        (fold-left
+                         (lambda (m pair) (hamt-assoc (car pair) #t m))
+                         hamt-empty
+                         entries))]
+        [type-pairs '()])
+    (define (normalize-type-expr type-expr)
+      (if (and (pair? type-expr)
+               (eq? (car type-expr) 'quote)
+               (pair? (cdr type-expr)))
+          (cadr type-expr)
+          type-expr))
+    (define (valid-type-expr? type-expr)
+      (or (symbol? type-expr) (pair? type-expr)))
+    (define (capture-type! target type-expr)
+      (let ([norm (normalize-type-expr type-expr)])
+        (when (and (symbol? target)
+                   (hamt-lookup target known-exports)
+                   (valid-type-expr? norm)
+                   (not (hamt-lookup target seen-targets)))
+          (set! seen-targets (hamt-assoc target #t seen-targets))
+          (set! type-pairs (cons (cons target norm) type-pairs)))))
+    (for-each
+     (lambda (root)
+       (when (file-exists? root)
+         (let ([files (find-scheme-files root)])
+           (for-each
+            (lambda (file)
+              (guard (e [else (void)])
+                (let ([docs (extract-docs-from-file file)])
+                  (for-each
+                   (lambda (doc-entry)
+                     (let ([tag (caddr doc-entry)]
+                           [content (cadddr doc-entry)]
+                           [target (if (> (length doc-entry) 4) (list-ref doc-entry 4) #f)])
+                       (when (and (eq? tag 'type) target (symbol? target) (pair? content))
+                         (capture-type! target (car content)))))
+                   docs))
+                (let ([sexps (read-all-sexps file)])
+                  (when (and sexps (list? sexps))
+                    (for-each
+                     (lambda (sexp)
+                       (let ([pair (define-contextual-type-pair sexp)])
+                         (when pair
+                           (capture-type! (car pair) (cdr pair)))))
+                     sexps)))))
+            files))))
+     paths)
+    ;; Merge new types into existing map
+    (for-each
+     (lambda (pair)
+       (unless (hamt-lookup (car pair) *kg-type-sigs*)
+         (set! *kg-type-sigs* (hamt-assoc (car pair) (cdr pair) *kg-type-sigs*))))
+     (reverse type-pairs))))
+
+(doc kg-incremental-build! 'type (-> (Maybe Bytevector)))
+(doc kg-incremental-build! 'description "Incrementally update the KG by detecting changed manifests.
+Loads existing KG from CAS, computes current fingerprints, and only rebuilds
+skills that changed, were added, or were removed. Returns root hash on success,
+#f if incremental build is not possible (no existing KG or CAS load failure).")
+(define (kg-incremental-build!)
+  ;; Step 1: Try loading existing KG from CAS
+  (let ([loaded (kg-load-from-root!)])
+    (if (not loaded)
+        #f  ; No existing KG — caller should fall back to full build
+        ;; Step 2: Detect changes
+        (let* ([manifests (find-manifests "lattice")]
+               [current-fps (kg-compute-all-fingerprints manifests)]
+               [cached-fps (kg-load-fingerprints)])
+          (if (null? cached-fps)
+              ;; No cached fingerprints — can't do incremental, but KG is loaded.
+              ;; Save fingerprints for next time and return current root.
+              (begin
+                (kg-save-fingerprints! current-fps)
+                (printf "KG: no cached fingerprints, saving baseline for next build\n")
+                *kg-index-root*)
+              (call-with-values
+               (lambda () (kg-detect-changes current-fps cached-fps))
+               (lambda (changed added removed)
+                 (if (and (null? changed) (null? added) (null? removed))
+                     ;; No changes — KG is up to date
+                     (begin
+                       (printf "KG: no changes detected, using cached build\n")
+                       *kg-index-root*)
+                     ;; Step 3: Apply changes
+                     (begin
+                       (printf "KG incremental: ~a changed, ~a added, ~a removed\n"
+                               (length changed) (length added) (length removed))
+                       ;; Remove old versions of changed + removed skills
+                       (for-each kg-remove-skill! changed)
+                       (for-each kg-remove-skill! removed)
+                       ;; Rebuild manifest path lookup for changed + added skills
+                       (let ([manifest-map
+                              (fold-left
+                               (lambda (m path)
+                                 (guard (e [else m])
+                                   (let* ([sexp (read-manifest-sexp path)]
+                                          [data (if sexp (parse-manifest sexp) #f)])
+                                     (if data
+                                         (cons (cons (cdr (assq 'name data)) path) m)
+                                         m))))
+                               '()
+                               manifests)]
+                             [affected-paths '()])
+                         ;; Re-add changed + added skills
+                         (for-each
+                          (lambda (skill-name)
+                            (let ([entry (assq skill-name manifest-map)])
+                              (when entry
+                                (let* ([manifest-path (cdr entry)]
+                                       [sexp (read-manifest-sexp manifest-path)]
+                                       [data0 (if sexp (parse-manifest sexp) #f)]
+                                       [data (if data0 (kg-enrich-manifest-from-source data0) #f)])
+                                  (when data
+                                    (printf "  Rebuilding: ~a\n" skill-name)
+                                    (kg-add-skill! data)
+                                    (let ([sp (assq 'path data)])
+                                      (when (and sp (string? (cdr sp)))
+                                        (set! affected-paths
+                                              (cons (cdr sp) affected-paths)))))))))
+                          (append changed added))
+                         ;; Rebuild deps + concepts (cheap, in-memory)
+                         ;; Clear deps and concepts first since they reference
+                         ;; the old state, then rebuild from current skills
+                         (set! *kg-deps* '())
+                         (set! *kg-concepts* '())
+                         (set! *kg-edges* '())
+                         (set! *kg-skill-concepts* hamt-empty)
+                         (set! *kg-concept-skills* hamt-empty)
+                         (kg-build-deps!)
+                         ;; Load ontology before concept extraction (idempotent if already loaded)
+                         (kg-load-concept-ontology!)
+                         (kg-extract-concepts!)
+                         ;; Targeted type extraction (only scan changed skill dirs)
+                         (unless (null? affected-paths)
+                           (kg-extract-type-sigs-for-paths! affected-paths))
+                         ;; Build new root
+                         (let ([root-hash (kg-build-root!)])
+                           (kg-save-root! root-hash)
+                           (kg-save-fingerprints! current-fps)
+                           (printf "KG incrementally updated: ~a skills, ~a concepts, ~a type-sigs\n"
+                                   (length *kg-skills*)
+                                   (length *kg-concepts*)
+                                   (hamt-size *kg-type-sigs*))
+                           root-hash)))))))))))
 
 ;;; ====
 ;;; CAS-First Loading
