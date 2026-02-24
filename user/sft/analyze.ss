@@ -133,6 +133,9 @@
                 (trace-body (cadar cs) rng)]
                [(and (string? val) (eq? (caar cs) (string->symbol val)))
                 (trace-body (cadar cs) rng)]
+               [(and (symbol? val) (string? (caar cs))
+                     (string=? (caar cs) (symbol->string val)))
+                (trace-body (cadar cs) rng)]
                [else (loop (cdr cs))])))]
         [(eq? (car body) 'join)
          ;; join looks up context key as list, or falls back to expanding rule

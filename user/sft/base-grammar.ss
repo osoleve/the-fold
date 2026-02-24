@@ -159,17 +159,29 @@
         #f)))
 
 (define (take-up-to n lst)
+  (doc 'description "Take up to n elements from lst")
   (let loop ([i 0] [l lst] [acc '()])
     (if (or (>= i n) (null? l))
         (reverse acc)
         (loop (+ i 1) (cdr l) (cons (car l) acc)))))
+
+(define (sexp->string expr)
+  (doc 'description "Format s-expression preserving quote shorthand and string quotes")
+  (let ([port (open-output-string)])
+    (pretty-print expr port)
+    ;; pretty-print adds trailing newline; strip it
+    (let* ([s (get-output-string port)]
+           [n (string-length s)])
+      (if (and (> n 0) (char=? (string-ref s (- n 1)) #\newline))
+          (substring s 0 (- n 1))
+          s))))
 
 (define (format-checks checks)
   (doc 'description "Format check s-expressions as newline-separated strings")
   (let loop ([cs checks] [acc ""])
     (if (null? cs)
         acc
-        (let ([s (format "~a" (car cs))])
+        (let ([s (sexp->string (car cs))])
           (loop (cdr cs)
                 (if (string=? acc "")
                     s
@@ -183,7 +195,9 @@
   (let* ([verify-expr-raw (if (>= (length kwargs) 1) (car kwargs) #f)]
          [available-fns (if (>= (length kwargs) 2) (cadr kwargs) #f)]
          [known-issue (if (>= (length kwargs) 3) (caddr kwargs) #f)]
-         [verify-expr (if verify-expr-raw
+         [verify-expr (if (and verify-expr-raw
+                               (string? verify-expr-raw)
+                               (not (string=? verify-expr-raw "")))
                           (decompose-verify-checks verify-expr-raw)
                           #f)]
          [ctx `((family . ,family)

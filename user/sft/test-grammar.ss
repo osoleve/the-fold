@@ -633,6 +633,16 @@
     (let* ([ctx (make-sft-context "spec_to_code" "implementation" "foo" "body"
                   "(and (= (foo 1) 1) (= (foo 2) 2))")]
            [ve (cdr (assq 'verify-expr ctx))])
-      (assert-equal "(= (foo 1) 1)\n(= (foo 2) 2)" ve))))
+      (assert-equal "(= (foo 1) 1)\n(= (foo 2) 2)" ve)))
+
+  (define-test "empty verify-expr string sets has-verify to false"
+    (let* ([ctx (make-sft-context "spec_to_code" "implementation" "foo" "body" "")]
+           [hv (cdr (assq 'has-verify ctx))])
+      (assert-false hv)))
+
+  (define-test "false verify-expr sets has-verify to false"
+    (let* ([ctx (make-sft-context "spec_to_code" "implementation" "foo" "body" #f)]
+           [hv (cdr (assq 'has-verify ctx))])
+      (assert-false hv))))
 
 (run-all-tests)
