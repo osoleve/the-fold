@@ -277,7 +277,20 @@
     (kg-detect-bridges)  ; populate cache
     (assert-true (list? *kg-bridge-cache*))
     (kg-reset!)
-    (assert-false *kg-bridge-cache*)))
+    (assert-false *kg-bridge-cache*))
+
+  (define-test "cache invalidated by kg-extract-concepts!"
+    (build-bridge-test-kg!)
+    (let ([first (kg-detect-bridges)])
+      (assert-true (list? *kg-bridge-cache*))
+      ;; Re-extracting concepts invalidates the bridge cache
+      (kg-extract-concepts!)
+      (assert-false *kg-bridge-cache*)
+      ;; Next call recomputes
+      (let ([second (kg-detect-bridges)])
+        (assert-true (list? *kg-bridge-cache*))
+        ;; Should NOT be eq? (freshly computed)
+        (assert-false (eq? first second))))))
 
 ;;; ====================================================================
 ;;; Tests: kg-surprising-bridges

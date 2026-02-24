@@ -276,7 +276,7 @@ Priority chain: CAS root → sexp cache → full manifest build.")
 
 (doc 'section 'bridge-detection)
 
-(doc lbc 'type (-> Void))
+(doc lbc 'type (case-> (-> Void) (-> Int Void)))
 (doc lbc 'description "Show top concept bridges ranked by surprise score.
 Optional argument k controls how many to show (default 15).
 Filters to surprise >= medium (non-dep-connected bridges).")

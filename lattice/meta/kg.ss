@@ -363,6 +363,7 @@ When the ontology is NOT loaded, falls back to flat keyword extraction (v2 behav
 This is the key insight of the KG-first design: concepts exist
 independently and skills are connected through them.")
 (define (kg-extract-concepts!)
+  (set! *kg-bridge-cache* #f)  ; invalidate — concept data is changing
   (if (concept-ontology-loaded?)
       ;; --- Ontology-aware path ---
       ;; Normalize keywords through the ontology, collapsing aliases to canonical
@@ -876,30 +877,31 @@ Returns an alist with:
                                       (and (concept-ontology-loaded?)
                                            (concept-cross-cutting? c)))
                                     shared)]
-             ;; Dep connectivity
-             [a-deps-on-b (memq skill-b (kg-deps skill-a))]
-             [b-deps-on-a (memq skill-a (kg-deps skill-b))]
-             [direct-dep (or a-deps-on-b b-deps-on-a)]
-             [transitive-dep (and (not direct-dep)
-                                  (or (kg-reachable? skill-a skill-b)
-                                      (kg-reachable? skill-b skill-a)))]
-             [dep-type (cond [direct-dep 'direct]
-                             [transitive-dep 'transitive]
-                             [else 'none])]
              ;; Raw score: 1.0 per direct, 0.5 per hierarchical, 1.5 bonus per cross-cutting
              [raw-score (+ (* 1.0 (length direct-shared))
                            (* 0.5 (length hierarchical))
-                           (* 1.5 (length cross-cutting)))]
-             ;; Surprise penalty for dep-connected pairs
-             [score (cond [(eq? dep-type 'direct) (* raw-score 0.3)]
-                          [(eq? dep-type 'transitive) (* raw-score 0.5)]
-                          [else raw-score])])
-        `((score . ,score)
-          (shared . ,shared)
-          (direct . ,direct-shared)
-          (hierarchical . ,hierarchical)
-          (cross-cutting . ,cross-cutting)
-          (dep-connected . ,dep-type)))))
+                           (* 1.5 (length cross-cutting)))])
+        ;; Only compute dep connectivity when raw-score > 0 (avoids BFS on most pairs)
+        (if (zero? raw-score)
+            '((score . 0) (shared) (direct) (hierarchical) (cross-cutting) (dep-connected . none))
+            (let* ([a-deps-on-b (memq skill-b (kg-deps skill-a))]
+                   [b-deps-on-a (memq skill-a (kg-deps skill-b))]
+                   [direct-dep (or a-deps-on-b b-deps-on-a)]
+                   [transitive-dep (and (not direct-dep)
+                                        (or (kg-reachable? skill-a skill-b)
+                                            (kg-reachable? skill-b skill-a)))]
+                   [dep-type (cond [direct-dep 'direct]
+                                   [transitive-dep 'transitive]
+                                   [else 'none])]
+                   [score (cond [(eq? dep-type 'direct) (* raw-score 0.3)]
+                                [(eq? dep-type 'transitive) (* raw-score 0.5)]
+                                [else raw-score])])
+              `((score . ,score)
+                (shared . ,shared)
+                (direct . ,direct-shared)
+                (hierarchical . ,hierarchical)
+                (cross-cutting . ,cross-cutting)
+                (dep-connected . ,dep-type)))))))
 
 (doc kg-detect-bridges 'type (-> (List Alist)))
 (doc kg-detect-bridges 'description "Detect all concept bridges between skills, ranked by score.
