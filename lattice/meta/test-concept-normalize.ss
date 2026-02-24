@@ -11,6 +11,17 @@
 (load "core/base/prelude.ss")
 (load "lattice/meta/concept-normalize.ss")
 
+;;; Local helper — substring search for test assertions
+(define (test-string-contains? haystack needle)
+  (let ([hlen (string-length haystack)]
+        [nlen (string-length needle)])
+    (and (>= hlen nlen)
+         (let loop ([i 0])
+           (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? needle (substring haystack i (+ i nlen))) #t]
+             [else (loop (+ i 1))])))))
+
 ;;; ====================================================================
 ;;; Shared fixtures
 ;;; ====================================================================
@@ -613,5 +624,124 @@
       (install-concept-ontology! ontology)
       (assert-equal '() (concept-all))
       (assert-equal '() (concept-roots)))))
+
+(test-group "build-ontology-edge-cases"
+
+  (define-test "manifest with empty concepts list handled"
+    (let* ([m (make-test-manifest 'empty-skill '())]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-equal '() (concept-all))))
+
+  (define-test "malformed entries in concepts list ignored"
+    (let* ([m (make-test-manifest 'test-skill
+               '((not-a-concept "garbage")
+                 42
+                 (concept valid-one
+                   (description "Real concept"))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-equal "Real concept" (concept-description 'valid-one))
+      (assert-equal 1 (length (concept-all)))))
+
+  (define-test "synonym collision across manifests — last-seen-wins at registration"
+    (let* ([m1 (make-test-manifest 'skill-a
+                '((concept concept-a
+                    (description "First owner")
+                    (synonyms shared-alias))))]
+           [m2 (make-test-manifest 'skill-b
+                '((concept concept-b
+                    (description "Second owner")
+                    (synonyms shared-alias))))]
+           [ontology (build-ontology-from-manifests (list m1 m2))])
+      (install-concept-ontology! ontology)
+      ;; Concept definitions are first-seen-wins (builder HAMT),
+      ;; but synonym registration is last-seen-wins (register-synonym! overwrites)
+      (assert-equal 'concept-b (concept-normalize 'shared-alias))))
+
+  (define-test "mixed regular and cross-cutting from same manifest"
+    (let* ([m (make-test-manifest 'mixed
+               '((concept mathematics
+                   (description "Root"))
+                 (concept linear-algebra
+                   (description "LA")
+                   (parent mathematics))
+                 (concept composability
+                   (description "Cross-cutting")
+                   (cross-cutting #t)
+                   (skills (fp optics)))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      ;; Regular concepts work
+      (assert-true (concept-root? 'mathematics))
+      (assert-true (pair? (memq 'linear-algebra (concept-children 'mathematics))))
+      ;; Cross-cutting works
+      (assert-true (concept-cross-cutting? 'composability))
+      ;; Cross-cutting is not a child of anything
+      (assert-false (concept-parent 'composability)))))
+
+;;; ====================================================================
+;;; validate-ontology
+;;; ====================================================================
+
+(test-group "validate-ontology"
+
+  (define-test "clean ontology produces no issues"
+    (let* ([m (make-test-manifest 'test
+               '((concept root-a (description "Root A"))
+                 (concept child-a
+                   (description "Child of A")
+                   (parent root-a))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (assert-equal '() (validate-ontology))))
+
+  (define-test "cycle in parent chain detected as error"
+    ;; Manually install a cycle: A→B→A
+    (install-concept-ontology!
+      '(concept-ontology
+        (version 2)
+        (concepts
+          (concept alpha
+            (description "Alpha")
+            (parent beta))
+          (concept beta
+            (description "Beta")
+            (parent alpha)))
+        (cross-cutting)))
+    (let ([issues (validate-ontology)])
+      (assert-true (pair? issues))
+      (assert-true
+        (pair? (filter (lambda (i) (eq? 'error (car i))) issues)))))
+
+  (define-test "missing description flagged as warning"
+    (install-concept-ontology!
+      '(concept-ontology
+        (version 2)
+        (concepts
+          (concept no-desc))
+        (cross-cutting)))
+    (let ([issues (validate-ontology)])
+      (assert-true (pair? issues))
+      (let ([warnings (filter (lambda (i) (eq? 'warning (car i))) issues)])
+        (assert-true (pair? warnings))
+        (assert-true
+          (pair? (filter (lambda (i) (test-string-contains? (cdr i) "no description"))
+                         warnings))))))
+
+  (define-test "auto-created stub flagged as warning"
+    ;; Build with undeclared parent — creates auto stub
+    (let* ([m (make-test-manifest 'test
+               '((concept child-x
+                   (description "Has undeclared parent")
+                   (parent phantom-root))))]
+           [ontology (build-ontology-from-manifests (list m))])
+      (install-concept-ontology! ontology)
+      (let ([issues (validate-ontology)])
+        (assert-true (pair? issues))
+        (let ([warnings (filter (lambda (i) (eq? 'warning (car i))) issues)])
+          (assert-true
+            (pair? (filter (lambda (i) (test-string-contains? (cdr i) "auto-created stub"))
+                           warnings))))))))
 
 (run-all-tests)

@@ -25,7 +25,7 @@
   (concepts
     (concept automatic-differentiation
       (description "Computing exact derivatives by propagating through computational graphs: forward mode (dual numbers), reverse mode (backprop).")
-      (parent machine-learning)
+      (parent mathematics)
       (synonyms autodiff ad diff reverse-diff backprop)))
 
   (exports

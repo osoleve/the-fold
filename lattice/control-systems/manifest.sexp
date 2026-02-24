@@ -22,6 +22,7 @@
   (concepts
     (concept control-theory
       (description "State-space models, transfer functions, PID controllers, LQR, Kalman filters, and H-infinity synthesis.")
+      (parent mathematics)
       (synonyms control-systems)))
 
   (exports

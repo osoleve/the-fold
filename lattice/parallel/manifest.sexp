@@ -22,6 +22,7 @@
   (concepts
     (concept parallel-computation
       (description "Divide-and-conquer parallelism, parallel reduction, and scan/prefix operations.")
+      (parent computation)
       (synonyms parallel par strategies divide-and-conquer parallel-reduction scan-prefix)))
 
   (exports

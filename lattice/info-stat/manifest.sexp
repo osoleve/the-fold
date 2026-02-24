@@ -17,6 +17,12 @@
              kl-divergence distribution-comparison info-statistics bridge))
   (aliases (info-stat mi-bridge))
 
+  (concepts
+    (concept information-statistical-bridge
+      (description "Connecting information theory to statistical modeling: MI-based feature selection, entropy-based model comparison (AIC/BIC), and KL divergence for distribution testing.")
+      (parent information-theory)
+      (synonyms info-stat mi-bridge info-statistics)))
+
   (exports
    (info-stat/mi-bridge
     mi-select-features mi-rank-features

@@ -18,6 +18,12 @@
              parenthesis-free structural-editing ai-tooling))
   (aliases (grammar-dsl code-builder sexpr-template))
 
+  (concepts
+    (concept template-metaprogramming
+      (description "Grammar-driven S-expression construction via named holes and incremental filling, enabling parenthesis-free structural editing.")
+      (parent meta-programming)
+      (synonyms template-dsl grammar-dsl code-builder sexpr-template)))
+
   (exports
    (template hole? hole-name find-holes
              new-template template? template-expr template-holes

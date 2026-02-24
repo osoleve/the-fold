@@ -8,6 +8,12 @@
   (deps (physics/classical dataset))
   (description "Physics word problem generation using the Dataset SDK and classical physics engine. Provides declarative templates for spatial, kinematic, and dynamic problems.")
   (keywords (physics problems dataset ml benchmark visual-reasoning))
+
+  (concepts
+    (concept physics-problem-generation
+      (description "Declarative generation of physics word problems: spatial reasoning, kinematics, dynamics, and counterfactuals for ML benchmarks.")
+      (parent machine-learning)
+      (synonyms physics-problems physics-benchmark visual-physics)))
   (exports
     (physics-problem define-physics-problem problem-generate problem-render)
     (simulation setup-world simulate-frames capture-state)

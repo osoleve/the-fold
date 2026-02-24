@@ -21,6 +21,7 @@
   (concepts
     (concept board-games
       (description "Board game SDK for hex, square, and triangle grids: pathfinding, FOV, line-of-sight, and tactical reasoning.")
+      (parent computation)
       (synonyms board-game hex-grid square-grid pathfinding fov line-of-sight roguelike boardcraft game-board grid-sdk tactical)))
 
   (exports

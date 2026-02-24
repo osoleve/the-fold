@@ -89,9 +89,9 @@
       (cross-cutting #t)
       (skills (algebra fp linalg number-theory crypto statistics)))
     (concept fuel-bounded-evaluation
-      (description "All lattice functions are total and resource-bounded by a fuel parameter, enabling safe AI composition and predictable computational budgets.")
+      (description "All lattice functions are total and resource-bounded by a fuel parameter — the containment mechanism for Fold-native models. Skills with non-trivial fuel characteristics include recursive decomposition, graph traversal, and iterative solvers.")
       (cross-cutting #t)
-      (skills (algebra autodiff data fp linalg optics optimization)))
+      (skills (algebra autodiff data fp linalg optics optimization numeric geometry game-theory statistics)))
     (concept content-addressed-identity
       (description "Objects are identified by the hash of their canonical content, making equality, caching, and provenance trivially correct and globally consistent.")
       (cross-cutting #t)
@@ -103,7 +103,7 @@
     (concept topological-analysis
       (description "Using Betti numbers, simplicial homology, and persistent homology to characterize the shape and connectivity of discrete or continuous objects.")
       (cross-cutting #t)
-      (skills (topology data geometry tiles optimization sim)))
+      (skills (topology data geometry tiles optimization)))
     (concept graph-theoretic-reasoning
       (description "Encoding problems as graphs and applying graph algorithms for connectivity, reachability, centrality, community structure, and shortest paths.")
       (cross-cutting #t)

@@ -11,6 +11,12 @@
     then renders to HTML. Dogfooding the FP toolkit.")
   (keywords (markdown parser html renderer documentation dsl))
   (aliases (md markdown-parser))
+
+  (concepts
+    (concept markdown-processing
+      (description "Parsing CommonMark-subset markdown into S-expression ASTs and rendering to HTML via parser combinators.")
+      (parent domain-specific-languages)
+      (synonyms markdown md markdown-parser)))
   (exports
     (ast md-document md-heading md-h1 md-h2 md-h3 md-h4 md-h5 md-h6
          md-paragraph md-code-block md-blockquote md-unordered-list

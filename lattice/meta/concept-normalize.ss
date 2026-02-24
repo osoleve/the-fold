@@ -9,8 +9,10 @@
 (doc 'description "Pure concept normalization over the skill lattice ontology.
 Resolves synonyms to canonical names, answers hierarchy queries (parent,
 ancestors, children), and exposes metadata (descriptions, cross-cutting
-concept membership).  No I/O — the boundary layer reads the ontology sexp
-and calls install-concept-ontology! to populate the module-level maps.")
+concept membership).  Also provides build-ontology-from-manifests to
+assemble the ontology from per-skill manifest declarations.  No I/O —
+the boundary layer scans manifests and calls build-ontology-from-manifests
+then install-concept-ontology! to populate the module-level maps.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
@@ -192,7 +194,8 @@ Idempotent if called multiple times — maps are rebuilt from scratch each call.
 (doc validate-ontology 'type '(-> (List (Pair Symbol String))))
 (doc validate-ontology 'description "Check structural integrity of the loaded ontology.
 Returns a list of (severity . message) pairs.  Severities: error, warning.
-Checks: orphaned children, dangling parents, synonym→unknown-concept.")
+Checks: dangling parents, parent-chain cycles, orphaned children,
+synonym→unknown-concept, missing descriptions, auto-created stubs.")
 (doc validate-ontology 'export #t)
 (define (validate-ontology)
   (let ([issues '()])
@@ -206,6 +209,20 @@ Checks: orphaned children, dangling parents, synonym→unknown-concept.")
                              (format #f "concept '~a' has parent '~a' which is not a known concept"
                                      name parent))
                        issues)))))
+     *all-concepts*)
+    ;; Check for cycles in parent chain
+    (for-each
+     (lambda (name)
+       (let loop ([current name] [visited '()])
+         (let ([parent (hamt-lookup current *parent-map*)])
+           (when parent
+             (if (memq parent visited)
+                 (set! issues
+                       (cons (cons 'error
+                                   (format #f "cycle in parent chain: ~a → ~a (visited: ~a)"
+                                           current parent (reverse visited)))
+                             issues))
+                 (loop parent (cons current visited)))))))
      *all-concepts*)
     ;; Check each concept's children exist
     (for-each
@@ -235,6 +252,28 @@ Checks: orphaned children, dangling parents, synonym→unknown-concept.")
                                      alias canonical))
                        issues)))))
      (hamt-entries *synonym-map*))
+    ;; Check for missing or empty descriptions
+    (for-each
+     (lambda (name)
+       (let ([desc (hamt-lookup name *description-map*)])
+         (when (or (not desc) (string=? "" desc))
+           (set! issues
+                 (cons (cons 'warning
+                             (format #f "concept '~a' has no description" name))
+                       issues)))))
+     *all-concepts*)
+    ;; Check for auto-created stub roots
+    (for-each
+     (lambda (name)
+       (let ([desc (hamt-lookup name *description-map*)])
+         (when (and desc
+                    (> (string-length desc) 22)
+                    (string=? "Auto-created root for " (substring desc 0 22)))
+           (set! issues
+                 (cons (cons 'warning
+                             (format #f "concept '~a' is an auto-created stub — declare it explicitly in a manifest" name))
+                       issues)))))
+     *all-concepts*)
     (reverse issues)))
 
 ;;; ====================================================================
