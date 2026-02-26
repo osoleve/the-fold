@@ -15,8 +15,10 @@
       [(null? frontier) #f]
       [(eq? (car frontier) to) #t]
       [(memq (car frontier) visited) (loop (cdr frontier) visited)]
-      [else (loop (append (kg-deps (car frontier)) (cdr frontier))
-                  (cons (car frontier) visited))])))
+      [else (let ([new-deps (filter (lambda (d) (not (memq d visited)))
+                                    (kg-deps (car frontier)))])
+               (loop (append new-deps (cdr frontier))
+                     (cons (car frontier) visited)))])))
 
 (doc kg-bridge-score 'type (-> Symbol Symbol Alist))
 (doc kg-bridge-score 'description "Score the concept bridge between two skills.
