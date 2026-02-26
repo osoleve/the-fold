@@ -102,6 +102,16 @@
       (assert-true (not (memq 'prelude syms)))
       (assert-true (pair? (memq '+ syms)))))
 
+  (define-test "handles let with empty bindings"
+    (let ([syms (collect-file-symbols
+                  '((let () (vec-add a b))))])
+      (assert-true (pair? (memq 'vec-add syms)))))
+
+  (define-test "handles named let with empty bindings"
+    (let ([syms (collect-file-symbols
+                  '((let loop () (vec-add a b))))])
+      (assert-true (pair? (memq 'vec-add syms)))))
+
   (define-test "deduplicates"
     (let ([syms (collect-file-symbols
                   '((define (f x) (+ x (+ x 1)))))])
