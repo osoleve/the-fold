@@ -1,5 +1,7 @@
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
+;;; @module docs
+;;; @requires hamt
 (doc 'module 'docs)
 (doc 'description "S-expression doc form extraction for search and inspection")
 (doc 'layer 'lattice)

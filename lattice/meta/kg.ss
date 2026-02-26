@@ -6,6 +6,8 @@
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 (unless (top-level-bound? 'concept-normalize) (load "lattice/meta/concept-normalize.ss"))
 
+;;; @module kg
+;;; @requires hamt
 (doc 'module 'kg)
 (doc 'description "Knowledge graph — the source of truth for the skill lattice.
 Block-backed, CAS-stored, content-addressed. Skills, modules, exports,

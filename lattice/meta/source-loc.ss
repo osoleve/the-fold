@@ -1,5 +1,7 @@
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
+;;; @module source-loc
+;;; @requires hamt
 (doc 'module 'source-loc)
 (doc 'description "Source location tracking for jump-to-definition workflows")
 (doc 'layer 'lattice)

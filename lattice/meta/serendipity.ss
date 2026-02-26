@@ -2,6 +2,8 @@
 (unless (top-level-bound? 'lattice-deps) (load "lattice/meta/dag.ss"))
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
+;;; @module serendipity
+;;; @requires hamt
 (doc 'module 'serendipity)
 (doc 'description "Serendipitous discovery for lattice navigation. Given a symbol, surfaces
 related exports, nearby skills, and cross-domain connections that the user

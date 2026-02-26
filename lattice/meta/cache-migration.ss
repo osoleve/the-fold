@@ -2,6 +2,8 @@
 (load "lattice/optics/schema.ss")
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
+;;; @module cache-migration
+;;; @requires hamt
 (doc 'module 'cache-migration)
 (doc 'description "Bidirectional cache format migrations for smooth upgrades")
 (doc 'layer 'lattice)

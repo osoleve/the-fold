@@ -4,6 +4,8 @@
 (unless (top-level-bound? 'bm25-create) (load "lattice/meta/bm25.ss"))
 (unless (top-level-bound? 'get-docstring) (load "lattice/meta/docstrings.ss"))
 
+;;; @module search
+;;; @requires sort hamt
 (doc 'module 'search)
 (doc 'description "Unified search interface for the skill lattice. Integrates BM25 with the knowledge graph for ranked results.")
 (doc 'layer 'lattice)

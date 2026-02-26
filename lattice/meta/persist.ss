@@ -2,6 +2,8 @@
 (load "core/base/sha256.ss")
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
+;;; @module persist
+;;; @requires hamt
 (doc 'module 'persist)
 (doc 'description "Lattice index persistence — pure serialization and deserialization logic")
 (doc 'layer 'lattice)

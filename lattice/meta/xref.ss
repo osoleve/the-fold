@@ -1,6 +1,8 @@
 (load "lattice/data/sort.ss")
 (unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
 
+;;; @module xref
+;;; @requires sort hamt
 (doc 'module 'xref)
 (doc 'description "Cross-reference tracking for function call relationships and impact analysis")
 (doc 'layer 'lattice)

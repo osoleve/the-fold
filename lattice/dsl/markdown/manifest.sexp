@@ -4,7 +4,7 @@
   (purity total)
   (stability experimental)
   (fuel-bound "O(n) for parsing, O(n) for rendering")
-  (deps (fp dsl))
+  (deps (fp))
   (description "Markdown parser and HTML renderer using parser combinators.
     Parses CommonMark-subset markdown into an S-expression AST,
     then renders to HTML. Dogfooding the FP toolkit.")
