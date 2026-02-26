@@ -3,7 +3,7 @@
 ;;; Solves the Poisson equation on various domains with interesting
 ;;; boundary conditions and source terms.
 
-(load "lattice/numeric/fem.ss")
+(load "lattice/pde/fem.ss")
 
 ;;; ============================================================
 ;;; Demo 1: Hot Spot in Center

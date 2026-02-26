@@ -1,7 +1,7 @@
 ;;; @module sat
-;;; @requires solver
+;;; @requires sat/solver
 
-(require 'solver)
+(require 'sat/solver)
 
 (doc 'module 'sat)
 (doc 'description "SAT Solver - Boolean Satisfiability with CDCL")

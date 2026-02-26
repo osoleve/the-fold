@@ -1,4 +1,4 @@
-;;; lattice/numeric/pde-time.ss — Time stepping schemes for PDEs
+;;; lattice/pde/pde-time.ss — Time stepping schemes for PDEs
 ;;; @module pde-time
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers iteration
 

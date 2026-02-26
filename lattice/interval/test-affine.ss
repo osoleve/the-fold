@@ -1,4 +1,4 @@
-;;; lattice/numeric/test-affine.ss — Tests for Affine Arithmetic
+;;; lattice/interval/test-affine.ss — Tests for Affine Arithmetic
 ;;;
 ;;; Tests demonstrating:
 ;;; 1. The dependency problem solution
@@ -7,7 +7,7 @@
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/numeric/affine.ss")
+(load "lattice/interval/affine.ss")
 
 ;;; ============================================================================
 ;;; Dependency Problem Tests

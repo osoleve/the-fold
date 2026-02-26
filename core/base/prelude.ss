@@ -554,3 +554,90 @@
 (doc -∞ 'description "Negative infinity.")
 (doc -∞ 'export #t)
 (define -∞ -inf.0)
+
+;;; ============================================================
+;;; String Utilities
+;;; ============================================================
+
+(doc string-contains? 'type (-> String String Boolean))
+(doc string-contains? 'description "Case-sensitive substring search. Returns #t if needle appears in haystack.")
+(doc string-contains? 'export #t)
+(define (string-contains? haystack needle)
+  (let ([h-len (string-length haystack)]
+        [n-len (string-length needle)])
+    (cond
+      [(= n-len 0) #t]
+      [(> n-len h-len) #f]
+      [else
+       (let ([first-char (string-ref needle 0)])
+         (let outer ([i 0])
+           (cond
+             [(> (+ i n-len) h-len) #f]
+             [(char=? (string-ref haystack i) first-char)
+              (if (let inner ([j 1])
+                    (cond
+                      [(= j n-len) #t]
+                      [(char=? (string-ref haystack (+ i j))
+                               (string-ref needle j))
+                       (inner (+ j 1))]
+                      [else #f]))
+                  #t
+                  (outer (+ i 1)))]
+             [else (outer (+ i 1))])))])))
+
+(doc string-prefix? 'type (-> String String Boolean))
+(doc string-prefix? 'description "Does str start with prefix?")
+(doc string-prefix? 'export #t)
+(define (string-prefix? str prefix)
+  (let ([slen (string-length str)]
+        [plen (string-length prefix)])
+    (and (>= slen plen)
+         (string=? (substring str 0 plen) prefix))))
+
+(doc string-suffix? 'type (-> String String Boolean))
+(doc string-suffix? 'description "Does str end with suffix?")
+(doc string-suffix? 'export #t)
+(define (string-suffix? str suffix)
+  (let ([slen (string-length str)]
+        [plen (string-length suffix)])
+    (and (>= slen plen)
+         (string=? (substring str (- slen plen) slen) suffix))))
+
+(doc string-split 'type (-> String Char (List String)))
+(doc string-split 'description "Split string on a delimiter character. Empty segments between consecutive delimiters are dropped.")
+(doc string-split 'export #t)
+(define (string-split str ch)
+  (let loop ([chars (string->list str)]
+             [current '()]
+             [parts '()])
+    (cond
+      [(null? chars)
+       (if (null? current)
+           (reverse parts)
+           (reverse (cons (list->string (reverse current)) parts)))]
+      [(char=? (car chars) ch)
+       (if (null? current)
+           (loop (cdr chars) '() parts)
+           (loop (cdr chars) '() (cons (list->string (reverse current)) parts)))]
+      [else
+       (loop (cdr chars) (cons (car chars) current) parts)])))
+
+(doc string-trim 'type (-> String String))
+(doc string-trim 'description "Remove leading and trailing whitespace.")
+(doc string-trim 'export #t)
+(define (string-trim str)
+  (if (not (string? str))
+      ""
+      (let* ([chars (string->list str)]
+             ;; Remove leading whitespace
+             [chars (let loop ([cs chars])
+                      (if (and (pair? cs) (char-whitespace? (car cs)))
+                          (loop (cdr cs))
+                          cs))]
+             ;; Remove trailing whitespace
+             [chars (reverse
+                     (let loop ([cs (reverse chars)])
+                       (if (and (pair? cs) (char-whitespace? (car cs)))
+                           (loop (cdr cs))
+                           cs)))])
+        (list->string chars))))

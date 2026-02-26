@@ -2,7 +2,6 @@
 
 (skill query
   (version "0.3.0")
-  (tier 1)
   (path "lattice/query")
   (purity partial)
   (stability stable)

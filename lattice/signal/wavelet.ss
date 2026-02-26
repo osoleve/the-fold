@@ -1,4 +1,4 @@
-;;; lattice/numeric/wavelet.ss — Wavelet Transforms
+;;; lattice/signal/wavelet.ss — Wavelet Transforms
 ;;; @module wavelet
 ;;; @requires prelude vec iteration
 

@@ -2,12 +2,11 @@
 
 (skill autodiff
   (version "0.3.0")
-  (tier 1)
   (path "lattice/autodiff")
   (purity partial)  ; Uses mutable tape for efficiency
   (stability stable)
   (fuel-bound "O(n) forward pass, O(n) backward pass where n is tape length")
-  (deps (linalg numeric fp))  ; numeric for interval arithmetic, fp for optics
+  (deps (linalg numeric interval fp))  ; interval for interval-autodiff, fp for optics
 
   (description
    "Reverse-mode automatic differentiation (backpropagation) using

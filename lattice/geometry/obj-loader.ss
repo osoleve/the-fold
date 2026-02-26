@@ -46,28 +46,7 @@
                     (string->number idx-str)))
        (filter (lambda (s) (> (string-length s) 0)) parts)))
 
-;;; string-split : String × Char → (List String)
-(define (string-split str delim)
-  (let loop ([chars (string->list str)]
-             [current '()]
-             [result '()])
-       (cond
-        [(null? chars)
-         (reverse (if (null? current)
-                      result
-                      (cons (list->string (reverse current)) result)))]
-        [(char=? (car chars) delim)
-         (loop (cdr chars)
-               '()
-               (if (null? current)
-                   result
-                   (cons (list->string (reverse current)) result)))]
-        [else
-         (loop (cdr chars)
-               (cons (car chars) current)
-               result)])))
-
-;; string-trim is provided by prelude
+;; string-split and string-trim are provided by prelude
 
 (doc 'section 'obj-loading)
 

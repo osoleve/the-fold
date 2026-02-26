@@ -189,7 +189,14 @@
                         (string->symbol family)
                         fn-name))])
     (append (map to-string base)
-            (if (pair? extra) (car extra) '()))))
+            (cond
+              ;; Support both: (emit/make-tags ... '("tag1" "tag2"))   ; single list arg
+              ;; and:          (emit/make-tags ... "tag1" "tag2")      ; individual args
+              [(and (pair? extra) (pair? (car extra)) (null? (cdr extra)))
+               (car extra)]  ; single list argument
+              [(pair? extra)
+               (map to-string extra)]  ; individual string/symbol args
+              [else '()]))))
 
 ;;; ====
 ;;; Prompt expansion

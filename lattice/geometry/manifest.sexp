@@ -1,6 +1,5 @@
 (skill geometry
   (version "0.1.0")
-  (tier 1)
   (path "lattice/geometry")
   (purity total)
   (stability stable)

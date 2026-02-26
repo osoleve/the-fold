@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (load "core/base/prelude.ss")
-(load "lattice/numeric/interval.ss")
+(load "lattice/interval/interval.ss")
 (require 'hamt)
 
 (doc 'module 'interval-autodiff)

@@ -208,7 +208,11 @@ The lattice is a DAG of verified skills.
 | `data/` | Data structures, graphs, collections, community detection |
 | `algebra/` | Groups, rings, polynomial algebra, Gröbner bases |
 | `random/` | PRNG, distributions |
-| `numeric/` | Complex numbers, DFT, signal processing |
+| `numeric/` | Complex numbers, DFT, convolution, windowing, polynomials |
+| `signal/` | Digital filters, wavelets, spectral analysis |
+| `interpolate/` | Interpolation, splines, Bezier, curve fitting |
+| `interval/` | Interval arithmetic, affine arithmetic, verified computation |
+| `pde/` | FEM, finite differences, spectral methods, time stepping |
 | `geometry/` | Shapes, transforms, raymarching, SDFs, mesh topology |
 | `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
 | `autodiff/` | Reverse-mode AD, computational graphs, interval gradients, optics-based gradient |

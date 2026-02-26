@@ -357,8 +357,8 @@
 ;;; MESH TOPOLOGY SUMMARY
 ;;; ============================================================
 
-;;; mesh-topology-summary : Mesh → Void
-;;; Print a comprehensive topological analysis of a mesh.
+;;; mesh-topology-summary : Mesh → String
+;;; Return a comprehensive topological analysis of a mesh as a string.
 (define (mesh-topology-summary mesh)
   (doc 'export #t)
   (let* ([sc (mesh->simplicial-complex mesh)]
@@ -370,19 +370,21 @@
          [closed? (mesh-is-closed? mesh)]
          [boundary (mesh-boundary-edges mesh)]
          [non-manifold (mesh-non-manifold-edges mesh)])
-    (printf "~n=== Mesh Topology Summary ===~n")
-    (printf "Triangle count:     ~a~n" (mesh-triangle-count mesh))
-    (printf "f-vector (V,E,F):   ~a~n" f-vec)
-    (printf "Betti numbers:      ~a~n" betti)
-    (printf "Euler characteristic: ~a~n" euler)
-    (printf "Genus:              ~a~n" genus)
-    (printf "Is manifold?        ~a~n" manifold?)
-    (printf "Is closed?          ~a~n" closed?)
-    (when (not (null? boundary))
-      (printf "Boundary edges:     ~a~n" (length boundary)))
-    (when (not (null? non-manifold))
-      (printf "Non-manifold edges: ~a~n" non-manifold))
-    (printf "==============================~n")))
+    (with-output-to-string
+      (lambda ()
+        (printf "~n=== Mesh Topology Summary ===~n")
+        (printf "Triangle count:     ~a~n" (mesh-triangle-count mesh))
+        (printf "f-vector (V,E,F):   ~a~n" f-vec)
+        (printf "Betti numbers:      ~a~n" betti)
+        (printf "Euler characteristic: ~a~n" euler)
+        (printf "Genus:              ~a~n" genus)
+        (printf "Is manifold?        ~a~n" manifold?)
+        (printf "Is closed?          ~a~n" closed?)
+        (when (not (null? boundary))
+          (printf "Boundary edges:     ~a~n" (length boundary)))
+        (when (not (null? non-manifold))
+          (printf "Non-manifold edges: ~a~n" non-manifold))
+        (printf "==============================~n")))))
 
 ;;; ============================================================
 ;;; VALIDATION PREDICATES

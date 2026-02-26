@@ -1,4 +1,4 @@
-;;; lattice/numeric/interval-integrate.ss — Verified Interval Integration
+;;; lattice/interval/interval-integrate.ss — Verified Interval Integration
 ;;;
 ;;; Rigorous numerical integration with guaranteed enclosure.
 ;;; Every result is an interval that is guaranteed to contain
@@ -13,7 +13,7 @@
 ;;; All methods return intervals [lo, hi] such that:
 ;;;   lo <= ∫_a^b f(x) dx <= hi
 
-;;; lattice/numeric/interval-integrate.ss — Verified Interval Integration
+;;; lattice/interval/interval-integrate.ss — Verified Interval Integration
 ;;; @module interval-integrate
 ;;; @requires prelude interval heap
 

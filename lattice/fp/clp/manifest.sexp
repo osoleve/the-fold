@@ -2,7 +2,6 @@
 
 (skill clp
   (version "0.1.0")
-  (tier 1)
   (path "lattice/fp/clp")
   (purity partial)
   (stability experimental)

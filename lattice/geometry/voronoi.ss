@@ -637,24 +637,26 @@
                         areas)))))))
 
 (doc voronoi-summary 'export #t)
-(doc voronoi-summary 'type '(-> VoronoiBounded Void))
-(doc voronoi-summary 'description "Print summary statistics for a bounded Voronoi diagram")
+(doc voronoi-summary 'type '(-> VoronoiBounded String))
+(doc voronoi-summary 'description "Return summary statistics for a bounded Voronoi diagram as a string")
 (define (voronoi-summary vor)
   (let* ([sites (voronoi-bounded-sites vor)]
          [n (vector-length sites)]
          [areas (voronoi-cell-areas vor)]
          [total-area (apply + areas)])
-    (printf "Voronoi Diagram Summary~n")
-    (printf "  Sites: ~a~n" n)
-    (printf "  Total area: ~,2f~n" total-area)
-    (printf "  Cell areas: min=~,2f  max=~,2f  avg=~,2f~n"
-            (apply min areas)
-            (apply max areas)
-            (/ total-area n))
-    (printf "  Std dev: ~,2f~n"
-            (let ([mean (/ total-area n)])
-              (sqrt (/ (apply + (map (lambda (a) (expt (- a mean) 2)) areas))
-                       n))))))
+    (with-output-to-string
+      (lambda ()
+        (printf "Voronoi Diagram Summary~n")
+        (printf "  Sites: ~a~n" n)
+        (printf "  Total area: ~,2f~n" total-area)
+        (printf "  Cell areas: min=~,2f  max=~,2f  avg=~,2f~n"
+                (apply min areas)
+                (apply max areas)
+                (/ total-area n))
+        (printf "  Std dev: ~,2f~n"
+                (let ([mean (/ total-area n)])
+                  (sqrt (/ (apply + (map (lambda (a) (expt (- a mean) 2)) areas))
+                           n))))))))
 
 ;;; ============================================================
 ;;; Section: Lloyd's Algorithm (Voronoi Relaxation)

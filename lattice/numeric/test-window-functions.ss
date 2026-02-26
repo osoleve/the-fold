@@ -1,4 +1,4 @@
-;;; core/numeric/test-window-functions.ss — Tests for Window Functions
+;;; lattice/numeric/test-window-functions.ss — Tests for Window Functions
 ;;;
 ;;; Test suite for window functions and spectral analysis.
 
@@ -7,7 +7,7 @@
 (load "lattice/numeric/complex.ss")
 (load "lattice/numeric/dft.ss")
 (load "lattice/numeric/window-functions.ss")
-(load "lattice/numeric/spectral-analysis.ss")
+(load "lattice/signal/spectral-analysis.ss")
 
 (define tests-passed 0)
 (define tests-failed 0)

@@ -2,7 +2,6 @@
 
 (skill control-systems
   (version "0.1.0")
-  (tier 2)
   (path "lattice/control-systems")
   (purity total)
   (stability experimental)

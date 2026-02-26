@@ -43,21 +43,7 @@ Runs structural, purity, testing, documentation, and boundary checks.")
   (guard (e [#t '()])
     (filter pred (directory-list dir))))
 
-(define (string-suffix? str suffix)
-  (let ([slen (string-length str)]
-        [plen (string-length suffix)])
-    (and (>= slen plen)
-         (string=? (substring str (- slen plen) slen) suffix))))
-
-;;; string-contains? for simple substring search.
-(define (str-contains? haystack needle)
-  (let ([hlen (string-length haystack)]
-        [nlen (string-length needle)])
-    (let loop ([i 0])
-      (cond
-        [(> (+ i nlen) hlen) #f]
-        [(string=? (substring haystack i (+ i nlen)) needle) #t]
-        [else (loop (+ i 1))]))))
+;;; string-suffix?, string-contains?, string-prefix? provided by prelude
 
 ;;; ============================================================
 ;;; Individual Checks
@@ -97,7 +83,7 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                                              (symbol->string required)))
                            acc)))
                '()
-               '(version tier path purity deps description exports modules))]
+               '(version path purity deps description exports modules))]
              [issues (append skill-issue field-issues)])
         (if (null? issues)
             (list (make-issue 'pass 'manifest "manifest.sexp is valid"))
@@ -139,7 +125,7 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                (fold-left
                 (lambda (acc file)
                   (let ([contents (read-file-string (string-append dir "/" file))])
-                    (if (and contents (not (str-contains? contents "(doc 'purity '")))
+                    (if (and contents (not (string-contains? contents "(doc 'purity '")))
                         (cons (make-issue 'error 'purity
                                  (string-append file ": missing purity annotation"))
                               acc)
@@ -201,12 +187,12 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                 (lambda (acc file)
                   (let ([contents (read-file-string (string-append dir "/" file))])
                     (if (not contents) acc
-                        (let* ([acc (if (str-contains? contents ";;; @module") acc
+                        (let* ([acc (if (string-contains? contents ";;; @module") acc
                                         (cons (make-issue 'warning 'headers
                                                  (string-append file ": missing @module annotation"))
                                               acc))]
-                               [acc (if (or (str-contains? contents "(require '")
-                                            (str-contains? contents "(doc 'module '"))
+                               [acc (if (or (string-contains? contents "(require '")
+                                            (string-contains? contents "(doc 'module '"))
                                         acc
                                         (cons (make-issue 'warning 'headers
                                                  (string-append file ": no require or module doc"))
@@ -228,12 +214,12 @@ Runs structural, purity, testing, documentation, and boundary checks.")
            (lambda (acc file)
              (let ([contents (read-file-string (string-append dir "/" file))])
                (if (not contents) acc
-                   (let* ([acc (if (str-contains? contents "(load \"boundary/")
+                   (let* ([acc (if (string-contains? contents "(load \"boundary/")
                                    (cons (make-issue 'error 'boundaries
                                             (string-append file ": loads from boundary/"))
                                          acc)
                                    acc)]
-                          [acc (if (str-contains? contents "(require 'boundary/")
+                          [acc (if (string-contains? contents "(require 'boundary/")
                                    (cons (make-issue 'error 'boundaries
                                             (string-append file ": requires from boundary/"))
                                          acc)
@@ -267,7 +253,7 @@ Runs structural, purity, testing, documentation, and boundary checks.")
                (if (not contents) acc
                    (fold-left
                     (lambda (inner-acc marker)
-                      (if (str-contains? contents marker)
+                      (if (string-contains? contents marker)
                           (cons (make-issue 'warning 'impurity
                                    (string-append file ": contains '" marker "'"))
                                 inner-acc)
@@ -295,11 +281,6 @@ Runs structural, purity, testing, documentation, and boundary checks.")
 (define (issue-category i) (cadr i))
 (define (issue-message i) (caddr i))
 
-(define (string-prefix? str prefix)
-  (let ([slen (string-length str)]
-        [plen (string-length prefix)])
-    (and (>= slen plen)
-         (string=? (substring str 0 plen) prefix))))
 
 ;;; ============================================================
 ;;; Promotion Audit (Orchestrator)

@@ -332,8 +332,8 @@
                               (- fake-utility true-utility))
                         (search-ballot (cdr ballots)))))))))))
 
-;;; gibbard-satterthwaite-demo : -> Void
-;;; Print demonstration of the theorem for common voting rules.
+;;; gibbard-satterthwaite-demo : -> String
+;;; Return demonstration of the theorem for common voting rules as a string.
 (define (gibbard-satterthwaite-demo)
   (doc 'export #t)
   (doc 'description "Demonstrate Gibbard-Satterthwaite by finding manipulations for Plurality, Borda, Copeland, and Schulze")
@@ -341,28 +341,22 @@
                  (borda . ,borda-winner)
                  (copeland . ,copeland-winner)
                  (schulze . ,schulze-winner))])
-    (for-each
-     (lambda (rule-pair)
-       (let* ([name (car rule-pair)]
-              [rule (cdr rule-pair)]
-              [example (find-manipulation-example rule 3)])
-         (display (symbol->string name))
-         (display ": ")
-         (if (eq? example 'not-found)
-             (display "No manipulation found (surprising!)\n")
-             (begin
-               (display "Manipulation found!\n")
-               (display "  Voter ")
-               (display (list-ref example 1))
-               (display " in profile ")
-               (display (list-ref example 2))
-               (newline)
-               (display "  True winner: ")
-               (display (list-ref example 4))
-               (display ", Fake ballot yields: ")
-               (display (list-ref example 5))
-               (newline)))))
-     rules)))
+    (apply string-append
+     (map
+      (lambda (rule-pair)
+        (let* ([name (car rule-pair)]
+               [rule (cdr rule-pair)]
+               [example (find-manipulation-example rule 3)])
+          (if (eq? example 'not-found)
+              (string-append (symbol->string name) ": No manipulation found (surprising!)\n")
+              (string-append (symbol->string name) ": Manipulation found!\n"
+                             "  Voter " (number->string (list-ref example 1))
+                             " in profile " (with-output-to-string (lambda () (write (list-ref example 2))))
+                             "\n"
+                             "  True winner: " (with-output-to-string (lambda () (write (list-ref example 4))))
+                             ", Fake ballot yields: " (with-output-to-string (lambda () (write (list-ref example 5))))
+                             "\n"))))
+      rules))))
 
 ;;; ============================================================================
 ;;; Example Profiles for Testing

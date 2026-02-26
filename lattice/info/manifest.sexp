@@ -1,6 +1,5 @@
 (skill info
   (version "0.1.0")
-  (tier 1)
   (path "lattice/info")
   (purity total)
   (stability stable)

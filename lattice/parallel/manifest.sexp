@@ -2,7 +2,6 @@
 
 (skill parallel
   (version "0.1.0")
-  (tier 1)
   (path "lattice/parallel")
   (purity total)
   (stability experimental)

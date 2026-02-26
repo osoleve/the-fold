@@ -1,7 +1,7 @@
-;;; @module assignment
-;;; @requires literal
+;;; @module sat/assignment
+;;; @requires sat/literal
 
-(require 'literal)
+(require 'sat/literal)
 
 (doc 'module 'assignment)
 (doc 'description "SAT solver assignment tracking - partial variable assignments with decision levels")

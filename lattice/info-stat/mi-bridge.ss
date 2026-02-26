@@ -57,17 +57,8 @@
    Optional argument specifies number of bins for discretization.
    Returns list of feature indices (0-based) for the top-k features.")
   (let* ([ranked (apply mi-rank-features columns target opts)]
-         [top-k (take-up-to k ranked)])
+         [top-k (take k ranked)])
     (map car top-k)))
-
-(define (take-up-to k lst)
-  (doc 'export #f)
-  (doc 'type '(-> Nat (List a) (List a)))
-  (doc 'description "Take up to k elements from a list")
-  (cond
-    [(<= k 0) '()]
-    [(null? lst) '()]
-    [else (cons (car lst) (take-up-to (- k 1) (cdr lst)))]))
 
 ;;; ============================================================================
 ;;; Section 2: Entropy-Based Model Comparison

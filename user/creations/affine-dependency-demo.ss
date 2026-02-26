@@ -207,7 +207,7 @@
        (centered-text frame 14 "Affine Arithmetic")
        (centered-text frame 16 "Solving the dependency problem since 1993")
        (when (> t 0.5)
-             (centered-text frame 20 "lattice/numeric/affine.ss"))
+             (centered-text frame 20 "lattice/interval/affine.ss"))
        ;; Final sparkles
        (when (> t 0.6)
              (sparkle frame 20 14 30 global-t)

@@ -1,6 +1,5 @@
 (skill markdown
   (version "0.1.0")
-  (tier 1)
   (path "lattice/dsl/markdown")
   (purity total)
   (stability experimental)

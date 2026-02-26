@@ -1,10 +1,10 @@
-;;; lattice/numeric/test-signal-poly.ss — Tests for Signal Processing Polynomial Integration
+;;; lattice/signal/test-signal-poly.ss — Tests for Signal Processing Polynomial Integration
 ;;;
 ;;; Tests for polynomial algebra integration with signal processing.
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/numeric/signal-poly.ss")
+(load "lattice/signal/signal-poly.ss")
 
 ;;; ====
 ;;; Test: Polynomial Conversion

@@ -2,12 +2,11 @@
 
 (skill optimization
   (version "0.6.0")
-  (tier 1)
   (path "lattice/optimization")
   (purity total)
   (stability stable)
   (fuel-bound "O(iterations × n) for first-order, O(iterations × n²) for second-order, O(iterations × m × n) for LP, O(2^k × LP) for ILP, O(2^d × iterations) for interval global")
-  (deps (autodiff linalg numeric data sat topology))
+  (deps (autodiff linalg numeric interval data sat topology))
 
   (description
    "Numerical optimization algorithms powered by automatic differentiation.

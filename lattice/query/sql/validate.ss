@@ -1,3 +1,9 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql-validate
+;;; @requires prelude sql-types
+(require 'prelude)
+(require 'sql-types)
+
 (define *sql-validate-loaded* #t)
 
 (doc 'module 'sql-validate)
@@ -5,9 +11,6 @@
 (doc 'note "Validates SQL AST for semantic correctness. Uses applicative validation to accumulate ALL errors.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-(unless (top-level-bound? '*sql-types-loaded*)
-        (load "lattice/query/sql/types.ss"))
 
 ;;; Validation type (applicative validation = Either with different names)
 (define (validation-success val) (list 'validation-success val))

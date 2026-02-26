@@ -1,4 +1,4 @@
-;;; lattice/numeric/spectral-analysis.ss — Spectral Analysis Tools
+;;; lattice/signal/spectral-analysis.ss — Spectral Analysis Tools
 ;;; @module spectral-analysis
 ;;; @requires prelude complex dft window-functions iteration
 

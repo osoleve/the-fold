@@ -2,7 +2,6 @@
 
 (skill meta
   (version "0.1.0")
-  (tier 1)
   (path "lattice/meta")
   (purity partial)  ; Uses mutable state for indexing
   (stability stable)

@@ -1,4 +1,4 @@
-;;; lattice/numeric/test-interval-integrate.ss — Tests for Verified Interval Integration
+;;; lattice/interval/test-interval-integrate.ss — Tests for Verified Interval Integration
 ;;;
 ;;; Tests verify:
 ;;;   - Enclosure correctness (true integral lies within computed bounds)
@@ -8,7 +8,7 @@
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/numeric/interval-integrate.ss")
+(load "lattice/interval/interval-integrate.ss")
 
 ;;; Helper: check that a known value lies within an interval
 (define (interval-encloses? iv x)

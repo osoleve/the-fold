@@ -1,6 +1,5 @@
 (skill physics-problems
   (version "0.1.0")
-  (tier 2)
   (path "lattice/physics/problems")
   (purity partial)
   (stability experimental)

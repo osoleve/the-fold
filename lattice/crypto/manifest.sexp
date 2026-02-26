@@ -1,6 +1,5 @@
 (skill crypto
   (version "0.2.0")
-  (tier 1)
   (path "lattice/crypto")
   (purity total)
   (stability stable)

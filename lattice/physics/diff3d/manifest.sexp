@@ -2,7 +2,6 @@
 
 (skill physics/diff3d
   (version "0.1.0")
-  (tier 2)
   (path "lattice/physics/diff3d")
   (purity partial)  ; Simulation may require fuel bounds
   (stability experimental)

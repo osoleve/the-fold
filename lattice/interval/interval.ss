@@ -1,4 +1,4 @@
-;;; lattice/numeric/interval.ss — Verified Interval Arithmetic
+;;; lattice/interval/interval.ss — Verified Interval Arithmetic
 ;;; @module interval
 ;;; @requires prelude
 

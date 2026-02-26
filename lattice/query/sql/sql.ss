@@ -1,3 +1,11 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql
+;;; @requires prelude sql-parser sql-validate sql-format
+(require 'prelude)
+(require 'sql-parser)
+(require 'sql-validate)
+(require 'sql-format)
+
 (define *sql-loaded* #t)
 
 (doc 'module 'sql)
@@ -5,13 +13,6 @@
 (doc 'note "High-level API for parsing, validating, and formatting SQL. Re-exports essential functions from sub-modules.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-(unless (top-level-bound? '*sql-parser-loaded*)
-        (load "lattice/query/sql/parser.ss"))
-(unless (top-level-bound? '*sql-validate-loaded*)
-        (load "lattice/query/sql/validate.ss"))
-(unless (top-level-bound? '*sql-format-loaded*)
-        (load "lattice/query/sql/format.ss"))
 
 ;;; ====
 ;;; Core API

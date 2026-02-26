@@ -379,7 +379,7 @@ This is Lattice code: pure, total, assumes perfect input.")
                           [last-builder? (null? (cdr bs))]
                           [these (if (or last-builder? (<= (length ps) proofs-per))
                                      ps
-                                     (take-n ps proofs-per))]
+                                     (take proofs-per ps))]
                           [rest (if (or last-builder? (<= (length ps) proofs-per))
                                     '()
                                     (drop-n ps proofs-per))])
@@ -388,12 +388,6 @@ This is Lattice code: pure, total, assumes perfect input.")
         (if (procedure? outer-builder)
             (outer-builder inner-proofs)
             '(refl))))
-
-;;; take-n : (List a) x Nat -> (List a)
-(define (take-n lst n)
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-n (cdr lst) (- n 1)))))
 
 ;;; drop-n : (List a) x Nat -> (List a)
 (define (drop-n lst n)

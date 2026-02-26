@@ -1,4 +1,4 @@
-;;; lattice/numeric/interpolate.ss — Numerical Interpolation
+;;; lattice/interpolate/interpolate.ss — Numerical Interpolation
 ;;; @module interpolate
 ;;; @requires prelude vec matrix matrix-decomp matrix-solvers numeric/polynomial iteration
 

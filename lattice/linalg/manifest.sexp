@@ -2,12 +2,11 @@
 
 (skill linalg
   (version "0.1.0")
-  (tier 0)
   (path "lattice/linalg")
   (purity total)
   (stability stable)
   (fuel-bound (max (cubic n) (max (quadratic n) (linear n))))
-  (deps ())  ; Tier 0 - no lattice dependencies
+  (deps ())  ; Tier 0 - no lattice dependencies (matrix-optics requires optics but is a bridge module)
 
   (description
    "Pure functional linear algebra library with vectors, matrices,
@@ -242,7 +241,23 @@
     vec-nil-typed vec-cons-typed
     make-dep-linalg-ctx extend-ctx-with-dep-linalg
     diff-grad diff-jacobian diff-hessian diff-compose
-    diff-lift diff-primal diff-scalar diff-jvp diff-vjp))
+    diff-lift diff-primal diff-scalar diff-jvp diff-vjp)
+
+   (integer-matrix
+    smith-normal-form hermite-normal-form)
+
+   (matrix-blocked
+    matrix-mul-blocked matrix-transpose-blocked matrix-mul-strassen)
+
+   (matrix-blocked-decomp
+    lu-column-update qr-column-orthogonalize)
+
+   (matrix-optics
+    matrix-cell-lens matrix-cell-affine
+    matrix-row-lens matrix-col-lens matrix-submatrix-lens
+    matrix-update-cell matrix-update-row matrix-update-col
+    matrix-update-diagonal matrix-scale-row matrix-scale-col
+    matrix-swap-rows matrix-add-row-scaled))
 
   (modules
    (vec "vec.ss" "Generic vector operations")
@@ -259,4 +274,9 @@
    (svd "svd.ss" "Singular value decomposition")
    (iteration "iteration.ss" "Iterative method utilities")
    (numeric-instances "numeric-instances.ss" "Numeric type class instances")
-   (dep-linalg "dep-linalg.ss" "Dependently-typed linear algebra")))
+   (dep-linalg "dep-linalg.ss" "Dependently-typed linear algebra")
+   (vec-common "vec-common.ss" "Shared vector macros for vec2/vec3")
+   (integer-matrix "integer-matrix.ss" "Smith and Hermite normal forms for integer matrices")
+   (matrix-blocked "matrix-blocked.ss" "Cache-efficient blocked/tiled matrix algorithms, Strassen")
+   (matrix-blocked-decomp "matrix-blocked-decomp.ss" "Range-parameterized LU/QR kernels for parallel dispatch")
+   (matrix-optics "matrix-optics.ss" "Lenses and traversals for matrix manipulation")))

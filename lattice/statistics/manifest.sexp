@@ -2,12 +2,11 @@
 
 (skill statistics
   (version "0.1.0")
-  (tier 1)
   (path "lattice/statistics")
   (purity total)
   (stability experimental)
   (fuel-bound "O(n³) for regression, O(n²) for time series, O(n) for descriptive stats")
-  (deps (linalg fp algebra))
+  (deps (linalg fp algebra numeric))
 
   (description
    "Comprehensive statistical modeling library including linear and generalized

@@ -2,7 +2,6 @@
 
 (skill game-theory
   (version "0.2.0")
-  (tier 1)
   (path "lattice/game-theory")
   (purity total)
   (stability stable)

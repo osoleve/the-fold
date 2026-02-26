@@ -23,6 +23,7 @@ Priority chain: CAS root → sexp cache → full manifest build.
 The CAS path is the KG-first fast path — if a root hash exists and
 all blocks are in the store, we skip both cache and manifest parsing.")
 (define (lattice-init!)
+  (tier-cache-clear!)
   (cond
    ;; Priority 1: CAS-first — load from content-addressed store
    [(kg-load-from-root!)
@@ -54,6 +55,7 @@ all blocks are in the store, we skip both cache and manifest parsing.")
 (doc lattice-init-quiet! 'description "Initialize silently (for REPL startup).
 Priority chain: CAS root → sexp cache → full manifest build.")
 (define (lattice-init-quiet!)
+  (tier-cache-clear!)
   (cond
    ;; Priority 1: CAS-first
    [(kg-load-from-root!)
@@ -79,6 +81,7 @@ Priority chain: CAS root → sexp cache → full manifest build.")
 (doc lattice-init-fresh! 'type (-> Void))
 (doc lattice-init-fresh! 'description "Force full rebuild, ignoring cache")
 (define (lattice-init-fresh!)
+  (tier-cache-clear!)
   (kg-build!)
   (lattice-index!)
   (build-source-location-cache!)

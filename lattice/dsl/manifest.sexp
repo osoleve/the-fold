@@ -2,7 +2,6 @@
 
 (skill dsl
   (version "0.1.0")
-  (tier 1)
   (path "lattice/dsl")
   (purity total)
   (stability stable)

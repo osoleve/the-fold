@@ -1,5 +1,5 @@
-;;; lattice/numeric/test-spectral-analysis.ss — Tests for Spectral Analysis
-;;; Run with: scheme --script lattice/numeric/test-spectral-analysis.ss
+;;; lattice/signal/test-spectral-analysis.ss — Tests for Spectral Analysis
+;;; Run with: scheme --script lattice/signal/test-spectral-analysis.ss
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
@@ -8,7 +8,7 @@
 ;; Provide it here to avoid pulling the full digital-filters chain.
 (define (log10 x) (/ (log x) (log 10)))
 
-(load "lattice/numeric/spectral-analysis.ss")
+(load "lattice/signal/spectral-analysis.ss")
 
 ;;; ============================================================
 ;;; Helpers

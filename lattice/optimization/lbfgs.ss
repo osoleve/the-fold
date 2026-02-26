@@ -67,17 +67,10 @@ Algorithm:
                   [old-size (lh-size h)]
                   [new-size (min (+ old-size 1) max-size)]
                   ;; Add to front, trim if necessary
-                  [s-list (take-n (cons s (lh-s-list h)) max-size)]
-                  [y-list (take-n (cons y (lh-y-list h)) max-size)]
-                  [rho-list (take-n (cons rho (lh-rho-list h)) max-size)])
+                  [s-list (take max-size (cons s (lh-s-list h)))]
+                  [y-list (take max-size (cons y (lh-y-list h)))]
+                  [rho-list (take max-size (cons rho (lh-rho-list h)))])
                  (list 'lbfgs-history max-size new-size s-list y-list rho-list)))))
-
-;;; take-n : (List α) × Nat → (List α)
-;;; Take first n elements of list.
-(define (take-n lst n)
-  (if (or (null? lst) (= n 0))
-      '()
-      (cons (car lst) (take-n (cdr lst) (- n 1)))))
 
 ;;; ====
 ;;; L-BFGS Two-Loop Recursion

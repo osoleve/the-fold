@@ -29,17 +29,29 @@
                                        (if (message-condition? ex)
                                            (condition-message ex)
                                            "unknown")))])
-    ;; Build a temporary provider just for the HTTP call
+    ;; Use curl GET directly — the relay sends POST which /v1/models rejects
     (let* ([url (string-append endpoint "/v1/models")]
-           [result (rlm-relay-request! url '() '() 10)])
-      (if (rlm-chat-ok? result)
-          (let ([parsed (parse-json-string (rlm-chat-text result))])
+           [tmp (format "/tmp/llm-models-~a.json" (get-process-id))]
+           [cmd (format "curl -s -m 10 ~a > ~a 2>/dev/null" url tmp)]
+           [exit-code (system cmd)])
+      (if (= exit-code 0)
+          (let* ([body (let ([p (open-input-file tmp)])
+                         (let loop ([lines '()])
+                           (let ([line (get-line p)])
+                             (if (eof-object? line)
+                                 (begin (close-input-port p)
+                                        (apply string-append (reverse lines)))
+                                 (loop (cons line lines))))))]
+                 [parsed (parse-json-string body)])
+            (guard (ex [else #f]) (delete-file tmp))
             (if (and parsed (assq 'data parsed))
                 (let ([models (map (lambda (m) (cdr (assq 'id m)))
                                    (cdr (assq 'data parsed)))])
                   (list 'ok models))
-                (list 'err "No 'data' in /v1/models response")))
-          result))))
+                (list 'err (format "No 'data' in response from ~a" url))))
+          (begin
+            (guard (ex [else #f]) (delete-file tmp))
+            (list 'err (format "curl failed (exit ~a) for ~a" exit-code url)))))))
 
 (define (llm-gen/make-provider endpoint)
   (doc 'description

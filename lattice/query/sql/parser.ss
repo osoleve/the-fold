@@ -1,3 +1,10 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql-parser
+;;; @requires prelude sql-types sql-lexer
+(require 'prelude)
+(require 'sql-types)
+(require 'sql-lexer)
+
 (define *sql-parser-loaded* #t)
 
 (doc 'module 'sql-parser)
@@ -5,11 +12,6 @@
 (doc 'note "Parser combinators for ANSI SQL DML statements. Uses operator precedence parsing for expressions.")
 (doc 'layer 'lattice)
 (doc 'purity 'partial)
-
-(unless (top-level-bound? '*sql-types-loaded*)
-        (load "lattice/query/sql/types.ss"))
-(unless (top-level-bound? '*sql-lexer-loaded*)
-        (load "lattice/query/sql/lexer.ss"))
 
 ;;; ====
 ;;; Forward Declarations

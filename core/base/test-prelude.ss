@@ -273,7 +273,7 @@ string-split:
 ")
 (test "split by comma" '("a" "b" "c") (string-split "a,b,c" #\,))
 (test "split no delim" '("hello") (string-split "hello" #\,))
-(test "split empty parts" '("" "a" "" "b" "") (string-split ",a,,b," #\,))
+(test "split drops empty" '("a" "b") (string-split ",a,,b," #\,))
 
 ;;; string-trim tests
 (display "

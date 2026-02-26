@@ -1,4 +1,4 @@
-;;; lattice/numeric/spectral-pde.ss — Spectral Methods for PDEs
+;;; lattice/pde/spectral-pde.ss — Spectral Methods for PDEs
 ;;; @module spectral-pde
 ;;; @requires prelude iteration linalg/vec linalg/matrix numeric/complex numeric/dft
 
@@ -191,19 +191,19 @@
 
 (doc 'section 'chebyshev)
 
-(doc chebyshev-nodes 'export #t)
-(doc chebyshev-nodes 'type '(-> Nat Vector))
-(doc chebyshev-nodes 'description "Compute Chebyshev-Gauss-Lobatto nodes: x_j = cos(πj/N) for j = 0, ..., N. Returns N+1 points on [-1, 1] including endpoints.")
-(define (chebyshev-nodes n)
+(doc spectral-chebyshev-nodes 'export #t)
+(doc spectral-chebyshev-nodes 'type '(-> Nat Vector))
+(doc spectral-chebyshev-nodes 'description "Compute Chebyshev-Gauss-Lobatto nodes: x_j = cos(πj/N) for j = 0, ..., N. Returns N+1 points on [-1, 1] including endpoints. Named to distinguish from interpolate/chebyshev-nodes which returns Gauss points as a list.")
+(define (spectral-chebyshev-nodes n)
   (let ([pi-val (pi-value)])
     (vec-tabulate (+ n 1) j
       (cos (/ (* pi-val j) n)))))
 
-(doc chebyshev-nodes-interval 'export #t)
-(doc chebyshev-nodes-interval 'type '(-> Nat Number Number Vector))
-(doc chebyshev-nodes-interval 'description "Chebyshev nodes mapped to interval [a, b]")
-(define (chebyshev-nodes-interval n a b)
-  (let* ([std-nodes (chebyshev-nodes n)]
+(doc spectral-chebyshev-nodes-interval 'export #t)
+(doc spectral-chebyshev-nodes-interval 'type '(-> Nat Number Number Vector))
+(doc spectral-chebyshev-nodes-interval 'description "Chebyshev-Gauss-Lobatto nodes mapped to interval [a, b]. Returns a vector.")
+(define (spectral-chebyshev-nodes-interval n a b)
+  (let* ([std-nodes (spectral-chebyshev-nodes n)]
          [mid (/ (+ a b) 2.0)]
          [half-width (/ (- b a) 2.0)])
     (vec-tabulate (+ n 1) j
@@ -242,7 +242,7 @@
 (doc chebyshev-diff-matrix 'description "Compute (N+1)×(N+1) Chebyshev differentiation matrix for N+1 Gauss-Lobatto nodes")
 (define (chebyshev-diff-matrix n)
   (let* ([size (+ n 1)]
-         [x (chebyshev-nodes n)]
+         [x (spectral-chebyshev-nodes n)]
          ;; Coefficient c_j: c_0 = c_N = 2, c_j = 1 otherwise
          [c (make-vector size 1.0)]
          ;; Build data as flat vector (row-major)
@@ -332,7 +332,7 @@
 (doc chebyshev-poisson-1d 'type '(-> (-> Number Number) Number Number Nat Vector))
 (doc chebyshev-poisson-1d 'description "Solve u'' = f(x) on [-1, 1] with Dirichlet BCs u(-1) = ua, u(1) = ub using Chebyshev collocation")
 (define (chebyshev-poisson-1d f ua ub n)
-  (let* ([x (chebyshev-nodes n)]
+  (let* ([x (spectral-chebyshev-nodes n)]
          [D2 (chebyshev-diff2-matrix n)]
          [size (+ n 1)]
          ;; RHS: f evaluated at interior nodes

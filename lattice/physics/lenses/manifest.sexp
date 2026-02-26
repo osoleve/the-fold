@@ -2,7 +2,6 @@
 
 (skill physics/lenses
   (version "0.4.0")
-  (tier 1)
   (path "lattice/physics/lenses")
   (purity total)
   (stability stable)

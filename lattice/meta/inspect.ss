@@ -60,7 +60,7 @@
                (printf "Skill not found: ~a\n" skill-name)
            (let ([name (cdr (assq 'name data))]
                  [version (cdr (or (assq 'version data) '(version . "0.0.0")))]
-                 [tier (cdr (or (assq 'tier data) '(tier . 0)))]
+                 [tier (lattice-depth skill-name)]
                  [path (cdr (or (assq 'path data) '(path . "")))]
                  [purity (cdr (or (assq 'purity data) '(purity . unknown)))]
                  [stability (cdr (or (assq 'stability data) '(stability . experimental)))]
@@ -383,7 +383,7 @@
                  [exports (lattice-skill-exports skill-name)])
                 `((name . ,skill-name)
                   (version . ,(cdr (or (assq 'version data) '(version . "0.0.0"))))
-                  (tier . ,(cdr (or (assq 'tier data) '(tier . 0))))
+                  (tier . ,(lattice-depth skill-name))
                   (purity . ,(cdr (or (assq 'purity data) '(purity . unknown))))
                   (stability . ,(cdr (or (assq 'stability data) '(stability . experimental))))
                   (path . ,(cdr (or (assq 'path data) '(path . ""))))

@@ -2,7 +2,6 @@
 
 (skill random
   (version "0.2.0")
-  (tier 1)  ; Bumped to tier 1 due to autodiff dependency
   (path "lattice/random")
   (purity total)  ; All generators are pure (State monad)
   (stability stable)

@@ -2,7 +2,6 @@
 
 (skill sim
   (version "0.3.0")
-  (tier 2)
   (path "lattice/sim")
   (purity total)  ; Pure stream-based simulation
   (stability experimental)
@@ -53,7 +52,23 @@
    (ode-adaptive dp45-step ode-adaptive-integrate ode-solve ode-solve/tol
                  ode-system-integrate ode-result-trajectory ode-result-steps
                  ode-result-rejections ode-result-truncated? ode-result-final
-                 ode-result-final-state ode-result-times default-ode-opts))
+                 ode-result-final-state ode-result-times default-ode-opts)
+   (sim/discrete make-dds make-deterministic-dds make-stochastic-dds
+                 logistic-map tent-map henon-map circle-rotation
+                 orbit orbit-stochastic iterate)
+   (ode-state-space numerical-jacobian linearize-ode linearize-autonomous-ode
+                     state-space->ode simulate-state-space simulate-state-space-final)
+   (des/event make-des-event des-event? des-event-time des-event-type des-event-payload
+              eq-schedule eq-schedule* eq-next eq-pop eq-size)
+   (des/world make-des-world des-world? des-world-clock des-world-entities
+              des-world-queue des-world-metrics world-entity world-set-entity)
+   (des/engine make-handler-table make-des-config des-step des-run des-run-final
+               des-trace-metric des-trace-entity des-snapshot-times)
+   (des/schedule schedule-periodic schedule-at-times schedule-after-exp
+                  schedule-after-normal schedule-after-uniform
+                  make-poisson-arrival-handler make-periodic-handler)
+   (des/replicate des-replicate des-replicate-metric
+                  des-replicate-summary des-replicate-metrics))
 
   (modules
    (simulation-stream "simulation-stream.ss" "Core simulation stream abstraction and utilities")
@@ -62,4 +77,12 @@
    (chaos "dynamics/chaos.ss" "Chaos detection, Lyapunov exponents, strange attractors")
    (bifurcation "dynamics/bifurcation.ss" "Bifurcation analysis: parameter continuation, detection, diagrams")
    (attractor-render "dynamics/attractor-render.ss" "ASCII visualization of attractors")
-   (ode-adaptive "dynamics/ode-adaptive.ss" "Adaptive step-size ODE solver (Dormand-Prince RK4(5))")))
+   (ode-adaptive "dynamics/ode-adaptive.ss" "Adaptive step-size ODE solver (Dormand-Prince RK4(5))")
+   (sim/discrete "dynamics/discrete.ss" "Discrete-time dynamical systems and maps")
+   (ode-state-space "dynamics/ode-state-space.ss" "ODE integration for state-space models")
+   ;; Discrete Event Simulation subsystem
+   (des/event "des/event.ss" "DES event types and priority queue")
+   (des/world "des/world.ss" "DES world state with optic-driven updates")
+   (des/engine "des/engine.ss" "DES simulation engine core loop")
+   (des/schedule "des/schedule.ss" "DES stochastic scheduling patterns")
+   (des/replicate "des/replicate.ss" "DES replication and statistical summary")))

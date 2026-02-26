@@ -6,7 +6,6 @@
 
 (skill egraph
   (version "0.1.0")
-  (tier 1)
   (path "lattice/egraph")
   (purity partial)  ; Union-find uses mutation for efficiency
   (stability experimental)

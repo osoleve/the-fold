@@ -1,7 +1,7 @@
-;;; @module cnf
-;;; @requires clause sort
+;;; @module sat/cnf
+;;; @requires sat/clause sort
 
-(require 'clause)
+(require 'sat/clause)
 (require 'sort)
 
 (doc 'module 'cnf)

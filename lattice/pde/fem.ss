@@ -1,4 +1,4 @@
-;;; lattice/numeric/fem.ss --- Finite Element Method for 2D PDEs
+;;; lattice/pde/fem.ss --- Finite Element Method for 2D PDEs
 ;;; @module fem
 ;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt iteration
 

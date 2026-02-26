@@ -1,60 +1,27 @@
 (skill numeric
-  (version "0.8.0")
-  (tier 0)
+  (version "1.0.0")
   (path "lattice/numeric")
   (purity total)
   (stability stable)
-  (fuel-bound (max (quadratic n) (max (log-linear n) (linear n))))
-  (deps (linalg algebra geometry))
+  (fuel-bound (max (log-linear n) (quadratic n)))
+  (deps (linalg algebra))
 
   (description
-   "Numerical computing, signal processing, interpolation, interval, affine arithmetic,
-    finite element methods, and PDE time stepping. Provides complex number arithmetic,
-    discrete Fourier transform (radix-2 FFT), digital filters (FIR, IIR, Butterworth,
-    Chebyshev), convolution and correlation, wavelet transforms (Haar, Daubechies),
-    spectral analysis (STFT, spectrogram), interpolation (linear, polynomial, spline,
-    Hermite), Bezier curves, curve fitting (least squares, polynomial), Chebyshev
-    approximation, rigorous interval arithmetic for verified numerical computation,
-    affine arithmetic for tighter bounds via correlation tracking, finite element
-    method (FEM) for solving elliptic PDEs on triangular meshes, and time stepping
-    schemes (Forward/Backward Euler, Crank-Nicolson, Method of Lines) for time-dependent
-    PDEs with CFL stability analysis and adaptive stepping.")
+   "Foundation numerical transforms: complex number arithmetic, discrete Fourier
+    transform (radix-2 FFT), windowing functions for spectral analysis, convolution
+    and correlation, FFT-based convolution, and numeric polynomials (descending
+    order, vector-based). These are the mathematical primitives that signal
+    processing, autodiff, and statistics build upon.")
 
-  (keywords (numerics signal-processing fft dft complex-numbers digital-filters
-             wavelets convolution spectral-analysis iir fir butterworth
-             interpolation spline bezier curve-fitting regression chebyshev
-             interval-arithmetic affine-arithmetic verified-computation bounds
-             correlation-tracking dependency-problem noise-symbols
-             finite-element-method fem pde poisson laplace triangular-mesh
-             p1-elements sparse-solver conjugate-gradient
-             time-stepping forward-euler backward-euler crank-nicolson
-             method-of-lines rk4 cfl-condition parabolic hyperbolic adaptive))
-  (aliases (signal dsp interp interval affine fem pde-time))
+  (keywords (numerics fft dft complex-numbers convolution correlation
+             polynomial window-functions hann hamming blackman kaiser))
+  (aliases ())
 
   (concepts
     (concept numerical-computing
       (description "The domain of floating-point algorithms, approximation methods, and rigorous error analysis.")
       (parent mathematics)
-      (synonyms numerics))
-    (concept signal-processing
-      (description "Digital processing of time-series signals: FFT, digital filters (FIR/IIR), wavelets, convolution, and spectral analysis.")
-      (parent numerical-computing)
-      (synonyms signal dsp fft dft fast-fourier-transform spectral-analysis digital-filter fir iir butterworth chebyshev biquad wavelet haar daubechies dwt))
-    (concept interpolation-approximation
-      (description "Constructing smooth functions from discrete data: polynomial interpolation, splines, Bezier, Chebyshev, and B-splines.")
-      (parent numerical-computing)
-      (synonyms interp interpolation spline bezier hermite lagrange))
-    (concept verified-computation
-      (description "Numerics with guaranteed error bounds: interval arithmetic, affine arithmetic, and rigorous enclosure methods.")
-      (parent numerical-computing)
-      (synonyms interval interval-arithmetic rigorous-bounds affine affine-arithmetic correlation-tracking dependency-problem))
-    (concept numerical-integration
-      (description "Numerical integration of ODEs: Euler, Runge-Kutta (RK4, DP45), symplectic integrators, and adaptive step control.")
-      (parent numerical-computing))
-    (concept pde-methods
-      (description "Numerical methods for partial differential equations: FEM on triangular meshes, Method of Lines, and Crank-Nicolson.")
-      (parent numerical-computing)
-      (synonyms fem pde-time finite-element-method poisson-equation elliptic-pde pde-time-stepping forward-euler backward-euler crank-nicolson method-of-lines rk4)))
+      (synonyms numerics)))
 
   (exports
    (complex
@@ -83,246 +50,29 @@
     apply-window apply-window-complex
     window-energy window-power make-window)
 
-   (digital-filters
-    sinc fir-lowpass fir-highpass fir-bandpass fir-bandstop fir-filter
-    make-iir-filter iir-filter? iir-filter-b iir-filter-a iir-filter-signal
-    make-biquad biquad? biquad-b0 biquad-b1 biquad-b2 biquad-a1 biquad-a2
-    biquad-filter cascade-biquads
-    butterworth-lowpass-poles bilinear-transform butterworth-lowpass
-    chebyshev1-lowpass chebyshev1-poles
-    poles-zeros->tf poly-from-roots poly-mul-binomial
-    freqz eval-transfer-function eval-poly magnitude-response phase-response
-    make-filter-state filter-state? filter-process-sample! filter-reset!
-    dc-blocker one-pole-lowpass one-pole-highpass moving-average
-    impulse-response step-response)
-
    (convolution
     convolve-direct-full convolve-direct-same convolve-direct-valid
     convolve-fft convolve convolve-circular convolve-2d
     correlate-direct correlate autocorrelate
-    matched-filter find-peaks vector-reverse normalize-signal)
-
-   (wavelet
-    haar-scaling-filter haar-wavelet-filter
-    daubechies-4-scaling-filter daubechies-4-wavelet-filter
-    daubechies-6-scaling-filter daubechies-6-wavelet-filter
-    qmf-wavelet-from-scaling reverse-filter
-    convolve-downsample upsample-convolve
-    dwt-step dwt idwt-step idwt
-    get-wavelet-filters dwt-family idwt-family
-    wavelet-decompose wavelet-reconstruct
-    get-approximation get-details get-detail-level
-    hard-threshold soft-threshold threshold-coefficients
-    wavelet-denoise wavelet-energy wavelet-energy-distribution wavelet-energy-ratio)
-
-   (spectral-analysis
-    stft-frame stft istft
-    spectrogram power-spectrogram log-spectrogram
-    periodogram welch-psd
-    spectrogram-frequencies spectrogram-times
-    spectral-centroid spectral-bandwidth spectral-rolloff)
-
-   (signal-poly
-    filter-num-poly filter-den-poly filter-coprime? filter-simplify
-    filter-stable? filter-cascade filter-parallel
-    deconvolve deconvolve-exact?
-    numeric->signal-poly signal->numeric-poly
-    sig-poly-degree sig-poly-coeffs sig-poly-gcd
-    sig-poly->string filter->string)
-
-   (interpolate
-    ;; Utilities
-    binary-search-segment thomas-algorithm
-    ;; Linear interpolation
-    lerp lerp-inverse interp-linear
-    ;; Polynomial interpolation
-    lagrange-basis interp-lagrange
-    divided-differences interp-newton
-    ;; Hermite interpolation
-    interp-hermite hermite-tangent-estimate
-    ;; Cubic splines
-    cubic-spline-natural spline-eval interp-cubic-spline
-    ;; Bezier curves
-    bezier-linear bezier-quadratic bezier-cubic
-    bezier-general bezier-derivative
-    ;; Least squares and fitting
-    polyfit linreg linreg-r2
-    ;; Chebyshev approximation
-    chebyshev-nodes chebyshev-nodes-interval
-    chebyshev-t chebyshev-coeffs chebyshev-eval
-    ;; B-splines
-    bspline-basis bspline-curve)
-
-   (interval
-    ;; Constructors and type
-    make-interval interval interval? interval-singleton entire-interval
-    ;; Accessors
-    interval-lo interval-hi interval-mid interval-width interval-radius
-    interval-magnitude interval-mignitude
-    ;; Predicates
-    interval-empty? interval-singleton? interval-contains? interval-contains-zero?
-    interval-positive? interval-negative? interval-subset?
-    intervals-overlap? intervals-disjoint?
-    ;; Comparisons (three-valued)
-    interval-definitely< interval-definitely<= interval-definitely> interval-definitely>=
-    interval-possibly< interval-possibly<= interval-possibly> interval-possibly>=
-    interval-definitely= interval-possibly=
-    ;; Arithmetic (standard - fast, round-to-nearest)
-    interval-neg interval-add interval-sub interval-mul interval-sqr
-    interval-recip interval-div interval-scale
-    ;; Arithmetic (rigorous - directed rounding, guaranteed enclosure)
-    interval-add-rigorous interval-sub-rigorous interval-mul-rigorous
-    interval-div-rigorous interval-sqrt-rigorous interval-sqr-rigorous
-    interval-scale-rigorous
-    ;; Directed rounding primitives
-    fl-next-up fl-next-down
-    add-down add-up sub-down sub-up mul-down mul-up div-down div-up
-    sqrt-down sqrt-up
-    ;; Elementary functions (standard)
-    interval-abs interval-sqrt interval-pow interval-min interval-max
-    interval-exp interval-log interval-log10
-    interval-sin interval-cos interval-tan
-    interval-asin interval-acos interval-atan interval-atan2
-    interval-sinh interval-cosh interval-tanh
-    ;; Elementary functions (rigorous - directed rounding)
-    interval-exp-rigorous interval-log-rigorous interval-log10-rigorous
-    interval-sin-rigorous interval-cos-rigorous interval-atan-rigorous
-    interval-sinh-rigorous interval-cosh-rigorous interval-tanh-rigorous
-    ;; Set operations
-    interval-union interval-hull interval-hull-list interval-intersection interval-bisect
-    ;; Coercion
-    real->interval interval->string interval-print
-    ;; Multi-dimensional boxes
-    make-box box-dimension box-volume box-contains?
-    ;; Critical point detection (for rigorous transcendentals)
-    interval-contains-critical? interval-contains-critical-rigorous?
-    pi-down pi-up 2pi-down 2pi-up
-    ;; Constants
-    pi-interval e-interval
-    ;; Short aliases
-    iv+ iv- iv* iv/)
-
-   (affine
-    ;; Noise symbol management
-    affine-fresh-noise-id! affine-reset-noise-counter!
-    ;; Constructors and type
-    make-affine affine? affine-center affine-terms
-    affine-constant affine-noise
-    ;; Interval conversion
-    affine-from-interval affine->interval affine-radius
-    ;; Affine operations (correlation-preserving)
-    affine-neg affine-add affine-sub affine-scale affine-add-constant
-    ;; Non-affine operations
-    affine-mul affine-sqr affine-recip affine-div affine-sqrt
-    ;; Elementary functions
-    affine-exp affine-log
-    ;; Min/max
-    affine-min affine-max affine-abs
-    ;; Predicates
-    affine-definitely-positive? affine-definitely-negative? affine-possibly-zero?
-    affine-definitely< affine-definitely<= affine-definitely> affine-definitely>=
-    ;; Display
-    affine->string affine-print
-    ;; Short aliases
-    af+ af- af* af/ af-neg af-sqr af-sqrt af-exp af-log
-    ;; Higher-level operations
-    affine-sum affine-product affine-linear-combination affine-horner)
-
-   (fem
-    ;; Mesh construction
-    make-fem-mesh fem-mesh? fem-mesh-nodes fem-mesh-elements
-    fem-mesh-num-nodes fem-mesh-num-elements fem-mesh-node fem-mesh-element
-    fem-mesh-element-nodes make-unit-square-mesh make-disk-mesh
-    ;; Element computations
-    element-area basis-gradients element-stiffness element-mass element-load
-    ;; Assembly
-    assemble-stiffness assemble-mass assemble-load
-    ;; Boundary conditions
-    find-boundary-nodes apply-dirichlet-penalty!
-    ;; Solver
-    sparse-cg fem-solve-poisson fem-solve-poisson-full
-    ;; Post-processing
-    fem-solution-at fem-render-solution fem-l2-error)
-
-   (pde-time
-    ;; Vector operations
-    pde-vec-add pde-vec-sub pde-vec-scale pde-vec-madd pde-vec-dot pde-vec-norm
-    ;; Forward Euler (explicit)
-    forward-euler-step forward-euler-matrix-step forward-euler-mass-step
-    ;; Backward Euler (implicit)
-    backward-euler-linear-step backward-euler-identity-step
-    ;; Crank-Nicolson (implicit, 2nd order)
-    crank-nicolson-step crank-nicolson-identity-step
-    ;; Method of Lines
-    mol-rhs mol-euler-step mol-rk4-step
-    ;; Stability analysis
-    cfl-parabolic cfl-hyperbolic estimate-mesh-spacing
-    ;; Adaptive time stepping
-    adaptive-euler-step integrate-adaptive
-    ;; Sparse utilities
-    sparse-csr-identity sparse-cg-solve sparse-csr-diagonal-vec
-    ;; Factory and driver
-    make-time-stepper integrate-pde))
+    matched-filter find-peaks vector-reverse normalize-signal))
 
   (modules
    (complex "complex.ss"
     "Complex number representation and arithmetic. Rectangular and polar forms.
      Transcendental functions: exp, log, sqrt, trig, hyperbolic.")
+   (complex-bridge "complex-bridge.ss"
+    "Bridge between complex number arithmetic and linalg vector/matrix operations.")
    (dft "dft.ss"
     "Discrete Fourier Transform: naive O(n^2) and radix-2 FFT O(n log n).
      Forward and inverse transforms. Spectrum analysis utilities.")
+   (numeric/polynomial "polynomial.ss"
+    "Numeric polynomials in descending coefficient order (vector-based).
+     Evaluation, arithmetic, roots, and derivatives.")
    (window-functions "window-functions.ss"
     "Windowing functions for spectral analysis: Hann, Hamming, Blackman,
      Bartlett, Kaiser. Window energy and power normalization.")
-   (digital-filters "digital-filters.ss"
-    "FIR and IIR digital filter design. Butterworth and Chebyshev lowpass.
-     Biquad sections, filter cascades, frequency response analysis.")
    (convolution "convolution.ss"
     "Linear convolution: direct and FFT-based. Correlation and autocorrelation.
      2D convolution for image processing. Matched filtering.")
-   (wavelet "wavelet.ss"
-    "Discrete wavelet transform: Haar, Daubechies-4, Daubechies-6 families.
-     Multi-level decomposition and reconstruction. Denoising via thresholding.")
-   (spectral-analysis "spectral-analysis.ss"
-    "Short-time Fourier transform and spectrogram computation. Welch power
-     spectral density estimation. Spectral features: centroid, bandwidth, rolloff.")
-   (signal-poly "signal-poly.ss"
-    "Polynomial algebra integration for signal processing. Filter stability analysis
-     via Jury criterion. Filter simplification, cascade/parallel combination,
-     deconvolution as polynomial division.")
-   (interpolate "interpolate.ss"
-    "Numerical interpolation and curve fitting. Linear, Lagrange, and Newton
-     polynomial interpolation. Hermite and natural cubic spline interpolation.
-     Bezier curves (linear, quadratic, cubic, arbitrary degree). Least squares
-     polynomial fitting, linear regression. Chebyshev approximation and nodes.
-     B-spline basis functions and curves.")
-   (interval "interval.ss"
-    "Interval arithmetic for verified numerical computation. Represents sets of
-     real numbers with guaranteed enclosure. Supports arithmetic, comparisons
-     (three-valued logic), set operations, and transcendental elementary functions
-     (exp, log, log10, sin, cos, tan, atan2, hyperbolic). Provides both standard
-     (fast, round-to-nearest) and rigorous (directed rounding, guaranteed enclosure)
-     versions of operations. Multi-dimensional boxes for n-dimensional computations.
-     Foundation for global optimization, monotonicity analysis, and computer-aided
-     proofs.")
-   (affine "affine.ss"
-    "Affine arithmetic for tighter bounds via correlation tracking. Solves the
-     'dependency problem' in interval arithmetic where x - x yields [-r, r] instead
-     of [0, 0]. Affine forms represent values as x₀ + Σxᵢεᵢ where εᵢ are noise
-     symbols in [-1, 1]. When forms share noise symbols, operations automatically
-     account for correlations. Supports all arithmetic ops plus exp, log, sqrt.
-     Use affine-from-interval to convert intervals, affine->interval to convert back.")
-   (fem "fem.ss"
-    "Finite Element Method for solving elliptic PDEs on 2D triangular meshes.
-     P1 (linear) elements with sparse matrix assembly and conjugate gradient solver.
-     Solves Poisson equation -∇²u = f with Dirichlet boundary conditions u = g.
-     Includes mesh generation for unit square and disk domains, ASCII solution
-     visualization, and L² error computation for convergence studies.")
-   (pde-time "pde-time.ss"
-    "Time stepping schemes for time-dependent PDEs: du/dt = L(u). Forward Euler
-     (explicit, conditionally stable), Backward Euler (implicit, A-stable), and
-     Crank-Nicolson (implicit, 2nd order, A-stable). Method of Lines connects
-     spatial discretization to ODE solvers (Euler, RK4). CFL stability conditions
-     for parabolic (heat) and hyperbolic (wave) equations. Adaptive time stepping
-     with Richardson extrapolation error control. Conjugate gradient solver for
-     implicit methods.")))
+   (fft-convolve "fft-convolve.ss"
+    "FFT-based convolution for large signals. Overlap-add method.")))

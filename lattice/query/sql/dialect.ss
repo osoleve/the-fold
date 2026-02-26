@@ -1,3 +1,10 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql-dialect
+;;; @requires prelude sql-types sql-format
+(require 'prelude)
+(require 'sql-types)
+(require 'sql-format)
+
 (define *sql-dialect-loaded* #t)
 
 (doc 'module 'sql-dialect)
@@ -5,11 +12,6 @@
 (doc 'note "Translates SQL AST between dialects: ansi (ANSI SQL baseline), mysql (MySQL 8.x), pgsql (PostgreSQL 15+), tsql (T-SQL SQL Server), oracle (Oracle 19c+)")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-(unless (top-level-bound? '*sql-types-loaded*)
-        (load "lattice/query/sql/types.ss"))
-(unless (top-level-bound? '*sql-format-loaded*)
-        (load "lattice/query/sql/format.ss"))
 
 ;;; ====
 ;;; Dialect Definitions

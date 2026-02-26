@@ -2,7 +2,6 @@
 
 (skill automata
   (version "0.1.0")
-  (tier 1)
   (path "lattice/automata")
   (purity partial)  ; Uses counter for unique IDs
   (stability stable)
@@ -56,7 +55,20 @@
     step send
     ;; Validation
     validate-statechart reachable-states unreachable-states
-    validate-transitions))
+    validate-transitions)
+
+   (statechart-zipper
+    state->tree tree->state make-state-zipper state->zipper zipper->state
+    state-zipper-state state-zipper-id state-zipper-type
+    state-zipper-set state-zipper-modify
+    state-zipper-up state-zipper-down state-zipper-left state-zipper-right
+    state-zipper-root state-zipper-nth-child
+    state-zipper-at-root? state-zipper-at-leaf?
+    state-zipper-find state-zipper-ancestors state-zipper-path
+    state-zipper-depth state-zipper-lca state-zipper-is-descendant?
+    state-zipper-exit-path state-zipper-entry-path
+    state-zipper-preorder state-zipper-collect state-zipper-collect-ids))
 
   (modules
-   (statechart "statechart.ss" "Full statechart implementation: states, transitions, interpreter, validation")))
+   (statechart "statechart.ss" "Full statechart implementation: states, transitions, interpreter, validation")
+   (statechart-zipper "statechart-zipper.ss" "Zipper-based navigation and modification of statechart hierarchies")))

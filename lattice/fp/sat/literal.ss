@@ -1,4 +1,4 @@
-;;; @module literal
+;;; @module sat/literal
 ;;; @requires prelude
 
 (require 'prelude)

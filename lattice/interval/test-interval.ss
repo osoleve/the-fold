@@ -1,10 +1,10 @@
-;;; lattice/numeric/test-interval.ss — Tests for Interval Arithmetic
+;;; lattice/interval/test-interval.ss — Tests for Interval Arithmetic
 ;;;
 ;;; Comprehensive tests verifying correctness of interval operations.
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/numeric/interval.ss")
+(load "lattice/interval/interval.ss")
 
 ;;; ============================================================================
 ;;; Constructor and Accessor Tests

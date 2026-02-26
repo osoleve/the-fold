@@ -400,26 +400,30 @@
     "ipc/test-protocol.ss"
 
     ;; === Tier 1: Intermediate ===
-    ;; Numeric
-    "numeric/test-interval.ss"
-    "numeric/test-affine.ss"
+    ;; Numeric (foundation transforms)
     "numeric/test-complex.ss"
-    "numeric/test-interpolate.ss"
     "numeric/test-complex-bridge.ss"
-    "numeric/test-spectral-analysis.ss"
     "numeric/test-dft.ss"
+    "numeric/test-polynomial.ss"
+    "numeric/test-window-functions.ss"
     "numeric/test-convolution.ss"
     "numeric/test-fft-convolve.ss"
-    "numeric/test-window-functions.ss"
-    "numeric/test-digital-filters.ss"
-    "numeric/test-polynomial.ss"
-    "numeric/test-signal-poly.ss"
-    "numeric/test-finite-diff.ss"
-    "numeric/test-wavelet.ss"
-    "numeric/test-fem.ss"
-    "numeric/test-interval-integrate.ss"
-    "numeric/test-pde-time.ss"
-    "numeric/test-spectral-pde.ss"
+    ;; Interval (verified arithmetic — tier 0)
+    "interval/test-interval.ss"
+    "interval/test-affine.ss"
+    "interval/test-interval-integrate.ss"
+    ;; Interpolate
+    "interpolate/test-interpolate.ss"
+    ;; Signal (DSP)
+    "signal/test-digital-filters.ss"
+    "signal/test-wavelet.ss"
+    "signal/test-spectral-analysis.ss"
+    "signal/test-signal-poly.ss"
+    ;; PDE (tier 2)
+    "pde/test-finite-diff.ss"
+    "pde/test-fem.ss"
+    "pde/test-pde-time.ss"
+    "pde/test-spectral-pde.ss"
     ;; Info Theory
     "info/test-entropy.ss"
     "info/test-coding.ss"

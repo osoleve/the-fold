@@ -2,12 +2,14 @@
 
 (skill data
   (version "0.4.0")
-  (tier 0)
   (path "lattice/data")
   (purity total)
   (stability stable)
   (fuel-bound (max (cubic n) (max (log-linear n) (logarithmic n))))
-  (deps (fp))  ; collection-protocol depends on fp/protocol
+  (deps (fp linalg))  ; collection-protocol→fp, graph-bridge→linalg
+  ;; Note: graph-filtration requires topology, random-graphs requires random.
+  ;; These are bridge modules with cross-skill deps not declared here to avoid cycles
+  ;; (topology already depends on data). See fold-zy28 for dep graph cleanup.
 
   (description
    "Fundamental data structures: heaps, balanced trees, graphs,
@@ -228,7 +230,33 @@
      prio-peek prio-pop prio-insert prio-merge
      coll-protocols)
 
-   (collection-impl))
+   (collection-impl)
+
+   (graph-bridge
+     make-graph graph? graph-edges graph-node-count graph-directed? graph-weighted?
+     graph->adjacency-matrix graph->sparse-adjacency
+     graph->degree-matrix graph->laplacian-matrix
+     graph->laplacian-normalized graph->laplacian-random-walk
+     adjacency-matrix->graph sparse-adjacency->graph)
+
+   (graph-filtration
+     graph-weight-filtration graph-rips-filtration
+     graph-persistent-homology graph-weight-persistent-homology
+     graph-betti-curve graph-betti-curve-auto
+     graph-persistence-pairs graph-max-persistence)
+
+   (max-flow
+     make-flow-network flow-network?
+     flow-network-add-edge!
+     max-flow min-cut min-cut-partition
+     bipartite-max-matching)
+
+   (random-graphs
+     erdos-renyi barabasi-albert watts-strogatz)
+
+   (spectral-community
+     spectral-bipartition spectral-communities spectral-modularity
+     partition-conductance partition-normalized-cut compare-partitions))
 
   (modules
    (avl-tree "avl-tree.ss" "Self-balancing AVL tree with O(log n) operations")
@@ -250,4 +278,9 @@
    (kdtree "kdtree.ss" "K-d tree for O(log n) nearest neighbor and range queries in any dimension")
    (quadtree "quadtree.ss" "Quadtree for 2D spatial queries with uniform subdivision")
    (collection-protocol "collection-protocol.ss" "Unified protocols for collection operations: core, keyed, spatial, priority")
-   (collection-impl "collection-impl.ss" "Protocol implementations for AVL, heap, kdtree, quadtree")))
+   (collection-impl "collection-impl.ss" "Protocol implementations for AVL, heap, kdtree, quadtree")
+   (graph-bridge "graph/graph-bridge.ss" "Bidirectional graph-matrix bridge: graph ADT to/from adjacency and Laplacian")
+   (graph-filtration "graph/graph-filtration.ss" "Edge-weight filtration to persistent homology")
+   (max-flow "graph/max-flow.ss" "Edmonds-Karp max-flow, min-cut, bipartite matching")
+   (random-graphs "graph/random-graphs.ss" "Erdos-Renyi, Barabasi-Albert, Watts-Strogatz generators")
+   (spectral-community "graph/spectral-community.ss" "Spectral bipartition and community detection")))

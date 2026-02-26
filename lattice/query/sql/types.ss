@@ -1,3 +1,8 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql-types
+;;; @requires prelude
+(require 'prelude)
+
 (define *sql-types-loaded* #t)
 
 (doc 'module 'sql-types)

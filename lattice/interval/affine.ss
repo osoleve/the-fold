@@ -1,4 +1,4 @@
-;;; lattice/numeric/affine.ss — Affine Arithmetic
+;;; lattice/interval/affine.ss — Affine Arithmetic
 ;;; @module affine
 ;;; @requires prelude sort interval
 

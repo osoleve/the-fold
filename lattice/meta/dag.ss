@@ -92,12 +92,11 @@
    (kg-skills)))
 
 (doc lattice-tier-0 'type (-> (List Symbol)))
-(doc lattice-tier-0 'description "Get tier 0 foundational skills")
+(doc lattice-tier-0 'description "Get tier 0 foundational skills (no dependencies)")
 (define (lattice-tier-0)
   (filter
    (lambda (skill-name)
-           (let ([data (kg-skill-data skill-name)])
-                (and data (eqv? 0 (cdr (or (assq 'tier data) '(tier . -1)))))))
+           (= 0 (lattice-depth skill-name)))
    (kg-skills)))
 
 (doc lattice-leaves 'type (-> (List Symbol)))
@@ -197,31 +196,44 @@
 
 (doc 'section 'tier-analysis)
 
+(doc *tier-cache* 'description "Memoization cache for lattice-depth. Alist of (skill . depth).")
+(define *tier-cache* '())
+
+(doc tier-cache-clear! 'type (-> Void))
+(doc tier-cache-clear! 'description "Clear the tier depth cache. Call when KG is reloaded.")
+(define (tier-cache-clear!) (set! *tier-cache* '()))
+
+(doc lattice-depth 'type (-> Symbol Int))
+(doc lattice-depth 'description "Get the maximum dependency depth of a skill (memoized). Depth 0 = no dependencies, depth N = longest path to a root. Handles cycles gracefully by treating back-edges as depth 0.")
+(define (lattice-depth skill-name)
+  (let ([cached (assq skill-name *tier-cache*)])
+    (cond
+      [(and cached (eq? (cdr cached) 'in-progress))
+       ;; Cycle detected — break it by treating back-edge as depth 0
+       0]
+      [cached (cdr cached)]
+      [else
+       ;; Mark in-progress to detect cycles
+       (set! *tier-cache* (cons (cons skill-name 'in-progress) *tier-cache*))
+       (let* ([deps (kg-deps skill-name)]
+              [d (if (null? deps) 0 (+ 1 (apply max (map lattice-depth deps))))])
+         ;; Replace the in-progress entry with the final value
+         (set-cdr! (assq skill-name *tier-cache*) d)
+         d)])))
+
 (doc lattice-tiers 'type (-> (List (Pair Int (List Symbol)))))
-(doc lattice-tiers 'description "Group skills by their tier")
+(doc lattice-tiers 'description "Group skills by their computed DAG depth")
 (define (lattice-tiers)
   (let ([tier-map '()])
        (for-each
         (lambda (skill-name)
-                (let* ([data (kg-skill-data skill-name)]
-                       [tier (if data
-                                 (let ([t (assq 'tier data)])
-                                      (if t (cdr t) 0))
-                                 0)]
+                (let* ([tier (lattice-depth skill-name)]
                        [entry (assq tier tier-map)])
                       (if entry
                           (set-cdr! entry (cons skill-name (cdr entry)))
                           (set! tier-map (cons (cons tier (list skill-name)) tier-map)))))
         (kg-skills))
        (sort-by (lambda (a b) (< (car a) (car b))) tier-map)))
-
-(doc lattice-depth 'type (-> Symbol Int))
-(doc lattice-depth 'description "Get the maximum dependency depth of a skill")
-(define (lattice-depth skill-name)
-  (let ([deps (kg-deps skill-name)])
-       (if (null? deps)
-           0
-           (+ 1 (apply max (map lattice-depth deps))))))
 
 ;;; lattice-max-depth : -> Int
 ;;; Get the maximum depth of the entire DAG

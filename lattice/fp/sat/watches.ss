@@ -1,7 +1,7 @@
-;;; @module watches
-;;; @requires literal
+;;; @module sat/watches
+;;; @requires sat/literal
 
-(require 'literal)
+(require 'sat/literal)
 
 (doc 'module 'watches)
 (doc 'description "Two-Watched Literals (2WL) for efficient unit propagation")

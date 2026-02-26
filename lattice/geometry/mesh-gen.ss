@@ -720,33 +720,35 @@
   (* r (/ 180.0 3.141592653589793)))
 
 (doc mesh-quality-report 'export #t)
-(doc mesh-quality-report 'type '(-> (Or (List Triangle2) Triangulation) Void))
-(doc mesh-quality-report 'description "Print quality statistics for a mesh")
+(doc mesh-quality-report 'type '(-> (Or (List Triangle2) Triangulation) String))
+(doc mesh-quality-report 'description "Return quality statistics for a mesh as a string")
 (define (mesh-quality-report tris-or-tri)
   (let ([triangles (if (triangulation? tris-or-tri)
                        (triangulation-triangles tris-or-tri)
                        tris-or-tri)])
-  (if (null? triangles)
-      (printf "Empty mesh~n")
-      (let* ([aspects (map tri2-aspect-ratio triangles)]
-             [min-angles (map tri2-min-angle triangles)]
-             [max-angles (map tri2-max-angle triangles)]
-             [areas (map tri2-area triangles)])
-        (printf "Mesh Quality Report~n")
-        (printf "  Triangles: ~a~n" (length triangles))
-        (printf "  Total area: ~,2f~n" (apply + areas))
-        (printf "  Aspect ratio: min=~,2f  max=~,2f  avg=~,2f~n"
-                (apply min aspects)
-                (apply max aspects)
-                (/ (apply + aspects) (length aspects)))
-        (printf "  Min angle: min=~,1f°  max=~,1f°  avg=~,1f°~n"
-                (radians->degrees (apply min min-angles))
-                (radians->degrees (apply max min-angles))
-                (radians->degrees (/ (apply + min-angles) (length min-angles))))
-        (printf "  Max angle: min=~,1f°  max=~,1f°  avg=~,1f°~n"
-                (radians->degrees (apply min max-angles))
-                (radians->degrees (apply max max-angles))
-                (radians->degrees (/ (apply + max-angles) (length max-angles))))))))
+  (with-output-to-string
+    (lambda ()
+      (if (null? triangles)
+          (printf "Empty mesh~n")
+          (let* ([aspects (map tri2-aspect-ratio triangles)]
+                 [min-angles (map tri2-min-angle triangles)]
+                 [max-angles (map tri2-max-angle triangles)]
+                 [areas (map tri2-area triangles)])
+            (printf "Mesh Quality Report~n")
+            (printf "  Triangles: ~a~n" (length triangles))
+            (printf "  Total area: ~,2f~n" (apply + areas))
+            (printf "  Aspect ratio: min=~,2f  max=~,2f  avg=~,2f~n"
+                    (apply min aspects)
+                    (apply max aspects)
+                    (/ (apply + aspects) (length aspects)))
+            (printf "  Min angle: min=~,1f°  max=~,1f°  avg=~,1f°~n"
+                    (radians->degrees (apply min min-angles))
+                    (radians->degrees (apply max min-angles))
+                    (radians->degrees (/ (apply + min-angles) (length min-angles))))
+            (printf "  Max angle: min=~,1f°  max=~,1f°  avg=~,1f°~n"
+                    (radians->degrees (apply min max-angles))
+                    (radians->degrees (apply max max-angles))
+                    (radians->degrees (/ (apply + max-angles) (length max-angles))))))))))
 
 ;;; ============================================================
 ;;; Section: Mesh Refinement (Ruppert's Algorithm)

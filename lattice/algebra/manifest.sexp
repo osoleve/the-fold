@@ -2,7 +2,6 @@
 
 (skill algebra
   (version "0.4.0")
-  (tier 0)
   (path "lattice/algebra")
   (purity total)
   (stability stable)

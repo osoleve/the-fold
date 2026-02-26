@@ -110,7 +110,7 @@
 ;; fp/symbolic/egraph-simplify.ss -- bridges fp + egraph
 (register-bridge! 'egraph-simplify '(fp egraph))
 
-;; numeric/signal-poly.ss -- bridges numeric + algebra
+;; signal/signal-poly.ss -- bridges signal + algebra
 (register-bridge! 'signal-poly '(numeric algebra))
 
 ;;; ====================================================================

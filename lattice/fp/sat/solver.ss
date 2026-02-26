@@ -1,9 +1,9 @@
-;;; @module solver
-;;; @requires cnf assignment watches sort
+;;; @module sat/solver
+;;; @requires sat/cnf sat/assignment sat/watches sort
 
-(require 'cnf)
-(require 'assignment)
-(require 'watches)
+(require 'sat/cnf)
+(require 'sat/assignment)
+(require 'sat/watches)
 (require 'sort)
 
 (doc 'module 'solver)

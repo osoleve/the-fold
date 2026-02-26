@@ -9,7 +9,7 @@
 ;;; Created: 2026-01-16
 
 (load "core/base/prelude.ss")
-(load "lattice/numeric/interval.ss")
+(load "lattice/interval/interval.ss")
 (load "lattice/optimization/interval-global.ss")
 (load "lattice/optimization/interval-contract.ss")
 

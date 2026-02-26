@@ -1,6 +1,5 @@
 (skill topology
   (version "0.4.0")
-  (tier 1)
   (path "lattice/topology")
   (purity total)
   (stability experimental)

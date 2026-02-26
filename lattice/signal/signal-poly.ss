@@ -1,4 +1,4 @@
-;;; lattice/numeric/signal-poly.ss — Polynomial Algebra for Signal Processing
+;;; lattice/signal/signal-poly.ss — Polynomial Algebra for Signal Processing
 ;;; @module signal-poly
 ;;; @requires field algebra/polynomial digital-filters
 

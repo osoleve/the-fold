@@ -472,16 +472,6 @@
 ;;; Section: Utility
 ;;; ====
 
-;;; filter-map : (α → (Union β #f)) × (List α) → (List β)
-(define (filter-map f lst)
-  (let loop ([xs lst] [acc '()])
-    (if (null? xs)
-        (reverse acc)
-        (let ([result (f (car xs))])
-          (if result
-              (loop (cdr xs) (cons result acc))
-              (loop (cdr xs) acc))))))
-
 ;;; make-opt-result : (List Number) × Number × (List Number) × Nat × Symbol [× Meta] → OptResult
 (define (make-opt-result x f-val grad iter reason . rest)
   (doc 'export #t)

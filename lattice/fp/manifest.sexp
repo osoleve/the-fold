@@ -5,13 +5,12 @@
 
 (skill fp
   (version "0.1.0")
-  (tier 1)
   (path "lattice/fp")
   (purity mixed)  ; Most modules pure, some have debug output
   (stability stable)
   (fuel-bound 10000)
 
-  (deps (algebra))  ; Depends on algebraic structures (field.ss, polynomial.ss)
+  (deps (algebra))  ; algebra for algebraic structures
 
   (description
    "A comprehensive functional programming library implementing Haskell-style

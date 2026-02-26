@@ -1,8 +1,8 @@
-;;; Test harness for core/numeric/digital-filters.ss — Digital Filter Library
+;;; lattice/signal/test-digital-filters.ss — Tests for Digital Filter Library
 
 (load "core/lang/module.ss")
 (load "core/base/prelude.ss")
-(load "lattice/numeric/digital-filters.ss")
+(load "lattice/signal/digital-filters.ss")
 
 (define *tests-passed* 0)
 (define *tests-failed* 0)

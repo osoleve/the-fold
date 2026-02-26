@@ -1,7 +1,7 @@
-;;; @module clause
-;;; @requires literal sort
+;;; @module sat/clause
+;;; @requires sat/literal sort
 
-(require 'literal)
+(require 'sat/literal)
 (require 'sort)
 
 (doc 'module 'clause)

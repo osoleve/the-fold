@@ -2,7 +2,6 @@
 
 (skill validation
   (version "0.1.0")
-  (tier 1)
   (path "lattice/validation")
   (purity total)
   (stability experimental)

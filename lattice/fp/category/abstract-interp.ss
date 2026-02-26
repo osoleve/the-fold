@@ -219,7 +219,7 @@
 
 (doc 'section 'interval-domain)
 (doc 'note "The interval domain abstracts sets of reals to closed intervals [lo, hi].")
-(doc 'note "Integrates with lattice/numeric/interval.ss for arithmetic.")
+(doc 'note "Integrates with lattice/interval/interval.ss for arithmetic.")
 (doc 'note "⊥ = empty interval, ⊤ = (-∞, +∞)")
 
 ;;; Interval domain bottom (empty interval - use special marker)

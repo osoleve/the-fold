@@ -350,27 +350,12 @@
 (define (effect-label eff)
   (let* ([tag (effect-tag eff)]
          [tag-str (symbol->string tag)]
-         [parts (string-split-on tag-str #\-)])
+         [parts (string-split tag-str #\-)])
         (if (null? parts)
             tag
             (string->symbol (string-titlecase (car parts))))))
 
-;;; string-split-on : String × Char → (List String)
-;;; Helper: split string on a character delimiter.
-(define (string-split-on str char)
-  (let loop ([chars (string->list str)] [current '()] [result '()])
-       (cond
-        [(null? chars)
-         (reverse (if (null? current)
-                      result
-                      (cons (list->string (reverse current)) result)))]
-        [(char=? (car chars) char)
-         (loop (cdr chars) '()
-               (if (null? current)
-                   result
-                   (cons (list->string (reverse current)) result)))]
-        [else
-         (loop (cdr chars) (cons (car chars) current) result)])))
+;;; string-split provided by prelude
 
 ;;; string-titlecase : String → String
 ;;; Helper: convert first character to uppercase.

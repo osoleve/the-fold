@@ -6,6 +6,7 @@
 (load "boundary/meta/file-io.ss")
 (load "lattice/meta/manifest.ss")
 (load "lattice/pipeline/curriculum.ss")
+(load "lattice/meta/meta.ss")
 
 ;; ====
 ;; Topological Sort of Skills by Dependencies
@@ -70,7 +71,7 @@
 
 (define (process-skill manifest skill-order)
   (let* ([skill-name (manifest-name manifest)]
-         [tier (cdr (assq 'tier manifest))]
+         [tier (lattice-depth skill-name)]
          [module-index (manifest->module-index manifest)]
          [entries '()])
     (for-each
@@ -99,6 +100,9 @@
 ;; ====
 
 (define (run-extraction)
+  ;; 0. Initialize lattice KG so lattice-depth is available
+  (display "Initializing lattice...\n")
+  (lattice-init!)
   ;; 1. Find and parse all lattice manifests
   (display "Finding lattice manifests...\n")
   (let* ([manifest-paths (find-manifests "lattice")]

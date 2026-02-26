@@ -87,17 +87,11 @@
           (if (>= start (length lst))
               (outer (quotient k 2))
               ;; Remove k elements starting at position start
-              (let ([removed (append (take-at-most start lst)
+              (let ([removed (append (take start lst)
                                      (drop-at-most (+ start k) lst))])
                 (if (equal? removed lst)
                     (inner (+ start k))
                     (cons removed (inner (+ start k))))))))))
-
-(define (take-at-most n lst)
-  (doc 'description "Take up to n elements from list")
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
 (define (drop-at-most n lst)
   (doc 'description "Drop up to n elements from list")

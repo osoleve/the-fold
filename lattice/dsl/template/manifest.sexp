@@ -2,7 +2,6 @@
 
 (skill template
   (version "0.1.0")
-  (tier 1)
   (path "lattice/dsl/template")
   (purity total)
   (stability experimental)

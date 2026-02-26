@@ -549,16 +549,14 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
 ;;; ====
 
 ;;; lattice-find-by-tier : String Int [Int] -> (List SearchResult)
-;;; Search skills filtered by tier
+;;; Search skills filtered by computed DAG depth
 (define (lattice-find-by-tier query tier . options)
   (let* ([k (if (pair? options) (car options) 10)]
          [results (lattice-find query k 'skill)])
         (filter
          (lambda (result)
-                 (let ([data (cadddr result)])
-                      (and data
-                           (let ([t (assq 'tier data)])
-                                (and t (= (cdr t) tier))))))
+                 (let ([name (car result)])
+                      (= tier (lattice-depth name))))
          results)))
 
 ;;; lattice-find-by-purity : String Symbol [Int] -> (List SearchResult)
@@ -767,24 +765,23 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
              `((id . ,id)
                (score . ,(round-to score 3))
                (type . ,type)
-               ,@(result-data->alist type data))))
+               ,@(result-data->alist type id data))))
          results)))
 
-;;; result-data->alist : Symbol Alist -> Alist
+;;; result-data->alist : Symbol Symbol Alist -> Alist
 ;;; Extract type-specific fields from a search result's data payload
-(define (result-data->alist type data)
+(define (result-data->alist type id data)
   (if (not data)
       '()
       (case type
         [(skill)
          (let ([desc (assq 'description data)]
-               [tier (assq 'tier data)]
                [purity (assq 'purity data)]
                [modules-raw (assq 'modules data)])
            `(,@(if (and desc (string? (cdr desc)))
                    `((description . ,(cdr desc)))
                    '())
-             ,@(if tier `((tier . ,(cdr tier))) '())
+             (tier . ,(lattice-depth id))
              ,@(if purity `((purity . ,(cdr purity))) '())
              ,@(if modules-raw
                    `((module-count . ,(length (cdr modules-raw))))

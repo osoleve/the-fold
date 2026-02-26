@@ -1,4 +1,4 @@
-;;; lattice/numeric/finite-diff.ss — Finite Difference Methods
+;;; lattice/pde/finite-diff.ss — Finite Difference Methods
 ;;; @module finite-diff
 ;;; @requires prelude iteration linalg/vec linalg/matrix linalg/sparse
 

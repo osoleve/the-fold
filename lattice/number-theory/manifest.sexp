@@ -1,6 +1,5 @@
 (skill number-theory
   (version "0.3.0")
-  (tier 0)
   (path "lattice/number-theory")
   (purity total)
   (stability stable)

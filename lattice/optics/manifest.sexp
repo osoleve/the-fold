@@ -5,7 +5,6 @@
 
 (skill optics
   (version "1.3.0")
-  (tier 1)
   (path "lattice/optics")
   (purity total)
   (stability stable)

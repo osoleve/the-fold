@@ -2,7 +2,6 @@
 
 (skill physics/classical
   (version "0.1.0")
-  (tier 2)
   (path "lattice/physics/classical")
   (purity partial)  ; World simulation uses mutation
   (stability experimental)

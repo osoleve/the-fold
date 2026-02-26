@@ -1,5 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql-format
+;;; @requires prelude sql-types
 (require 'prelude)
+(require 'sql-types)
 
 (define *sql-format-loaded* #t)
 
@@ -8,9 +11,6 @@
 (doc 'note "Formats SQL AST back to readable SQL strings. Supports configurable formatting options.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-(unless (top-level-bound? '*sql-types-loaded*)
-        (load "lattice/query/sql/types.ss"))
 
 ;;; ====
 ;;; Formatting Options

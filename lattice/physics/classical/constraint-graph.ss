@@ -704,11 +704,3 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
         (printf "  ⚠ Cycles detected - system may be over-constrained\n")
         (printf "  ✓ No cycles - tree-like constraint structure\n"))))
 
-;; Helper: filter-map (like filter but also transforms)
-(define (filter-map f lst)
-  (let loop ([lst lst] [acc '()])
-    (if (null? lst)
-        (reverse acc)
-        (let ([result (f (car lst))])
-          (loop (cdr lst)
-                (if result (cons result acc) acc))))))

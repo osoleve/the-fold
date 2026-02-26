@@ -14,7 +14,7 @@
 ;;; Created: 2026-01-16
 
 (load "core/base/prelude.ss")
-(load "lattice/numeric/interval.ss")
+(load "lattice/interval/interval.ss")
 (load "lattice/optimization/interval-global.ss")
 (load "lattice/optimization/interval-contract.ss")
 (load "lattice/autodiff/interval-autodiff.ss")
@@ -453,7 +453,7 @@
   (display "  lattice/optimization/interval-global.ss   — Branch-and-bound core\n")
   (display "  lattice/optimization/interval-contract.ss — Constraint propagation\n")
   (display "  lattice/autodiff/interval-autodiff.ss     — Interval gradients\n")
-  (display "  lattice/numeric/interval.ss               — Interval arithmetic\n\n")
+  (display "  lattice/interval/interval.ss              — Interval arithmetic\n\n")
 
   (display "Try modifying the demos to explore:\n")
   (display "  - Different search domains\n")

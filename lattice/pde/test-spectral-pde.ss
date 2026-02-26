@@ -1,9 +1,9 @@
-;;; test-spectral-pde.ss — Tests for spectral PDE methods
+;;; lattice/pde/test-spectral-pde.ss — Tests for Spectral PDE Methods
 ;;; @requires test-framework spectral-pde
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/numeric/spectral-pde.ss")
+(load "lattice/pde/spectral-pde.ss")
 
 (define pi-val (pi-value))
 
@@ -133,19 +133,19 @@
 ;;; Test Group: Chebyshev Nodes
 ;;; ============================================================
 
-(test-group "chebyshev-nodes"
+(test-group "spectral-chebyshev-nodes"
 
   (define-test "N=2 gives 3 nodes"
-    (let ([nodes (chebyshev-nodes 2)])
+    (let ([nodes (spectral-chebyshev-nodes 2)])
       (assert-equal 3 (vector-length nodes))))
 
   (define-test "endpoints are ±1"
-    (let ([nodes (chebyshev-nodes 4)])
+    (let ([nodes (spectral-chebyshev-nodes 4)])
       (assert-true (< (abs (- (vector-ref nodes 0) 1.0)) 1e-10))
       (assert-true (< (abs (- (vector-ref nodes 4) -1.0)) 1e-10))))
 
   (define-test "nodes are symmetric"
-    (let ([nodes (chebyshev-nodes 4)])
+    (let ([nodes (spectral-chebyshev-nodes 4)])
       ;; x_j = -x_{N-j}
       (assert-true (< (abs (+ (vector-ref nodes 1) (vector-ref nodes 3))) 1e-10))
       (assert-true (< (abs (vector-ref nodes 2)) 1e-10))))  ; middle node is 0
@@ -182,7 +182,7 @@
   (define-test "derivative of x is 1"
     ;; D applied to [1, x_1, x_2, ..., x_N] at nodes should give [1, 1, ..., 1]
     (let* ([n 4]
-           [x (chebyshev-nodes n)]
+           [x (spectral-chebyshev-nodes n)]
            [D (chebyshev-diff-matrix n)]
            [u x]  ; u(x) = x at the nodes
            [du (chebyshev-diff u D)])
@@ -193,7 +193,7 @@
 
   (define-test "derivative of x² is 2x"
     (let* ([n 8]
-           [x (chebyshev-nodes n)]
+           [x (spectral-chebyshev-nodes n)]
            [D (chebyshev-diff-matrix n)]
            [u (let ([v (make-vector (+ n 1) 0.0)])
                 (do ([i 0 (+ i 1)])
@@ -220,7 +220,7 @@
     (let* ([n 8]
            [f (lambda (x) 2.0)]  ; constant source
            [u (chebyshev-poisson-1d f 0.0 0.0 n)]  ; u(-1) = u(1) = 0
-           [x (chebyshev-nodes n)]
+           [x (spectral-chebyshev-nodes n)]
            ;; Exact at the nodes
            [u-exact (let ([v (make-vector (+ n 1) 0.0)])
                       (do ([i 0 (+ i 1)])
@@ -235,7 +235,7 @@
     (let* ([n 16]
            [f (lambda (x) (* (- (* pi-val pi-val)) (sin (* pi-val x))))]
            [u (chebyshev-poisson-1d f 0.0 0.0 n)]
-           [x (chebyshev-nodes n)]
+           [x (spectral-chebyshev-nodes n)]
            [u-exact (let ([v (make-vector (+ n 1) 0.0)])
                       (do ([i 0 (+ i 1)])
                           ((> i n) v)

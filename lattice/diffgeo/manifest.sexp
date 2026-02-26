@@ -1,6 +1,5 @@
 (skill diffgeo
   (version "0.7.0")
-  (tier 1)
   (path "lattice/diffgeo")
   (purity total)
   (stability experimental)

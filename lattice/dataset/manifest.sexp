@@ -1,6 +1,5 @@
 (skill dataset
   (version "0.1.0")
-  (tier 1)
   (path "lattice/dataset")
   (purity partial)
   (stability experimental)

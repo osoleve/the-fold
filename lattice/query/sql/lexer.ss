@@ -1,3 +1,10 @@
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @module sql-lexer
+;;; @requires prelude parser sql-types
+(require 'prelude)
+(require 'parser)
+(require 'sql-types)
+
 (define *sql-lexer-loaded* #t)
 
 (doc 'module 'sql-lexer)
@@ -5,11 +12,6 @@
 (doc 'note "Token parsers for SQL keywords, operators, and literals. Uses the parser combinator library for case-insensitive keyword matching.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-(unless (top-level-bound? 'make-parser)
-        (load "fp/parsing/parser.ss"))
-(unless (top-level-bound? '*sql-types-loaded*)
-        (load "lattice/query/sql/types.ss"))
 
 ;;; ====
 ;;; Character Constants

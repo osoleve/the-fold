@@ -2,7 +2,6 @@
 
 (skill pipeline
   (version "0.1.0")
-  (tier 2)
   (path "lattice/pipeline")
   (purity partial)
   (stability experimental)
