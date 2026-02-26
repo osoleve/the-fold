@@ -124,6 +124,16 @@
                   '((define (f) `(define ,(get-name) 1))))])
       (assert-true (pair? (memq 'get-name syms)))))
 
+  (define-test "collects symbols from unquote-splicing"
+    (let ([syms (collect-file-symbols
+                  '((define (f xs) `(items ,@(map vec-ref xs)))))])
+      (assert-true (pair? (memq 'vec-ref syms)))))
+
+  (define-test "collects symbols from quasiquoted vectors"
+    (let ([syms (collect-file-symbols
+                  '((define (f x) `#(1 2 ,(vec-ref x 0)))))])
+      (assert-true (pair? (memq 'vec-ref syms)))))
+
   (define-test "collects symbols inside syntax-rules templates"
     (let ([syms (collect-file-symbols
                   '((define-syntax my-mac

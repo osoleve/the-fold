@@ -97,8 +97,12 @@ uncertain (when exports are unknown).")
 ;;; extract-from-quasiquote : SExp -> (List Symbol)
 ;;; Walk quasiquoted data without interpreting special forms.
 ;;; Only extract symbols from unquote/unquote-splicing positions.
+;;; Note: nested quasiquotes (`(a `(b ,c))) over-approximate —
+;;; safe for unused-require detection (errs toward "used").
 (define (extract-from-quasiquote datum)
   (cond
+    [(vector? datum)
+     (extract-from-quasiquote (vector->list datum))]
     [(not (pair? datum)) '()]
     [(and (eq? (car datum) 'unquote) (pair? (cdr datum)))
      (extract-symbols-from-sexp* (cadr datum))]
