@@ -17,8 +17,8 @@ didn't know to search for. Turns point queries into neighborhood browsing.")
 
 (doc 'section 'co-module)
 
-(doc 'type '(-> Symbol (List Symbol)))
-(doc 'description "Find exports from the same module as the given export.
+(doc co-module-exports 'type (-> Symbol (List Symbol)))
+(doc co-module-exports 'description "Find exports from the same module as the given export.
 Returns up to 15 sibling exports (excluding the input symbol).")
 (define (co-module-exports sym)
   (ensure-indexed!)
@@ -36,14 +36,14 @@ Returns up to 15 sibling exports (excluding the input symbol).")
             (kg-exports))
           (take-at-most 15 (reverse siblings))))))
 
-(doc 'type '(-> Symbol (Maybe Symbol)))
-(doc 'description "Find which module an export belongs to.")
+(doc export-module 'type (-> Symbol (Maybe Symbol)))
+(doc export-module 'description "Find which module an export belongs to.")
 (define (export-module sym)
   (ensure-indexed!)
   (hamt-lookup sym *export-module-map*))
 
-(doc 'type '(-> Symbol (Maybe Symbol)))
-(doc 'description "Find which skill an export belongs to.")
+(doc export-skill 'type (-> Symbol (Maybe Symbol)))
+(doc export-skill 'description "Find which skill an export belongs to.")
 (define (export-skill sym)
   (lattice-export-source sym))
 
@@ -53,8 +53,8 @@ Returns up to 15 sibling exports (excluding the input symbol).")
 
 (doc 'section 'co-skill)
 
-(doc 'type '(-> Symbol Nat (List (Pair Symbol Symbol))))
-(doc 'description "Find exports from the same skill but different modules.
+(doc co-skill-exports 'type (-> Symbol Nat (List (Pair Symbol Symbol))))
+(doc co-skill-exports 'description "Find exports from the same skill but different modules.
 Returns a list of (export-name . module-name) pairs, up to k results.
 These are the 'nearby but not adjacent' functions — same domain, different facet.")
 (define (co-skill-exports sym k)
@@ -82,8 +82,8 @@ These are the 'nearby but not adjacent' functions — same domain, different fac
 
 (doc 'section 'export-neighbors)
 
-(doc 'type '(-> Symbol Nat (List (Pair Symbol Number))))
-(doc 'description "Find exports with similar names/terms using BM25 scoring.
+(doc export-neighbors 'type (-> Symbol Nat (List (Pair Symbol Number))))
+(doc export-neighbors 'description "Find exports with similar names/terms using BM25 scoring.
 Tokenizes the input symbol and searches the export index. Filters out
 exact matches. Returns (name . score) pairs ranked by relevance.")
 (define (export-neighbors sym k)
@@ -99,8 +99,8 @@ exact matches. Returns (name . score) pairs ranked by relevance.")
 
 (doc 'section 'related-skills)
 
-(doc 'type '(-> Symbol Alist))
-(doc 'description "Find skills related to the given skill through DAG proximity.
+(doc related-skills 'type (-> Symbol Alist))
+(doc related-skills 'description "Find skills related to the given skill through DAG proximity.
 Returns a tagged alist with:
   - deps: direct dependencies
   - dependents: skills that depend on this one
@@ -120,8 +120,8 @@ Returns a tagged alist with:
           (list 'siblings siblings)
           (list 'nearby nearby))))
 
-(doc 'type '(-> Symbol (List Symbol) (List Symbol)))
-(doc 'description "Find skills that share at least one dependency with the given skill.")
+(doc find-siblings 'type (-> Symbol (List Symbol) (List Symbol)))
+(doc find-siblings 'description "Find skills that share at least one dependency with the given skill.")
 (define (find-siblings skill-name own-deps)
   (if (null? own-deps)
       '()
@@ -138,8 +138,8 @@ Returns a tagged alist with:
                         own-deps)])
         (hamt-keys siblings))))
 
-(doc 'type '(-> Symbol (List Symbol) (List Symbol) (List Symbol)))
-(doc 'description "Find skills within 2 hops in the DAG (excluding self, deps, and dependents).")
+(doc find-nearby 'type (-> Symbol (List Symbol) (List Symbol) (List Symbol)))
+(doc find-nearby 'description "Find skills within 2 hops in the DAG (excluding self, deps, and dependents).")
 (define (find-nearby skill-name deps dependents)
   (let* ([seen (hamt-assoc skill-name #t hamt-empty)]
          [seen (fold-left (lambda (acc d) (hamt-assoc d #t acc)) seen deps)]
@@ -164,8 +164,8 @@ Returns a tagged alist with:
 
 (doc 'section 'browse)
 
-(doc 'type '(-> Symbol Alist))
-(doc 'description "Browse the neighborhood of any symbol. Works for exports, skills, or modules.
+(doc browse-from 'type (-> Symbol Alist))
+(doc browse-from 'description "Browse the neighborhood of any symbol. Works for exports, skills, or modules.
 Returns a tagged alist with the symbol's context: what it is, where it lives,
 and what's nearby. Designed for serendipitous exploration.")
 (define (browse-from sym)
@@ -187,7 +187,7 @@ and what's nearby. Designed for serendipitous exploration.")
                         (list 'symbol sym)
                         (list 'type type))])))))
 
-(doc 'type '(-> Symbol Alist))
+(doc browse-export 'type (-> Symbol Alist))
 (define (browse-export sym)
   (let* ([mod (export-module sym)]
          [skill (export-skill sym)]
@@ -205,7 +205,7 @@ and what's nearby. Designed for serendipitous exploration.")
           (list 'same-skill (map car skill-peers))
           (list 'similar (map car neighbors)))))
 
-(doc 'type '(-> Symbol Alist))
+(doc browse-skill 'type (-> Symbol Alist))
 (define (browse-skill sym)
   (let* ([related (related-skills sym)]
          [data (kg-skill-data sym)]
@@ -223,7 +223,7 @@ and what's nearby. Designed for serendipitous exploration.")
           (list 'siblings (cadr (assq 'siblings (cdr related))))
           (list 'nearby (cadr (assq 'nearby (cdr related)))))))
 
-(doc 'type '(-> Symbol Alist))
+(doc browse-module 'type (-> Symbol Alist))
 (define (browse-module sym)
   (let* ([sym-str (symbol->string sym)]
          ;; Extract skill name from module key (e.g., linalg/vec -> linalg)
@@ -253,8 +253,8 @@ and what's nearby. Designed for serendipitous exploration.")
 
 (doc 'section 'display)
 
-(doc 'type '(-> Symbol Void))
-(doc 'description "Pretty-print the browse result for a symbol. Shows the symbol's context,
+(doc print-browse 'type (-> Symbol Void))
+(doc print-browse 'description "Pretty-print the browse result for a symbol. Shows the symbol's context,
 co-located exports, and related discoveries.")
 (define (print-browse sym)
   (let ([result (browse-from sym)])
@@ -328,8 +328,8 @@ co-located exports, and related discoveries.")
       (printf "\n  Related skills: ~a\n" (format-symbol-list nearby 10)))
     (printf "\n")))
 
-(doc 'type '(-> (List Symbol) Nat String))
-(doc 'description "Format a list of symbols as a space-separated string, truncated to max-count.")
+(doc format-symbol-list 'type (-> (List Symbol) Nat String))
+(doc format-symbol-list 'description "Format a list of symbols as a space-separated string, truncated to max-count.")
 (define (format-symbol-list syms max-count)
   (let* ([shown (take-at-most max-count syms)]
          [hidden (- (length syms) (length shown))]
@@ -346,13 +346,13 @@ co-located exports, and related discoveries.")
 
 (doc 'section 'convenience)
 
-(doc lr 'type '(-> Symbol Void))
+(doc lr 'type (-> Symbol Void))
 (doc lr 'description "Browse related: show the neighborhood of any lattice symbol.
 Works for exports, skills, and modules.")
 (define (lr sym)
   (print-browse sym))
 
-(doc lrr 'type '(-> Symbol Void))
+(doc lrr 'type (-> Symbol Void))
 (doc lrr 'description "Browse related (raw): return the browse data structure instead of printing.")
 (define (lrr sym)
   (browse-from sym))

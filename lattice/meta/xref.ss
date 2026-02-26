@@ -45,7 +45,7 @@
           [(and (pair? (cdr sexp))
                 (symbol? (cadr sexp))
                 (pair? (cddr sexp))
-                (pair? (caddr sexp)))
+                (list? (caddr sexp)))
            (let ([bindings (caddr sexp)]
                  [body (cdddr sexp)])
              (append
@@ -58,7 +58,7 @@
               ;; Extract from body
               (append-map extract-symbols-from-sexp body)))]
           ;; Regular let: (let ([var init] ...) body...)
-          [(and (pair? (cdr sexp)) (pair? (cadr sexp)))
+          [(and (pair? (cdr sexp)) (list? (cadr sexp)))
            (let ([bindings (cadr sexp)]
                  [body (cddr sexp)])
              (append

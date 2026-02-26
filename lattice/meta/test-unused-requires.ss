@@ -110,7 +110,8 @@
   (define-test "handles named let with empty bindings"
     (let ([syms (collect-file-symbols
                   '((let loop () (vec-add a b))))])
-      (assert-true (pair? (memq 'vec-add syms)))))
+      (assert-true (pair? (memq 'vec-add syms)))
+      (assert-true (not (memq 'loop syms)))))
 
   (define-test "collects symbols inside quasiquote unquotes"
     (let ([syms (collect-file-symbols
