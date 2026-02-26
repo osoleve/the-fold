@@ -119,15 +119,14 @@
          [new-vel (state-madd vel dt accel)])
         (list new-pos new-vel)))
 
-;;; verlet-step : ((Number × Pos) → Accel) × Pos × Pos-Prev × Number → (Pos × Pos-Prev)
+;;; verlet-step : ((Number × Pos) → Accel) × Number × Pos × Pos-Prev × Number → (Pos × Pos-Prev)
 ;;; Störmer-Verlet method (position Verlet).
 ;;; x_{n+1} = 2*x_n - x_{n-1} + dt² * a(t_n, x_n)
 ;;;
 ;;; Second-order, symplectic. Requires previous position.
 ;;; Returns new position and current position (which becomes prev).
-(define (verlet-step a pos pos-prev dt)
-  (let* ([t 0]  ; Verlet is autonomous, time not used directly
-         [accel (a t pos)]
+(define (verlet-step a t pos pos-prev dt)
+  (let* ([accel (a t pos)]
          [dt-sq (* dt dt)]
          [new-pos (state-add (state-sub (state-scale 2 pos) pos-prev)
                              (state-scale dt-sq accel))])
@@ -209,7 +208,7 @@
   (let loop ([t t0] [pos pos0] [prev pos-prev0] [i 0] [results (list (list pos0 pos-prev0))])
        (if (>= i n)
            (reverse results)
-           (let* ([result (verlet-step a pos prev dt)]
+           (let* ([result (verlet-step a t pos prev dt)]
                   [new-pos (car result)]
                   [new-prev (cadr result)])
                  (loop (+ t dt) new-pos new-prev (+ i 1) (cons result results))))))
