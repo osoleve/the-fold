@@ -38,6 +38,8 @@
 ;;; Uses Newton-Raphson iteration.
 (define (t-quantile p df)
   (doc 'export #t)
+  (doc 'type '(-> Num Num Num))
+  (doc 'description "Quantile function (inverse CDF) of Student's t-distribution")
   (cond
    [(<= p 0) (error 't-quantile "p must be in (0, 1)" p)]
    [(>= p 1) (error 't-quantile "p must be in (0, 1)" p)]

@@ -17,9 +17,9 @@
 (doc 'purity 'partial)
 
 (doc 'description "ar-fit: Fit AR(p) model using Yule-Walker equations")
-(doc 'description "ar-predict: One-step ahead prediction")
-(doc 'description "ar-forecast: Multi-step forecasting")
-(doc 'description "ar-aic: Model selection via AIC")
+(doc 'description "ar-predict-one: One-step ahead prediction (centered series)")
+(doc 'description "ar-forecast: Multi-step forecasting with confidence intervals")
+(doc 'description "ar-select-order: Model selection via AIC")
 
 (doc 'section 'ar-model-fitting)
 
@@ -89,7 +89,7 @@
                              (+ s (expt (vector-ref residuals t) 2)))))]
          [sigma (sqrt (/ sse (max (- n p) 1)))]
          ;; Compute AIC
-         [aic (ar-aic-value xs phi sigma p n)])
+         [aic (ar-aic-value sigma p n)])
         (make-ar-result phi mean residuals fitted sigma aic p)))
 
 ;;; ar-predict-one : Vec × Vec × Nat × Nat → Num
@@ -177,10 +177,10 @@
 ;;; Model Selection
 ;;; ====
 
-;;; ar-aic-value : Vec × Vec × Num × Nat × Nat → Num
+;;; ar-aic-value : Num × Nat × Nat → Num
 ;;; Compute AIC for AR(p) model.
 ;;; AIC = n * log(sigma^2) + 2*(p + 1)
-(define (ar-aic-value xs phi sigma p n)
+(define (ar-aic-value sigma p n)
   (+ (* n (log (* sigma sigma)))
      (* 2 (+ p 1))))
 

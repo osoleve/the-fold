@@ -14,9 +14,9 @@
 (doc 'purity 'partial)
 
 (doc 'description "ma-fit: Fit MA(q) model via innovations algorithm")
-(doc 'description "ma-predict: One-step ahead prediction")
-(doc 'description "ma-forecast: Multi-step forecasting")
+(doc 'description "ma-forecast: Multi-step forecasting with confidence intervals")
 (doc 'description "moving-average: Simple moving average smoother")
+(doc 'description "exponential-moving-average: EMA with configurable alpha")
 
 (doc 'section 'simple-moving-average-smoother)
 (define (moving-average xs window)

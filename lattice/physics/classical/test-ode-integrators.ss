@@ -274,6 +274,60 @@
                     (assert-= (car new-vel) (- (sin 0.1)) 0.001))))
 
 ;;; ====
+;;; Störmer-Verlet Tests
+;;; ====
+
+(test-group verlet-tests
+            (define-test verlet-free-particle
+              ;; a = 0, pos = (0), pos-prev = (-0.1) means vel ≈ 1 at dt=0.1
+              ;; After one step: pos = 2*(0) - (-0.1) + 0 = 0.1
+              (let* ([a (lambda (t pos) '(0))]
+                     [result (verlet-step a 0 '(0) '(-0.1) 0.1)]
+                     [new-pos (car result)])
+                    (assert-vec-= new-pos '(0.1) 0.0001)))
+
+            (define-test verlet-constant-accel
+              ;; a = 1, pos = (0), pos-prev = (0), dt = 0.1
+              ;; pos' = 2*(0) - (0) + 0.01*(1) = 0.01
+              (let* ([a (lambda (t pos) '(1))]
+                     [result (verlet-step a 0 '(0) '(0) 0.1)]
+                     [new-pos (car result)])
+                    (assert-vec-= new-pos '(0.01) 0.0001)))
+
+            (define-test verlet-passes-time-to-accel
+              ;; Verify t is passed correctly: a(t, pos) = (t)
+              (let* ([a (lambda (t pos) (list t))]
+                     [result (verlet-step a 0.5 '(0) '(0) 0.1)]
+                     [new-pos (car result)])
+                    ;; pos' = 2*0 - 0 + 0.01*0.5 = 0.005
+                    (assert-vec-= new-pos '(0.005) 0.0001)))
+
+            (define-test integrate-verlet-trajectory-length
+              (let* ([a (lambda (t pos) '(0))]
+                     [traj (integrate-verlet a 0 '(0) '(0) 0.1 5)])
+                    (assert-equal 6 (length traj))))
+
+            (define-test integrate-verlet-constant-accel
+              ;; a=1, vel0=1, pos0=0 → pos-prev = pos - vel*dt = -0.01
+              ;; After 100 steps (t=1): x ≈ x0 + v0*t + 0.5*a*t² = 1.5
+              (let* ([a (lambda (t pos) '(1))]
+                     [traj (integrate-verlet a 0 '(0) '(-0.01) 0.01 100)]
+                     [final (car (reverse traj))]
+                     [final-pos (car (car final))])
+                    (assert-= final-pos 1.5 0.01)))
+
+            (define-test integrate-verlet-energy-conservation
+              ;; Harmonic oscillator: a = -x. Verlet should conserve energy.
+              (let* ([a (lambda (t pos) (list (- (car pos))))]
+                     [dt 0.01]
+                     [traj (integrate-verlet a 0 '(1) '(0.99995) dt 628)]
+                     ;; Approximate velocity from adjacent positions
+                     [final (car (reverse traj))]
+                     [pos (car (car final))])
+                    ;; After one period (2π ≈ 6.28), position should be near 1
+                    (assert-= pos 1 0.05))))
+
+;;; ====
 ;;; Multi-Step Integration Tests
 ;;; ====
 

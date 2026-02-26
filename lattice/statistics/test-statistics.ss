@@ -154,6 +154,17 @@
               (let* ([t-val (t-quantile 0.975 30)]
                      [p-back (t-cdf t-val 30)])
                     (assert-true (< (abs (- p-back 0.975)) 0.01))))
+
+            (define-test "t-quantile returns negative for p < 0.5"
+              (let ([q (t-quantile 0.025 10)])
+                   ;; Standard value: t(0.025, 10) ≈ -2.228
+                   (assert-true (< q -2.0))
+                   (assert-true (< (abs (- q -2.228)) 0.01))))
+
+            (define-test "t-quantile symmetric around 0"
+              (let ([q-lo (t-quantile 0.025 10)]
+                    [q-hi (t-quantile 0.975 10)])
+                   (assert-true (< (abs (+ q-lo q-hi)) 0.001))))
             )
 
 ;;; ====
