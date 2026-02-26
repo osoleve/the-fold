@@ -29,12 +29,7 @@ uncertain (when exports are unknown).")
 (doc extract-requires-from-sexps 'type '(-> (List SExp) (List Symbol)))
 (doc extract-requires-from-sexps 'export #t)
 (define (extract-requires-from-sexps sexps)
-  (let loop ([forms sexps] [acc '()])
-    (if (null? forms)
-        (reverse acc)
-        (loop (cdr forms)
-              (append (reverse (extract-require-from-form (car forms)))
-                      acc)))))
+  (append-map extract-require-from-form sexps))
 
 ;;; extract-require-from-form : SExp -> (List Symbol)
 ;;; Extract require targets from a single top-level form.
@@ -108,8 +103,9 @@ uncertain (when exports are unknown).")
      (safe-append-map extract-symbols-from-sexp* sexp)]
     [else
      (case (car sexp)
-       ;; Skip quoted expressions
-       [(quote quasiquote) '()]
+       ;; Skip quoted expressions (but recurse into quasiquote for unquote)
+       [(quote) '()]
+       [(quasiquote) (safe-append-map extract-symbols-from-sexp* (cdr sexp))]
        ;; Handle define — skip the name being defined
        [(define define-record-type define-syntax)
         (if (and (pair? (cdr sexp)) (pair? (cddr sexp)))
@@ -155,8 +151,10 @@ uncertain (when exports are unknown).")
                                (safe-append-map extract-symbols-from-sexp* (cdr clause))
                                '()))
                          (cdr sexp))]
-       ;; Handle syntax-case/syntax-rules — too complex, skip
-       [(syntax-case syntax-rules) '()]
+       ;; Recurse into syntax-case/syntax-rules — over-approximates
+       ;; (collects template symbols) but safe for unused-require detection
+       [(syntax-case syntax-rules)
+        (safe-append-map extract-symbols-from-sexp* (cdr sexp))]
        ;; Handle doc forms — skip (doc ...) since they're metadata
        [(doc) '()]
        ;; Handle require/load — not symbol references

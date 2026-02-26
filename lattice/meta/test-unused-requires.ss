@@ -112,6 +112,18 @@
                   '((let loop () (vec-add a b))))])
       (assert-true (pair? (memq 'vec-add syms)))))
 
+  (define-test "collects symbols inside quasiquote unquotes"
+    (let ([syms (collect-file-symbols
+                  '((define (f x) `(result ,(vec-ref x 0)))))])
+      (assert-true (pair? (memq 'vec-ref syms)))))
+
+  (define-test "collects symbols inside syntax-rules templates"
+    (let ([syms (collect-file-symbols
+                  '((define-syntax my-mac
+                      (syntax-rules ()
+                        [(_ x) (vec-add x x)]))))])
+      (assert-true (pair? (memq 'vec-add syms)))))
+
   (define-test "deduplicates"
     (let ([syms (collect-file-symbols
                   '((define (f x) (+ x (+ x 1)))))])
