@@ -9,7 +9,17 @@
    ("base-grammar.ss" . "Shared SFT grammar (*sft-base-grammar*), make-sft-context, verify decomposition")
    ("analyze.ss"      . "Static analysis: grammar-reachable, grammar-dead-rules, grammar-coverage")
    ("generate.ss"     . "Batch JSONL generation: reads pre-diversification records, emits diversified output")
-   ("test-grammar.ss" . "76 tests covering all combinators, inheritance, analysis, edge cases")))
+   ("test-grammar.ss" . "76 tests covering all combinators, inheritance, analysis, edge cases"))
+
+ (llm-files
+  (("llm/llm-gen.ss"        . "Shared LLM infrastructure: provider discovery, batch orchestration, response parsing")
+   ("llm/meta-template.ss"  . "Template DSL SFT generator: fill, zipper, propagating, undo, try-compile tasks")
+   ("llm/meta-protocol.ss"  . "Protocol system SFT generator: define, dispatch, introspection, multi-protocol")
+   ("llm/meta-refactor.ss"  . "Refactoring toolkit SFT generator: rename, deps, dead-code, move, multi-step")
+   ("llm/meta-lattice.ss"   . "Lattice navigation SFT generator: search, inspect, dep-chain, bridges, discovery")
+   ("llm/rewrite.ss"        . "LLM prompt rewriting: natural language diversity via local vLLM endpoints")
+   ("llm/alternatives.ss"   . "LLM alternative implementations: different correct solutions for same spec")
+   ("llm/run-phase2.ss"     . "Phase 2 pipeline runner: meta-tooling seeds + LLM generation + verify + emit")))
 
  (architecture
   . "Grammar → Expand → Base-Grammar form a pipeline:

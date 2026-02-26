@@ -425,6 +425,31 @@
       (verify-sample gt ve))))
 
 ;;; ====
+;;; JSONL → sexp field adapter
+;;; ====
+
+(define (verify/prepare-jsonl-samples samples)
+  ;; Convert JSONL-loaded samples (string fields) to verification-ready format
+  ;; (sexp fields). Adds ground_truth_sexp and verify_sexp parsed from
+  ;; ground_truth and verify_expr strings.
+  ;; Samples that fail to parse are excluded.
+  (filter-map
+    (lambda (s)
+      (guard (ex [else #f])
+        (let* ([gt-str (cdr (assq 'ground_truth s))]
+               [ve-str (let ([e (assq 'verify_expr s)])
+                         (if e (cdr e) ""))]
+               [gt-sexp (read (open-input-string gt-str))]
+               [ve-sexp (if (or (not (string? ve-str))
+                                (string=? ve-str ""))
+                            #f
+                            (read (open-input-string ve-str)))])
+          (append s
+                  `((ground_truth_sexp . ,gt-sexp)
+                    (verify_sexp . ,ve-sexp))))))
+    samples))
+
+;;; ====
 ;;; REPL interface
 ;;; ====
 
