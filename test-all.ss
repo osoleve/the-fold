@@ -750,6 +750,10 @@
     "meta/test-module-manifest.ss"
     "meta/test-promotion.ss"
     "meta/test-bbs-xref.ss"
+    "meta/test-unused-requires.ss"
+    "meta/test-skill-map.ss"
+    "meta/test-derive-deps.ss"
+    "meta/test-derive-deps-properties.ss"
     ;; Pipeline
     "pipeline/test-stage-context.ss"
     "pipeline/test-rlm2.ss"
