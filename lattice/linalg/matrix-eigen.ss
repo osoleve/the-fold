@@ -533,7 +533,8 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;;
 ;;; Compute the spectral radius (largest absolute eigenvalue).
 (define (spectral-radius a . opts)
-  (let* ([max-iter (if (and (pair? opts) (integer? (car opts)))
+  (let* ([rows (matrix-rows a)]
+         [max-iter (if (and (pair? opts) (integer? (car opts)))
                        (car opts)
                        *eigen-max-iterations*)]
          [rest1 (if (and (pair? opts) (integer? (car opts)))
@@ -542,7 +543,14 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
          [tol (if (and (pair? rest1) (number? (car rest1)))
                   (car rest1)
                   *eigen-tolerance*)]
-         [result (power-iteration a (vec-unit (matrix-rows a) 0) max-iter tol)])
+         ;; Avoid e₁ as the seed: it can be an exact non-dominant eigenvector.
+         [v0 (if (= rows 0)
+                 (vector)
+                 (let ([v (make-vector rows 0.0)])
+                      (do ([i 0 (+ i 1)])
+                          ((= i rows) v)
+                          (vector-set! v i (+ 1.0 i)))))]
+         [result (power-iteration a v0 max-iter tol)])
         (if (and (pair? result) (eq? (car result) 'error))
             result
             (abs (car result)))))

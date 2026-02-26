@@ -325,14 +325,23 @@
   '(;; === Tier 0: Foundational ===
     ;; Linear Algebra
     "linalg/test-vec.ss"
+    "linalg/test-vec-properties.ss"
     "linalg/test-vec2.ss"
+    "linalg/test-vec2-properties.ss"
     "linalg/test-vec3.ss"
+    "linalg/test-vec3-properties.ss"
     "linalg/test-matrix.ss"
+    "linalg/test-matrix-properties.ss"
     "linalg/test-matrix-decomp.ss"
+    "linalg/test-matrix-decomp-properties.ss"
     "linalg/test-matrix-solvers.ss"
+    "linalg/test-matrix-solvers-properties.ss"
     "linalg/test-matrix-eigen.ss"
+    "linalg/test-matrix-eigen-properties.ss"
     "linalg/test-matrix-optics.ss"
+    "linalg/test-matrix-optics-properties.ss"
     "linalg/test-sparse.ss"
+    "linalg/test-sparse-properties.ss"
     "linalg/test-svd.ss"
     "linalg/test-quaternion.ss"
     "linalg/test-iteration.ss"
@@ -382,8 +391,11 @@
     "crypto/test-crypto.ss"
     ;; Number Theory
     "number-theory/test-primality.ss"
+    "number-theory/test-primality-properties.ss"
     "number-theory/test-modular.ss"
+    "number-theory/test-modular-properties.ss"
     "number-theory/test-fast-multiply.ss"
+    "number-theory/test-fast-multiply-properties.ss"
     ;; IPC
     "ipc/test-protocol.ss"
 
@@ -417,9 +429,12 @@
     "info/test-rate-distortion.ss"
     ;; Random
     "random/test-prng.ss"
+    "random/test-prng-properties.ss"
     "random/test-random.ss"
     "random/test-distributions.ss"
+    "random/test-distribution-properties.ss"
     "random/test-probability.ss"
+    "random/test-probability-properties.ss"
     "random/test-monte-carlo.ss"
     "random/test-bayesian.ss"
     "random/test-variational-inference.ss"
