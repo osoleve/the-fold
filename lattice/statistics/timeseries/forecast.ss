@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module forecast
-;;; @requires prelude iteration
+;;; @requires prelude iteration stat/distributions
 (require 'prelude)
 (require 'iteration)
+(require 'stat/distributions)
 
 (doc 'module 'forecast)
 (doc 'description "Forecasting Utilities — Forecast accuracy metrics and utilities")
@@ -167,7 +168,7 @@
                                         (+ s (expt (vector-ref residuals i) 2)))))
                          (max (- n 1) 1)))]
          ;; Get z-score for confidence level
-         [z (standard-normal-quantile-approx (+ 0.5 (/ confidence 2)))]
+         [z (standard-normal-quantile (+ 0.5 (/ confidence 2)))]
          [lower (vec-tabulate h i
                   (let* ([fc (vector-ref forecasts i)]
                          [se (* sigma (sqrt (+ i 1)))]
@@ -180,23 +181,7 @@
                         (+ fc margin)))])
         (list 'forecast-interval-result forecasts lower upper confidence)))
 
-;;; standard-normal-quantile-approx : Num → Num
-;;; Approximate inverse normal CDF.
-(define (standard-normal-quantile-approx p)
-  (if (or (<= p 0) (>= p 1))
-      (if (<= p 0) -1000 1000)  ; Approximation for extremes
-      (let* ([a0 2.515517]
-             [a1 0.802853]
-             [a2 0.010328]
-             [b1 1.432788]
-             [b2 0.189269]
-             [b3 0.001308]
-             [sign (if (< p 0.5) -1 1)]
-             [p* (if (< p 0.5) p (- 1 p))]
-             [t (sqrt (* -2 (log p*)))]
-             [num (+ a0 (* a1 t) (* a2 t t))]
-             [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
-            (* sign (- t (/ num den))))))
+;;; standard-normal-quantile : provided by (require 'distributions)
 
 ;;; ====
 ;;; Forecast Evaluation

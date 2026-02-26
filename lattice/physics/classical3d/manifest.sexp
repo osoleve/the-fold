@@ -31,6 +31,8 @@
    (rigid-body3d "rigid-body3d.ss" "3D rigid body with quaternion orientation and inertia tensors")
    (shapes3d "shapes3d.ss" "3D collision shapes: sphere, box, AABB")
    (collision-detection3d "collision-detection3d.ss" "3D collision detection with spatial hashing")
+   (collision-protocol3d "collision-protocol3d.ss" "Extensible 3D collision response protocols")
+   (collision-impl3d "collision-impl3d.ss" "Collision protocol implementations for rigid-body-3d")
    (constraints3d "constraints3d.ss" "3D constraint data structures for joints")
    (constraint-solver3d "constraint-solver3d.ss" "Iterative 3D constraint solver")
    (world3d "world3d.ss" "3D physics world: entities, simulation stepping, queries")))

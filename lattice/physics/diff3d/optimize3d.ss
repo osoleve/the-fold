@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module optimize3d
-;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d traced-integrators3d rollout3d
+;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d traced-integrators3d rollout3d physics/optimize
 (require 'prelude)
 (require 'vec3)
 (require 'quaternion)
@@ -10,94 +10,25 @@
 (require 'traced-body3d)
 (require 'traced-integrators3d)
 (require 'rollout3d)
+(require 'physics/optimize)
 
 (doc 'module 'optimize3d)
-(doc 'description "3D Trajectory Optimization API - High-level API for differentiable 3D physics optimization: gradient descent and variants (Adam, momentum), trajectory optimization, inverse physics (parameter estimation), sensitivity analysis.")
+(doc 'description "3D Trajectory Optimization API - High-level API for differentiable 3D physics optimization.
+General-purpose optimizers delegate to physics/optimize.
+Physics-specific: trajectory optimization, inverse physics, sensitivity analysis.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
-(doc 'section 'gradient-descent)
-
-;;; gradient-descent-step-3d : (List Number) × (List Number) × Number → (List Number)
-;;; Single gradient descent update: x = x - lr * grad
-(define (gradient-descent-step-3d params grads learning-rate)
-  (map (lambda (p g) (- p (* learning-rate g)))
-       params grads))
-
-;;; gradient-descent-3d : ((List Number) → Number) × (List Number) × Number × Nat → (List Number)
-;;; Vanilla gradient descent optimization.
-(define (gradient-descent-3d loss-fn initial-params learning-rate max-iters)
-  (let loop ([params initial-params] [iter 0])
-       (if (>= iter max-iters)
-           params
-           (let* ([grads (gradient (lambda args (loss-fn args))
-                                   params)]
-                  [new-params (gradient-descent-step-3d params grads learning-rate)])
-                 (loop new-params (+ iter 1))))))
-
 ;;; ====
-;;; Gradient Descent with Momentum
+;;; Optimizer Aliases (delegate to physics/optimize → first-order.ss)
 ;;; ====
 
-;;; momentum-step-3d : (List Number) × (List Number) × (List Number) × Number × Number → ((List Number) × (List Number))
-(define (momentum-step-3d params grads velocity learning-rate beta)
-  (let* ([new-velocity (map (lambda (v g) (+ (* beta v) g))
-                            velocity grads)]
-         [new-params (map (lambda (p v) (- p (* learning-rate v)))
-                          params new-velocity)])
-        (values new-params new-velocity)))
-
-;;; gradient-descent-momentum-3d : ((List Number) → Number) × (List Number) × Number × Number × Nat → (List Number)
-(define (gradient-descent-momentum-3d loss-fn initial-params learning-rate beta max-iters)
-  (let ([initial-velocity (map (lambda (_) 0) initial-params)])
-       (let loop ([params initial-params] [velocity initial-velocity] [iter 0])
-            (if (>= iter max-iters)
-                params
-                (let* ([grads (gradient (lambda args (loss-fn args))
-                                        params)])
-                      (call-with-values
-                       (lambda () (momentum-step-3d params grads velocity learning-rate beta))
-                       (lambda (new-params new-velocity)
-                               (loop new-params new-velocity (+ iter 1)))))))))
-
-;;; ====
-;;; Adam Optimizer
-;;; ====
-
-;;; adam-step-3d : (List Number) × (List Number) × (List Number) × (List Number) × Nat × Number × Number × Number × Number → Values
-(define (adam-step-3d params grads m-prev v-prev t lr beta1 beta2 epsilon)
-  (let* (;; Update biased first moment estimate
-         [m (map (lambda (m-i g) (+ (* beta1 m-i) (* (- 1 beta1) g)))
-                 m-prev grads)]
-         ;; Update biased second moment estimate
-         [v (map (lambda (v-i g) (+ (* beta2 v-i) (* (- 1 beta2) (* g g))))
-                 v-prev grads)]
-         ;; Bias correction
-         [m-hat (map (lambda (m-i) (/ m-i (- 1 (expt beta1 t)))) m)]
-         [v-hat (map (lambda (v-i) (/ v-i (- 1 (expt beta2 t)))) v)]
-         ;; Update parameters
-         [new-params (map (lambda (p mh vh)
-                                  (- p (* lr (/ mh (+ (sqrt vh) epsilon)))))
-                          params m-hat v-hat)])
-        (values new-params m v)))
-
-;;; adam-3d : ((List Number) → Number) × (List Number) × Number × Nat → (List Number)
-;;; Adam optimization with default hyperparameters.
-(define (adam-3d loss-fn initial-params learning-rate max-iters)
-  (let ([beta1 0.9]
-        [beta2 0.999]
-        [epsilon 1e-8]
-        [m-init (map (lambda (_) 0) initial-params)]
-        [v-init (map (lambda (_) 0) initial-params)])
-       (let loop ([params initial-params] [m m-init] [v v-init] [t 1])
-            (if (> t max-iters)
-                params
-                (let* ([grads (gradient (lambda args (loss-fn args))
-                                        params)])
-                      (call-with-values
-                       (lambda () (adam-step-3d params grads m v t learning-rate beta1 beta2 epsilon))
-                       (lambda (new-params new-m new-v)
-                               (loop new-params new-m new-v (+ t 1)))))))))
+(define gradient-descent-step-3d gradient-descent-step)
+(define gradient-descent-3d gradient-descent)
+(define momentum-step-3d momentum-step)
+(define gradient-descent-momentum-3d gradient-descent-momentum)
+(define adam-step-3d adam-step)
+(define adam-3d adam)
 
 ;;; ====
 ;;; 3D Trajectory Optimization
@@ -285,24 +216,11 @@
 ;;; Sensitivity Analysis
 ;;; ====
 
-;;; sensitivity-3d : ((List Number) → Number) × (List Number) → (List Number)
-;;; Compute gradient of loss w.r.t. parameters.
-(define (sensitivity-3d loss-fn params)
-  (gradient (lambda args (apply loss-fn (list args))) params))
+;;; sensitivity-3d : alias for sensitivity from physics/optimize
+(define sensitivity-3d sensitivity)
 
-;;; hessian-diagonal-3d : ((List Number) → Number) × (List Number) × Number → (List Number)
-;;; Approximate diagonal of Hessian using finite differences of gradient.
-(define (hessian-diagonal-3d loss-fn params epsilon)
-  (let ([grads (sensitivity-3d loss-fn params)])
-       (map (lambda (i)
-                    (let* ([params+ (list-update-3d params i (lambda (x) (+ x epsilon)))]
-                           [params- (list-update-3d params i (lambda (x) (- x epsilon)))]
-                           [grad+ (sensitivity-3d loss-fn params+)]
-                           [grad- (sensitivity-3d loss-fn params-)]
-                           [g+ (list-ref grad+ i)]
-                           [g- (list-ref grad- i)])
-                          (/ (- g+ g-) (* 2 epsilon))))
-            (iota-3d (length params)))))
+;;; hessian-diagonal-3d : alias for hessian-diagonal from physics/optimize
+(define hessian-diagonal-3d hessian-diagonal)
 
 ;;; position-sensitivity-3d : RigidBody3D × (TracedBody3D → TracedBody3D) × Nat → (Vec3 × Vec3 × Vec3)
 ;;; How much does initial position affect final position?
@@ -369,21 +287,11 @@
                 (vec3 (car grads-z) (cadr grads-z) (caddr grads-z)))))
 
 ;;; ====
-;;; Utility Functions
+;;; Utility Functions (aliases from physics/optimize)
 ;;; ====
 
-;;; list-update-3d : (List α) × Nat × (α → α) → (List α)
-(define (list-update-3d lst idx f)
-  (if (= idx 0)
-      (cons (f (car lst)) (cdr lst))
-      (cons (car lst) (list-update-3d (cdr lst) (- idx 1) f))))
-
-;;; iota-3d : Nat → (List Nat)
-(define (iota-3d n)
-  (let loop ([i 0])
-       (if (= i n)
-           '()
-           (cons i (loop (+ i 1))))))
+(define list-update-3d list-update)
+(define iota-3d iota)
 
 ;;; ====
 ;;; Complete Optimization Examples

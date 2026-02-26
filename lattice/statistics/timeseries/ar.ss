@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ar
-;;; @requires prelude iteration matrix matrix-decomp matrix-solvers result-types summary-stats acf-pacf
+;;; @requires prelude iteration matrix matrix-decomp matrix-solvers result-types summary-stats acf-pacf stat/distributions
 (require 'prelude)
 (require 'iteration)
 (require 'matrix)
@@ -9,6 +9,7 @@
 (require 'result-types)
 (require 'summary-stats)
 (require 'acf-pacf)
+(require 'stat/distributions)
 
 (doc 'module 'ar)
 (doc 'description "Autoregressive Models — AR(p) model fitting and forecasting")
@@ -219,21 +220,4 @@
            (* (log n) (+ p 1)))))
 
 ;;; ====
-;;; Standard Normal Quantile (helper)
-;;; ====
-
-(define (standard-normal-quantile p)
-  (if (or (<= p 0) (>= p 1))
-      (error 'standard-normal-quantile "p must be in (0, 1)" p)
-      (let* ([a0 2.515517]
-             [a1 0.802853]
-             [a2 0.010328]
-             [b1 1.432788]
-             [b2 0.189269]
-             [b3 0.001308]
-             [sign (if (< p 0.5) -1 1)]
-             [p* (if (< p 0.5) p (- 1 p))]
-             [t (sqrt (* -2 (log p*)))]
-             [num (+ a0 (* a1 t) (* a2 t t))]
-             [den (+ 1 (* b1 t) (* b2 t t) (* b3 t t t))])
-            (* sign (- t (/ num den))))))
+;;; standard-normal-quantile : provided by (require 'distributions)

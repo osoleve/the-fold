@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ode-adaptive
-;;; @requires prelude ode-system
+;;; @requires prelude ode-system ode-state-vec
 (require 'prelude)
 (require 'ode-system)
+(require 'ode-state-vec)
 
 (doc 'module 'ode-adaptive)
 (doc 'description "Generic adaptive step-size ODE solver using embedded Dormand-Prince RK4(5).
@@ -10,28 +11,6 @@ Provides error-controlled integration with PI step controller, min/max dt protec
 and structured result output. Works with list-based state vectors and bridges to ode-system.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
-
-;;; ============================================================
-;;; State Vector Operations (list-based)
-;;; ============================================================
-
-(doc 'section 'state-vectors)
-(doc 'note "State vectors are plain lists of numbers. These operations
-are the same as in ode-integrators.ss but extracted here for independence
-from the physics layer.")
-
-(define (sv-add a b)
-  (map + a b))
-
-(define (sv-sub a b)
-  (map - a b))
-
-(define (sv-scale k v)
-  (map (lambda (x) (* k x)) v))
-
-;;; sv-madd : a + k*b (fused multiply-add)
-(define (sv-madd a k b)
-  (map (lambda (ai bi) (+ ai (* k bi))) a b))
 
 ;;; ============================================================
 ;;; Dormand-Prince RK4(5) Single Step

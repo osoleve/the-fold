@@ -1,12 +1,13 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module world3d
-;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d constraint-solver3d hamt
+;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d collision-impl3d constraint-solver3d hamt
 (require 'prelude)
 (require 'vec3)
 (require 'quaternion)
 (require 'rigid-body3d)
 (require 'shapes3d)
 (require 'collision-detection3d)
+(require 'collision-impl3d)
 (require 'constraint-solver3d)
 (require 'hamt)
 
@@ -531,43 +532,29 @@
                                                             (lambda (e) (entity-3d-with-body e new-body-b))))))))
    collisions))
 
-;;; resolve-collision-3d : RigidBody3D × RigidBody3D × Vec3 × Vec3 × Number × Number → (RigidBody3D × RigidBody3D)
-;;; Apply collision impulse between two bodies.
+;;; resolve-collision-3d : Body × Body × Vec3 × Vec3 × Number × Number → (Body × Body)
+;;; Apply collision impulse between two bodies using protocol dispatch.
 (define (resolve-collision-3d body-a body-b normal contact restitution friction)
   ;; Compute relative velocity at contact point
-  (let* ([vel-a (rigid-body-3d-velocity-at body-a contact)]
-         [vel-b (rigid-body-3d-velocity-at body-b contact)]
-         [rel-vel (vec3-sub vel-a vel-b)]
+  (let* ([rel-vel (vec3-sub (col3d-vel-at body-a contact)
+                            (col3d-vel-at body-b contact))]
          [vel-along-normal (vec3-dot rel-vel normal)])
         ;; Only resolve if approaching
         (if (> vel-along-normal 0)
             (values body-a body-b)  ; Separating, do nothing
-            (let* ([inv-mass-a (rigid-body-3d-inv-mass body-a)]
-                   [inv-mass-b (rigid-body-3d-inv-mass body-b)]
-                   [r-a (vec3-sub contact (rigid-body-3d-pos body-a))]
-                   [r-b (vec3-sub contact (rigid-body-3d-pos body-b))]
-                   ;; Compute effective mass
-                   [r-a-cross-n (vec3-cross r-a normal)]
-                   [r-b-cross-n (vec3-cross r-b normal)]
-                   [inv-inertia-a (rigid-body-3d-inv-inertia-world body-a)]
-                   [inv-inertia-b (rigid-body-3d-inv-inertia-world body-b)]
-                   [ang-term-a (vec3-cross (mat3-mul-vec3 inv-inertia-a r-a-cross-n) r-a)]
-                   [ang-term-b (vec3-cross (mat3-mul-vec3 inv-inertia-b r-b-cross-n) r-b)]
-                   [effective-mass (+ inv-mass-a inv-mass-b
-                                      (vec3-dot ang-term-a normal)
-                                      (vec3-dot ang-term-b normal))]
+            (let* ([effective-mass (col3d-effective-mass body-a body-b contact normal)]
                    ;; Compute impulse magnitude
                    [j (/ (- (* (+ 1 restitution) vel-along-normal))
                          effective-mass)]
                    [impulse (vec3-scale normal j)]
                    ;; Apply impulse
-                   [new-a (rigid-body-3d-apply-impulse body-a impulse contact)]
-                   [new-b (rigid-body-3d-apply-impulse body-b (vec3-negate impulse) contact)])
+                   [new-a (col3d-apply-impulse body-a impulse contact)]
+                   [new-b (col3d-apply-impulse body-b (vec3-negate impulse) contact)])
                   ;; Apply friction
                   (apply-friction-3d new-a new-b contact rel-vel normal j friction)))))
 
-;;; apply-friction-3d : RigidBody3D × RigidBody3D × Vec3 × Vec3 × Vec3 × Number × Number → (RigidBody3D × RigidBody3D)
-;;; Apply friction impulse.
+;;; apply-friction-3d : Body × Body × Vec3 × Vec3 × Vec3 × Number × Number → (Body × Body)
+;;; Apply friction impulse using protocol dispatch.
 (define (apply-friction-3d body-a body-b contact rel-vel normal j-normal friction)
   (let* ([tangent-vel (vec3-sub rel-vel (vec3-scale normal (vec3-dot rel-vel normal)))]
          [tangent-speed (vec3-magnitude tangent-vel)])
@@ -576,8 +563,8 @@
             (let* ([tangent (vec3-scale tangent-vel (/ -1 tangent-speed))]
                    [j-friction (min (* friction (abs j-normal)) tangent-speed)]
                    [friction-impulse (vec3-scale tangent j-friction)]
-                   [new-a (rigid-body-3d-apply-impulse body-a friction-impulse contact)]
-                   [new-b (rigid-body-3d-apply-impulse body-b (vec3-negate friction-impulse) contact)])
+                   [new-a (col3d-apply-impulse body-a friction-impulse contact)]
+                   [new-b (col3d-apply-impulse body-b (vec3-negate friction-impulse) contact)])
                   (values new-a new-b)))))
 
 ;;; world-3d-correct-collision-positions! : World3D × (List Collision3D) → Void

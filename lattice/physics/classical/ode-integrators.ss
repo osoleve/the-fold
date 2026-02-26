@@ -1,7 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ode-integrators
-;;; @requires prelude
+;;; @requires prelude ode-state-vec ode-adaptive
 (require 'prelude)
+(require 'ode-state-vec)
+(require 'ode-adaptive)
 
 (doc 'module 'ode-integrators)
 (doc 'description "Numerical integration (ODE solving) methods for physics and scientific computing")
@@ -13,31 +15,13 @@
 ;;;   - dt is timestep (number)
 
 ;;; ====
-;;; Vector Operations for Integrators
+;;; Vector Operations (backward-compat aliases for ode-state-vec)
 ;;; ====
 
-;;; These work on state vectors represented as lists of numbers
-;;; for simplicity and compatibility with the rest of the codebase.
-
-;;; state-add : (List Number) × (List Number) → (List Number)
-;;; Add two state vectors.
-(define (state-add a b)
-  (map + a b))
-
-;;; state-sub : (List Number) × (List Number) → (List Number)
-;;; Subtract two state vectors.
-(define (state-sub a b)
-  (map - a b))
-
-;;; state-scale : Number × (List Number) → (List Number)
-;;; Scale a state vector by a scalar.
-(define (state-scale k v)
-  (map (lambda (x) (* k x)) v))
-
-;;; state-madd : (List Number) × Number × (List Number) → (List Number)
-;;; Multiply-add: a + k*b (fused for efficiency)
-(define (state-madd a k b)
-  (map (lambda (ai bi) (+ ai (* k bi))) a b))
+(define state-add sv-add)
+(define state-sub sv-sub)
+(define state-scale sv-scale)
+(define state-madd sv-madd)
 
 ;;; ====
 ;;; Explicit Integration Methods
@@ -216,90 +200,23 @@
                  (loop (+ t dt) new-pos new-vel (+ i 1) (cons result results))))))
 
 ;;; ====
-;;; Adaptive Step Size Control
+;;; Adaptive Step Size Control (delegates to ode-adaptive)
 ;;; ====
 
-;;; rk45-step : ((Number × State) → State) × Number × State × Number × Number → (State × Number × Number)
-;;; Embedded RK4(5) method (Dormand-Prince coefficients).
-;;; Returns (new-state, error-estimate, suggested-dt).
-;;;
-;;; Uses 4th order result and 5th order error estimate for adaptive stepping.
-(define (rk45-step f t state dt tol)
-  ;; Dormand-Prince coefficients (simplified version)
-  (let* ([k1 (f t state)]
-         [k2 (f (+ t (* 0.2 dt))
-                (state-madd state (* 0.2 dt) k1))]
-         [k3 (f (+ t (* 0.3 dt))
-                (state-add state
-                           (state-add (state-scale (* 3/40 dt) k1)
-                                      (state-scale (* 9/40 dt) k2))))]
-         [k4 (f (+ t (* 0.8 dt))
-                (state-add state
-                           (state-add (state-scale (* 44/45 dt) k1)
-                                      (state-add (state-scale (* -56/15 dt) k2)
-                                                 (state-scale (* 32/9 dt) k3)))))]
-         [k5 (f (+ t (* 8/9 dt))
-                (state-add state
-                           (state-add (state-scale (* 19372/6561 dt) k1)
-                                      (state-add (state-scale (* -25360/2187 dt) k2)
-                                                 (state-add (state-scale (* 64448/6561 dt) k3)
-                                                            (state-scale (* -212/729 dt) k4))))))]
-         [k6 (f (+ t dt)
-                (state-add state
-                           (state-add (state-scale (* 9017/3168 dt) k1)
-                                      (state-add (state-scale (* -355/33 dt) k2)
-                                                 (state-add (state-scale (* 46732/5247 dt) k3)
-                                                            (state-add (state-scale (* 49/176 dt) k4)
-                                                                       (state-scale (* -5103/18656 dt) k5)))))))]
-         ;; 5th order solution
-         [y5 (state-add state
-                        (state-scale dt
-                                     (state-add (state-scale 35/384 k1)
-                                                (state-add (state-scale 500/1113 k3)
-                                                           (state-add (state-scale 125/192 k4)
-                                                                      (state-add (state-scale -2187/6784 k5)
-                                                                                 (state-scale 11/84 k6)))))))]
-         ;; 4th order solution (for error estimate)
-         [k7 (f (+ t dt) y5)]
-         [y4 (state-add state
-                        (state-scale dt
-                                     (state-add (state-scale 5179/57600 k1)
-                                                (state-add (state-scale 7571/16695 k3)
-                                                           (state-add (state-scale 393/640 k4)
-                                                                      (state-add (state-scale -92097/339200 k5)
-                                                                                 (state-add (state-scale 187/2100 k6)
-                                                                                            (state-scale 1/40 k7))))))))]
-         ;; Error estimate
-         [error-vec (state-sub y5 y4)]
-         [error (sqrt (/ (apply + (map (lambda (e) (* e e)) error-vec))
-                         (length error-vec)))]
-         ;; Suggested new step size (PI controller)
-         [safety 0.9]
-         [new-dt (* dt safety (expt (/ tol (max error 1e-10)) 0.2))])
-        (list y5 error new-dt)))
+;;; rk45-step : backward-compat alias for dp45-step from ode-adaptive
+(define rk45-step dp45-step)
 
 ;;; integrate-adaptive : f × Number × State × Number × Number × Number × Number → (List (Number × State))
-;;; Integrate with adaptive step size control.
-;;; Returns list of (time, state) pairs.
+;;; Wrapper around ode-adaptive-integrate with the original API.
+;;; Returns list of (time state) pairs (not dotted pairs).
 (define (integrate-adaptive f t0 state0 t-end dt-initial tol max-steps)
-  (let loop ([t t0] [state state0] [dt dt-initial] [steps 0] [results (list (list t0 state0))])
-       (cond
-        [(>= t t-end) (reverse results)]
-        [(>= steps max-steps) (reverse results)]
-        [else
-         (let* ([dt-clamped (min dt (- t-end t))]
-                [result (rk45-step f t state dt-clamped tol)]
-                [new-state (car result)]
-                [error (cadr result)]
-                [suggested-dt (caddr result)])
-               (if (< error tol)
-                   ;; Accept step
-                   (loop (+ t dt-clamped) new-state
-                         (min suggested-dt (* 2 dt))  ; Don't grow too fast
-                         (+ steps 1)
-                         (cons (list (+ t dt-clamped) new-state) results))
-                   ;; Reject step, try again with smaller dt
-                   (loop t state (/ dt 2) steps results)))])))
+  (let* ([opts (list (cons 'tolerance tol)
+                     (cons 'max-steps max-steps)
+                     (cons 'initial-dt dt-initial))]
+         [result (ode-adaptive-integrate f t0 state0 t-end opts)]
+         [traj (ode-result-trajectory result)])
+    ;; Convert (time . state) dotted pairs to (time state) lists
+    (map (lambda (pair) (list (car pair) (cdr pair))) traj)))
 
 ;;; ====
 ;;; Energy and Conservation Metrics

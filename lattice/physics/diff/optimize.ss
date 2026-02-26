@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module physics/optimize
-;;; @requires prelude vec2 reverse-diff traced-vec2 traced-body traced-integrators rollout
+;;; @requires prelude vec2 reverse-diff traced-vec2 traced-body traced-integrators rollout first-order
 (require 'prelude)
 (require 'vec2)
 (require 'reverse-diff)
@@ -8,14 +8,17 @@
 (require 'traced-body)
 (require 'traced-integrators)
 (require 'rollout)
+(require 'first-order)
 
 (doc 'module 'optimize)
 (doc 'description "Trajectory Optimization API
 
-Provides general-purpose optimization algorithms and physics-specific utilities:
-- Gradient descent and variants (Adam, momentum)
+Provides physics-specific optimization utilities:
 - Inverse physics (parameter estimation: mass, gravity)
 - Sensitivity analysis (gradients, Hessian diagonal)
+
+Gradient descent delegates to sgd from lattice/optimization/first-order.ss.
+Adam and momentum use local implementations (different loop structure from first-order).
 
 For trajectory optimization, prefer optic-optimize.ss which provides:
   optimize-trajectory-optic        Optimize initial body state
@@ -23,6 +26,14 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
   optimize-initial-velocity-optic  Find velocity to hit target")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
+
+;;; ====
+;;; Optimizer Wrappers (delegate to first-order.ss)
+;;; ====
+
+;;; The physics loss functions take (List Number) → Number, but first-order.ss
+;;; optimizers expect functions taking individual traced values via (apply f args).
+;;; These wrappers adapt the calling convention.
 
 (doc 'section 'gradient-descent)
 
@@ -33,24 +44,9 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
        params grads))
 
 ;;; gradient-descent : ((List Number) → Number) × (List Number) × Number × Nat → (List Number)
-;;; Vanilla gradient descent optimization.
-;;;   loss-fn: function to minimize
-;;;   initial-params: starting point
-;;;   learning-rate: step size
-;;;   max-iters: maximum iterations
-;;; Returns optimized parameters.
+;;; Vanilla gradient descent optimization. Delegates to sgd from first-order.ss.
 (define (gradient-descent loss-fn initial-params learning-rate max-iters)
-  (let loop ([params initial-params] [iter 0])
-       (if (>= iter max-iters)
-           params
-           (let* ([grads (gradient (lambda args (loss-fn args))
-                                   params)]
-                  [new-params (gradient-descent-step params grads learning-rate)])
-                 (loop new-params (+ iter 1))))))
-
-;;; ====
-;;; Gradient Descent with Momentum
-;;; ====
+  (sgd (lambda args (loss-fn args)) initial-params learning-rate max-iters))
 
 ;;; momentum-step : (List Number) × (List Number) × (List Number) × Number × Number → ((List Number) × (List Number))
 ;;; Momentum update: v = beta*v + grad, x = x - lr*v
@@ -64,56 +60,43 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; gradient-descent-momentum : ((List Number) → Number) × (List Number) × Number × Number × Nat → (List Number)
 ;;; Gradient descent with momentum.
 (define (gradient-descent-momentum loss-fn initial-params learning-rate beta max-iters)
-  (let ([initial-velocity (map (lambda (_) 0) initial-params)])
-       (let loop ([params initial-params] [velocity initial-velocity] [iter 0])
-            (if (>= iter max-iters)
-                params
-                (let* ([grads (gradient (lambda args (loss-fn args))
-                                        params)])
-                      (call-with-values
-                       (lambda () (momentum-step params grads velocity learning-rate beta))
-                       (lambda (new-params new-velocity)
-                               (loop new-params new-velocity (+ iter 1)))))))))
+  (let loop ([params initial-params]
+             [velocity (map (lambda (_) 0) initial-params)]
+             [iter 0])
+       (if (>= iter max-iters)
+           params
+           (let ([grads (gradient (lambda args (loss-fn args)) params)])
+                (call-with-values
+                 (lambda () (momentum-step params grads velocity learning-rate beta))
+                 (lambda (new-params new-velocity)
+                         (loop new-params new-velocity (+ iter 1))))))))
 
-;;; ====
-;;; Adam Optimizer
-;;; ====
-
-;;; adam-step : (List Number) × (List Number) × (List Number) × (List Number) × Nat × Number × Number × Number × Number → ((List Number) × (List Number) × (List Number))
-;;; Adam optimizer update.
-(define (adam-step params grads m-prev v-prev t lr beta1 beta2 epsilon)
-  (let* (;; Update biased first moment estimate
-         [m (map (lambda (m-i g) (+ (* beta1 m-i) (* (- 1 beta1) g)))
-                 m-prev grads)]
-         ;; Update biased second moment estimate
-         [v (map (lambda (v-i g) (+ (* beta2 v-i) (* (- 1 beta2) (* g g))))
-                 v-prev grads)]
-         ;; Bias correction
-         [m-hat (map (lambda (m-i) (/ m-i (- 1 (expt beta1 t)))) m)]
-         [v-hat (map (lambda (v-i) (/ v-i (- 1 (expt beta2 t)))) v)]
-         ;; Update parameters
+;;; adam-step : (List Number) × (List Number) × (List Number) × (List Number) × Nat × Number × Number × Number × Number → (values (List Number) (List Number) (List Number))
+;;; Single Adam optimizer update step.
+(define (adam-step params grads m v t learning-rate beta1 beta2 epsilon)
+  (let* ([new-m (map (lambda (mi gi) (+ (* beta1 mi) (* (- 1 beta1) gi))) m grads)]
+         [new-v (map (lambda (vi gi) (+ (* beta2 vi) (* (- 1 beta2) (* gi gi)))) v grads)]
+         [m-hat (map (lambda (mi) (/ mi (- 1 (expt beta1 t)))) new-m)]
+         [v-hat (map (lambda (vi) (/ vi (- 1 (expt beta2 t)))) new-v)]
          [new-params (map (lambda (p mh vh)
-                                  (- p (* lr (/ mh (+ (sqrt vh) epsilon)))))
+                                  (- p (* learning-rate (/ mh (+ (sqrt vh) epsilon)))))
                           params m-hat v-hat)])
-        (values new-params m v)))
+        (values new-params new-m new-v)))
 
 ;;; adam : ((List Number) → Number) × (List Number) × Number × Nat → (List Number)
 ;;; Adam optimization with default hyperparameters.
 (define (adam loss-fn initial-params learning-rate max-iters)
-  (let ([beta1 0.9]
-        [beta2 0.999]
-        [epsilon 1e-8]
-        [m-init (map (lambda (_) 0) initial-params)]
-        [v-init (map (lambda (_) 0) initial-params)])
-       (let loop ([params initial-params] [m m-init] [v v-init] [t 1])
-            (if (> t max-iters)
-                params
-                (let* ([grads (gradient (lambda args (loss-fn args))
-                                        params)])
-                      (call-with-values
-                       (lambda () (adam-step params grads m v t learning-rate beta1 beta2 epsilon))
-                       (lambda (new-params new-m new-v)
-                               (loop new-params new-m new-v (+ t 1)))))))))
+  (let loop ([params initial-params]
+             [m (map (lambda (_) 0) initial-params)]
+             [v (map (lambda (_) 0) initial-params)]
+             [t 1])
+       (if (> t max-iters)
+           params
+           (let ([grads (gradient (lambda args (loss-fn args)) params)])
+                (call-with-values
+                 (lambda () (adam-step params grads m v t learning-rate 0.9 0.999 1e-8))
+                 (lambda (new-params new-m new-v)
+                         (loop new-params new-m new-v (+ t 1))))))))
 
 ;;; ====
 ;;; Inverse Physics (Parameter Estimation)

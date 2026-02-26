@@ -49,6 +49,7 @@
    (attractor-render render-attractor render-attractor-colored
                      render-spinning-attractor render-spinning-attractor-colored
                      demo-lorenz demo-rossler)
+   (ode-state-vec sv-add sv-sub sv-scale sv-madd sv-norm)
    (ode-adaptive dp45-step ode-adaptive-integrate ode-solve ode-solve/tol
                  ode-system-integrate ode-result-trajectory ode-result-steps
                  ode-result-rejections ode-result-truncated? ode-result-final
@@ -77,6 +78,7 @@
    (chaos "dynamics/chaos.ss" "Chaos detection, Lyapunov exponents, strange attractors")
    (bifurcation "dynamics/bifurcation.ss" "Bifurcation analysis: parameter continuation, detection, diagrams")
    (attractor-render "dynamics/attractor-render.ss" "ASCII visualization of attractors")
+   (ode-state-vec "dynamics/ode-state-vec.ss" "State vector arithmetic for ODE solvers")
    (ode-adaptive "dynamics/ode-adaptive.ss" "Adaptive step-size ODE solver (Dormand-Prince RK4(5))")
    (sim/discrete "dynamics/discrete.ss" "Discrete-time dynamical systems and maps")
    (ode-state-space "dynamics/ode-state-space.ss" "ODE integration for state-space models")

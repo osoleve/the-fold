@@ -27,6 +27,7 @@
    (traced-vec2 traced-vec2))
 
   (modules
+   (dynamics-ops "dynamics-ops.ss" "Dimension-agnostic rollout loop machinery (shared by 2D and 3D)")
    (traced-vec2 "traced-vec2.ss" "AD-enabled 2D vectors")
    (traced-body "traced-body.ss" "Differentiable rigid body state")
    (traced-integrators "traced-integrators.ss" "Symplectic integrators with AD")

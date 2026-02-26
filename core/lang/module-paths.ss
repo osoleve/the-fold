@@ -188,6 +188,7 @@
  (register-module-path! 'lie-groups "lattice/diffgeo/lie-groups.ss")
 
  ;; Sim layer
+ (register-module-path! 'ode-state-vec "lattice/sim/dynamics/ode-state-vec.ss")
  (register-module-path! 'ode-system "lattice/sim/dynamics/ode-system.ss")
  (register-module-path! 'ode-state-space "lattice/sim/dynamics/ode-state-space.ss")
  (register-module-path! 'chaos "lattice/sim/dynamics/chaos.ss")
@@ -524,10 +525,13 @@
  (register-module-path! 'shapes3d "lattice/physics/classical3d/shapes3d.ss")
  (register-module-path! 'collision-detection3d "lattice/physics/classical3d/collision-detection3d.ss")
  (register-module-path! 'constraints3d "lattice/physics/classical3d/constraints3d.ss")
+ (register-module-path! 'collision-protocol3d "lattice/physics/classical3d/collision-protocol3d.ss")
+ (register-module-path! 'collision-impl3d "lattice/physics/classical3d/collision-impl3d.ss")
  (register-module-path! 'constraint-solver3d "lattice/physics/classical3d/constraint-solver3d.ss")
  (register-module-path! 'world3d "lattice/physics/classical3d/world3d.ss")
 
- ;; Physics diff (2D differentiable)
+ ;; Physics diff (shared + 2D differentiable)
+ (register-module-path! 'dynamics-ops "lattice/physics/diff/dynamics-ops.ss")
  (register-module-path! 'traced-vec2 "lattice/physics/diff/traced-vec2.ss")
  (register-module-path! 'traced-body "lattice/physics/diff/traced-body.ss")
  (register-module-path! 'traced-body-protocols "lattice/physics/diff/traced-body-protocols.ss")

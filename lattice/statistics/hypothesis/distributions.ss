@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module stat/distributions
-;;; @requires prelude transcendental special-functions
+;;; @requires prelude transcendental special-functions protocol
 (require 'prelude)
 (require 'transcendental)
 (require 'special-functions)
+(require 'protocol)
 
 (doc 'module 'distributions)
 (doc 'description "Test Statistic Distributions — CDF and quantile functions for t, chi-squared, and F distributions")
@@ -66,6 +67,9 @@
 
 ;;; standard-normal-quantile : Num → Num
 ;;; Quantile function for N(0,1) using rational approximation.
+;;; Canonical version lives in random/distributions.ss but we keep a local copy
+;;; here because requiring 'distributions would shadow the Chez `gamma` function
+;;; with the gamma distribution constructor.
 (define (standard-normal-quantile p)
   (if (or (<= p 0) (>= p 1))
       (error 'standard-normal-quantile "p must be in (0, 1)" p)
@@ -237,3 +241,33 @@
 (define (f-pvalue f-stat df1 df2)
   (doc 'export #t)
   (- 1 (f-cdf f-stat df1 df2)))
+
+;;; ====
+;;; dist-* Protocol Registrations
+;;; ====
+
+;;; Constructors for protocol dispatch: (student-t df), (chi-squared df), (f-dist df1 df2)
+(define (student-t df) (list 'student-t df))
+(define (chi-squared df) (list 'chi-squared df))
+(define (f-dist df1 df2) (list 'f-dist df1 df2))
+
+(implement-protocol! 'dist-pdf 'student-t
+  (lambda (d x) (t-pdf x (cadr d))))
+(implement-protocol! 'dist-cdf 'student-t
+  (lambda (d x) (t-cdf x (cadr d))))
+(implement-protocol! 'dist-quantile 'student-t
+  (lambda (d p) (t-quantile p (cadr d))))
+
+(implement-protocol! 'dist-pdf 'chi-squared
+  (lambda (d x) (chi-squared-pdf x (cadr d))))
+(implement-protocol! 'dist-cdf 'chi-squared
+  (lambda (d x) (chi-squared-cdf x (cadr d))))
+(implement-protocol! 'dist-quantile 'chi-squared
+  (lambda (d p) (chi-squared-quantile p (cadr d))))
+
+(implement-protocol! 'dist-pdf 'f-dist
+  (lambda (d x) (f-pdf x (cadr d) (caddr d))))
+(implement-protocol! 'dist-cdf 'f-dist
+  (lambda (d x) (f-cdf x (cadr d) (caddr d))))
+(implement-protocol! 'dist-quantile 'f-dist
+  (lambda (d p) (f-quantile p (cadr d) (caddr d))))

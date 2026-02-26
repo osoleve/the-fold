@@ -1,12 +1,13 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module rollout
-;;; @requires prelude vec2 reverse-diff traced-vec2 traced-body traced-integrators
+;;; @requires prelude vec2 reverse-diff traced-vec2 traced-body traced-integrators dynamics-ops
 (require 'prelude)
 (require 'vec2)
 (require 'reverse-diff)
 (require 'traced-vec2)
 (require 'traced-body)
 (require 'traced-integrators)
+(require 'dynamics-ops)
 
 (doc 'module 'rollout)
 (doc 'description "Multi-Step Simulation with Checkpointing
@@ -25,11 +26,7 @@ Memory management:
 ;;; traced-rollout : TracedBody × (TracedBody → TracedBody) × Nat → TracedBody
 ;;; Roll out simulation for n steps using step function.
 ;;; Accumulates full tape for gradient computation.
-(define (traced-rollout initial-body step-fn n)
-  (let loop ([body initial-body] [i 0])
-       (if (>= i n)
-           body
-           (loop (step-fn body) (+ i 1)))))
+(define traced-rollout generic-rollout)
 
 ;;; traced-rollout-with-gravity : TracedBody × TracedVec2 × Number × Nat → TracedBody
 ;;; Simple rollout with constant gravity.
@@ -60,16 +57,10 @@ Memory management:
 ;;; traced-rollout-trajectory : TracedBody × (TracedBody → TracedBody) × Nat → (List TracedBody)
 ;;; Roll out and collect all intermediate states.
 ;;; Returns list of states from step 0 to step n.
-(define (traced-rollout-trajectory initial-body step-fn n)
-  (let loop ([body initial-body] [i 0] [trajectory (list initial-body)])
-       (if (>= i n)
-           (reverse trajectory)
-           (let ([new-body (step-fn body)])
-                (loop new-body (+ i 1) (cons new-body trajectory))))))
+(define traced-rollout-trajectory generic-rollout-trajectory)
 
 ;;; traced-trajectory-final : (List TracedBody) → TracedBody
-(define (traced-trajectory-final traj)
-  (car (reverse traj)))
+(define traced-trajectory-final generic-trajectory-final)
 
 ;;; ====
 ;;; Gradient Checkpointing
@@ -86,28 +77,13 @@ Memory management:
 ;;; checkpoint-interval : Nat → Nat
 ;;; Compute optimal checkpoint interval for T steps.
 ;;; Returns approximately sqrt(T).
-(define (checkpoint-interval num-steps)
-  (max 1 (exact (ceiling (sqrt num-steps)))))
+(define checkpoint-interval generic-checkpoint-interval)
 
 ;;; rollout-checkpoints : RigidBody2D × (RigidBody2D → RigidBody2D) × Nat × Nat → (Vector RigidBody2D)
 ;;; Roll out simulation storing checkpoints.
 ;;; Uses non-traced arithmetic to save memory.
 ;;; checkpoint-freq: save state every checkpoint-freq steps
-(define (rollout-checkpoints initial-body step-fn num-steps checkpoint-freq)
-  (let* ([num-checkpoints (+ 1 (exact (ceiling (/ num-steps checkpoint-freq))))]
-         [checkpoints (make-vector num-checkpoints)])
-        (vector-set! checkpoints 0 initial-body)
-        (let loop ([body initial-body] [step 0] [ckpt-idx 1])
-             (if (>= step num-steps)
-                 checkpoints
-                 (let ([new-body (step-fn body)]
-                       [next-step (+ step 1)])
-                      (if (and (= (mod next-step checkpoint-freq) 0)
-                               (< ckpt-idx num-checkpoints))
-                          (begin
-                           (vector-set! checkpoints ckpt-idx new-body)
-                           (loop new-body next-step (+ ckpt-idx 1)))
-                          (loop new-body next-step ckpt-idx)))))))
+(define rollout-checkpoints generic-rollout-checkpoints)
 
 ;;; ====
 ;;; Segment-wise Gradient Computation
@@ -118,8 +94,7 @@ Memory management:
 
 ;;; traced-segment-rollout : TracedBody × (TracedBody → TracedBody) × Nat → TracedBody
 ;;; Roll out a single segment with full gradient tracking.
-(define (traced-segment-rollout initial-body step-fn segment-length)
-  (traced-rollout initial-body step-fn segment-length))
+(define traced-segment-rollout generic-rollout)
 
 ;;; compute-segment-gradient : RigidBody2D × (RigidBody2D → RigidBody2D) × (RigidBody2D → Number) × Nat → (Vec2 × Vec2 × Number × Number)
 ;;; Compute gradient of loss w.r.t. initial state for one segment.
@@ -289,8 +264,4 @@ Memory management:
 ;;; traced-rollout-substep : TracedBody × (TracedBody → TracedBody) × Nat × Nat → TracedBody
 ;;; Roll out with substepping.
 ;;; substeps: number of sub-iterations per main step
-(define (traced-rollout-substep initial-body step-fn num-steps substeps)
-  (traced-rollout initial-body
-                  (lambda (body)
-                          (traced-rollout body step-fn substeps))
-                  num-steps))
+(define traced-rollout-substep generic-rollout-substep)

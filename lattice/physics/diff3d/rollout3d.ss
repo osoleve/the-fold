@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module rollout3d
-;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d traced-integrators3d
+;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d traced-integrators3d dynamics-ops
 (require 'prelude)
 (require 'vec3)
 (require 'quaternion)
@@ -9,6 +9,7 @@
 (require 'traced-quaternion)
 (require 'traced-body3d)
 (require 'traced-integrators3d)
+(require 'dynamics-ops)
 
 (doc 'module 'rollout3d)
 (doc 'description "Multi-Step 3D Simulation with Checkpointing - Rollout functions for simulating 3D physics over multiple timesteps with gradient computation. Includes checkpointing for memory efficiency.")
@@ -21,11 +22,7 @@
 ;;; traced-rollout-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat → TracedBody3D
 ;;; Roll out simulation for n steps using step function.
 ;;; Accumulates full tape for gradient computation.
-(define (traced-rollout-3d initial-body step-fn n)
-  (let loop ([body initial-body] [i 0])
-       (if (>= i n)
-           body
-           (loop (step-fn body) (+ i 1)))))
+(define traced-rollout-3d generic-rollout)
 
 ;;; traced-rollout-with-gravity-3d : TracedBody3D × TracedVec3 × Number × Nat → TracedBody3D
 ;;; Simple rollout with constant gravity.
@@ -56,16 +53,10 @@
 ;;; traced-rollout-trajectory-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat → (List TracedBody3D)
 ;;; Roll out and collect all intermediate states.
 ;;; Returns list of states from step 0 to step n.
-(define (traced-rollout-trajectory-3d initial-body step-fn n)
-  (let loop ([body initial-body] [i 0] [trajectory (list initial-body)])
-       (if (>= i n)
-           (reverse trajectory)
-           (let ([new-body (step-fn body)])
-                (loop new-body (+ i 1) (cons new-body trajectory))))))
+(define traced-rollout-trajectory-3d generic-rollout-trajectory)
 
 ;;; traced-trajectory-final-3d : (List TracedBody3D) → TracedBody3D
-(define (traced-trajectory-final-3d traj)
-  (car (reverse traj)))
+(define traced-trajectory-final-3d generic-trajectory-final)
 
 ;;; ====
 ;;; Gradient Checkpointing
@@ -78,28 +69,13 @@
 ;;; checkpoint-interval-3d : Nat → Nat
 ;;; Compute optimal checkpoint interval for T steps.
 ;;; Returns approximately sqrt(T).
-(define (checkpoint-interval-3d num-steps)
-  (max 1 (exact (ceiling (sqrt num-steps)))))
+(define checkpoint-interval-3d generic-checkpoint-interval)
 
 ;;; rollout-checkpoints-3d : RigidBody3D × (RigidBody3D → RigidBody3D) × Nat × Nat → (Vector RigidBody3D)
 ;;; Roll out simulation storing checkpoints.
 ;;; Uses non-traced arithmetic to save memory.
 ;;; checkpoint-freq: save state every checkpoint-freq steps
-(define (rollout-checkpoints-3d initial-body step-fn num-steps checkpoint-freq)
-  (let* ([num-checkpoints (+ 1 (exact (ceiling (/ num-steps checkpoint-freq))))]
-         [checkpoints (make-vector num-checkpoints)])
-        (vector-set! checkpoints 0 initial-body)
-        (let loop ([body initial-body] [step 0] [ckpt-idx 1])
-             (if (>= step num-steps)
-                 checkpoints
-                 (let ([new-body (step-fn body)]
-                       [next-step (+ step 1)])
-                      (if (and (= (mod next-step checkpoint-freq) 0)
-                               (< ckpt-idx num-checkpoints))
-                          (begin
-                           (vector-set! checkpoints ckpt-idx new-body)
-                           (loop new-body next-step (+ ckpt-idx 1)))
-                          (loop new-body next-step ckpt-idx)))))))
+(define rollout-checkpoints-3d generic-rollout-checkpoints)
 
 ;;; ====
 ;;; Segment-wise Gradient Computation
@@ -110,8 +86,7 @@
 
 ;;; traced-segment-rollout-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat → TracedBody3D
 ;;; Roll out a single segment with full gradient tracking.
-(define (traced-segment-rollout-3d initial-body step-fn segment-length)
-  (traced-rollout-3d initial-body step-fn segment-length))
+(define traced-segment-rollout-3d generic-rollout)
 
 ;;; ====
 ;;; Full Checkpointed Gradient (3D)
@@ -278,11 +253,7 @@
 ;;; traced-rollout-substep-3d : TracedBody3D × (TracedBody3D → TracedBody3D) × Nat × Nat → TracedBody3D
 ;;; Roll out with substepping.
 ;;; substeps: number of sub-iterations per main step
-(define (traced-rollout-substep-3d initial-body step-fn num-steps substeps)
-  (traced-rollout-3d initial-body
-                     (lambda (body)
-                             (traced-rollout-3d body step-fn substeps))
-                     num-steps))
+(define traced-rollout-substep-3d generic-rollout-substep)
 
 ;;; ====
 ;;; Collision Rollout (with soft contacts)
@@ -324,20 +295,11 @@
 
 ;;; traced-system-rollout-3d : (Vector TracedBody3D) × ((Vector TracedBody3D) → (Vector TracedBody3D)) × Nat → (Vector TracedBody3D)
 ;;; Roll out multi-body system.
-(define (traced-system-rollout-3d initial-bodies step-fn n)
-  (let loop ([bodies initial-bodies] [i 0])
-       (if (>= i n)
-           bodies
-           (loop (step-fn bodies) (+ i 1)))))
+(define traced-system-rollout-3d generic-rollout)
 
 ;;; traced-system-trajectory-3d : (Vector TracedBody3D) × ((Vector TracedBody3D) → (Vector TracedBody3D)) × Nat → (List (Vector TracedBody3D))
 ;;; Collect trajectory for multi-body system.
-(define (traced-system-trajectory-3d initial-bodies step-fn n)
-  (let loop ([bodies initial-bodies] [i 0] [trajectory (list initial-bodies)])
-       (if (>= i n)
-           (reverse trajectory)
-           (let ([new-bodies (step-fn bodies)])
-                (loop new-bodies (+ i 1) (cons new-bodies trajectory))))))
+(define traced-system-trajectory-3d generic-rollout-trajectory)
 
 ;;; ====
 ;;; Pendulum System Rollout
