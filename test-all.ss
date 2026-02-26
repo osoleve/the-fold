@@ -385,7 +385,6 @@
     "algebra/test-group.ss"
     "algebra/test-poly-bridge.ss"
     "algebra/test-tropical-graph.ss"
-    "egraph/test-egraph-groebner.ss"
     "algebra/test-algebra-laws.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
@@ -441,7 +440,6 @@
     "random/test-probability-properties.ss"
     "random/test-monte-carlo.ss"
     "random/test-bayesian.ss"
-    "autodiff/test-variational-inference.ss"
     ;; QuickCheck
     "quickcheck/test-quickcheck.ss"
     "quickcheck/test-laws.ss"
@@ -557,7 +555,6 @@
     "optimization/test-interval-contract.ss"
     "optimization/test-interval-newton.ss"
     "optimization/test-maxsat-bridge.ss"
-    "topology/test-topo-landscape.ss"
     ;; Query
     "query/test-optic-query.ss"
     "query/test-query-macro.ss"
@@ -582,6 +579,7 @@
     "autodiff/test-differentiable-signal.ss"
     "autodiff/test-profiling.ss"
     "autodiff/test-ode-jacobian.ss"
+    "autodiff/test-variational-inference.ss"
     ;; E-Graphs
     "egraph/test-union-find.ss"
     "egraph/test-eclass.ss"
@@ -591,6 +589,7 @@
     "egraph/test-cost.ss"
     "egraph/test-saturation.ss"
     "egraph/test-scheduler.ss"
+    "egraph/test-egraph-groebner.ss"
     ;; Differential Geometry
     "diffgeo/test-charts.ss"
     "diffgeo/test-tangent.ss"
@@ -678,6 +677,7 @@
     "topology/test-homology.ss"
     "topology/test-simplicial-complex.ss"
     "topology/test-persistent.ss"
+    "topology/test-topo-landscape.ss"
     ;; Automata
     "automata/test-statechart.ss"
     "automata/test-statechart-zipper.ss"
