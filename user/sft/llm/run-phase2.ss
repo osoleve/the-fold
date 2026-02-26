@@ -31,9 +31,9 @@
 ;;; ====
 
 (define *phase2-output-root* "data/phase2")
-(define *phase1-input* "data/phase1-combined/all.jsonl")
-(define *rewrite-sample-count* 100)   ; pilot (full: 3000)
-(define *alt-sample-count* 100)       ; pilot (full: 2000)
+(define *phase1-input* "data/phase1+3-combined.jsonl")
+(define *rewrite-sample-count* 3000)  ; full run
+(define *alt-sample-count* 2000)      ; full run
 (define *verify-meta-samples* #t)   ; verify meta-tooling seeds?
 
 ;;; ====

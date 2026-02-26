@@ -105,6 +105,77 @@
               [else
                (rlm-parse-relay-response resp-line)]))))))
 
+;;; rlm-relay-batch-request! : (List BatchReq) Nat Nat -> (List (Pair String Result))
+;;; BatchReq: (id url headers body timeout)
+;;; Result: (ok body-string) | (err code msg)
+;;; Send concurrent batch through the relay. Returns results keyed by id.
+(define (rlm-relay-batch-request! requests concurrency timeout)
+  (rlm-relay-ensure!)
+  (if (not *rlm-relay-to*)
+      (map (lambda (r)
+             (cons (car r) (list 'err 'relay-unavailable "HTTP relay failed to start")))
+           requests)
+      (guard (ex [else
+                  (rlm-relay-stop!)
+                  (map (lambda (r)
+                         (cons (car r)
+                               (list 'err 'relay-error
+                                     (format "Relay batch error: ~a"
+                                             (if (message-condition? ex)
+                                                 (condition-message ex)
+                                                 "unknown")))))
+                       requests)])
+        (let* ([batch-items
+                (map (lambda (r)
+                       `((id . ,(list-ref r 0))
+                         (url . ,(list-ref r 1))
+                         (headers . ,(list-ref r 2))
+                         (body . ,(list-ref r 3))
+                         (timeout . ,(list-ref r 4))))
+                     requests)]
+               [batch-obj `((batch . ,batch-items)
+                            (concurrency . ,concurrency)
+                            (timeout . ,timeout))]
+               [req-line (json->string batch-obj)])
+          (display req-line *rlm-relay-to*)
+          (newline *rlm-relay-to*)
+          (flush-output-port *rlm-relay-to*)
+          (let ([resp-line (get-line *rlm-relay-from*)])
+            (cond
+              [(eof-object? resp-line)
+               (rlm-relay-stop!)
+               (map (lambda (r)
+                      (cons (car r) (list 'err 'relay-eof "Relay process exited")))
+                    requests)]
+              [else
+               (let ([parsed (parse-json-string resp-line)])
+                 (if (and parsed (assq 'batch parsed))
+                     (map (lambda (item)
+                            (let ([id (cdr (assq 'id item))]
+                                  [status (assq 'status item)]
+                                  [body (assq 'body item)]
+                                  [err (assq 'error item)])
+                              (cons id
+                                    (cond
+                                      [(and err (cdr err))
+                                       (list 'err 'relay-upstream (cdr err))]
+                                      [(and status (>= (cdr status) 200)
+                                            (< (cdr status) 300) body)
+                                       (list 'ok (cdr body))]
+                                      [body
+                                       (list 'ok (cdr body))]
+                                      [else
+                                       (list 'err 'relay-http
+                                             (format "HTTP ~a, no body"
+                                                     (if status (cdr status) "unknown")))]))))
+                          (cdr (assq 'batch parsed)))
+                     (map (lambda (r)
+                            (cons (car r)
+                                  (list 'err 'relay-parse
+                                        "Failed to parse batch response")))
+                          requests)))]))))))
+
+
 ;;; Parse a JSON-lines response from the relay subprocess
 (define (rlm-parse-relay-response resp-line)
   (let ([parsed (parse-json-string resp-line)])

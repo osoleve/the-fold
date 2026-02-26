@@ -1,0 +1,94 @@
+# Nemotron-3-Nano-30B SFT on RLM v2 trajectories
+# 2-node training on DGX Spark (1 GPU per node)
+#
+# Launch:
+#   Node 0 (elsie-1): torchrun --nnodes=2 --nproc_per_node=1 --node_rank=0 \
+#     --master_addr=192.168.100.10 --master_port=29500 \
+#     -m nemo_automodel.recipes.llm.train_ft --config user/rlm/nemotron_sft.yaml
+#   Node 1 (elsie-2): torchrun --nnodes=2 --nproc_per_node=1 --node_rank=1 \
+#     --master_addr=192.168.100.10 --master_port=29500 \
+#     -m nemo_automodel.recipes.llm.train_ft --config user/rlm/nemotron_sft.yaml
+
+step_scheduler:
+  global_batch_size: 8
+  local_batch_size: 1
+  ckpt_every_steps: 200
+  val_every_steps: 50
+  num_epochs: 3
+
+dist_env:
+  backend: nccl
+  timeout_minutes: 10
+
+rng:
+  _target_: nemo_automodel.components.training.rng.StatefulRNG
+  seed: 42
+  ranked: true
+
+parallelizer:
+  _target_: nemo_automodel.components.moe.parallelizer.parallelize_model
+  activation_checkpointing: false
+
+model:
+  _target_: nemo_automodel.NeMoAutoModelForCausalLM.from_pretrained
+  pretrained_model_name_or_path: nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16
+  trust_remote_code: true
+
+checkpoint:
+  enabled: true
+  checkpoint_dir: /workspace/user/rlm/models/nemotron-nano-rlm-sft/checkpoints
+  model_save_format: safetensors
+  save_consolidated: false
+
+distributed:
+  _target_: nemo_automodel.components.distributed.fsdp2.FSDP2Manager
+  dp_size: none
+  dp_replicate_size: 1
+  tp_size: 1
+  cp_size: 1
+  ep_size: 2
+  sequence_parallel: false
+  defer_fsdp_grad_sync: false
+
+loss_fn:
+  _target_: nemo_automodel.components.loss.masked_ce.MaskedCrossEntropy
+
+dataset:
+  _target_: nemo_automodel.components.datasets.llm.chat_dataset.ChatDataset
+  path_or_dataset_id: /workspace/user/rlm/training/train.jsonl
+  seq_length: 2048
+  truncation: true
+
+packed_sequence:
+  packed_sequence_size: 0
+
+dataloader:
+  _target_: torchdata.stateful_dataloader.StatefulDataLoader
+  collate_fn: nemo_automodel.components.datasets.utils.default_collater
+  shuffle: true
+
+validation_dataset:
+  _target_: nemo_automodel.components.datasets.llm.chat_dataset.ChatDataset
+  path_or_dataset_id: /workspace/user/rlm/training/eval.jsonl
+  seq_length: 2048
+  truncation: true
+
+validation_dataloader:
+  _target_: torchdata.stateful_dataloader.StatefulDataLoader
+  collate_fn: nemo_automodel.components.datasets.utils.default_collater
+
+optimizer:
+  _target_: torch.optim.Adafactor
+  lr: 1.0e-5
+  beta2_decay: -0.8
+  eps: [~, 0.001]
+  weight_decay: 0
+
+lr_scheduler:
+  lr_decay_style: cosine
+  min_lr: 1.0e-6
+
+wandb:
+  project: fold-rlm-sft
+  name: nemotron-nano-sft-e3
+  dir: /workspace/user/rlm/models/nemotron-nano-rlm-sft/wandb

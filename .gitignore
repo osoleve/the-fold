@@ -1,6 +1,7 @@
 # Claude Code
 .claude/settings.local.json
 .claude/*.local.md
+.claude/worktrees/
 
 # IDE
 .vscode/
@@ -10,6 +11,7 @@
 .fold-session
 .fold-repl/
 .fold-sessions/
+.rlm/
 .bbs/counter
 .bbs/index.cache
 *.flock
@@ -49,11 +51,23 @@ __pycache__/
 # Generated outputs
 docs/peer-review/
 docs/*.html
+data/
+
+# Generated reports
+user/prism-reports/
+user/rlm/lens-exploration/
 
 # Training artifacts (regenerate with scripts in user/rlm/)
 user/rlm/training/
 !user/rlm/training/*.py
 user/rlm/models/
+user/rlm/bench-results-*.sexp
+user/rlm/*.jsonl
+user/rlm/curriculum/*.jsonl
+user/rlm/curriculum/lattice-tasks/
+user/rlm/curriculum/lattice-meta.json
+user/rlm/pytorch-ft/trainer_output/
+user/rlm/pytorch-ft/models/
 
 # Media artifacts
 user/creations/*.gif

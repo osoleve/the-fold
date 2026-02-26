@@ -190,17 +190,26 @@
               (loop (cons expr acc))))))))
 
 ;;; ====
-;;; Batch Orchestration
+;;; Batch Orchestration (concurrent via relay)
 ;;; ====
+
+(define *llm-gen-window-size* 32)
+
+;;; Take first n elements from a list
+(define (llm-gen/take lst n)
+  (if (or (null? lst) (= n 0)) '()
+      (cons (car lst) (llm-gen/take (cdr lst) (- n 1)))))
 
 (define (llm-gen/batch specs providers on-result on-error . opts)
   (doc 'description
-    "Process a list of specs through LLM providers with round-robin.
+    "Process specs through LLM providers concurrently via relay batch.
      specs: list of (spec-id system-prompt user-prompt max-tokens temperature)
      on-result: (lambda (spec-id response-text) ...) — called on success
      on-error: (lambda (spec-id error) ...) — called on failure
      opts: optional resume-file path (string)
 
+     Sends requests in concurrent windows through the HTTP relay.
+     Round-robins across providers within each window.
      Logs completed spec-ids to resume-file for crash recovery.
      Returns (completed-count . error-count).")
   (let* ([resume-file (if (pair? opts) (car opts) #f)]
@@ -209,6 +218,7 @@
                        '())]
          [remaining (filter (lambda (s) (not (member (car s) done-ids))) specs)]
          [n-providers (length providers)]
+         [total (+ (length remaining) (length done-ids))]
          [resume-port (if resume-file
                          (open-file-output-port resume-file
                            (file-options no-fail append)
@@ -218,33 +228,75 @@
     (when (pair? done-ids)
       (printf "Resuming: ~a already done, ~a remaining\\n"
               (length done-ids) (length remaining)))
-    (let loop ([rem remaining] [idx 0] [ok-count (length done-ids)] [err-count 0])
+    (let window-loop ([rem remaining] [idx 0]
+                      [ok-count (length done-ids)] [err-count 0])
       (if (null? rem)
           (begin
             (when resume-port (close-port resume-port))
             (cons ok-count err-count))
-          (let* ([spec (car rem)]
-                 [spec-id (list-ref spec 0)]
-                 [sys-prompt (list-ref spec 1)]
-                 [usr-prompt (list-ref spec 2)]
-                 [max-tok (list-ref spec 3)]
-                 [temp (list-ref spec 4)]
-                 [provider (list-ref providers (modulo idx n-providers))]
-                 [result (llm-gen/call provider sys-prompt usr-prompt max-tok temp)])
-            (cond
-              [(rlm-chat-ok? result)
-               (on-result spec-id (rlm-chat-text result))
-               (when resume-port
-                 (put-string resume-port (format "~a\\n" spec-id))
-                 (flush-output-port resume-port))
-               (when (= 0 (modulo (+ ok-count 1) 50))
-                 (printf "  Progress: ~a/~a done (~a errors)\\n"
-                         (+ ok-count 1) (+ (length remaining) (length done-ids))
-                         err-count))
-               (loop (cdr rem) (+ idx 1) (+ ok-count 1) err-count)]
-              [else
-               (on-error spec-id result)
-               (loop (cdr rem) (+ idx 1) ok-count (+ err-count 1))]))))))
+          (let* ([win-size (min *llm-gen-window-size* (length rem))]
+                 [window (llm-gen/take rem win-size)]
+                 [rest-rem (list-tail rem win-size)]
+                 ;; Build batch requests: (id url headers body timeout)
+                 [batch-reqs
+                  (let build ([ws window] [i idx] [acc '()])
+                    (if (null? ws)
+                        (reverse acc)
+                        (let* ([spec (car ws)]
+                               [spec-id (list-ref spec 0)]
+                               [sys-prompt (list-ref spec 1)]
+                               [usr-prompt (list-ref spec 2)]
+                               [max-tok (list-ref spec 3)]
+                               [temp (list-ref spec 4)]
+                               [provider (list-ref providers (modulo i n-providers))]
+                               [endpoint (rlm-provider-endpoint provider)]
+                               [model-id (rlm-provider-model-id provider)]
+                               [api-key-env (rlm-provider-api-key-env provider)]
+                               [api-key (if api-key-env (read-env-key api-key-env) #f)]
+                               [headers (if api-key
+                                            `((Authorization . ,(string-append "Bearer " api-key)))
+                                            '())]
+                               [body `((model . ,model-id)
+                                       (messages . (((role . "system") (content . ,sys-prompt))
+                                                    ((role . "user") (content . ,usr-prompt))))
+                                       (max_tokens . ,max-tok)
+                                       (temperature . ,temp)
+                                       (chat_template_kwargs . ((enable_thinking . #f))))])
+                          (build (cdr ws) (+ i 1)
+                                 (cons (list spec-id endpoint headers body 300) acc)))))]
+                 ;; Send concurrent batch through relay
+                 [results (rlm-relay-batch-request! batch-reqs 32 300)]
+                 ;; Process results
+                 [window-ok 0]
+                 [window-err 0])
+            (for-each
+              (lambda (result-pair)
+                (let* ([spec-id (car result-pair)]
+                       [outcome (cdr result-pair)])
+                  (if (eq? (car outcome) 'ok)
+                      ;; Parse OpenAI response from raw body
+                      (let ([parsed (parse-openai-response (cadr outcome))])
+                        (if (rlm-chat-ok? parsed)
+                            (begin
+                              (on-result spec-id (rlm-chat-text parsed))
+                              (when resume-port
+                                (put-string resume-port (format "~a~%" spec-id))
+                                (flush-output-port resume-port))
+                              (set! window-ok (+ window-ok 1)))
+                            (begin
+                              (on-error spec-id parsed)
+                              (set! window-err (+ window-err 1)))))
+                      ;; Relay-level error
+                      (begin
+                        (on-error spec-id outcome)
+                        (set! window-err (+ window-err 1))))))
+              results)
+            (let ([new-ok (+ ok-count window-ok)]
+                  [new-err (+ err-count window-err)])
+              (printf "  Progress: ~a/~a done (~a errors)\\n"
+                      new-ok total new-err)
+              (window-loop rest-rem (+ idx win-size)
+                           new-ok new-err)))))))
 
 (define (llm-gen/load-resume-ids path)
   (doc 'description "Load completed spec IDs from resume file")
