@@ -754,6 +754,7 @@
     "meta/test-skill-map.ss"
     "meta/test-derive-deps.ss"
     "meta/test-derive-deps-properties.ss"
+    "meta/test-xref.ss"
     ;; Pipeline
     "pipeline/test-stage-context.ss"
     "pipeline/test-rlm2.ss"

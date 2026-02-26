@@ -1,8 +1,9 @@
-(unless (top-level-bound? 'sort-by) (load "lattice/data/sort.ss"))
-(unless (top-level-bound? 'kg-skills) (load "lattice/meta/kg.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'sort)
+(require 'meta/kg)
 
-;;; @module dag
-;;; @requires sort
+;;; @module meta/dag
+;;; @requires sort meta/kg
 (doc 'module 'dag)
 (doc 'description "Tools for navigating the skill dependency DAG. Find dependencies, dependents, paths, and structural queries.")
 (doc 'layer 'lattice)

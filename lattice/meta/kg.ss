@@ -1,13 +1,14 @@
-(unless (top-level-bound? 'filter-map) (load "core/base/prelude.ss"))
-(unless (top-level-bound? 'sha256) (load "core/base/sha256.ss"))
-(unless (top-level-bound? 'make-block) (load "core/blocks/block.ss"))
-(unless (top-level-bound? 'store!) (load "core/blocks/cas.ss"))
-(unless (top-level-bound? 'read-manifest) (load "lattice/meta/manifest.ss"))
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
-(unless (top-level-bound? 'concept-normalize) (load "lattice/meta/concept-normalize.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sha256)
+(require 'block)
+(require 'cas)
+(require 'manifest)
+(require 'hamt)
+(require 'meta/concept-normalize)
 
-;;; @module kg
-;;; @requires hamt
+;;; @module meta/kg
+;;; @requires prelude sha256 block cas manifest hamt meta/concept-normalize
 (doc 'module 'kg)
 (doc 'description "Knowledge graph — the source of truth for the skill lattice.
 Block-backed, CAS-stored, content-addressed. Skills, modules, exports,
@@ -839,9 +840,8 @@ If ontology is not loaded, falls back to kg-shared-concepts (flat check).")
                 concepts-b)])
           (filter (lambda (c) (memq c concepts-b-set)) expanded-a)))))
 
-
+;;; Bridge detection — loaded after KG state is defined
 (load "lattice/meta/kg-bridge.ss")
-
 
 ;;; ====
 ;;; Type Query API

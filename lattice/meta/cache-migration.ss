@@ -1,9 +1,10 @@
-(load "lattice/optics/bidirectional.ss")
-(load "lattice/optics/schema.ss")
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'bidirectional)
+(require 'schema)
+(require 'hamt)
 
-;;; @module cache-migration
-;;; @requires hamt
+;;; @module meta/cache-migration
+;;; @requires bidirectional schema hamt
 (doc 'module 'cache-migration)
 (doc 'description "Bidirectional cache format migrations for smooth upgrades")
 (doc 'layer 'lattice)

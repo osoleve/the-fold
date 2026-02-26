@@ -1,8 +1,9 @@
-(load "core/base/prelude.ss")
-(load "lattice/data/sort.ss")
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sort)
 
-;;; @module bm25
-;;; @requires sort
+;;; @module meta/bm25
+;;; @requires prelude sort
 (doc 'module 'bm25)
 (doc 'description "Pure functional BM25 implementation for lattice search. Provides term-frequency/inverse-document-frequency ranking with document length normalization.")
 (doc 'layer 'lattice)

@@ -1,9 +1,10 @@
-(unless (top-level-bound? 'lattice-find) (load "lattice/meta/search.ss"))
-(unless (top-level-bound? 'lattice-deps) (load "lattice/meta/dag.ss"))
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'meta/search)
+(require 'meta/dag)
+(require 'hamt)
 
-;;; @module serendipity
-;;; @requires hamt
+;;; @module meta/serendipity
+;;; @requires meta/search meta/dag hamt
 (doc 'module 'serendipity)
 (doc 'description "Serendipitous discovery for lattice navigation. Given a symbol, surfaces
 related exports, nearby skills, and cross-domain connections that the user

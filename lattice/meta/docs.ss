@@ -1,6 +1,7 @@
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'hamt)
 
-;;; @module docs
+;;; @module meta/docs
 ;;; @requires hamt
 (doc 'module 'docs)
 (doc 'description "S-expression doc form extraction for search and inspection")

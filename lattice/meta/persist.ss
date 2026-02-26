@@ -1,9 +1,10 @@
-(load "core/base/prelude.ss")
-(load "core/base/sha256.ss")
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
+(require 'sha256)
+(require 'hamt)
 
-;;; @module persist
-;;; @requires hamt
+;;; @module meta/persist
+;;; @requires prelude sha256 hamt
 (doc 'module 'persist)
 (doc 'description "Lattice index persistence — pure serialization and deserialization logic")
 (doc 'layer 'lattice)

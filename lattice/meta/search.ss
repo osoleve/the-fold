@@ -1,11 +1,12 @@
-(unless (top-level-bound? 'sort-by) (load "lattice/data/sort.ss"))
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
-(unless (top-level-bound? 'kg-skills) (load "lattice/meta/kg.ss"))
-(unless (top-level-bound? 'bm25-create) (load "lattice/meta/bm25.ss"))
-(unless (top-level-bound? 'get-docstring) (load "lattice/meta/docstrings.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'sort)
+(require 'hamt)
+(require 'meta/kg)
+(require 'meta/bm25)
+(require 'meta/docstrings)
 
-;;; @module search
-;;; @requires sort hamt
+;;; @module meta/search
+;;; @requires sort hamt meta/kg meta/bm25 meta/docstrings
 (doc 'module 'search)
 (doc 'description "Unified search interface for the skill lattice. Integrates BM25 with the knowledge graph for ranked results.")
 (doc 'layer 'lattice)

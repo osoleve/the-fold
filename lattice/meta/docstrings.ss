@@ -1,6 +1,7 @@
-(unless (top-level-bound? 'hamt-empty) (load "lattice/data/hamt.ss"))
+(unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'hamt)
 
-;;; @module docstrings
+;;; @module meta/docstrings
 ;;; @requires hamt
 (doc 'module 'docstrings)
 (doc 'description "Extract ;;; docstrings from source files and associate them with function definitions for improved search indexing.")
