@@ -48,14 +48,14 @@ Modules below already have test files but do not currently `(require 'quickcheck
 
 - [x] `alist`
 - [x] `avl-tree`
-- [ ] `chase-lev-deque`
-- [ ] `collection-protocol`
-- [ ] `collection-utils`
-- [ ] `community-homology`
-- [ ] `data-structures`
+- [x] `chase-lev-deque`
+- [x] `collection-protocol`
+- [x] `collection-utils`
+- [x] `community-homology`
+- [x] `data-structures`
 - [x] `hamt`
-- [ ] `kdtree`
-- [ ] `quadtree`
+- [x] `kdtree`
+- [x] `quadtree`
 
 ### optics
 
@@ -66,16 +66,16 @@ Modules below already have test files but do not currently `(require 'quickcheck
 
 ### algebra
 
-- [ ] `field-ext`
-- [ ] `galois`
-- [ ] `group`
-- [ ] `module`
-- [ ] `multivariate-groebner`
-- [ ] `poly-bridge`
-- [ ] `polynomial`
-- [ ] `ring-field`
-- [ ] `tropical`
-- [ ] `tropical-graph`
+- [x] `field-ext`
+- [x] `galois`
+- [x] `group`
+- [x] `module`
+- [x] `multivariate-groebner`
+- [x] `poly-bridge`
+- [x] `polynomial`
+- [x] `ring-field`
+- [x] `tropical`
+- [x] `tropical-graph`
 
 ### fp
 
@@ -132,7 +132,7 @@ Target these families next after Priority 1 and 2:
 
 ## Definition Of Done
 
-- [ ] Every module listed in Priority 1 has at least one QuickCheck-backed property suite.
+- [x] Every module listed in Priority 1 has at least one QuickCheck-backed property suite.
 - [ ] Priority 2 missing-export lists are reduced to zero or explicitly marked as intentionally exempt.
 - [ ] `test-all.ss` includes all new QuickCheck property files.
 - [ ] This tracker table is refreshed after each merge.
