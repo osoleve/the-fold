@@ -122,7 +122,7 @@
           (newton-raphson-quantile
            (lambda (x) (chi-squared-cdf x df))
            (lambda (x) (chi-squared-pdf x df))
-           p x0 50 1e-10))]))
+           p x0 50 1e-10 1e-10))]))  ; lower-bound: chi-sq domain is (0, ∞)
 
 ;;; chi-squared-pdf : Num × Num → Num
 ;;; PDF of chi-squared distribution.
@@ -174,7 +174,7 @@
           (newton-raphson-quantile
            (lambda (x) (f-cdf x df1 df2))
            (lambda (x) (f-pdf x df1 df2))
-           p x0 50 1e-10))]))
+           p x0 50 1e-10 1e-10))]))  ; lower-bound: F domain is (0, ∞)
 
 ;;; f-pdf : Num × Num × Num → Num
 ;;; PDF of F-distribution.
@@ -197,7 +197,7 @@
 ;;; Newton-Raphson Quantile Inversion
 ;;; ====
 
-;;; newton-raphson-quantile : (Num → Num) × (Num → Num) × Num × Num × Nat × Num → Num
+;;; newton-raphson-quantile : (Num → Num) × (Num → Num) × Num × Num × Nat × Num [× Num] → Num
 ;;; Find x such that cdf(x) = p using Newton-Raphson.
 ;;; cdf: cumulative distribution function
 ;;; pdf: probability density function (derivative of cdf)
@@ -205,18 +205,20 @@
 ;;; x0: initial guess
 ;;; max-iter: maximum iterations
 ;;; tol: convergence tolerance
-(define (newton-raphson-quantile cdf pdf p x0 max-iter tol)
-  (let loop ([x x0] [iter 0])
-       (if (>= iter max-iter)
-           x  ; Return best estimate
-           (let* ([fx (- (cdf x) p)]
-                  [fpx (pdf x)])
-                 (if (< (abs fpx) 1e-15)
-                     x  ; Derivative too small, return current
-                     (let* ([dx (/ fx fpx)]
-                            [x-new (- x dx)])
-                           ;; Ensure x stays positive for chi-sq and F
-                           (let ([x-new (max x-new 1e-10)])
+;;; lower-bound (optional): domain lower bound for iterate clamping.
+;;;   Pass 1e-10 for positive-domain distributions (chi-sq, F).
+;;;   Defaults to -inf.0 (no clamping) for distributions like Student's t.
+(define (newton-raphson-quantile cdf pdf p x0 max-iter tol . opts)
+  (let ([lower-bound (if (null? opts) -inf.0 (car opts))])
+       (let loop ([x x0] [iter 0])
+            (if (>= iter max-iter)
+                x  ; Return best estimate
+                (let* ([fx (- (cdf x) p)]
+                       [fpx (pdf x)])
+                      (if (< (abs fpx) 1e-15)
+                          x  ; Derivative too small, return current
+                          (let* ([dx (/ fx fpx)]
+                                 [x-new (max (- x dx) lower-bound)])
                                 (if (< (abs dx) tol)
                                     x-new
                                     (loop x-new (+ iter 1))))))))))

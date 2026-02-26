@@ -190,6 +190,9 @@
 
 ;;; integrate-symplectic : Step × a × Number × Pos × Vel × Number × Nat → (List (Pos × Vel))
 ;;; Integrate a Newtonian system over n steps.
+;;; step must have signature (a t pos vel dt) → (pos vel).
+;;; Compatible with: symplectic-euler-step, velocity-verlet-step, leapfrog-step.
+;;; NOT compatible with verlet-step (different state structure) — use integrate-verlet instead.
 (define (integrate-symplectic step a t0 pos0 vel0 dt n)
   (let loop ([t t0] [pos pos0] [vel vel0] [i 0] [results (list (list pos0 vel0))])
        (if (>= i n)
@@ -198,6 +201,18 @@
                   [new-pos (car result)]
                   [new-vel (cadr result)])
                  (loop (+ t dt) new-pos new-vel (+ i 1) (cons result results))))))
+
+;;; integrate-verlet : ((Number × Pos) → Accel) × Number × Pos × Pos-Prev × Number × Nat → (List (Pos × Pos-Prev))
+;;; Integrate using Störmer-Verlet, which tracks (pos, pos-prev) instead of (pos, vel).
+;;; To bootstrap from (pos, vel), compute pos-prev = pos - vel*dt.
+(define (integrate-verlet a t0 pos0 pos-prev0 dt n)
+  (let loop ([t t0] [pos pos0] [prev pos-prev0] [i 0] [results (list (list pos0 pos-prev0))])
+       (if (>= i n)
+           (reverse results)
+           (let* ([result (verlet-step a pos prev dt)]
+                  [new-pos (car result)]
+                  [new-prev (cadr result)])
+                 (loop (+ t dt) new-pos new-prev (+ i 1) (cons result results))))))
 
 ;;; ====
 ;;; Adaptive Step Size Control (delegates to ode-adaptive)
