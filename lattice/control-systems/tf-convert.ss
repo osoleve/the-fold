@@ -14,6 +14,7 @@
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude matrix matrix-solvers control/state-space control/transfer-function
 (require 'prelude)
 (require 'matrix)
 (require 'matrix-solvers)

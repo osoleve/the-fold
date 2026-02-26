@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude geometry sort
 (require 'prelude)
 (require 'geometry)
 (require 'sort)

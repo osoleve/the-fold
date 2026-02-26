@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires pipeline/stage
 (require 'pipeline/stage)
 
 (doc 'module 'pipeline/effects)

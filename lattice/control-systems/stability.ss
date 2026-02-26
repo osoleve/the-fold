@@ -24,6 +24,7 @@
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude numeric/polynomial matrix matrix-eigen matrix-solvers control/transfer-function control/state-space
 (require 'prelude)
 (require 'numeric/polynomial)
 (require 'matrix)

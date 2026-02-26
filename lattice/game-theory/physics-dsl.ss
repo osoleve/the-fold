@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude free vec2
 (require 'prelude)
 (require 'free)
 (require 'vec2)

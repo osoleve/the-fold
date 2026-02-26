@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude matrix matrix-eigen matrix-solvers control/state-space control/transfer-function control/stability
 (require 'prelude)
 (doc 'module 'control/controller-design)
 (doc 'purity 'partial)

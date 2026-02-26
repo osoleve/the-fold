@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires homology mesh-sdf hamt
 (require 'homology)
 (require 'mesh-sdf)
 (require 'hamt)

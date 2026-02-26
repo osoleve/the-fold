@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude field algebra/polynomial multivariate convergence
 (require 'prelude)
 (require 'field)
 (require 'algebra/polynomial)

@@ -6,7 +6,7 @@
   (purity partial)  ; World simulation uses mutation
   (stability experimental)
   (fuel-bound "O(n^2 x iterations) for n entities")
-  (deps (linalg geometry random))
+  (deps (linalg random))
 
   (description
    "Classical 2D rigid body physics simulation with collision detection,

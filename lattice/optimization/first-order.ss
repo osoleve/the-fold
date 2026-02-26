@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude reverse-diff convergence line-search matrix
 (require 'prelude)
 (require 'reverse-diff)
 (require 'convergence)

@@ -4,7 +4,7 @@
   (purity partial)
   (stability experimental)
   (fuel-bound "O(n) where n = sample count")
-  (deps (optics linalg random))
+  (deps (optics random))
   (description "Generic dataset SDK for visual reasoning problems. Provides reusable framework for presentation, sampling, distractor generation, and export.")
   (keywords (dataset ml benchmark visual-reasoning sampling export))
   (aliases (sample-gen))

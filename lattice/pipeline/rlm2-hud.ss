@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires rlm2
 (require 'rlm2)
 
 (doc 'module 'pipeline/rlm2-hud)

@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires prelude tiles/core tiles/square tiles/hex tiles/triangle pathfinding visibility tiles/render tiles/units turns
 (require 'prelude 'tiles/core 'tiles/square 'tiles/hex 'tiles/triangle
          'pathfinding 'visibility 'tiles/render 'tiles/units 'turns)
 

@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires prelude tiles/core
 (require 'prelude 'tiles/core)
 
 (doc 'module 'tiles/square)

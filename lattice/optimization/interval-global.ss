@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude interval heap
 (require 'prelude)
 (require 'interval)
 (require 'heap)

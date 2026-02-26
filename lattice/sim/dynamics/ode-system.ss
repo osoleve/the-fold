@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude vec matrix
 (require 'prelude)
 (require 'vec)
 (require 'matrix)

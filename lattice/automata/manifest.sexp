@@ -6,7 +6,7 @@
   (purity partial)  ; Uses counter for unique IDs
   (stability stable)
   (fuel-bound "O(n) for state traversal, O(n^2) for reachability analysis")
-  (deps (data fp))  ; Depends on data structures and fp parsers
+  (deps (fp))  ; Depends on fp parsers
 
   (description
    "Hierarchical state machine (statechart) implementation following Harel's

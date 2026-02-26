@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires interval interval-global
 (require 'interval)
 (require 'interval-global)
 

@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude sort vec
 (require 'prelude)
 (require 'sort)
 (require 'vec)

@@ -6,7 +6,7 @@
   (purity total)
   (stability experimental)
   (fuel-bound "O(n³) for regression, O(n²) for time series, O(n) for descriptive stats")
-  (deps (linalg fp algebra numeric))
+  (deps (linalg fp algebra))
 
   (description
    "Comprehensive statistical modeling library including linear and generalized

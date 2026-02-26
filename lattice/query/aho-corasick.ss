@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude queue set dict
 (require 'prelude)
 (require 'queue)
 (require 'set)

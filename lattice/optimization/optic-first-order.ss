@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires traced-optics first-order
 (require 'traced-optics)
 (require 'first-order)
 

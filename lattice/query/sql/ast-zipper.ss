@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude combinators tree-zipper zipper-lens
 (require 'prelude)
 (require 'combinators)
 (require 'tree-zipper)

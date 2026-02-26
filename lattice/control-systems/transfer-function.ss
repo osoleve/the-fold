@@ -13,6 +13,7 @@
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude numeric/polynomial
 (require 'prelude)
 (require 'numeric/polynomial)
 

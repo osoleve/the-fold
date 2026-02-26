@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires prelude combinators
 (require 'prelude)
 (require 'combinators)
 

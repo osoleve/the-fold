@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude stream vec2
 (require 'prelude)
 (require 'stream)
 (require 'vec2)

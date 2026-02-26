@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires tiles/core hamt
 (require 'tiles/core 'hamt)
 
 (doc 'module 'tiles/visibility)

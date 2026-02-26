@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires hamt
 (load "core/base/prelude.ss")
 (load "lattice/interval/interval.ss")
 (require 'hamt)

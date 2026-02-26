@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires tiles/core simplicial-complex homology sort hamt
 (require 'tiles/core 'simplicial-complex 'homology 'sort 'hamt)
 
 (doc 'module 'tiles/topology-analysis)

@@ -6,7 +6,7 @@
   (purity partial)  ; Uses mutable tape for efficiency
   (stability stable)
   (fuel-bound "O(n) forward pass, O(n) backward pass where n is tape length")
-  (deps (linalg numeric interval fp random))  ; interval for interval-autodiff, fp for optics, random for VI
+  (deps (linalg numeric fp random))  ; fp for optics, random for VI
 
   (description
    "Reverse-mode automatic differentiation (backpropagation) using

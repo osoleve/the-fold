@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude vec prng
 (require 'prelude)
 (require 'vec)
 (require 'prng)

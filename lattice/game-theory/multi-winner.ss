@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires voting
 (require 'voting)
 
 (doc 'module 'multi-winner)

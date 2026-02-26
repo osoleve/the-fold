@@ -6,7 +6,7 @@
   (purity partial)  ; Simulation may require fuel bounds
   (stability experimental)
   (fuel-bound "O(n² × steps) for n bodies")
-  (deps (linalg autodiff geometry))
+  (deps (linalg))
 
   (description
    "Differentiable 2D rigid body physics simulation. Supports automatic

@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude geometry mesh-sdf
 (require 'prelude)
 (require 'geometry)
 (require 'mesh-sdf)

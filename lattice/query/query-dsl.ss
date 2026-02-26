@@ -1,4 +1,5 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+;;; @requires hamt
 (require 'hamt)
 
 (doc 'module 'query-dsl)

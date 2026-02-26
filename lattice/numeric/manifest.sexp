@@ -4,7 +4,7 @@
   (purity total)
   (stability stable)
   (fuel-bound (max (log-linear n) (quadratic n)))
-  (deps (linalg algebra))
+  (deps (linalg))
 
   (description
    "Foundation numerical transforms: complex number arithmetic, discrete Fourier

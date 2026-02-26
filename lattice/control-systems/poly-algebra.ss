@@ -23,6 +23,7 @@
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires control/transfer-function field
 ;; Load transfer-function first (brings in numeric/polynomial.ss)
 (require 'control/transfer-function)
 

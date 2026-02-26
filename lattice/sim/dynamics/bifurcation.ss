@@ -1,5 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
+;;; @requires prelude hamt vec matrix svd complex ode-system sim/stability chaos iteration
 (require 'prelude)
 (require 'hamt)
 (require 'vec)

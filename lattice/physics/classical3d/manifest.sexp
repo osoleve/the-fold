@@ -6,7 +6,7 @@
   (purity partial)  ; World simulation uses mutation
   (stability experimental)
   (fuel-bound "O(n^2 x iterations) for n entities")
-  (deps (linalg geometry))
+  (deps (linalg))
 
   (description
    "Classical 3D rigid body physics simulation with quaternion-based rotation,

@@ -6,7 +6,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(n) for interpretation, O(n^2) for pattern compilation, O(n) for PE")
-  (deps (data fp))
+  (deps (fp))
 
   (description
    "Tools for building domain-specific languages using tagless final style,
