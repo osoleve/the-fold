@@ -37,6 +37,18 @@
           "Task mode: compose existing APIs into one expression."
           "Task mode: small integration task across module primitives."
           "Task mode: solve by expression synthesis over available functions."))
+        ("cloze" (alt
+          "Task mode: fill in the missing expression or function."
+          "Task mode: structural completion from surrounding context."
+          "Task mode: infer the missing piece from module and type context."))
+        ("type_inhabit" (alt
+          "Task mode: implement a function satisfying the given type signature."
+          "Task mode: type-driven implementation — the type IS the spec."
+          "Task mode: produce a well-typed inhabitant of the specified signature."))
+        ("type_sig" (alt
+          "Task mode: predict the type signature from the implementation."
+          "Task mode: type inference — read the code, write the contract."
+          "Task mode: derive the type annotation matching this function body."))
         (else "")))
 
       ;; --- Category hints (2 per category) ---
@@ -59,6 +71,9 @@
         ("usage" (alt
           "Compose from existing module functions where appropriate."
           "Solve with an expression that can be evaluated directly."))
+        ("analysis" (alt
+          "Read the implementation carefully before writing the type."
+          "Consider all code paths and edge cases when inferring the type."))
         (else "")))
 
       ;; --- Verify frame (included ~64% of the time via maybe gate) ---
@@ -73,14 +88,26 @@
           (when has-verify (seq "Regression checks after fixing the bug:\n```scheme\n" (slot verify-expr) "\n```"))
           (when has-verify (seq "Keep the original function signature unchanged.\n\nRegression checks after fixing the bug:\n```scheme\n" (slot verify-expr) "\n```"))))
         ("composition" (alt
-          (when has-verify (seq "Target properties for your expression:\n```scheme\n" (slot verify-expr) "\n```"))
-          (when has-verify (seq "Expression-only output is required (no helper definitions).\n\nTarget properties for your expression:\n```scheme\n" (slot verify-expr) "\n```"))))
+          "Expression-only output is required (no helper definitions)."
+          "Use module APIs directly; avoid re-implementing internal logic."))
+        ("cloze" (alt
+          (when has-verify (seq "Your completion must satisfy:\n```scheme\n" (slot verify-expr) "\n```"))
+          (when has-verify (seq "Checks the filled version must pass:\n```scheme\n" (slot verify-expr) "\n```"))))
+        ("type_inhabit" (alt
+          (when has-verify (seq "Your implementation must pass:\n```scheme\n" (slot verify-expr) "\n```"))
+          (when has-verify (seq "Type-level checks:\n```scheme\n" (slot verify-expr) "\n```"))))
+        ("type_sig" (alt
+          "The type annotation should capture all input and output types."
+          "Include parametric type variables where the function is polymorphic."))
         (else "")))
 
       ;; --- Family-specific overlays ---
       (family-overlay . (case-on family
         ("bugfix" (ref bugfix-overlay))
         ("composition" (ref composition-overlay))
+        ("cloze" "")
+        ("type_inhabit" "The type signature is your only specification. No natural language hints.")
+        ("type_sig" "")
         (else "")))
 
       (bugfix-overlay . (when has-verify
@@ -116,6 +143,18 @@
           "Favor direct API use over ad-hoc reimplementation."
           "Keep the answer as a concise executable expression."
           "Use provided module operations to satisfy the requested behavior."))
+        ("cloze" (alt
+          "The completion should be consistent with the surrounding module context."
+          "Consider types, naming conventions, and peer functions for inference."
+          "Fill the gap naturally — the result should look like it was never missing."))
+        ("type_inhabit" (alt
+          "The implementation must be well-typed and handle edge cases implied by the signature."
+          "Produce the simplest correct implementation consistent with the type."
+          "Focus on type-directed design — let the signature guide the structure."))
+        ("type_sig" (alt
+          "Capture the full polymorphic structure of the function."
+          "Include all input types, output type, and any type class constraints."
+          "The type should be as precise as possible without being overly restrictive."))
         (else ""))))))
 
 ;;; --- Verify-expr decomposition ---

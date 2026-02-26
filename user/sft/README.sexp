@@ -88,8 +88,8 @@
  (input-schema
   . "JSONL records with fields:
        id              — unique sample identifier (used for seed derivation)
-       family          — spec_to_code | translation | bugfix | composition
-       category        — implementation | transpile | translation | repair | debugging | usage
+       family          — spec_to_code | translation | bugfix | composition | cloze | type_inhabit | type_sig | meta_template | meta_protocol
+       category        — implementation | transpile | translation | repair | debugging | usage | analysis
        source_function — target function name
        prompt_body     — raw task description (pre-diversification)
        ground_truth    — expected correct output
@@ -122,7 +122,9 @@
        - Blank-line collapse prevents phantom paragraphs from maybe gates
      The grammar encodes the same variation dimensions as the Python system
      (task-prefix × category-hint × verify-frame × family-overlay × task-suffix)
-     but with richer combinatorics and extensibility.")
+     but with richer combinatorics and extensibility.
+     Composition prompts intentionally avoid inlining verify_expr snippets
+     to reduce answer-oracle leakage.")
 
  (dependencies
   (("core/lang/module.ss"   . "Module system bootstrap (via grammar.ss)")
