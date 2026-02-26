@@ -320,17 +320,25 @@ Compile and verify the result." tmpl-str fills-str)]
 
       [else (format ";; ~a\n~a" task-type expected-str)])))
 
-(define (mt/build-verify-expr expected)
-  (doc 'description "Build verify S-expression that checks compilation result")
-  (let ([p (open-output-string)])
-    (write expected p)
-    (let ([expected-str (get-output-string p)])
-      (format "(equal? result '~a)" expected-str))))
+(define (mt/build-verify-expr template-expr fills expected task-type)
+  (doc 'description "Build verify expression string — self-contained template check")
+  (let ([sexp (mt/build-verify-sexp template-expr fills expected task-type)])
+    (let ([p (open-output-string)])
+      (write sexp p)
+      (get-output-string p))))
 
-(define (mt/build-verify-sexp expected task-type)
-  (doc 'description "Build verify S-expression for execution verification")
-  ;; Each verify creates the template, fills, compiles, and checks
-  `(equal? (quote ,expected) (quote ,expected)))
+(define (mt/build-verify-sexp template-expr fills expected task-type)
+  (doc 'description
+    "Build verify S-expression — self-contained template check.
+     Creates template, fills all holes, compiles, and checks against expected.")
+  ;; Self-contained: independently re-derive the result
+  (let ([fill-forms
+         (map (lambda (f)
+                `(set! t (fill-hole t ',(car f) ',(cdr f))))
+              fills)])
+    `(let ([t (new-template ',template-expr)])
+       ,@fill-forms
+       (equal? (compile-template t) ',expected))))
 
 ;;; ====
 ;;; Main Generator
@@ -372,7 +380,8 @@ Compile and verify the result." tmpl-str fills-str)]
                        [prompt-body (mt/build-prompt template-expr fills task-type)]
                        [ground-truth (mt/build-ground-truth
                                        template-expr fills expected task-type)]
-                       [verify-str (mt/build-verify-expr expected)]
+                       [verify-str (mt/build-verify-expr
+                                     template-expr fills expected task-type)]
                        [difficulty (mt/pattern-difficulty task-type)]
                        [ir-skill (cdr (assq 'skill ir))]
                        [ir-module (cdr (assq 'module ir))]

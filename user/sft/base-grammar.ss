@@ -49,6 +49,22 @@
           "Task mode: predict the type signature from the implementation."
           "Task mode: type inference — read the code, write the contract."
           "Task mode: derive the type annotation matching this function body."))
+        ("meta_template" (alt
+          "Task mode: use the Template DSL to construct and fill code templates."
+          "Task mode: template-driven code generation with hole-filling."
+          "Task mode: structural code synthesis via the template system."))
+        ("meta_protocol" (alt
+          "Task mode: define and dispatch protocols for type-directed behavior."
+          "Task mode: extensible dispatch — define, implement, and query protocols."
+          "Task mode: protocol system usage for polymorphic dispatch."))
+        ("meta_refactor" (alt
+          "Task mode: refactoring toolkit — rename, move, analyze, and transform."
+          "Task mode: use the refactoring toolkit for safe code transformations."
+          "Task mode: structural code changes via the refactoring API."))
+        ("meta_lattice" (alt
+          "Task mode: lattice navigation — search, inspect, and discover skills."
+          "Task mode: explore the skill lattice to find and use capabilities."
+          "Task mode: use lattice meta-tooling for code discovery."))
         (else "")))
 
       ;; --- Category hints (2 per category) ---
@@ -99,6 +115,18 @@
         ("type_sig" (alt
           "The type annotation should capture all input and output types."
           "Include parametric type variables where the function is polymorphic."))
+        ("meta_template" (alt
+          (when has-verify (seq "Template completion must compile to:\n```scheme\n" (slot verify-expr) "\n```"))
+          (when has-verify (seq "Verify by compiling the filled template:\n```scheme\n" (slot verify-expr) "\n```"))))
+        ("meta_protocol" (alt
+          (when has-verify (seq "Protocol dispatch must satisfy:\n```scheme\n" (slot verify-expr) "\n```"))
+          (when has-verify (seq "Verify protocol registration:\n```scheme\n" (slot verify-expr) "\n```"))))
+        ("meta_refactor" (alt
+          (when has-verify (seq "Refactoring command must execute without error:\n```scheme\n" (slot verify-expr) "\n```"))
+          "The refactoring should be previewed before applying."))
+        ("meta_lattice" (alt
+          (when has-verify (seq "Lattice query must return structured data:\n```scheme\n" (slot verify-expr) "\n```"))
+          "Use the structured data APIs (lattice-find-data, lattice-info, etc.) for verifiable results."))
         (else "")))
 
       ;; --- Family-specific overlays ---
@@ -108,6 +136,10 @@
         ("cloze" "")
         ("type_inhabit" "The type signature is your only specification. No natural language hints.")
         ("type_sig" "")
+        ("meta_template" "Use `new-template`, `fill-hole`, and `compile-template` from the Template DSL.")
+        ("meta_protocol" "Use `define-protocol`, `implement-protocol!`, and dispatch from lattice/fp/protocol.ss.")
+        ("meta_refactor" "Use `(refactor 'op ...)` from boundary/tools/refactor-toolkit.ss. Preview before applying.")
+        ("meta_lattice" "Use lattice-init!, then structured APIs: lattice-find-data, lattice-info, lattice-exports-data, lattice-deps.")
         (else "")))
 
       (bugfix-overlay . (when has-verify
@@ -155,6 +187,22 @@
           "Capture the full polymorphic structure of the function."
           "Include all input types, output type, and any type class constraints."
           "The type should be as precise as possible without being overly restrictive."))
+        ("meta_template" (alt
+          "Ensure all holes are filled before compiling — incomplete templates should be caught by try-compile."
+          "Use zipper navigation for multi-hole templates when order matters."
+          "The compiled result must be a valid S-expression."))
+        ("meta_protocol" (alt
+          "Each protocol dispatch is determined by (car obj) — the type tag."
+          "Remember that the protocol registry is global mutable state."
+          "Use introspection (protocol-exists?, type-implements?) to verify registration."))
+        ("meta_refactor" (alt
+          "Always preview refactoring changes before applying."
+          "Check dependencies before moving a symbol to avoid broken references."
+          "Use dead-code analysis after rename/move to verify no stale references remain."))
+        ("meta_lattice" (alt
+          "Use lattice-ensure! for lazy initialization — avoids redundant rebuilds."
+          "The structured APIs return alists for programmatic processing."
+          "Concept bridges reveal non-obvious connections between skills."))
         (else ""))))))
 
 ;;; --- Verify-expr decomposition ---

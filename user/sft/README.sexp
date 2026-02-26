@@ -88,7 +88,7 @@
  (input-schema
   . "JSONL records with fields:
        id              — unique sample identifier (used for seed derivation)
-       family          — spec_to_code | translation | bugfix | composition | cloze | type_inhabit | type_sig | meta_template | meta_protocol
+       family          — spec_to_code | translation | bugfix | composition | cloze | type_inhabit | type_sig | meta_template | meta_protocol | meta_refactor | meta_lattice
        category        — implementation | transpile | translation | repair | debugging | usage | analysis
        source_function — target function name
        prompt_body     — raw task description (pre-diversification)
