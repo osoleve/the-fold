@@ -117,6 +117,13 @@
                   '((define (f x) `(result ,(vec-ref x 0)))))])
       (assert-true (pair? (memq 'vec-ref syms)))))
 
+  (define-test "collects unquote in binding position inside quasiquote"
+    ;; Quasiquoted define/let should NOT apply special-form parsing —
+    ;; unquote in "binding position" must still be extracted
+    (let ([syms (collect-file-symbols
+                  '((define (f) `(define ,(get-name) 1))))])
+      (assert-true (pair? (memq 'get-name syms)))))
+
   (define-test "collects symbols inside syntax-rules templates"
     (let ([syms (collect-file-symbols
                   '((define-syntax my-mac

@@ -94,6 +94,20 @@ uncertain (when exports are unknown).")
      (append (f (car lst))
              (safe-append-map f (cdr lst)))]))
 
+;;; extract-from-quasiquote : SExp -> (List Symbol)
+;;; Walk quasiquoted data without interpreting special forms.
+;;; Only extract symbols from unquote/unquote-splicing positions.
+(define (extract-from-quasiquote datum)
+  (cond
+    [(not (pair? datum)) '()]
+    [(and (eq? (car datum) 'unquote) (pair? (cdr datum)))
+     (extract-symbols-from-sexp* (cadr datum))]
+    [(and (eq? (car datum) 'unquote-splicing) (pair? (cdr datum)))
+     (extract-symbols-from-sexp* (cadr datum))]
+    [else
+     (append (extract-from-quasiquote (car datum))
+             (extract-from-quasiquote (cdr datum)))]))
+
 (define (extract-symbols-from-sexp* sexp)
   (cond
     [(symbol? sexp) (list sexp)]
@@ -105,7 +119,10 @@ uncertain (when exports are unknown).")
      (case (car sexp)
        ;; Skip quoted expressions (but recurse into quasiquote for unquote)
        [(quote) '()]
-       [(quasiquote) (safe-append-map extract-symbols-from-sexp* (cdr sexp))]
+       [(quasiquote)
+        (if (pair? (cdr sexp))
+            (extract-from-quasiquote (cadr sexp))
+            '())]
        ;; Handle define — skip the name being defined
        [(define define-record-type define-syntax)
         (if (and (pair? (cdr sexp)) (pair? (cddr sexp)))
@@ -126,7 +143,7 @@ uncertain (when exports are unknown).")
                                  (if (and (pair? b) (pair? (cdr b)))
                                      (extract-symbols-from-sexp* (cadr b))
                                      '()))
-                               (if (list? bindings) bindings '()))
+                               bindings)
               (safe-append-map extract-symbols-from-sexp* body)))]
           ;; Regular let: (let ([var init] ...) body...)
           [(and (pair? (cdr sexp)) (list? (cadr sexp)))
@@ -137,7 +154,7 @@ uncertain (when exports are unknown).")
                                  (if (and (pair? b) (pair? (cdr b)))
                                      (extract-symbols-from-sexp* (cadr b))
                                      '()))
-                               (if (list? bindings) bindings '()))
+                               bindings)
               (safe-append-map extract-symbols-from-sexp* body)))]
           [else '()])]
        ;; Handle lambda/case-lambda — skip parameter names, extract from body
