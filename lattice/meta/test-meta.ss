@@ -105,9 +105,11 @@
 
             (define-test test-kg-deps
               (kg-ensure!)
+              ;; With derived deps, optimization depends on data/linalg/sat
+              ;; (autodiff was a manifest phantom — not in @requires)
               (let ([deps (kg-deps 'optimization)])
-                   (assert-true (if (memq 'autodiff deps) #t #f))
-                   (assert-true (if (memq 'linalg deps) #t #f))))
+                   (assert-true (if (memq 'linalg deps) #t #f))
+                   (assert-true (if (memq 'data deps) #t #f))))
 
             (define-test test-kg-uses
               (kg-ensure!)
@@ -124,10 +126,11 @@
 
             (define-test test-lattice-roots
               (kg-ensure!)
+              ;; With derived deps + bridge cycle breaking, roots are skills
+              ;; with no deps (leaf nodes in the DAG)
               (let ([roots (lattice-roots)])
-                   (assert-true (if (memq 'linalg roots) #t #f))
-                   ;; egraph depends on algebra (for egraph-groebner bridge); algebra is now a root
-                   (assert-true (if (memq 'algebra roots) #t #f))))
+                   (assert-true (if (memq 'validation roots) #t #f))
+                   (assert-true (if (memq 'template roots) #t #f))))
 
             (define-test test-lattice-deps-transitive
               (kg-ensure!)
@@ -604,9 +607,10 @@
 
             (define-test test-cas-round-trip-deps
               ;; Dependencies should work after CAS load
+              ;; Uses derived deps (from require graph, acyclic)
               (let ([deps (kg-deps 'optimization)])
-                (assert-true (if (memq 'autodiff deps) #t #f))
-                (assert-true (if (memq 'linalg deps) #t #f))))
+                (assert-true (if (memq 'linalg deps) #t #f))
+                (assert-true (if (memq 'data deps) #t #f))))
 
             (define-test test-cas-round-trip-concepts
               ;; Concepts should be restored

@@ -12,6 +12,10 @@
   (load "boundary/meta/kg-incremental.ss"))
 (unless (top-level-bound? 'install-concept-ontology!)
   (load "lattice/meta/concept-normalize.ss"))
+(unless (top-level-bound? 'build-skill-map)
+  (load "lattice/meta/skill-map.ss"))
+(unless (top-level-bound? 'derive-skill-deps)
+  (load "lattice/meta/derive-deps.ss"))
 
 (doc 'module 'kg-io)
 (doc 'description "I/O layer for knowledge graph — manifest discovery, reading, CAS persistence,
@@ -27,6 +31,13 @@ Manifests are an import mechanism, not the primary store.")
 (doc *kg-export-inference-allowlist* 'description "Skills allowed to use broad exports-of fallback when manifest exports are empty.
 This is intentionally conservative to avoid flooding the KG with internal definitions.")
 (define *kg-export-inference-allowlist* '(meta))
+
+(doc *kg-use-derived-deps?* 'type 'Boolean)
+(doc *kg-use-derived-deps?* 'description "When #t, derive skill deps from require graph instead of manifest (deps ...) fields.
+Derived deps reflect the actual @requires annotations in source files.
+Bridge-module cycles are automatically broken by suppressing the direction
+with fewer cross-boundary module requires.")
+(define *kg-use-derived-deps?* #t)
 
 (doc *kg-hydrate-cas-on-load?* 'type Boolean)
 (doc *kg-hydrate-cas-on-load?* 'description "When #t, kg-load-from-root! hydrates in-memory CAS from disk before root lookup if needed.")
@@ -318,6 +329,44 @@ This is intentionally conservative to avoid flooding the KG with internal defini
                          [m2 (alist-set m1 'modules merged-modules)])
                     m2)))))))
 
+;;; kg-derive-all-deps : (List ManifestData) -> (Alist Symbol (List Symbol))
+;;; Derive acyclic deps for all manifests. Bridge-module cycles are automatically
+;;; broken by removing the direction with fewer cross-boundary requires.
+;;; Returns an alist mapping skill names to their derived dep lists.
+;;; When *kg-use-derived-deps?* is #f, returns empty (caller uses manifest deps).
+(define (kg-derive-all-deps manifests)
+  (if (not *kg-use-derived-deps?*)
+      '()
+      (guard (e [else
+                 (fprintf (current-error-port)
+                          "Warning: could not derive deps: ~a\n"
+                          (if (message-condition? e) (condition-message e) e))
+                 '()])
+        (call-with-values
+         (lambda () (derive-all-deps-acyclic manifests))
+         (lambda (clean-deps bridge-report)
+           (when (pair? bridge-report)
+             (printf "  Bridge deps broken (~a cycles):\n" (length bridge-report))
+             (for-each
+              (lambda (b)
+                (printf "    ~a -> ~a (~a bridge requires)\n"
+                        (cdr (assq 'from b)) (cdr (assq 'to b))
+                        (cdr (assq 'bridge-count b))))
+              bridge-report))
+           clean-deps)))))
+
+;;; kg-enrich-deps : ManifestData (Alist Symbol (List Symbol)) -> ManifestData
+;;; Replace manifest-declared deps with pre-computed derived deps.
+;;; derived-deps-map is the output of kg-derive-all-deps.
+(define (kg-enrich-deps manifest-data derived-deps-map)
+  (if (null? derived-deps-map)
+      manifest-data
+      (let* ([name (cdr (assq 'name manifest-data))]
+             [entry (assq name derived-deps-map)])
+        (if entry
+            (alist-set manifest-data 'deps (cdr entry))
+            manifest-data))))
+
 (doc kg-extract-type-sigs! 'type (-> Void))
 (doc kg-extract-type-sigs! 'description "Scan lattice source files for (doc fn 'type ...) forms.
 Also extracts contextual (doc 'type ...) forms from function define bodies.
@@ -451,21 +500,28 @@ from doc forms, and builds the root. Returns root hash.")
   (kg-reset!)
   (let ([manifests (find-manifests "lattice")])
     (printf "Found ~a manifests\n" (length manifests))
-    (let ([enriched-skills 0]
-          [added-exports 0]
-          [added-modules 0])
-    ;; Phase 1: Add all skills (creates skill/module/export blocks in CAS)
+    ;; Phase 0: Parse all manifests and derive acyclic deps
+    (let* ([parsed-manifests
+            (filter-map
+             (lambda (manifest-path)
+               (let ([sexp (read-manifest-sexp manifest-path)])
+                 (if sexp (parse-manifest sexp) #f)))
+             manifests)]
+           [derived-deps-map (kg-derive-all-deps parsed-manifests)]
+           [enriched-skills 0]
+           [added-exports 0]
+           [added-modules 0])
+    ;; Phase 1: Enrich and add all skills (creates skill/module/export blocks in CAS)
     (for-each
-     (lambda (manifest-path)
-       (let* ([sexp (read-manifest-sexp manifest-path)]
-              [data0 (if sexp (parse-manifest sexp) #f)])
-         (let ([data (if data0 (kg-enrich-manifest-from-source data0) #f)])
+     (lambda (data0)
+       (let* ([data1 (kg-enrich-manifest-from-source data0)]
+              [data (kg-enrich-deps data1 derived-deps-map)])
          (when data
            (let* ([before-e (length (manifest-export-symbols data0))]
-                  [after-e (length (manifest-export-symbols data))]
+                  [after-e (length (manifest-export-symbols data1))]
                   [mods0 (let ([m (assq 'modules data0)])
                            (if (and m (list? (cdr m))) (length (cdr m)) 0))]
-                  [mods1 (let ([m (assq 'modules data)])
+                  [mods1 (let ([m (assq 'modules data1)])
                            (if (and m (list? (cdr m))) (length (cdr m)) 0))])
              (when (> after-e before-e)
                (set! enriched-skills (+ enriched-skills 1))
@@ -473,8 +529,8 @@ from doc forms, and builds the root. Returns root hash.")
              (when (> mods1 mods0)
                (set! added-modules (+ added-modules (- mods1 mods0)))))
            (printf "  Loading: ~a\n" (cdr (assq 'name data)))
-           (kg-add-skill! data)))))
-     manifests)
+           (kg-add-skill! data))))
+     parsed-manifests)
     (when (> enriched-skills 0)
       (printf "  Enriched ~a skills from source (+~a exports, +~a modules)\n"
               enriched-skills added-exports added-modules))
@@ -657,6 +713,18 @@ skills that changed, were added, or were removed. Returns root hash on success,
                                '()
                                manifests)]
                              [affected-paths '()])
+                         ;; Derive acyclic deps (needs all manifests)
+                         (let ([derived-deps-map
+                                (if *kg-use-derived-deps?*
+                                    (let ([all-parsed
+                                           (filter-map
+                                            (lambda (path)
+                                              (guard (e [else #f])
+                                                (let ([s (read-manifest-sexp path)])
+                                                  (if s (parse-manifest s) #f))))
+                                            manifests)])
+                                      (kg-derive-all-deps all-parsed))
+                                    '())])
                          ;; Re-add changed + added skills
                          (for-each
                           (lambda (skill-name)
@@ -665,7 +733,8 @@ skills that changed, were added, or were removed. Returns root hash on success,
                                 (let* ([manifest-path (cdr entry)]
                                        [sexp (read-manifest-sexp manifest-path)]
                                        [data0 (if sexp (parse-manifest sexp) #f)]
-                                       [data (if data0 (kg-enrich-manifest-from-source data0) #f)])
+                                       [data1 (if data0 (kg-enrich-manifest-from-source data0) #f)]
+                                       [data (if data1 (kg-enrich-deps data1 derived-deps-map) #f)])
                                   (when data
                                     (printf "  Rebuilding: ~a\n" skill-name)
                                     (kg-add-skill! data)
@@ -673,7 +742,7 @@ skills that changed, were added, or were removed. Returns root hash on success,
                                       (when (and sp (string? (cdr sp)))
                                         (set! affected-paths
                                               (cons (cdr sp) affected-paths)))))))))
-                          (append changed added))
+                          (append changed added)))
                          ;; Rebuild deps + concepts (cheap, in-memory)
                          ;; Clear deps and concepts first since they reference
                          ;; the old state, then rebuild from current skills
