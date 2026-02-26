@@ -126,11 +126,11 @@
 
             (define-test test-lattice-roots
               (kg-ensure!)
-              ;; With derived deps + bridge cycle breaking, roots are skills
-              ;; with no deps (leaf nodes in the DAG)
+              ;; With derived deps + cycle breaking, roots are skills with
+              ;; zero derived deps. These shift as module parsing improves.
               (let ([roots (lattice-roots)])
-                   (assert-true (if (memq 'validation roots) #t #f))
-                   (assert-true (if (memq 'template roots) #t #f))))
+                   (assert-true (if (memq 'template roots) #t #f))
+                   (assert-true (if (memq 'algebra roots) #t #f))))
 
             (define-test test-lattice-deps-transitive
               (kg-ensure!)

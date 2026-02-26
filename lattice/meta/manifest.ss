@@ -34,6 +34,26 @@
     (car lst)]
    [else lst]))
 
+;;; flatten-modules : (List Any) -> (List ModuleEntry)
+;;; Like flatten-single but module-aware. Unwraps the extra nesting in
+;;; (modules ( entries... )) format, but NOT single-module entries like
+;;; ((name "file.ss" "desc")). Disambiguates by checking whether the
+;;; first element of the inner list is a symbol/string (module entry)
+;;; or a list (nested subdir wrapper).
+(define (flatten-modules lst)
+  (cond
+   [(not lst) '()]
+   [(null? lst) '()]
+   [(and (= (length lst) 1)
+         (list? (car lst))
+         (pair? (car lst))
+         ;; If inner list's first element is itself a list, it's the
+         ;; nested (modules ( entries... )) format — unwrap.
+         ;; If it's a symbol/string, it's a single module entry — keep wrapped.
+         (list? (caar lst)))
+    (car lst)]
+   [else lst]))
+
 (doc car-or-default 'type (-> (Maybe (List a)) a a))
 (doc car-or-default 'description "Get first element or return default.")
 (define (car-or-default lst default)
@@ -59,7 +79,7 @@
              (keywords . ,(flatten-single (manifest-field sexp 'keywords)))
              (aliases . ,(flatten-single (manifest-field sexp 'aliases)))
              (exports . ,(or (manifest-field sexp 'exports) '()))
-             (modules . ,(flatten-single (or (manifest-field sexp 'modules) '())))
+             (modules . ,(flatten-modules (or (manifest-field sexp 'modules) '())))
              (concepts . ,(or (manifest-field sexp 'concepts) '()))))
       #f))
 
