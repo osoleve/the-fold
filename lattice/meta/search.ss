@@ -4,9 +4,10 @@
 (require 'meta/kg)
 (require 'meta/bm25)
 (require 'meta/docstrings)
+(require 'meta/dag)
 
 ;;; @module meta/search
-;;; @requires sort hamt meta/kg meta/bm25 meta/docstrings
+;;; @requires sort hamt meta/kg meta/bm25 meta/docstrings meta/dag
 (doc 'module 'search)
 (doc 'description "Unified search interface for the skill lattice. Integrates BM25 with the knowledge graph for ranked results.")
 (doc 'layer 'lattice)

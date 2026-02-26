@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'hamt)
+(require 'meta/bm25)
 
 ;;; @module meta/docstrings
-;;; @requires hamt
+;;; @requires hamt meta/bm25
 (doc 'module 'docstrings)
 (doc 'description "Extract ;;; docstrings from source files and associate them with function definitions for improved search indexing.")
 (doc 'layer 'lattice)

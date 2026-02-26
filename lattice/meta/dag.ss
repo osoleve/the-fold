@@ -1,9 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
+(require 'prelude)
 (require 'sort)
 (require 'meta/kg)
 
 ;;; @module meta/dag
-;;; @requires sort meta/kg
+;;; @requires prelude sort meta/kg
 (doc 'module 'dag)
 (doc 'description "Tools for navigating the skill dependency DAG. Find dependencies, dependents, paths, and structural queries.")
 (doc 'layer 'lattice)
