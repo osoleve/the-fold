@@ -1,17 +1,15 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module topo-landscape
-;;; @requires prelude sort persistent convergence vec hamt
+;;; @requires prelude sort persistent vec hamt
 
 (require 'prelude)
 (require 'sort)
 (require 'persistent)
-(require 'convergence)
 (require 'vec)
 (require 'hamt)
 
 (doc 'module 'topo-landscape)
-(doc 'bridges '(optimization topology))
 (doc 'description "Topological analysis of optimization landscapes via persistent homology.
 Connects persistent homology (Betti numbers, persistence diagrams) to
 optimization landscape characterization — counting connected components

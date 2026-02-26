@@ -1,6 +1,6 @@
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/algebra/egraph-groebner.ss")
+(load "lattice/egraph/egraph-groebner.ss")
 
 ;;; ============================================================
 ;;; E-Term → Polynomial Conversion

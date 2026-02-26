@@ -254,7 +254,7 @@
  (register-module-path! 'interval-newton "lattice/optimization/interval-newton.ss")
  (register-module-path! 'interval-contract "lattice/optimization/interval-contract.ss")
  (register-module-path! 'maxsat-bridge "lattice/optimization/maxsat-bridge.ss")
- (register-module-path! 'topo-landscape "lattice/optimization/topo-landscape.ss")
+ (register-module-path! 'topo-landscape "lattice/topology/topo-landscape.ss")
 
  ;; Geometry layer
  (register-module-path! 'geometry "lattice/geometry/geometry.ss")
@@ -279,7 +279,7 @@
  (register-module-path! 'algebra/polynomial "lattice/algebra/polynomial.ss")
  (register-module-path! 'multivariate "lattice/algebra/multivariate.ss")
  (register-module-path! 'groebner "lattice/algebra/groebner.ss")
- (register-module-path! 'egraph-groebner "lattice/algebra/egraph-groebner.ss")
+ (register-module-path! 'egraph-groebner "lattice/egraph/egraph-groebner.ss")
  (register-module-path! 'module-theory "lattice/algebra/module.ss")
  (register-module-path! 'galois "lattice/algebra/galois.ss")
  (register-module-path! 'field-ext "lattice/algebra/field-ext.ss")
@@ -419,7 +419,7 @@
  (register-module-path! 'probability "lattice/random/probability.ss")
  (register-module-path! 'monte-carlo "lattice/random/monte-carlo.ss")
  (register-module-path! 'bayesian "lattice/random/bayesian.ss")
- (register-module-path! 'variational-inference "lattice/random/variational-inference.ss")
+ (register-module-path! 'variational-inference "lattice/autodiff/variational-inference.ss")
 
  ;; QuickCheck layer
  (register-module-path! 'qc-generators "lattice/quickcheck/generators.ss")

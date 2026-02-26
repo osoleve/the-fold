@@ -1,11 +1,11 @@
-;;; lattice/random/test-variational-inference.ss — Tests for Variational Inference
+;;; lattice/autodiff/test-variational-inference.ss — Tests for Variational Inference
 ;;;
 ;;; Comprehensive test suite for the variational inference module.
 ;;; Tests reparameterization, ELBO computation, gradient flow, and optimization.
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/random/variational-inference.ss")
+(load "lattice/autodiff/variational-inference.ss")
 
 ;;; ====
 ;;; Test Utilities

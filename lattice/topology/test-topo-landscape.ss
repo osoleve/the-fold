@@ -1,9 +1,9 @@
-;;; lattice/optimization/test-topo-landscape.ss — Tests for Topological Landscape Analysis
+;;; lattice/topology/test-topo-landscape.ss — Tests for Topological Landscape Analysis
 ;;;
-;;; Run with: scheme --script lattice/optimization/test-topo-landscape.ss
+;;; Run with: scheme --script lattice/topology/test-topo-landscape.ss
 
 (load "core/testing/test-framework.ss")
-(load "lattice/optimization/topo-landscape.ss")
+(load "lattice/topology/topo-landscape.ss")
 
 (display "\n====\n")
 (display "Topological Landscape Analysis Tests\n")

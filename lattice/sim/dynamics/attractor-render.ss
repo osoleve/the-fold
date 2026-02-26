@@ -2,7 +2,6 @@
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'vec)
-(require 'geometry)
 (require 'chaos)
 
 (doc 'module 'attractor-render)

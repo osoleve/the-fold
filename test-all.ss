@@ -385,7 +385,7 @@
     "algebra/test-group.ss"
     "algebra/test-poly-bridge.ss"
     "algebra/test-tropical-graph.ss"
-    "algebra/test-egraph-groebner.ss"
+    "egraph/test-egraph-groebner.ss"
     "algebra/test-algebra-laws.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
@@ -441,7 +441,7 @@
     "random/test-probability-properties.ss"
     "random/test-monte-carlo.ss"
     "random/test-bayesian.ss"
-    "random/test-variational-inference.ss"
+    "autodiff/test-variational-inference.ss"
     ;; QuickCheck
     "quickcheck/test-quickcheck.ss"
     "quickcheck/test-laws.ss"
@@ -557,7 +557,7 @@
     "optimization/test-interval-contract.ss"
     "optimization/test-interval-newton.ss"
     "optimization/test-maxsat-bridge.ss"
-    "optimization/test-topo-landscape.ss"
+    "topology/test-topo-landscape.ss"
     ;; Query
     "query/test-optic-query.ss"
     "query/test-query-macro.ss"

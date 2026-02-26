@@ -1,4 +1,4 @@
-;;; lattice/random/variational-inference.ss — Variational Inference Engine
+;;; lattice/autodiff/variational-inference.ss — Variational Inference Engine
 ;;; @module variational-inference
 ;;; @requires prelude reverse-diff prng distributions bayesian
 

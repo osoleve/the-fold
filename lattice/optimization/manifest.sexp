@@ -6,7 +6,7 @@
   (purity total)
   (stability stable)
   (fuel-bound "O(iterations × n) for first-order, O(iterations × n²) for second-order, O(iterations × m × n) for LP, O(2^k × LP) for ILP, O(2^d × iterations) for interval global")
-  (deps (autodiff linalg numeric interval data sat topology))
+  (deps (autodiff linalg numeric interval data sat))
 
   (description
    "Numerical optimization algorithms powered by automatic differentiation.
@@ -20,9 +20,7 @@
     optimization, interval Newton method for guaranteed root finding
     with existence proofs, weighted constraint optimization
     via MaxSAT with stratified solving and named variable domains,
-    and topological landscape analysis via persistent homology for
-    characterizing loss surfaces (basin counting, saddle detection,
-    landscape complexity and comparison).")
+    and weighted constraint optimization via MaxSAT with stratified solving.")
 
   (keywords (optimization gradient-descent sgd adam muon newton lbfgs
              minimize convergence line-search numerical
@@ -33,9 +31,7 @@
              monotonicity-pruning interval-gradient
              root-finding interval-newton bisection krawczyk existence-proof
              weighted-maxsat constraint-optimization weighted-constraints
-             scheduling vertex-cover diagnosis
-             topological-landscape landscape-analysis persistent-homology
-             betti-numbers loss-surface basin-counting saddle-detection))
+             scheduling vertex-cover diagnosis))
   (aliases (optim opt minimize))
 
   (concepts
@@ -55,9 +51,7 @@
       (description "Finding the global minimum of non-convex functions: interval branch-and-bound with guaranteed enclosure.")
       (parent optimization)
       (synonyms interval-optimization global-minimum verified-optimization monotonicity-pruning))
-    (concept topological-optimization
-      (description "Using persistent homology to analyze loss surfaces: basin counting, saddle detection, and landscape comparison.")
-      (parent optimization)))
+    )
 
   (exports
    (line-search armijo-backtrack wolfe-line-search)
@@ -92,12 +86,7 @@
                   wco->maxsat wco-solve
                   wco-result? wco-result-cost wco-result-model wco-result-assignment wco-result-value
                   weighted-vertex-cover weighted-diagnosis scheduling-problem)
-   (topo-landscape sample-grid-2d sample-grid-nd sample-around-points
-                   sublevel-filtration landscape-persistence
-                   landscape-betti count-basins count-saddles
-                   landscape-signature landscape-complexity
-                   landscape-distance landscape-similar?
-                   analyze-landscape-2d analyze-landscape-nd trajectory-persistence))
+   )
 
   (modules
    (line-search "line-search.ss" "Armijo, Wolfe line search strategies")
@@ -111,5 +100,4 @@
    (interval-global "interval-global.ss" "Interval branch-and-bound global optimization with monotonicity pruning")
    (interval-contract "interval-contract.ss" "Constraint contractors for interval optimization")
    (interval-newton "interval-newton.ss" "Interval Newton method for guaranteed root finding with existence proofs")
-   (maxsat-bridge "maxsat-bridge.ss" "Weighted constraint optimization via stratified MaxSAT")
-   (topo-landscape "topo-landscape.ss" "Topological landscape analysis via persistent homology")))
+   (maxsat-bridge "maxsat-bridge.ss" "Weighted constraint optimization via stratified MaxSAT")))

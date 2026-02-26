@@ -126,8 +126,8 @@
               (kg-ensure!)
               (let ([roots (lattice-roots)])
                    (assert-true (if (memq 'linalg roots) #t #f))
-                   ;; algebra depends on egraph (for egraph-groebner bridge), so no longer a root
-                   (assert-true (if (memq 'egraph roots) #t #f))))
+                   ;; egraph depends on algebra (for egraph-groebner bridge); algebra is now a root
+                   (assert-true (if (memq 'algebra roots) #t #f))))
 
             (define-test test-lattice-deps-transitive
               (kg-ensure!)

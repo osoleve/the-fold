@@ -6,7 +6,7 @@
   (purity total)  ; All generators are pure (State monad)
   (stability stable)
   (fuel-bound "O(1) per sample for most distributions, O(iter) for VI")
-  (deps (fp autodiff))  ; Uses fp/control/state, fp/numeric/transcendental, and autodiff for VI
+  (deps (fp))  ; Uses fp/control/state, fp/numeric/transcendental
 
   (description
    "Pure, deterministic pseudorandom number generation using the State monad.
@@ -128,29 +128,7 @@
     ;; Convenience
     run-mc mc-pi-estimate mc-normal-tail-prob)
 
-   (variational-inference
-    ;; Variational families
-    make-mf-gaussian mf-gaussian? mf-gaussian-means mf-gaussian-log-stds
-    mf-gaussian-stds mf-gaussian-dim mf-gaussian-reparam sample-mf-gaussian
-    mf-gaussian-log-prob mf-gaussian-entropy
-    make-full-gaussian full-gaussian? full-gaussian-means full-gaussian-chol
-    full-gaussian-dim full-gaussian-reparam sample-full-gaussian
-    full-gaussian-log-prob full-gaussian-entropy
-    ;; Generic interface
-    vfamily-dim vfamily-entropy vfamily-params vfamily-from-params
-    ;; ELBO estimation
-    elbo-estimate elbo-with-entropy
-    ;; Gradient computation (requires traced log-joint)
-    elbo-gradient-mf traced-log-normal-pdf traced-log-normal-pdf-sum
-    make-traced-log-joint-normal-mean
-    ;; Optimization
-    vi-step-mf vi-step-adam vi-step-adam-traced
-    make-adam-state adam-state? adam-state-m adam-state-v adam-state-t adam-update
-    ;; Fitting
-    vi-fit vi-fit-traced vi-fit-normal-mean vi-fit-linear-regression
-    vi-result? vi-result-vfamily vi-result-elbo-history vi-result-iterations
-    ;; Diagnostics
-    vi-summary vi-check-convergence))
+   )
 
   (modules
    (prng "prng.ss" "PRNGs: PCG, Xorshift128+, Splitmix64 with State monad")
@@ -158,5 +136,4 @@
    (probability "probability.ss" "Probability monad for probabilistic programming")
    (bayesian "bayesian.ss" "Bayesian inference primitives")
    (monte-carlo "monte-carlo.ss" "Monte Carlo methods and MCMC")
-   (variational-inference "variational-inference.ss"
-    "Variational inference: ELBO optimization, reparameterization trick, mean-field and full-covariance Gaussian families")))
+   ))

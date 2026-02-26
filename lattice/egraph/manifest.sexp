@@ -11,7 +11,7 @@
   (stability experimental)
   (fuel-bound 100000)
 
-  (deps ())  ; Self-contained foundation; will add fp dependency for rewrite rules later
+  (deps (algebra))  ; egraph-groebner bridge uses algebra's polynomial/Gröbner infrastructure
 
   (description
    "E-graph (equality graph) implementation for equality saturation.
@@ -97,7 +97,14 @@
     make-worklist-scheduler make-priority-scheduler
     saturate-scheduled scheduled-iteration
     optimize-scheduled
-    scheduler->string rule-stats->string scheduler-stats-report))
+    scheduler->string rule-stats->string scheduler-stats-report)
+   (egraph-groebner
+    eterm->mpoly mpoly->eterm eterm-variables
+    poly-equiv? poly-equiv-over? poly-equiv-modulo?
+    groebner-rewrite-rules groebner-rewrite-rules-over
+    poly-identity-rules poly-degree-cost
+    poly-optimize poly-optimize-over
+    poly-reduce poly-reduce-over poly-reduce-modulo poly-reduce-modulo-over))
 
   (modules
    (union-find "union-find.ss" "Disjoint set with path compression and union by rank")
@@ -107,4 +114,5 @@
    (saturation "saturation.ss" "Equality saturation loop with resource limits")
    (cost "cost.ss" "Cost models for CUDA, CPU, and code size optimization")
    (extract "extract.ss" "Cost-based extraction from e-graphs")
-   (scheduler "scheduler.ss" "Rule scheduling with backoff and priority strategies")))
+   (scheduler "scheduler.ss" "Rule scheduling with backoff and priority strategies")
+   (egraph-groebner "egraph-groebner.ss" "Bridge e-graph rewriting to Gröbner basis polynomial identity proving")))

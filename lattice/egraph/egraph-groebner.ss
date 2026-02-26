@@ -1,7 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module egraph-groebner
 ;;; @requires prelude sort field multivariate groebner egraph/extract
-;;; lattice/algebra/egraph-groebner.ss — Bridge E-Graph Rewriting to Gröbner Basis
+;;; lattice/egraph/egraph-groebner.ss — Bridge E-Graph Rewriting to Gröbner Basis
 ;;;
 ;;; Connects e-graph equality saturation with Gröbner basis polynomial
 ;;; identity proving. E-graphs handle structural rewrites (commutativity,

@@ -6,7 +6,7 @@
   (purity total)
   (stability stable)
   (fuel-bound (max (exponential n) (max (cubic n) (quadratic n))))
-  (deps (egraph))  ; egraph-groebner bridge needs egraph for equality saturation
+  (deps ())
 
   (description
    "Pure functional abstract algebra library implementing groups, rings, fields,
@@ -27,8 +27,7 @@
              galois-field finite-field gf2n binary-field
              irreducible primitive-element aes-field
              tropical semiring min-plus max-plus newton-polygon
-             egraph-groebner polynomial-identity polynomial-equivalence
-             polynomial-reduction rewrite-rules))
+             ))
   (aliases (abstract-algebra group-theory ring-theory polynomial-algebra galois-fields))
 
   (concepts
@@ -179,21 +178,7 @@
     tropical-poly-eval tropical-poly-roots newton-polygon
     ;; Conversion utilities
     adjacency->tropical tropical->adjacency)
-   (egraph-groebner
-    ;; Conversion
-    eterm->mpoly mpoly->eterm eterm-variables
-    ;; Polynomial equivalence
-    poly-equiv? poly-equiv-over? poly-equiv-modulo?
-    ;; Gröbner rewrite rules for e-graphs
-    groebner-rewrite-rules groebner-rewrite-rules-over
-    ;; Polynomial identity rules
-    poly-identity-rules
-    ;; Cost model
-    poly-degree-cost
-    ;; Combined optimization
-    poly-optimize poly-optimize-over
-    ;; Polynomial reduction
-    poly-reduce poly-reduce-over poly-reduce-modulo poly-reduce-modulo-over))
+   )
 
   (modules
    (group "group.ss" "Group theory: cyclic, symmetric, dihedral groups and homomorphisms")
@@ -205,4 +190,4 @@
    (poly-bridge "poly-bridge.ss" "Bridge between numeric (descending) and algebra (ascending) polynomial representations")
    (galois "galois.ss" "Galois fields: GF(p), GF(p^n) extensions, GF(2^n) binary fields, irreducibles, primitives")
    (tropical "tropical.ss" "Tropical semirings: min-plus, max-plus, matrix closure, eigenvalues, Newton polygons")
-   (egraph-groebner "egraph-groebner.ss" "Bridge e-graph rewriting to Gröbner basis polynomial identity proving")))
+   ))

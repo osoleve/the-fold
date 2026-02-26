@@ -6,7 +6,7 @@
   (purity total)  ; Pure stream-based simulation
   (stability experimental)
   (fuel-bound "O(n) per simulation step")
-  (deps (data linalg random numeric fp geometry))
+  (deps (data linalg random numeric fp))
 
   (description
    "Stream-based simulation framework for continuous dynamical systems.

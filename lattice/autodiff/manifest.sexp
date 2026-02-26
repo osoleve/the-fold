@@ -6,7 +6,7 @@
   (purity partial)  ; Uses mutable tape for efficiency
   (stability stable)
   (fuel-bound "O(n) forward pass, O(n) backward pass where n is tape length")
-  (deps (linalg numeric interval fp))  ; interval for interval-autodiff, fp for optics
+  (deps (linalg numeric interval fp random))  ; interval for interval-autodiff, fp for optics, random for VI
 
   (description
    "Reverse-mode automatic differentiation (backpropagation) using
@@ -65,4 +65,5 @@
    (symbolic-diff "symbolic-diff.ss" "Bridge symbolic expressions to traced autodiff")
    (interval-autodiff "interval-autodiff.ss" "Interval autodiff for verified optimization")
    (traced-optics "traced-optics.ss" "Optics integration for gradient through focused paths")
-   (optic-functors "optic-functors.ss" "Categorical bridge: optics tower to autodiff via functors")))
+   (optic-functors "optic-functors.ss" "Categorical bridge: optics tower to autodiff via functors")
+   (variational-inference "variational-inference.ss" "Variational inference: ELBO, reparameterization trick, mean-field/full-covariance Gaussian")))

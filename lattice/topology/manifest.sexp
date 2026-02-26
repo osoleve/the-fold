@@ -4,7 +4,7 @@
   (purity total)
   (stability experimental)
   (fuel-bound "O(n³) for homology/persistence, O(n^(d+1)) for Rips construction")
-  (deps (data))
+  (deps (data linalg))
   (description "Computational topology and topological data analysis.
 Includes simplicial complexes, homology over Z₂, persistent homology,
 Vietoris-Rips filtrations, persistence diagrams, and barcodes.")
@@ -77,11 +77,20 @@ Vietoris-Rips filtrations, persistence diagrams, and barcodes.")
       ;; Barcode representation
       diagram->barcode barcode? barcode-intervals barcode-print
       ;; Distance metrics
-      diagram-bottleneck))
+      diagram-bottleneck)
+    (topo-landscape
+      sample-grid-2d sample-grid-nd sample-around-points
+      sublevel-filtration landscape-persistence
+      landscape-betti count-basins count-saddles
+      landscape-signature landscape-complexity
+      landscape-distance landscape-similar?
+      analyze-landscape-2d analyze-landscape-nd trajectory-persistence))
   (modules
     (simplicial-complex "simplicial-complex.ss"
       "Core simplicial complex data structures and operations")
     (homology "homology.ss"
       "Homology groups and Betti numbers over Z₂ coefficients")
     (persistent "persistent.ss"
-      "Persistent homology, Vietoris-Rips filtrations, and TDA")))
+      "Persistent homology, Vietoris-Rips filtrations, and TDA")
+    (topo-landscape "topo-landscape.ss"
+      "Topological landscape analysis via persistent homology")))
