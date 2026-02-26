@@ -62,6 +62,18 @@
         (gen-map (lambda (k) (cons xs k))
                  (gen-int-range 0 n))))))
 
+(define gen-vec-surface-args
+  (gen-bind gen-nonempty-len
+    (lambda (n)
+      (gen-bind (gen-list-of n gen-int-small)
+        (lambda (xs)
+          (gen-bind (gen-list-of n gen-int-small)
+            (lambda (ys)
+              (gen-bind (gen-int-range 0 (- n 1))
+                (lambda (k)
+                  (gen-map (lambda (p) (list xs ys k p))
+                           (gen-int-range 0 100)))))))))))
+
 ;;; ============================================================================
 ;;; Representation and structure
 ;;; ============================================================================
@@ -226,6 +238,67 @@
         (and (not (error-result? linf))
              (<= linf l1))))
     'tests 200)
+
+  (define-property "vec surface helper API returns consistent results"
+    gen-vec-surface-args
+    (lambda (args)
+      (let* ([xs (car args)]
+             [ys (cadr args)]
+             [k (caddr args)]
+             [p (cadddr args)]
+             [vx (list->vec-int xs)]
+             [vy (list->vec-int ys)]
+             [safe-y (vec-map (lambda (x) (if (= x 0) 1 x)) vy)]
+             [zip (vec-zip-with + vx vy)]
+             [add (vec-add vx vy)]
+             [mul (vec-mul vx safe-y)]
+             [div-back (vec-div mul safe-y)]
+             [copy (vec-copy vx)]
+             [first (vec-first vx)]
+             [last (vec-last vx)]
+             [empty? (vec-empty? (vec-zeros 0))]
+             [mean (vec-mean vx)]
+             [sum (vec-sum vx)]
+             [sum-right (vec-fold-right (lambda (x acc) (+ x acc)) 0 vx)]
+             [prod (vec-product vx)]
+             [prod-list (fold-left * 1 xs)]
+             [minv (vec-min vx)]
+             [maxv (vec-max vx)]
+             [imin (vec-argmin vx)]
+             [imax (vec-argmax vx)]
+             [negx (vec-negate vx)]
+             [slice (vec-slice vx 0 (vec-length vx))]
+             [lin (vec-linspace -2 2 (+ 2 k))]
+             [ones (vec-ones (vec-length vx))]
+             [zeros (vec-zeros (vec-length vx))]
+             [rng (vec-range (vec-length vx))]
+             [unit (vec-unit (vec-length vx) k)]
+             [normed (vec-normalize vx)])
+        (and (not (error-result? zip))
+             (vec-equal? zip add)
+             (vec-approx-equal? div-back vx 1e-10)
+             (vec-equal? copy vx)
+             (= first (car xs))
+             (= last (car (reverse xs)))
+             empty?
+             (= sum-right sum)
+             (= prod prod-list)
+             (approx= mean (/ sum (vec-length vx)) 1e-12)
+             (vec-equal? (vec-add vx negx) (vec-zeros (vec-length vx)))
+             (= minv (vector-ref vx imin))
+             (= maxv (vector-ref vx imax))
+             (>= imin 0) (< imin (vec-length vx))
+             (>= imax 0) (< imax (vec-length vx))
+             (vec-equal? slice vx)
+             (= (vec-ref lin 0) -2)
+             (= (vec-ref lin (- (vec-length lin) 1)) 2)
+             (= (vec-sum ones) (vec-length vx))
+             (= (vec-sum zeros) 0)
+             (= (vec-ref rng 0) 0)
+             (= (vec-ref unit k) 1)
+             (or (error-result? normed)
+                 (approx= (vec-norm normed) 1.0 1e-9)))))
+    'tests 220)
 )
 
 ;;; ============================================================================

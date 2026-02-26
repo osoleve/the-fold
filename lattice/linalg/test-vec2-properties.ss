@@ -25,6 +25,11 @@
 (define gen-scalar
   (gen-int-range -10 10))
 
+(define gen-nonzero-scalar
+  (gen-bind (gen-int-range -10 10)
+    (lambda (k)
+      (if (= k 0) (gen-pure 1) (gen-pure k)))))
+
 (define gen-t
   (gen-map (lambda (n) (/ n 100.0))
            (gen-int-range 0 100)))
@@ -54,6 +59,18 @@
         (lambda (b)
           (gen-map (lambda (c) (list a b c))
                    gen-vec2-int))))))
+
+(define gen-vec2-surface-args
+  (gen-bind gen-vec2-int
+    (lambda (a)
+      (gen-bind gen-vec2-int
+        (lambda (b)
+          (gen-bind gen-t
+            (lambda (t)
+              (gen-bind gen-nonzero-scalar
+                (lambda (k)
+                  (gen-map (lambda (d) (list a b t k d))
+                           (gen-int-range 1 10)))))))))))
 
 ;;; ============================================================================
 ;;; Algebraic and metric properties
@@ -199,6 +216,93 @@
         (approx= (vec2-angle-to a b)
                  (- (vec2-angle-to b a))
                  1e-12)))
+    'tests 220)
+
+  (define-property "vec2 surface helper API returns consistent results"
+    gen-vec2-surface-args
+    (lambda (args)
+      (let* ([a (car args)]
+             [b (cadr args)]
+             [t (caddr args)]
+             [k (cadddr args)]
+             [d (list-ref args 4)]
+             [safe-b (vec2 (if (= (vec2-x b) 0) 1 (vec2-x b))
+                           (if (= (vec2-y b) 0) 1 (vec2-y b)))]
+             [safe-a (if (nonzero-vec2? a) a (vec2-unit-x))]
+             [safe-dir (if (nonzero-vec2? b) b (vec2-unit-y))]
+             [ua (if (nonzero-vec2? a) (vec2-unit a) (vec2-unit-x))]
+             [ub (if (nonzero-vec2? b) (vec2-unit b) (vec2-unit-y))]
+             [lst (vec2->list a)]
+             [a2 (list->vec2 lst)]
+             [one (vec2-one)]
+             [ux (vec2-unit-x)]
+             [uy (vec2-unit-y)]
+             [mul (vec2-mul a safe-b)]
+             [div-back (vec2-div mul safe-b)]
+             [neg (vec2-neg a)]
+             [scaled-inv (vec2-scale-inv (vec2-scale a k) k)]
+             [absv (vec2-abs a)]
+             [floorv (vec2-floor a)]
+             [ceilv (vec2-ceil a)]
+             [roundv (vec2-round a)]
+             [mapped (vec2-map abs a)]
+             [folded (vec2-fold + 0 a)]
+             [sumv (vec2-sum a)]
+             [prodv (vec2-product a)]
+             [minv (vec2-min a b)]
+             [maxv (vec2-max a b)]
+             [clamped (vec2-clamp a (vec2 -2 -2) (vec2 2 2))]
+             [setmag (if (nonzero-vec2? a) (vec2-set-magnitude a d) (vec2-zero))]
+             [clampmag (vec2-clamp-magnitude a 0 d)]
+             [limited (vec2-limit a d)]
+             [towards (vec2-move-towards a b d)]
+             [slerped (vec2-slerp ua ub t)]
+             [refl (vec2-reflect a (vec2-unit-x))]
+             [perpdot (vec2-perp-dot a b)]
+             [ang-between (vec2-angle-between safe-a safe-dir)]
+             [heading (vec2-heading a)]
+             [from-ang (vec2-from-angle t)]
+             [from-polar (vec2-from-polar d t)]
+             [perp (vec2-perp a)]
+             [srepr (vec2->string a)])
+        (and (vec2-equal? a a2)
+             (= (vec2-x ux) 1) (= (vec2-y ux) 0)
+             (= (vec2-x uy) 0) (= (vec2-y uy) 1)
+             (vec2-equal? one (vec2 1 1))
+             (approx= (vec2-length a) (vec2-magnitude a) 1e-12)
+             (approx= (vec2-distance-sq a b)
+                      (* (vec2-distance a b) (vec2-distance a b))
+                      1e-9)
+             (vec2-nearly-equal? (vec2-add a neg) (vec2-zero) 1e-9)
+             (vec2-nearly-equal? div-back a 1e-9)
+             (vec2-nearly-equal? scaled-inv a 1e-9)
+             (vec2-nearly-equal? absv mapped 1e-12)
+             (<= (vec2-x floorv) (vec2-x a))
+             (<= (vec2-y floorv) (vec2-y a))
+             (>= (vec2-x ceilv) (vec2-x a))
+             (>= (vec2-y ceilv) (vec2-y a))
+             (<= (vec2-x clamped) 2) (>= (vec2-x clamped) -2)
+             (<= (vec2-y clamped) 2) (>= (vec2-y clamped) -2)
+             (= folded sumv)
+             (= sumv (+ (vec2-x a) (vec2-y a)))
+             (= prodv (* (vec2-x a) (vec2-y a)))
+             (<= (vec2-x minv) (vec2-x maxv))
+             (<= (vec2-y minv) (vec2-y maxv))
+             (or (not (nonzero-vec2? a))
+                 (approx= (vec2-magnitude setmag) d 1e-8))
+             (<= (vec2-magnitude clampmag) (+ d 1e-8))
+             (<= (vec2-magnitude limited) (+ d 1e-8))
+             (vec2? towards)
+             (vec2? slerped)
+             (vec2? refl)
+             (= perpdot (vec2-cross a b))
+             (>= ang-between 0.0) (<= ang-between 3.141592653589793)
+             (approx= heading (vec2-angle a) 1e-12)
+             (approx= (vec2-magnitude from-ang) 1.0 1e-9)
+             (approx= (vec2-magnitude from-polar) d 1e-8)
+             (vec2-nearly-equal? perp (vec2-rotate-90 a) 1e-12)
+             (string? srepr)
+             (vec2? roundv))))
     'tests 220)
 )
 
