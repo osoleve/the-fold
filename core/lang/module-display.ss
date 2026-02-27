@@ -23,6 +23,9 @@
    [(string-starts-with? path "lattice/pipeline/") "PIPELINE"]
    [(string-starts-with? path "lattice/info/") "INFO-THEORY"]
    [(string-starts-with? path "core/util/") "UTIL"]
+   [(string-starts-with? path "lattice/symbolic/") "SYMBOLIC"]
+   [(string-starts-with? path "lattice/rewrite/") "REWRITE"]
+   [(string-starts-with? path "lattice/category/") "CATEGORY"]
    [(string-starts-with? path "lattice/fp/") "FP"]
    [(string-starts-with? path "boundary/") "BOUNDARY"]
    [else "OTHER"]))
@@ -44,6 +47,9 @@
    [(string=? cat "PIPELINE") "agent pipelines"]
    [(string=? cat "INFO-THEORY") "information theory"]
    [(string=? cat "UTIL") "utilities"]
+   [(string=? cat "SYMBOLIC") "symbolic computation, CAS"]
+   [(string=? cat "REWRITE") "term rewriting, proof tactics"]
+   [(string=? cat "CATEGORY") "category theory"]
    [(string=? cat "FP") "functional programming toolkit"]
    [(string=? cat "BOUNDARY") "boundary, REPL, IO"]
    [else ""]))

@@ -76,6 +76,10 @@
    [(string-contains? path "lattice/number-theory") 'number-theory]
    [(string-contains? path "lattice/pipeline") 'pipeline]
    [(string-contains? path "lattice/tiles") 'tiles]
+   ;; Extracted from fp (fold-zy24)
+   [(string-contains? path "lattice/symbolic") 'symbolic]
+   [(string-contains? path "lattice/rewrite") 'rewrite]
+   [(string-contains? path "lattice/category") 'category]
    ;; FP subdirectories
    [(string-contains? path "lattice/fp/control") 'fp-control]
    [(string-contains? path "lattice/fp/numeric") 'fp-numeric]
@@ -83,10 +87,8 @@
    [(string-contains? path "lattice/fp/meta") 'fp-meta]
    [(string-contains? path "lattice/fp/data") 'fp-data]
    [(string-contains? path "lattice/fp/game") 'fp-game]
-   [(string-contains? path "lattice/symbolic") 'symbolic]
    [(string-contains? path "lattice/fp/measure") 'fp-measure]
    [(string-contains? path "lattice/fp/control-systems") 'fp-control-systems]
-   [(string-contains? path "lattice/rewrite") 'rewrite]
    [(string-contains? path "lattice/fp/analysis") 'fp-analysis]
    [(string-contains? path "lattice/fp") 'fp]
    ;; Boundary and user
