@@ -24,7 +24,6 @@
 !.store/objects/
 !.store/heads/
 .store/heads/history/
-.store/heads/flashmob/
 .store_archive/
 
 # Build artifacts

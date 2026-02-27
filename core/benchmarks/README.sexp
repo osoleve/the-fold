@@ -39,5 +39,4 @@ In REPL:
 ")
 
  (see-also . (
-   "boundary/benchmarks/README.sexp"
    "core/util/profiling.ss")))

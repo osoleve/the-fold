@@ -111,7 +111,7 @@ Given η : F ⟹ G and ε : G ⟹ H, their vertical composition
   (doc 'description "Vertical composition: (ε ∘ η) where η : F ⟹ G and ε : G ⟹ H
 Precondition: both arguments are valid nat-transforms,
               target of η equals source of ε.
-This is pure lattice code; use boundary/fp/category.ss for validated entry points.")
+This is pure lattice code.")
   (let ([source (nat-transform-source η)]
         [target (nat-transform-target ε)]
         [η-comp (nat-transform-component η)]

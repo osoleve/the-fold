@@ -134,7 +134,7 @@ gemini --include-directories core/types \
 2. **Escape Properly**: Quote prompts containing special characters or multiple lines
 3. **Use Pipes**: Leverage stdin for complex prompts from files or command output
 4. **Model Selection by Use Case**:
-   - **QA/code review/flashmob**: Use `gemini-3-flash-preview` (faster, cheaper for bulk tasks)
+   - **QA/code review**: Use `gemini-3-flash-preview` (faster, cheaper for bulk tasks)
    - **Deep analysis/architecture**: Use `gemini-3-pro-preview` (more thorough reasoning)
    - **General/uncertain**: Trust "auto" mode
 5. **Error Handling**: Check exit codes (non-zero = failure) and stderr for API errors
@@ -160,31 +160,16 @@ EOF
 )"
 ```
 
-## QA and Flashmob Integration
+## QA Reviews
 
-When running flashmob QA reviews, **always use `gemini-3-flash-preview`**:
+For code review tasks, use `gemini-3-flash-preview` (faster, cheaper for bulk reviews). Reserve `gemini-3-pro-preview` for architectural design reviews or complex analysis.
 
 ```bash
-# Flashmob QA review - use flash model
+# Code review - use flash model
 gemini -m gemini-3-flash-preview \
   --include-directories <target-dir> \
   "Review this code for bugs, logic errors, edge cases. Report findings with file:line format."
-
-# Multiple files in parallel (batch mode)
-for file in boundary/tools/*.ss; do
-  gemini -m gemini-3-flash-preview \
-    "Review $file for correctness issues" \
-    > "reports/$(basename "$file").review" &
-done
-wait
 ```
-
-The flash model is preferred for QA because:
-- **Faster**: Lower latency for bulk file reviews
-- **Cheaper**: More cost-effective for many small reviews
-- **Sufficient**: Code review doesn't require pro-level reasoning depth
-
-Reserve `gemini-3-pro-preview` for architectural design reviews or complex analysis.
 
 ## Integration with The Fold
 

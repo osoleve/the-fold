@@ -7523,24 +7523,6 @@ Agents communicate through the issue tracker (§8.7):
 - **Auditable**: Full history in CAS
 - **Priority-based**: Agents can query `(bbs-ready)` for highest-priority unblocked work
 
-**Flashmob (QA Triage)**:
-
-For coordinated quality assurance, the flashmob system aggregates findings from multiple agents:
-
-```scheme
-(flashmob-report! 'agent-a
-  '((file . "vec.ss")
-    (severity . high)
-    (confidence . 0.9)
-    (finding . "Potential overflow in vec-dot")))
-```
-
-The flashmob coordinator:
-1. Aggregates findings from all agents
-2. Applies game-theoretic credit allocation (Shapley values)
-3. Ranks issues by severity × confidence
-4. Exports actionable items to BBS
-
 **No Shared Mutable State**:
 
 Agents never share mutable memory. All coordination happens through:

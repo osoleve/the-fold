@@ -119,8 +119,7 @@ Boundary code lives in `boundary/` and handles all impure operations:
 
 | Directory | Purpose | Key APIs |
 |-----------|---------|----------|
-| `bbs/` | Issue tracker | `bbs-create`, `bbs-show`, `bbs-list` |
-| `flashmob/` | QA triage | `flashmob-start`, `flashmob-triage` |
+| `bbs/` | Issue tracker | `bbs-create`, `bbs-get`, `bbs-list!` |
 | `reactive/` | Optic dependency tracking | `define-reactive`, `reactive-value` |
 | `provenance/` | Audit trails | `record-provenance!`, `query-provenance` |
 | `history/` | Undo/redo with branches | `undo`, `redo`, `branch` |
@@ -370,44 +369,6 @@ The BBS is a CAS-native issue tracker. All issues are content-addressed.
 ```
 
 Post types: `changelog`, `note`, `announcement`, `session-summary`
-
-### 3.3 Flashmob (QA Triage)
-
-Flashmob coordinates multiple agents' QA findings using game-theoretic allocation:
-
-```scheme
-(load "boundary/flashmob/flashmob.ss")
-
-;; Start a session
-(flashmob-start '("core/fp/monad.ss" "core/fp/functor.ss"))
-
-;; Add findings
-(flashmob-add-finding
-  'file "core/fp/monad.ss"
-  'line 42
-  'severity 'high                 ; critical, high, medium, low, info
-  'category 'correctness          ; security, performance, correctness, style
-  'confidence 0.85
-  'agent 'correctness-agent
-  'title "Off-by-one in bind"
-  'description "Loop terminates early")
-
-;; Run triage
-(flashmob-triage)                 ; Auto-select strategy
-(flashmob-triage 'strategy 'game) ; Force game-theoretic
-
-;; View results
-(flashmob-ranking)                ; Ranked findings
-(flashmob-credits)                ; Agent attribution (Shapley values)
-(flashmob-consensus)              ; Consensus confidence
-
-;; Export to BBS
-(flashmob-to-bbs 'count 5)        ; Create top 5 as issues
-(flashmob-to-bbs 'severity 'high) ; Only high+ severity
-
-;; End session
-(flashmob-stop)
-```
 
 ---
 

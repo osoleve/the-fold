@@ -36,13 +36,6 @@ The long-term vision: a smaller, Fold-native model that's as capable as frontier
 
 Returns result on stdout, errors to stderr with exit codes: 0=success, 1=error, 2=timeout.
 
-### Session Cleanup
-
-```bash
-./fold -s dev "(bye)"              # Logout and clean up session files
-./fold -s dev "(who)"              # Show current session info
-```
-
 ### Essential Commands
 
 ```scheme
@@ -120,7 +113,7 @@ Test framework: `core/testing/test-framework.ss` provides unified API across all
 
 **Note:** `assert-true` checks `(eq? #t expr)`, not just truthiness. Use `(assert-true (pair? x))` instead of `(assert-true x)` when x might be a truthy non-boolean like a pair from `assq`.
 
-**Performance tip:** When tests need expensive initialization (building indices, parsing manifests), use an "ensure" pattern: check if already initialized before building. See `kg-ensure!` and `lattice-ensure!` in `lattice/meta/` for examples. This reduced test-meta.ss runtime from 20s to 2s.
+**Property-based testing:** Use QuickCheck (`lattice/quickcheck/`) for property-based tests alongside unit tests. Generators, shrinking, and property combinators are all available. Prefer property tests for algebraic laws and invariants; use unit tests for specific edge cases and regression tests. See existing `test-*-properties.ss` files for patterns.
 
 ### Pre-Commit Hooks
 
@@ -136,16 +129,7 @@ The pre-commit hook runs automatically on `git commit`:
 
 ### Rust FFI
 
-The Rust acceleration layer lives at `boundary/ffi/rust-accel/`:
-
-```bash
-cd boundary/ffi/rust-accel
-cargo check                    # Compile check
-cargo fmt                      # Format
-cargo clippy --all-targets     # Lint
-cargo test                     # Run Rust tests
-cargo build --release          # Build shared library
-```
+The Rust acceleration layer lives at `boundary/ffi/rust-accel/`. Standard cargo workflow (`check`, `fmt`, `clippy --all-targets`, `test`, `build --release`).
 
 ---
 
@@ -171,8 +155,6 @@ All content is **content-addressed** — the cryptographic hash IS the identity.
 | `user/` | Playground — experiments and demos |
 | `docs/` | Documentation and policy |
 
-**Note on Technical Report:** `docs/technical-report.md` is **generated** from chapter files in `docs/technical-report/`. Edit the chapter files (e.g., `00-abstract.md`, `06-the-module-system.md`), then run `scheme --script docs/technical-report/assemble.ss` to rebuild. Chapter order is defined in `docs/technical-report/manifest.sexp`.
-
 ### Core (Language Kernel)
 
 Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
@@ -187,61 +169,13 @@ Core defines what The Fold IS — minimal, axiomatic, changes are breaking:
 | `testing/` | Test infrastructure | test-framework.ss |
 | `benchmarks/` | Performance benchmarks | bench-core.ss, bench-prim.ss |
 
-**Type Classes (`core/types/kinds.ss`, `core/types/resolve.ss`):**
-
-| Class | Kind | Methods | Purpose |
-|-------|------|---------|---------|
-| `Eq` | `* → Constraint` | `==`, `/=` | Equality comparison |
-| `Ord` | `* → Constraint` | `<`, `<=`, `>`, `>=`, `compare` | Ordering |
-| `Show` | `* → Constraint` | `show : a → String` | String conversion |
-| `Pretty` | `* → Constraint` | `pretty : a → Doc`, `pretty-prec : Int → a → Doc` | Width-aware pretty-printing |
-| `Functor` | `(* → *) → Constraint` | `fmap` | Mappable containers |
-| `Monad` | `(* → *) → Constraint` | `>>=`, `return` | Sequencing with context |
+**Type Classes:** Defined in `core/types/kinds.ss` and `core/types/resolve.ss`. Core classes: `Eq`, `Ord`, `Show`, `Pretty`, `Functor`, `Monad`. Use LSP or `/lattice-search` to explore methods.
 
 ### Lattice (Skill DAG)
 
-The lattice is a DAG of verified skills.
+The lattice is a DAG of verified skills. ~44 skills, ~400 modules, ~10K exports. Use `/lattice-search` skill, `(li 'skill)` / `(le 'skill)` for exploration, or `/lattice-api` for detailed API reference.
 
-| Directory | Purpose |
-|----|----|
-| `linalg/` | Vectors, matrices, decomposition, solvers |
-| `data/` | Data structures, graphs, collections, community detection |
-| `algebra/` | Groups, rings, polynomial algebra, Gröbner bases |
-| `random/` | PRNG, distributions |
-| `numeric/` | Complex numbers, DFT, convolution, windowing, polynomials |
-| `signal/` | Digital filters, wavelets, spectral analysis |
-| `interpolate/` | Interpolation, splines, Bezier, curve fitting |
-| `interval/` | Interval arithmetic, affine arithmetic, verified computation |
-| `pde/` | FEM, finite differences, spectral methods, time stepping |
-| `geometry/` | Shapes, transforms, raymarching, SDFs, mesh topology |
-| `diffgeo/` | Charts, atlases, Lie groups, Riemannian curvature |
-| `autodiff/` | Reverse-mode AD, computational graphs, interval gradients, optics-based gradient |
-| `fp/` | Monads, parsers, streams, protocols, game theory, control systems |
-| `optics/` | Complete optics tower (Iso, Lens, Prism, Affine, Traversal, Fold, Getter, Setter) |
-| `fp/clp/` | Constraint logic programming (cKanren-style CLP(FD)) |
-| `query/` | Query DSL, SQL parser, patterns |
-| `dsl/` | Tagless final, chronicle, staging, template DSL |
-| `info/` | Entropy, coding, information theory |
-| `number-theory/` | Primes, modular arithmetic |
-| `meta/` | Lattice navigation, search, introspection |
-| `topology/` | Simplicial complexes, homology, Betti numbers |
-| `crypto/` | SHA-512, BLAKE2b, HMAC |
-| `optimization/` | LP, ILP, gradient descent, Newton, L-BFGS, interval global, constraint contractors |
-| `statistics/` | Regression, GLM, time series, hypothesis testing |
-| `physics/lenses/` | Physics lenses integrated with optics tower (bodies, particles, worlds) |
-| `physics/diff/` | Differentiable 2D physics |
-| `physics/diff3d/` | Differentiable 3D physics |
-| `physics/classical/` | Classical 2D physics |
-| `physics/classical3d/` | Classical 3D physics |
-| `tiles/` | Board game SDK (hex, square, triangle) |
-| `sim/` | Simulation, dynamics |
-| `egraph/` | Equality saturation, cost-based extraction |
-| `ui/` | Layout combinators (pure) |
-| `ipc/` | Wire protocol (pure) |
-| `automata/` | State machines, DFA/NFA |
-| `pipeline/` | Agent workflows, RLM types, council |
-
-**Key Subsystems:** FP (monads, parsers, game theory, control systems), Optics, SAT/MaxSAT, CLP(FD), Statistics. Use `/lattice-api` skill for detailed API reference, or `(li 'skill)` / `(le 'skill)` for quick inspection.
+**Skills:** algebra, autodiff, automata, crypto, data, diffgeo, dsl, egraph, fp (incl. clp, game-theory, control), geometry, info, interpolate, interval, ipc, linalg, meta, number-theory, numeric, optics, optimization, pde, physics (classical/diff/lenses, 2D+3D), pipeline, query, random, signal, sim, statistics, tiles, topology, ui.
 
 **Module System (`core/lang/module.ss`):**
 
@@ -283,56 +217,17 @@ When creating new modules, prefer `(require ...)` chains over `(load ...)`. The 
 
 The guarded bootstrap ensures `module.ss` loads exactly once. The `@module`/`@requires` annotations (space-separated, no commas) enable the reload system. All lattice modules follow this pattern — register new modules in `core/lang/module.ss` via `(register-module-path! 'name "path.ss")`. Use namespaced names (`'tiles/core`, `'physics/optimize`) when bare names collide.
 
-**Module Reloading:**
-
-```scheme
-(reload! 'parse)              ; Reload single module
-(reload-with-dependents! 'parse)  ; Reload module + all dependents
-(rel! 'parse)                 ; Alias for reload!
-(rel+! 'parse)                ; Alias for reload-with-dependents!
-
-(module-dependents 'parse)    ; Show direct dependents
-(all-dependents 'parse)       ; Show transitive dependents
-```
-
-Reloading requires modules to use `@requires` annotations in their headers. The reload respects topological order (dependencies before dependents).
+**Module Reloading:** `(rel! 'mod)` reloads a single module, `(rel+! 'mod)` reloads it with all dependents (topological order). Requires `@requires` annotations in headers.
 
 **Meta-Tooling:** Use `/lattice-search` skill. Quick: `(lf "query")` for search, `(li 'skill)` for info, `(le 'skill)` for exports.
 
 ### Boundary Subsystems
 
-Boundary is organized into functional subdirectories. Root-level files are entry points only:
-- `commands.ss` — REPL command registry
-- `toolkit.ss` — Development toolkit index
-- `run-tests.ss` — Boundary test runner
+Boundary is organized into functional subdirectories. Key areas: `repl/` (daemon, sessions, history), `io/` (fs, json, process), `storage/` (CAS persistence, identity), `ffi/` (Rust acceleration), `ipc/` (socket client), `bbs/` (issue tracker), `debug/` (debugger, error formatting, xref), `lsp/` (language server), `git/` (operations, workflow), `tools/` (refactoring, autodoc), `meta/` (lattice I/O orchestrators).
 
-| Directory | Purpose | Key Modules |
-|----|----|----|
-| `repl/` | REPL & session management | repl.ss, repl-daemon.ss, session-manager.ss, history.ss |
-| `blocks/` | Block system tools | block-explorer.ss, block-navigator.ss, block-query.ss |
-| `debug/` | Debugging & errors | debug-repl.ss, error-fmt.ss, type-inspect.ss, xref.ss |
-| `diagnostics/` | Profiling & analysis | profiler-unified.ss, fuel-analysis.ss, profile-*.ss |
-| `storage/` | Persistence & identity | store-api.ss, cas-persist.ss, identity.ss |
-| `io/` | Low-level IO utilities | fs.ss, json.ss, process.ss |
-| `git/` | Git operations | git.ss, git-workflow.ss |
-| `tools/` | Developer utilities | edit.ss, refactor-toolkit.ss, autodoc.ss, capability-lens.ss |
-| `ui/` | Graphics & display | graphics.ss, color.ss, layers.ss, turtle.ss |
-| `lens/` | Code navigation lenses | call-graph.ss, navigator.ss, jump.ss |
-| `introspect/` | System introspection | complexity.ss, exports.ss, memory.ss, timing.ss |
-| `pipeline/` | Agent pipelines | workflow integration |
-| `provenance/` | Optic provenance tracking | provenance.ss, traced-optics.ss, query.ss |
-| `reactive/` | Reactive derivations | reactive.ss (optic dependency tracking) |
-| `bbs/` | Issue tracker | bbs.ss, ops.ss, index.ss |
-| `migrations/` | Schema migrations | runner.ss (CAS tree migration), registry.ss (version graph) |
-| `ffi/` | Rust FFI & acceleration | ffi-core.ss, bvh-ffi.ss, socket-ffi.ss, rust-accel/ |
-| `ipc/` | Socket IPC client | socket-client.ss |
-| `geometry/` | Geometry I/O wrappers | bvh-accel.ss, raymarch-accel.ss, obj-io.ss |
-| `meta/` | Lattice meta I/O orchestrators | exports-io.ss, xref-io.ss, docs-io.ss, persist-io.ss |
-| `lsp/` | Language server protocol | lsp-server.ss, protocol.ss |
-| `examples/` | Demo scripts | demo-turtle.ss, core-playground.ss |
-| `tests/` | Boundary test suite | test-*.ss files |
+Root-level entry points: `commands.ss`, `toolkit.ss`, `run-tests.ss`.
 
-**Developer Tools:** Protocols (`lattice/fp/protocol.ss`), protocol bundles, refactoring toolkit (`boundary/tools/refactor-toolkit.ss`), and template DSL. Use `/dev-tools` skill for detailed API.
+**Developer Tools:** Protocols (`lattice/fp/protocol.ss`), refactoring toolkit (`boundary/tools/refactor-toolkit.ss`), template DSL. Use `/dev-tools` skill for details.
 
 ### MCP Server
 
@@ -416,18 +311,11 @@ These subsystems compose into a differentiable programming pipeline:
 
 ### RLM (Reinforcement Learning from the Machine)
 
-Training small models to navigate The Fold autonomously. The RLM agent operates via a HUD state machine with 15 actions (search, eval, require, submit, think, etc.).
-
-- **RLM v2 implementation** — `lattice/pipeline/rlm2*.ss` (types, parser, HUD, driver). Pure agent logic in lattice, I/O driver in boundary.
-- **Curriculum** — `user/rlm/curriculum/` contains task data as JSONL. Tasks are organized into tiers (Tier 0: single-module, Tier 1: multi-module composition). Generated from lattice function DAG via `user/rlm/extract-curriculum.ss`.
-- **Benchmarks** — `user/rlm/bench-*.ss` for various eval suites (GSM8K, HotPotQA, Pairs discovery, etc.).
-- **RL training** — Uses PrimeIntellect's prime-rl framework (separate repo at `~/prime-rl-local/`). Multi-node: trainer+orchestrator on elsie-1, vLLM inference on elsie-2. Weight broadcast via NFS over ConnectX-7.
-- **SFT pipeline** — `user/rlm/pytorch-ft/train-sft.py` for supervised fine-tuning on collected traces.
-- **Environment** — `~/fold-rlm-prime/environments/fold_rlm_tier0/` contains the verifier environment that prime-rl calls for reward scoring.
+Training small models to navigate The Fold autonomously. HUD state machine with 15 actions. RLM v2 implementation in `lattice/pipeline/rlm2*.ss` (pure) with I/O driver in boundary. Curriculum in `user/rlm/curriculum/`, benchmarks in `user/rlm/bench-*.ss`, SFT pipeline in `user/rlm/pytorch-ft/train-sft.py`. RL training uses prime-rl (`~/prime-rl-local/`), verifier env at `~/fold-rlm-prime/environments/`.
 
 ### Hardware Context
 
-Development runs on **2x NVIDIA DGX Spark** (GB10 Grace Blackwell, ARM Cortex-X925/A725) linked over **200Gbps ConnectX-7**. 256GB unified memory total (128GB per node, unified CPU/GPU). Native FP8 tensor core support. vLLM serves local models for development and experimentation. ConnectX-7 direct link IPs: elsie-1 = `192.168.100.10`, elsie-2 = `192.168.100.11`. NFS at `/shared/rl-outputs` for weight broadcast between nodes.
+2x NVIDIA DGX Spark (GB10 Grace Blackwell), 128GB unified CPU/GPU memory each, linked over 200Gbps ConnectX-7. vLLM serves local models. See parent `~/CLAUDE.md` for network details.
 
 ---
 
@@ -445,7 +333,7 @@ For agents operating within The Fold, see [`docs/agent-operating-manual.md`](doc
 
 ## BBS
 
-Issue tracker and changelog system. Use `/bbs` skill for full documentation. Quick: `(bbs-list)`, `(bbs-ready)`, `(bbs-create "Title")`.
+Issue tracker and changelog system. Use `/bbs` skill for full documentation. Quick: `(bbs-list!)`, `(bbs-ready!)`, `(bbs-create "Title")`. Data API: `(bbs-get "id")`, `(bbs-ready)`, `(bbs-by-status 'open)`.
 
 ---
 
@@ -460,7 +348,8 @@ Use `/troubleshooting` skill for file locations, daemon issues, and common probl
 1. **Use `./fold` for REPL interaction** — It auto-starts the daemon and handles sessions
 2. **Load from project root** — All `(load ...)` paths are relative to the project root
 3. **Land the Plane** — A session is NOT complete until work is committed and pushed. See protocol below.
-4. **Maintain The Fold** — Before you write a helper, ensure it doesn't already exist. Seek opportunities to simplify.
+4. **Maintain The Fold** — Maintainability is a north star. Before you write a helper, ensure it doesn't already exist. Seek opportunities to simplify. Prefer deleting dead code over commenting it out. Leave the codebase cleaner than you found it.
+5. **Track discovered issues** — If you notice a bug, gap, or improvement opportunity while working on something else, file it in the BBS (`bbs-create`) rather than fixing it inline. Stay focused on the current task; the BBS ensures nothing gets lost.
 
 ---
 
