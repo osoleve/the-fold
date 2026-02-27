@@ -4,15 +4,20 @@
 (load "core/lang/module.ss")
 (require 'quickcheck)
 (require 'field-ext)
+(require 'algebra/polynomial)
 
 ;;; ============================================================================
 ;;; Setup
 ;;; ============================================================================
 
 (define Q-sqrt2 (make-Q-sqrt 2))
+(define Q-sqrt-i (make-Q-i))
 (define conj (make-conjugation Q-sqrt2))
 (define add-op (field-add-op Q-sqrt2))
 (define mul-op (field-mul-op Q-sqrt2))
+(define min-poly-x2-2 (make-polynomial Q-field (list -2 0 1)))
+(define ext-a (make-algebraic-extension Q-field min-poly-x2-2 'a))
+(define ext-a-elem (make-alg-ext-element (list 1 1) min-poly-x2-2 Q-field 'a))
 
 (define gen-coeff
   (gen-int-range -20 20))
@@ -71,6 +76,31 @@
            (+ (Q-sqrt-trace x)
               (Q-sqrt-trace y)))))
     'tests 200)
+
+  (define-property "field extension constructors and utilities are coherent on representative values"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([autos (galois-group-quadratic Q-sqrt2)]
+             [gen (ext-generator ext-a)]
+             [emb (ext-embed ext-a 5)]
+             [sf (splitting-field-quadratic Q-field min-poly-x2-2)])
+        (and (field? Q-sqrt-i)
+             (alg-ext-element? ext-a-elem)
+             (= (length (alg-ext-coeffs ext-a-elem)) 2)
+             (= (poly-degree (alg-ext-min-poly ext-a-elem)) 2)
+             (equal? (alg-ext-base-field ext-a-elem) Q-field)
+             (eq? (alg-ext-symbol ext-a-elem) 'a)
+             (field? ext-a)
+             (= (ext-degree ext-a) 2)
+             (alg-ext-element? gen)
+             (alg-ext-element? emb)
+             (= (length autos) 2)
+             (alg-ext-element? ((car autos) ext-a-elem))
+             (alg-ext-element? ((cadr autos) ext-a-elem))
+             (field? sf)
+             (verify-minimal-poly ext-a ext-a-elem)
+             (string? (alg-ext->string ext-a-elem)))))
+    'tests 8)
 )
 
 ;;; ============================================================================

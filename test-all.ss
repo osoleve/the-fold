@@ -415,6 +415,7 @@
     "algebra/test-tropical-graph.ss"
     "algebra/test-tropical-graph-properties.ss"
     "algebra/test-algebra-laws.ss"
+    "algebra/test-export-surface-properties.ss"
     ;; Crypto
     "crypto/test-crypto.ss"
     ;; Number Theory

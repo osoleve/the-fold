@@ -68,6 +68,46 @@
              (= (tropical-distance dist 2 2) 0)
              (= (tropical-distance dist 3 3) 0))))
     'tests 200)
+
+  (define-property "graph/tropical bridge conversions and agreement checks are coherent"
+    (gen-bind gen-w
+      (lambda (w01)
+        (gen-bind gen-w
+          (lambda (w12)
+            (gen-map (lambda (w02) (list w01 w12 w02)) gen-w)))))
+    (lambda (weights)
+      (let* ([w01 (car weights)]
+             [w12 (cadr weights)]
+             [w02 (caddr weights)]
+             [adj (edges->adjacency-matrix
+                   (list (list 0 1 w01)
+                         (list 1 2 w12)
+                         (list 0 2 w02))
+                   3)]
+             [tc-adj (edges->adjacency-matrix '((0 1) (1 2)) 3)]
+             [tm (graph->tropical-matrix adj)]
+             [bm (graph->boolean-matrix adj)]
+             [mm (graph->max-plus-matrix adj)]
+             [bkm (graph->bottleneck-matrix adj)]
+             [sp (tropical-shortest-paths adj)]
+             [lp (tropical-longest-paths adj)]
+             [bp (tropical-bottleneck-paths adj)]
+             [adj* (tropical-distance-to-graph sp)])
+        (and (semiring? boolean-semiring)
+             (semiring? min-max-semiring)
+             (matrix? tm)
+             (matrix? bm)
+             (matrix? mm)
+             (matrix? bkm)
+             (= (matrix-ref bm 0 0) 1)
+             (= (matrix-ref mm 0 2) w02)
+             (= (matrix-ref bkm 0 0) +inf.0)
+             (number? (tropical-distance lp 0 2))
+             (number? (tropical-distance bp 0 2))
+             (matrix? adj*)
+             (tropical-agrees-with-floyd-warshall? adj)
+             (tropical-agrees-with-transitive-closure? tc-adj))))
+    'tests 120)
 )
 
 ;;; ============================================================================
