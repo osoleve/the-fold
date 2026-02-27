@@ -7,80 +7,88 @@
 
 (doc 'module 'dsl)
 (doc 'purity 'partial)
-(doc 'description "Command/Instruction Definitions A DSL is defined by its instruction set. Each instruction has a tag, parameters, and a continuation. This follows the Free monad command pattern: (tag payload continuation)")
+(doc 'description "DSL builder framework using Free monads. A DSL is defined by its instruction set; each instruction has a tag, payload, and continuation.")
 (doc 'layer 'lattice)
+
+(doc 'section 'core-instructions)
+
 (define (make-instruction tag payload k)
+  (doc 'type '(-> Symbol Any (-> a (Free Instruction b)) (Instruction a)))
+  (doc 'description "Create an instruction with tag, payload, and continuation")
   (list tag payload k))
 
-;;; instruction-tag : Instruction -> Symbol
 (define (instruction-tag instr)
+  (doc 'type '(-> (Instruction a) Symbol))
+  (doc 'description "Get instruction tag")
   (car instr))
 
-;;; instruction-payload : Instruction -> Any
 (define (instruction-payload instr)
+  (doc 'type '(-> (Instruction a) Any))
+  (doc 'description "Get instruction payload")
   (cadr instr))
 
-;;; instruction-cont : Instruction -> (a -> Free f b)
 (define (instruction-cont instr)
+  (doc 'type '(-> (Instruction a) (-> a (Free Instruction b))))
+  (doc 'description "Get instruction continuation")
   (caddr instr))
 
-;;; ====
-;;; DSL Functor
-;;; ====
-;;;
-;;; The DSL functor maps over the continuation.
+(doc 'section 'dsl-functor)
 
-;;; dsl-fmap : (a -> b) -> Instruction a -> Instruction b
 (define (dsl-fmap f instr)
+  (doc 'type '(-> (-> a b) (Instruction a) (Instruction b)))
+  (doc 'description "Map over instruction continuation (Functor instance)")
   (make-instruction
    (instruction-tag instr)
    (instruction-payload instr)
    (lambda (x) (f ((instruction-cont instr) x)))))
 
-;;; ====
-;;; DSL Program Type
-;;; ====
-;;;
+(doc 'section 'dsl-program-type)
 ;;; A DSL program is a Free monad over instructions.
 
-;;; dsl-pure : a -> DSL f a
+(doc dsl-pure 'type '(-> a (DSL a)))
+(doc dsl-pure 'description "Lift a pure value into a DSL program")
 (define dsl-pure pure-free)
 
-;;; dsl-pure? : DSL f a -> Boolean
+(doc dsl-pure? 'type '(-> (DSL a) Boolean))
+(doc dsl-pure? 'description "Test if DSL program is a pure value")
 (define dsl-pure? pure-free?)
 
-;;; dsl-suspended? : DSL f a -> Boolean
+(doc dsl-suspended? 'type '(-> (DSL a) Boolean))
+(doc dsl-suspended? 'description "Test if DSL program is suspended on an instruction")
 (define dsl-suspended? free-suspended?)
 
-;;; dsl-pure-value : DSL f a -> a
+(doc dsl-pure-value 'type '(-> (DSL a) a))
+(doc dsl-pure-value 'description "Extract pure value from completed DSL program")
 (define dsl-pure-value from-pure-free)
 
-;;; dsl-instruction : DSL f a -> Instruction
+(doc dsl-instruction 'type '(-> (DSL a) (Instruction a)))
+(doc dsl-instruction 'description "Extract current instruction from suspended DSL program")
 (define dsl-instruction from-free)
 
-;;; dsl-bind : DSL f a -> (a -> DSL f b) -> DSL f b
 (define (dsl-bind m f)
+  (doc 'type '(-> (DSL a) (-> a (DSL b)) (DSL b)))
+  (doc 'description "Monadic bind for DSL programs")
   (free-bind dsl-fmap m f))
 
-;;; dsl-map : (a -> b) -> DSL f a -> DSL f b
 (define (dsl-map f m)
+  (doc 'type '(-> (-> a b) (DSL a) (DSL b)))
+  (doc 'description "Map a function over DSL program result")
   (free-map f dsl-fmap m))
 
-;;; dsl-emit : Symbol -> Any -> DSL Instruction ()
-;;; Emit an instruction that returns unit.
 (define (dsl-emit tag payload)
+  (doc 'type '(-> Symbol Any (DSL Unit)))
+  (doc 'description "Emit an instruction that returns unit")
   (free (make-instruction tag payload pure-free)))
 
-;;; dsl-request : Symbol -> Any -> DSL Instruction Response
-;;; Emit an instruction and get a response.
 (define (dsl-request tag payload)
+  (doc 'type '(-> Symbol Any (DSL Any)))
+  (doc 'description "Emit an instruction and receive a response")
   (free (make-instruction tag payload pure-free)))
 
-;;; ====
-;;; DSL Syntax Sugars
-;;; ====
+(doc 'section 'syntax-sugars)
 
-;;; define-instruction : (Name Param ...) -> Tag -> DSL Instruction ()
+(doc define-instruction 'type 'syntax)
+(doc define-instruction 'description "Define a named DSL instruction that emits with a given tag")
 (define-syntax define-instruction
   (syntax-rules ()
                 [(_ (name arg ...) tag)
@@ -90,7 +98,8 @@
                  (define (name arg)
                    (dsl-emit tag arg))]))
 
-;;; define-request : (Name Param ...) -> Tag -> DSL Instruction Response
+(doc define-request 'type 'syntax)
+(doc define-request 'description "Define a named DSL request that emits and receives a response")
 (define-syntax define-request
   (syntax-rules ()
                 [(_ (name arg ...) tag)
@@ -100,24 +109,13 @@
                  (define (name arg)
                    (dsl-request tag arg))]))
 
-;;; dsl-do : Monadic do-notation for DSL programs
-;;;
+(doc dsl-do 'type 'syntax)
+(doc dsl-do 'description "Monadic do-notation for DSL programs; (var <- action) binds, bare action discards")
 ;;; Usage:
 ;;;   (dsl-do
 ;;;     (x <- action1)
 ;;;     (y <- action2)
 ;;;     (dsl-pure (+ x y)))
-;;;
-;;; Expands to:
-;;;   (dsl-bind action1
-;;;     (lambda (x)
-;;;       (dsl-bind action2
-;;;         (lambda (y)
-;;;           (dsl-pure (+ x y))))))
-;;;
-;;; Supports:
-;;;   (var <- action)  — bind result to var
-;;;   action           — execute, discard result (implicitly binds to _)
 (define-syntax dsl-do
   (syntax-rules (<-)
                 ;; Base case: single expression (no arrow)
@@ -130,32 +128,32 @@
                 [(_ action rest ...)
                  (dsl-bind action (lambda (_) (dsl-do rest ...)))]))
 
-;;; ====
-;;; Interpreter Builder
-;;; ====
-;;;
-;;; An interpreter maps instructions to effects/values.
+(doc 'section 'interpreter-builder)
 
-;;; make-interpreter : (Symbol -> Payload -> a) -> Interpreter
 (define (make-interpreter handler)
+  (doc 'type '(-> (-> Symbol Any Any) Interpreter))
+  (doc 'description "Create an interpreter from a handler function (tag, payload) -> result")
   (list 'interpreter handler))
 
-;;; interpreter? : Any -> Boolean
 (define (interpreter? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is an Interpreter")
   (and (pair? x) (eq? (car x) 'interpreter)))
 
-;;; interpreter-handler : Interpreter -> (Symbol -> Payload -> a)
 (define (interpreter-handler interp)
+  (doc 'type '(-> Interpreter (-> Symbol Any Any)))
+  (doc 'description "Extract handler function from Interpreter")
   (cadr interp))
 
-;;; run-dsl : Interpreter -> DSL Instruction a -> a
-;;; Run a DSL program with an interpreter.
 (define (run-dsl interp program)
+  (doc 'type '(-> Interpreter (DSL a) a))
+  (doc 'description "Run a DSL program with an interpreter to completion")
   (let ([handler (interpreter-handler interp)])
        (run-dsl-helper handler program)))
 
-;;; run-dsl-helper : (Symbol → α → β) × (DSL Instruction γ) → γ
 (define (run-dsl-helper handler program)
+  (doc 'type '(-> (-> Symbol Any Any) (DSL a) a))
+  (doc 'description "Internal: step through DSL program with raw handler")
   (cond
    [(pure-free? program)
     (from-pure-free program)]
@@ -167,15 +165,11 @@
            [result (handler tag payload)])
           (run-dsl-helper handler (cont result)))]))
 
-;;; ====
-;;; Effectful Interpreter
-;;; ====
-;;;
-;;; Interpreters that produce effects (using Eff monad).
+(doc 'section 'effectful-interpreter)
 
-;;; run-dsl-eff : (Symbol -> Payload -> Eff e a) -> DSL Instruction b -> Eff e b
-;;; Run DSL with effectful interpreter.
 (define (run-dsl-eff handler program)
+  (doc 'type '(-> (-> Symbol Any (Eff e a)) (DSL b) (Eff e b)))
+  (doc 'description "Run DSL with effectful interpreter producing Eff computations")
   (cond
    [(pure-free? program)
     (eff-return (from-pure-free program))]
@@ -188,9 +182,9 @@
                     (lambda (result)
                             (run-dsl-eff handler (cont result)))))]))
 
-;;; run-dsl-state : (Symbol -> Payload -> State -> (Response . State)) -> State -> DSL Instruction a -> (a . State)
-;;; Pure interpreter with state passing.
 (define (run-dsl-state handler state program)
+  (doc 'type '(-> (-> Symbol Any s (Pair a s)) s (DSL a) (Pair a s)))
+  (doc 'description "Run DSL with pure state-passing interpreter")
   (cond
    [(pure-free? program)
     (cons (from-pure-free program) state)]
@@ -204,9 +198,9 @@
            [new-state (cdr res)])
           (run-dsl-state handler new-state (cont val)))]))
 
-;;; dsl-trace : Interpreter -> Interpreter
-;;; Wrap an interpreter to trace instructions.
 (define (dsl-trace interp)
+  (doc 'type '(-> Interpreter Interpreter))
+  (doc 'description "Wrap interpreter to trace all instructions and results to stdout")
   (let ([handler (interpreter-handler interp)])
        (make-interpreter
         (lambda (tag payload)
@@ -215,13 +209,11 @@
                      (display (format "[DSL-TRACE]   => ~s\n" result))
                      result)))))
 
-;;; ====
-;;; Interpreter Composition
-;;; ====
+(doc 'section 'interpreter-composition)
 
-;;; layered-interpreter : List (Symbol, (Payload -> a)) -> Interpreter
-;;; Create interpreter from list of (tag, handler) pairs.
 (define (layered-interpreter handlers)
+  (doc 'type '(-> (List (Pair Symbol (-> Any Any))) Interpreter))
+  (doc 'description "Create interpreter from alist of (tag . handler) pairs")
   (make-interpreter
    (lambda (tag payload)
            (let ([handler-pair (assoc tag handlers)])
@@ -229,147 +221,93 @@
                     ((cdr handler-pair) payload)
                     (error 'layered-interpreter "Unhandled instruction" tag))))))
 
-;;; composed-interpreter : Interpreter -> Interpreter -> Interpreter
-;;; Compose two interpreters. If the first fails, the second is used.
-;;; Note: Requires the handlers to signal "unhandled" somehow, or we use a guard.
 (define (composed-interpreter primary secondary)
+  (doc 'type '(-> Interpreter Interpreter Interpreter))
+  (doc 'description "Compose interpreters; primary handles first, secondary as fallback on error")
   (make-interpreter
    (lambda (tag payload)
            (guard (ex [else ((interpreter-handler secondary) tag payload)])
                   ((interpreter-handler primary) tag payload)))))
 
-;;; ====
-;;; Expression DSL Builder
-;;; ====
-;;;
-;;; Helpers for building expression-based DSLs.
+(doc 'section 'expression-dsl)
+;;; Expression AST constructors, predicates, and accessors.
 
-;;; expr-lit : α → Expr
-;;; Literal expression
 (define (expr-lit value)
+  (doc 'type '(-> Any Expr))
+  (doc 'description "Literal expression node")
   (list 'expr-lit value))
 
-;;; expr-var : Symbol → Expr
-;;; Variable reference
 (define (expr-var name)
+  (doc 'type '(-> Symbol Expr))
+  (doc 'description "Variable reference expression node")
   (list 'expr-var name))
 
-;;; expr-binop : Symbol × Expr × Expr → Expr
-;;; Binary operation
 (define (expr-binop op left right)
+  (doc 'type '(-> Symbol Expr Expr Expr))
+  (doc 'description "Binary operation expression node")
   (list 'expr-binop op left right))
 
-;;; expr-unop : Symbol × Expr → Expr
-;;; Unary operation
 (define (expr-unop op operand)
+  (doc 'type '(-> Symbol Expr Expr))
+  (doc 'description "Unary operation expression node")
   (list 'expr-unop op operand))
 
-;;; expr-app : Expr × (List Expr) → Expr
-;;; Function application
 (define (expr-app fn args)
+  (doc 'type '(-> Expr (List Expr) Expr))
+  (doc 'description "Function application expression node")
   (list 'expr-app fn args))
 
-;;; expr-if : Expr × Expr × Expr → Expr
-;;; Conditional
 (define (expr-if cond then else)
+  (doc 'type '(-> Expr Expr Expr Expr))
+  (doc 'description "Conditional expression node")
   (list 'expr-if cond then else))
 
-;;; expr-let : Symbol × Expr × Expr → Expr
-;;; Let binding
 (define (expr-let name value body)
+  (doc 'type '(-> Symbol Expr Expr Expr))
+  (doc 'description "Let-binding expression node")
   (list 'expr-let name value body))
 
-;;; expr-lambda : (List Symbol) × Expr → Expr
-;;; Lambda
 (define (expr-lambda params body)
+  (doc 'type '(-> (List Symbol) Expr Expr))
+  (doc 'description "Lambda expression node")
   (list 'expr-lambda params body))
 
 ;;; Expression predicates
 
-;;; expr-lit? : Expr → Bool
-(define (expr-lit? e) (and (pair? e) (eq? (car e) 'expr-lit)))
-
-;;; expr-var? : Expr → Bool
-(define (expr-var? e) (and (pair? e) (eq? (car e) 'expr-var)))
-
-;;; expr-binop? : Expr → Bool
-(define (expr-binop? e) (and (pair? e) (eq? (car e) 'expr-binop)))
-
-;;; expr-unop? : Expr → Bool
-(define (expr-unop? e) (and (pair? e) (eq? (car e) 'expr-unop)))
-
-;;; expr-app? : Expr → Bool
-(define (expr-app? e) (and (pair? e) (eq? (car e) 'expr-app)))
-
-;;; expr-if? : Expr → Bool
-(define (expr-if? e) (and (pair? e) (eq? (car e) 'expr-if)))
-
-;;; expr-let? : Expr → Bool
-(define (expr-let? e) (and (pair? e) (eq? (car e) 'expr-let)))
-
-;;; expr-lambda? : Expr → Bool
-(define (expr-lambda? e) (and (pair? e) (eq? (car e) 'expr-lambda)))
+(define (expr-lit? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-lit)))
+(define (expr-var? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-var)))
+(define (expr-binop? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-binop)))
+(define (expr-unop? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-unop)))
+(define (expr-app? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-app)))
+(define (expr-if? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-if)))
+(define (expr-let? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-let)))
+(define (expr-lambda? e) (doc 'type '(-> Any Boolean)) (and (pair? e) (eq? (car e) 'expr-lambda)))
 
 ;;; Expression accessors
 
-;;; expr-lit-value : Expr → α
-(define (expr-lit-value e) (list-ref e 1))
+(define (expr-lit-value e) (doc 'type '(-> Expr Any)) (list-ref e 1))
+(define (expr-var-name e) (doc 'type '(-> Expr Symbol)) (list-ref e 1))
+(define (expr-binop-op e) (doc 'type '(-> Expr Symbol)) (list-ref e 1))
+(define (expr-binop-left e) (doc 'type '(-> Expr Expr)) (list-ref e 2))
+(define (expr-binop-right e) (doc 'type '(-> Expr Expr)) (list-ref e 3))
+(define (expr-unop-op e) (doc 'type '(-> Expr Symbol)) (list-ref e 1))
+(define (expr-unop-operand e) (doc 'type '(-> Expr Expr)) (list-ref e 2))
+(define (expr-app-fn e) (doc 'type '(-> Expr Expr)) (list-ref e 1))
+(define (expr-app-args e) (doc 'type '(-> Expr (List Expr))) (list-ref e 2))
+(define (expr-if-cond e) (doc 'type '(-> Expr Expr)) (list-ref e 1))
+(define (expr-if-then e) (doc 'type '(-> Expr Expr)) (list-ref e 2))
+(define (expr-if-else e) (doc 'type '(-> Expr Expr)) (list-ref e 3))
+(define (expr-let-name e) (doc 'type '(-> Expr Symbol)) (list-ref e 1))
+(define (expr-let-value e) (doc 'type '(-> Expr Expr)) (list-ref e 2))
+(define (expr-let-body e) (doc 'type '(-> Expr Expr)) (list-ref e 3))
+(define (expr-lambda-params e) (doc 'type '(-> Expr (List Symbol))) (list-ref e 1))
+(define (expr-lambda-body e) (doc 'type '(-> Expr Expr)) (list-ref e 2))
 
-;;; expr-var-name : Expr → Symbol
-(define (expr-var-name e) (list-ref e 1))
+(doc 'section 'expression-evaluator)
 
-;;; expr-binop-op : Expr → Symbol
-(define (expr-binop-op e) (list-ref e 1))
-
-;;; expr-binop-left : Expr → Expr
-(define (expr-binop-left e) (list-ref e 2))
-
-;;; expr-binop-right : Expr → Expr
-(define (expr-binop-right e) (list-ref e 3))
-
-;;; expr-unop-op : Expr → Symbol
-(define (expr-unop-op e) (list-ref e 1))
-
-;;; expr-unop-operand : Expr → Expr
-(define (expr-unop-operand e) (list-ref e 2))
-
-;;; expr-app-fn : Expr → Expr
-(define (expr-app-fn e) (list-ref e 1))
-
-;;; expr-app-args : Expr → (List Expr)
-(define (expr-app-args e) (list-ref e 2))
-
-;;; expr-if-cond : Expr → Expr
-(define (expr-if-cond e) (list-ref e 1))
-
-;;; expr-if-then : Expr → Expr
-(define (expr-if-then e) (list-ref e 2))
-
-;;; expr-if-else : Expr → Expr
-(define (expr-if-else e) (list-ref e 3))
-
-;;; expr-let-name : Expr → Symbol
-(define (expr-let-name e) (list-ref e 1))
-
-;;; expr-let-value : Expr → Expr
-(define (expr-let-value e) (list-ref e 2))
-
-;;; expr-let-body : Expr → Expr
-(define (expr-let-body e) (list-ref e 3))
-
-;;; expr-lambda-params : Expr → (List Symbol)
-(define (expr-lambda-params e) (list-ref e 1))
-
-;;; expr-lambda-body : Expr → Expr
-(define (expr-lambda-body e) (list-ref e 2))
-
-;;; ====
-;;; Expression Evaluator
-;;; ====
-
-;;; eval-expr : Env -> Expr -> Value
-;;; Evaluate an expression in an environment.
 (define (eval-expr env expr)
+  (doc 'type '(-> (Alist Symbol Any) Expr Any))
+  (doc 'description "Evaluate an expression AST in an environment")
   (cond
    [(expr-lit? expr)
     (expr-lit-value expr)]
@@ -405,8 +343,9 @@
    [else
     (error 'eval-expr "Unknown expression type" expr)]))
 
-;;; apply-binop : Symbol -> Value -> Value -> Value
 (define (apply-binop op left right)
+  (doc 'type '(-> Symbol Any Any Any))
+  (doc 'description "Apply a binary operator symbol to two values")
   (case op
         [(+) (+ left right)]
         [(-) (- left right)]
@@ -423,8 +362,9 @@
         [(cons) (cons left right)]
         [else (error 'apply-binop "Unknown operator" op)]))
 
-;;; apply-unop : Symbol -> Value -> Value
 (define (apply-unop op operand)
+  (doc 'type '(-> Symbol Any Any))
+  (doc 'description "Apply a unary operator symbol to a value")
   (case op
         [(not) (not operand)]
         [(neg) (- operand)]
@@ -433,8 +373,9 @@
         [(null?) (null? operand)]
         [else (error 'apply-unop "Unknown operator" op)]))
 
-;;; apply-closure : Closure -> List Value -> Value
 (define (apply-closure closure args)
+  (doc 'type '(-> Closure (List Any) Any))
+  (doc 'description "Apply a closure to arguments by extending its environment")
   (if (and (pair? closure) (eq? (car closure) 'closure))
       (let ([params (list-ref closure 1)]
             [body (list-ref closure 2)]
@@ -443,97 +384,68 @@
                 (eval-expr new-env body)))
       (error 'apply-closure "Not a closure" closure)))
 
-;;; ====
-;;; Statement DSL Builder
-;;; ====
-;;;
-;;; For imperative-style DSLs.
+(doc 'section 'statement-dsl)
+;;; Statement AST for imperative-style DSLs.
 
-;;; Statement types
-
-;;; stmt-assign : Symbol × Expr → Stmt
 (define (stmt-assign var expr)
+  (doc 'type '(-> Symbol Expr Stmt))
+  (doc 'description "Assignment statement node")
   (list 'stmt-assign var expr))
 
-;;; stmt-seq : (List Stmt) → Stmt
 (define (stmt-seq stmts)
+  (doc 'type '(-> (List Stmt) Stmt))
+  (doc 'description "Sequential composition statement node")
   (list 'stmt-seq stmts))
 
-;;; stmt-if : Expr × Stmt × Stmt → Stmt
 (define (stmt-if cond then else)
+  (doc 'type '(-> Expr Stmt Stmt Stmt))
+  (doc 'description "Conditional statement node")
   (list 'stmt-if cond then else))
 
-;;; stmt-while : Expr × Stmt → Stmt
 (define (stmt-while cond body)
+  (doc 'type '(-> Expr Stmt Stmt))
+  (doc 'description "While loop statement node")
   (list 'stmt-while cond body))
 
-;;; stmt-return : Expr → Stmt
 (define (stmt-return expr)
+  (doc 'type '(-> Expr Stmt))
+  (doc 'description "Return statement node")
   (list 'stmt-return expr))
 
-;;; stmt-expr : Expr → Stmt
 (define (stmt-expr expr)
+  (doc 'type '(-> Expr Stmt))
+  (doc 'description "Expression statement node")
   (list 'stmt-expr expr))
 
 ;;; Statement predicates
 
-;;; stmt-assign? : Stmt → Bool
-(define (stmt-assign? s) (and (pair? s) (eq? (car s) 'stmt-assign)))
-
-;;; stmt-seq? : Stmt → Bool
-(define (stmt-seq? s) (and (pair? s) (eq? (car s) 'stmt-seq)))
-
-;;; stmt-if? : Stmt → Bool
-(define (stmt-if? s) (and (pair? s) (eq? (car s) 'stmt-if)))
-
-;;; stmt-while? : Stmt → Bool
-(define (stmt-while? s) (and (pair? s) (eq? (car s) 'stmt-while)))
-
-;;; stmt-return? : Stmt → Bool
-(define (stmt-return? s) (and (pair? s) (eq? (car s) 'stmt-return)))
-
-;;; stmt-expr? : Stmt → Bool
-(define (stmt-expr? s) (and (pair? s) (eq? (car s) 'stmt-expr)))
+(define (stmt-assign? s) (doc 'type '(-> Any Boolean)) (and (pair? s) (eq? (car s) 'stmt-assign)))
+(define (stmt-seq? s) (doc 'type '(-> Any Boolean)) (and (pair? s) (eq? (car s) 'stmt-seq)))
+(define (stmt-if? s) (doc 'type '(-> Any Boolean)) (and (pair? s) (eq? (car s) 'stmt-if)))
+(define (stmt-while? s) (doc 'type '(-> Any Boolean)) (and (pair? s) (eq? (car s) 'stmt-while)))
+(define (stmt-return? s) (doc 'type '(-> Any Boolean)) (and (pair? s) (eq? (car s) 'stmt-return)))
+(define (stmt-expr? s) (doc 'type '(-> Any Boolean)) (and (pair? s) (eq? (car s) 'stmt-expr)))
 
 ;;; Statement accessors
 
-;;; stmt-assign-var : Stmt → Symbol
-(define (stmt-assign-var s) (list-ref s 1))
-
-;;; stmt-assign-expr : Stmt → Expr
-(define (stmt-assign-expr s) (list-ref s 2))
-
-;;; stmt-seq-stmts : Stmt → (List Stmt)
-(define (stmt-seq-stmts s) (list-ref s 1))
-
-;;; stmt-if-cond : Stmt → Expr
-(define (stmt-if-cond s) (list-ref s 1))
-
-;;; stmt-if-then : Stmt → Stmt
-(define (stmt-if-then s) (list-ref s 2))
-
-;;; stmt-if-else : Stmt → Stmt
-(define (stmt-if-else s) (list-ref s 3))
-
-;;; stmt-while-cond : Stmt → Expr
-(define (stmt-while-cond s) (list-ref s 1))
+(define (stmt-assign-var s) (doc 'type '(-> Stmt Symbol)) (list-ref s 1))
+(define (stmt-assign-expr s) (doc 'type '(-> Stmt Expr)) (list-ref s 2))
+(define (stmt-seq-stmts s) (doc 'type '(-> Stmt (List Stmt))) (list-ref s 1))
+(define (stmt-if-cond s) (doc 'type '(-> Stmt Expr)) (list-ref s 1))
+(define (stmt-if-then s) (doc 'type '(-> Stmt Stmt)) (list-ref s 2))
+(define (stmt-if-else s) (doc 'type '(-> Stmt Stmt)) (list-ref s 3))
+(define (stmt-while-cond s) (doc 'type '(-> Stmt Expr)) (list-ref s 1))
 
 ;;; stmt-while-body : Stmt → Stmt
-(define (stmt-while-body s) (list-ref s 2))
+(define (stmt-while-body s) (doc 'type '(-> Stmt Stmt)) (list-ref s 2))
+(define (stmt-return-expr s) (doc 'type '(-> Stmt Expr)) (list-ref s 1))
+(define (stmt-expr-expr s) (doc 'type '(-> Stmt Expr)) (list-ref s 1))
 
-;;; stmt-return-expr : Stmt → Expr
-(define (stmt-return-expr s) (list-ref s 1))
+(doc 'section 'statement-interpreter)
 
-;;; stmt-expr-expr : Stmt → Expr
-(define (stmt-expr-expr s) (list-ref s 1))
-
-;;; ====
-;;; Statement Interpreter
-;;; ====
-
-;;; run-stmt : Env -> Stmt -> (Env, Maybe Value)
-;;; Run a statement, returning updated env and optional return value.
 (define (run-stmt env stmt)
+  (doc 'type '(-> (Alist Symbol Any) Stmt (Pair (Alist Symbol Any) (Maybe Any))))
+  (doc 'description "Run a statement, returning updated env and optional return value")
   (cond
    [(stmt-assign? stmt)
     (let* ([var (stmt-assign-var stmt)]
@@ -557,8 +469,9 @@
    [else
     (error 'run-stmt "Unknown statement type" stmt)]))
 
-;;; run-stmt-seq : Env -> List Stmt -> (Env, Maybe Value)
 (define (run-stmt-seq env stmts)
+  (doc 'type '(-> (Alist Symbol Any) (List Stmt) (Pair (Alist Symbol Any) (Maybe Any))))
+  (doc 'description "Run statements sequentially; short-circuits on return")
   (if (null? stmts)
       (cons env nothing)
       (let ([result (run-stmt env (car stmts))])
@@ -566,8 +479,9 @@
                result  ; Early return
                (run-stmt-seq (car result) (cdr stmts))))))
 
-;;; run-stmt-while : Env -> Expr -> Stmt -> Fuel -> (Env, Maybe Value)
 (define (run-stmt-while env cond body fuel)
+  (doc 'type '(-> (Alist Symbol Any) Expr Stmt Nat (Pair (Alist Symbol Any) (Maybe Any))))
+  (doc 'description "Execute while loop with fuel limit for termination safety")
   (if (<= fuel 0)
       (cons env nothing)  ; Out of fuel
       (if (eval-expr env cond)
@@ -577,12 +491,11 @@
                    (run-stmt-while (car result) cond body (- fuel 1))))
           (cons env nothing))))
 
-;;; ====
-;;; DSL Combinators
-;;; ====
+(doc 'section 'dsl-combinators)
 
-;;; dsl-sequence : List (DSL f a) -> DSL f (List a)
 (define (dsl-sequence programs)
+  (doc 'type '(-> (List (DSL a)) (DSL (List a))))
+  (doc 'description "Sequence a list of DSL programs, collecting results")
   (if (null? programs)
       (dsl-pure '())
       (dsl-bind (car programs)
@@ -591,32 +504,37 @@
                                   (lambda (xs)
                                           (dsl-pure (cons x xs))))))))
 
-;;; dsl-for-each : (a -> DSL f ()) -> List a -> DSL f ()
 (define (dsl-for-each f lst)
+  (doc 'type '(-> (-> a (DSL Unit)) (List a) (DSL Unit)))
+  (doc 'description "Apply DSL action to each element, discarding results")
   (if (null? lst)
       (dsl-pure '())
       (dsl-bind (f (car lst))
                 (lambda (_)
                         (dsl-for-each f (cdr lst))))))
 
-;;; dsl-fold : (b -> a -> DSL f b) -> b -> List a -> DSL f b
 (define (dsl-fold f init lst)
+  (doc 'type '(-> (-> b a (DSL b)) b (List a) (DSL b)))
+  (doc 'description "Left fold with a monadic accumulator in DSL context")
   (if (null? lst)
       (dsl-pure init)
       (dsl-bind (f init (car lst))
                 (lambda (acc)
                         (dsl-fold f acc (cdr lst))))))
 
-;;; dsl-when : Bool -> DSL f () -> DSL f ()
 (define (dsl-when pred action)
+  (doc 'type '(-> Boolean (DSL Unit) (DSL Unit)))
+  (doc 'description "Execute action only if predicate is true")
   (if pred action (dsl-pure '())))
 
-;;; dsl-unless : Bool -> DSL f () -> DSL f ()
 (define (dsl-unless pred action)
+  (doc 'type '(-> Boolean (DSL Unit) (DSL Unit)))
+  (doc 'description "Execute action only if predicate is false")
   (dsl-when (not pred) action))
 
-;;; dsl-replicate : Int -> DSL f a -> DSL f (List a)
 (define (dsl-replicate n action)
+  (doc 'type '(-> Nat (DSL a) (DSL (List a))))
+  (doc 'description "Execute action n times, collecting results")
   (if (<= n 0)
       (dsl-pure '())
       (dsl-bind action
@@ -625,30 +543,25 @@
                                   (lambda (xs)
                                           (dsl-pure (cons x xs))))))))
 
-;;; ====
-;;; Applicative Combinators
-;;; ====
-;;;
-;;; Complete the Applicative interface for DSL programs.
+(doc 'section 'applicative-combinators)
 
-;;; dsl-ap : DSL f (a -> b) -> DSL f a -> DSL f b
-;;; Apply a function in the DSL context to a value in the DSL context.
 (define (dsl-ap mf ma)
+  (doc 'type '(-> (DSL (-> a b)) (DSL a) (DSL b)))
+  (doc 'description "Apply a DSL-wrapped function to a DSL-wrapped value")
   (dsl-bind mf (lambda (f) (dsl-map f ma))))
 
-;;; dsl-ap2 : (a b -> c) -> DSL f a -> DSL f b -> DSL f c
-;;; Lift a binary function into DSL context.
-;;; Note: Scheme doesn't curry, so we use explicit bind.
 (define (dsl-ap2 f ma mb)
+  (doc 'type '(-> (-> a b c) (DSL a) (DSL b) (DSL c)))
+  (doc 'description "Lift a binary function into DSL context")
   (dsl-bind ma
             (lambda (a)
                     (dsl-bind mb
                               (lambda (b)
                                       (dsl-pure (f a b)))))))
 
-;;; dsl-ap3 : (a b c -> d) -> DSL f a -> DSL f b -> DSL f c -> DSL f d
-;;; Lift a ternary function into DSL context.
 (define (dsl-ap3 f ma mb mc)
+  (doc 'type '(-> (-> a b c d) (DSL a) (DSL b) (DSL c) (DSL d)))
+  (doc 'description "Lift a ternary function into DSL context")
   (dsl-bind ma
             (lambda (a)
                     (dsl-bind mb
@@ -657,59 +570,55 @@
                                                 (lambda (c)
                                                         (dsl-pure (f a b c)))))))))
 
-;;; dsl-join : DSL f (DSL f a) -> DSL f a
-;;; Flatten nested DSL programs.
 (define (dsl-join mma)
+  (doc 'type '(-> (DSL (DSL a)) (DSL a)))
+  (doc 'description "Flatten nested DSL programs (monadic join)")
   (dsl-bind mma identity))
 
-;;; dsl-kleisli : (a -> DSL f b) -> (b -> DSL f c) -> (a -> DSL f c)
-;;; Kleisli composition for DSL functions.
 (define (dsl-kleisli f g)
+  (doc 'type '(-> (-> a (DSL b)) (-> b (DSL c)) (-> a (DSL c))))
+  (doc 'description "Kleisli composition (>=>): compose monadic functions left-to-right")
   (lambda (a)
           (dsl-bind (f a) g)))
 
-;;; dsl-fish : (a -> DSL f b) -> (b -> DSL f c) -> (a -> DSL f c)
-;;; Alias for dsl-kleisli (the "fish" operator >=>).
+(doc dsl-fish 'type '(-> (-> a (DSL b)) (-> b (DSL c)) (-> a (DSL c))))
+(doc dsl-fish 'description "Alias for dsl-kleisli (fish operator >=>)")
 (define dsl-fish dsl-kleisli)
 
-;;; dsl-compose : (b -> DSL f c) -> (a -> DSL f b) -> (a -> DSL f c)
-;;; Reversed Kleisli composition (<=<).
 (define (dsl-compose g f)
+  (doc 'type '(-> (-> b (DSL c)) (-> a (DSL b)) (-> a (DSL c))))
+  (doc 'description "Reversed Kleisli composition (<=<)")
   (dsl-kleisli f g))
 
-;;; ====
-;;; Tagless Final Support
-;;; ====
-;;;
-;;; Alternative to Free monad: define DSLs as interfaces.
+(doc 'section 'tagless-final)
+;;; Tagless final: define DSLs as interfaces rather than Free monad trees.
 ;;; More efficient (no intermediate structure) but less inspectable.
-;;;
-;;; Pattern: Each DSL is a record of operations that work over
-;;; an abstract carrier type. Interpreters instantiate the carrier.
 
-;;; make-tagless-dsl : List (Symbol . (Interpreter -> Procedure)) -> TaglessDSL
-;;; Create a tagless DSL definition from operation specifications.
 (define (make-tagless-dsl ops)
+  (doc 'type '(-> (List (Pair Symbol (-> Any Procedure))) TaglessDSL))
+  (doc 'description "Create a tagless DSL definition from operation specifications")
   (list 'tagless-dsl ops))
 
-;;; tagless-dsl? : Any -> Boolean
 (define (tagless-dsl? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a TaglessDSL")
   (and (pair? x) (eq? (car x) 'tagless-dsl)))
 
-;;; tagless-ops : TaglessDSL -> List
 (define (tagless-ops dsl)
+  (doc 'type '(-> TaglessDSL (List (Pair Symbol (-> Any Procedure)))))
+  (doc 'description "Extract operation specifications from TaglessDSL")
   (cadr dsl))
 
-;;; instantiate-tagless : TaglessDSL -> Interpreter -> Record
-;;; Create concrete operations from DSL definition and interpreter.
 (define (instantiate-tagless dsl interp)
+  (doc 'type '(-> TaglessDSL Any (Alist Symbol Procedure)))
+  (doc 'description "Instantiate tagless DSL with an interpreter, producing concrete operations")
   (map (lambda (op-spec)
                (cons (car op-spec) ((cdr op-spec) interp)))
        (tagless-ops dsl)))
 
-;;; tagless-op : Record -> Symbol -> Procedure
-;;; Get an operation from an instantiated tagless DSL.
 (define (tagless-op record name)
+  (doc 'type '(-> (Alist Symbol Procedure) Symbol Procedure))
+  (doc 'description "Look up an operation by name from instantiated tagless DSL")
   (let ([pair (assoc name record)])
        (if pair (cdr pair)
            (error 'tagless-op "Unknown operation" name))))
@@ -729,109 +638,87 @@
 ;;;  ((tagless-op arith-eval 'lit) 3))
 ;;; ;; => 8
 
-;;; ====
-;;; Source Location Tracking
-;;; ====
-;;;
-;;; Attach source positions to DSL programs for better errors.
+(doc 'section 'source-location)
 
-;;; make-source-pos : Int -> Int -> Int -> SourcePos
-;;; Create source position (line, column, offset).
 (define (make-source-pos line col offset)
+  (doc 'type '(-> Int Int Int SourcePos))
+  (doc 'description "Create source position (line, column, byte offset)")
   (list 'source-pos line col offset))
 
-;;; source-pos? : Any -> Boolean
-(define (source-pos? x)
-  (and (pair? x) (eq? (car x) 'source-pos)))
+(define (source-pos? x) (doc 'type '(-> Any Boolean)) (and (pair? x) (eq? (car x) 'source-pos)))
+(define (source-pos-line p) (doc 'type '(-> SourcePos Int)) (list-ref p 1))
+(define (source-pos-col p) (doc 'type '(-> SourcePos Int)) (list-ref p 2))
+(define (source-pos-offset p) (doc 'type '(-> SourcePos Int)) (list-ref p 3))
 
-;;; source-pos-line : SourcePos -> Int
-(define (source-pos-line p) (list-ref p 1))
-
-;;; source-pos-col : SourcePos -> Int
-(define (source-pos-col p) (list-ref p 2))
-
-;;; source-pos-offset : SourcePos -> Int
-(define (source-pos-offset p) (list-ref p 3))
-
-;;; no-source-pos : SourcePos
+(doc no-source-pos 'type 'SourcePos)
+(doc no-source-pos 'description "Sentinel for unknown source position")
 (define no-source-pos (make-source-pos 0 0 0))
 
-;;; make-located : a -> SourcePos -> Located a
-;;; Attach source location to a value.
 (define (make-located value pos)
+  (doc 'type '(-> a SourcePos (Located a)))
+  (doc 'description "Attach source location to a value")
   (list 'located value pos))
 
-;;; located? : Any -> Boolean
-(define (located? x)
-  (and (pair? x) (eq? (car x) 'located)))
+(define (located? x) (doc 'type '(-> Any Boolean)) (and (pair? x) (eq? (car x) 'located)))
+(define (located-value loc) (doc 'type '(-> (Located a) a)) (list-ref loc 1))
+(define (located-pos loc) (doc 'type '(-> (Located a) SourcePos)) (list-ref loc 2))
 
-;;; located-value : Located a -> a
-(define (located-value loc) (list-ref loc 1))
-
-;;; located-pos : Located a -> SourcePos
-(define (located-pos loc) (list-ref loc 2))
-
-;;; make-located-instruction : Symbol -> Any -> Continuation -> SourcePos -> LocatedInstruction
-;;; Create instruction with source location.
 (define (make-located-instruction tag payload k pos)
+  (doc 'type '(-> Symbol Any (-> a (Free Instruction b)) SourcePos (Instruction a)))
+  (doc 'description "Create instruction with source location attached")
   (list tag payload k pos))
 
-;;; instruction-pos : LocatedInstruction -> SourcePos
 (define (instruction-pos instr)
+  (doc 'type '(-> (Instruction a) SourcePos))
+  (doc 'description "Get source position from instruction, or no-source-pos if absent")
   (if (>= (length instr) 4)
       (list-ref instr 3)
       no-source-pos))
 
-;;; dsl-emit-at : Symbol -> Any -> SourcePos -> DSL Instruction ()
-;;; Emit instruction with source location.
 (define (dsl-emit-at tag payload pos)
+  (doc 'type '(-> Symbol Any SourcePos (DSL Unit)))
+  (doc 'description "Emit instruction with source location")
   (free (make-located-instruction tag payload pure-free pos)))
 
-;;; dsl-request-at : Symbol -> Any -> SourcePos -> DSL Instruction Response
-;;; Request with source location.
 (define (dsl-request-at tag payload pos)
+  (doc 'type '(-> Symbol Any SourcePos (DSL Any)))
+  (doc 'description "Request with source location")
   (free (make-located-instruction tag payload pure-free pos)))
 
-;;; format-source-pos : SourcePos -> String
-;;; Format source position for error messages.
 (define (format-source-pos pos)
+  (doc 'type '(-> SourcePos String))
+  (doc 'description "Format source position as 'line:col' for error messages")
   (if (source-pos? pos)
       (format "~a:~a" (source-pos-line pos) (source-pos-col pos))
       "<unknown>"))
 
-;;; dsl-error-at : SourcePos -> Symbol -> String -> DSL Instruction a
-;;; Emit error with location.
 (define (dsl-error-at pos tag message)
+  (doc 'type '(-> SourcePos Symbol String (DSL Any)))
+  (doc 'description "Emit error instruction with location information")
   (dsl-emit 'dsl-error (list pos tag message)))
 
-;;; ====
-;;; Interpreter Middleware
-;;; ====
-;;;
-;;; Composable interpreter transformations.
+(doc 'section 'interpreter-middleware)
+;;; Composable interpreter transformations: Middleware = Interpreter -> Interpreter
 
-;;; Middleware : Interpreter -> Interpreter
-;;; A middleware wraps an interpreter, adding behavior.
-
-;;; middleware-identity : Middleware
-;;; The identity middleware (does nothing).
 (define (middleware-identity interp)
+  (doc 'type '(-> Interpreter Interpreter))
+  (doc 'description "Identity middleware; passes interpreter through unchanged")
   interp)
 
-;;; middleware-compose : Middleware -> Middleware -> Middleware
-;;; Compose two middlewares (outer wraps inner).
 (define (middleware-compose outer inner)
+  (doc 'type '(-> (-> Interpreter Interpreter) (-> Interpreter Interpreter) (-> Interpreter Interpreter)))
+  (doc 'description "Compose two middlewares; outer wraps inner")
   (lambda (interp)
           (outer (inner interp))))
 
-;;; middleware-stack : List Middleware -> Middleware
-;;; Compose a list of middlewares into one.
 (define (middleware-stack middlewares)
+  (doc 'type '(-> (List (-> Interpreter Interpreter)) (-> Interpreter Interpreter)))
+  (doc 'description "Compose a list of middlewares into a single middleware")
   (fold-right middleware-compose middleware-identity middlewares))
 
-;;; middleware-logging : (Symbol -> Any -> Any -> ()) -> Middleware
-;;; Log all instruction executions.
 (define (middleware-logging log-fn)
+  (doc 'type '(-> (-> Symbol Any Any Void) (-> Interpreter Interpreter)))
+  (doc 'description "Middleware that logs all instruction executions via callback")
   (lambda (interp)
           (let ([handler (interpreter-handler interp)])
                (make-interpreter
@@ -840,9 +727,9 @@
                              (log-fn tag payload result)
                              result))))))
 
-;;; middleware-timing : (Symbol -> Number -> ()) -> Middleware
-;;; Time instruction execution (requires current-time).
 (define (middleware-timing on-timing)
+  (doc 'type '(-> (-> Symbol Number Void) (-> Interpreter Interpreter)))
+  (doc 'description "Middleware that times instruction execution")
   (lambda (interp)
           (let ([handler (interpreter-handler interp)])
                (make-interpreter
@@ -854,16 +741,14 @@
                               (on-timing tag elapsed)
                               result))))))
 
-;;; current-time : -> Number
-;;; Get current time in milliseconds (placeholder - use system time).
 (define (current-time)
-  ;; In a real implementation, this would use system time
+  (doc 'type '(-> Number))
+  (doc 'description "Get current time in milliseconds (placeholder)")
   0)
 
-;;; middleware-cache : HashTable -> List Symbol -> Middleware
-;;; Cache results for specified instruction tags.
-;;; Note: Only valid for pure, deterministic instructions.
 (define (middleware-cache cache cacheable-tags)
+  (doc 'type '(-> HashTable (List Symbol) (-> Interpreter Interpreter)))
+  (doc 'description "Middleware that caches results for specified pure instruction tags")
   (lambda (interp)
           (let ([handler (interpreter-handler interp)])
                (make-interpreter
@@ -878,9 +763,9 @@
                                           cached)))
                             (handler tag payload)))))))
 
-;;; middleware-guard : (Symbol -> Any -> Boolean) -> (Symbol -> Any -> a) -> Middleware
-;;; Guard instructions with a predicate; call fallback on failure.
 (define (middleware-guard pred on-fail)
+  (doc 'type '(-> (-> Symbol Any Boolean) (-> Symbol Any Any) (-> Interpreter Interpreter)))
+  (doc 'description "Middleware that guards instructions with a predicate; calls fallback on failure")
   (lambda (interp)
           (let ([handler (interpreter-handler interp)])
                (make-interpreter
@@ -889,9 +774,9 @@
                             (handler tag payload)
                             (on-fail tag payload)))))))
 
-;;; middleware-transform : (Symbol -> Any -> (Symbol . Any)) -> Middleware
-;;; Transform instructions before passing to handler.
 (define (middleware-transform xform)
+  (doc 'type '(-> (-> Symbol Any (Pair Symbol Any)) (-> Interpreter Interpreter)))
+  (doc 'description "Middleware that transforms instructions before passing to handler")
   (lambda (interp)
           (let ([handler (interpreter-handler interp)])
                (make-interpreter
@@ -899,22 +784,16 @@
                         (let ([transformed (xform tag payload)])
                              (handler (car transformed) (cdr transformed))))))))
 
-;;; with-middleware : Middleware -> Interpreter -> DSL a -> a
-;;; Run DSL program with middleware-wrapped interpreter.
 (define (with-middleware middleware interp program)
+  (doc 'type '(-> (-> Interpreter Interpreter) Interpreter (DSL a) a))
+  (doc 'description "Run DSL program with middleware-wrapped interpreter")
   (run-dsl (middleware interp) program))
 
-;;; ====
-;;; Program Introspection & Optimization
-;;; ====
-;;;
-;;; Tools for analyzing and transforming DSL programs.
+(doc 'section 'program-introspection)
 
-;;; dsl-fold-program : (a -> r) -> (Symbol -> Any -> r -> r) -> DSL f a -> Int -> r
-;;; Fold over program structure (catamorphism).
-;;; on-pure: handle terminal value
-;;; on-instr: handle instruction (tag, payload, recursive result)
 (define (dsl-fold-program on-pure on-instr program fuel)
+  (doc 'type '(-> (-> a r) (-> Symbol Any r r) (DSL a) Nat r))
+  (doc 'description "Catamorphism over program structure; folds instructions with fuel limit")
   (cond
    [(<= fuel 0) (on-pure 'fuel-exhausted)]
    [(dsl-pure? program) (on-pure (dsl-pure-value program))]
@@ -927,36 +806,36 @@
            [next-result (dsl-fold-program on-pure on-instr (cont '()) (- fuel 1))])
           (on-instr tag payload next-result))]))
 
-;;; dsl-instruction-list : DSL f a -> Int -> List (Symbol . Any)
-;;; Extract list of (tag . payload) pairs from program.
 (define (dsl-instruction-list program fuel)
+  (doc 'type '(-> (DSL a) Nat (List (Pair Symbol Any))))
+  (doc 'description "Extract list of (tag . payload) pairs from program")
   (dsl-fold-program
    (lambda (_) '())
    (lambda (tag payload rest) (cons (cons tag payload) rest))
    program
    fuel))
 
-;;; dsl-program-depth : DSL f a -> Int -> Int
-;;; Count instruction depth (with fuel limit).
 (define (dsl-program-depth program fuel)
+  (doc 'type '(-> (DSL a) Nat Nat))
+  (doc 'description "Count instruction depth with fuel limit")
   (dsl-fold-program
    (lambda (_) 0)
    (lambda (tag payload rest) (+ 1 rest))
    program
    fuel))
 
-;;; dsl-uses-tag? : Symbol -> DSL f a -> Int -> Boolean
-;;; Check if program uses a specific instruction tag.
 (define (dsl-uses-tag? target-tag program fuel)
+  (doc 'type '(-> Symbol (DSL a) Nat Boolean))
+  (doc 'description "Check if program uses a specific instruction tag")
   (dsl-fold-program
    (lambda (_) #f)
    (lambda (tag payload rest) (or (eq? tag target-tag) rest))
    program
    fuel))
 
-;;; dsl-tag-histogram : DSL f a -> Int -> Alist
-;;; Count occurrences of each instruction tag.
 (define (dsl-tag-histogram program fuel)
+  (doc 'type '(-> (DSL a) Nat (Alist Symbol Nat)))
+  (doc 'description "Count occurrences of each instruction tag")
   (let ([counts '()])
        (dsl-fold-program
         (lambda (_) counts)
@@ -972,79 +851,64 @@
         program
         fuel)))
 
-;;; dsl-optimize-dead-code : (Symbol -> Boolean) -> DSL f a -> Int -> DSL f a
-;;; Remove instructions with side-effect-free tags whose results are unused.
-;;; Note: This is a simplified optimization; real DCE needs data flow analysis.
 (define (dsl-optimize-dead-code pure-tag? program fuel)
+  (doc 'type '(-> (-> Symbol Boolean) (DSL a) Nat (DSL a)))
+  (doc 'description "Remove side-effect-free instructions (stub; full DCE needs data flow)")
   ;; For now, just return the program unchanged
   ;; Full implementation requires tracking value usage
   program)
 
-;;; dsl-fuse : (Symbol -> Symbol -> Maybe Symbol) -> DSL f a -> Int -> DSL f a
-;;; Fuse adjacent instructions when possible.
-;;; fuse-fn returns Just new-tag if two instructions can be fused.
 (define (dsl-fuse fuse-fn program fuel)
+  (doc 'type '(-> (-> Symbol Symbol (Maybe Symbol)) (DSL a) Nat (DSL a)))
+  (doc 'description "Fuse adjacent instructions when possible (stub)")
   ;; Placeholder - full implementation needs instruction rewriting
   program)
 
-;;; ====
-;;; Recursive DSL Programs
-;;; ====
-;;;
-;;; Support for recursive DSL definitions without stack overflow.
+(doc 'section 'recursive-dsl)
 
-;;; dsl-fix : ((a -> DSL f b) -> (a -> DSL f b)) -> (a -> DSL f b)
-;;; Fixed-point combinator for recursive DSL functions.
 (define (dsl-fix f)
+  (doc 'type '(-> (-> (-> a (DSL b)) (-> a (DSL b))) (-> a (DSL b))))
+  (doc 'description "Fixed-point combinator for recursive DSL functions")
   (lambda args
           (apply (f (dsl-fix f)) args)))
 
-;;; dsl-lazy : (() -> DSL f a) -> DSL f a
-;;; Delay DSL program construction.
 (define (dsl-lazy thunk)
-  ;; We emit a special 'lazy instruction that forces the thunk
+  (doc 'type '(-> (-> (DSL a)) (DSL a)))
+  (doc 'description "Delay DSL program construction via lazy instruction")
   (dsl-emit 'dsl-lazy thunk))
 
 ;;; Trampoline for deep recursion
-;;; Bounce : (() -> Trampoline a)
-;;; Done : a -> Trampoline a
 
-;;; make-bounce : (() -> Trampoline a) -> Trampoline a
 (define (make-bounce thunk)
+  (doc 'type '(-> (-> (Trampoline a)) (Trampoline a)))
+  (doc 'description "Create a bounce step in the trampoline")
   (list 'bounce thunk))
 
-;;; make-done : a -> Trampoline a
 (define (make-done value)
+  (doc 'type '(-> a (Trampoline a)))
+  (doc 'description "Create a completed trampoline result")
   (list 'done value))
 
-;;; bounce? : Trampoline a -> Boolean
-(define (bounce? t)
-  (and (pair? t) (eq? (car t) 'bounce)))
+(define (bounce? t) (doc 'type '(-> Any Boolean)) (and (pair? t) (eq? (car t) 'bounce)))
+(define (done? t) (doc 'type '(-> Any Boolean)) (and (pair? t) (eq? (car t) 'done)))
+(define (bounce-thunk t) (doc 'type '(-> (Trampoline a) (-> (Trampoline a)))) (cadr t))
+(define (done-value t) (doc 'type '(-> (Trampoline a) a)) (cadr t))
 
-;;; done? : Trampoline a -> Boolean
-(define (done? t)
-  (and (pair? t) (eq? (car t) 'done)))
-
-;;; bounce-thunk : Trampoline a -> (() -> Trampoline a)
-(define (bounce-thunk t) (cadr t))
-
-;;; done-value : Trampoline a -> a
-(define (done-value t) (cadr t))
-
-;;; run-trampoline : Trampoline a -> a
-;;; Execute trampoline until completion.
 (define (run-trampoline t)
+  (doc 'type '(-> (Trampoline a) a))
+  (doc 'description "Execute trampoline until completion")
   (if (done? t)
       (done-value t)
       (run-trampoline ((bounce-thunk t)))))
 
-;;; run-dsl-trampolined : Interpreter -> DSL f a -> a
-;;; Run DSL with trampolining to avoid stack overflow.
 (define (run-dsl-trampolined interp program)
+  (doc 'type '(-> Interpreter (DSL a) a))
+  (doc 'description "Run DSL with trampolining to avoid stack overflow")
   (run-trampoline (run-dsl-trampoline-helper (interpreter-handler interp) program)))
 
-;;; run-dsl-trampoline-helper : (Symbol → α → β) × (DSL Instruction γ) → (Trampoline γ)
 (define (run-dsl-trampoline-helper handler program)
+  (doc 'type '(-> (-> Symbol Any Any) (DSL a) (Trampoline a)))
+  (doc 'description "Internal: trampoline step for DSL execution")
   (cond
    [(pure-free? program)
     (make-done (from-pure-free program))]
@@ -1058,19 +922,11 @@
            (lambda ()
                    (run-dsl-trampoline-helper handler (cont result)))))]))
 
-;;; ====
-;;; Testing Utilities
-;;; ====
-;;;
-;;; Helpers for testing DSL interpreters and programs.
+(doc 'section 'testing-utilities)
 
-;;; make-mock-interpreter : List (Symbol . Any) -> Interpreter
-;;; Create interpreter that returns predefined values.
-;;; mock-values is an alist of:
-;;;   (tag . value)              - return fixed value
-;;;   (tag . (fn . procedure))   - call procedure with payload
-;;;   (tag . (values v1 v2 ...)) - cycle through values
 (define (make-mock-interpreter mock-values)
+  (doc 'type '(-> (Alist Symbol Any) Interpreter))
+  (doc 'description "Create mock interpreter from alist; supports fixed values, fn callbacks, and cycling values")
   (let ([call-counts (map (lambda (p) (cons (car p) 0)) mock-values)])
        (make-interpreter
         (lambda (tag payload)
@@ -1099,9 +955,9 @@
                                [else val]))
                          (error 'mock-interpreter "No mock for instruction" tag)))))))
 
-;;; dsl-test-case : String -> DSL f a -> a -> Interpreter -> Boolean
-;;; Test that running program produces expected result.
 (define (dsl-test-case name program expected interp)
+  (doc 'type '(-> String (DSL a) a Interpreter Boolean))
+  (doc 'description "Test that running program produces expected result")
   (let ([result (run-dsl interp program)])
        (if (equal? result expected)
            (begin
@@ -1111,9 +967,9 @@
             (display (format "[FAIL] ~a: expected ~s, got ~s\n" name expected result))
             #f))))
 
-;;; dsl-test-error : String -> DSL f a -> Symbol -> Interpreter -> Boolean
-;;; Test that running program raises an error with given tag.
 (define (dsl-test-error name program expected-tag interp)
+  (doc 'type '(-> String (DSL a) Symbol Interpreter Boolean))
+  (doc 'description "Test that running program raises an error with given tag")
   (guard (ex [else
               (let ([is-match (and (error-object? ex)
                                    (eq? (error-object-message ex) expected-tag))])
@@ -1128,20 +984,19 @@
          (display (format "[FAIL] ~a: no error raised\n" name))
          #f))
 
-;;; dsl-programs-equiv? : Interpreter -> DSL f a -> DSL f a -> Boolean
-;;; Test if two programs produce the same result.
 (define (dsl-programs-equiv? interp p1 p2)
+  (doc 'type '(-> Interpreter (DSL a) (DSL a) Boolean))
+  (doc 'description "Test if two programs produce the same result under an interpreter")
   (equal? (run-dsl interp p1) (run-dsl interp p2)))
 
-;;; dsl-interpreter-equiv? : DSL f a -> Interpreter -> Interpreter -> Boolean
-;;; Test if two interpreters produce the same result for a program.
 (define (dsl-interpreter-equiv? program i1 i2)
+  (doc 'type '(-> (DSL a) Interpreter Interpreter Boolean))
+  (doc 'description "Test if two interpreters produce the same result for a program")
   (equal? (run-dsl i1 program) (run-dsl i2 program)))
 
-;;; make-recording-interpreter : Interpreter -> (Interpreter . (() -> List))
-;;; Wrap interpreter to record all instruction calls.
-;;; Returns (wrapped-interpreter . get-log-fn).
 (define (make-recording-interpreter base-interp)
+  (doc 'type '(-> Interpreter (Pair Interpreter (-> (List (List Symbol Any Any))))))
+  (doc 'description "Wrap interpreter to record all instruction calls; returns (wrapped . get-log)")
   (let ([log '()]
         [handler (interpreter-handler base-interp)])
        (cons
@@ -1152,9 +1007,9 @@
                       result)))
         (lambda () (reverse log)))))
 
-;;; verify-instruction-sequence : DSL f a -> Interpreter -> List Symbol -> Boolean
-;;; Verify that program executes instructions in expected order.
 (define (verify-instruction-sequence program interp expected-tags)
+  (doc 'type '(-> (DSL a) Interpreter (List Symbol) Boolean))
+  (doc 'description "Verify program executes instructions in expected order")
   (let* ([recording (make-recording-interpreter interp)]
          [wrapped-interp (car recording)]
          [get-log (cdr recording)]
@@ -1163,47 +1018,20 @@
          [actual-tags (map car log)])
         (equal? actual-tags expected-tags)))
 
-;;; ====
-;;; Example: Simple Calculator DSL
-;;; ====
+(doc 'section 'calculator-dsl)
 
-;;; Calculator DSL operations
+(define (calc-push! n) (doc 'type '(-> Number (DSL Unit))) (dsl-emit 'calc-push n))
+(define (calc-add!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'calc-add '()))
+(define (calc-sub!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'calc-sub '()))
+(define (calc-mul!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'calc-mul '()))
+(define (calc-div!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'calc-div '()))
+(define (calc-dup!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'calc-dup '()))
+(define (calc-swap!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'calc-swap '()))
+(define (calc-pop!) (doc 'type '(-> (DSL Number))) (dsl-request 'calc-pop '()))
 
-;;; calc-push! : Nat → (DSL Instruction ())
-(define (calc-push! n)
-  (dsl-emit 'calc-push n))
-
-;;; calc-add! : () → (DSL Instruction ())
-(define (calc-add!)
-  (dsl-emit 'calc-add '()))
-
-;;; calc-sub! : () → (DSL Instruction ())
-(define (calc-sub!)
-  (dsl-emit 'calc-sub '()))
-
-;;; calc-mul! : () → (DSL Instruction ())
-(define (calc-mul!)
-  (dsl-emit 'calc-mul '()))
-
-;;; calc-div! : () → (DSL Instruction ())
-(define (calc-div!)
-  (dsl-emit 'calc-div '()))
-
-;;; calc-dup! : () → (DSL Instruction ())
-(define (calc-dup!)
-  (dsl-emit 'calc-dup '()))
-
-;;; calc-swap! : () → (DSL Instruction ())
-(define (calc-swap!)
-  (dsl-emit 'calc-swap '()))
-
-;;; calc-pop! : () → (DSL Instruction Nat)
-(define (calc-pop!)
-  (dsl-request 'calc-pop '()))
-
-;;; make-calc-interpreter : () → Interpreter
-;;; Calculator interpreter (stack-based)
 (define (make-calc-interpreter)
+  (doc 'type '(-> Interpreter))
+  (doc 'description "Stack-based calculator interpreter")
   (let ([stack '()])
        (make-interpreter
         (lambda (tag payload)
@@ -1246,47 +1074,24 @@
                       [else
                        (error 'calc-interpreter "Unknown instruction" tag)])))))
 
-;;; run-calc : (DSL Instruction α) → α
 (define (run-calc program)
+  (doc 'type '(-> (DSL a) a))
+  (doc 'description "Run a calculator DSL program")
   (run-dsl (make-calc-interpreter) program))
 
-;;; ====
-;;; Example: Logo/Turtle DSL
-;;; ====
+(doc 'section 'turtle-dsl)
 
-;;; Turtle DSL operations
+(define (forward! n) (doc 'type '(-> Number (DSL Unit))) (dsl-emit 'turtle-forward n))
+(define (back! n) (doc 'type '(-> Number (DSL Unit))) (dsl-emit 'turtle-back n))
+(define (left! deg) (doc 'type '(-> Number (DSL Unit))) (dsl-emit 'turtle-left deg))
+(define (right! deg) (doc 'type '(-> Number (DSL Unit))) (dsl-emit 'turtle-right deg))
+(define (penup!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'turtle-penup '()))
+(define (pendown!) (doc 'type '(-> (DSL Unit))) (dsl-emit 'turtle-pendown '()))
+(define (getpos!) (doc 'type '(-> (DSL (Pair Number Number)))) (dsl-request 'turtle-getpos '()))
 
-;;; forward! : Nat → (DSL Instruction ())
-(define (forward! n)
-  (dsl-emit 'turtle-forward n))
-
-;;; back! : Nat → (DSL Instruction ())
-(define (back! n)
-  (dsl-emit 'turtle-back n))
-
-;;; left! : Nat → (DSL Instruction ())
-(define (left! deg)
-  (dsl-emit 'turtle-left deg))
-
-;;; right! : Nat → (DSL Instruction ())
-(define (right! deg)
-  (dsl-emit 'turtle-right deg))
-
-;;; penup! : () → (DSL Instruction ())
-(define (penup!)
-  (dsl-emit 'turtle-penup '()))
-
-;;; pendown! : () → (DSL Instruction ())
-(define (pendown!)
-  (dsl-emit 'turtle-pendown '()))
-
-;;; getpos! : () → (DSL Instruction (Nat × Nat))
-(define (getpos!)
-  (dsl-request 'turtle-getpos '()))
-
-;;; make-turtle-interpreter : () → Interpreter
-;;; Turtle interpreter
 (define (make-turtle-interpreter)
+  (doc 'type '(-> Interpreter))
+  (doc 'description "Turtle graphics interpreter with position, angle, and pen state")
   (let ([x 0]
         [y 0]
         [angle 0]
@@ -1332,13 +1137,14 @@
                       [else
                        (error 'turtle-interpreter "Unknown instruction")])))))
 
-;;; run-turtle : (DSL Instruction α) → α
 (define (run-turtle program)
+  (doc 'type '(-> (DSL a) a))
+  (doc 'description "Run a turtle DSL program")
   (run-dsl (make-turtle-interpreter) program))
 
-;;; repeat : Nat × (DSL Instruction α) → (DSL Instruction (List α))
-;;; Helper for turtle graphics
 (define (repeat n action)
+  (doc 'type '(-> Nat (DSL a) (DSL (List a))))
+  (doc 'description "Repeat a DSL action n times; alias for dsl-replicate")
   (dsl-replicate n action))
 
 ;;; ====
@@ -1377,104 +1183,82 @@
 ;;;     (calc-pop!)))
 ;;; ; => 30
 
-;;; ====
-;;; Error Handling
-;;; ====
-;;;
-;;; Structured error handling for DSL programs.
-;;; Uses Result type to represent success/failure.
+(doc 'section 'error-handling)
 
-;;; Result type constructors
-(define (dsl-ok value)
-  (list 'dsl-ok value))
+(define (dsl-ok value) (doc 'type '(-> a (Result a))) (list 'dsl-ok value))
+(define (dsl-err tag message) (doc 'type '(-> Symbol String (Result a))) (list 'dsl-err tag message))
+(define (dsl-ok? r) (doc 'type '(-> Any Boolean)) (and (pair? r) (eq? (car r) 'dsl-ok)))
+(define (dsl-err? r) (doc 'type '(-> Any Boolean)) (and (pair? r) (eq? (car r) 'dsl-err)))
+(define (dsl-ok-value r) (doc 'type '(-> (Result a) a)) (cadr r))
+(define (dsl-err-tag r) (doc 'type '(-> (Result a) Symbol)) (cadr r))
+(define (dsl-err-message r) (doc 'type '(-> (Result a) String)) (caddr r))
 
-(define (dsl-err tag message)
-  (list 'dsl-err tag message))
-
-;;; Result predicates
-(define (dsl-ok? r)
-  (and (pair? r) (eq? (car r) 'dsl-ok)))
-
-(define (dsl-err? r)
-  (and (pair? r) (eq? (car r) 'dsl-err)))
-
-;;; Result accessors
-(define (dsl-ok-value r)
-  (cadr r))
-
-(define (dsl-err-tag r)
-  (cadr r))
-
-(define (dsl-err-message r)
-  (caddr r))
-
-;;; Result mapping
 (define (dsl-result-map f r)
+  (doc 'type '(-> (-> a b) (Result a) (Result b)))
+  (doc 'description "Map over successful result, pass through errors")
   (if (dsl-ok? r)
       (dsl-ok (f (dsl-ok-value r)))
       r))
 
 (define (dsl-result-bind r f)
+  (doc 'type '(-> (Result a) (-> a (Result b)) (Result b)))
+  (doc 'description "Bind on result; short-circuits on error")
   (if (dsl-ok? r)
       (f (dsl-ok-value r))
       r))
 
-;;; run-dsl-safe : Interpreter -> DSL Instruction a -> Result a
-;;; Execute a DSL program, catching runtime errors.
 (define (run-dsl-safe interp program)
+  (doc 'type '(-> Interpreter (DSL a) (Result a)))
+  (doc 'description "Execute DSL program, catching runtime errors as dsl-err")
   (guard (ex [else (dsl-err 'runtime
                             (if (message-condition? ex)
                                 (condition-message ex)
                                 "Unknown error"))])
          (dsl-ok (run-dsl interp program))))
 
-;;; dsl-fail : Symbol -> String -> DSL Instruction a
-;;; Emit a failure instruction.
 (define (dsl-fail tag message)
+  (doc 'type '(-> Symbol String (DSL Any)))
+  (doc 'description "Emit a failure instruction")
   (dsl-emit 'dsl-fail (list tag message)))
 
-;;; dsl-assert : Boolean -> Symbol -> String -> DSL Instruction ()
-;;; Assert a condition, failing if false.
 (define (dsl-assert condition tag message)
+  (doc 'type '(-> Boolean Symbol String (DSL Unit)))
+  (doc 'description "Assert a condition; emits failure if false")
   (if condition
       (dsl-pure '())
       (dsl-fail tag message)))
 
-;;; make-fail-handler : (Symbol -> String -> a) -> (Symbol -> Payload -> a)
-;;; Create a handler that intercepts dsl-fail instructions.
 (define (make-fail-handler on-fail default-handler)
+  (doc 'type '(-> (-> Symbol String Any) (-> Symbol Any Any) (-> Symbol Any Any)))
+  (doc 'description "Create handler that intercepts dsl-fail, delegates rest to default")
   (lambda (tag payload)
           (if (eq? tag 'dsl-fail)
               (on-fail (car payload) (cadr payload))
               (default-handler tag payload))))
 
-;;; ====
-;;; Debugging Tools
-;;; ====
-;;;
-;;; Tools for inspecting and debugging DSL programs.
+(doc 'section 'debugging-tools)
 
-;;; dsl-peek : DSL Instruction a -> (Symbol . Any)
-;;; Inspect the first instruction without executing.
 (define (dsl-peek program)
+  (doc 'type '(-> (DSL a) (Pair Symbol Any)))
+  (doc 'description "Inspect first instruction without executing; returns (tag . payload)")
   (if (dsl-pure? program)
       (cons 'pure (dsl-pure-value program))
       (let ([instr (dsl-instruction program)])
            (cons (instruction-tag instr)
                  (instruction-payload instr)))))
 
-;;; dsl-count-instructions : DSL Instruction a -> Int -> Int
-;;; Count instructions in a program (with fuel limit).
 (define (dsl-count-instructions program fuel)
+  (doc 'type '(-> (DSL a) Nat Nat))
+  (doc 'description "Count instructions in program with fuel limit")
   (if (or (<= fuel 0) (dsl-pure? program))
       0
       (let* ([instr (dsl-instruction program)]
              [cont (instruction-cont instr)])
             (+ 1 (dsl-count-instructions (cont '()) (- fuel 1))))))
 
-;;; dsl-trace-when : (Symbol -> Any -> Bool) -> Interpreter -> Interpreter
-;;; Wrap an interpreter to trace instructions matching a predicate.
 (define (dsl-trace-when pred interp)
+  (doc 'type '(-> (-> Symbol Any Boolean) Interpreter Interpreter))
+  (doc 'description "Wrap interpreter to trace instructions matching a predicate")
   (let ([handler (interpreter-handler interp)])
        (make-interpreter
         (lambda (tag payload)
@@ -1485,14 +1269,14 @@
                            (display (format "[DSL]   => ~s\n" result)))
                      result)))))
 
-;;; dsl-trace-tags : List Symbol -> Interpreter -> Interpreter
-;;; Trace only specific instruction tags.
 (define (dsl-trace-tags tags interp)
+  (doc 'type '(-> (List Symbol) Interpreter Interpreter))
+  (doc 'description "Trace only instructions with specified tags")
   (dsl-trace-when (lambda (tag _) (memq tag tags)) interp))
 
-;;; dsl-pretty-print : DSL Instruction a -> String
-;;; Pretty-print the first instruction of a program.
 (define (dsl-pretty-print program)
+  (doc 'type '(-> (DSL a) String))
+  (doc 'description "Pretty-print the first instruction of a program")
   (cond
    [(dsl-pure? program)
     (format "(pure ~s)" (dsl-pure-value program))]
@@ -1502,9 +1286,9 @@
                  (instruction-tag instr)
                  (instruction-payload instr)))]))
 
-;;; dsl-collect-tags : DSL Instruction a -> Int -> List Symbol
-;;; Collect all instruction tags in a program (with fuel limit).
 (define (dsl-collect-tags program fuel)
+  (doc 'type '(-> (DSL a) Nat (List Symbol)))
+  (doc 'description "Collect all instruction tags in program with fuel limit")
   (if (or (<= fuel 0) (dsl-pure? program))
       '()
       (let* ([instr (dsl-instruction program)]
@@ -1512,35 +1296,17 @@
              [cont (instruction-cont instr)])
             (cons tag (dsl-collect-tags (cont '()) (- fuel 1))))))
 
-;;; ====
-;;; DSL Combination
-;;; ====
-;;;
-;;; Tools for combining multiple DSLs into one.
+(doc 'section 'dsl-combination)
 
-;;; Sum type tags for combined instructions
+(define (dsl-left-tag tag) (doc 'type '(-> Symbol (List Symbol Symbol))) (list 'dsl-left tag))
+(define (dsl-right-tag tag) (doc 'type '(-> Symbol (List Symbol Symbol))) (list 'dsl-right tag))
+(define (dsl-left-tag? x) (doc 'type '(-> Any Boolean)) (and (pair? x) (eq? (car x) 'dsl-left)))
+(define (dsl-right-tag? x) (doc 'type '(-> Any Boolean)) (and (pair? x) (eq? (car x) 'dsl-right)))
+(define (dsl-unwrap-tag x) (doc 'type '(-> (List Symbol Symbol) Symbol)) (cadr x))
 
-;;; dsl-left-tag : Symbol → Symbol
-(define (dsl-left-tag tag) (list 'dsl-left tag))
-
-;;; dsl-right-tag : Symbol → Symbol
-(define (dsl-right-tag tag) (list 'dsl-right tag))
-
-;;; dsl-left-tag? : α → Bool
-(define (dsl-left-tag? x)
-  (and (pair? x) (eq? (car x) 'dsl-left)))
-
-;;; dsl-right-tag? : α → Bool
-(define (dsl-right-tag? x)
-  (and (pair? x) (eq? (car x) 'dsl-right)))
-
-;;; dsl-unwrap-tag : Symbol → Symbol
-(define (dsl-unwrap-tag x)
-  (cadr x))
-
-;;; dsl-inject-left : DSL Instruction a -> DSL (Left Instruction) a
-;;; Lift a program to the left side of a union.
 (define (dsl-inject-left program)
+  (doc 'type '(-> (DSL a) (DSL a)))
+  (doc 'description "Lift program to left side of a union DSL")
   (if (dsl-pure? program)
       program
       (let* ([instr (dsl-instruction program)]
@@ -1552,9 +1318,9 @@
                    payload
                    (lambda (r) (dsl-inject-left (cont r))))))))
 
-;;; dsl-inject-right : DSL Instruction a -> DSL (Right Instruction) a
-;;; Lift a program to the right side of a union.
 (define (dsl-inject-right program)
+  (doc 'type '(-> (DSL a) (DSL a)))
+  (doc 'description "Lift program to right side of a union DSL")
   (if (dsl-pure? program)
       program
       (let* ([instr (dsl-instruction program)]
@@ -1566,9 +1332,9 @@
                    payload
                    (lambda (r) (dsl-inject-right (cont r))))))))
 
-;;; union-interpreter : Interpreter -> Interpreter -> Interpreter
-;;; Combine two interpreters into one that handles both DSLs.
 (define (union-interpreter left-interp right-interp)
+  (doc 'type '(-> Interpreter Interpreter Interpreter))
+  (doc 'description "Combine two interpreters into one via tagged dispatch")
   (let ([left-handler (interpreter-handler left-interp)]
         [right-handler (interpreter-handler right-interp)])
        (make-interpreter
@@ -1581,26 +1347,19 @@
                  [else
                   (error 'union-interpreter "Unknown instruction side" tag)])))))
 
-;;; ====
-;;; Program Validation
-;;; ====
-;;;
-;;; Validate DSL programs before execution.
+(doc 'section 'program-validation)
 
-;;; make-dsl-schema : List (Symbol . Int) -> Schema
-;;; Create a schema from list of (tag . arity) pairs.
 (define (make-dsl-schema instructions)
+  (doc 'type '(-> (List (Pair Symbol Nat)) Schema))
+  (doc 'description "Create a schema from list of (tag . arity) pairs")
   (list 'dsl-schema instructions))
 
-(define (dsl-schema? x)
-  (and (pair? x) (eq? (car x) 'dsl-schema)))
+(define (dsl-schema? x) (doc 'type '(-> Any Boolean)) (and (pair? x) (eq? (car x) 'dsl-schema)))
+(define (dsl-schema-instructions schema) (doc 'type '(-> Schema (List (Pair Symbol Nat)))) (cadr schema))
 
-(define (dsl-schema-instructions schema)
-  (cadr schema))
-
-;;; dsl-validate : Schema -> DSL Instruction a -> Int -> Result (DSL Instruction a)
-;;; Validate a program against a schema.
 (define (dsl-validate schema program fuel)
+  (doc 'type '(-> Schema (DSL a) Nat (Result (DSL a))))
+  (doc 'description "Validate program against schema; checks all tags are in schema")
   (cond
    [(<= fuel 0)
     (dsl-ok program)]  ; Assume valid if out of fuel
@@ -1618,6 +1377,8 @@
                        (format "Unknown instruction: ~a" tag))))]))
 
 ;;; Calculator DSL schema
+(doc calc-schema 'type '(DSLSchema))
+(doc calc-schema 'description "Validation schema for the calculator DSL instruction set")
 (define calc-schema
   (make-dsl-schema
    '((calc-push . 1)
@@ -1629,7 +1390,8 @@
      (calc-swap . 0)
      (calc-pop . 0))))
 
-;;; Turtle DSL schema
+(doc turtle-schema 'type '(DSLSchema))
+(doc turtle-schema 'description "Validation schema for the turtle graphics DSL instruction set")
 (define turtle-schema
   (make-dsl-schema
    '((turtle-forward . 1)
@@ -1640,29 +1402,25 @@
      (turtle-pendown . 0)
      (turtle-getpos . 0))))
 
-;;; ====
-;;; Resource Management
-;;; ====
-;;;
-;;; Patterns for managing resources with cleanup.
+(doc 'section 'resource-management)
 
-;;; dsl-finally : DSL Instruction () -> DSL Instruction a -> DSL Instruction a
-;;; Execute cleanup after program, regardless of result.
 (define (dsl-finally cleanup program)
+  (doc 'type '(-> (DSL ()) (DSL a) (DSL a)))
+  (doc 'description "Execute cleanup after program, regardless of result")
   (dsl-bind program
             (lambda (result)
                     (dsl-bind cleanup
                               (lambda (_) (dsl-pure result))))))
 
-;;; dsl-bracket : DSL Instruction r -> (r -> DSL Instruction ()) -> (r -> DSL Instruction a) -> DSL Instruction a
-;;; Acquire resource, use it, then release.
 (define (dsl-bracket acquire release use)
+  (doc 'type '(-> (DSL r) (-> r (DSL ())) (-> r (DSL a)) (DSL a)))
+  (doc 'description "Acquire resource, use it, then release — bracket pattern for safe resource management")
   (dsl-do
    (resource <- acquire)
    (dsl-finally (release resource) (use resource))))
 
-;;; dsl-with-resource macro
-;;; Usage: (dsl-with-resource (var acquire release) body ...)
+(doc dsl-with-resource 'type 'syntax)
+(doc dsl-with-resource 'description "Macro: (dsl-with-resource (var acquire release) body ...) — bracket pattern with implicit binding")
 (define-syntax dsl-with-resource
   (syntax-rules ()
                 [(_ (var acquire release) body ...)
@@ -1670,15 +1428,11 @@
                               (lambda (var) release)
                               (lambda (var) (dsl-do body ...)))]))
 
-;;; ====
-;;; Algebraic Effects Integration
-;;; ====
-;;;
-;;; Bridge between DSL and algebraic effects system.
+(doc 'section 'algebraic-effects-integration)
 
-;;; dsl-to-eff : DSL Instruction a -> Eff e a
-;;; Convert a DSL program to an effectful computation.
 (define (dsl-to-eff program)
+  (doc 'type '(-> (DSL a) (Eff e a)))
+  (doc 'description "Convert a DSL program to an effectful computation, bridging Free monad and algebraic effects")
   (cond
    [(dsl-pure? program)
     (eff-return (dsl-pure-value program))]
@@ -1692,16 +1446,16 @@
            (lambda (result)
                    (dsl-to-eff (cont result)))))]))
 
-;;; make-eff-interpreter : (Symbol -> Payload -> a) -> Effect Handler
-;;; Create an effect handler from a DSL interpreter function.
 (define (make-eff-interpreter handler)
+  (doc 'type '(-> (-> Symbol Any a) (-> Effect (-> a b) b)))
+  (doc 'description "Create an algebraic effect handler from a DSL interpreter function")
   (lambda (effect k)
           (let* ([tag (effect-tag effect)]
                  [payload (effect-payload effect)]
                  [result (handler tag payload)])
                 (k result))))
 
-;;; run-dsl-as-eff : (Symbol -> Payload -> a) -> DSL Instruction b -> Eff e b
-;;; Run a DSL program using the effects system.
 (define (run-dsl-as-eff handler program)
+  (doc 'type '(-> (-> Symbol Any a) (DSL b) (Eff e b)))
+  (doc 'description "Run a DSL program using the algebraic effects system")
   (dsl-to-eff program))
