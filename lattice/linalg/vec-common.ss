@@ -48,7 +48,8 @@
                   (define (unit-y) (ctor 0 1)))]))
 
 
-;;; generate-vec2-arithmetic : Generate +, -, *, /, scale
+(doc generate-vec2-arithmetic 'type 'syntax)
+(doc generate-vec2-arithmetic 'description "Generate arithmetic operations: add, sub, neg, mul, div, scale, scale-inv")
 (define-syntax generate-vec2-arithmetic
   (syntax-rules ()
                 [(_ ctor get-x get-y
@@ -82,7 +83,8 @@
                           (/ (get-y v) s))))]))
 
 
-;;; generate-vec2-products : Generate dot, magnitude, distance, normalize
+(doc generate-vec2-products 'type 'syntax)
+(doc generate-vec2-products 'description "Generate dot product, magnitude, distance, normalize, set-magnitude")
 (define-syntax generate-vec2-products
   (syntax-rules ()
                 [(_ ctor get-x get-y zero-fn v-sub v-scale-inv
@@ -121,7 +123,8 @@
                                (* (get-y normalized) new-mag)))))]))
 
 
-;;; generate-vec2-interpolation : Generate lerp, slerp, move-towards
+(doc generate-vec2-interpolation 'type 'syntax)
+(doc generate-vec2-interpolation 'description "Generate lerp, slerp, move-towards interpolation")
 (define-syntax generate-vec2-interpolation
   (syntax-rules ()
                 [(_ ctor get-x get-y v-add v-sub v-scale v-norm v-mag v-angle-between
@@ -147,7 +150,8 @@
                               (v-add a (v-scale (v-norm delta) max-distance))))))]))
 
 
-;;; generate-vec2-projection : Generate project, reject, reflect
+(doc generate-vec2-projection 'type 'syntax)
+(doc generate-vec2-projection 'description "Generate projection, rejection, and reflection operations")
 (define-syntax generate-vec2-projection
   (syntax-rules ()
                 [(_ ctor get-x get-y zero-fn v-sub v-scale v-dot v-mag-sq
@@ -166,7 +170,8 @@
                     (v-sub v (v-scale normal (* 2 (v-dot v normal))))))]))
 
 
-;;; generate-vec2-comparison : Generate equal?, nearly-equal?, zero?
+(doc generate-vec2-comparison 'type 'syntax)
+(doc generate-vec2-comparison 'description "Generate equality, approximate equality, and zero predicates")
 (define-syntax generate-vec2-comparison
   (syntax-rules ()
                 [(_ get-x get-y v-mag-sq
@@ -185,7 +190,8 @@
                          (< (abs (get-y v)) 1e-10))))]))
 
 
-;;; generate-vec2-utilities : Generate min, max, abs, floor, ceil, etc.
+(doc generate-vec2-utilities 'type 'syntax)
+(doc generate-vec2-utilities 'description "Generate min, max, clamp, abs, floor, ceil, round, map, fold, sum, product, clamp-magnitude, limit")
 (define-syntax generate-vec2-utilities
   (syntax-rules ()
                 [(_ ctor get-x get-y v-mag-sq v-set-mag
@@ -245,7 +251,8 @@
 ;;; 3D Vector Generation Macros
 ;;; ====
 
-;;; generate-vec3-core : Generate constructor, predicate, accessors
+(doc generate-vec3-core 'type 'syntax)
+(doc generate-vec3-core 'description "Generate constructor, predicate, accessors, list conversion, and standard vectors for Vec3")
 (define-syntax generate-vec3-core
   (syntax-rules ()
                 [(_ ctor pred? get-x get-y get-z get-ref to-list from-list
@@ -277,7 +284,8 @@
                   (define (unit-z) (ctor 0 0 1)))]))
 
 
-;;; generate-vec3-arithmetic : Generate +, -, *, /, scale
+(doc generate-vec3-arithmetic 'type 'syntax)
+(doc generate-vec3-arithmetic 'description "Generate arithmetic operations: add, sub, neg, mul, div, scale, scale-inv")
 (define-syntax generate-vec3-arithmetic
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z
@@ -317,7 +325,8 @@
                           (/ (get-z v) s))))]))
 
 
-;;; generate-vec3-products : Generate dot, cross, magnitude, distance, normalize
+(doc generate-vec3-products 'type 'syntax)
+(doc generate-vec3-products 'description "Generate dot, cross, triple products, magnitude, distance, normalize, set-magnitude")
 (define-syntax generate-vec3-products
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z zero-fn v-sub v-scale v-scale-inv
@@ -374,7 +383,8 @@
                     (v-scale (v-norm v) mag)))]))
 
 
-;;; generate-vec3-interpolation : Generate lerp, slerp, nlerp
+(doc generate-vec3-interpolation 'type 'syntax)
+(doc generate-vec3-interpolation 'description "Generate lerp, slerp, nlerp interpolation")
 (define-syntax generate-vec3-interpolation
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z v-add v-scale v-norm v-dot
@@ -400,7 +410,8 @@
                     (v-norm (v-lerp a b t))))]))
 
 
-;;; generate-vec3-projection : Generate project, reject, reflect, refract
+(doc generate-vec3-projection 'type 'syntax)
+(doc generate-vec3-projection 'description "Generate projection, rejection, reflection, and refraction operations")
 (define-syntax generate-vec3-projection
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z zero-fn v-add v-sub v-scale v-dot v-mag-sq
@@ -428,7 +439,8 @@
                                           (v-scale n (- (* eta cos-i) cos-t))))))))]))
 
 
-;;; generate-vec3-comparison : Generate equal?, nearly-equal?, zero?, unit?
+(doc generate-vec3-comparison 'type 'syntax)
+(doc generate-vec3-comparison 'description "Generate equality, approximate equality, zero, and unit predicates")
 (define-syntax generate-vec3-comparison
   (syntax-rules ()
                 [(_ get-x get-y get-z v-mag-sq
@@ -453,7 +465,8 @@
                     (< (abs (- (v-mag-sq v) 1.0)) 1e-10)))]))
 
 
-;;; generate-vec3-utilities : Generate min, max, abs, floor, ceil, clamp
+(doc generate-vec3-utilities 'type 'syntax)
+(doc generate-vec3-utilities 'description "Generate min, max, clamp, abs, floor, ceil, clamp-magnitude")
 (define-syntax generate-vec3-utilities
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z v-mag v-set-mag
@@ -497,7 +510,8 @@
                           [else v]))))]))
 
 
-;;; generate-vec3-angles : Generate angle operations
+(doc generate-vec3-angles 'type 'syntax)
+(doc generate-vec3-angles 'description "Generate unsigned and signed angle operations")
 (define-syntax generate-vec3-angles
   (syntax-rules ()
                 [(_ v-dot v-cross v-mag
@@ -517,7 +531,8 @@
                           (* sign angle))))]))
 
 
-;;; generate-vec3-rotation : Generate rotation around axes
+(doc generate-vec3-rotation 'type 'syntax)
+(doc generate-vec3-rotation 'description "Generate rotation around x, y, z axes and arbitrary axis (Rodrigues)")
 (define-syntax generate-vec3-rotation
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z v-add v-scale v-cross v-dot
@@ -561,7 +576,8 @@
                           (v-add (v-add term1 term2) term3))))]))
 
 
-;;; generate-vec3-basis : Generate orthonormal basis operations
+(doc generate-vec3-basis 'type 'syntax)
+(doc generate-vec3-basis 'description "Generate orthonormal basis construction and Gram-Schmidt orthonormalization")
 (define-syntax generate-vec3-basis
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z v-norm v-cross v-reject
@@ -582,7 +598,8 @@
                           (list u1 u2))))]))
 
 
-;;; generate-vec3-coords : Generate coordinate conversions
+(doc generate-vec3-coords 'type 'syntax)
+(doc generate-vec3-coords 'description "Generate spherical and cylindrical coordinate conversions")
 (define-syntax generate-vec3-coords
   (syntax-rules ()
                 [(_ ctor get-x get-y get-z v-mag
