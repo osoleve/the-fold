@@ -7,102 +7,107 @@
 
 (doc 'module 'stream)
 (doc 'purity 'partial)
-(doc 'description "Stream Type A stream is either: - stream-nil: the empty stream - (stream-cons head thunk): head value with lazy tail The thunk is a nullary procedure that, when called, produces")
+(doc 'description "Lazy streams: codata defined by head/tail observations. Supports infinite sequences, memoization, Functor/Applicative/Monad instances, and fuel-bounded operations.")
 (doc 'layer 'lattice)
-(define stream-nil '(stream-nil))
 
-;;; stream-nil? : (Stream α) → Bool
+(doc 'section 'core-type)
+
+(define stream-nil '(stream-nil))
+(doc stream-nil 'type '(Stream a))
+(doc stream-nil 'description "The empty stream")
+
 (define (stream-nil? s)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if stream is empty")
   (and (pair? s) (eq? (car s) 'stream-nil)))
 
-;;; stream-cons : α × (() → (Stream α)) → (Stream α)
-;;; Construct a stream with a head and lazy tail.
 (define (stream-cons head tail-thunk)
+  (doc 'type '(-> a (-> (Stream a)) (Stream a)))
+  (doc 'description "Construct a stream with a head and lazy tail thunk")
   (list 'stream-cons head tail-thunk))
 
-;;; stream-cons? : (Stream α) → Bool
 (define (stream-cons? s)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if stream has at least one element")
   (and (pair? s)
        (or (eq? (car s) 'stream-cons)
            (eq? (car s) 'memo-stream-cons))))
 
-;;; stream-head : (Stream α) → α
-;;; Get the first element (partial on empty stream).
 (define (stream-head s)
+  (doc 'type '(-> (Stream a) a))
+  (doc 'description "Get the first element; error on empty stream")
   (if (stream-cons? s)
       (list-ref s 1)
       (error 'stream-head "empty stream")))
 
-;;; stream-tail : (Stream α) → (Stream α)
-;;; Force and return the tail.
 (define (stream-tail s)
+  (doc 'type '(-> (Stream a) (Stream a)))
+  (doc 'description "Force and return the tail; error on empty stream")
   (if (stream-cons? s)
       ((list-ref s 2))
       (error 'stream-tail "empty stream")))
 
-;;; ====
-;;; Stream Constructors
-;;; ====
+(doc 'section 'constructors)
 
-;;; list->stream : (List α) → (Stream α)
-;;; Convert a list to a stream.
 (define (list->stream lst)
+  (doc 'type '(-> (List a) (Stream a)))
+  (doc 'description "Convert a list to a stream")
   (if (null? lst)
       stream-nil
       (stream-cons (car lst) (lambda () (list->stream (cdr lst))))))
 
-;;; stream->list : Nat × (Stream α) → (List α)
-;;; Take n elements from stream and convert to list.
 (define (stream->list n s)
+  (doc 'type '(-> Nat (Stream a) (List a)))
+  (doc 'description "Take n elements from stream and convert to list")
   (if (or (<= n 0) (stream-nil? s))
       '()
       (cons (stream-head s)
             (stream->list (- n 1) (stream-tail s)))))
 
-;;; stream-iterate : (α → α) × α → (Stream α)
-;;; Generate infinite stream: x, f(x), f(f(x)), ...
 (define (stream-iterate f x)
+  (doc 'type '(-> (-> a a) a (Stream a)))
+  (doc 'description "Infinite stream: x, f(x), f(f(x)), ...")
   (stream-cons x (lambda () (stream-iterate f (f x)))))
 
-;;; stream-repeat : α → (Stream α)
-;;; Infinite stream of a single repeated value.
 (define (stream-repeat x)
+  (doc 'type '(-> a (Stream a)))
+  (doc 'description "Infinite stream of a single repeated value")
   (stream-cons x (lambda () (stream-repeat x))))
 
-;;; stream-cycle : (List α) → (Stream α)
-;;; Infinite stream cycling through a list.
 (define (stream-cycle lst)
+  (doc 'type '(-> (List a) (Stream a)))
+  (doc 'description "Infinite stream cycling through a list; empty list gives empty stream")
   (if (null? lst)
       stream-nil
       (stream-cycle-helper lst lst)))
 
-;;; stream-cycle-helper : (List α) × (List α) → (Stream α)
 (define (stream-cycle-helper original current)
+  (doc 'type '(-> (List a) (List a) (Stream a)))
+  (doc 'description "Internal helper for stream-cycle")
   (if (null? current)
       (stream-cycle-helper original original)
       (stream-cons (car current)
                    (lambda () (stream-cycle-helper original (cdr current))))))
 
-;;; stream-from : Int → (Stream Int)
-;;; Infinite stream of integers starting from n.
 (define (stream-from n)
+  (doc 'type '(-> Int (Stream Int)))
+  (doc 'description "Infinite stream of integers starting from n")
   (stream-iterate (lambda (x) (+ x 1)) n))
 
-;;; stream-range : Int × Int → (Stream Int)
-;;; Stream of integers from start (inclusive) to end (exclusive).
 (define (stream-range start end)
+  (doc 'type '(-> Int Int (Stream Int)))
+  (doc 'description "Stream of integers from start (inclusive) to end (exclusive)")
   (if (>= start end)
       stream-nil
       (stream-cons start (lambda () (stream-range (+ start 1) end)))))
 
-;;; naturals : (Stream Int)
-;;; The natural numbers: 0, 1, 2, 3, ...
 (define naturals (stream-from 0))
+(doc naturals 'type '(Stream Int))
+(doc naturals 'description "The natural numbers: 0, 1, 2, 3, ...")
 
-;;; stream-unfold : (σ → (Maybe (α × σ))) × σ → (Stream α)
-;;; Build a stream from a seed using a step function.
-;;; Step function returns nothing to end, or (just (value . new-seed)) to continue.
 (define (stream-unfold step seed)
+  (doc 'type '(-> (-> s (Maybe (Pair a s))) s (Stream a)))
+  (doc 'description "Build stream from seed; step returns nothing to end, (just (value . next-seed)) to continue")
   (let ([result (step seed)])
        (if (nothing? result)
            stream-nil
@@ -110,21 +115,19 @@
                 (stream-cons (car pair)
                              (lambda () (stream-unfold step (cdr pair))))))))
 
-;;; ====
-;;; Stream Transformers
-;;; ====
+(doc 'section 'transformers)
 
-;;; stream-map : (α → β) × (Stream α) → (Stream β)
-;;; Map a function over a stream.
 (define (stream-map f s)
+  (doc 'type '(-> (-> a b) (Stream a) (Stream b)))
+  (doc 'description "Map a function over a stream")
   (if (stream-nil? s)
       stream-nil
       (stream-cons (f (stream-head s))
                    (lambda () (stream-map f (stream-tail s))))))
 
-;;; stream-filter : (α → Bool) × (Stream α) → (Stream α)
-;;; Filter a stream by a predicate.
 (define (stream-filter pred s)
+  (doc 'type '(-> (-> a Boolean) (Stream a) (Stream a)))
+  (doc 'description "Filter a stream by a predicate")
   (cond
    [(stream-nil? s) stream-nil]
    [(pred (stream-head s))
@@ -132,24 +135,24 @@
                  (lambda () (stream-filter pred (stream-tail s))))]
    [else (stream-filter pred (stream-tail s))]))
 
-;;; stream-take : Nat × (Stream α) → (Stream α)
-;;; Take the first n elements.
 (define (stream-take n s)
+  (doc 'type '(-> Nat (Stream a) (Stream a)))
+  (doc 'description "Take the first n elements as a stream")
   (if (or (<= n 0) (stream-nil? s))
       stream-nil
       (stream-cons (stream-head s)
                    (lambda () (stream-take (- n 1) (stream-tail s))))))
 
-;;; stream-drop : Nat × (Stream α) → (Stream α)
-;;; Drop the first n elements.
 (define (stream-drop n s)
+  (doc 'type '(-> Nat (Stream a) (Stream a)))
+  (doc 'description "Drop the first n elements")
   (if (or (<= n 0) (stream-nil? s))
       s
       (stream-drop (- n 1) (stream-tail s))))
 
-;;; stream-take-while : (α → Bool) × (Stream α) → (Stream α)
-;;; Take elements while predicate holds.
 (define (stream-take-while pred s)
+  (doc 'type '(-> (-> a Boolean) (Stream a) (Stream a)))
+  (doc 'description "Take elements while predicate holds")
   (if (stream-nil? s)
       stream-nil
       (let ([h (stream-head s)])
@@ -157,39 +160,39 @@
                (stream-cons h (lambda () (stream-take-while pred (stream-tail s))))
                stream-nil))))
 
-;;; stream-drop-while : (α → Bool) × (Stream α) → (Stream α)
-;;; Drop elements while predicate holds.
 (define (stream-drop-while pred s)
+  (doc 'type '(-> (-> a Boolean) (Stream a) (Stream a)))
+  (doc 'description "Drop elements while predicate holds")
   (cond
    [(stream-nil? s) stream-nil]
    [(pred (stream-head s)) (stream-drop-while pred (stream-tail s))]
    [else s]))
 
-;;; stream-nth : Nat × (Stream α) → α
-;;; Get the nth element (0-indexed).
 (define (stream-nth n s)
+  (doc 'type '(-> Nat (Stream a) a))
+  (doc 'description "Get the nth element (0-indexed)")
   (stream-head (stream-drop n s)))
 
-;;; stream-scan : (β × α → β) × β × (Stream α) → (Stream β)
-;;; Running fold over a stream.
 (define (stream-scan f init s)
+  (doc 'type '(-> (-> b a b) b (Stream a) (Stream b)))
+  (doc 'description "Running fold over a stream; produces stream of intermediate results")
   (stream-cons init
                (lambda ()
                        (if (stream-nil? s)
                            stream-nil
                            (stream-scan f (f init (stream-head s)) (stream-tail s))))))
 
-;;; stream-concat : (Stream α) × (Stream α) → (Stream α)
-;;; Concatenate two streams (second stream is only accessed when first ends).
 (define (stream-concat s1 s2)
+  (doc 'type '(-> (Stream a) (Stream a) (Stream a)))
+  (doc 'description "Concatenate two streams; second accessed only when first ends")
   (if (stream-nil? s1)
       s2
       (stream-cons (stream-head s1)
                    (lambda () (stream-concat (stream-tail s1) s2)))))
 
-;;; stream-flatten : (Stream (Stream α)) → (Stream α)
-;;; Flatten a stream of streams.
 (define (stream-flatten ss)
+  (doc 'type '(-> (Stream (Stream a)) (Stream a)))
+  (doc 'description "Flatten a stream of streams")
   (if (stream-nil? ss)
       stream-nil
       (let ([head (stream-head ss)])
@@ -201,43 +204,40 @@
                                      (stream-cons (stream-tail head)
                                                   (lambda () (stream-tail ss))))))))))
 
-;;; stream-flatmap : (α → (Stream β)) × (Stream α) → (Stream β)
-;;; Map and flatten.
 (define (stream-flatmap f s)
+  (doc 'type '(-> (-> a (Stream b)) (Stream a) (Stream b)))
+  (doc 'description "Map and flatten (monadic bind via concatenation)")
   (stream-flatten (stream-map f s)))
 
-;;; ====
-;;; Stream Combinators
-;;; ====
+(doc 'section 'combinators)
 
-;;; stream-zip : (Stream α) × (Stream β) → (Stream (Pair α β))
-;;; Zip two streams together.
 (define (stream-zip s1 s2)
+  (doc 'type '(-> (Stream a) (Stream b) (Stream (Pair a b))))
+  (doc 'description "Zip two streams into a stream of pairs")
   (if (or (stream-nil? s1) (stream-nil? s2))
       stream-nil
       (stream-cons (cons (stream-head s1) (stream-head s2))
                    (lambda () (stream-zip (stream-tail s1) (stream-tail s2))))))
 
-;;; stream-zip-with : (α × β → γ) × (Stream α) × (Stream β) → (Stream γ)
-;;; Zip with a combining function.
 (define (stream-zip-with f s1 s2)
+  (doc 'type '(-> (-> a b c) (Stream a) (Stream b) (Stream c)))
+  (doc 'description "Zip with a combining function")
   (if (or (stream-nil? s1) (stream-nil? s2))
       stream-nil
       (stream-cons (f (stream-head s1) (stream-head s2))
                    (lambda () (stream-zip-with f (stream-tail s1) (stream-tail s2))))))
 
-;;; stream-interleave : (Stream α) × (Stream α) → (Stream α)
-;;; Interleave two streams: a1, b1, a2, b2, ...
 (define (stream-interleave s1 s2)
+  (doc 'type '(-> (Stream a) (Stream a) (Stream a)))
+  (doc 'description "Interleave two streams: a1, b1, a2, b2, ...")
   (if (stream-nil? s1)
       s2
       (stream-cons (stream-head s1)
                    (lambda () (stream-interleave s2 (stream-tail s1))))))
 
-;;; stream-merge : (α × α → Bool) × (Stream α) × (Stream α) → (Stream α)
-;;; Merge two sorted streams maintaining order.
-;;; pred should return #t if first arg should come before second.
 (define (stream-merge pred s1 s2)
+  (doc 'type '(-> (-> a a Boolean) (Stream a) (Stream a) (Stream a)))
+  (doc 'description "Merge two sorted streams maintaining order by predicate")
   (cond
    [(stream-nil? s1) s2]
    [(stream-nil? s2) s1]
@@ -248,53 +248,48 @@
              (stream-cons h1 (lambda () (stream-merge pred (stream-tail s1) s2)))
              (stream-cons h2 (lambda () (stream-merge pred s1 (stream-tail s2))))))]))
 
-;;; ====
-;;; Stream Folds
-;;; ====
+(doc 'section 'folds)
 
-;;; stream-fold : (β × α → β) × β × Nat × (Stream α) → β
-;;; Left fold over first n elements of stream.
 (define (stream-fold f init n s)
+  (doc 'type '(-> (-> b a b) b Nat (Stream a) b))
+  (doc 'description "Left fold over first n elements of stream")
   (if (or (<= n 0) (stream-nil? s))
       init
       (stream-fold f (f init (stream-head s)) (- n 1) (stream-tail s))))
 
-;;; stream-any : (α → Bool) × Nat × (Stream α) → Bool
-;;; Check if any of first n elements satisfies predicate.
 (define (stream-any pred n s)
+  (doc 'type '(-> (-> a Boolean) Nat (Stream a) Boolean))
+  (doc 'description "Check if any of first n elements satisfies predicate")
   (cond
    [(<= n 0) #f]
    [(stream-nil? s) #f]
    [(pred (stream-head s)) #t]
    [else (stream-any pred (- n 1) (stream-tail s))]))
 
-;;; stream-all : (α → Bool) × Nat × (Stream α) → Bool
-;;; Check if all of first n elements satisfy predicate.
 (define (stream-all pred n s)
+  (doc 'type '(-> (-> a Boolean) Nat (Stream a) Boolean))
+  (doc 'description "Check if all of first n elements satisfy predicate")
   (cond
    [(<= n 0) #t]
    [(stream-nil? s) #t]
    [(not (pred (stream-head s))) #f]
    [else (stream-all pred (- n 1) (stream-tail s))]))
 
-;;; stream-find : (α → Bool) × Nat × (Stream α) → (Maybe α)
-;;; Find first element matching predicate within n elements.
 (define (stream-find pred n s)
+  (doc 'type '(-> (-> a Boolean) Nat (Stream a) (Maybe a)))
+  (doc 'description "Find first element matching predicate within n elements")
   (cond
    [(<= n 0) nothing]
    [(stream-nil? s) nothing]
    [(pred (stream-head s)) (just (stream-head s))]
    [else (stream-find pred (- n 1) (stream-tail s))]))
 
-;;; ====
-;;; Memoized Streams
-;;; ====
-;;;
+(doc 'section 'memoized-streams)
 ;;; Memoized streams cache computed values to avoid recomputation.
 
-;;; memo-stream-cons : α × (() → (Stream α)) → (Stream α)
-;;; Create a memoized stream cons cell.
 (define (memo-stream-cons head tail-thunk)
+  (doc 'type '(-> a (-> (Stream a)) (Stream a)))
+  (doc 'description "Create a memoized stream cons cell; tail is computed at most once")
   (let ([cached #f]
         [computed #f])
        (list 'memo-stream-cons
@@ -307,40 +302,35 @@
                           (set! computed #t)
                           cached))))))
 
-;;; memo-stream? : α → Bool
 (define (memo-stream? s)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a memoized stream cons cell")
   (and (pair? s) (eq? (car s) 'memo-stream-cons)))
 
-;;; For convenience, re-define stream operations that work with memo streams
-;;; (They already work since we just check for cons pattern)
-
-;;; stream-force : Nat × (Stream α) → (Stream α)
-;;; Force computation of the stream to a given depth, returning the original.
 (define (stream-force n s)
+  (doc 'type '(-> Nat (Stream a) (Stream a)))
+  (doc 'description "Force computation to depth n, returning the original stream")
   (stream-force-helper n s)
   s)
 
-;;; stream-force-helper : Nat × (Stream α) → Unit
 (define (stream-force-helper n s)
+  (doc 'type '(-> Nat (Stream a) Void))
+  (doc 'description "Internal: eagerly force stream to depth n")
   (if (or (<= n 0) (stream-nil? s))
       (void)
       (begin
-       (stream-head s)  ; force head
+       (stream-head s)
        (stream-force-helper (- n 1) (stream-tail s)))))
 
-;;; ====
-;;; Classic Streams
-;;; ====
+(doc 'section 'classic-streams)
 
-;;; fibonacci : (Stream Int)
-;;; The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, ...
 (define fibonacci
   (letrec ([fibs (lambda (a b)
                          (stream-cons a (lambda () (fibs b (+ a b)))))])
           (fibs 0 1)))
+(doc fibonacci 'type '(Stream Int))
+(doc fibonacci 'description "The Fibonacci sequence: 0, 1, 1, 2, 3, 5, 8, ...")
 
-;;; primes : (Stream Int)
-;;; Prime numbers using sieve of Eratosthenes.
 (define primes
   (letrec ([sieve (lambda (s)
                           (let ([p (stream-head s)])
@@ -350,41 +340,38 @@
                                                             (lambda (n) (not (= 0 (modulo n p))))
                                                             (stream-tail s)))))))])
           (sieve (stream-from 2))))
+(doc primes 'type '(Stream Int))
+(doc primes 'description "Prime numbers via sieve of Eratosthenes")
 
-;;; powers-of : Int → (Stream Int)
-;;; Powers of n: 1, n, n^2, n^3, ...
 (define (powers-of n)
+  (doc 'type '(-> Int (Stream Int)))
+  (doc 'description "Powers of n: 1, n, n^2, n^3, ...")
   (stream-iterate (lambda (x) (* x n)) 1))
 
-;;; factorials : (Stream Int)
-;;; Factorial sequence: 1, 1, 2, 6, 24, 120, ...
 (define factorials
   (stream-scan * 1 (stream-from 1)))
+(doc factorials 'type '(Stream Int))
+(doc factorials 'description "Factorial sequence: 1, 1, 2, 6, 24, 120, ...")
 
-;;; triangular : (Stream Int)
-;;; Triangular numbers: 0, 1, 3, 6, 10, 15, ...
 (define triangular
   (stream-scan + 0 (stream-from 1)))
+(doc triangular 'type '(Stream Int))
+(doc triangular 'description "Triangular numbers: 0, 1, 3, 6, 10, 15, ...")
 
-;;; ====
-;;; Generator Pattern
-;;; ====
-;;;
-;;; Generators are functions that produce streams on demand.
+(doc 'section 'generator-pattern)
 
-;;; make-generator : (() → (Maybe α)) → (Stream α)
-;;; Create a stream from a generator function.
-;;; Generator returns nothing when exhausted, or (just value) to continue.
 (define (make-generator gen)
+  (doc 'type '(-> (-> (Maybe a)) (Stream a)))
+  (doc 'description "Create stream from a generator; generator returns nothing when exhausted")
   (let ([result (gen)])
        (if (nothing? result)
            stream-nil
            (stream-cons (from-just result)
                         (lambda () (make-generator gen))))))
 
-;;; counter-generator : Int × Int → (() → (Maybe Int))
-;;; Create a generator that counts from start up to (not including) end.
 (define (counter-generator start end)
+  (doc 'type '(-> Int Int (-> (Maybe Int))))
+  (doc 'description "Create a stateful generator counting from start up to (not including) end")
   (let ([current start])
        (lambda ()
                (if (>= current end)
@@ -393,39 +380,37 @@
                         (set! current (+ current 1))
                         (just val))))))
 
-;;; random-stream : Int × Int × Int → (Stream Int)
-;;; Pseudo-random number stream using linear congruential generator.
-;;; Parameters: seed, multiplier, modulus
 (define (random-stream seed mult mod)
+  (doc 'type '(-> Int Int Int (Stream Int)))
+  (doc 'description "Pseudo-random stream via linear congruential generator")
   (stream-iterate (lambda (x) (modulo (* x mult) mod)) seed))
 
-;;; ====
-;;; Practical Utilities
-;;; ====
+(doc 'section 'utilities)
 
-;;; stream-partition : (α → Bool) × (Stream α) → (Pair (Stream α) (Stream α))
-;;; Split stream into two based on predicate.
 (define (stream-partition pred s)
+  (doc 'type '(-> (-> a Boolean) (Stream a) (Pair (Stream a) (Stream a))))
+  (doc 'description "Split stream into passing and failing sub-streams")
   (cons (stream-filter pred s)
         (stream-filter (lambda (x) (not (pred x))) s)))
 
-;;; stream-group : Nat × (Stream α) → (Stream (List α))
-;;; Group elements into chunks of size n.
 (define (stream-group n s)
+  (doc 'type '(-> Nat (Stream a) (Stream (List a))))
+  (doc 'description "Group elements into chunks of size n")
   (if (stream-nil? s)
       stream-nil
       (stream-cons (stream->list n s)
                    (lambda () (stream-group n (stream-drop n s))))))
 
-;;; stream-distinct : (Stream α) → (Stream α)
-;;; Remove consecutive duplicates.
 (define (stream-distinct s)
+  (doc 'type '(-> (Stream a) (Stream a)))
+  (doc 'description "Remove consecutive duplicates")
   (if (stream-nil? s)
       stream-nil
       (stream-distinct-helper (stream-head s) (stream-tail s))))
 
-;;; stream-distinct-helper : α × (Stream α) → (Stream α)
 (define (stream-distinct-helper prev s)
+  (doc 'type '(-> a (Stream a) (Stream a)))
+  (doc 'description "Internal helper for stream-distinct")
   (if (stream-nil? s)
       (stream-cons prev (lambda () stream-nil))
       (let ([h (stream-head s)])
@@ -433,52 +418,44 @@
                (stream-distinct-helper prev (stream-tail s))
                (stream-cons prev (lambda () (stream-distinct-helper h (stream-tail s))))))))
 
-;;; stream-enumerate : (Stream α) → (Stream (Pair Int α))
-;;; Pair each element with its index.
 (define (stream-enumerate s)
+  (doc 'type '(-> (Stream a) (Stream (Pair Int a))))
+  (doc 'description "Pair each element with its 0-based index")
   (stream-zip naturals s))
 
-;;; ====
-;;; Delay/Force Primitives
-;;; ====
-;;;
-;;; These provide explicit delay/force semantics for lazy evaluation.
-;;; While Scheme thunks already provide laziness, these forms make
-;;; the intent clearer and can be extended with memoization.
+(doc 'section 'delay-force)
+;;; Explicit delay/force with memoization for lazy evaluation.
 
-;;; delay : (() → α) → (Delayed α)
-;;; Create a delayed computation (a thunk wrapped with a tag).
 (define (delay thunk)
-  (list 'delayed thunk #f #f))  ; (tag, thunk, computed?, cached-value)
+  (doc 'type '(-> (-> a) (Delayed a)))
+  (doc 'description "Create a delayed computation; memoized on first force")
+  (list 'delayed thunk #f #f))
 
-;;; force : (Delayed α) → α
-;;; Force evaluation of a delayed computation.
-;;; Memoizes the result for subsequent forces.
 (define (force delayed)
+  (doc 'type '(-> (Delayed a) a))
+  (doc 'description "Force evaluation of a delayed computation; caches result")
   (if (and (pair? delayed) (eq? (car delayed) 'delayed))
-      (if (caddr delayed)  ; already computed?
-          (cadddr delayed)  ; return cached value
+      (if (caddr delayed)
+          (cadddr delayed)
           (let ([val ((cadr delayed))])
                (set-car! (cddr delayed) #t)
                (set-car! (cdddr delayed) val)
                val))
       (error 'force "not a delayed value")))
 
-;;; delayed? : α → Bool
 (define (delayed? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a delayed computation")
   (and (pair? x) (eq? (car x) 'delayed)))
 
-;;; ====
+(doc 'section 'type-class-instances)
 ;;; Type Class Instances (Dictionary-Passing Style)
-;;; ====
 ;;;
 ;;; Following The Fold's convention, type classes are represented
 ;;; as dictionaries (records with operations). This enables
 ;;; polymorphic code without Haskell-style implicit instances.
 
-;;; ====
 ;;; Functor Instance for Stream
-;;; ====
 ;;;
 ;;; Functor laws:
 ;;;   1. fmap id = id (identity)
@@ -488,24 +465,21 @@
 ;;; We provide an explicit dictionary for consistency with the
 ;;; type class system.
 
-;;; stream-functor : (List α)
-;;; The Functor dictionary for Stream.
-;;; Structure: ('functor, fmap)
+(doc stream-functor 'type '(FunctorDict Stream))
+(doc stream-functor 'description "Functor dictionary for Stream; wraps stream-map as fmap")
 (define stream-functor
   (list 'functor stream-map))
 
-;;; functor-fmap : (List α) → (α → β) → (f α) → (f β)
-;;; Generic fmap accessor.
 (define (functor-fmap functor)
+  (doc 'type '(-> (FunctorDict f) (-> a b) (f a) (f b)))
+  (doc 'description "Extract fmap from a Functor dictionary")
   (cadr functor))
 
-;;; stream-fmap : (α → β) × (Stream α) → (Stream β)
-;;; Alias for stream-map, emphasizing the Functor interface.
+(doc stream-fmap 'type '(-> (-> a b) (Stream a) (Stream b)))
+(doc stream-fmap 'description "Alias for stream-map, emphasizing the Functor interface")
 (define stream-fmap stream-map)
 
-;;; ====
 ;;; Applicative Instance for Stream
-;;; ====
 ;;;
 ;;; Applicative laws:
 ;;;   1. pure id <*> v = v (identity)
@@ -517,49 +491,46 @@
 ;;;   pure x = repeat x (infinite stream of x)
 ;;;   fs <*> xs = zipWith ($) fs xs
 
-;;; stream-pure : α → (Stream α)
-;;; Lift a value into an infinite stream (ZipList-style).
+(doc stream-pure 'type '(-> a (Stream a)))
+(doc stream-pure 'description "Lift a value into an infinite stream (ZipList-style pure)")
 (define stream-pure stream-repeat)
 
-;;; stream-ap : (Stream (α → β)) × (Stream α) → (Stream β)
-;;; Apply a stream of functions to a stream of values.
-;;; Uses ZipList semantics: apply pointwise.
 (define (stream-ap fs xs)
+  (doc 'type '(-> (Stream (-> a b)) (Stream a) (Stream b)))
+  (doc 'description "Apply a stream of functions pointwise to a stream of values (ZipList <*>)")
   (stream-zip-with (lambda (f x) (f x)) fs xs))
 
-;;; stream-applicative : (List α)
-;;; The Applicative dictionary for Stream.
-;;; Structure: ('applicative, functor, pure, ap)
+(doc stream-applicative 'type '(ApplicativeDict Stream))
+(doc stream-applicative 'description "Applicative dictionary for Stream; ZipList semantics")
 (define stream-applicative
   (list 'applicative
         stream-functor     ; parent Functor
         stream-pure        ; pure
         stream-ap))        ; <*>
 
-;;; applicative-pure : (List α) → β
-;;; Extract pure function from Applicative dictionary.
 (define (applicative-pure app)
+  (doc 'type '(-> (ApplicativeDict f) (-> a (f a))))
+  (doc 'description "Extract pure function from Applicative dictionary")
   (caddr app))
 
-;;; applicative-ap : (List α) → β
-;;; Extract ap function from Applicative dictionary.
 (define (applicative-ap app)
+  (doc 'type '(-> (ApplicativeDict f) (-> (f (-> a b)) (f a) (f b))))
+  (doc 'description "Extract ap function from Applicative dictionary")
   (cadddr app))
 
-;;; stream-lift2 : (α × β → γ) × (Stream α) × (Stream β) → (Stream γ)
-;;; Lift a binary function to operate on streams.
 (define (stream-lift2 f xs ys)
+  (doc 'type '(-> (-> a b c) (Stream a) (Stream b) (Stream c)))
+  (doc 'description "Lift a binary function to operate on two streams pointwise")
   (stream-ap (stream-map (lambda (x) (lambda (y) (f x y))) xs) ys))
 
-;;; stream-lift3 : (α × β × γ → δ) × (Stream α) × (Stream β) × (Stream γ) → (Stream δ)
 (define (stream-lift3 f xs ys zs)
+  (doc 'type '(-> (-> a b c d) (Stream a) (Stream b) (Stream c) (Stream d)))
+  (doc 'description "Lift a ternary function to operate on three streams pointwise")
   (stream-ap
    (stream-ap (stream-map (lambda (x) (lambda (y) (lambda (z) (f x y z)))) xs) ys)
    zs))
 
-;;; ====
 ;;; Monad Instance for Stream
-;;; ====
 ;;;
 ;;; Monad laws:
 ;;;   1. return a >>= f = f a (left identity)
@@ -573,21 +544,18 @@
 ;;; This is different from the ZipList Applicative but provides
 ;;; a valid Monad instance.
 
-;;; stream-return : α → (Stream α)
-;;; Lift a value into a singleton-like stream.
-;;; For monad consistency, we return a repeating stream.
+(doc stream-return 'type '(-> a (Stream a)))
+(doc stream-return 'description "Monadic return; lifts a value into a repeating stream")
 (define stream-return stream-repeat)
 
-;;; stream-bind : (Stream α) × (α → (Stream β)) → (Stream β)
-;;; Monadic bind using diagonal extraction.
-;;; Takes nth element from the nth stream produced by f.
 (define (stream-bind s f)
+  (doc 'type '(-> (Stream a) (-> a (Stream b)) (Stream b)))
+  (doc 'description "Monadic bind via diagonal extraction; takes nth element from nth sub-stream")
   (stream-diagonal (stream-map f s)))
 
-;;; stream-diagonal : (Stream (Stream α)) → (Stream α)
-;;; Extract the diagonal from a stream of streams.
-;;; Returns: 1st elem of 1st stream, 2nd elem of 2nd stream, etc.
 (define (stream-diagonal ss)
+  (doc 'type '(-> (Stream (Stream a)) (Stream a)))
+  (doc 'description "Extract diagonal from stream of streams: 1st of 1st, 2nd of 2nd, etc.")
   (if (stream-nil? ss)
       stream-nil
       (let ([inner (stream-head ss)])
@@ -598,38 +566,35 @@
                                     (stream-diagonal
                                      (stream-map stream-tail (stream-tail ss)))))))))
 
-;;; stream-join : (Stream (Stream α)) → (Stream α)
-;;; Flatten a stream of streams (monadic join).
-;;; Alias for stream-diagonal.
+(doc stream-join 'type '(-> (Stream (Stream a)) (Stream a)))
+(doc stream-join 'description "Flatten a stream of streams (monadic join); alias for stream-diagonal")
 (define stream-join stream-diagonal)
 
-;;; stream-monad : (List α)
-;;; The Monad dictionary for Stream.
-;;; Structure: ('monad, applicative, return, bind)
+(doc stream-monad 'type '(MonadDict Stream))
+(doc stream-monad 'description "Monad dictionary for Stream; diagonal bind semantics")
 (define stream-monad
   (list 'monad
         stream-applicative  ; parent Applicative
         stream-return       ; return
         stream-bind))       ; >>=
 
-;;; monad-return : (List α) → β
-;;; Extract return function from Monad dictionary.
 (define (monad-return monad)
+  (doc 'type '(-> (MonadDict m) (-> a (m a))))
+  (doc 'description "Extract return function from Monad dictionary")
   (caddr monad))
 
-;;; monad-bind : (List α) → β
-;;; Extract bind function from Monad dictionary.
 (define (monad-bind monad)
+  (doc 'type '(-> (MonadDict m) (-> (m a) (-> a (m b)) (m b))))
+  (doc 'description "Extract bind function from Monad dictionary")
   (cadddr monad))
 
-;;; stream-then : (Stream α) × (Stream β) → (Stream β)
-;;; Sequence two streams, discarding the first result.
 (define (stream-then s1 s2)
+  (doc 'type '(-> (Stream a) (Stream b) (Stream b)))
+  (doc 'description "Sequence two streams, discarding first's values (monadic >>)")
   (stream-bind s1 (lambda (_) s2)))
 
-;;; ====
+(doc 'section 'codata)
 ;;; Codata and Coinductive Patterns
-;;; ====
 ;;;
 ;;; Streams are the canonical example of CODATA - they are defined
 ;;; by their observations (destructors) rather than construction.
@@ -645,32 +610,25 @@
 ;;; The key insight: we don't ask "how was this stream built?"
 ;;; but rather "what do we observe when we examine it?"
 
-;;; coalgebra-step : (σ → (Pair α σ)) × σ → (Stream α)
-;;; Build a stream from a coalgebra (unfold step function).
-;;; The coalgebra returns (value . next-state) pairs.
 (define (coalgebra-step step seed)
+  (doc 'type '(-> (-> s (Pair a s)) s (Stream a)))
+  (doc 'description "Build a stream from a coalgebra; step returns (value . next-state) pairs")
   (let ([pair (step seed)])
        (stream-cons (car pair)
                     (lambda () (coalgebra-step step (cdr pair))))))
 
-;;; anamorphism : (σ → (Maybe (Pair α σ))) × σ → (Stream α)
-;;; Build a stream using an anamorphism (unfold).
-;;; Returns empty stream when step returns nothing.
-;;; This is just stream-unfold with a different name emphasizing
-;;; the recursion scheme perspective.
+(doc anamorphism 'type '(-> (-> s (Maybe (Pair a s))) s (Stream a)))
+(doc anamorphism 'description "Anamorphism (unfold); alias for stream-unfold emphasizing the recursion scheme")
 (define anamorphism stream-unfold)
 
-;;; coiterate : (σ → σ) × σ → (Stream σ)
-;;; Coiterate: produce stream of states by repeated application.
-;;; This is the coinductive version of iterate.
 (define (coiterate f seed)
+  (doc 'type '(-> (-> s s) s (Stream s)))
+  (doc 'description "Coinductive iterate: produce stream of states by repeated application")
   (stream-cons seed (lambda () (coiterate f (f seed)))))
 
-;;; bisimulation-equal? : Nat × (Stream α) × (Stream α) → Bool
-;;; Check if two streams are equal up to depth n.
-;;; Full stream equality is undecidable for infinite streams,
-;;; so we use bounded bisimulation.
 (define (bisimulation-equal? n s1 s2)
+  (doc 'type '(-> Nat (Stream a) (Stream a) Boolean))
+  (doc 'description "Bounded bisimulation equality; checks streams agree up to depth n")
   (cond
    [(<= n 0) #t]
    [(and (stream-nil? s1) (stream-nil? s2)) #t]
@@ -678,88 +636,80 @@
    [(not (equal? (stream-head s1) (stream-head s2))) #f]
    [else (bisimulation-equal? (- n 1) (stream-tail s1) (stream-tail s2))]))
 
-;;; ====
-;;; Additional Infinite Stream Generators
-;;; ====
+(doc 'section 'infinite-generators)
 
-;;; squares : (Stream Int)
-;;; Perfect squares: 0, 1, 4, 9, 16, 25, ...
+(doc squares 'type '(Stream Int))
+(doc squares 'description "Perfect squares: 0, 1, 4, 9, 16, 25, ...")
 (define squares
   (stream-map (lambda (n) (* n n)) naturals))
 
-;;; cubes : (Stream Int)
-;;; Perfect cubes: 0, 1, 8, 27, 64, 125, ...
+(doc cubes 'type '(Stream Int))
+(doc cubes 'description "Perfect cubes: 0, 1, 8, 27, 64, 125, ...")
 (define cubes
   (stream-map (lambda (n) (* n n n)) naturals))
 
-;;; evens : (Stream Int)
-;;; Even numbers: 0, 2, 4, 6, 8, ...
+(doc evens 'type '(Stream Int))
+(doc evens 'description "Even natural numbers: 0, 2, 4, 6, 8, ...")
 (define evens
   (stream-filter even? naturals))
 
-;;; odds : (Stream Int)
-;;; Odd numbers: 1, 3, 5, 7, 9, ...
+(doc odds 'type '(Stream Int))
+(doc odds 'description "Odd natural numbers: 1, 3, 5, 7, 9, ...")
 (define odds
   (stream-filter odd? naturals))
 
-;;; ====
+(doc 'section 'fuel-operations)
 ;;; Fuel-Based Operations (For Termination Safety)
-;;; ====
 ;;;
 ;;; Operations on potentially infinite streams need fuel limits
 ;;; to guarantee termination. These complement stream-fold.
 
-;;; stream-for-each/fuel : (α → Unit) × Nat × (Stream α) → Unit
-;;; Apply effectful operation to each element up to fuel limit.
 (define (stream-for-each/fuel f fuel s)
+  (doc 'type '(-> (-> a Void) Nat (Stream a) Void))
+  (doc 'description "Apply effectful operation to each element up to fuel limit")
   (when (and (> fuel 0) (not (stream-nil? s)))
         (f (stream-head s))
         (stream-for-each/fuel f (- fuel 1) (stream-tail s))))
 
-;;; stream-length/fuel : Nat × (Stream α) → Nat
-;;; Compute length of stream up to fuel limit.
-;;; Returns fuel if stream is longer than fuel.
 (define (stream-length/fuel fuel s)
+  (doc 'type '(-> Nat (Stream a) Nat))
+  (doc 'description "Count stream elements up to fuel limit; returns fuel if stream is longer")
   (let loop ([n 0] [fuel fuel] [s s])
        (cond
         [(<= fuel 0) n]
         [(stream-nil? s) n]
         [else (loop (+ n 1) (- fuel 1) (stream-tail s))])))
 
-;;; stream-reverse/fuel : Nat × (Stream α) → (Stream α)
-;;; Reverse the first n elements of a stream.
 (define (stream-reverse/fuel fuel s)
+  (doc 'type '(-> Nat (Stream a) (Stream a)))
+  (doc 'description "Reverse the first fuel elements of a stream")
   (list->stream (reverse (stream->list fuel s))))
 
-;;; stream-last/fuel : Nat × (Stream α) → (Maybe α)
-;;; Get the last element within fuel elements.
 (define (stream-last/fuel fuel s)
+  (doc 'type '(-> Nat (Stream a) (Maybe a)))
+  (doc 'description "Get the last element within fuel elements; returns nothing if empty")
   (let loop ([last nothing] [fuel fuel] [s s])
        (cond
         [(<= fuel 0) last]
         [(stream-nil? s) last]
         [else (loop (just (stream-head s)) (- fuel 1) (stream-tail s))])))
 
-;;; ====
+(doc 'section 'stream-comprehensions)
 ;;; Stream Comprehensions (via Monad)
-;;; ====
 ;;;
 ;;; Using the monad interface, we can express list-comprehension
 ;;; style patterns for streams.
 
-;;; stream-guard : Bool → (Stream Unit)
-;;; Filter guard for stream comprehensions.
-;;; Returns singleton () if true, empty if false.
 (define (stream-guard condition)
+  (doc 'type '(-> Boolean (Stream Unit)))
+  (doc 'description "Filter guard for stream comprehensions; singleton if true, empty if false")
   (if condition
       (stream-cons '() (lambda () stream-nil))
       stream-nil))
 
-;;; stream-cartesian : (Stream α) × (Stream β) → (Stream (Pair α β))
-;;; Fair Cartesian product using Cantor's diagonal enumeration.
-;;; Enumerates pairs by diagonal sum: (0,0), (0,1), (1,0), (0,2), (1,1), (2,0), ...
-;;; This ensures every pair (i,j) eventually appears, even for infinite streams.
 (define (stream-cartesian xs ys)
+  (doc 'type '(-> (Stream a) (Stream b) (Stream (Pair a b))))
+  (doc 'description "Fair Cartesian product via Cantor diagonal; every pair (i,j) eventually appears")
   ;; Convert to vectors for O(1) indexed access (memoizes as we go)
   (let ([xs-vec (make-vector 0)]
         [ys-vec (make-vector 0)]
@@ -818,9 +768,9 @@
                                 (loop (+ i 1) acc))))))
             (diagonal-stream 0))))
 
-;;; stream-append : (Stream α) × (() → (Stream α)) → (Stream α)
-;;; Append a stream with a lazily-evaluated second stream.
 (define (stream-append s1 thunk)
+  (doc 'type '(-> (Stream a) (-> (Stream a)) (Stream a)))
+  (doc 'description "Append a stream with a lazily-evaluated second stream")
   (if (stream-nil? s1)
       (thunk)
       (stream-cons (stream-head s1)

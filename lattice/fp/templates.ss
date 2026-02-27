@@ -15,10 +15,7 @@
   - Laws verification templates")
 (doc 'dependencies '(core/base/prelude.ss lattice/fp/meta/combinators.ss))
 
-;;; ====
-;;; Monoid Templates
-;;; ====
-;;;
+(doc 'section 'monoid-templates)
 ;;; A monoid is a type with:
 ;;;   - mempty : M             (identity element)
 ;;;   - mappend : M → M → M    (associative binary operation)
@@ -28,85 +25,95 @@
 ;;;   - Right identity: mappend x mempty = x
 ;;;   - Associativity:  mappend (mappend x y) z = mappend x (mappend y z)
 
-;;; make-monoid : Value × (Value × Value → Value) → Monoid
-;;; Create a monoid from identity and binary operation.
 (define (make-monoid mempty mappend)
+  (doc 'type '(-> a (-> a a a) (Monoid a)))
+  (doc 'description "Create a monoid from identity element and associative binary operation")
   (list 'monoid mempty mappend))
 
-;;; monoid? : α → Boolean
 (define (monoid? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a Monoid dictionary")
   (and (pair? x) (eq? (car x) 'monoid)))
 
-;;; monoid-mempty : Monoid → Value
 (define (monoid-mempty m)
+  (doc 'type '(-> (Monoid a) a))
+  (doc 'description "Extract identity element from Monoid dictionary")
   (cadr m))
 
-;;; monoid-mappend : Monoid → (Value × Value → Value)
 (define (monoid-mappend m)
+  (doc 'type '(-> (Monoid a) (-> a a a)))
+  (doc 'description "Extract binary operation from Monoid dictionary")
   (caddr m))
 
-;;; ====
-;;; Common Monoid Instances
-;;; ====
+(doc 'section 'monoid-instances)
 
-;;; monoid-sum : Monoid for numbers under addition
+(doc monoid-sum 'type '(Monoid Number))
+(doc monoid-sum 'description "Monoid for numbers under addition (identity: 0)")
 (define monoid-sum
   (make-monoid 0 +))
 
-;;; monoid-product : Monoid for numbers under multiplication
+(doc monoid-product 'type '(Monoid Number))
+(doc monoid-product 'description "Monoid for numbers under multiplication (identity: 1)")
 (define monoid-product
   (make-monoid 1 *))
 
-;;; monoid-list : Monoid for lists under append
+(doc monoid-list 'type '(Monoid (List a)))
+(doc monoid-list 'description "Monoid for lists under append (identity: empty list)")
 (define monoid-list
   (make-monoid '() append))
 
-;;; monoid-string : Monoid for strings under concatenation
+(doc monoid-string 'type '(Monoid String))
+(doc monoid-string 'description "Monoid for strings under concatenation (identity: empty string)")
 (define monoid-string
   (make-monoid "" string-append))
 
-;;; monoid-all : Monoid for booleans under AND
+(doc monoid-all 'type '(Monoid Boolean))
+(doc monoid-all 'description "Monoid for booleans under AND (identity: #t)")
 (define monoid-all
   (make-monoid #t (lambda (a b) (and a b))))
 
-;;; monoid-any : Monoid for booleans under OR
+(doc monoid-any 'type '(Monoid Boolean))
+(doc monoid-any 'description "Monoid for booleans under OR (identity: #f)")
 (define monoid-any
   (make-monoid #f (lambda (a b) (or a b))))
 
-;;; monoid-first : Monoid taking first non-nothing value
+(doc monoid-first 'type '(Monoid (Maybe a)))
+(doc monoid-first 'description "Monoid taking first non-nothing value (identity: nothing)")
 (define monoid-first
   (make-monoid nothing
                (lambda (a b) (if (just? a) a b))))
 
-;;; monoid-last : Monoid taking last non-nothing value
+(doc monoid-last 'type '(Monoid (Maybe a)))
+(doc monoid-last 'description "Monoid taking last non-nothing value (identity: nothing)")
 (define monoid-last
   (make-monoid nothing
                (lambda (a b) (if (just? b) b a))))
 
-;;; monoid-max : Monoid taking maximum (with -inf identity)
+(doc monoid-max 'type '(Monoid Number))
+(doc monoid-max 'description "Monoid taking maximum (identity: -inf.0)")
 (define monoid-max
   (make-monoid -inf.0 max))
 
-;;; monoid-min : Monoid taking minimum (with +inf identity)
+(doc monoid-min 'type '(Monoid Number))
+(doc monoid-min 'description "Monoid taking minimum (identity: +inf.0)")
 (define monoid-min
   (make-monoid +inf.0 min))
 
-;;; monoid-endo : Monoid for endofunctions under composition
+(doc monoid-endo 'type '(Monoid (-> a a)))
+(doc monoid-endo 'description "Monoid for endofunctions under composition (identity: id)")
 (define monoid-endo
   (make-monoid identity compose2))
 
-;;; ====
-;;; Monoid Operations
-;;; ====
+(doc 'section 'monoid-operations)
 
-;;; mconcat : Monoid × (List Value) → Value
-;;; Fold a list using the monoid.
 (define (mconcat m xs)
+  (doc 'type '(-> (Monoid a) (List a) a))
+  (doc 'description "Fold a list using the monoid's binary operation and identity")
   (fold-left (monoid-mappend m) (monoid-mempty m) xs))
 
-;;; mtimes : Monoid × Nat × Value → Value
-;;; Repeat value n times using monoid.
 (define (mtimes m n x)
+  (doc 'type '(-> (Monoid a) Nat a a))
+  (doc 'description "Combine value with itself n times using monoid")
   (if (<= n 0)
       (monoid-mempty m)
       (let loop ([n n] [acc x])
@@ -114,13 +121,11 @@
                acc
                (loop (- n 1) ((monoid-mappend m) acc x))))))
 
-;;; ====
-;;; Monoid Law Verification
-;;; ====
+(doc 'section 'monoid-verification)
 
-;;; verify-monoid-laws : Monoid × (List Value) → Boolean
-;;; Check monoid laws hold for given test values.
 (define (verify-monoid-laws m test-values)
+  (doc 'type '(-> (Monoid a) (List a) Boolean))
+  (doc 'description "Check monoid laws (identity, associativity) hold for given test values")
   (let ([e (monoid-mempty m)]
         [op (monoid-mappend m)])
        (and
@@ -139,127 +144,117 @@
                                    (op x (op y z)))
                            (check-assoc (cdr vs)))))))))
 
-;;; ====
-;;; Foldable Templates
-;;; ====
-;;;
+(doc 'section 'foldable-templates)
 ;;; A foldable type can be reduced to a single value.
 ;;;   - foldMap : (a → m) → F a → m   (given Monoid m)
 ;;;   - foldr : (a → b → b) → b → F a → b
 
-;;; make-foldable : ((α → Monoid → β) → Container α → β) × ... → Foldable
-;;; Create a foldable instance.
 (define (make-foldable fold-map-fn foldr-fn foldl-fn)
+  (doc 'type '(-> (-> (-> a m) (Monoid m) (f a) m) (-> (-> a b b) b (f a) b) (-> (-> b a b) b (f a) b) (Foldable f)))
+  (doc 'description "Create a Foldable instance from fold-map, foldr, and foldl functions")
   (list 'foldable fold-map-fn foldr-fn foldl-fn))
 
-;;; foldable? : α → Boolean
 (define (foldable? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a Foldable dictionary")
   (and (pair? x) (eq? (car x) 'foldable)))
 
-;;; foldable-fold-map : Foldable → ((α → β) → Monoid → Container α → β)
 (define (foldable-fold-map f)
+  (doc 'type '(-> (Foldable f) (-> (-> a m) (Monoid m) (f a) m)))
+  (doc 'description "Extract fold-map function from Foldable dictionary")
   (cadr f))
 
-;;; foldable-foldr : Foldable → ((α → β → β) → β → Container α → β)
 (define (foldable-foldr f)
+  (doc 'type '(-> (Foldable f) (-> (-> a b b) b (f a) b)))
+  (doc 'description "Extract foldr function from Foldable dictionary")
   (caddr f))
 
-;;; foldable-foldl : Foldable → ((β → α → β) → β → Container α → β)
 (define (foldable-foldl f)
+  (doc 'type '(-> (Foldable f) (-> (-> b a b) b (f a) b)))
+  (doc 'description "Extract foldl function from Foldable dictionary")
   (cadddr f))
 
-;;; ====
-;;; Common Foldable Instances
-;;; ====
+(doc 'section 'foldable-instances)
 
-;;; foldable-list : Foldable instance for lists
+(doc foldable-list 'type '(Foldable List))
+(doc foldable-list 'description "Foldable instance for lists")
 (define foldable-list
   (make-foldable
-   ;; fold-map: (a -> m) -> [a] -> m
    (lambda (f m xs)
            (fold-left (lambda (acc x) ((monoid-mappend m) acc (f x)))
                       (monoid-mempty m)
                       xs))
-   ;; foldr
    fold-right
-   ;; foldl
    fold-left))
 
-;;; foldable-maybe : Foldable instance for Maybe
+(doc foldable-maybe 'type '(Foldable Maybe))
+(doc foldable-maybe 'description "Foldable instance for Maybe")
 (define foldable-maybe
   (make-foldable
-   ;; fold-map
    (lambda (f m mx)
            (if (just? mx)
                (f (from-just mx))
                (monoid-mempty m)))
-   ;; foldr
    (lambda (f z mx)
            (if (just? mx)
                (f (from-just mx) z)
                z))
-   ;; foldl
    (lambda (f z mx)
            (if (just? mx)
                (f z (from-just mx))
                z))))
 
-;;; ====
-;;; Foldable Operations
-;;; ====
+(doc 'section 'foldable-operations)
 
-;;; fold-with : Foldable × Monoid × Container → Value
-;;; Fold container using monoid.
 (define (fold-with fld m container)
+  (doc 'type '(-> (Foldable f) (Monoid a) (f a) a))
+  (doc 'description "Fold container using monoid (fold-map with identity)")
   ((foldable-fold-map fld) identity m container))
 
-;;; to-list : Foldable × Container → (List α)
-;;; Convert foldable to list.
 (define (to-list fld container)
+  (doc 'type '(-> (Foldable f) (f a) (List a)))
+  (doc 'description "Convert any foldable container to a list")
   ((foldable-foldr fld) cons '() container))
 
-;;; null-foldable? : Foldable × Container → Boolean
-;;; Check if container is empty.
 (define (null-foldable? fld container)
+  (doc 'type '(-> (Foldable f) (f a) Boolean))
+  (doc 'description "Check if foldable container is empty")
   ((foldable-foldr fld) (lambda (x _) #f) #t container))
 
-;;; length-foldable : Foldable × Container → Nat
-;;; Get length of container.
 (define (length-foldable fld container)
+  (doc 'type '(-> (Foldable f) (f a) Nat))
+  (doc 'description "Count elements in foldable container")
   ((foldable-foldl fld) (lambda (n _) (+ n 1)) 0 container))
 
-;;; elem-foldable : Foldable × Value × Container → Boolean
-;;; Check if element is in container.
 (define (elem-foldable fld x container)
+  (doc 'type '(-> (Foldable f) a (f a) Boolean))
+  (doc 'description "Check if element is in foldable container")
   ((foldable-foldr fld)
    (lambda (y found) (or found (equal? x y)))
    #f
    container))
 
-;;; ====
-;;; Traversable Templates
-;;; ====
-;;;
+(doc 'section 'traversable-templates)
 ;;; Traversable types can be traversed with effects.
 ;;;   - traverse : (a → F b) → T a → F (T b)
 ;;;   - sequenceA : T (F a) → F (T a)
 
-;;; make-traversable : (Applicative → (α → F β) → Container α → F (Container β)) → Traversable
 (define (make-traversable traverse-fn)
+  (doc 'type '(-> (-> (ApplicativeDict f) (-> a (f b)) (t a) (f (t b))) (Traversable t)))
+  (doc 'description "Create a Traversable instance from a traverse function")
   (list 'traversable traverse-fn))
 
-;;; traversable? : α → Boolean
 (define (traversable? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a Traversable dictionary")
   (and (pair? x) (eq? (car x) 'traversable)))
 
-;;; traversable-traverse : Traversable → (Applicative → (α → F β) → Container α → F (Container β))
 (define (traversable-traverse t)
+  (doc 'type '(-> (Traversable t) (-> (ApplicativeDict f) (-> a (f b)) (t a) (f (t b)))))
+  (doc 'description "Extract traverse function from Traversable dictionary")
   (cadr t))
 
-;;; ====
-;;; Functor Templates
-;;; ====
-;;;
+(doc 'section 'functor-templates)
 ;;; A functor allows mapping a function over a container.
 ;;;   - fmap : (a → b) × F(a) → F(b)
 ;;;
@@ -269,79 +264,75 @@
 ;;;
 ;;; Note: Unlike Haskell's curried fmap, our fmap takes TWO arguments:
 ;;;   ((functor-fmap F) func container)  ; correct - 2 args
-;;;   ((functor-fmap F) func)            ; returns partial application if func supports it
 
-;;; make-functor : ((α → β) × F(α) → F(β)) → Functor
-;;; The fmap-fn should be a 2-argument function: (lambda (f container) ...).
 (define (make-functor fmap-fn)
+  (doc 'type '(-> (-> (-> a b) (f a) (f b)) (FunctorDict f)))
+  (doc 'description "Create a Functor dictionary from a 2-argument fmap function")
   (list 'functor fmap-fn))
 
-;;; make-named-functor : Symbol × ((α → β) × F(α) → F(β)) → Functor
-;;; Create a functor with a name for debugging.
 (define (make-named-functor name fmap-fn)
+  (doc 'type '(-> Symbol (-> (-> a b) (f a) (f b)) (FunctorDict f)))
+  (doc 'description "Create a named Functor dictionary for debugging")
   (list 'functor fmap-fn name))
 
-;;; functor? : α → Boolean
 (define (functor? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a Functor dictionary")
   (and (pair? x) (eq? (car x) 'functor)))
 
-;;; functor-fmap : Functor → ((α → β) × F(α) → F(β))
-;;; Returns the fmap function, which takes 2 arguments: (func container).
 (define (functor-fmap f)
+  (doc 'type '(-> (FunctorDict f) (-> (-> a b) (f a) (f b))))
+  (doc 'description "Extract fmap function from Functor dictionary")
   (cadr f))
 
-;;; functor-name : Functor × [Symbol] → Symbol
-;;; Get the name of the functor, or default if unnamed.
 (define (functor-name f . args)
+  (doc 'type '(-> (FunctorDict f) Symbol))
+  (doc 'description "Get the name of the functor, or default if unnamed")
   (let ([default (if (null? args) 'F (car args))])
     (if (and (functor? f) (> (length f) 2))
         (caddr f)
         default)))
 
-;;; ====
-;;; Common Functor Instances
-;;; ====
+(doc 'section 'functor-instances)
 
-;;; functor-list : Functor for lists
+(doc functor-list 'type '(FunctorDict List))
+(doc functor-list 'description "Functor instance for lists (fmap = map)")
 (define functor-list
   (make-named-functor 'list map))
 
-;;; functor-maybe : Functor for Maybe
+(doc functor-maybe 'type '(FunctorDict Maybe))
+(doc functor-maybe 'description "Functor instance for Maybe")
 (define functor-maybe
   (make-named-functor 'maybe maybe-fmap))
 
-;;; functor-either : Functor for Either (maps over Right)
+(doc functor-either 'type '(FunctorDict Either))
+(doc functor-either 'description "Functor instance for Either (maps over Right)")
 (define functor-either
   (make-named-functor 'either either-fmap))
 
-;;; functor-id : Identity functor
-;;; Id(f)(x) = f(x) — applies function directly to value
+(doc functor-id 'type '(FunctorDict Id))
+(doc functor-id 'description "Identity functor; Id(f)(x) = f(x)")
 (define functor-id
   (make-named-functor 'id (lambda (f x) (f x))))
 
-;;; ====
-;;; Functor Operations
-;;; ====
+(doc 'section 'functor-operations)
 
-;;; fmap-with : Functor × (α → β) × Container → Container
-;;; Apply fmap using given functor.
 (define (fmap-with func f container)
+  (doc 'type '(-> (FunctorDict t) (-> a b) (t a) (t b)))
+  (doc 'description "Apply fmap using given functor dictionary")
   ((functor-fmap func) f container))
 
-;;; replace-with : Functor × Value × Container → Container
-;;; Replace all values in container.
 (define (replace-with func val container)
+  (doc 'type '(-> (FunctorDict t) b (t a) (t b)))
+  (doc 'description "Replace all values in container, keeping structure")
   (fmap-with func (const val) container))
 
-;;; void-with : Functor × Container → Container ()
-;;; Discard values, keeping structure.
 (define (void-with func container)
+  (doc 'type '(-> (FunctorDict t) (t a) (t Unit)))
+  (doc 'description "Discard all values, keeping structure")
   (replace-with func '() container))
 
-;;; ====
-;;; Applicative Templates
-;;; ====
-;;;
+(doc 'section 'applicative-templates)
 ;;; Applicative functors allow applying functions in context.
 ;;;   - pure : a → F a
 ;;;   - <*> : F (a → b) → F a → F b
@@ -352,95 +343,87 @@
 ;;;   - Homomorphism: pure f <*> pure x = pure (f x)
 ;;;   - Interchange: u <*> pure y = pure ($ y) <*> u
 
-;;; make-applicative : ((α → F α) × (F (α → β) × F α → F β)) → Applicative
 (define (make-applicative pure-fn ap-fn)
+  (doc 'type '(-> (-> a (f a)) (-> (f (-> a b)) (f a) (f b)) (ApplicativeDict f)))
+  (doc 'description "Create an Applicative dictionary from pure and ap functions")
   (list 'applicative pure-fn ap-fn))
 
-;;; applicative? : α → Boolean
 (define (applicative? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is an Applicative dictionary")
   (and (pair? x) (eq? (car x) 'applicative)))
 
-;;; applicative-pure : Applicative → (α → F α)
 (define (applicative-pure ap)
+  (doc 'type '(-> (ApplicativeDict f) (-> a (f a))))
+  (doc 'description "Extract pure function from Applicative dictionary")
   (cadr ap))
 
-;;; applicative-ap : Applicative → (F (α → β) × F α → F β)
 (define (applicative-ap ap)
+  (doc 'type '(-> (ApplicativeDict f) (-> (f (-> a b)) (f a) (f b))))
+  (doc 'description "Extract ap (<*>) function from Applicative dictionary")
   (caddr ap))
 
-;;; ====
-;;; Common Applicative Instances
-;;; ====
+(doc 'section 'applicative-instances)
 
-;;; applicative-list : Applicative for lists (all combinations)
+(doc applicative-list 'type '(ApplicativeDict List))
+(doc applicative-list 'description "Applicative for lists (all combinations / nondeterminism)")
 (define applicative-list
   (make-applicative
-   ;; pure: a -> [a]
    list
-   ;; <*>: [a -> b] -> [a] -> [b]
    (lambda (fs xs)
            (append-map (lambda (f) (map f xs)) fs))))
 
-;;; applicative-maybe : Applicative for Maybe
+(doc applicative-maybe 'type '(ApplicativeDict Maybe))
+(doc applicative-maybe 'description "Applicative for Maybe (short-circuits on nothing)")
 (define applicative-maybe
   (make-applicative
-   ;; pure
    just
-   ;; <*>
    (lambda (mf mx)
            (if (and (just? mf) (just? mx))
                (just ((from-just mf) (from-just mx)))
                nothing))))
 
-;;; applicative-either : Applicative for Either
+(doc applicative-either 'type '(ApplicativeDict Either))
+(doc applicative-either 'description "Applicative for Either (short-circuits on Left)")
 (define applicative-either
   (make-applicative
-   ;; pure
    right
-   ;; <*>
    (lambda (ef ex)
            (cond
             [(left? ef) ef]
             [(left? ex) ex]
             [else (right ((from-right ef) (from-right ex)))]))))
 
-;;; ====
-;;; Applicative Operations
-;;; ====
+(doc 'section 'applicative-operations)
 
-;;; ap-with : Applicative × F (α → β) × F α → F β
 (define (ap-with ap ff fx)
+  (doc 'type '(-> (ApplicativeDict f) (f (-> a b)) (f a) (f b)))
+  (doc 'description "Apply wrapped function to wrapped value using Applicative dictionary")
   ((applicative-ap ap) ff fx))
 
-;;; lift-a2 : Applicative × (α → β → γ) × F α × F β → F γ
-;;; Lift binary function to applicative.
-;;; lift-a2 f fx fy = pure f <*> fx <*> fy
 (define (lift-a2 ap f fx fy)
+  (doc 'type '(-> (ApplicativeDict f) (-> a b c) (f a) (f b) (f c)))
+  (doc 'description "Lift binary function into applicative context: pure f <*> fx <*> fy")
   (let* ([pure (applicative-pure ap)]
          [ap-fn (applicative-ap ap)]
-         ;; fmap f fx = pure f <*> fx
          [ff (ap-fn (pure f) fx)])
         (ap-fn ff fy)))
 
-;;; sequence-a : Applicative × (List (F α)) → F (List α)
-;;; Sequence list of applicative actions.
 (define (sequence-a ap actions)
-  ;; Use curried cons: x -> xs -> (cons x xs)
+  (doc 'type '(-> (ApplicativeDict f) (List (f a)) (f (List a))))
+  (doc 'description "Sequence list of applicative actions into action producing list")
   (let ([cons-curried (lambda (x) (lambda (xs) (cons x xs)))])
        (fold-right (lambda (action acc)
                            (lift-a2 ap cons-curried action acc))
                    ((applicative-pure ap) '())
                    actions)))
 
-;;; traverse-a : Applicative × (α → F β) × (List α) → F (List β)
-;;; Traverse list with applicative action.
 (define (traverse-a ap f xs)
+  (doc 'type '(-> (ApplicativeDict f) (-> a (f b)) (List a) (f (List b))))
+  (doc 'description "Map each element with an applicative action, then sequence")
   (sequence-a ap (map f xs)))
 
-;;; ====
-;;; Lens Templates
-;;; ====
-;;;
+(doc 'section 'lens-templates)
 ;;; Lenses are composable first-class getters and setters.
 ;;;   - view : Lens s a → s → a
 ;;;   - set : Lens s a → a → s → s
@@ -451,80 +434,77 @@
 ;;;   - Put-Get: view l (set l a s) = a
 ;;;   - Put-Put: set l a' (set l a s) = set l a' s
 
-;;; make-lens : (s → a) × (a → s → s) → Lens
-;;; Create a lens from getter and setter.
 (define (make-lens getter setter)
+  (doc 'type '(-> (-> s a) (-> a s s) (Lens s a)))
+  (doc 'description "Create a lens from getter and setter functions")
   (list 'lens getter setter))
 
-;;; lens? : α → Boolean
 (define (lens? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a Lens")
   (and (pair? x) (eq? (car x) 'lens)))
 
-;;; lens-getter : Lens → (s → a)
 (define (lens-getter l)
+  (doc 'type '(-> (Lens s a) (-> s a)))
+  (doc 'description "Extract getter function from Lens")
   (cadr l))
 
-;;; lens-setter : Lens → (a → s → s)
 (define (lens-setter l)
+  (doc 'type '(-> (Lens s a) (-> a s s)))
+  (doc 'description "Extract setter function from Lens")
   (caddr l))
 
-;;; ====
-;;; Lens Operations
-;;; ====
+(doc 'section 'lens-operations)
 
-;;; view : Lens × s → a
-;;; Get the focused value.
 (define (view lens s)
+  (doc 'type '(-> (Lens s a) s a))
+  (doc 'description "Get the focused value through a lens")
   ((lens-getter lens) s))
 
-;;; set : Lens × a × s → s
-;;; Set the focused value.
 (define (set-lens lens a s)
+  (doc 'type '(-> (Lens s a) a s s))
+  (doc 'description "Set the focused value through a lens")
   ((lens-setter lens) a s))
 
-;;; over : Lens × (a → a) × s → s
-;;; Modify the focused value.
 (define (over lens f s)
+  (doc 'type '(-> (Lens s a) (-> a a) s s))
+  (doc 'description "Modify the focused value by applying a function")
   (set-lens lens (f (view lens s)) s))
 
-;;; lens-compose : Lens s a × Lens a b → Lens s b
-;;; Compose two lenses.
 (define (lens-compose outer inner)
+  (doc 'type '(-> (Lens s a) (Lens a b) (Lens s b)))
+  (doc 'description "Compose two lenses; outer focuses on intermediate, inner focuses deeper")
   (make-lens
-   ;; getter: s -> b
    (lambda (s)
            (view inner (view outer s)))
-   ;; setter: b -> s -> s
    (lambda (b s)
            (over outer (lambda (a) (set-lens inner b a)) s))))
 
-;;; ====
-;;; Common Lens Constructors
-;;; ====
+(doc 'section 'lens-constructors)
 
-;;; lens-fst : Lens (Pair a b) a
-;;; Lens focusing on first element of pair.
+(doc lens-fst 'type '(Lens (Pair a b) a))
+(doc lens-fst 'description "Lens focusing on first element of pair")
 (define lens-fst
   (make-lens car (lambda (a p) (cons a (cdr p)))))
 
-;;; lens-snd : Lens (Pair a b) b
-;;; Lens focusing on second element of pair.
+(doc lens-snd 'type '(Lens (Pair a b) b))
+(doc lens-snd 'description "Lens focusing on second element of pair")
 (define lens-snd
   (make-lens cdr (lambda (b p) (cons (car p) b))))
 
-;;; lens-head : Lens (List a) a
-;;; Lens focusing on head of list.
+(doc lens-head 'type '(Lens (List a) a))
+(doc lens-head 'description "Lens focusing on head of list")
 (define lens-head
   (make-lens car (lambda (a xs) (cons a (cdr xs)))))
 
-;;; lens-tail : Lens (List a) (List a)
-;;; Lens focusing on tail of list.
+(doc lens-tail 'type '(Lens (List a) (List a)))
+(doc lens-tail 'description "Lens focusing on tail of list")
 (define lens-tail
   (make-lens cdr (lambda (t xs) (cons (car xs) t))))
 
-;;; lens-nth : Nat → Lens (List a) a
-;;; Lens focusing on nth element.
 (define (lens-nth n)
+  (doc 'type '(-> Nat (Lens (List a) a)))
+  (doc 'description "Create a lens focusing on the nth element of a list")
   (make-lens
    (lambda (xs) (list-ref xs n))
    (lambda (a xs)
@@ -535,9 +515,9 @@
                         (loop (+ i 1) (cdr xs) (cons a acc))
                         (loop (+ i 1) (cdr xs) (cons (car xs) acc))))))))
 
-;;; lens-key : Symbol → Lens (Alist s v) v
-;;; Lens focusing on value for given key in association list.
 (define (lens-key key)
+  (doc 'type '(-> Symbol (Lens (Alist Symbol v) v)))
+  (doc 'description "Create a lens focusing on the value for a key in an association list")
   (make-lens
    (lambda (alist)
            (let ([entry (assq key alist)])
@@ -546,94 +526,91 @@
            (cons (cons key v)
                  (filter (lambda (p) (not (eq? (car p) key))) alist)))))
 
-;;; ====
-;;; Prism Templates
-;;; ====
-;;;
+(doc 'section 'prism-templates)
 ;;; Prisms focus on parts of sum types (like case analysis).
 ;;;   - preview : Prism s a → s → Maybe a
 ;;;   - review : Prism s a → a → s
 
-;;; make-prism : (s → Maybe a) × (a → s) → Prism
 (define (make-prism match build)
+  (doc 'type '(-> (-> s (Maybe a)) (-> a s) (Prism s a)))
+  (doc 'description "Create a prism from match (partial getter) and build (constructor) functions")
   (list 'prism match build))
 
-;;; prism? : α → Boolean
 (define (prism? x)
+  (doc 'type '(-> Any Boolean))
+  (doc 'description "Test if value is a Prism")
   (and (pair? x) (eq? (car x) 'prism)))
 
-;;; prism-match : Prism → (s → Maybe a)
 (define (prism-match p)
+  (doc 'type '(-> (Prism s a) (-> s (Maybe a))))
+  (doc 'description "Extract match function from Prism")
   (cadr p))
 
-;;; prism-build : Prism → (a → s)
 (define (prism-build p)
+  (doc 'type '(-> (Prism s a) (-> a s)))
+  (doc 'description "Extract build function from Prism")
   (caddr p))
 
-;;; preview : Prism × s → Maybe a
 (define (preview prism s)
+  (doc 'type '(-> (Prism s a) s (Maybe a)))
+  (doc 'description "Try to extract focused value from sum type via prism")
   ((prism-match prism) s))
 
-;;; review : Prism × a → s
 (define (review prism a)
+  (doc 'type '(-> (Prism s a) a s))
+  (doc 'description "Construct sum type value from focused part via prism")
   ((prism-build prism) a))
 
-;;; ====
-;;; Common Prisms
-;;; ====
+(doc 'section 'prism-instances)
 
-;;; prism-just : Prism (Maybe a) a
-;;; Prism focusing on Just values.
+(doc prism-just 'type '(Prism (Maybe a) a))
+(doc prism-just 'description "Prism focusing on Just values")
 (define prism-just
   (make-prism
    (lambda (m) (if (just? m) m nothing))
    just))
 
-;;; prism-left : Prism (Either a b) a
-;;; Prism focusing on Left values.
+(doc prism-left 'type '(Prism (Either a b) a))
+(doc prism-left 'description "Prism focusing on Left values")
 (define prism-left
   (make-prism
    (lambda (e) (if (left? e) (just (from-left e)) nothing))
    left))
 
-;;; prism-right : Prism (Either a b) b
-;;; Prism focusing on Right values.
+(doc prism-right 'type '(Prism (Either a b) b))
+(doc prism-right 'description "Prism focusing on Right values")
 (define prism-right
   (make-prism
    (lambda (e) (if (right? e) (just (from-right e)) nothing))
    right))
 
-;;; ====
-;;; Template Code Generation
-;;; ====
-;;;
+(doc 'section 'code-generation)
 ;;; Generate code templates for common patterns.
 
-;;; gen-monoid-template : Symbol → Symbol → Symbol → Sexp
-;;; Generate monoid instance code template.
 (define (gen-monoid-template type-name identity-expr append-expr)
+  (doc 'type '(-> Symbol Any Any Sexp))
+  (doc 'description "Generate monoid instance code template as an S-expression")
   `(define ,(string->symbol (format "monoid-~a" type-name))
     (make-monoid ,identity-expr ,append-expr)))
 
-;;; gen-functor-template : Symbol → Symbol → Sexp
-;;; Generate functor instance code template.
 (define (gen-functor-template type-name map-fn)
+  (doc 'type '(-> Symbol Symbol Sexp))
+  (doc 'description "Generate functor instance code template as an S-expression")
   `(define ,(string->symbol (format "functor-~a" type-name))
     (make-functor ,map-fn)))
 
-;;; gen-lens-template : Symbol → Symbol → Sexp
-;;; Generate lens code template for struct field.
 (define (gen-lens-template struct-name field-name)
+  (doc 'type '(-> Symbol Symbol Sexp))
+  (doc 'description "Generate lens code template for a struct field as an S-expression")
   (let ([getter (string->symbol (format "~a-~a" struct-name field-name))]
         [setter (string->symbol (format "set-~a-~a" struct-name field-name))])
        `(define ,(string->symbol (format "lens-~a-~a" struct-name field-name))
          (make-lens ,getter (lambda (v s) (,setter v s))))))
 
-;;; ====
-;;; Best Practice Templates
-;;; ====
+(doc 'section 'best-practices)
 
-;;; new-type-checklist : List of things to implement for new type
+(doc new-type-checklist 'type '(List (Pair String String)))
+(doc new-type-checklist 'description "Checklist of type class instances to implement for a new type")
 (define new-type-checklist
   '(;; Core type class instances
     ("Functor" . "fmap for mapping over container")
@@ -649,7 +626,8 @@
     ("Show" . "convert to string representation")
     ("Eq" . "structural equality")))
 
-;;; pattern-catalog : Common FP patterns with templates
+(doc pattern-catalog 'type '(List (List Symbol String Procedure)))
+(doc pattern-catalog 'description "Catalog of common FP patterns with names, descriptions, and template implementations")
 (define pattern-catalog
   `((fold-pattern
      "Reduce collection to single value"
