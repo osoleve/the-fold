@@ -216,21 +216,4 @@ Use lattice search for:
 
 ## Lattice Structure
 
-| Tier | Skills | Purpose |
-|------|--------|---------|
-| 0 | linalg, data, algebra, random | Foundational (no lattice deps) |
-| 1 | numeric, geometry, autodiff, fp, query, dsl, info, number-theory, meta | Intermediate |
-| 2+ | physics/diff, physics/classical, tiles, sim, automata, pipeline | Advanced |
-
-## Module Locations
-
-| Component | Path |
-|-----------|------|
-| Knowledge Graph | `lattice/meta/kg.ss` |
-| BM25 Search | `lattice/meta/bm25.ss` |
-| Search API | `lattice/meta/search.ss` |
-| Type Search | `lattice/meta/type-search.ss` |
-| Cross-Reference | `lattice/meta/xref.ss` |
-| DAG Navigation | `lattice/meta/dag.ss` |
-| Inspection | `lattice/meta/inspect.ss` |
-| Unified Entry | `lattice/meta/meta.ss` |
+Tiers are derived from DAG depth (not declared). Use `(lattice-depth 'skill-name)` to check. Tier 0 = no lattice deps (foundational), higher tiers = more dependencies. Implementation in `lattice/meta/dag.ss`.

@@ -44,7 +44,6 @@ Check fuel consumption. Infinite loops exhaust fuel and return `out-of-fuel` err
 | `.fold-repl/requests/<session>.ss` | Session request queue |
 | `.fold-repl/responses/<session>.txt` | Session response output |
 | `.fold-repl/daemon.log` | Daemon log (check for errors) |
-| `.fold-repl/discord-outbox/` | Discord bot message outbox |
 
 ### Persistent State
 

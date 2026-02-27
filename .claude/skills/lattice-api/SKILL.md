@@ -202,7 +202,6 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
 ```scheme
 (skill <name>
   (version "x.y.z")
-  (tier 0-2)                       ; 0=foundational, 1=intermediate, 2+=advanced
   (path "lattice/<name>")
   (purity total|partial)           ; total=pure, partial=may have effects
   (stability stable|experimental)
@@ -213,4 +212,5 @@ Each lattice skill has a `manifest.sexp` declaring metadata:
   (aliases (<alias> ...))          ; Alternative names
   (exports (<module> <symbol> ...) ...)
   (modules (<name> "<file>" "<desc>") ...))
+;; Note: tier is derived from DAG depth, not declared in manifests
 ```
