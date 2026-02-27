@@ -348,6 +348,19 @@
         (matrix-equal? (matrix-add-row-scaled m dst src k)
                        expected)))
     'tests 180)
+
+  (define-property "matrix-update-diagonal sets the diagonal entries"
+    gen-diagonal-set-args
+    (lambda (args)
+      (let* ([m (car args)]
+             [diag (cadr args)]
+             [n (min (matrix-rows m) (matrix-cols m))]
+             [updated (matrix-update-diagonal m (lambda (_) diag))])
+        (let loop ([i 0])
+          (or (= i n)
+              (and (= (matrix-ref updated i i) (vector-ref diag i))
+                   (loop (+ i 1)))))))
+    'tests 180)
 )
 
 ;;; ============================================================================

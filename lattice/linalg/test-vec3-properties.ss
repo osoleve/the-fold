@@ -28,6 +28,11 @@
 (define gen-scalar
   (gen-int-range -10 10))
 
+(define gen-nonzero-scalar
+  (gen-bind (gen-int-range -10 10)
+    (lambda (k)
+      (if (= k 0) (gen-pure 1) (gen-pure k)))))
+
 (define gen-t
   (gen-map (lambda (n) (/ n 100.0))
            (gen-int-range 0 100)))
@@ -59,6 +64,24 @@
         (lambda (b)
           (gen-map (lambda (c) (list a b c))
                    gen-vec3-int))))))
+
+(define gen-vec3-surface-args
+  (gen-bind gen-vec3-int
+    (lambda (a)
+      (gen-bind gen-vec3-int
+        (lambda (b)
+          (gen-bind gen-vec3-int
+            (lambda (c)
+              (gen-bind gen-t
+                (lambda (t)
+                  (gen-bind gen-angle
+                    (lambda (ang)
+                      (gen-bind gen-nonzero-scalar
+                        (lambda (k)
+                          (gen-bind (gen-int-range 1 10)
+                            (lambda (d)
+                              (gen-pure (list a b c t ang k d))))))))))))))))
+)
 
 ;;; ============================================================================
 ;;; Algebraic and product properties
@@ -221,6 +244,99 @@
                      1.0
                      1e-7))))
     'tests 180)
+
+  (define-property "vec3 surface helper API returns consistent results"
+    gen-vec3-surface-args
+    (lambda (args)
+      (let* ([a (car args)]
+             [b (cadr args)]
+             [c (caddr args)]
+             [t (list-ref args 3)]
+             [ang (list-ref args 4)]
+             [k (list-ref args 5)]
+             [d (list-ref args 6)]
+             [safe-b (vec3 (if (= (vec3-x b) 0) 1 (vec3-x b))
+                           (if (= (vec3-y b) 0) 1 (vec3-y b))
+                           (if (= (vec3-z b) 0) 1 (vec3-z b)))]
+             [ua (if (nonzero-vec3? a) (vec3-normalize a) (vec3-unit-x))]
+             [ub (if (nonzero-vec3? b) (vec3-normalize b) (vec3-unit-y))]
+             [lst (vec3->list a)]
+             [a2 (list->vec3 lst)]
+             [one (vec3-one)]
+             [ux (vec3-unit-x)]
+             [uy (vec3-unit-y)]
+             [uz (vec3-unit-z)]
+             [mul (vec3-mul a safe-b)]
+             [div-back (vec3-div mul safe-b)]
+             [scaled-inv (vec3-scale-inv (vec3-scale a k) k)]
+             [absv (vec3-abs a)]
+             [floorv (vec3-floor a)]
+             [ceilv (vec3-ceil a)]
+             [minv (vec3-min a b)]
+             [maxv (vec3-max a b)]
+             [clamped (vec3-clamp a (vec3 -2 -2 -2) (vec3 2 2 2))]
+             [setmag (if (nonzero-vec3? a) (vec3-set-magnitude a d) (vec3-zero))]
+             [clampmag (vec3-clamp-magnitude a 0 d)]
+             [norm-or (vec3-normalize-or (vec3-zero) ux)]
+             [rot-y (vec3-rotate-y a ang)]
+             [rot-z (vec3-rotate-z a ang)]
+             [rot-axis (vec3-rotate-axis a ua ang)]
+             [slerped (vec3-slerp ua ub t)]
+             [basis (vec3-orthonormal-basis ua)]
+             [gs (vec3-gram-schmidt ua ub)]
+             [refl (vec3-reflect a ua)]
+             [refr (vec3-refract ua ub 0.8)]
+             [triple-s (vec3-triple-scalar a b c)]
+             [triple-s-def (vec3-dot a (vec3-cross b c))]
+             [triple-v (vec3-triple-vector a b c)]
+             [triple-v-def (vec3-sub (vec3-scale b (vec3-dot a c))
+                                     (vec3-scale c (vec3-dot a b)))]
+             [sph (vec3->spherical ua)]
+             [cyl (vec3->cylindrical ua)]
+             [back-sph (vec3-from-spherical (car sph) (cadr sph) (caddr sph))]
+             [back-cyl (vec3-from-cylindrical (car cyl) (cadr cyl) (caddr cyl))])
+        (and (vec3-equal? a a2)
+             (= (vec3-ref a 0) (vec3-x a))
+             (= (vec3-ref a 1) (vec3-y a))
+             (vec3-equal? one (vec3 1 1 1))
+             (= (vec3-x ux) 1) (= (vec3-y ux) 0)
+             (= (vec3-y uy) 1)
+             (= (vec3-z uz) 1)
+             (approx= (vec3-length a) (vec3-magnitude a) 1e-12)
+             (approx= (vec3-distance-sq a b)
+                      (* (vec3-distance a b) (vec3-distance a b))
+                      1e-8)
+             (vec3-nearly-equal? div-back a 1e-9)
+             (vec3-nearly-equal? scaled-inv a 1e-9)
+             (<= (vec3-x floorv) (vec3-x a))
+             (>= (vec3-y ceilv) (vec3-y a))
+             (<= (vec3-x minv) (vec3-x maxv))
+             (<= (vec3-y minv) (vec3-y maxv))
+             (<= (vec3-z minv) (vec3-z maxv))
+             (<= (vec3-x clamped) 2) (>= (vec3-x clamped) -2)
+             (<= (vec3-y clamped) 2) (>= (vec3-y clamped) -2)
+             (<= (vec3-z clamped) 2) (>= (vec3-z clamped) -2)
+             (or (not (nonzero-vec3? a))
+                 (approx= (vec3-magnitude setmag) d 1e-8))
+             (<= (vec3-magnitude clampmag) (+ d 1e-8))
+             (vec3-equal? norm-or ux)
+             (approx= (vec3-magnitude rot-y) (vec3-magnitude a) 1e-8)
+             (approx= (vec3-magnitude rot-z) (vec3-magnitude a) 1e-8)
+             (approx= (vec3-magnitude rot-axis) (vec3-magnitude a) 1e-8)
+             (vec3? slerped)
+             (= (length basis) 3)
+             (= (length gs) 2)
+             (vec3? refl)
+             (or (not refr) (vec3? refr))
+             (approx= triple-s triple-s-def 1e-9)
+             (vec3-nearly-equal? triple-v triple-v-def 1e-9)
+             (vec3? absv)
+             (approx= (vec3-angle ua ua) 0.0 1e-8)
+             (number? (vec3-signed-angle ua ub ua))
+             (vec3-nearly-equal? back-sph ua 1e-8)
+             (vec3-nearly-equal? back-cyl ua 1e-8)
+             (vec3-unit? ua))))
+    'tests 200)
 )
 
 ;;; ============================================================================

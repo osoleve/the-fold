@@ -232,6 +232,83 @@
 )
 
 ;;; ============================================================================
+;;; Surface coverage properties
+;;; ============================================================================
+
+(test-group sparse-surface-properties
+
+  (define-property "sparse constructors/accessors/conversions are consistent"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([triplets '((0 0 2.0) (0 1 1.0) (1 1 3.0))]
+             [coo (sparse-coo-from-triplets 2 2 triplets)]
+             [rows (sparse-coo-rows coo)]
+             [cols (sparse-coo-cols coo)]
+             [ri (sparse-coo-row-indices coo)]
+             [ci (sparse-coo-col-indices coo)]
+             [vv (sparse-coo-values coo)]
+             [coo-made (make-sparse-coo rows cols ri ci vv)]
+             [csr (coo->csr coo)]
+             [csc (coo->csc coo)]
+             [csr-made (make-sparse-csr (sparse-csr-rows csr)
+                                        (sparse-csr-cols csr)
+                                        (sparse-csr-row-ptrs csr)
+                                        (sparse-csr-col-indices csr)
+                                        (sparse-csr-values csr))]
+             [csc-made (make-sparse-csc (sparse-csc-rows csc)
+                                        (sparse-csc-cols csc)
+                                        (sparse-csc-col-ptrs csc)
+                                        (sparse-csc-row-indices csc)
+                                        (sparse-csc-values csc))]
+             [coo-from-csc (csc->coo csc)]
+             [csr-from-csc (csc->csr csc)]
+             [csc-from-csr (csr->csc csr)]
+             [coo-dropped (sparse-coo-drop-below 1.5 coo)]
+             [csr-dropped (sparse-csr-drop-below 1.5 csr)]
+             [csc-dropped (sparse-csc-drop-below 1.5 csc)]
+             [csr-add (sparse-csr-add csr csr)]
+             [csr-scaled (sparse-csr-scale 2 csr)]
+             [csr-t (sparse-csr-transpose csr)]
+             [csc-t (sparse-csc-transpose csc)]
+             [diag (sparse-diagonal (vector 4 5))]
+             [shape (sparse-shape csr)]
+             [nnz (sparse-nnz csr)]
+             [density (sparse-density csr)]
+             [ratio (sparse-memory-ratio csr)])
+        (and (sparse-coo? coo-made)
+             (= rows 2) (= cols 2)
+             (= (sparse-coo-ref coo 0 0) 2.0)
+             (= (sparse-coo-ref coo 0 1) 1.0)
+             (= (sparse-coo-ref coo 1 1) 3.0)
+             (sparse-csr? csr-made)
+             (= (sparse-csr-ref csr 1 1) 3.0)
+             (= (length (sparse-csr-row csr 0)) 2)
+             (= (length (sparse-csr-row-alist csr 1)) 1)
+             (sparse-csc? csc-made)
+             (= (sparse-csc-ref csc 1 1) 3.0)
+             (= (length (sparse-csc-col csc 1)) 2)
+             (sparse-coo-approx-equal? coo coo-from-csc 1e-12)
+             (sparse-approx-equal? csr csr-from-csc 1e-12)
+             (sparse-approx-equal? csc csc-from-csr 1e-12)
+             (<= (sparse-coo-nnz coo-dropped) (sparse-coo-nnz coo))
+             (<= (sparse-csr-nnz csr-dropped) (sparse-csr-nnz csr))
+             (<= (sparse-csc-nnz csc-dropped) (sparse-csc-nnz csc))
+             (not (sparse-error? csr-add))
+             (not (sparse-error? csr-scaled))
+             (= (sparse-csr-ref csr-scaled 1 1) 6.0)
+             (sparse-csr? csr-t)
+             (sparse-csc? csc-t)
+             (= (sparse-csr-rows diag) 2)
+             (= (sparse-csr-cols diag) 2)
+             (= (car shape) 2)
+             (= (cdr shape) 2)
+             (= nnz 3)
+             (> density 0)
+             (> ratio 0))))
+    'tests 20)
+)
+
+;;; ============================================================================
 ;;; Run
 ;;; ============================================================================
 

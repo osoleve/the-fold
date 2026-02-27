@@ -21,6 +21,9 @@
       (and (pred (car xs))
            (all-satisfy? pred (cdr xs)))))
 
+(define (signed->integer sl base)
+  (* (car sl) (limbs->integer (cdr sl) base)))
+
 ;;; ============================================================================
 ;;; Generators
 ;;; ============================================================================
@@ -187,6 +190,157 @@
       (= (* n n)
          (fast-square n)))
     'tests 220)
+)
+
+;;; ============================================================================
+;;; Limb operation coverage gaps
+;;; ============================================================================
+
+(test-group limb-ops-coverage
+
+  (define-property "limbs-pad-to preserves prefix and reaches target length"
+    gen-roundtrip-args
+    (lambda (args)
+      (let* ([n (car args)]
+             [base (cadr args)]
+             [limbs (integer->limbs n base)]
+             [target (+ (length limbs) 3)]
+             [padded (limbs-pad-to limbs target)])
+        (and (= target (length padded))
+             (equal? limbs (take (length limbs) padded)))))
+    'tests 220)
+
+  (define-property "limbs-split reconstructs original integer"
+    (gen-bind gen-roundtrip-args
+      (lambda (args)
+        (gen-map (lambda (k) (list (car args) (cadr args) k))
+                 (gen-int-range 0 12))))
+    (lambda (args)
+      (let* ([n (car args)]
+             [base (cadr args)]
+             [k (caddr args)]
+             [limbs (integer->limbs n base)]
+             [parts (limbs-split limbs k)]
+             [lo (car parts)]
+             [hi (cadr parts)]
+             [recon (limbs-add lo (limbs-shift hi k) base)])
+        (= n (limbs->integer recon base))))
+    'tests 220)
+
+  (define-property "limbs-sub inverts limbs-add when subtracting second addend"
+    gen-mul-args
+    (lambda (args)
+      (let* ([a (car args)]
+             [b (cadr args)]
+             [base (caddr args)]
+             [la (integer->limbs a base)]
+             [lb (integer->limbs b base)]
+             [sum (limbs-add la lb base)]
+             [back (limbs-sub sum lb base)])
+        (equal? (limbs-normalize la) back)))
+    'tests 220)
+
+  (define-property "limb-scale agrees with integer multiplication"
+    (gen-bind gen-base
+      (lambda (base)
+        (gen-bind (gen-int-range 0 200000)
+          (lambda (n)
+            (gen-map (lambda (k) (list n k base))
+                     (gen-int-range 0 50))))))
+    (lambda (args)
+      (let* ([n (car args)]
+             [k (cadr args)]
+             [base (caddr args)]
+             [scaled (limb-scale (integer->limbs n base) k base)])
+        (= (* n k) (limbs->integer scaled base))))
+    'tests 220)
+
+  (define-property "limbs-split3 reconstructs original integer"
+    (gen-bind gen-roundtrip-args
+      (lambda (args)
+        (gen-map (lambda (m) (list (car args) (cadr args) m))
+                 (gen-int-range 1 4))))
+    (lambda (args)
+      (let* ([n (car args)]
+             [base (cadr args)]
+             [m (caddr args)]
+             [limbs (integer->limbs n base)]
+             [parts (limbs-split3 limbs m)]
+             [a0 (car parts)]
+             [a1 (cadr parts)]
+             [a2 (caddr parts)]
+             [recon (limbs-add
+                     (limbs-add a0 (limbs-shift a1 m) base)
+                     (limbs-shift a2 (* 2 m))
+                     base)])
+        (= n (limbs->integer recon base))))
+    'tests 200)
+
+  (define-property "limbs-compare matches integer ordering"
+    gen-mul-args
+    (lambda (args)
+      (let* ([a (car args)]
+             [b (cadr args)]
+             [base (caddr args)]
+             [cmp (limbs-compare (integer->limbs a base)
+                                 (integer->limbs b base))])
+        (cond
+         [(< a b) (= cmp -1)]
+         [(> a b) (= cmp 1)]
+         [else (= cmp 0)])))
+    'tests 220)
+
+  (define-property "signed-add cancels equal opposite magnitudes"
+    gen-roundtrip-args
+    (lambda (args)
+      (let* ([n (car args)]
+             [base (cadr args)]
+             [mag (integer->limbs n base)]
+             [sa (cons 1 mag)]
+             [sb (cons -1 mag)]
+             [sum (signed-add sa sb base)])
+        (= 0 (signed->integer sum base))))
+    'tests 220)
+
+  (define-property "limbs-div-small exact division roundtrip"
+    (gen-bind gen-base
+      (lambda (base)
+        (gen-bind (gen-int-range 0 200000)
+          (lambda (q)
+            (gen-map (lambda (d) (list q d base))
+                     (gen-int-range 1 25))))))
+    (lambda (args)
+      (let* ([q (car args)]
+             [d (cadr args)]
+             [base (caddr args)]
+             [n (* q d)]
+             [limbs (integer->limbs n base)]
+             [quot-limbs (limbs-div-small limbs d base)])
+        (= q (limbs->integer quot-limbs base))))
+    'tests 220)
+
+  (define-property "limbs-square-schoolbook matches schoolbook multiplication"
+    gen-square-args
+    (lambda (args)
+      (let* ([n (car args)]
+             [base (cadr args)]
+             [x (integer->limbs n base)])
+        (equal? (limbs-square-schoolbook x base)
+                (limbs-multiply-schoolbook x x base))))
+    'tests 220)
+
+  (define-test "threshold setters/getter roundtrip"
+    (let* ([old (get-multiply-thresholds)]
+           [old-k (car old)]
+           [old-t (cadr old)])
+      (set-karatsuba-threshold! 9)
+      (set-toom3-threshold! 27)
+      (let ([now (get-multiply-thresholds)])
+        (assert-equal 9 (car now))
+        (assert-equal 27 (cadr now)))
+      ;; Restore original values to avoid affecting other tests.
+      (set-karatsuba-threshold! old-k)
+      (set-toom3-threshold! old-t)))
 )
 
 ;;; ============================================================================

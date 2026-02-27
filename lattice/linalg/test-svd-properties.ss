@@ -74,6 +74,23 @@
                     [v (caddr result)])
                (verify-svd a u sigma v 1e-8)))))
     'tests 80)
+
+  (define-property "svd surface helpers are well-formed"
+    gen-small-n
+    (lambda (n)
+      (let* ([a (matrix-identity n)]
+             [thin (svd-thin a)]
+             [pinv (pseudoinverse a)]
+             [low (low-rank-approx a n)]
+             [fn1 (matrix-frobenius-norm a)]
+             [fn2 (frobenius-norm a)])
+        (and (not (error-result? thin))
+             (not (error-result? pinv))
+             (not (error-result? low))
+             (matrix-approx-equal? pinv a 1e-8)
+             (matrix-approx-equal? low a 1e-8)
+             (approx= fn1 fn2 1e-8))))
+    'tests 80)
 )
 
 ;;; ============================================================================

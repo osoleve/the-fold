@@ -168,6 +168,18 @@
     (lambda (a)
       (> (abs (matrix-det a)) 1e-9))
     'tests 160)
+
+  (define-property "matrix-copy and permutation-sign helper surface is consistent"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([a (matrix-from-lists '((1 2) (3 4)))]
+             [copy (matrix-copy a)]
+             [even-p (vector 0 1 2 3)]
+             [odd-p (vector 1 0 2 3)])
+        (and (matrix-equal? copy a)
+             (= (permutation-sign even-p) 1)
+             (= (permutation-sign odd-p) -1))))
+    'tests 20)
 )
 
 ;;; ============================================================================

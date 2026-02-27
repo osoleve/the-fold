@@ -284,6 +284,37 @@
              (not (matrix-error? rhs))
              (equal? lhs rhs))))
     'tests 180)
+
+  (define-property "matrix surface helper API returns consistent results"
+    (gen-bind gen-pos-dim
+      (lambda (n)
+        (gen-map (lambda (k) (list n k)) gen-entry)))
+    (lambda (args)
+      (let* ([n (car args)]
+             [k (cadr args)]
+             [m (make-matrix n n k)]
+             [shape (matrix-shape m)]
+             [data (matrix-data m)]
+             [sym (matrix-from-lists '((1 2) (2 1)))]
+             [a (matrix-from-lists '((1 2) (3 4)))]
+             [b (matrix-from-lists '((5 6) (7 8)))]
+             [hs (matrix-hstack a b)]
+             [vs (matrix-vstack a b)]
+             [v (vector 1 2)]
+             [vxm (vec-matrix-mul v a)]
+             [mxv (matrix-vec-mul (matrix-transpose a) v)])
+        (and (= (car shape) n)
+             (= (cdr shape) n)
+             (= (vector-length data) (* n n))
+             (or (= n 0) (= (matrix-ref m 0 0) k))
+             (matrix-square? m)
+             (matrix-symmetric? sym)
+             (= (matrix-rows hs) 2)
+             (= (matrix-cols hs) 4)
+             (= (matrix-rows vs) 4)
+             (= (matrix-cols vs) 2)
+             (equal? vxm mxv))))
+    'tests 120)
 )
 
 ;;; ============================================================================

@@ -63,6 +63,31 @@
              [ua (matrix-mul u a)])
         (matrix-equal? ua h)))
     'tests 140)
+
+  (define-property "integer-matrix utility surface is consistent"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([a (matrix-from-lists '((2 0)
+                                     (0 3)))]
+             [i2 (matrix-identity 2)]
+             [b (vector 4 9)]
+             [rank (smith-rank a)]
+             [inv-factors (smith-invariant-factors a)]
+             [det (matrix-determinant-int a)]
+             [ker (integer-kernel i2)]
+             [img (integer-image i2)]
+             [uinv (unimodular-inverse i2)]
+             [sol (solve-linear-diophantine i2 b)])
+        (and (= rank 2)
+             (equal? inv-factors '(1 6))
+             (= det 6)
+             (null? ker)
+             (= (length img) 2)
+             (matrix-equal? uinv i2)
+             (not (eq? sol 'no-solution))
+             (vector? (car sol))
+             (equal? (car sol) b))))
+    'tests 20)
 )
 
 ;;; ============================================================================

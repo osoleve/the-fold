@@ -191,6 +191,16 @@
              (not (error-result? result))
              (verify-decomposition a (car result) (cdr result) 1e-6))))
     'tests 110)
+
+  (define-property "inverse-iteration returns a well-formed eigenvector estimate"
+    gen-positive-diagonal-case
+    (lambda (args)
+      (let* ([a (car args)]
+             [v (inverse-iteration a 0.0 160 1e-10)])
+        (and (vector? v)
+             (= (vector-length v) (matrix-rows a))
+             (> (vec-norm v) 0.0))))
+    'tests 90)
 )
 
 ;;; ============================================================================

@@ -48,6 +48,32 @@
       (gen-map (lambda (n) (cons seed n))
                (gen-int-range 0 60)))))
 
+(define gen-seed-seed-weight
+  (gen-bind gen-seed
+    (lambda (seed1)
+      (gen-bind gen-seed
+        (lambda (seed2)
+          (gen-map (lambda (w-int) (list seed1 seed2 (int->small-float w-int)))
+                   (gen-int-range -300 300)))))))
+
+(define gen-seed-seed-weight-delta
+  (gen-bind gen-seed-seed-weight
+    (lambda (args)
+      (gen-map (lambda (d-int)
+                 (list (car args)
+                       (cadr args)
+                       (caddr args)
+                       (int->small-float d-int)))
+               (gen-int-range -200 200)))))
+
+(define gen-seed-int-list
+  (gen-bind gen-seed
+    (lambda (seed)
+      (gen-bind (gen-int-range 0 12)
+        (lambda (n)
+          (gen-map (lambda (xs) (cons seed xs))
+                   (gen-list-of n gen-small-int)))))))
+
 (define gen-nonempty-log-weights
   (gen-bind (gen-int-range 1 8)
     (lambda (n)
@@ -163,6 +189,93 @@
              [rhs (run-prob (prob-map f (prob-map g p)) prng)])
         (equal? lhs rhs)))
     'tests 180)
+)
+
+;;; ============================================================================
+;;; Probability state surface
+;;; ============================================================================
+
+(test-group probability-state-surface-properties
+
+  (define-property "make-prob creates prob values with accessible state"
+    (gen-bind gen-small-int
+      (lambda (x)
+        (gen-map (lambda (seed) (cons x seed)) gen-seed)))
+    (lambda (pair)
+      (let* ([x (car pair)]
+             [seed (cdr pair)]
+             [base (prob-pure x)]
+             [p (make-prob (prob-state base))]
+             [out (run-prob p (make-pcg seed 1))])
+        (and (prob? p)
+             (equal? (prob-state p) (prob-state base))
+             (= (car (car out)) x))))
+    'tests 220)
+
+  (define-property "prob-get-prng and prob-put-prng update PRNG part of state"
+    gen-seed-seed-weight
+    (lambda (args)
+      (let* ([seed1 (car args)]
+             [seed2 (cadr args)]
+             [w (caddr args)]
+             [old-prng (make-pcg seed1 1)]
+             [new-prng (make-pcg seed2 7)]
+             [st (cons old-prng w)]
+             [get-res (run-state prob-get-prng st)]
+             [put-res (run-state (prob-put-prng new-prng) st)]
+             [put-state (cdr put-res)])
+        (and (equal? (car get-res) old-prng)
+             (equal? (cdr get-res) st)
+             (null? (car put-res))
+             (equal? (car put-state) new-prng)
+             (approx= (cdr put-state) w 1e-12))))
+    'tests 220)
+
+  (define-property "prob-get-weight and prob-add-weight update weight part of state"
+    gen-seed-seed-weight-delta
+    (lambda (args)
+      (let* ([seed1 (car args)]
+             [seed2 (cadr args)]
+             [w (caddr args)]
+             [dw (cadddr args)]
+             [prng (make-pcg seed1 seed2)]
+             [st (cons prng w)]
+             [get-res (run-state prob-get-weight st)]
+             [add-res (run-state (prob-add-weight dw) st)]
+             [add-state (cdr add-res)])
+        (and (approx= (car get-res) w 1e-12)
+             (equal? (cdr get-res) st)
+             (null? (car add-res))
+             (equal? (car add-state) prng)
+             (approx= (cdr add-state) (+ w dw) 1e-12))))
+    'tests 220)
+
+  (define-property "sample-prob matches value from run-prob"
+    (gen-bind gen-seed
+      (lambda (seed)
+        (gen-map (lambda (bounds) (list seed (car bounds) (cadr bounds)))
+                 gen-range-args)))
+    (lambda (args)
+      (let* ([seed (car args)]
+             [lo (cadr args)]
+             [hi (caddr args)]
+             [prng (make-pcg seed 1)]
+             [p (prob-uniform-int lo hi)]
+             [sampled (sample-prob p prng)]
+             [ran (run-prob p prng)])
+        (= sampled (car (car ran)))))
+    'tests 220)
+
+  (define-property "prob-sequence preserves order of pure values"
+    gen-seed-int-list
+    (lambda (pair)
+      (let* ([seed (car pair)]
+             [xs (cdr pair)]
+             [probs (map prob-pure xs)]
+             [seq (prob-sequence probs)]
+             [out (sample-prob seq (make-pcg seed 1))])
+        (equal? out xs)))
+    'tests 220)
 )
 
 ;;; ============================================================================

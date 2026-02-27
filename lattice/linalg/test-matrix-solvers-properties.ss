@@ -253,6 +253,43 @@
 )
 
 ;;; ============================================================================
+;;; Solver surface properties
+;;; ============================================================================
+
+(test-group matrix-solver-surface-properties
+
+  (define-property "forward/back substitute and elimination helpers are consistent"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([l (matrix-from-lists '((1 0 0)
+                                     (2 1 0)
+                                     (3 4 1)))]
+             [u (matrix-from-lists '((2 1 1)
+                                     (0 3 1)
+                                     (0 0 4)))]
+             [x (vector 1 2 3)]
+             [b-l (matrix-vec-mul l x)]
+             [b-u (matrix-vec-mul u x)]
+             [x1 (matrix-forward-substitute l b-l)]
+             [x2 (matrix-back-substitute u b-u)]
+             [parity-id (permutation-parity (vector 0 1 2))]
+             [parity-swap (permutation-parity (vector 1 0 2))]
+             [a (matrix-from-lists '((2 1 0)
+                                     (4 3 1)
+                                     (6 5 2)))]
+             [ref (matrix-gauss-elim a)])
+        (and (vector? x1)
+             (vector? x2)
+             (vector-approx=? x1 x 1e-9)
+             (vector-approx=? x2 x 1e-9)
+             (= parity-id 1)
+             (= parity-swap -1)
+             (= (matrix-rows ref) (matrix-rows a))
+             (= (matrix-cols ref) (matrix-cols a)))))
+    'tests 20)
+)
+
+;;; ============================================================================
 ;;; Run
 ;;; ============================================================================
 

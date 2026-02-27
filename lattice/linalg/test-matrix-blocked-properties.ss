@@ -5,6 +5,14 @@
 (require 'quickcheck)
 (require 'matrix)
 (require 'matrix-blocked)
+(require 'matrix-blocked-decomp)
+
+;;; ============================================================================
+;;; Helpers
+;;; ============================================================================
+
+(define (approx= a b tol)
+  (< (abs (- a b)) tol))
 
 ;;; ============================================================================
 ;;; Generators
@@ -71,6 +79,24 @@
              [plain (matrix-mul a b)])
         (matrix-equal? strassen plain)))
     'tests 120)
+
+  (define-property "blocked decomposition kernels update expected entries"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([lu-data (vector 2.0 1.0
+                              4.0 3.0)]
+             [_lu (lu-column-update lu-data 2 0 1 2)]
+             [q-data (vector 1.0 0.0
+                             0.0 1.0)]
+             [r-data (vector 0.0 0.0
+                             0.0 0.0)]
+             [_qr (qr-column-orthogonalize q-data r-data 2 2 0 1 2)])
+        (and (approx= (vector-ref lu-data 2) 2.0 1e-12)
+             (approx= (vector-ref lu-data 3) 1.0 1e-12)
+             (approx= (vector-ref r-data 1) 0.0 1e-12)
+             (approx= (vector-ref q-data 0) 1.0 1e-12)
+             (approx= (vector-ref q-data 3) 1.0 1e-12))))
+    'tests 20)
 )
 
 ;;; ============================================================================

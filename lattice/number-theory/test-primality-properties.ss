@@ -28,6 +28,9 @@
       (car xs)
       (last-item (cdr xs))))
 
+(define (product xs)
+  (if (null? xs) 1 (apply * xs)))
+
 (define (no-prime-in-open-interval? lo hi)
   (let loop ([k (+ lo 1)])
     (or (>= k hi)
@@ -174,6 +177,51 @@
              (= 0 (modulo n r))
              (<= r n))))
     'tests 220)
+
+  (define-property "trial-division factors reconstruct n and are prime"
+    (gen-int-range 2 20000)
+    (lambda (n)
+      (let ([factors (trial-division n)])
+        (and (= n (product factors))
+             (all-satisfy? prime? factors))))
+    'tests 200)
+
+  (define-property "coprime? matches gcd = 1"
+    (gen-bind (gen-int-range 1 20000)
+      (lambda (a)
+        (gen-map (lambda (b) (cons a b))
+                 (gen-int-range 1 20000))))
+    (lambda (pair)
+      (let ([a (car pair)] [b (cdr pair)])
+        (equal? (coprime? a b)
+                (= 1 (gcd a b)))))
+    'tests 220)
+
+  (define-property "lcm and gcd satisfy lcm(a,b)*gcd(a,b)=a*b for positive ints"
+    (gen-bind (gen-int-range 1 20000)
+      (lambda (a)
+        (gen-map (lambda (b) (cons a b))
+                 (gen-int-range 1 20000))))
+    (lambda (pair)
+      (let* ([a (car pair)]
+             [b (cdr pair)]
+             [g (gcd a b)]
+             [l (lcm a b)])
+        (= (* l g) (* a b))))
+    'tests 220)
+
+  (define-property "gcd* and lcm* are lower/upper divisibility bounds"
+    (gen-list (gen-int-range 1 500))
+    (lambda (xs)
+      (if (null? xs)
+          (and (= 0 (gcd* xs))
+               (= 1 (lcm* xs)))
+          (let ([g (gcd* xs)]
+                [l (lcm* xs)])
+            (and (all-satisfy? (lambda (x) (= 0 (modulo x g))) xs)
+                 (all-satisfy? (lambda (x) (= 0 (modulo l x))) xs)))))
+    'tests 200
+    'max-size 8)
 )
 
 ;;; ============================================================================

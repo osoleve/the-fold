@@ -76,6 +76,30 @@
           (gen-map (lambda (r3) (list r1 r2 r3))
                    (gen-int-range 0 6)))))))
 
+(define gen-odd-mod-and-a
+  (gen-bind (gen-map (lambda (k) (+ 3 (* 2 k)))
+                     (gen-int-range 0 120))
+    (lambda (m)
+      (gen-map (lambda (a) (list m a))
+               (gen-int-range 0 5000)))))
+
+(define gen-mod-and-ab
+  (gen-bind (gen-map (lambda (k) (+ 3 (* 2 k)))
+                     (gen-int-range 0 120))
+    (lambda (m)
+      (gen-bind (gen-int-range 0 5000)
+        (lambda (a)
+          (gen-map (lambda (b) (list m a b))
+                   (gen-int-range 0 5000)))))))
+
+(define gen-residue-mod-7
+  (gen-map (lambda (x) (modulo (* x x) 7))
+           (gen-int-range 1 6)))
+
+(define gen-residue-mod-13
+  (gen-map (lambda (x) (modulo (* x x) 13))
+           (gen-int-range 1 12)))
+
 ;;; ============================================================================
 ;;; Modular arithmetic laws
 ;;; ============================================================================
@@ -231,6 +255,92 @@
     (lambda (p)
       (= (euler-totient p) (- p 1)))
     'tests 150)
+)
+
+;;; ============================================================================
+;;; Montgomery / modular square-root coverage gaps
+;;; ============================================================================
+
+(test-group modular-advanced-properties
+
+  (define-property "Montgomery reduce undoes to-montgomery"
+    gen-odd-mod-and-a
+    (lambda (args)
+      (let* ([m (car args)]
+             [a (cadr args)]
+             [setup (montgomery-setup m)]
+             [R (car setup)]
+             [m-prime (cadr setup)]
+             [a-mont (to-montgomery a m R)])
+        (= (modulo a m)
+           (montgomery-reduce a-mont m R m-prime))))
+    'tests 220)
+
+  (define-property "from-montgomery roundtrip"
+    gen-odd-mod-and-a
+    (lambda (args)
+      (let* ([m (car args)]
+             [a (cadr args)]
+             [setup (montgomery-setup m)]
+             [R (car setup)]
+             [m-prime (cadr setup)]
+             [a-mont (to-montgomery a m R)])
+        (= (modulo a m)
+           (from-montgomery a-mont m R m-prime))))
+    'tests 220)
+
+  (define-property "montgomery-mult agrees with modular multiplication"
+    gen-mod-and-ab
+    (lambda (args)
+      (let* ([m (car args)]
+             [a (cadr args)]
+             [b (caddr args)]
+             [setup (montgomery-setup m)]
+             [R (car setup)]
+             [m-prime (cadr setup)]
+             [a-mont (to-montgomery a m R)]
+             [b-mont (to-montgomery b m R)]
+             [prod-mont (montgomery-mult a-mont b-mont m R m-prime)]
+             [prod (from-montgomery prod-mont m R m-prime)])
+        (= (mod* a b m) prod)))
+    'tests 220)
+
+  (define-property "montgomery-expt agrees with mod-expt for odd moduli"
+    (gen-bind (gen-map (lambda (k) (+ 3 (* 2 k))) (gen-int-range 0 120))
+      (lambda (m)
+        (gen-bind (gen-int-range 0 5000)
+          (lambda (a)
+            (gen-map (lambda (e) (list m a e))
+                     (gen-int-range 0 25))))))
+    (lambda (args)
+      (let ([m (car args)] [a (cadr args)] [e (caddr args)])
+        (= (mod-expt a e m)
+           (montgomery-expt a e m))))
+    'tests 220)
+
+  (define-property "quadratic residues from squares pass quadratic-residue?"
+    gen-residue-mod-7
+    (lambda (a)
+      (quadratic-residue? a 7))
+    'tests 220)
+
+  (define-property "mod-sqrt and mod-sqrt-both validate by squaring"
+    gen-residue-mod-7
+    (lambda (a)
+      (let* ([r (mod-sqrt a 7)]
+             [roots (mod-sqrt-both a 7)])
+        (and r
+             (= a (mod* r r 7))
+             roots
+             (all-satisfy? (lambda (x) (= a (mod* x x 7))) roots))))
+    'tests 220)
+
+  (define-property "Tonelli-Shanks root squares back for p = 13"
+    gen-residue-mod-13
+    (lambda (a)
+      (let ([r (tonelli-shanks a 13)])
+        (= a (mod* r r 13))))
+    'tests 180)
 )
 
 ;;; ============================================================================
