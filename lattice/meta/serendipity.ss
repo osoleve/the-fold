@@ -44,9 +44,11 @@ Returns up to 15 sibling exports (excluding the input symbol).")
   (hamt-lookup sym *export-module-map*))
 
 (doc export-skill 'type (-> Symbol (Maybe Symbol)))
-(doc export-skill 'description "Find which skill an export belongs to.")
+(doc export-skill 'description "Find which skill an export belongs to.
+Uses the direct export→skill HAMT for O(1) lookup.")
 (define (export-skill sym)
-  (lattice-export-source sym))
+  (ensure-indexed!)
+  (hamt-lookup sym *export-skill-map*))
 
 ;;; ====
 ;;; Co-Skill Related Exports
@@ -60,7 +62,7 @@ Returns a list of (export-name . module-name) pairs, up to k results.
 These are the 'nearby but not adjacent' functions — same domain, different facet.")
 (define (co-skill-exports sym k)
   (ensure-indexed!)
-  (let ([skill (lattice-export-source sym)]
+  (let ([skill (hamt-lookup sym *export-skill-map*)]
         [own-mod (hamt-lookup sym *export-module-map*)])
     (if (not skill)
         '()
@@ -72,7 +74,7 @@ These are the 'nearby but not adjacent' functions — same domain, different fac
                 (when (and (not (eq? name sym))
                            mod
                            (not (eq? mod own-mod))
-                           (eq? skill (lattice-export-source name)))
+                           (eq? skill (hamt-lookup name *export-skill-map*)))
                   (set! results (cons (cons name mod) results)))))
             (kg-exports))
           (take k (reverse results))))))

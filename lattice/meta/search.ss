@@ -33,6 +33,9 @@
 (doc *module-skill-map* 'description "Reverse map: module require path → skill name (e.g., vec → linalg)")
 (define *module-skill-map* hamt-empty)
 
+(doc *export-skill-map* 'description "Direct map: export symbol → skill name (e.g., hamt-lookup → data)")
+(define *export-skill-map* hamt-empty)
+
 (doc *search-ready* 'description "Flag indicating search indices are built")
 (define *search-ready* #f)
 
@@ -58,6 +61,7 @@
   (set! *module-cache* '())
   (set! *export-module-map* hamt-empty)
   (set! *module-skill-map* hamt-empty)
+  (set! *export-skill-map* hamt-empty)
 
   ;; Build docstring cache only if not already populated from cache
   (when (zero? (hamt-size *docstrings*))
@@ -168,6 +172,39 @@
                                                              (hamt-assoc sym mod-name *export-module-map*))))
                                          syms))))))
               mod-names)))
+
+  ;; Build direct export→skill map from manifest exports
+  ;; Mirrors lattice-export-source logic but done once at index time
+  (set! *export-skill-map*
+        (fold-left
+         (lambda (m skill-name)
+           (let* ([data (kg-skill-data skill-name)]
+                  [exports-raw (if data
+                                   (let ([e (assq 'exports data)])
+                                     (if e (cdr e) '()))
+                                   '())])
+             (cond
+              [(or (not (list? exports-raw)) (null? exports-raw)) m]
+              ;; Flat format: (sym1 sym2 ...)
+              [(symbol? (car exports-raw))
+               (fold-left (lambda (m2 sym)
+                            (if (hamt-lookup sym m2) m2
+                                (hamt-assoc sym skill-name m2)))
+                          m exports-raw)]
+              ;; Grouped: ((module sym1 sym2 ...) ...)
+              [else
+               (fold-left
+                (lambda (m2 group)
+                  (if (pair? group)
+                      (fold-left (lambda (m3 sym)
+                                   (if (and (symbol? sym) (not (hamt-lookup sym m3)))
+                                       (hamt-assoc sym skill-name m3)
+                                       m3))
+                                 m2 group)
+                      m2))
+                m exports-raw)])))
+         hamt-empty
+         (kg-skills)))
 
   ;; Index all exports (with docstrings, module info, and type signatures)
   (set! *export-index*
