@@ -11,68 +11,58 @@
 
 (doc 'module 'profunctor-optics)
 (doc 'purity 'total)
-(doc 'description "Part 1: Profunctor Type Class A profunctor is a bifunctor that is contravariant in its first argument and covariant in its second: class Profunctor p where dimap :: (a' -> a) -> (b -> b') -> p a b -> p a' b'")
+(doc 'description "Profunctor optics: the full optic hierarchy encoded via profunctor constraints. Profunctor p => dimap :: (a' -> a) -> (b -> b') -> p a b -> p a' b'")
 (doc 'layer 'lattice)
+
+(doc 'section 'profunctor-type-class)
+
 (define (make-profunctor dimap-fn)
+  (doc 'type '(-> (-> (-> a2 a) (-> b b2) (-> (p a b) (p a2 b2))) (Profunctor p)))
   (doc 'export #t)
   (list 'profunctor
         dimap-fn
         (lambda (f pa) (dimap-fn f identity pa))    ; lmap
         (lambda (g pa) (dimap-fn identity g pa))))  ; rmap
 
-;;; profunctor? : alpha -> Boolean
 (define (profunctor? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'profunctor)))
 
-;;; profunctor-dimap : Profunctor -> ((a' -> a) -> (b -> b') -> p a b -> p a' b')
 (define (profunctor-dimap p)
+  (doc 'type '(-> (Profunctor p) (-> (-> a2 a) (-> b b2) (-> (p a b) (p a2 b2)))))
   (doc 'export #t)
   (cadr p))
 
-;;; profunctor-lmap : Profunctor -> ((a' -> a) -> p a b -> p a' b)
 (define (profunctor-lmap p)
+  (doc 'type '(-> (Profunctor p) (-> (-> a2 a) (-> (p a b) (p a2 b)))))
   (doc 'export #t)
   (caddr p))
 
-;;; profunctor-rmap : Profunctor -> ((b -> b') -> p a b -> p a b')
 (define (profunctor-rmap p)
+  (doc 'type '(-> (Profunctor p) (-> (-> b b2) (-> (p a b) (p a b2)))))
   (doc 'export #t)
   (cadddr p))
 
-;;; dimap : Profunctor -> (a' -> a) -> (b -> b') -> p a b -> p a' b'
-;;; Apply dimap from a profunctor dictionary.
 (define (dimap prof f g pa)
+  (doc 'type '(-> (Profunctor p) (-> a2 a) (-> b b2) (p a b) (p a2 b2)))
   (doc 'export #t)
   ((profunctor-dimap prof) f g pa))
 
-;;; lmap : Profunctor -> (a' -> a) -> p a b -> p a' b
-;;; Contravariant map on first argument.
 (define (lmap prof f pa)
+  (doc 'type '(-> (Profunctor p) (-> a2 a) (p a b) (p a2 b)))
   (doc 'export #t)
   ((profunctor-lmap prof) f pa))
 
-;;; rmap : Profunctor -> (b -> b') -> p a b -> p a b'
-;;; Covariant map on second argument.
 (define (rmap prof g pa)
+  (doc 'type '(-> (Profunctor p) (-> b b2) (p a b) (p a b2)))
   (doc 'export #t)
   ((profunctor-rmap prof) g pa))
 
-;;; ============================================================
-;;; Part 2: Strong Profunctor (for Lenses)
-;;; ============================================================
-;;;
-;;; A strong profunctor can "pass through" extra context in a pair:
-;;;
-;;;   class Profunctor p => Strong p where
-;;;     pfirst  :: p a b -> p (a, c) (b, c)
-;;;     psecond :: p a b -> p (c, a) (c, b)
-;;;
-;;; Lenses require Strong profunctors.
+(doc 'section 'strong-profunctor)
 
-;;; make-strong : Profunctor -> (pfirst-fn) -> Strong
-;;; Create a strong profunctor. psecond is derived from pfirst + swap.
 (define (make-strong prof first-fn)
+  (doc 'type '(-> (Profunctor p) (-> (p a b) (p (Pair a c) (Pair b c))) (Strong p)))
   (doc 'export #t)
   (list 'strong
         prof
@@ -81,53 +71,40 @@
         (lambda (pab)
           (dimap prof swap swap (first-fn pab)))))
 
-;;; strong? : alpha -> Boolean
 (define (strong? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'strong)))
 
-;;; strong-profunctor : Strong -> Profunctor
 (define (strong-profunctor s)
+  (doc 'type '(-> (Strong p) (Profunctor p)))
   (doc 'export #t)
   (cadr s))
 
-;;; strong-first : Strong -> (p a b -> p (a, c) (b, c))
 (define (strong-first s)
+  (doc 'type '(-> (Strong p) (-> (p a b) (p (Pair a c) (Pair b c)))))
   (doc 'export #t)
   (caddr s))
 
-;;; strong-second : Strong -> (p a b -> p (c, a) (c, b))
 (define (strong-second s)
+  (doc 'type '(-> (Strong p) (-> (p a b) (p (Pair c a) (Pair c b)))))
   (doc 'export #t)
   (cadddr s))
 
-;;; pfirst : Strong -> p a b -> p (a, c) (b, c)
-;;; Named pfirst (profunctor first) to avoid quote issues with first'.
 (define (pfirst strong pab)
+  (doc 'type '(-> (Strong p) (p a b) (p (Pair a c) (Pair b c))))
   (doc 'export #t)
   ((strong-first strong) pab))
 
-;;; psecond : Strong -> p a b -> p (c, a) (c, b)
-;;; Named psecond (profunctor second) to avoid quote issues with second'.
 (define (psecond strong pab)
+  (doc 'type '(-> (Strong p) (p a b) (p (Pair c a) (Pair c b))))
   (doc 'export #t)
   ((strong-second strong) pab))
 
-;;; ============================================================
-;;; Part 3: Choice Profunctor (for Prisms)
-;;; ============================================================
-;;;
-;;; A choice profunctor can handle sum types (Either):
-;;;
-;;;   class Profunctor p => Choice p where
-;;;     pleft  :: p a b -> p (Either a c) (Either b c)
-;;;     pright :: p a b -> p (Either c a) (Either c b)
-;;;
-;;; Prisms require Choice profunctors.
+(doc 'section 'choice-profunctor)
 
-;;; make-choice : Profunctor -> (pleft-fn) -> Choice
-;;; Create a choice profunctor. pright is derived from pleft + swap-either.
 (define (make-choice prof left-fn)
+  (doc 'type '(-> (Profunctor p) (-> (p a b) (p (Either a c) (Either b c))) (Choice p)))
   (doc 'export #t)
   (list 'choice
         prof
@@ -136,153 +113,111 @@
         (lambda (pab)
           (dimap prof swap-either swap-either (left-fn pab)))))
 
-;;; swap-either : Either a b -> Either b a
 (define (swap-either e)
+  (doc 'type '(-> (Either a b) (Either b a)))
   (if (left? e)
       (right (from-left e))
       (left (from-right e))))
 
-;;; choice? : alpha -> Boolean
 (define (choice? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'choice)))
 
-;;; choice-profunctor : Choice -> Profunctor
 (define (choice-profunctor c)
+  (doc 'type '(-> (Choice p) (Profunctor p)))
   (doc 'export #t)
   (cadr c))
 
-;;; choice-left : Choice -> (p a b -> p (Either a c) (Either b c))
 (define (choice-left c)
+  (doc 'type '(-> (Choice p) (-> (p a b) (p (Either a c) (Either b c)))))
   (doc 'export #t)
   (caddr c))
 
-;;; choice-right : Choice -> (p a b -> p (Either c a) (Either c b))
 (define (choice-right c)
+  (doc 'type '(-> (Choice p) (-> (p a b) (p (Either c a) (Either c b)))))
   (doc 'export #t)
   (cadddr c))
 
-;;; pleft : Choice -> p a b -> p (Either a c) (Either b c)
-;;; Named pleft (profunctor left) to avoid quote issues with left'.
 (define (pleft choice pab)
+  (doc 'type '(-> (Choice p) (p a b) (p (Either a c) (Either b c))))
   (doc 'export #t)
   ((choice-left choice) pab))
 
-;;; pright : Choice -> p a b -> p (Either c a) (Either c b)
-;;; Named pright (profunctor right) to avoid quote issues with right'.
 (define (pright choice pab)
+  (doc 'type '(-> (Choice p) (p a b) (p (Either c a) (Either c b))))
   (doc 'export #t)
   ((choice-right choice) pab))
 
-;;; ============================================================
-;;; Part 4: Closed Profunctor (for Grates)
-;;; ============================================================
-;;;
-;;; A closed profunctor can handle function types:
-;;;
-;;;   class Profunctor p => Closed p where
-;;;     closed :: p a b -> p (x -> a) (x -> b)
-;;;
-;;; Grates require Closed profunctors. This is the dual of Strong:
-;;;   - Strong lifts p a b to pairs: p (a, c) (b, c)
-;;;   - Closed lifts p a b to functions: p (x -> a) (x -> b)
+(doc 'section 'closed-profunctor)
 
-;;; make-closed : Profunctor -> (closed-fn) -> Closed
-;;; Create a closed profunctor dictionary.
 (define (make-closed prof closed-fn)
+  (doc 'type '(-> (Profunctor p) (-> (p a b) (p (-> x a) (-> x b))) (Closed p)))
   (doc 'export #t)
   (list 'closed prof closed-fn))
 
-;;; closed-profunctor? : alpha -> Boolean
 (define (closed-profunctor? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'closed)))
 
-;;; closed-profunctor : Closed -> Profunctor
 (define (closed-profunctor c)
+  (doc 'type '(-> (Closed p) (Profunctor p)))
   (doc 'export #t)
   (cadr c))
 
-;;; closed-fn : Closed -> (p a b -> p (x -> a) (x -> b))
 (define (closed-fn c)
+  (doc 'type '(-> (Closed p) (-> (p a b) (p (-> x a) (-> x b)))))
   (doc 'export #t)
   (caddr c))
 
-;;; pclosed : Closed -> p a b -> p (x -> a) (x -> b)
-;;; Apply closed lifting from a closed profunctor dictionary.
 (define (pclosed closed pab)
+  (doc 'type '(-> (Closed p) (p a b) (p (-> x a) (-> x b))))
   (doc 'export #t)
   ((closed-fn closed) pab))
 
-;;; ============================================================
-;;; Part 5: Wander Profunctor (for Traversals)
-;;; ============================================================
-;;;
-;;; The Wander class captures profunctors that can handle traversals.
-;;; This is the profunctor equivalent of an applicative functor traversal.
-;;;
-;;;   class (Strong p, Choice p) => Wander p where
-;;;     wander :: (forall f. Applicative f => (a -> f b) -> s -> f t)
-;;;            -> p a b -> p s t
-;;;
-;;; The key insight: wander takes a "traversing function" that works with
-;;; any applicative functor, and lifts p a b through it.
-;;;
-;;; For concrete usage, we provide explicit traverse functions rather than
-;;; requiring forall quantification.
+(doc 'section 'wander-profunctor)
 
-;;; make-wander : Strong -> Choice -> wander-fn -> Wander
-;;; Create a wander profunctor from Strong + Choice + wander implementation.
 (define (make-wander strong choice wander-fn)
+  (doc 'type '(-> (Strong p) (Choice p) (-> Traverser (p a b) (p s t)) (Wander p)))
   (doc 'export #t)
   (list 'wander strong choice wander-fn))
 
-;;; wander? : alpha -> Boolean
 (define (wander? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'wander)))
 
-;;; wander-strong : Wander -> Strong
 (define (wander-strong w)
+  (doc 'type '(-> (Wander p) (Strong p)))
   (doc 'export #t)
   (cadr w))
 
-;;; wander-choice : Wander -> Choice
 (define (wander-choice w)
+  (doc 'type '(-> (Wander p) (Choice p)))
   (doc 'export #t)
   (caddr w))
 
-;;; wander-fn : Wander -> ((traverser × p a b) -> p s t)
-;;; The traverser is a function (a -> F b) -> s -> F t for applicative F.
 (define (wander-wander w)
+  (doc 'type '(-> (Wander p) (-> Traverser (p a b) (p s t))))
   (doc 'export #t)
   (cadddr w))
 
-;;; pwander : Wander -> Traverser -> p a b -> p s t
-;;; Apply the wander function.
 (define (pwander wander traverser pab)
+  (doc 'type '(-> (Wander p) Traverser (p a b) (p s t)))
   (doc 'export #t)
   ((wander-wander wander) traverser pab))
 
-;;; ============================================================
-;;; Part 6: Profunctor Instances
-;;; ============================================================
+(doc 'section 'profunctor-instances)
 
-;;; ====
-;;; Function Profunctor (->)
-;;; ====
-;;;
-;;; The function arrow is the canonical profunctor.
-;;; (dimap f g h) x = g (h (f x))
-
-;;; profunctor-fn : Profunctor (->)
+(doc profunctor-fn 'type '(Profunctor (->)))
+(doc profunctor-fn 'description "The function arrow as a profunctor: dimap f g h = g . h . f")
 (doc profunctor-fn 'export #t)
 (define profunctor-fn
   (make-profunctor
    (lambda (f g h)
      (compose2 g (compose2 h f)))))
 
-;;; strong-fn : Strong (->)
-;;; pfirst f (a, c) = (f a, c)
+(doc strong-fn 'type '(Strong (->)))
 (doc strong-fn 'export #t)
 (define strong-fn
   (make-strong
@@ -291,9 +226,7 @@
      (lambda (pair)
        (cons (f (car pair)) (cdr pair))))))
 
-;;; choice-fn : Choice (->)
-;;; pleft f (Left a) = Left (f a)
-;;; pleft f (Right c) = Right c
+(doc choice-fn 'type '(Choice (->)))
 (doc choice-fn 'export #t)
 (define choice-fn
   (make-choice
@@ -304,9 +237,7 @@
            (left (f (from-left e)))
            e)))))
 
-;;; closed-fn-instance : Closed (->)
-;;; closed f = \g -> f . g
-;;; Given f : a -> b, lift to (x -> a) -> (x -> b) by post-composing
+(doc closed-fn-instance 'type '(Closed (->)))
 (doc closed-fn-instance 'export #t)
 (define closed-fn-instance
   (make-closed
@@ -315,10 +246,7 @@
      (lambda (g)
        (compose2 f g)))))
 
-;;; wander-fn : Wander (->)
-;;; For functions, wander uses the identity functor.
-;;; wander traverse f = traverse f
-;;; This works because for the identity functor, traverse is just map.
+(doc wander-fn 'type '(Wander (->)))
 (doc wander-fn 'export #t)
 (define wander-fn
   (make-wander
@@ -329,82 +257,64 @@
      ;; For identity functor, this is just (a -> b) -> s -> t
      (lambda (s) (traverse-fn f s)))))
 
-;;; ====
-;;; Forget Profunctor (for Getters/Folds)
-;;; ====
-;;;
-;;; Forget r a b = a -> r
-;;; Forgets the output type, useful for read-only optics.
-;;;
-;;; We represent Forget as a wrapper around a function.
+(doc 'section 'forget-profunctor)
 
-;;; make-forget : (a -> r) -> Forget r a b
 (define (make-forget f)
+  (doc 'type '(-> (-> a r) (Forget r a b)))
   (doc 'export #t)
   (list 'forget f))
 
-;;; forget? : alpha -> Boolean
 (define (forget? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'forget)))
 
-;;; run-forget : Forget r a b -> a -> r
 (define (run-forget fg)
+  (doc 'type '(-> (Forget r a b) (-> a r)))
   (doc 'export #t)
   (cadr fg))
 
-;;; profunctor-forget : Profunctor (Forget r)
-;;; dimap f g (Forget h) = Forget (h . f)
-;;; (We ignore g since Forget doesn't use b)
+(doc profunctor-forget 'type '(Profunctor (Forget r)))
+(doc profunctor-forget 'description "Forget profunctor: dimap f g (Forget h) = Forget (h . f), ignoring g")
 (doc profunctor-forget 'export #t)
 (define profunctor-forget
   (make-profunctor
    (lambda (f g fg)
      (make-forget (compose2 (run-forget fg) f)))))
 
-;;; strong-forget : Strong (Forget r)
-;;; pfirst (Forget f) = Forget (f . fst)
+(doc strong-forget 'type '(Strong (Forget r)))
 (define strong-forget
   (make-strong
    profunctor-forget
    (lambda (fg)
      (make-forget (compose2 (run-forget fg) car)))))
 
-;;; ====
-;;; Tagged Profunctor (for Reviews)
-;;; ====
-;;;
-;;; Tagged a b = b
-;;; Forgets the input type, useful for constructors/reviews.
-;;;
-;;; We represent Tagged as a wrapper around a value.
+(doc 'section 'tagged-profunctor)
 
-;;; make-tagged : b -> Tagged a b
 (define (make-tagged val)
+  (doc 'type '(-> b (Tagged a b)))
   (doc 'export #t)
   (list 'tagged val))
 
-;;; tagged? : alpha -> Boolean
 (define (tagged? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'tagged)))
 
-;;; run-tagged : Tagged a b -> b
 (define (run-tagged tg)
+  (doc 'type '(-> (Tagged a b) b))
   (doc 'export #t)
   (cadr tg))
 
-;;; profunctor-tagged : Profunctor Tagged
-;;; dimap f g (Tagged b) = Tagged (g b)
-;;; (We ignore f since Tagged doesn't use a)
+(doc profunctor-tagged 'type '(Profunctor Tagged))
+(doc profunctor-tagged 'description "Tagged profunctor: dimap f g (Tagged b) = Tagged (g b), ignoring f")
 (doc profunctor-tagged 'export #t)
 (define profunctor-tagged
   (make-profunctor
    (lambda (f g tg)
      (make-tagged (g (run-tagged tg))))))
 
-;;; choice-tagged : Choice Tagged
-;;; pleft (Tagged b) = Tagged (Left b)
+(doc choice-tagged 'type '(Choice Tagged))
 (doc choice-tagged 'export #t)
 (define choice-tagged
   (make-choice
@@ -412,236 +322,177 @@
    (lambda (tg)
      (make-tagged (left (run-tagged tg))))))
 
-;;; ====
-;;; Star Profunctor (for Traversals)
-;;; ====
-;;;
-;;; Star f a b = a -> f b
-;;; Where f is a Functor/Applicative.
+(doc 'section 'star-profunctor)
 
-;;; make-star : Functor -> (a -> f b) -> Star f a b
 (define (make-star functor run-fn)
+  (doc 'type '(-> (FunctorDict f) (-> a (f b)) (Star f a b)))
   (list 'star functor run-fn))
 
-;;; star? : alpha -> Boolean
 (define (star? x)
+  (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'star)))
 
-;;; star-functor : Star f a b -> Functor f
 (define (star-functor s)
+  (doc 'type '(-> (Star f a b) (FunctorDict f)))
   (cadr s))
 
-;;; run-star : Star f a b -> (a -> f b)
 (define (run-star s)
+  (doc 'type '(-> (Star f a b) (-> a (f b))))
   (caddr s))
 
-;;; profunctor-star : Functor f -> Profunctor (Star f)
-;;; dimap f g (Star h) = Star (fmap g . h . f)
 (define (profunctor-star functor)
+  (doc 'type '(-> (FunctorDict f) (Profunctor (Star f))))
   (make-profunctor
    (lambda (f g st)
      (make-star functor
                 (compose2 (lambda (fb) ((functor-fmap functor) g fb))
                           (compose2 (run-star st) f))))))
 
-;;; ============================================================
-;;; Part 5: Profunctor Optics
-;;; ============================================================
-;;;
-;;; Optics as polymorphic functions constrained by profunctor classes.
-;;;
-;;; An optic is represented as a function that transforms profunctors:
-;;;   optic :: forall p. Constraints p => p a b -> p s t
-;;;
-;;; We encode this as a record containing the transformation function
-;;; along with metadata about which constraints are needed.
+(doc 'section 'profunctor-optics)
 
-;;; ====
-;;; Profunctor Iso
-;;; ====
-;;;
-;;; Iso s t a b ~ forall p. Profunctor p => p a b -> p s t
-;;; Implementation: dimap (s -> a) (b -> t)
-
-;;; make-p-iso : (s -> a) -> (b -> t) -> PIso s t a b
 (define (make-p-iso forward backward)
+  (doc 'type '(-> (-> s a) (-> b t) (PIso s t a b)))
   (doc 'export #t)
   (list 'p-iso forward backward))
 
-;;; p-iso? : alpha -> Boolean
 (define (p-iso? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-iso)))
 
-;;; p-iso-forward : PIso -> (s -> a)
 (define (p-iso-forward iso)
+  (doc 'type '(-> (PIso s t a b) (-> s a)))
   (doc 'export #t)
   (cadr iso))
 
-;;; p-iso-backward : PIso -> (b -> t)
 (define (p-iso-backward iso)
+  (doc 'type '(-> (PIso s t a b) (-> b t)))
   (doc 'export #t)
   (caddr iso))
 
-;;; run-p-iso : Profunctor -> PIso s t a b -> p a b -> p s t
-;;; Apply the iso transformation using a profunctor instance.
 (define (run-p-iso prof iso pab)
+  (doc 'type '(-> (Profunctor p) (PIso s t a b) (p a b) (p s t)))
   (dimap prof (p-iso-forward iso) (p-iso-backward iso) pab))
 
-;;; p-iso-compose : PIso s t a b -> PIso a b c d -> PIso s t c d
 (define (p-iso-compose outer inner)
+  (doc 'type '(-> (PIso s t a b) (PIso a b c d) (PIso s t c d)))
   (doc 'export #t)
   (make-p-iso
    (compose2 (p-iso-forward inner) (p-iso-forward outer))
    (compose2 (p-iso-backward outer) (p-iso-backward inner))))
 
-;;; ====
-;;; Profunctor Lens
-;;; ====
-;;;
-;;; Lens s t a b ~ forall p. Strong p => p a b -> p s t
-;;; Implementation uses the "shop" representation internally:
-;;;   Lens (s -> a) (s -> b -> t)
+(doc 'section 'profunctor-lens)
 
-;;; make-p-lens : (s -> a) -> (s -> b -> t) -> PLens s t a b
 (define (make-p-lens getter setter)
+  (doc 'type '(-> (-> s a) (-> s (-> b t)) (PLens s t a b)))
   (doc 'export #t)
   (list 'p-lens getter setter))
 
-;;; p-lens? : alpha -> Boolean
 (define (p-lens? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-lens)))
 
-;;; p-lens-getter : PLens -> (s -> a)
 (define (p-lens-getter lens)
+  (doc 'type '(-> (PLens s t a b) (-> s a)))
   (doc 'export #t)
   (cadr lens))
 
-;;; p-lens-setter : PLens -> (s -> b -> t)
 (define (p-lens-setter lens)
+  (doc 'type '(-> (PLens s t a b) (-> s (-> b t))))
   (doc 'export #t)
   (caddr lens))
 
-;;; run-p-lens : Strong -> PLens s t a b -> p a b -> p s t
-;;; Apply the lens transformation using a strong profunctor.
-;;;
-;;; The trick: use pfirst to handle (a, s) -> (b, s), then dimap
-;;; to convert s -> (a, s) and (b, s) -> t.
 (define (run-p-lens strong lens pab)
+  (doc 'type '(-> (Strong p) (PLens s t a b) (p a b) (p s t)))
   (let* ([prof (strong-profunctor strong)]
          [get (p-lens-getter lens)]
          [set (p-lens-setter lens)]
-         ;; s -> (a, s)
          [split (lambda (s) (cons (get s) s))]
-         ;; (b, s) -> t
          [combine (lambda (bs) ((set (cdr bs)) (car bs)))])
     (dimap prof split combine (pfirst strong pab))))
 
-;;; p-lens-compose : PLens s t a b -> PLens a b c d -> PLens s t c d
 (define (p-lens-compose outer inner)
+  (doc 'type '(-> (PLens s t a b) (PLens a b c d) (PLens s t c d)))
   (doc 'export #t)
   (make-p-lens
-   ;; getter: s -> c
    (compose2 (p-lens-getter inner) (p-lens-getter outer))
-   ;; setter: s -> d -> t
    (lambda (s)
      (lambda (d)
        (let* ([a ((p-lens-getter outer) s)]
               [b (((p-lens-setter inner) a) d)])
          (((p-lens-setter outer) s) b))))))
 
-;;; ====
-;;; Profunctor Prism
-;;; ====
-;;;
-;;; Prism s t a b ~ forall p. Choice p => p a b -> p s t
-;;; Implementation uses the "market" representation:
-;;;   Prism (s -> Either t a) (b -> t)
+(doc 'section 'profunctor-prism)
 
-;;; make-p-prism : (s -> Either t a) -> (b -> t) -> PPrism s t a b
 (define (make-p-prism match build)
+  (doc 'type '(-> (-> s (Either t a)) (-> b t) (PPrism s t a b)))
   (doc 'export #t)
   (list 'p-prism match build))
 
-;;; p-prism? : alpha -> Boolean
 (define (p-prism? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-prism)))
 
-;;; p-prism-match : PPrism -> (s -> Either t a)
 (define (p-prism-match prism)
+  (doc 'type '(-> (PPrism s t a b) (-> s (Either t a))))
   (doc 'export #t)
   (cadr prism))
 
-;;; p-prism-build : PPrism -> (b -> t)
 (define (p-prism-build prism)
+  (doc 'type '(-> (PPrism s t a b) (-> b t)))
   (doc 'export #t)
   (caddr prism))
 
-;;; run-p-prism : Choice -> PPrism s t a b -> p a b -> p s t
-;;; Apply the prism transformation using a choice profunctor.
 (define (run-p-prism choice prism pab)
+  (doc 'type '(-> (Choice p) (PPrism s t a b) (p a b) (p s t)))
   (let* ([prof (choice-profunctor choice)]
          [match (p-prism-match prism)]
          [build (p-prism-build prism)]
-         ;; Either t b -> t
          [merge (lambda (e)
                   (if (left? e) (from-left e) (build (from-right e))))])
     (dimap prof match merge (pright choice pab))))
 
-;;; p-prism-compose : PPrism s t a b -> PPrism a b c d -> PPrism s t c d
 (define (p-prism-compose outer inner)
+  (doc 'type '(-> (PPrism s t a b) (PPrism a b c d) (PPrism s t c d)))
   (doc 'export #t)
   (make-p-prism
-   ;; match: s -> Either t c
    (lambda (s)
      (let ([e ((p-prism-match outer) s)])
        (if (left? e)
-           e  ; Already failed with t
+           e
            (let ([a (from-right e)])
              (let ([e2 ((p-prism-match inner) a)])
                (if (left? e2)
-                   ;; Inner failed with b, need to build back to t
                    (left ((p-prism-build outer) (from-left e2)))
                    e2))))))
-   ;; build: d -> t
    (compose2 (p-prism-build outer) (p-prism-build inner))))
 
-;;; ====
-;;; Profunctor Affine
-;;; ====
-;;;
-;;; Affine s t a b ~ forall p. (Strong p, Choice p) => p a b -> p s t
-;;; Implementation combines lens and prism:
-;;;   Affine (s -> Either t a) (s -> b -> t)
+(doc 'section 'profunctor-affine)
 
-;;; make-p-affine : (s -> Either t a) -> (s -> b -> t) -> PAffine s t a b
 (define (make-p-affine preview set)
+  (doc 'type '(-> (-> s (Either t a)) (-> s (-> b t)) (PAffine s t a b)))
   (doc 'export #t)
   (list 'p-affine preview set))
 
-;;; p-affine? : alpha -> Boolean
 (define (p-affine? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-affine)))
 
-;;; p-affine-preview : PAffine -> (s -> Either t a)
 (define (p-affine-preview affine)
+  (doc 'type '(-> (PAffine s t a b) (-> s (Either t a))))
   (doc 'export #t)
   (cadr affine))
 
-;;; p-affine-set : PAffine -> (s -> b -> t)
 (define (p-affine-set affine)
+  (doc 'type '(-> (PAffine s t a b) (-> s (-> b t))))
   (doc 'export #t)
   (caddr affine))
 
-;;; run-p-affine : Strong -> Choice -> PAffine -> p a b -> p s t
-;;; Apply the affine transformation using both Strong and Choice.
-;;;
-;;; We use the stall representation: first use pright for the Either,
-;;; then use pfirst to handle the original s for the setter.
 (define (run-p-affine strong choice affine pab)
+  (doc 'type '(-> (Strong p) (Choice p) (PAffine s t a b) (p a b) (p s t)))
   (let* ([prof-s (strong-profunctor strong)]
          [prof-c (choice-profunctor choice)]
          [preview-fn (p-affine-preview affine)]
@@ -661,8 +512,8 @@
     (dimap prof-s split merge
            (pright choice (pfirst strong pab)))))
 
-;;; p-affine-compose : PAffine s t a b -> PAffine a b c d -> PAffine s t c d
 (define (p-affine-compose outer inner)
+  (doc 'type '(-> (PAffine s t a b) (PAffine a b c d) (PAffine s t c d)))
   (doc 'export #t)
   (make-p-affine
    ;; preview: s -> Either t c
@@ -686,65 +537,50 @@
                     [b (((p-affine-set inner) a) d)])
                (((p-affine-set outer) s) b))))))))
 
-;;; ====
-;;; Profunctor Traversal
-;;; ====
-;;;
-;;; Traversal s t a b ~ forall p. Wander p => p a b -> p s t
-;;;
-;;; A traversal focuses on zero or more targets within a structure.
-;;; The representation uses a traverse function and a fold function:
-;;;   PTraversal (((a -> b) -> s -> t) × (s -> List a))
-;;;
-;;; The traverse function works like map for the identity functor,
-;;; and the fold function extracts all targets as a list.
+(doc 'section 'profunctor-traversal)
 
-;;; make-p-traversal : ((a -> b) -> s -> t) × (s -> List a) -> PTraversal s t a b
 (define (make-p-traversal traverse-fn fold-fn)
+  (doc 'type '(-> (-> (-> a b) s t) (-> s (List a)) (PTraversal s t a b)))
   (doc 'export #t)
   (list 'p-traversal traverse-fn fold-fn))
 
-;;; p-traversal? : alpha -> Boolean
 (define (p-traversal? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-traversal)))
 
-;;; p-traversal-traverse : PTraversal -> ((a -> b) -> s -> t)
 (define (p-traversal-traverse ptrav)
+  (doc 'type '(-> (PTraversal s t a b) (-> (-> a b) s t)))
   (doc 'export #t)
   (cadr ptrav))
 
-;;; p-traversal-fold : PTraversal -> (s -> List a)
 (define (p-traversal-fold-fn ptrav)
+  (doc 'type '(-> (PTraversal s t a b) (-> s (List a))))
   (doc 'export #t)
   (caddr ptrav))
 
-;;; run-p-traversal : Wander -> PTraversal s t a b -> p a b -> p s t
-;;; Apply the traversal using a wander profunctor.
 (define (run-p-traversal wander ptrav pab)
+  (doc 'type '(-> (Wander p) (PTraversal s t a b) (p a b) (p s t)))
   (doc 'export #t)
   (pwander wander (p-traversal-traverse ptrav) pab))
 
-;;; p-traversal-to-list : PTraversal × s -> List a
-;;; Get all targets as a list.
 (define (p-traversal-to-list ptrav s)
+  (doc 'type '(-> (PTraversal s t a b) s (List a)))
   (doc 'export #t)
   ((p-traversal-fold-fn ptrav) s))
 
-;;; p-traversal-over : PTraversal × (a -> b) × s -> t
-;;; Modify all targets.
 (define (p-traversal-over ptrav f s)
+  (doc 'type '(-> (PTraversal s t a b) (-> a b) s t))
   (doc 'export #t)
   ((p-traversal-traverse ptrav) f s))
 
-;;; p-traversal-set : PTraversal × b × s -> t
-;;; Set all targets to same value.
 (define (p-traversal-set ptrav b s)
+  (doc 'type '(-> (PTraversal s t a b) b s t))
   (doc 'export #t)
   (p-traversal-over ptrav (const b) s))
 
-;;; p-traversal-compose : PTraversal s t a b × PTraversal a b c d -> PTraversal s t c d
 (define (p-traversal-compose outer inner)
+  (doc 'type '(-> (PTraversal s t a b) (PTraversal a b c d) (PTraversal s t c d)))
   (doc 'export #t)
   (make-p-traversal
    ;; traverse: (c -> d) -> s -> t
@@ -757,152 +593,125 @@
      (append-map (p-traversal-fold-fn inner)
                  ((p-traversal-fold-fn outer) s)))))
 
-;;; ====
-;;; Common Profunctor Traversals
-;;; ====
-
-;;; p-traversal-each : PTraversal (List a) (List b) a b
-;;; Traverse each element of a list.
+(doc p-traversal-each 'type '(PTraversal (List a) (List b) a b))
 (doc p-traversal-each 'export #t)
 (define p-traversal-each
   (make-p-traversal
    (lambda (f xs) (map f xs))
    identity))
 
-;;; p-traversal-both : PTraversal (a . a) (b . b) a b
-;;; Traverse both elements of a same-typed pair.
+(doc p-traversal-both 'type '(PTraversal (Pair a a) (Pair b b) a b))
 (doc p-traversal-both 'export #t)
 (define p-traversal-both
   (make-p-traversal
    (lambda (f p) (cons (f (car p)) (f (cdr p))))
    (lambda (p) (list (car p) (cdr p)))))
 
-;;; p-traversal-filtered : (a -> Boolean) -> PTraversal (List a) (List a) a a
-;;; Traverse only elements matching predicate.
 (define (p-traversal-filtered pred)
+  (doc 'type '(-> (-> a Boolean) (PTraversal (List a) (List a) a a)))
   (doc 'export #t)
   (make-p-traversal
    (lambda (f xs)
      (map (lambda (x) (if (pred x) (f x) x)) xs))
    (lambda (xs) (filter pred xs))))
 
-;;; ====
-;;; Profunctor Fold
-;;; ====
-;;;
-;;; Fold s a ~ forall p. (Profunctor p, Forget-compatible p) => p a a -> p s s
-;;;
-;;; A fold provides read-only access to zero or more targets.
-;;; It's the profunctor encoding of a fold/getter.
-;;; The representation is simply a function s -> List a.
+(doc 'section 'profunctor-fold)
 
-;;; make-p-fold : (s -> List a) -> PFold s a
 (define (make-p-fold fold-fn)
+  (doc 'type '(-> (-> s (List a)) (PFold s a)))
   (doc 'export #t)
   (list 'p-fold fold-fn))
 
-;;; p-fold? : alpha -> Boolean
 (define (p-fold? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-fold)))
 
-;;; p-fold-fn : PFold -> (s -> List a)
 (define (p-fold-fn pfold)
+  (doc 'type '(-> (PFold s a) (-> s (List a))))
   (doc 'export #t)
   (cadr pfold))
 
-;;; p-fold-to-list : PFold × s -> List a
-;;; Get all targets as a list.
 (define (p-fold-to-list pfold s)
+  (doc 'type '(-> (PFold s a) s (List a)))
   (doc 'export #t)
   ((p-fold-fn pfold) s))
 
-;;; p-fold-preview : PFold × s -> Maybe a
-;;; Get first target if any.
 (define (p-fold-preview pfold s)
+  (doc 'type '(-> (PFold s a) s (Maybe a)))
   (doc 'export #t)
   (let ([targets ((p-fold-fn pfold) s)])
     (if (null? targets) nothing (just (car targets)))))
 
-;;; p-fold-has : PFold × s -> Boolean
-;;; Check if any target exists.
 (define (p-fold-has pfold s)
+  (doc 'type '(-> (PFold s a) s Boolean))
   (doc 'export #t)
   (not (null? ((p-fold-fn pfold) s))))
 
-;;; p-fold-length : PFold × s -> Nat
-;;; Count targets.
 (define (p-fold-length pfold s)
+  (doc 'type '(-> (PFold s a) s Nat))
   (doc 'export #t)
   (length ((p-fold-fn pfold) s)))
 
-;;; p-fold-all : PFold × (a -> Boolean) × s -> Boolean
-;;; Check if all targets satisfy predicate.
 (define (p-fold-all pfold pred s)
+  (doc 'type '(-> (PFold s a) (-> a Boolean) s Boolean))
   (doc 'export #t)
   (andmap pred ((p-fold-fn pfold) s)))
 
-;;; p-fold-any : PFold × (a -> Boolean) × s -> Boolean
-;;; Check if any target satisfies predicate.
 (define (p-fold-any pfold pred s)
+  (doc 'type '(-> (PFold s a) (-> a Boolean) s Boolean))
   (doc 'export #t)
   (ormap pred ((p-fold-fn pfold) s)))
 
-;;; p-fold-compose : PFold s a × PFold a b -> PFold s b
 (define (p-fold-compose outer inner)
+  (doc 'type '(-> (PFold s a) (PFold a b) (PFold s b)))
   (doc 'export #t)
   (make-p-fold
    (lambda (s)
      (append-map (p-fold-fn inner)
                  ((p-fold-fn outer) s)))))
 
-;;; ====
-;;; Common Profunctor Folds
-;;; ====
-
-;;; p-fold-each : PFold (List a) a
+(doc p-fold-each 'type '(PFold (List a) a))
 (doc p-fold-each 'export #t)
 (define p-fold-each
   (make-p-fold identity))
 
-;;; p-fold-filtered : (a -> Boolean) -> PFold (List a) a
 (define (p-fold-filtered pred)
+  (doc 'type '(-> (-> a Boolean) (PFold (List a) a)))
   (doc 'export #t)
   (make-p-fold (lambda (xs) (filter pred xs))))
 
-;;; p-fold-taking : Nat -> PFold (List a) a
 (define (p-fold-taking n)
+  (doc 'type '(-> Nat (PFold (List a) a)))
   (doc 'export #t)
   (make-p-fold (lambda (xs) (take n xs))))
 
-;;; ====
-;;; Conversions to Traversal/Fold
-;;; ====
+(doc 'section 'optic-conversions)
 
-;;; traversal->p-traversal : Traversal -> PTraversal
 (define (traversal->p-traversal trav)
+  (doc 'type '(-> Traversal PTraversal))
   (doc 'export #t)
   (make-p-traversal
    (traversal-traverse trav)
    (traversal-fold trav)))
 
-;;; p-traversal->traversal : PTraversal -> Traversal
 (define (p-traversal->traversal ptrav)
+  (doc 'type '(-> PTraversal Traversal))
   (doc 'export #t)
   (make-traversal
    (p-traversal-traverse ptrav)
    (p-traversal-fold-fn ptrav)))
 
-;;; p-lens->p-traversal : PLens -> PTraversal
 (define (p-lens->p-traversal plens)
+  (doc 'type '(-> (PLens s t a b) (PTraversal s t a b)))
   (doc 'export #t)
   (make-p-traversal
    (lambda (f s)
      (((p-lens-setter plens) s) (f ((p-lens-getter plens) s))))
    (lambda (s) (list ((p-lens-getter plens) s)))))
 
-;;; p-prism->p-traversal : PPrism -> PTraversal
 (define (p-prism->p-traversal pprism)
+  (doc 'type '(-> (PPrism s t a b) (PTraversal s t a b)))
   (doc 'export #t)
   (make-p-traversal
    (lambda (f s)
@@ -914,8 +723,8 @@
      (let ([e ((p-prism-match pprism) s)])
        (if (left? e) '() (list (from-right e)))))))
 
-;;; p-affine->p-traversal : PAffine -> PTraversal
 (define (p-affine->p-traversal paffine)
+  (doc 'type '(-> (PAffine s t a b) (PTraversal s t a b)))
   (doc 'export #t)
   (make-p-traversal
    (lambda (f s)
@@ -927,81 +736,51 @@
      (let ([e ((p-affine-preview paffine) s)])
        (if (left? e) '() (list (from-right e)))))))
 
-;;; p-traversal->p-fold : PTraversal -> PFold
 (define (p-traversal->p-fold ptrav)
+  (doc 'type '(-> (PTraversal s t a b) (PFold s a)))
   (doc 'export #t)
   (make-p-fold (p-traversal-fold-fn ptrav)))
 
-;;; p-lens->p-fold : PLens -> PFold
 (define (p-lens->p-fold plens)
+  (doc 'type '(-> (PLens s t a b) (PFold s a)))
   (doc 'export #t)
   (make-p-fold (lambda (s) (list ((p-lens-getter plens) s)))))
 
-;;; p-prism->p-fold : PPrism -> PFold
 (define (p-prism->p-fold pprism)
+  (doc 'type '(-> (PPrism s t a b) (PFold s a)))
   (doc 'export #t)
   (make-p-fold
    (lambda (s)
      (let ([e ((p-prism-match pprism) s)])
        (if (right? e) (list (from-right e)) '())))))
 
-;;; ====
-;;; Profunctor Grate
-;;; ====
-;;;
-;;; Grate s t a b ~ forall p. Closed p => p a b -> p s t
-;;;
-;;; A Grate is the dual of a Lens:
-;;;   - Lens focuses on one part of a product type (get/set)
-;;;   - Grate focuses on a "closed" structure (zip/cotraverse)
-;;;
-;;; The concrete representation is:
-;;;   Grate ((s -> a) -> b) -> t
-;;;
-;;; This says: "Given any way to extract an 'a' from any 's', and
-;;; a way to combine those extractions into a 'b', I can produce a 't'."
-;;;
-;;; The canonical example is functions: for f : x -> a, we can zip
-;;; multiple functions together by applying them all to the same input.
+(doc 'section 'profunctor-grate)
 
-;;; make-p-grate : (((s -> a) -> b) -> t) -> PGrate s t a b
 (define (make-p-grate cotraverse-fn)
+  (doc 'type '(-> (-> (-> (-> s a) b) t) (PGrate s t a b)))
   (doc 'export #t)
   (list 'p-grate cotraverse-fn))
 
-;;; p-grate? : alpha -> Boolean
 (define (p-grate? x)
+  (doc 'type '(-> Any Boolean))
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'p-grate)))
 
-;;; p-grate-cotraverse : PGrate -> (((s -> a) -> b) -> t)
 (define (p-grate-cotraverse grate)
+  (doc 'type '(-> (PGrate s t a b) (-> (-> (-> s a) b) t)))
   (doc 'export #t)
   (cadr grate))
 
-;;; run-p-grate : Closed -> PGrate s t a b -> p a b -> p s t
-;;; Apply the grate transformation using a closed profunctor.
-;;;
-;;; The implementation:
-;;;   Given grate : ((s -> a) -> b) -> t
-;;;   and pab : p a b
-;;;   we need p s t
-;;;
-;;;   Using pclosed: p a b -> p (x -> a) (x -> b)
-;;;   Then dimap with (s -> (s -> a)) and (((s -> a) -> b) -> t)
 (define (run-p-grate closed grate pab)
+  (doc 'type '(-> (Closed p) (PGrate s t a b) (p a b) (p s t)))
   (doc 'export #t)
   (let* ([prof (closed-profunctor closed)]
          [cotr (p-grate-cotraverse grate)]
-         ;; s -> (s -> a): the "tabling" function that produces the extractor
-         [tabling (lambda (s) (lambda (sa) (sa s)))]
-         ;; ((s -> a) -> b) -> t: apply cotraverse
-         )
+         [tabling (lambda (s) (lambda (sa) (sa s)))])
     (dimap prof tabling cotr (pclosed closed pab))))
 
-;;; p-grate-compose : PGrate s t a b -> PGrate a b c d -> PGrate s t c d
-;;; Composition of grates.
 (define (p-grate-compose outer inner)
+  (doc 'type '(-> (PGrate s t a b) (PGrate a b c d) (PGrate s t c d)))
   (doc 'export #t)
   (make-p-grate
    (lambda (sctod)
@@ -1018,23 +797,15 @@
            ;; need: d
            (sctod (compose2 ac sa)))))))))
 
-;;; ============================================================
-;;; Part 6: Conversion Functions
-;;; ============================================================
-;;;
-;;; Convert between profunctor optics and concrete optics.
+(doc 'section 'concrete-to-profunctor)
 
-;;; ====
-;;; To Profunctor Optics
-;;; ====
-
-;;; iso->p-iso : Iso -> PIso
 (define (iso->p-iso iso)
+  (doc 'type '(-> Iso PIso))
   (doc 'export #t)
   (make-p-iso (iso-forward iso) (iso-backward iso)))
 
-;;; lens->p-lens : Lens -> PLens
 (define (lens->p-lens lens)
+  (doc 'type '(-> Lens PLens))
   (doc 'export #t)
   (make-p-lens
    (lens-getter lens)
@@ -1042,9 +813,8 @@
      (lambda (b)
        ((lens-setter lens) b s)))))
 
-;;; prism->p-prism : Prism -> PPrism
-;;; Concrete prism uses Maybe for match, profunctor prism uses Either.
 (define (prism->p-prism prism)
+  (doc 'type '(-> Prism PPrism))
   (doc 'export #t)
   (make-p-prism
    (lambda (s)
@@ -1054,8 +824,8 @@
            (right (from-just m)))))
    (prism-build prism)))
 
-;;; affine->p-affine : Affine -> PAffine
 (define (affine->p-affine affine)
+  (doc 'type '(-> Affine PAffine))
   (doc 'export #t)
   (make-p-affine
    (lambda (s)
@@ -1067,30 +837,27 @@
      (lambda (b)
        ((affine-setter affine) b s)))))
 
-;;; grate->p-grate : Grate -> PGrate
 (define (grate->p-grate grate)
+  (doc 'type '(-> Grate PGrate))
   (doc 'export #t)
   (make-p-grate (grate-cotraverse-fn grate)))
 
-;;; ====
-;;; From Profunctor Optics
-;;; ====
+(doc 'section 'profunctor-to-concrete)
 
-;;; p-iso->iso : PIso -> Iso
 (define (p-iso->iso piso)
+  (doc 'type '(-> PIso Iso))
   (doc 'export #t)
   (make-iso (p-iso-forward piso) (p-iso-backward piso)))
 
-;;; p-lens->lens : PLens -> Lens
 (define (p-lens->lens plens)
+  (doc 'type '(-> PLens Lens))
   (doc 'export #t)
   (make-lens
    (p-lens-getter plens)
    (lambda (b s) ((p-lens-setter plens s) b))))
 
-;;; p-prism->prism : PPrism -> Prism
-;;; Convert from Either-based to Maybe-based match.
 (define (p-prism->prism pprism)
+  (doc 'type '(-> PPrism Prism))
   (doc 'export #t)
   (make-prism
    (lambda (s)
@@ -1100,8 +867,8 @@
            nothing)))
    (p-prism-build pprism)))
 
-;;; p-affine->affine : PAffine -> Affine
 (define (p-affine->affine paffine)
+  (doc 'type '(-> PAffine Affine))
   (doc 'export #t)
   (make-affine
    (lambda (s)
@@ -1111,144 +878,119 @@
            nothing)))
    (lambda (b s) ((p-affine-set paffine s) b))))
 
-;;; p-grate->grate : PGrate -> Grate
 (define (p-grate->grate pgrate)
+  (doc 'type '(-> PGrate Grate))
   (doc 'export #t)
   (make-grate (p-grate-cotraverse pgrate)))
 
-;;; ============================================================
-;;; Part 7: Using Profunctor Optics
-;;; ============================================================
-;;;
-;;; Utility functions for working with profunctor optics.
+(doc 'section 'optic-operations)
 
-;;; p-view : PLens s t a b -> s -> a
-;;; View through a profunctor lens using Forget.
 (define (p-view plens s)
+  (doc 'type '(-> (PLens s t a b) s a))
   (doc 'export #t)
   ((run-forget
     (run-p-lens strong-forget plens (make-forget identity)))
    s))
 
-;;; p-over : PLens s t a b -> (a -> b) -> s -> t
-;;; Modify through a profunctor lens using (->).
 (define (p-over plens f s)
+  (doc 'type '(-> (PLens s t a b) (-> a b) s t))
   (doc 'export #t)
   ((run-p-lens strong-fn plens f) s))
 
-;;; p-set : PLens s t a b -> b -> s -> t
-;;; Set through a profunctor lens.
 (define (p-set plens b s)
+  (doc 'type '(-> (PLens s t a b) b s t))
   (doc 'export #t)
   (p-over plens (const b) s))
 
-;;; p-preview : PPrism s t a b -> s -> Maybe a
-;;; Preview through a profunctor prism.
 (define (p-preview pprism s)
+  (doc 'type '(-> (PPrism s t a b) s (Maybe a)))
   (doc 'export #t)
   (let ([e ((p-prism-match pprism) s)])
     (if (right? e)
         (just (from-right e))
         nothing)))
 
-;;; p-review : PPrism s t a b -> b -> t
-;;; Review (build) through a profunctor prism.
 (define (p-review pprism b)
+  (doc 'type '(-> (PPrism s t a b) b t))
   (doc 'export #t)
   ((p-prism-build pprism) b))
 
-;;; p-prism-over : PPrism s t a b -> (a -> b) -> s -> t
-;;; Modify through a profunctor prism.
 (define (p-prism-over pprism f s)
+  (doc 'type '(-> (PPrism s t a b) (-> a b) s t))
   ((run-p-prism choice-fn pprism f) s))
 
-;;; p-affine-preview : PAffine s t a b -> s -> Maybe a
-;;; Preview through a profunctor affine.
 (define (p-affine-preview-fn paffine s)
+  (doc 'type '(-> (PAffine s t a b) s (Maybe a)))
   (let ([e ((p-affine-preview paffine) s)])
     (if (right? e)
         (just (from-right e))
         nothing)))
 
-;;; p-affine-set-fn : PAffine s t a b -> b -> s -> t
-;;; Set through a profunctor affine.
 (define (p-affine-set-fn paffine b s)
+  (doc 'type '(-> (PAffine s t a b) b s t))
   (doc 'export #t)
   (((p-affine-set paffine) s) b))
 
-;;; p-grate-review : PGrate s t a b -> b -> t
-;;; Review (inject constant) through a profunctor grate.
 (define (p-grate-review pgrate b)
+  (doc 'type '(-> (PGrate s t a b) b t))
   (doc 'export #t)
   ((p-grate-cotraverse pgrate) (lambda (_) b)))
 
-;;; p-grate-over : PGrate s t a b -> (a -> b) -> s -> t
-;;; Modify through a profunctor grate using (->).
 (define (p-grate-over pgrate f s)
+  (doc 'type '(-> (PGrate s t a b) (-> a b) s t))
   (doc 'export #t)
   ((run-p-grate closed-fn-instance pgrate f) s))
 
-;;; p-grate-zipWith : PGrate s t a b -> (a -> a -> b) -> s -> s -> t
-;;; Zip two structures through a profunctor grate.
 (define (p-grate-zipWith pgrate f s1 s2)
+  (doc 'type '(-> (PGrate s t a b) (-> a a b) s s t))
   (doc 'export #t)
   ((p-grate-cotraverse pgrate)
    (lambda (sa) (f (sa s1) (sa s2)))))
 
-;;; ============================================================
-;;; Part 8: Common Profunctor Optics
-;;; ============================================================
+(doc 'section 'common-optics)
 
-;;; ====
-;;; Isomorphisms
-;;; ====
-
-;;; p-iso-id : PIso a b a b
+(doc p-iso-id 'type '(PIso a b a b))
 (doc p-iso-id 'export #t)
 (define p-iso-id
   (make-p-iso identity identity))
 
-;;; p-iso-swapped : PIso (a, b) (c, d) (b, a) (d, c)
+(doc p-iso-swapped 'type '(PIso (Pair a b) (Pair c d) (Pair b a) (Pair d c)))
 (doc p-iso-swapped 'export #t)
 (define p-iso-swapped
   (make-p-iso swap swap))
 
-;;; p-iso-reversed : PIso (List a) (List b) (List a) (List b)
+(doc p-iso-reversed 'type '(PIso (List a) (List b) (List a) (List b)))
 (define p-iso-reversed
   (make-p-iso reverse reverse))
 
-;;; p-iso-curried : PIso ((a, b) -> c) ((a', b') -> c') (a -> b -> c) (a' -> b' -> c')
+(doc p-iso-curried 'type '(PIso (-> (Pair a b) c) (-> (Pair a2 b2) c2) (-> a (-> b c)) (-> a2 (-> b2 c2))))
 (define p-iso-curried
   (make-p-iso
    (lambda (f) (lambda (a) (lambda (b) (f (cons a b)))))
    (lambda (f) (lambda (ab) ((f (car ab)) (cdr ab))))))
 
-;;; ====
-;;; Lenses
-;;; ====
-
-;;; p-lens-fst : PLens (a, c) (b, c) a b
+(doc p-lens-fst 'type '(PLens (Pair a c) (Pair b c) a b))
 (doc p-lens-fst 'export #t)
 (define p-lens-fst
   (make-p-lens
    car
    (lambda (s) (lambda (b) (cons b (cdr s))))))
 
-;;; p-lens-snd : PLens (c, a) (c, b) a b
+(doc p-lens-snd 'type '(PLens (Pair c a) (Pair c b) a b))
 (doc p-lens-snd 'export #t)
 (define p-lens-snd
   (make-p-lens
    cdr
    (lambda (s) (lambda (b) (cons (car s) b)))))
 
-;;; p-lens-head : PLens (List a) (List a) a a
+(doc p-lens-head 'type '(PLens (List a) (List a) a a))
 (define p-lens-head
   (make-p-lens
    car
    (lambda (s) (lambda (a) (cons a (cdr s))))))
 
-;;; p-lens-nth : Nat -> PLens (List a) (List a) a a
 (define (p-lens-nth n)
+  (doc 'type '(-> Nat (PLens (List a) (List a) a a)))
   (make-p-lens
    (lambda (xs) (list-ref xs n))
    (lambda (s)
@@ -1260,11 +1002,7 @@
                  (loop (+ i 1) (cdr xs) (cons a acc))
                  (loop (+ i 1) (cdr xs) (cons (car xs) acc)))))))))
 
-;;; ====
-;;; Prisms
-;;; ====
-
-;;; p-prism-just : PPrism (Maybe a) (Maybe b) a b
+(doc p-prism-just 'type '(PPrism (Maybe a) (Maybe b) a b))
 (doc p-prism-just 'export #t)
 (define p-prism-just
   (make-p-prism
@@ -1274,7 +1012,7 @@
          (left nothing)))
    just))
 
-;;; p-prism-left : PPrism (Either a c) (Either b c) a b
+(doc p-prism-left 'type '(PPrism (Either a c) (Either b c) a b))
 (doc p-prism-left 'export #t)
 (define p-prism-left
   (make-p-prism
@@ -1284,7 +1022,7 @@
          (left e)))  ; Return original Right
    left))
 
-;;; p-prism-right : PPrism (Either c a) (Either c b) a b
+(doc p-prism-right 'type '(PPrism (Either c a) (Either c b) a b))
 (doc p-prism-right 'export #t)
 (define p-prism-right
   (make-p-prism
@@ -1294,7 +1032,7 @@
          (left e)))  ; Return original Left
    right))
 
-;;; p-prism-nil : PPrism (List a) (List a) () ()
+(doc p-prism-nil 'type '(PPrism (List a) (List a) () ()))
 (define p-prism-nil
   (make-p-prism
    (lambda (xs)
@@ -1303,7 +1041,7 @@
          (left xs)))
    (const '())))
 
-;;; p-prism-cons : PPrism (List a) (List a) (a, List a) (a, List a)
+(doc p-prism-cons 'type '(PPrism (List a) (List a) (Pair a (List a)) (Pair a (List a))))
 (define p-prism-cons
   (make-p-prism
    (lambda (xs)
@@ -1312,12 +1050,8 @@
          (right (cons (car xs) (cdr xs)))))
    (lambda (p) (cons (car p) (cdr p)))))
 
-;;; ====
-;;; Affines
-;;; ====
-
-;;; p-affine-nth : Nat -> PAffine (List a) (List a) a a
 (define (p-affine-nth n)
+  (doc 'type '(-> Nat (PAffine (List a) (List a) a a)))
   (doc 'export #t)
   (make-p-affine
    (lambda (xs)
@@ -1335,19 +1069,13 @@
                      (loop (+ i 1) (cdr xs) (cons (car xs) acc)))))
            s)))))
 
-;;; ====
-;;; Grates
-;;; ====
-
-;;; p-grate-id : PGrate a b a b
-;;; Identity grate.
+(doc p-grate-id 'type '(PGrate a b a b))
 (doc p-grate-id 'export #t)
 (define p-grate-id
   (make-p-grate
    (lambda (satob) (satob identity))))
 
-;;; p-grate-fn : PGrate (x -> a) (x -> b) a b
-;;; The canonical grate for functions.
+(doc p-grate-fn 'type '(PGrate (-> x a) (-> x b) a b))
 (doc p-grate-fn 'export #t)
 (define p-grate-fn
   (make-p-grate
@@ -1355,8 +1083,7 @@
      (lambda (x)
        (satob (lambda (f) (f x)))))))
 
-;;; p-grate-pair-same : PGrate (a . a) (b . b) a b
-;;; Grate for pairs with same-typed elements.
+(doc p-grate-pair-same 'type '(PGrate (Pair a a) (Pair b b) a b))
 (doc p-grate-pair-same 'export #t)
 (define p-grate-pair-same
   (make-p-grate
@@ -1365,9 +1092,8 @@
       (satob car)
       (satob cdr)))))
 
-;;; p-grate-list-rep : Nat -> PGrate (List a) (List b) a b
-;;; Grate for fixed-length lists.
 (define (p-grate-list-rep n)
+  (doc 'type '(-> Nat (PGrate (List a) (List b) a b)))
   (doc 'export #t)
   (make-p-grate
    (lambda (satob)
@@ -1377,20 +1103,16 @@
            (loop (+ i 1)
                  (cons (satob (lambda (xs) (list-ref xs i))) acc)))))))
 
-;;; ============================================================
-;;; Part 9: Unified Composition
-;;; ============================================================
-;;;
-;;; Compose any two profunctor optics, inferring the result type.
+(doc 'section 'unified-composition)
 
-;;; p-optic-type : POptic -> Symbol
 (define (p-optic-type o)
+  (doc 'type '(-> POptic Symbol))
   (doc 'export #t)
   (if (pair? o) (car o) 'unknown))
 
-;;; p-optic-compose : POptic x POptic -> POptic
-;;; Compose two profunctor optics with automatic type inference.
 (define (p-optic-compose outer inner)
+  (doc 'type '(-> POptic POptic POptic))
+  (doc 'description "Compose two profunctor optics with automatic type inference based on optic tags")
   (doc 'export #t)
   (let ([t1 (p-optic-type outer)]
         [t2 (p-optic-type inner)])
@@ -1542,9 +1264,8 @@
 
       [else (error 'p-optic-compose "Unsupported composition")])))
 
-;;; ->p-fold : POptic -> PFold
-;;; Convert any profunctor optic to a fold.
 (define (->p-fold o)
+  (doc 'type '(-> POptic (PFold s a)))
   (doc 'export #t)
   (case (p-optic-type o)
     [(p-fold) o]
@@ -1555,9 +1276,8 @@
     [(p-iso) (p-lens->p-fold (p-iso->p-lens o))]
     [else (error '->p-fold "Cannot convert to fold")]))
 
-;;; p-iso->p-lens : PIso -> PLens
-;;; Convert a profunctor iso to a profunctor lens.
 (define (p-iso->p-lens piso)
+  (doc 'type '(-> PIso PLens))
   (doc 'export #t)
   (make-p-lens
    (p-iso-forward piso)
@@ -1565,26 +1285,23 @@
      (lambda (b)
        ((p-iso-backward piso) b)))))
 
-;;; p-iso->p-grate : PIso -> PGrate
-;;; Convert a profunctor iso to a profunctor grate.
 (define (p-iso->p-grate piso)
+  (doc 'type '(-> PIso PGrate))
   (doc 'export #t)
   (make-p-grate
    (lambda (satob)
      ((p-iso-backward piso)
       (satob (p-iso-forward piso))))))
 
-;;; p-lens->p-affine : PLens -> PAffine
-;;; Convert a profunctor lens to a profunctor affine.
 (define (p-lens->p-affine plens)
+  (doc 'type '(-> PLens PAffine))
   (doc 'export #t)
   (make-p-affine
    (lambda (s) (right ((p-lens-getter plens) s)))
    (p-lens-setter plens)))
 
-;;; p-prism->p-affine : PPrism -> PAffine
-;;; Convert a profunctor prism to a profunctor affine.
 (define (p-prism->p-affine pprism)
+  (doc 'type '(-> PPrism PAffine))
   (doc 'export #t)
   (make-p-affine
    (p-prism-match pprism)
@@ -1595,13 +1312,10 @@
              (from-left e)
              ((p-prism-build pprism) b)))))))
 
-;;; ============================================================
-;;; Part 10: Law Verification
-;;; ============================================================
+(doc 'section 'law-verification)
 
-;;; verify-profunctor-laws : Profunctor -> (List (p a b)) -> Boolean
-;;; Check that dimap id id = id and composition law holds.
 (define (verify-profunctor-laws prof test-pabs)
+  (doc 'type '(-> (Profunctor p) (List (p a b)) Boolean))
   (let ([dmap (profunctor-dimap prof)])
     (andmap
      (lambda (pab)
@@ -1609,8 +1323,8 @@
        (equal? (dmap identity identity pab) pab))
      test-pabs)))
 
-;;; verify-p-iso-laws : PIso s t a b -> (List s) -> (List b) -> Boolean
 (define (verify-p-iso-laws piso test-ss test-bs)
+  (doc 'type '(-> (PIso s t a b) (List s) (List b) Boolean))
   (let ([fwd (p-iso-forward piso)]
         [bwd (p-iso-backward piso)])
     (and
@@ -1619,8 +1333,8 @@
      ;; backward . forward = id on s
      (andmap (lambda (s) (equal? (bwd (fwd s)) s)) test-ss))))
 
-;;; verify-p-lens-laws : PLens s t a b -> (List (s, b)) -> Boolean
 (define (verify-p-lens-laws plens test-pairs)
+  (doc 'type '(-> (PLens s t a b) (List (Pair s b)) Boolean))
   (let ([get (p-lens-getter plens)]
         [set (p-lens-setter plens)])
     (andmap
@@ -1637,8 +1351,8 @@
                   ((set s) b)))))
      test-pairs)))
 
-;;; verify-p-prism-laws : PPrism s t a b -> (List b) -> (List s) -> Boolean
 (define (verify-p-prism-laws pprism test-bs test-ss)
+  (doc 'type '(-> (PPrism s t a b) (List b) (List s) Boolean))
   (let ([match (p-prism-match pprism)]
         [build (p-prism-build pprism)])
     (and
@@ -1654,68 +1368,5 @@
                      (equal? (build (from-right e)) s))))
              test-ss))))
 
-;;; ============================================================
-;;; Exports
-;;; ============================================================
-;;;
-;;; Profunctor Type Class:
-;;;   make-profunctor, profunctor?, profunctor-dimap, profunctor-lmap, profunctor-rmap
-;;;   dimap, lmap, rmap
-;;;
-;;; Strong Profunctor:
-;;;   make-strong, strong?, strong-profunctor, strong-first, strong-second
-;;;   pfirst, psecond
-;;;
-;;; Choice Profunctor:
-;;;   make-choice, choice?, choice-profunctor, choice-left, choice-right
-;;;   pleft, pright, swap-either
-;;;
-;;; Closed Profunctor:
-;;;   make-closed, closed-profunctor?, closed-profunctor, closed-fn, pclosed
-;;;
-;;; Profunctor Instances:
-;;;   profunctor-fn, strong-fn, choice-fn, closed-fn-instance
-;;;   make-forget, forget?, run-forget, profunctor-forget, strong-forget
-;;;   make-tagged, tagged?, run-tagged, profunctor-tagged, choice-tagged
-;;;   make-star, star?, star-functor, run-star, profunctor-star
-;;;
-;;; Profunctor Iso:
-;;;   make-p-iso, p-iso?, p-iso-forward, p-iso-backward
-;;;   run-p-iso, p-iso-compose
-;;;   p-iso-id, p-iso-swapped, p-iso-reversed, p-iso-curried
-;;;
-;;; Profunctor Lens:
-;;;   make-p-lens, p-lens?, p-lens-getter, p-lens-setter
-;;;   run-p-lens, p-lens-compose
-;;;   p-view, p-over, p-set
-;;;   p-lens-fst, p-lens-snd, p-lens-head, p-lens-nth
-;;;
-;;; Profunctor Prism:
-;;;   make-p-prism, p-prism?, p-prism-match, p-prism-build
-;;;   run-p-prism, p-prism-compose
-;;;   p-preview, p-review, p-prism-over
-;;;   p-prism-just, p-prism-left, p-prism-right, p-prism-nil, p-prism-cons
-;;;
-;;; Profunctor Affine:
-;;;   make-p-affine, p-affine?, p-affine-preview, p-affine-set
-;;;   run-p-affine, p-affine-compose
-;;;   p-affine-preview-fn, p-affine-set-fn
-;;;   p-affine-nth
-;;;
-;;; Profunctor Grate:
-;;;   make-p-grate, p-grate?, p-grate-cotraverse
-;;;   run-p-grate, p-grate-compose
-;;;   p-grate-review, p-grate-over, p-grate-zipWith
-;;;   p-grate-id, p-grate-fn, p-grate-pair-same, p-grate-list-rep
-;;;
-;;; Conversions:
-;;;   iso->p-iso, lens->p-lens, prism->p-prism, affine->p-affine, grate->p-grate
-;;;   p-iso->iso, p-lens->lens, p-prism->prism, p-affine->affine, p-grate->grate
-;;;   p-lens->p-affine, p-prism->p-affine, p-iso->p-grate
-;;;
-;;; Unified Composition:
-;;;   p-optic-type, p-optic-compose
-;;;
-;;; Law Verification:
-;;;   verify-profunctor-laws, verify-p-iso-laws, verify-p-lens-laws, verify-p-prism-laws
+(doc 'section 'exports)
 
