@@ -79,7 +79,8 @@
   (let* ([groups (group-modules-by-category)]
          [categories '("BASE" "BLOCKS" "LANG" "TYPES" "QUERY" "DATA"
                        "LINALG" "NUMERIC" "AUTODIFF" "RANDOM" "PIPELINE"
-                       "INFO-THEORY" "UTIL" "FP" "BOUNDARY" "OTHER")])
+                       "INFO-THEORY" "UTIL" "SYMBOLIC" "REWRITE" "CATEGORY"
+                       "FP" "BOUNDARY" "OTHER")])
         
         (for-each
          (lambda (cat)
