@@ -24,8 +24,8 @@ Key design principles:
 - Lawful abstractions verified via property-based testing")
 
   (keywords (functional-programming type-classes monads parsers
-             streams logic-programming symbolic-computation
-             units-of-measure term-rewriting))
+             streams logic-programming protocols
+             units-of-measure algebraic-effects))
 
   (aliases (fp functional))
 
@@ -40,12 +40,6 @@ Key design principles:
     (concept monadic-programming
       (description "Sequencing effects via monads: State, Reader, Writer, Continuation, Free, and algebraic effect handlers.")
       (parent functional-programming))
-    (concept rewriting
-      (description "Term rewriting systems, rewrite rules, fusion optimization, and proof tactics for equational reasoning.")
-      (parent functional-programming))
-    (concept category-theory
-      (description "Abstract mathematical framework: functors, natural transformations, adjunctions, and Kan extensions applied to programming.")
-      (parent programming-paradigms))
     (concept logic-programming
       (description "Computation via unification and search: miniKanren-style relational goals, substitutions, and backtracking.")
       (parent programming-paradigms))
@@ -229,18 +223,6 @@ Key design principles:
      zipper-has-focus? zipper-can-go-left? zipper-can-go-right?
      zipper-left! zipper-right! zipper-start zipper-end zipper-goto)
 
-   ;; ---- symbolic/ subdir ----
-
-   (expr
-     num var
-     make-sum make-product make-diff make-neg make-div make-pow make-app
-     sum product difference division power
-     num? var? sum? product? difference? quotient?)
-
-   (diff
-     deriv partial gradient jacobian hessian
-     deriv-n directional-derivative curl divergence laplacian)
-
    ;; ---- measure/ subdir ----
 
    (units
@@ -250,19 +232,7 @@ Key design principles:
      dim-current-base dim-temperature-base dim-amount-base dim-luminosity-base
      dim* dim/)
 
-   ;; ---- rewrite/ subdir ----
-
-   (rule
-     make-rule rule? rule-name rule-lhs rule-rhs
-     rule-category rule-direction rule-conditions
-     metavar? metavar-name metavar-constraint
-     pattern-vars pattern-vars-unique rule->string valid-rule?)
-
-   (engine
-     match-pattern substitute-template
-     apply-rule apply-rule-name apply-rule-at apply-rule-anywhere
-     find-all-positions
-     id-strategy fail-strategy seq choice try repeat repeat-n map-children))
+  )
 
 
   ;;; ====
@@ -280,8 +250,7 @@ Key design principles:
        "reader.ss"       ; Reader monad (environment passing)
        "writer.ss"       ; Writer monad (accumulation)
        "transformers.ss" ; Monad transformers (StateT, ReaderT, etc.)
-       "alternative.ss"  ; Alternative and MonadPlus
-       "comonad.ss")))   ; Comonad (dual of monad)
+       "alternative.ss")))  ; Alternative and MonadPlus
 
     ((subdir "numeric")
      (description "Transcendental and mathematical functions")
@@ -325,16 +294,6 @@ Key design principles:
        "generic-zipper.ss" ; Type-theoretic zipper derivation
        "zipper-lens.ss"))) ; Zipper-lens integration (lenses, affines, comonad connection)
 
-((subdir "symbolic")
-     (description "Symbolic computation and computer algebra")
-     (files (
-       "expr.ss"           ; Symbolic expression representation
-       "diff.ss"           ; Symbolic differentiation
-       "simplify.ss"       ; Algebraic simplification
-       "integrate.ss"      ; Symbolic integration
-       "solve.ss"          ; Symbolic equation solving
-       "poly-canonical.ss"))) ; Polynomial canonical form conversion
-
     ((subdir "measure")
      (description "Units of measure with dimensional analysis")
      (files (
@@ -344,43 +303,6 @@ Key design principles:
      (description "Cost analysis and parallelization heuristics")
      (files (
        "cost-analysis.ss"))) ; Work estimation, hotspot detection
-
-    ((subdir "rewrite")
-     (description "Term rewriting systems and proof tactics")
-     (files (
-       "rule.ss"         ; Rule data structures and accessors
-       "engine.ss"       ; Pattern matching and rewriting engine
-       "trace.ss"        ; Rewrite trace visualization
-       "laws.ss"         ; Algebraic laws (monoid, functor, monad)
-       "fusion-rules.ss" ; Fusion optimization rules
-       "verify.ss"       ; Rule verification
-       "goals.ss"        ; Goal-directed rewriting
-       "proof-tactics.ss" ; Proof tactics for equational reasoning
-       "sketch.ss")))    ; Program sketching with holes
-
-    ((subdir "category")
-     (description "Category theory foundations: adjunctions, natural transformations, Kan extensions, abstract interpretation")
-     (files (
-       "natural-transform.ss"    ; Natural transformations with composition
-       "adjunction.ss"           ; Adjunctions with triangle identities
-       "abstract-interp.ss"      ; Abstract interpretation via Galois connections
-       "free-algebra.ss"         ; Free algebras and Free ⊣ Forgetful
-       "monad-derivation.ss"     ; Monads from adjunctions
-       "kan-extension.ss"        ; Left and right Kan extensions
-       "comonad.ss"              ; Comonads (Store, Env, Traced, Stream)
-       "state-store-adjunction.ss" ; State-Store adjunction
-       "logic-adjunction.ss"     ; Logic adjunctions (Galois connections)
-       "effect-category.ss"))    ; Categorical foundations of algebraic effects
-     ;; Submodule: multi-category framework
-     (submodules (
-       ((subdir "multi")
-        (description "Inter-category framework: first-class categories, indexed transforms, correct counit")
-        (files (
-          "category.ss"              ; Categories as first-class values
-          "functor-general.ss"       ; Inter-category functors F : C → D
-          "nat-transform-indexed.ss" ; Indexed natural transformations
-          "adjunction-inter.ss"      ; Inter-category adjunctions
-          "effect-adjunction.ss"))))))  ; Effect adjunctions with correct counit
 
     ;; Root-level modules
     ((subdir "")
@@ -429,7 +351,7 @@ Key design principles:
 
     ((framework "Law Checking")
      (description "Automated verification of type class laws")
-     (location "lattice/fp/rewrite/laws.ss"))))
+     (location "lattice/rewrite/laws.ss"))))
 
   ;;; ====
   ;;; Future Work

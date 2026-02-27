@@ -5,7 +5,7 @@
 ;;;
 ;;; Run: scheme --script docs/tutorials/examples/scientific-computing/symbolic-calculus.ss
 
-(load "lattice/fp/symbolic/integrate.ss")
+(load "lattice/symbolic/integrate.ss")
 
 (display "=== Symbolic Calculus Examples ===\n\n")
 

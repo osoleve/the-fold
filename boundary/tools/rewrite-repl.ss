@@ -17,11 +17,11 @@
 ;;;   - core/fp/rewrite/verify.ss
 ;;;   - boundary/commands.ss (for registration)
 
-(load "lattice/fp/rewrite/rule.ss")
-(load "lattice/fp/rewrite/trace.ss")
-(load "lattice/fp/rewrite/engine.ss")
-(load "lattice/fp/rewrite/laws.ss")
-(load "lattice/fp/rewrite/verify.ss")
+(load "lattice/rewrite/rule.ss")
+(load "lattice/rewrite/trace.ss")
+(load "lattice/rewrite/engine.ss")
+(load "lattice/rewrite/laws.ss")
+(load "lattice/rewrite/verify.ss")
 
 ;;; ====
 ;;; Display Helpers

@@ -70,10 +70,10 @@
   ("lattice/autodiff/comp-graph.ss" . "Dual numbers, forward mode"))
 
  (symbolic-modules-used
-  ("lattice/fp/symbolic/expr.ss" . "Expression representation and manipulation")
-  ("lattice/fp/symbolic/diff.ss" . "Symbolic differentiation")
-  ("lattice/fp/symbolic/simplify.ss" . "Algebraic simplification")
-  ("lattice/fp/symbolic/integrate.ss" . "Symbolic integration"))
+  ("lattice/symbolic/expr.ss" . "Expression representation and manipulation")
+  ("lattice/symbolic/diff.ss" . "Symbolic differentiation")
+  ("lattice/symbolic/simplify.ss" . "Algebraic simplification")
+  ("lattice/symbolic/integrate.ss" . "Symbolic integration"))
 
  (algebra-modules-used
   ("lattice/algebra/field.ss" . "Field structure with division (Q-field, R-field, Z_p)")
@@ -97,5 +97,5 @@
 
  (see-also
   ("lattice/autodiff/test-*.ss" . "Autodiff test files for more usage examples")
-  ("lattice/fp/symbolic/test-*.ss" . "Symbolic computation test files")
+  ("lattice/symbolic/test-*.ss" . "Symbolic computation test files")
   ("docs/tutorials/symbolic-computation.md" . "Symbolic computation tutorial")))

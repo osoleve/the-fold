@@ -87,7 +87,7 @@
 ;;; 3. The queue is typically short in practice
 ;;;
 ;;; For TRUE O(1) per-bind performance, use the Codensity monad in
-;;; lattice/fp/category/kan-extension.ss, which represents continuations
+;;; lattice/category/kan-extension.ss, which represents continuations
 ;;; as nested lambdas (function composition is O(1)).
 ;;;
 ;;; Free-Queue: ('free-queue base-free fmap continuation-queue)

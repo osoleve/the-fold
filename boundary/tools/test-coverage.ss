@@ -88,7 +88,7 @@
               (path-basename "boundary/tools/test.ss")
               "test.ss")
 (assert-equal "deep path"
-              (path-basename "lattice/fp/symbolic/laws.ss")
+              (path-basename "lattice/symbolic/laws.ss")
               "laws.ss")
 
 ;;; ====

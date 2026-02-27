@@ -6,11 +6,11 @@
 (doc 'description "Validated Category Theory Entry Points — Shell-layer wrappers that validate inputs before calling pure lattice functions. Use these when accepting external/user input.")
 (doc 'layer 'boundary)
 (doc 'purity 'partial)
-(doc 'note "Lattice code (lattice/fp/category/) is pure and assumes valid input. This module provides the defensive boundary.")
-(doc 'dependencies '(lattice/fp/category/natural-transform lattice/fp/category/adjunction))
+(doc 'note "Lattice code (lattice/category/) is pure and assumes valid input. This module provides the defensive boundary.")
+(doc 'dependencies '(lattice/category/natural-transform lattice/category/adjunction))
 
-(load "lattice/fp/category/natural-transform.ss")
-(load "lattice/fp/category/adjunction.ss")
+(load "lattice/category/natural-transform.ss")
+(load "lattice/category/adjunction.ss")
 
 (doc 'section 'validated-natural-transform-operations)
 

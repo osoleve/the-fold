@@ -22,19 +22,19 @@ Load the modules you need:
 
 ```scheme
 ;; For basic expression manipulation
-(load "lattice/fp/symbolic/expr.ss")
+(load "lattice/symbolic/expr.ss")
 
 ;; For differentiation (includes expr.ss)
-(load "lattice/fp/symbolic/diff.ss")
+(load "lattice/symbolic/diff.ss")
 
 ;; For simplification (includes expr.ss)
-(load "lattice/fp/symbolic/simplify.ss")
+(load "lattice/symbolic/simplify.ss")
 
 ;; For integration (includes diff.ss and simplify.ss)
-(load "lattice/fp/symbolic/integrate.ss")
+(load "lattice/symbolic/integrate.ss")
 
 ;; For equation solving (includes expr.ss and simplify.ss)
-(load "lattice/fp/symbolic/solve.ss")
+(load "lattice/symbolic/solve.ss")
 ```
 
 ## Building Expressions
@@ -82,7 +82,7 @@ The constructors automatically apply basic simplifications:
 The `diff.ss` module provides the `deriv` function:
 
 ```scheme
-(load "lattice/fp/symbolic/diff.ss")
+(load "lattice/symbolic/diff.ss")
 
 ;; Basic derivative
 (deriv (power (var 'x) (num 2)) 'x)
@@ -133,7 +133,7 @@ The `diff.ss` module provides the `deriv` function:
 The `simplify.ss` module provides comprehensive simplification:
 
 ```scheme
-(load "lattice/fp/symbolic/simplify.ss")
+(load "lattice/symbolic/simplify.ss")
 
 ;; Collect like terms
 (simplify (sum (var 'x) (var 'x)))
@@ -210,7 +210,7 @@ The `simplify.ss` module provides comprehensive simplification:
 The `integrate.ss` module computes antiderivatives:
 
 ```scheme
-(load "lattice/fp/symbolic/integrate.ss")
+(load "lattice/symbolic/integrate.ss")
 
 ;; Power rule
 (integrate (power (var 'x) (num 2)) 'x)
@@ -272,7 +272,7 @@ The integrator applies several rules:
 The `solve.ss` module provides symbolic equation solving:
 
 ```scheme
-(load "lattice/fp/symbolic/solve.ss")
+(load "lattice/symbolic/solve.ss")
 
 ;; Solve linear equation: 2x + 4 = 0
 (solve-for (sum (product (num 2) (var 'x)) (num 4)) 'x)
@@ -369,7 +369,7 @@ You can verify integration results by differentiating:
 Here's a practical example computing Taylor series terms:
 
 ```scheme
-(load "lattice/fp/symbolic/integrate.ss")
+(load "lattice/symbolic/integrate.ss")
 
 ;; Taylor series term: f^(n)(a) * (x-a)^n / n!
 (define (taylor-term f x-var a n)
@@ -408,6 +408,6 @@ Here's a practical example computing Taylor series terms:
 
 ## Further Reading
 
-- `lattice/fp/symbolic/README.sexp` - Complete API reference
-- `lattice/fp/symbolic/test-*.ss` - Test files show many usage examples
+- `lattice/symbolic/README.sexp` - Complete API reference
+- `lattice/symbolic/test-*.ss` - Test files show many usage examples
 - `lattice/autodiff/` - Automatic differentiation for numeric gradients

@@ -92,10 +92,11 @@ Dependencies:
     "lattice/sim" "lattice/automata" "lattice/number-theory" "lattice/pipeline"
     ;; FP subdirectories
     "lattice/fp" "lattice/fp/control" "lattice/fp/numeric" "lattice/fp/parsing"
-    "lattice/fp/meta" "lattice/fp/data" "lattice/fp/symbolic"
-    "lattice/fp/measure" "lattice/fp/rewrite"
+    "lattice/fp/meta" "lattice/fp/data"
+    "lattice/fp/measure"
     "lattice/fp/analysis" "lattice/fp/clp" "lattice/statistics"
     ;; Extracted from fp/ to top-level
+    "lattice/symbolic" "lattice/rewrite" "lattice/category" "lattice/category/multi"
     "lattice/optics" "lattice/game-theory" "lattice/control-systems"
     "lattice/meta" "lattice/crypto" "lattice/topology" "lattice/optimization"
     "lattice/physics/lenses"

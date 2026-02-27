@@ -83,10 +83,10 @@
    [(string-contains? path "lattice/fp/meta") 'fp-meta]
    [(string-contains? path "lattice/fp/data") 'fp-data]
    [(string-contains? path "lattice/fp/game") 'fp-game]
-   [(string-contains? path "lattice/fp/symbolic") 'fp-symbolic]
+   [(string-contains? path "lattice/symbolic") 'symbolic]
    [(string-contains? path "lattice/fp/measure") 'fp-measure]
    [(string-contains? path "lattice/fp/control-systems") 'fp-control-systems]
-   [(string-contains? path "lattice/fp/rewrite") 'fp-rewrite]
+   [(string-contains? path "lattice/rewrite") 'rewrite]
    [(string-contains? path "lattice/fp/analysis") 'fp-analysis]
    [(string-contains? path "lattice/fp") 'fp]
    ;; Boundary and user

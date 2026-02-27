@@ -25,10 +25,10 @@
 ;;;   - core/fp/rewrite/laws.ss
 ;;;   - boundary/commands.ss (for registration)
 
-(load "lattice/fp/rewrite/goals.ss")
-(load "lattice/fp/rewrite/sketch.ss")
-(load "lattice/fp/rewrite/proof-tactics.ss")
-(load "lattice/fp/rewrite/laws.ss")
+(load "lattice/rewrite/goals.ss")
+(load "lattice/rewrite/sketch.ss")
+(load "lattice/rewrite/proof-tactics.ss")
+(load "lattice/rewrite/laws.ss")
 
 ;;; ====
 ;;; Session State

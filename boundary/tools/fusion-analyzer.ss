@@ -10,8 +10,8 @@
 
 (load "lattice/fp/analysis/parallel-detect.ss")
 (load "lattice/fp/analysis/cost-analysis.ss")
-(load "lattice/fp/rewrite/fusion-rules.ss")
-(load "lattice/fp/rewrite/verify.ss")
+(load "lattice/rewrite/fusion-rules.ss")
+(load "lattice/rewrite/verify.ss")
 
 (doc 'section 'fusion-analysis-interface)
 

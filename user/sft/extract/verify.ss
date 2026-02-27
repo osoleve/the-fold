@@ -276,7 +276,7 @@
     (eval '(define (approx= a b) (< (abs (- a b)) 1e-6)))))
 
 (define *verify-load-blacklist*
-  '("lattice/fp/rewrite/verify.ss"
+  '("lattice/rewrite/verify.ss"
     "lattice/fp/meta/dsl.ss"))
 
 (define (verify/preload-modules! samples)

@@ -1813,7 +1813,7 @@ The computation extracts k×k subdeterminants from the matrix of vector componen
 
 ### 7.14 Categorical Limits and Colimits
 
-The limits module (`lattice/fp/category/limits.ss`) implements categorical limits and colimits with concrete Set semantics—element-level constructions where apexes are actual sets and projections/injections operate on individual elements.
+The limits module (`lattice/category/limits.ss`) implements categorical limits and colimits with concrete Set semantics—element-level constructions where apexes are actual sets and projections/injections operate on individual elements.
 
 #### 7.14.1 Design Philosophy
 
@@ -2088,7 +2088,7 @@ This unified construction simplifies reasoning about limits and ensures all limi
 
 ### 7.15 Kleisli Categories and Monads
 
-The Kleisli module (`lattice/fp/category/kleisli.ss` and `common-monads.ss`) provides categorical foundations for monadic programming—viewing monads through the lens of Kleisli categories where morphisms are effectful functions `A → M B`.
+The Kleisli module (`lattice/category/kleisli.ss` and `common-monads.ss`) provides categorical foundations for monadic programming—viewing monads through the lens of Kleisli categories where morphisms are effectful functions `A → M B`.
 
 #### 7.15.1 Categorical Perspective
 
