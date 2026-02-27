@@ -197,14 +197,7 @@
 
   (let* ([entries (alloc-tracker-entries tracker)]
          [sorted (list-sort (lambda (a b) (> (cdr a) (cdr b))) entries)])
-        (take-at-most sorted n)))
-
-(define (take-at-most lst n)
-  (doc 'description "Take at most n elements from a list")
-  (cond
-   [(null? lst) '()]
-   [(<= n 0) '()]
-   [else (cons (car lst) (take-at-most (cdr lst) (- n 1)))]))
+        (take n sorted)))
 
 (doc 'section 'convenience-macros)
 

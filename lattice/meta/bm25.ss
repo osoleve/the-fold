@@ -268,18 +268,13 @@
                       all-docs)]
          [filtered (filter (lambda (entry) (> (cdr entry) 0)) scored)]
          [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) filtered)])
-        (take-at-most k sorted)))
+        (take k sorted)))
 
 (doc bm25-search-string 'type (-> Index String Int (List (Pair DocId Score))))
 (doc bm25-search-string 'description "Search with a string query (tokenizes automatically)")
 (define (bm25-search-string idx query k)
   (bm25-search idx (tokenize query) k))
 
-;;; take-at-most : Int (List a) -> (List a)
-(define (take-at-most n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
 (doc 'section 'result-helpers)
 

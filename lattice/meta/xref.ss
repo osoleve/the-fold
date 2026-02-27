@@ -223,7 +223,7 @@
         (begin
           (printf "~a is called by (~a functions):\n" sym (length callers))
           (for-each (lambda (c) (printf "  ~a\n" c))
-                    (take-n-xref 15 callers))
+                    (take 15 callers))
           (when (> (length callers) 15)
             (printf "  ... and ~a more\n" (- (length callers) 15)))))))
 
@@ -235,14 +235,10 @@
         (begin
           (printf "~a calls (~a functions):\n" sym (length callees))
           (for-each (lambda (c) (printf "  ~a\n" c))
-                    (take-n-xref 15 callees))
+                    (take 15 callees))
           (when (> (length callees) 15)
             (printf "  ... and ~a more\n" (- (length callees) 15)))))))
 
-(define (take-n-xref n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-n-xref (- n 1) (cdr lst)))))
 
 (doc 'section 'convenience-functions)
 
@@ -278,7 +274,7 @@
                         acc))
                   '()
                   *xref-callers*)])
-    (take-n-xref n
+    (take n
       (sort-by (lambda (a b) (> (cdr a) (cdr b))) counts))))
 
 (doc 'section 'repl-interface)

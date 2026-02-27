@@ -213,15 +213,8 @@
   (let* ([branch (history-read-current-branch session-id)]
          [entries (history-walk session-id branch)]
          [sorted (reverse entries)]
-         [limited (take-at-most sorted limit)])
+         [limited (take limit sorted)])
     (map history-entry-data limited)))
-
-(define (take-at-most lst n)
-  (doc 'type (-> (List a) Int (List a)))
-  (doc 'description "Take at most n elements from list")
-  (if (or (null? lst) (<= n 0))
-      '()
-      (cons (car lst) (take-at-most (cdr lst) (- n 1)))))
 
 (doc 'section 'export)
 

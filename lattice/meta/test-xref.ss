@@ -532,25 +532,25 @@
 )
 
 ;;; ========================================
-;;; Test: take-n-xref
+;;; Test: take (prelude, formerly take-n-xref)
 ;;; ========================================
 
-(test-group "take-n-xref"
+(test-group "take"
 
   (define-test "takes first n elements"
-    (assert-equal '(a b c) (take-n-xref 3 '(a b c d e))))
+    (assert-equal '(a b c) (take 3 '(a b c d e))))
 
   (define-test "takes all if n exceeds length"
-    (assert-equal '(a b) (take-n-xref 5 '(a b))))
+    (assert-equal '(a b) (take 5 '(a b))))
 
   (define-test "zero returns empty"
-    (assert-equal '() (take-n-xref 0 '(a b c))))
+    (assert-equal '() (take 0 '(a b c))))
 
   (define-test "negative returns empty"
-    (assert-equal '() (take-n-xref -1 '(a b c))))
+    (assert-equal '() (take -1 '(a b c))))
 
   (define-test "empty list returns empty"
-    (assert-equal '() (take-n-xref 3 '())))
+    (assert-equal '() (take 3 '())))
 )
 
 ;;; ========================================

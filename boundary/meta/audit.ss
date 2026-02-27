@@ -234,7 +234,7 @@
                 (begin
                   (printf "Missing from manifest (~a):\n" (length missing))
                   (for-each (lambda (sym) (printf "  - ~a\n" sym))
-                            (take-at-most 50 missing))
+                            (take 50 missing))
                   (when (> (length missing) 50)
                         (printf "  ... and ~a more\n" (- (length missing) 50)))))
             (printf "\n")
@@ -243,13 +243,7 @@
                 (begin
                   (printf "In manifest but not found in source (~a):\n" (length extra))
                   (for-each (lambda (sym) (printf "  - ~a\n" sym))
-                            (take-at-most 20 extra)))))))
-
-;;; take-at-most : Int (List A) -> (List A)
-(define (take-at-most n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
+                            (take 20 extra)))))))
 
 ;;; ====
 ;;; Export Suggestion Generator

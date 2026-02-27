@@ -259,7 +259,7 @@
   (let* ([k (if (pair? options) (car options) 10)]
          [impacts (map (lambda (s) (cons s (lattice-impact s))) (kg-skills))]
          [sorted (sort-by (lambda (a b) (> (cdr a) (cdr b))) impacts)])
-        (take-at-most k sorted)))
+        (take k sorted)))
 
 ;;; lattice-breaking-change? : Symbol Symbol -> Bool
 ;;; Would removing an export from a skill break anything?
@@ -309,11 +309,6 @@
                      (printf "\n")))
         tiers)))
 
-;;; take-at-most helper
-(define (take-at-most n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
 (doc 'section 'convenience-functions)
 

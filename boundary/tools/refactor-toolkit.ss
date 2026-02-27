@@ -237,7 +237,7 @@
                         (display "    (none)\n")
                         (for-each
                          (lambda (c) (printf "    ~a\n" c))
-                         (take-at-most 15 callers)))
+                         (take 15 callers)))
                     (when (> (length callers) 15)
                           (printf "    ... and ~a more\n" (- (length callers) 15)))
 
@@ -247,7 +247,7 @@
                         (display "    (none)\n")
                         (for-each
                          (lambda (c) (printf "    ~a\n" c))
-                         (take-at-most 15 callees)))
+                         (take 15 callees)))
                     (when (> (length callees) 15)
                           (printf "    ... and ~a more\n" (- (length callees) 15))))))
 
@@ -281,12 +281,6 @@
 ;;; ====
 ;;; Utility Functions
 ;;; ====
-
-;;; take-at-most : Nat × List -> List
-(define (take-at-most n lst)
-  (if (or (<= n 0) (null? lst))
-      '()
-      (cons (car lst) (take-at-most (- n 1) (cdr lst)))))
 
 ;;; ====
 ;;; Quick Access Aliases

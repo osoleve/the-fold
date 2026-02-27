@@ -319,23 +319,23 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
         (if (null? query-terms)
             ;; Tokenization yielded nothing (query has only special chars)
             ;; Fall back to substring matching on raw names
-            (take-at-most k (lattice-find-substring (string->symbol query) k))
+            (take k (lattice-find-substring (string->symbol query) k))
             (case type
                   [(skill skills)
                    (let* ([raw (search-with-context *skill-index* query-terms k 'skill)]
                           [boosted (apply-concept-boosts raw boost-map)]
                           [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
-                     (take-at-most k sorted))]
+                     (take k sorted))]
                   [(module modules)
                    (let* ([raw (search-with-context *module-index* query-terms k 'module)]
                           [boosted (apply-concept-boosts raw boost-map)]
                           [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
-                     (take-at-most k sorted))]
+                     (take k sorted))]
                   [(export exports)
                    (let* ([raw (search-with-context *export-index* query-terms k 'export)]
                           [boosted (apply-concept-boosts raw boost-map)]
                           [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
-                     (take-at-most k sorted))]
+                     (take k sorted))]
                   [else
                    ;; Search all, merge, boost, re-sort
                    (let* ([skill-results (search-with-context *skill-index* query-terms k 'skill)]
@@ -344,7 +344,7 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                           [all-results (append skill-results module-results export-results)]
                           [boosted (apply-concept-boosts all-results boost-map)]
                           [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) boosted)])
-                         (take-at-most k sorted))]))))
+                         (take k sorted))]))))
 
 ;;; search-with-context : Index (List Symbol) Int Symbol -> (List SearchResult)
 ;;; Search and add type context to results
@@ -439,7 +439,7 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                  (kg-skills))]
                [all-matches (append skill-matches export-matches)]
                [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
-              (take-at-most k sorted))))
+              (take k sorted))))
 
 ;;; lattice-find-substring : Symbol [Int] -> (List SearchResult)
 ;;; Find all exports/skills whose names contain the substring
@@ -469,7 +469,7 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                  (kg-skills))]
                [all-matches (append skill-matches export-matches)]
                [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
-              (take-at-most k sorted))))
+              (take k sorted))))
 
 ;;; string-contains? : String String -> Bool
 ;;; Check if haystack contains needle
@@ -546,7 +546,7 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                                                 (< (string-length (symbol->string (car a)))
                                                    (string-length (symbol->string (car b)))))))
                                all-matches)])
-              (take-at-most k sorted))))
+              (take k sorted))))
 
 ;;; ====
 ;;; Filtered Search

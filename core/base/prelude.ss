@@ -162,7 +162,7 @@
   (doc 'type (-> Nat (List α) (List α)))
   (doc 'description "Take first n elements.")
   (doc 'export #t)
-  (if (or (= n 0) (null? lst))
+  (if (or (<= n 0) (null? lst))
       '()
       (cons (car lst) (take (- n 1) (cdr lst)))))
 

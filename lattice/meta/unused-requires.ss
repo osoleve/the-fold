@@ -71,7 +71,7 @@ uncertain (when exports are unknown).")
 (doc collect-file-symbols 'export #t)
 (define (collect-file-symbols sexps)
   (let ([all-syms (append-map extract-symbols-from-sexp*-safe sexps)])
-    (deduplicate-symbols all-syms)))
+    (unique all-syms)))
 
 ;;; extract-symbols-from-sexp*-safe : SExp -> (List Symbol)
 ;;; Guard-wrapped version that returns '() on unexpected structure.
@@ -184,18 +184,6 @@ uncertain (when exports are unknown).")
        [else
         (safe-append-map extract-symbols-from-sexp* sexp)])]))
 
-;;; deduplicate-symbols : (List Symbol) -> (List Symbol)
-;;; Remove duplicate symbols while preserving order.
-(define (deduplicate-symbols syms)
-  (let loop ([remaining syms] [seen '()] [acc '()])
-    (if (null? remaining)
-        (reverse acc)
-        (let ([sym (car remaining)])
-          (if (memq sym seen)
-              (loop (cdr remaining) seen acc)
-              (loop (cdr remaining)
-                    (cons sym seen)
-                    (cons sym acc)))))))
 
 ;;; ====
 ;;; Core Analysis

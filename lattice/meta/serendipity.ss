@@ -35,7 +35,7 @@ Returns up to 15 sibling exports (excluding the input symbol).")
                            (eq? mod (hamt-lookup name *export-module-map*)))
                   (set! siblings (cons name siblings)))))
             (kg-exports))
-          (take-at-most 15 (reverse siblings))))))
+          (take 15 (reverse siblings))))))
 
 (doc export-module 'type (-> Symbol (Maybe Symbol)))
 (doc export-module 'description "Find which module an export belongs to.")
@@ -75,7 +75,7 @@ These are the 'nearby but not adjacent' functions — same domain, different fac
                            (eq? skill (lattice-export-source name)))
                   (set! results (cons (cons name mod) results)))))
             (kg-exports))
-          (take-at-most k (reverse results))))))
+          (take k (reverse results))))))
 
 ;;; ====
 ;;; Export Neighbors (BM25 Similarity)
@@ -92,7 +92,7 @@ exact matches. Returns (name . score) pairs ranked by relevance.")
   (let* ([terms (export->terms sym)]
          [results (bm25-search *export-index* terms (* k 2))]  ; over-fetch to filter
          [filtered (filter (lambda (r) (not (eq? (car r) sym))) results)])
-    (take-at-most k filtered)))
+    (take k filtered)))
 
 ;;; ====
 ;;; Related Skills
@@ -332,7 +332,7 @@ co-located exports, and related discoveries.")
 (doc format-symbol-list 'type (-> (List Symbol) Nat String))
 (doc format-symbol-list 'description "Format a list of symbols as a space-separated string, truncated to max-count.")
 (define (format-symbol-list syms max-count)
-  (let* ([shown (take-at-most max-count syms)]
+  (let* ([shown (take max-count syms)]
          [hidden (- (length syms) (length shown))]
          [base (apply string-append
                  (map (lambda (s) (string-append (symbol->string s) " "))
