@@ -137,7 +137,7 @@
 
 (doc 'section 'convenience)
 
-(define (for-all gen prop . opts)
+(define (qc-for-all gen prop . opts)
   (doc 'export #t)
   (doc 'type '(-> (Gen a) (-> a Boolean) Opts ... QCResult))
   (doc 'description "Bare property runner — returns result without test registration")

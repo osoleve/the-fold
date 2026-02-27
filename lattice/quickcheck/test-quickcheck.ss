@@ -10,6 +10,16 @@
       (and (pred (car lst))
            (for-all-list pred (cdr lst)))))
 
+;;; Helper — simple substring check
+(define (string-contains? hay needle)
+  (let ([hlen (string-length hay)]
+        [nlen (string-length needle)])
+    (let loop ([i 0])
+      (cond
+       [(> (+ i nlen) hlen) #f]
+       [(string=? (substring hay i (+ i nlen)) needle) #t]
+       [else (loop (+ i 1))]))))
+
 ;;; ============================================================================
 ;;; Generator basics
 ;;; ============================================================================
@@ -186,6 +196,64 @@
 )
 
 ;;; ============================================================================
+;;; Generator advanced/internals coverage
+;;; ============================================================================
+
+(test-group generator-advanced
+
+  (define-test "make-gen, gen?, and gen-fn basics"
+    (let* ([g (make-gen (lambda (size)
+                          ((gen-fn (gen-pure (+ size 1))) size)))]
+           [rng (make-pcg 42 1)]
+           [v (run-gen g 7 rng)])
+      (assert-true (gen? g))
+      (assert-true (procedure? (gen-fn g)))
+      (assert-equal 8 v)))
+
+  (define-test "gen-sized can observe current size"
+    (let* ([g (gen-sized (lambda (size) (gen-pure size)))]
+           [rng (make-pcg 42 1)])
+      (assert-equal 13 (run-gen g 13 rng))))
+
+  (define-test "gen-scale transforms size before generation"
+    (let* ([base (gen-sized (lambda (size) (gen-pure size)))]
+           [g (gen-scale (lambda (size) (* 2 size)) base)]
+           [rng (make-pcg 42 1)])
+      (assert-equal 14 (run-gen g 7 rng))))
+
+  (define-test "gen-float stays in [0, 1)"
+    (let ([rng (make-pcg 42 1)])
+      (let loop ([i 0] [r rng] [ok #t])
+        (if (or (>= i 100) (not ok))
+            (assert-true ok)
+            (let* ([result (run-gen-with-state gen-float 10 r)]
+                   [v (car result)]
+                   [r2 (cdr result)])
+              (loop (+ i 1) r2
+                    (and ok
+                         (number? v)
+                         (<= 0.0 v)
+                         (< v 1.0))))))))
+
+  (define-test "gen-vector produces vectors with bounded length"
+    (let* ([g (gen-vector gen-nat)]
+           [rng (make-pcg 42 1)]
+           [size 6]
+           [v (run-gen g size rng)]
+           [xs (vector->list v)])
+      (assert-true (vector? v))
+      (assert-true (<= (vector-length v) size))
+      (assert-true (for-all-list (lambda (n) (>= n 0)) xs))))
+
+  (define-test "gen-from-random ignores size and uses provided state computation"
+    (let* ([g (gen-from-random (random-int-range 5 5))]
+           [rng1 (make-pcg 1 1)]
+           [rng2 (make-pcg 999 1)])
+      (assert-equal 5 (run-gen g 0 rng1))
+      (assert-equal 5 (run-gen g 100 rng2))))
+)
+
+;;; ============================================================================
 ;;; Shrink basics
 ;;; ============================================================================
 
@@ -251,6 +319,50 @@
 )
 
 ;;; ============================================================================
+;;; Shrink internals/combinators coverage
+;;; ============================================================================
+
+(test-group shrink-advanced
+
+  (define-test "shrink-float 0.0 produces empty list"
+    (assert-equal '() (shrink-float 0.0)))
+
+  (define-test "shrink-float includes 0.0 and moves toward zero"
+    (let ([candidates (shrink-float 8.0)])
+      (assert-true (pair? (member 0.0 candidates)))
+      (assert-true (for-all-list (lambda (c) (< (abs c) 8.0))
+                                 candidates))))
+
+  (define-test "remove-chunks returns strictly smaller lists"
+    (let ([candidates (remove-chunks 4 '(1 2 3 4))])
+      (assert-true (pair? (member '() candidates)))
+      (assert-true (for-all-list (lambda (lst) (< (length lst) 4))
+                                 candidates))))
+
+  (define-test "drop-at-most drops prefix safely"
+    (assert-equal '(c d) (drop-at-most 2 '(a b c d)))
+    (assert-equal '() (drop-at-most 10 '(a b))))
+
+  (define-test "shrink-elements shrinks each position in place"
+    (let ([candidates (shrink-elements shrink-int '(10 20) 0)])
+      (assert-true (pair? (member '(0 20) candidates)))
+      (assert-true (pair? (member '(10 0) candidates)))))
+
+  (define-test "shrink-map transports shrinking through conversion"
+    (let* ([s (shrink-map (lambda (n) (* 2 n))
+                          (lambda (n) (quotient n 2))
+                          shrink-int)]
+           [candidates (s 20)])
+      (assert-true (pair? (member 0 candidates)))
+      (assert-true (for-all-list even? candidates))))
+
+  (define-test "shrink-one-of combines candidate streams"
+    (let* ([s (shrink-one-of shrink-nothing shrink-int)]
+           [candidates (s 8)])
+      (assert-equal (shrink-int 8) candidates)))
+)
+
+;;; ============================================================================
 ;;; Property runner
 ;;; ============================================================================
 
@@ -297,9 +409,71 @@
       (assert-equal (qc-failure-num-tests r1) (qc-failure-num-tests r2))
       (assert-equal (qc-failure-original r1) (qc-failure-original r2))))
 
-  (define-test "for-all works as bare runner"
-    (let ([result (for-all gen-bool (lambda (b) (boolean? b)) 'tests 50)])
+  (define-test "qc-for-all works as bare runner"
+    (let ([result (qc-for-all gen-bool (lambda (b) (boolean? b)) 'tests 50)])
       (assert-true (qc-success? result))))
+)
+
+;;; ============================================================================
+;;; Runner internals/options coverage
+;;; ============================================================================
+
+(test-group runner-internals
+
+  (define-test "parse-qc-opts and qc-opt extract values with defaults"
+    (let* ([opts (parse-qc-opts (list 'tests 10 'seed 77 'max-size 50))])
+      (assert-equal 10 (qc-opt opts 'tests -1))
+      (assert-equal 77 (qc-opt opts 'seed -1))
+      (assert-equal 50 (qc-opt opts 'max-size -1))
+      (assert-equal 'fallback (qc-opt opts 'missing 'fallback))))
+
+  (define-test "parse-qc-opts ignores dangling key without value"
+    (let* ([opts (parse-qc-opts (list 'tests 10 'seed))])
+      (assert-equal 10 (qc-opt opts 'tests -1))
+      (assert-equal 'none (qc-opt opts 'seed 'none))))
+
+  (define-test "size-at-test endpoints and singleton behavior"
+    (assert-equal 0 (size-at-test 0 10 99))
+    (assert-equal 99 (size-at-test 9 10 99))
+    (assert-equal 77 (size-at-test 0 1 77))
+    (assert-true (<= (size-at-test 2 10 20)
+                     (size-at-test 3 10 20))))
+
+  (define-test "shrink-loop finds minimal failing value in monotone property"
+    (let* ([result (shrink-loop (lambda (n) (< n 10)) shrink-nat 42 1000)]
+           [shrunk (car result)]
+           [steps (cdr result)])
+      (assert-equal 10 shrunk)
+      (assert-true (> steps 0))))
+
+  (define-test "shrink-loop keeps original when no shrinks still fail"
+    (let* ([result (shrink-loop (lambda (n) (not (= n 5))) shrink-nat 5 100)]
+           [shrunk (car result)]
+           [steps (cdr result)])
+      (assert-equal 5 shrunk)
+      (assert-equal 0 steps)))
+
+  (define-test "qc-failure accessors expose seed and shrink steps"
+    (let* ([result (check-property gen-nat
+                                   (lambda (n) #f)
+                                   'tests 1
+                                   'seed 77
+                                   'shrink shrink-nat)])
+      (assert-true (qc-failure? result))
+      (assert-equal (make-pcg 77 1) (qc-failure-seed result))
+      (assert-true (>= (qc-failure-shrink-steps result) 0))))
+
+  (define-test "format-qc-failure includes key details"
+    (let* ([result (qc-failure 3 (make-pcg 1 1) 99 10 4)]
+           [msg (format-qc-failure result)])
+      (assert-true (string? msg))
+      (assert-true (string-contains? msg "Failed after 3"))
+      (assert-true (string-contains? msg "Counterexample: 10"))
+      (assert-true (string-contains? msg "Original:"))
+      (assert-true (string-contains? msg "Shrink steps:"))))
+
+  (define-test "assert-property macro accepts passing properties"
+    (assert-property gen-nat (lambda (n) (>= n 0)) 'tests 50))
 )
 
 ;;; ============================================================================

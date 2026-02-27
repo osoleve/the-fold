@@ -7,18 +7,6 @@
 (require 'fsm)
 
 ;;; =================================================================
-;;; Helpers (local definitions to avoid for-all collision with quickcheck)
-;;; =================================================================
-
-;; Local version of fsm-deterministic? that doesn't use for-all
-(define (my-fsm-deterministic? fsm)
-  (and (null? (fsm-epsilon fsm))
-       (let loop ([trans (fsm-transitions fsm)])
-         (cond [(null? trans) #t]
-               [(> (length (cdar trans)) 1) #f]
-               [else (loop (cdr trans))]))))
-
-;;; =================================================================
 ;;; Generators
 ;;; =================================================================
 
@@ -134,7 +122,7 @@
       (let ([m (make-fsm '(q0 q1) '(a) 
                         '(((q0 . a) q1)) 
                         'q0 '(q1))])
-        (my-fsm-deterministic? m)))
+        (fsm-deterministic? m)))
     'tests 10)
 
   ;; === NFA Properties ===
@@ -147,7 +135,7 @@
       (let ([m (make-fsm '(q0 q1 q2) '(a)
                         '(((q0 . a) q1 q2))  ; Multiple targets -> NFA
                         'q0 '(q1))])
-        (not (my-fsm-deterministic? m))))
+        (not (fsm-deterministic? m))))
     'tests 10)
 
   ;; NFA accepts via any path to accepting state
@@ -207,7 +195,7 @@
     (gen-pure #t)
     (lambda (_)
       (let ([m (epsilon-nfa '(q0 q1) '(a) '() 'q0 '(q1) '((q0 q1)))])
-        (not (my-fsm-deterministic? m))))
+        (not (fsm-deterministic? m))))
     'tests 10)
 
   ;; === Builder Properties ===
@@ -453,10 +441,18 @@
     'tests 100)
 
   ;; === NFA to DFA Conversion ===
-  
-  ;; NOTE: Skipping "produces deterministic fsm" test because nfa->dfa
-  ;; uses for-all internally which collides with quickcheck's for-all.
-  ;; The "preserves language" test below is a stronger property anyway.
+
+  ;; nfa->dfa produces a deterministic FSM
+  (define-property "nfa->dfa produces deterministic fsm"
+    (gen-pure #t)
+    (lambda (_)
+      (let* ([char-a (string-ref "a" 0)]
+             [nfa-m (nfa '(q0 q1) (list char-a)
+                        (list (cons (cons 'q0 char-a) '(q0 q1)))
+                        'q0 '(q1))]
+             [dfa-m (nfa->dfa nfa-m)])
+        (fsm-deterministic? dfa-m)))
+    'tests 10)
 
   ;; Conversion preserves language (NFA accepts iff DFA accepts)
   (define-property "nfa->dfa preserves language"
@@ -484,7 +480,7 @@
              [dfa-m (nfa->dfa enfa)])
         ;; nfa->dfa may return NFA unchanged if it has assertions
         ;; Result should be deterministic
-        (and (my-fsm-deterministic? dfa-m)
+        (and (fsm-deterministic? dfa-m)
              (fsm-accepts? dfa-m "a")
              (not (fsm-accepts? dfa-m "")))))
     'tests 10)

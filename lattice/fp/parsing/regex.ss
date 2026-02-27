@@ -35,6 +35,13 @@
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
+;;; Local list predicate — avoids dependence on R6RS for-all which can be
+;;; shadowed by quickcheck's for-all in the interaction environment.
+(define (every pred lst)
+  (or (null? lst)
+      (and (pred (car lst))
+           (every pred (cdr lst)))))
+
 ;;; ============================================================
 ;;; Section 1: Character Universe
 ;;; ============================================================
@@ -520,7 +527,7 @@
         ;; Empty alternation: accepts nothing
         (make-fsm '(dead) '() '() 'dead '())]
        ;; Optimization: all literals -> fsm-any-of
-       [(and (pair? exprs) (for-all regex-lit? exprs))
+       [(and (pair? exprs) (every regex-lit? exprs))
         (fsm-any-of (map regex-lit-char exprs))]
        [else
         (fold-left fsm-union

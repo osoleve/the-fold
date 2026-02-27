@@ -12,6 +12,13 @@
 (doc 'purity 'partial)
 (doc 'features '(dfa nfa epsilon-nfa construction execution nfa-to-dfa minimization composition language-operations moore-mealy visualization))
 
+;;; Local list predicate — avoids dependence on R6RS for-all which can be
+;;; shadowed by quickcheck's for-all in the interaction environment.
+(define (every pred lst)
+  (or (null? lst)
+      (and (pred (car lst))
+           (every pred (cdr lst)))))
+
 (doc 'section 'finite-state-machine-types)
 
 (define (make-fsm states alphabet transitions start accepting . epsilon)
@@ -66,7 +73,7 @@
   (doc 'description "Check if FSM is deterministic (no epsilon, single transitions)")
   (and (null? (fsm-epsilon fsm))
        (let ([trans (fsm-transitions fsm)])
-            (for-all (lambda (t) (<= (length (cdr t)) 1)) trans))))
+            (every (lambda (t) (<= (length (cdr t)) 1)) trans))))
 
 (doc 'section 'fsm-construction-helpers)
 
@@ -596,7 +603,7 @@
 ;;; states-equivalent? : FSM × State × State × (List (List State)) × (List Symbol) → Boolean
 ;;; Check if two states are equivalent (same behavior)
 (define (states-equivalent? dfa s1 s2 partition alphabet)
-  (for-all (lambda (sym)
+  (every (lambda (sym)
                    (let ([t1 (fsm-delta dfa s1 sym)]
                          [t2 (fsm-delta dfa s2 sym)])
                         (cond
