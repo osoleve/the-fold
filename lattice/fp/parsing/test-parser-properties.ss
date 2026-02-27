@@ -3,9 +3,8 @@
 
 (load "core/testing/test-framework.ss")
 (load "core/lang/module.ss")
-(require 'prelude)
-(require 'parser)
 (require 'quickcheck)
+(require 'parser)
 
 ;;; =================================================================
 ;;; Generators
@@ -281,9 +280,9 @@
 
   ;; parser-many succeeds even with zero matches
   (define-property "parser-many succeeds with zero matches"
-    gen-string-small
+    (gen-pure "zzz")  ; String that won't match #\x
     (lambda (s)
-      (let* ([p (parser-char #\z)]
+      (let* ([p (parser-char #\x)]
              [result (parser-parse (parser-many p) s)])
         (and (right? result)
              (equal? (from-right result) '()))))
@@ -291,9 +290,9 @@
 
   ;; parser-some fails on zero matches
   (define-property "parser-some fails on zero matches"
-    gen-string-small
+    (gen-pure "zzz")  ; String that won't match #\x
     (lambda (s)
-      (let* ([p (parser-char #\z)]
+      (let* ([p (parser-char #\x)]
              [result (parser-parse (parser-some p) s)])
         (left? result)))
     'tests 100)
