@@ -219,15 +219,18 @@
 ;;; legendre-symbol : Int × Int → Int
 ;;; Compute the Legendre symbol (a/p) for odd prime p.
 ;;; Returns: 1 if a is a non-zero QR, -1 if a is a non-residue, 0 if p|a.
-(define (legendre-symbol a p)
-  (doc 'export #t)
-  (doc 'type '(-> Int Int Int))
-  (doc 'description "Legendre symbol: 1 if QR, -1 if non-residue, 0 if p divides a")
+(define (modular-legendre-symbol a p)
   (let ([a-mod (modulo a p)])
     (cond
       [(= a-mod 0) 0]
       [(= 1 (mod-expt a-mod (quotient (- p 1) 2) p)) 1]
       [else -1])))
+
+(define (legendre-symbol a p)
+  (doc 'export #t)
+  (doc 'type '(-> Int Int Int))
+  (doc 'description "Legendre symbol: 1 if QR, -1 if non-residue, 0 if p divides a")
+  (modular-legendre-symbol a p))
 
 ;;; mod-sqrt : Int × Int → (Union Int #f)
 ;;; Compute modular square root: find x such that x² ≡ a (mod p).
@@ -263,7 +266,7 @@
   (doc 'description "Tonelli-Shanks algorithm for p ≡ 1 (mod 4)")
   ;; Step 1: Factor out powers of 2 from p-1
   ;; Write p - 1 = Q * 2^S where Q is odd
-  (let-values ([(Q S) (factor-out-2s (- p 1))])
+  (let-values ([(Q S) (modular-factor-out-2s (- p 1))])
     ;; Step 2: Find a quadratic non-residue z
     (let ([z (find-non-residue p)])
       ;; Step 3: Initialize
@@ -285,10 +288,10 @@
                     [new-R (mod* R b p)])                   ; R = R * b
                (loop new-M new-c new-t new-R)))])))))
 
-;;; factor-out-2s : Int → (Values Int Int)
+;;; modular-factor-out-2s : Int → (Values Int Int)
 ;;; Factor n = Q * 2^S where Q is odd.
 ;;; Returns (Q, S).
-(define (factor-out-2s n)
+(define (modular-factor-out-2s n)
   (let loop ([q n] [s 0])
     (if (odd? q)
         (values q s)
@@ -302,7 +305,7 @@
   (when (= p 2)
     (error 'find-non-residue "no non-residues exist for p=2 (GF(2))"))
   (let loop ([z 2])
-    (if (= -1 (legendre-symbol z p))
+    (if (= -1 (modular-legendre-symbol z p))
         z
         (loop (+ z 1)))))
 
