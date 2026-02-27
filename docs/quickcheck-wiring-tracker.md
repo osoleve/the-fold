@@ -141,12 +141,12 @@ Target these families next after Priority 1 and 2:
 
 | Skill | Exports | QC Property Files | Coverage |
 |-------|---------|-------------------|----------|
-| `fp` | 686 | 5 files | ~5% |
+| `fp` | 686 | 11 files | ~10% |
 | `rewrite` | 30 | 0 files | 0% |
 | `symbolic` | 45 | 0 files | 0% |
 | `category` | 102 | 0 files | 0% |
 
-### FP Modules with QC Properties (5/37)
+### FP Modules with QC Properties (11/37)
 
 | Module | Has Unit Tests | Has QC Properties | Notes |
 |--------|---------------|-------------------|-------|
@@ -156,6 +156,12 @@ Target these families next after Priority 1 and 2:
 | `protocol-introspect` | ✓ | ✓ | Complete |
 | `templates` | ✓ | ✓ | Complete |
 | `monad-laws` | N/A | ✓ | General laws |
+| `state` | ✓ | ✓ | 10 properties |
+| `result` | ✓ | ✓ | 22 properties |
+| `combinators` | ✓ | ✓ | 21 properties |
+| `logic` | ✓ | ✓ | 18 properties |
+| `parser` | ✓ | ✓ | 30 properties |
+| `fsm` | ✓ | ✓ | 38 properties |
 
 ### FP Modules Needing QC Properties (32 modules)
 
@@ -279,8 +285,8 @@ Target these families next after Priority 1 and 2:
 - [x] `logic` - Core logic programming (unification properties) - 18 properties
 
 #### Tier 2: Parsing & Streams (Medium Impact)
-- [ ] `parser` - Parser combinators (monad laws, alternation properties)
-- [ ] `fsm` - Finite state machines (acceptance equivalence, determinization)
+- [x] `parser` - Parser combinators (30 properties: monad/functor/applicative laws, primitives, alternatives, sequences, repetition, position, errors, char classes)
+- [x] `fsm` - Finite state machines (38 properties: construction, DFA/NFA/epsilon-NFA, builders, union/concat, star/plus/optional, NFA->DFA conversion, reachability, delta/move)
 - [ ] `regex` - Regex engine (matching equivalence, compilation roundtrip)
 - [ ] `stream` - Lazy streams (lazy eval preserves semantics, memoization)
 - [ ] `zipper` - Zipper navigation (left/right inverse, focus preservation)
