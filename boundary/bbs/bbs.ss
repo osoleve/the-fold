@@ -13,12 +13,24 @@
 (doc 'note "Usage:
   (bbs-init!)
 
-  ;; Issues (default tracker board)
+  ;; Data API (returns values)
+  (bbs-get \"fold-001\")                ; Alist with issue fields
+  (bbs-ready)                          ; List of unblocked issue IDs
+  (bbs-blocked)                        ; List of blocked issue IDs
+  (bbs-blockers \"fold-001\")           ; (id . status) pairs
+  (bbs-by-status 'open)               ; IDs by status
+  (bbs-by-label 'sft)                 ; IDs by label
+
+  ;; Mutations (return hashes/IDs)
   (bbs-create \"Issue title\" 'priority 2 'type 'task)
-  (bbs-show 'fold-001)
-  (bbs-list)
   (bbs-update 'fold-001 'status 'in_progress)
   (bbs-close 'fold-001 'reason \"Done!\")
+
+  ;; Display (print to stdout)
+  (bbs-show! 'fold-001)
+  (bbs-list!)
+  (bbs-ready!)
+  (bbs-search! \"query\")
 
   ;; Posts (default feed board)
   (post-create \"Title\" \"Body...\" 'changelog)
@@ -192,11 +204,11 @@
 
 (doc 'section 'display-functions)
 
-(define (bbs-show id)
+(define (bbs-show! id)
   (doc 'type (-> (Or String Symbol) Void))
   (doc 'description "Display an issue")
   (let* ([id-str (normalize-id id)]
-         [data (bbs-fetch-issue-data id-str)])
+         [data (bbs-get id-str)])
     (if data
         (begin
           (printf "~a~n" (make-string 60 #\-))
@@ -215,7 +227,7 @@
             (unless (string=? desc "")
               (printf "~nDescription:~n~a~n" desc)))
           ;; Show blockers with status
-          (let ([blockers (bbs-blockers-with-status id-str)])
+          (let ([blockers (bbs-blockers id-str)])
             (unless (null? blockers)
               (printf "~nBlocked by:  ")
               (for-each
@@ -234,7 +246,7 @@
           (printf "~a~n" (make-string 60 #\-)))
         (printf "Issue not found: ~a~n" id-str))))
 
-(define (bbs-list . args)
+(define (bbs-list! . args)
   (doc 'type (-> Void))
   (doc 'description "List issues")
   (doc 'param 'status "Filter by status (default: show all open)")
@@ -243,13 +255,13 @@
          [limit (get-keyword-arg args 'limit 20)]
          [ids (if (eq? status 'all)
                   (bbs-all-ids)
-                  (bbs-issues-by-status status))]
+                  (bbs-by-status status))]
          [to-show (take-n limit ids)])
     (printf "~a issues (~a status)~n" (length ids) status)
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (printf "~a  P~a  [~a]  ~a~n"
                    (pad-right id 12)
@@ -260,17 +272,17 @@
     (when (> (length ids) limit)
       (printf "... and ~a more~n" (- (length ids) limit)))))
 
-(define (bbs-ready . args)
+(define (bbs-ready! . args)
   (doc 'type (-> Void))
   (doc 'description "Show issues ready to work on (open and not blocked)")
   (let* ([limit (get-keyword-arg args 'limit 20)]
-         [ids (bbs-ready-issues)]
+         [ids (bbs-ready)]
          [to-show (take-n limit ids)])
     (printf "~a ready issues~n" (length ids))
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (printf "~a  P~a  ~a~n"
                    (pad-right id 12)
@@ -280,26 +292,26 @@
     (when (> (length ids) limit)
       (printf "... and ~a more~n" (- (length ids) limit)))))
 
-(define (bbs-blocked)
+(define (bbs-blocked! )
   (doc 'type (-> Void))
   (doc 'description "Show blocked issues")
-  (let ([ids (bbs-blocked-issues)])
+  (let ([ids (bbs-blocked)])
     (printf "~a blocked issues~n" (length ids))
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)]
-             [blockers (bbs-blockers id)])
+       (let ([data (bbs-get id)]
+             [blocker-ids (bbs-blocker-ids id)])
          (when data
            (printf "~a  ~a~n" id (cdr (assq 'title data)))
-           (printf "         blocked by: ~a~n" blockers))))
+           (printf "         blocked by: ~a~n" blocker-ids))))
      ids)))
 
-(define (bbs-history id)
+(define (bbs-history! id)
   (doc 'type (-> (Or String Symbol) Void))
   (doc 'description "Show version history of an issue")
   (let* ([id-str (normalize-id id)]
-         [history (bbs-issue-history-data id-str)])
+         [history (bbs-get-history id-str)])
     (if (null? history)
         (printf "Issue not found: ~a~n" id-str)
         (begin
@@ -314,11 +326,11 @@
                      (truncate-str (cdr (assq 'title data)) 40)))
            (reverse history))))))
 
-(define (bbs-show-blockers id)
+(define (bbs-blockers! id)
   (doc 'type (-> (Or String Symbol) Void))
   (doc 'description "Show blockers for an issue with their current status")
   (let* ([id-str (normalize-id id)]
-         [blockers (bbs-blockers-with-status id-str)])
+         [blockers (bbs-blockers id-str)])
     (if (null? blockers)
         (printf "~a has no blockers~n" id-str)
         (begin
@@ -336,13 +348,13 @@
                (printf "  ~a  ~a~n" (pad-right blocker-id 14) status-str)))
            blockers)))))
 
-(define (bbs-find query)
+(define (bbs-find! query)
   (doc 'type (-> String Void))
   (doc 'description "Simple substring search in issue titles")
   (let* ([query-lower (string-downcase query)]
          [matches (filter
                    (lambda (id)
-                     (let ([data (bbs-fetch-issue-data id)])
+                     (let ([data (bbs-get id)])
                        (and data
                             (string-contains-ci?
                              (cdr (assq 'title data))
@@ -352,18 +364,13 @@
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (printf "~a  [~a]  ~a~n"
                    (pad-right id 12)
                    (pad-right (symbol->string (cdr (assq 'status data))) 11)
                    (cdr (assq 'title data))))))
      (take-n 20 matches))))
-
-(define (bbs-find-exact id)
-  (doc 'type (-> (Or String Symbol) Void))
-  (doc 'description "Look up an issue by exact ID")
-  (bbs-show id))
 
 (doc 'section 'convenience-aliases)
 
@@ -377,7 +384,7 @@
   (doc 'description "Remove a dependency")
   (bbs-undep blocker blocked))
 
-(define (bbs-gc)
+(define (bbs-gc!)
   (doc 'type (-> Void))
   (doc 'description "Garbage collect stale dependencies")
   (let ([removed (bbs-gc-deps!)])
@@ -397,13 +404,13 @@
   (doc 'description "Get issue IDs that have a specific label")
   (filter
    (lambda (id)
-     (let ([data (bbs-fetch-issue-data id)])
+     (let ([data (bbs-get id)])
        (and data
             (let ([labels (cdr (assq 'labels data))])
               (memq label labels)))))
    (bbs-all-ids)))
 
-(define (bbs-list-by-label label . args)
+(define (bbs-list-by-label! label . args)
   (doc 'type (-> Symbol Void))
   (doc 'description "List issues with a specific label")
   (let* ([limit (get-keyword-arg args 'limit 20)]
@@ -413,7 +420,7 @@
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (printf "~a  P~a  [~a]  ~a~n"
                    (pad-right id 12)
@@ -429,12 +436,12 @@
   (doc 'description "Get issue IDs of a specific type (task, bug, feature, epic)")
   (filter
    (lambda (id)
-     (let ([data (bbs-fetch-issue-data id)])
+     (let ([data (bbs-get id)])
        (and data
             (eq? (cdr (assq 'type data)) type))))
    (bbs-all-ids)))
 
-(define (bbs-list-by-type type . args)
+(define (bbs-list-by-type! type . args)
   (doc 'type (-> Symbol Void))
   (doc 'description "List issues of a specific type")
   (let* ([limit (get-keyword-arg args 'limit 20)]
@@ -444,7 +451,7 @@
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (printf "~a  P~a  [~a]  ~a~n"
                    (pad-right id 12)
@@ -457,14 +464,14 @@
 
 (doc 'section 'enhanced-search)
 
-(define (bbs-search query . args)
+(define (bbs-search! query . args)
   (doc 'type (-> String Void))
   (doc 'description "Search issues by title AND description (case-insensitive)")
   (let* ([limit (get-keyword-arg args 'limit 20)]
          [query-lower (string-downcase query)]
          [matches (filter
                    (lambda (id)
-                     (let ([data (bbs-fetch-issue-data id)])
+                     (let ([data (bbs-get id)])
                        (and data
                             (or (string-contains-ci?
                                  (cdr (assq 'title data))
@@ -478,7 +485,7 @@
     (printf "~a~n" (make-string 60 #\-))
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (printf "~a  [~a]  ~a~n"
                    (pad-right id 12)
@@ -494,7 +501,7 @@
   (let ([all-labels '()])
     (for-each
      (lambda (id)
-       (let ([data (bbs-fetch-issue-data id)])
+       (let ([data (bbs-get id)])
          (when data
            (let ([labels (cdr (assq 'labels data))])
              (for-each
@@ -507,7 +514,7 @@
                  (string<? (symbol->string a) (symbol->string b)))
                all-labels)))
 
-(define (bbs-label-report)
+(define (bbs-label-report!)
   (doc 'type (-> Void))
   (doc 'description "Show all labels and their issue counts")
   (let ([labels (bbs-labels)])
@@ -596,24 +603,23 @@
 (doc 'section 'print-help)
 
 (printf "bbs.ss loaded (multi-board).~n")
-(printf "  (bbs-init!)                     - Initialize BBS~n")
-(printf "  (bbs-create \"title\" ...)        - Create issue~n")
-(printf "  (bbs-show 'id)                  - Show issue~n")
-(printf "  (bbs-list)                      - List open issues~n")
-(printf "  (bbs-list 'status 'closed)      - List closed issues~n")
-(printf "  (bbs-update 'id 'status 'done)  - Update issue~n")
-(printf "  (bbs-close 'id 'reason \"...\")   - Close issue~n")
-(printf "  (bbs-dep 'blocker 'blocked)     - Add dependency~n")
-(printf "  (bbs-ready)                     - Show ready issues~n")
-(printf "  (bbs-blocked)                   - Show blocked issues~n")
-(printf "  (bbs-find \"query\")              - Search issue titles~n")
-(printf "  (bbs-search \"query\")            - Search titles + descriptions~n")
-(printf "  (bbs-history 'id)               - Show version history~n")
-(printf "  (bbs-list-by-label 'label)      - Filter by label~n")
-(printf "  (bbs-list-by-type 'type)        - Filter by type~n")
-(printf "  (bbs-label-report)              - Show all labels~n")
-(printf "  (boards)                        - List all boards~n")
-(printf "  (board-create! slug type ...)   - Create new board~n")
+(printf "  Data:   (bbs-get \"id\")          - Get issue alist~n")
+(printf "          (bbs-ready)             - Unblocked issue IDs~n")
+(printf "          (bbs-blocked)           - Blocked issue IDs~n")
+(printf "          (bbs-blockers \"id\")     - Blockers with status~n")
+(printf "          (bbs-by-status 'open)   - IDs by status~n")
+(printf "          (bbs-by-label 'sft)     - IDs by label~n")
+(printf "          (bbs-stats)             - Statistics alist~n")
+(printf "  Mutate: (bbs-create \"title\" ..) - Create issue~n")
+(printf "          (bbs-update 'id ...)    - Update issue~n")
+(printf "          (bbs-close 'id ...)     - Close issue~n")
+(printf "          (bbs-dep 'a 'b)         - Add dependency~n")
+(printf "  Print:  (bbs-show! 'id)         - Display issue~n")
+(printf "          (bbs-list!)             - List open issues~n")
+(printf "          (bbs-ready!)            - Show ready issues~n")
+(printf "          (bbs-search! \"query\")   - Search titles+desc~n")
+(printf "          (bbs-history! 'id)      - Version history~n")
+(printf "          (boards)                - List all boards~n")
 
 ;;; Auto-initialize on load (prevents stale cache issues)
 (bbs-init!)

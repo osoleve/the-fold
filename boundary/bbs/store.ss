@@ -82,7 +82,7 @@
           (store! blk))
         blk)))
 
-(define (bbs-fetch-issue id)
+(define (bbs-get-block id)
   (doc 'type '(-> String (Option Block)))
   (doc 'description "Fetch the current version of an issue by ID. Uses bbs-issue-hash which auto-refreshes from disk on cache miss")
   (doc 'export #t)
@@ -91,20 +91,20 @@
         (bbs-fetch hash)
         #f)))
 
-(define (bbs-fetch-issue-data id)
+(define (bbs-get id)
   (doc 'type '(-> String (Option Alist)))
-  (doc 'description "Fetch and parse issue data by ID")
+  (doc 'description "Fetch and parse issue data by ID. Returns alist with keys: id, title, status, priority, type, labels, created-at, created-by, version, description")
   (doc 'export #t)
-  (let ([blk (bbs-fetch-issue id)])
+  (let ([blk (bbs-get-block id)])
     (if blk
         (issue-block-data blk)
         #f)))
 
 (doc 'section 'issue-history)
 
-(define (bbs-issue-history id)
+(define (bbs-get-history-blocks id)
   (doc 'type '(-> String (List Block)))
-  (doc 'description "Get all versions of an issue, newest first")
+  (doc 'description "Get all versions of an issue as raw blocks, newest first")
   (doc 'export #t)
   (let ([hash (bbs-read-head id)])
     (if (not hash)
@@ -118,11 +118,11 @@
                       (loop prev (cons blk acc))
                       (reverse (cons blk acc))))))))))
 
-(define (bbs-issue-history-data id)
+(define (bbs-get-history id)
   (doc 'type '(-> String (List Alist)))
   (doc 'description "Get all versions as parsed data")
   (doc 'export #t)
-  (map issue-block-data (bbs-issue-history id)))
+  (map issue-block-data (bbs-get-history-blocks id)))
 
 (doc 'section 'dangling-head-detection)
 

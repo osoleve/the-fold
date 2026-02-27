@@ -99,7 +99,7 @@
   (doc 'description "Close an issue. Returns #f if already closed (idempotent). Keyword arguments: 'reason - Reason for closing")
   (doc 'export #t)
   (let* ([id-str (normalize-id id)]
-         [data (bbs-fetch-issue-data id-str)])
+         [data (bbs-get id-str)])
     (if (and data (eq? (cdr (assq 'status data)) 'closed))
         #f
         (bbs-update id 'status 'closed))))
@@ -109,7 +109,7 @@
   (doc 'description "Reopen a closed issue. Returns #f if already open (idempotent)")
   (doc 'export #t)
   (let* ([id-str (normalize-id id)]
-         [data (bbs-fetch-issue-data id-str)])
+         [data (bbs-get id-str)])
     (if (and data (eq? (cdr (assq 'status data)) 'open))
         #f
         (bbs-update id 'status 'open))))
@@ -172,7 +172,7 @@
   (doc 'description "Compact redundant history by removing consecutive versions with same status. Creates a new version that skips redundant intermediate versions. Returns new hash, or #f if no compaction needed")
   (doc 'export #t)
   (let* ([id-str (normalize-id id)]
-         [history (bbs-issue-history-data id-str)])
+         [history (bbs-get-history id-str)])
     (if (< (length history) 3)
         #f
         (let* ([current (car history)]

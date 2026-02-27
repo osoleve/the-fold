@@ -10,80 +10,98 @@ allowed-tools: Bash(./fold:*), Read, Grep, Glob
 
 BBS is The Fold's CAS-native issue tracker built on block primitives. All issues are content-addressed, with full history preserved in the store.
 
-Use BBS for:
-- Creating and tracking issues (bugs, features, tasks, epics)
-- Finding available work (unblocked issues)
-- Managing dependencies between issues
-- Reviewing issue history and status
+The API has two layers:
+- **Data functions** return values (alists, lists, booleans) — use these programmatically
+- **Print functions** (suffixed with `!`) display formatted output — use these at the REPL
 
 ## Quick Reference
 
-| Command | Purpose | Example |
-|---------|---------|---------|
-| `bbs-list` | List issues | `(bbs-list)` |
-| `bbs-show` | View issue details | `(bbs-show 'fold-001)` |
-| `bbs-create` | Create new issue | `(bbs-create "Title")` |
-| `bbs-update` | Update issue fields | `(bbs-update 'fold-001 'status 'in_progress)` |
-| `bbs-close` | Close an issue | `(bbs-close 'fold-001)` |
-| `bbs-find` | Search issue titles | `(bbs-find "query")` |
-| `bbs-search` | Search titles + descriptions | `(bbs-search "query")` |
-| `bbs-ready` | Show unblocked work | `(bbs-ready)` |
-| `bbs-blocked` | Show blocked issues | `(bbs-blocked)` |
-| `bbs-dep` | Add dependency | `(bbs-dep 'blocker 'blocked)` |
-| `bbs-add-blocker` | Add dependency (alias) | `(bbs-add-blocker 'fold-001 'fold-002)` |
-| `bbs-list-by-label` | Filter by label | `(bbs-list-by-label 'topology)` |
-| `bbs-list-by-type` | Filter by type | `(bbs-list-by-type 'epic)` |
-| `bbs-label-report` | Show all labels | `(bbs-label-report)` |
-| `bbs-stats` | Database statistics | `(bbs-stats)` |
+### Data API (returns values)
+
+| Function | Returns | Example |
+|----------|---------|---------|
+| `bbs-get` | Issue alist or `#f` | `(bbs-get "fold-001")` |
+| `bbs-ready` | List of unblocked IDs | `(bbs-ready)` |
+| `bbs-blocked` | List of blocked IDs | `(bbs-blocked)` |
+| `bbs-blockers` | `(id . status)` pairs | `(bbs-blockers "fold-001")` |
+| `bbs-blocker-ids` | List of blocker IDs | `(bbs-blocker-ids "fold-001")` |
+| `bbs-blocking` | List of IDs this blocks | `(bbs-blocking "fold-001")` |
+| `bbs-is-blocked?` | Boolean | `(bbs-is-blocked? "fold-001")` |
+| `bbs-by-status` | List of IDs | `(bbs-by-status 'open)` |
+| `bbs-by-priority` | List of IDs | `(bbs-by-priority 0)` |
+| `bbs-by-label` | List of IDs | `(bbs-by-label 'sft)` |
+| `bbs-by-type` | List of IDs | `(bbs-by-type 'epic)` |
+| `bbs-all-ids` | All issue IDs | `(bbs-all-ids)` |
+| `bbs-labels` | All unique labels | `(bbs-labels)` |
+| `bbs-stats` | Statistics alist | `(bbs-stats)` |
+| `bbs-get-history` | List of version alists | `(bbs-get-history "fold-001")` |
+| `bbs-get-block` | Raw issue Block or `#f` | `(bbs-get-block "fold-001")` |
+| `bbs-issue-count` | Integer | `(bbs-issue-count)` |
+| `bbs-issue-exists?` | Boolean | `(bbs-issue-exists? "fold-001")` |
+
+### Mutations (return hashes/IDs)
+
+| Function | Returns | Example |
+|----------|---------|---------|
+| `bbs-create` | Issue ID string | `(bbs-create "Title" 'priority 2 'type 'task)` |
+| `bbs-update` | New hash | `(bbs-update 'fold-001 'status 'in_progress)` |
+| `bbs-close` | Hash or `#f` | `(bbs-close 'fold-001 'reason "Done")` |
+| `bbs-reopen` | Hash or `#f` | `(bbs-reopen 'fold-001)` |
+| `bbs-comment` | Hash | `(bbs-comment "fold-001" "Note text")` |
+| `bbs-dep` | Void | `(bbs-dep 'blocker 'blocked)` |
+| `bbs-undep` | Void | `(bbs-undep 'blocker 'blocked)` |
+
+### Display (print to stdout, return void)
+
+| Function | Example |
+|----------|---------|
+| `bbs-show!` | `(bbs-show! 'fold-001)` |
+| `bbs-list!` | `(bbs-list! 'status 'closed)` |
+| `bbs-ready!` | `(bbs-ready!)` |
+| `bbs-blocked!` | `(bbs-blocked!)` |
+| `bbs-history!` | `(bbs-history! 'fold-001)` |
+| `bbs-blockers!` | `(bbs-blockers! 'fold-001)` |
+| `bbs-find!` | `(bbs-find! "query")` |
+| `bbs-search!` | `(bbs-search! "query")` |
+| `bbs-list-by-label!` | `(bbs-list-by-label! 'topology)` |
+| `bbs-list-by-type!` | `(bbs-list-by-type! 'epic)` |
+| `bbs-label-report!` | `(bbs-label-report!)` |
+| `bbs-gc!` | `(bbs-gc!)` |
 
 ## Instructions
 
-### Listing Issues
+### Getting Issue Data
 
 ```bash
-# List open issues (default)
-./fold "(bbs-list)"
+# Get issue as alist (programmatic access)
+./fold "(bbs-get \"fold-001\")"
+# Returns: ((id . "fold-001") (title . "...") (status . open) (priority . 2) ...)
 
-# List closed issues
-./fold "(bbs-list 'status 'closed)"
-
-# List all issues regardless of status
-./fold "(bbs-list 'status 'all)"
-```
-
-### Viewing Issues
-
-```bash
-# View issue details
-./fold "(bbs-show 'fold-001)"
-
-# Search issue titles
-./fold "(bbs-find \"auth\")"
-
-# Search titles AND descriptions (more comprehensive)
-./fold "(bbs-search \"authentication\")"
-
-# Show unblocked work (ready to start)
+# Get unblocked issue IDs
 ./fold "(bbs-ready)"
 
-# Show blocked issues
-./fold "(bbs-blocked)"
+# Get blockers with their status
+./fold "(bbs-blockers \"fold-002\")"
+# Returns: (("fold-001" . open) ("fold-003" . closed))
 ```
 
-### Filtering Issues
+### Displaying Issues (REPL)
 
 ```bash
-# Filter by label
-./fold "(bbs-list-by-label 'topology)"
+# Display formatted issue
+./fold "(bbs-show! 'fold-001)"
 
-# Filter by type (task, bug, feature, epic)
-./fold "(bbs-list-by-type 'epic)"
+# List open issues
+./fold "(bbs-list!)"
 
-# Get programmatic list of IDs with label (not displayed)
-./fold "(bbs-by-label 'refactor)"
+# List closed issues
+./fold "(bbs-list! 'status 'closed)"
 
-# Show all labels in use
-./fold "(bbs-label-report)"
+# Search titles + descriptions
+./fold "(bbs-search! \"authentication\")"
+
+# Show unblocked work
+./fold "(bbs-ready!)"
 ```
 
 ### Creating Issues
@@ -102,7 +120,7 @@ Use BBS for:
 ./fold "(bbs-create \"Refactor auth\" 'description \"Detailed description here\" 'priority 1 'type 'task 'labels '(core security))"
 ```
 
-### Updating Issues
+### Updating and Closing Issues
 
 ```bash
 # Update status
@@ -111,19 +129,6 @@ Use BBS for:
 # Change priority
 ./fold "(bbs-update 'fold-001 'priority 0)"
 
-# Add labels
-./fold "(bbs-update 'fold-001 'labels '(urgent core))"
-
-# Update description
-./fold "(bbs-update 'fold-001 'description \"New description\")"
-```
-
-### Closing Issues
-
-```bash
-# Simple close
-./fold "(bbs-close 'fold-001)"
-
 # Close with reason
 ./fold "(bbs-close 'fold-001 'reason \"Fixed in commit abc123\")"
 ```
@@ -131,27 +136,14 @@ Use BBS for:
 ### Managing Dependencies
 
 ```bash
-# fold-001 blocks fold-002 (fold-002 depends on fold-001)
+# fold-001 blocks fold-002
 ./fold "(bbs-dep 'fold-001 'fold-002)"
 
 # What blocks this issue?
-./fold "(bbs-blockers 'fold-002)"
+./fold "(bbs-blockers \"fold-002\")"
 
 # What does this issue block?
 ./fold "(bbs-blocking 'fold-001)"
-
-# All unblocked open issues (ready for work)
-./fold "(bbs-ready)"
-```
-
-### History & Statistics
-
-```bash
-# Show version history for an issue
-./fold "(bbs-history 'fold-001)"
-
-# Database statistics
-./fold "(bbs-stats)"
 ```
 
 ## Field Reference
@@ -183,89 +175,6 @@ Use BBS for:
 | `in_progress` | Currently being worked |
 | `closed` | Completed or won't fix |
 
-## Examples
-
-### Example 1: Typical Bug Fix Workflow
-
-```bash
-# Find the bug
-./fold "(bbs-find \"auth\")"
-
-# Check details
-./fold "(bbs-show 'fold-042)"
-
-# Start working on it
-./fold "(bbs-update 'fold-042 'status 'in_progress)"
-
-# ... fix the bug ...
-
-# Close it
-./fold "(bbs-close 'fold-042 'reason \"Fixed token refresh logic\")"
-```
-
-### Example 2: Creating a Feature with Dependencies
-
-```bash
-# Create the main feature
-./fold "(bbs-create \"Add export functionality\" 'type 'feature 'priority 1)"
-# Returns: fold-100
-
-# Create sub-tasks
-./fold "(bbs-create \"Design export API\" 'type 'task)"
-# Returns: fold-101
-
-./fold "(bbs-create \"Implement CSV export\" 'type 'task)"
-# Returns: fold-102
-
-# Set up dependencies (design must complete before implementation)
-./fold "(bbs-dep 'fold-101 'fold-102)"
-
-# Main feature blocked by implementation
-./fold "(bbs-dep 'fold-102 'fold-100)"
-```
-
-### Example 3: Finding Available Work
-
-```bash
-# What's ready to work on?
-./fold "(bbs-ready)"
-
-# Get stats overview
-./fold "(bbs-stats)"
-
-# See what's currently blocked
-./fold "(bbs-blocked)"
-```
-
-### Example 4: Triaging Issues
-
-```bash
-# List all open issues
-./fold "(bbs-list)"
-
-# Bump priority on critical item
-./fold "(bbs-update 'fold-050 'priority 0)"
-
-# Add labels for categorization
-./fold "(bbs-update 'fold-050 'labels '(security urgent))"
-```
-
-### Example 5: Finding Related Work by Label
-
-```bash
-# See what labels exist
-./fold "(bbs-label-report)"
-
-# Find all topology-related issues
-./fold "(bbs-list-by-label 'topology)"
-
-# Find all epics to see big-picture work
-./fold "(bbs-list-by-type 'epic)"
-
-# Deep search in descriptions
-./fold "(bbs-search \"homology\")"
-```
-
 ## Notes
 
 - **Issue IDs**: Can be symbols (`'fold-001`) or strings (`"fold-001"`)
@@ -287,6 +196,8 @@ BBS effects are available in agent pipelines (`lattice/pipeline/effects.ss`):
 (bbs-show id)                     ; Get issue details
 ```
 
+Note: Pipeline effect names match the data API, not the display API.
+
 ## File Locations
 
 | Path | Purpose |
@@ -294,6 +205,7 @@ BBS effects are available in agent pipelines (`lattice/pipeline/effects.ss`):
 | `.store/heads/bbs/` | Issue head files (current hash per issue) |
 | `.bbs/counter` | Next issue number |
 | `.bbs/deps` | Dependency relationships |
-| `boundary/bbs/bbs.ss` | Core BBS implementation |
-| `boundary/bbs/ops.ss` | BBS operations |
-| `boundary/bbs/index.ss` | BBS indexing |
+| `boundary/bbs/bbs.ss` | Entry point and display functions |
+| `boundary/bbs/store.ss` | Data accessors (bbs-get, bbs-get-history) |
+| `boundary/bbs/ops.ss` | Mutations (create, update, close) |
+| `boundary/bbs/index.ss` | Query index (by-status, ready, blocked) |

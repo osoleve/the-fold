@@ -285,9 +285,9 @@
                                                 (format "BBS ready failed: ~a" ex)
                                                 payload)
                                      state)])
-                (let* ([ids (bbs-ready-issues)]
+                (let* ([ids (bbs-ready)]
                        [issues (map (lambda (id)
-                                      (let ([data (bbs-fetch-issue-data id)])
+                                      (let ([data (bbs-get id)])
                                            (if data data `((id . ,id)))))
                                     ids)])
                       (cons (stage-ok issues) state)))]
@@ -302,7 +302,7 @@
                                          (format "Invalid issue ID format: ~a" id)
                                          payload)
                               state)
-                        (let ([data (bbs-fetch-issue-data id)])
+                        (let ([data (bbs-get id)])
                              (if data
                                  (cons (stage-ok data) state)
                                  (cons (stage-err 'bbs-error
