@@ -108,7 +108,8 @@
         (display "         (require 'dir/module) for namespaced (avoids collisions)\n")
         (display "         (module-info 'module-name) for details\n")
         (display "         (module-stats) for load times\n")
-        (display "\n  Full lattice discovery (36 skills, 284 modules, 3000+ exports):\n")
+        (display (format "\n  Full lattice discovery (~a registered modules):\n"
+                         (hashtable-size *module-paths*)))
         (display "         (load \"lattice/meta/meta.ss\") then (lattice-init!)\n")
         (display "         (lf \"query\")  search functions   (li 'skill)  skill info\n")
         (display "         (le 'skill)  list exports       (lh)  health check\n\n")))
