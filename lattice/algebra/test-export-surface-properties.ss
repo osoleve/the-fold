@@ -164,16 +164,59 @@
 (define SR-MINPLUS min-plus-semiring)
 
 ;;; ============================================================================
+;;; Helpers for set operations with eq? equality
+;;; ============================================================================
+
+(define (list->eq-set lst)
+  (let ([ht (make-eq-hashtable)])
+    (for-each (lambda (x) (hashtable-set! ht x #t)) lst)
+    ht))
+
+(define (set-size ht)
+  (vector-length (hashtable-keys ht)))
+
+(define (set-equal? ht1 ht2)
+  (let ([keys1 (hashtable-keys ht1)]
+        [keys2 (hashtable-keys ht2)])
+    (and (= (vector-length keys1) (vector-length keys2))
+         (vector-for-all (lambda (k) (hashtable-ref ht2 k #f)) keys1))))
+
+;;; ============================================================================
 ;;; Properties
 ;;; ============================================================================
 
 (test-group algebra-export-surface-properties
 
-  (define-property "manifest algebra export surface list is present and comprehensive"
+  (define-property "manifest algebra export set matches expected export groups"
     (gen-pure #t)
     (lambda (_)
-      (let ([syms (collect-export-symbols algebra-export-groups)])
-        (> (length syms) 300)))
+      (let* ([expected-syms (collect-export-symbols algebra-export-groups)]
+             [expected-set (list->eq-set expected-syms)]
+             ;; Load actual manifest exports if available
+             [manifest-syms 
+              (if (file-exists? "lattice/algebra/manifest.sexp")
+                  (let ([content (call-with-input-file "lattice/algebra/manifest.sexp"
+                                   (lambda (p) (read p) (read p) (read p) 
+                                     (let loop ([form (read p)])
+                                       (cond [(eof-object? form) '()]
+                                             [(and (list? form) 
+                                                   (eq? (car form) 'exports))
+                                              (let collect ([exports (cdr form)]
+                                                           [acc '()])
+                                                (if (null? exports)
+                                                    acc
+                                                    (collect (cdr exports)
+                                                            (append (cdar exports) acc))))]
+                                             [else (loop (read p))]))))])
+                    content)
+                  '())]
+             [manifest-set (list->eq-set manifest-syms)])
+        ;; All expected symbols must be unique (no duplicates in manifest)
+        (and (> (length expected-syms) 300)
+             (= (length expected-syms) (set-size expected-set))
+             ;; If manifest is available, verify sets match
+             (or (null? manifest-syms)
+                 (set-equal? expected-set manifest-set)))))
     'tests 3)
 
   (define-property "group/ring/field core operations are coherent on small finite instances"
