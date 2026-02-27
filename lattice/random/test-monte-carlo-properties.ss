@@ -514,6 +514,15 @@
              (>= (cdr result) 0.0))))
     'tests 100)
 
+  (define-property "effective-sample-size returns n for constant chains"
+    gen-constant-samples
+    (lambda (pair)
+      (let* ([c (car pair)]
+             [n (cdr pair)]
+             [samples (make-list n c)])
+        (= (effective-sample-size samples) n)))
+    'tests 220)
+
   (define-property "effective-sample-size is positive"
     gen-seed-n
     (lambda (pair)
