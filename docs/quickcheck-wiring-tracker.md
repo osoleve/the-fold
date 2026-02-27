@@ -129,9 +129,24 @@ Target these families next after Priority 1 and 2:
 - [x] `random`: bayesian and variational inference exports
 - [x] `optics`: core/profunctor/block migration APIs
 - [x] `algebra`: group/ring/field/polynomial/multivariate and bridge layers
-- [ ] `fp`: templates/protocol layers and category submodules
+- [ ] `fp`, `rewrite`, `symbolic`, `category`: templates/protocol layers and submodules
 
-**Current FP QuickCheck Coverage (6/27 modules):**
+**Note**: FP has been split into 4 skills:
+- `fp`: 686 exports (core FP, control, parsing, CLP, SAT)
+- `rewrite`: 30 exports (rule/engine)
+- `symbolic`: 45 exports (expr, diff, simplify, integrate, solve)
+- `category`: 102 exports (adjunctions, monads, comonads, abstract interpretation)
+
+### Current QuickCheck Coverage by Skill
+
+| Skill | Exports | QC Property Files | Coverage |
+|-------|---------|-------------------|----------|
+| `fp` | 686 | 5 files | ~5% |
+| `rewrite` | 30 | 0 files | 0% |
+| `symbolic` | 45 | 0 files | 0% |
+| `category` | 102 | 0 files | 0% |
+
+### FP Modules with QC Properties (5/37)
 
 | Module | Has Unit Tests | Has QC Properties | Notes |
 |--------|---------------|-------------------|-------|
@@ -141,27 +156,72 @@ Target these families next after Priority 1 and 2:
 | `protocol-introspect` | ✓ | ✓ | Complete |
 | `templates` | ✓ | ✓ | Complete |
 | `monad-laws` | N/A | ✓ | General laws |
-| `state` | ✓ | **NEEDED** | Control monad |
-| `effects` | ✓ | **NEEDED** | Effect system |
-| `continuation` | ✓ | **NEEDED** | Continuations |
-| `free` | ✓ | **NEEDED** | Free monad |
-| `combinators` | ✓ | **NEEDED** | Combinator utils |
-| `result` | ✓ | **NEEDED** | Result type |
-| `logic` | ✓ | **NEEDED** | Logic programming |
-| `dsl` | ✓ | **NEEDED** | DSL toolkit |
-| `parser` | ✓ | **NEEDED** | Parser combinators |
-| `regex` | ✓ | **NEEDED** | Regex engine |
-| `fsm` | ✓ | **NEEDED** | Finite state machines |
-| `stream` | ✓ | **NEEDED** | Lazy streams |
-| `zipper` | ✓ | **NEEDED** | Zipper data structure |
-| `expr` | ✓ | **NEEDED** | Expression AST |
-| `diff` | ✓ | **NEEDED** | Automatic differentiation |
-| `units` | ✓ | **NEEDED** | Unit system |
+
+### FP Modules Needing QC Properties (32 modules)
+
+**Tier 1 (High Impact - Control/Data)**
+| Module | Has Unit Tests | Notes |
+|--------|---------------|-------|
+| `state` | ✓ | State monad laws |
+| `result` | ✓ | Result/either type |
+| `combinators` | ✓ | Basic combinators |
+| `logic` | ✓ | Core logic programming |
+
+**Tier 2 (Medium Impact - Parsing/Streams)**
+| Module | Has Unit Tests | Notes |
+|--------|---------------|-------|
+| `parser` | ✓ | Parser combinators |
+| `fsm` | ✓ | Finite state machines |
+| `regex` | ✓ | Regex engine |
+| `stream` | ✓ | Lazy streams |
+| `zipper` | ✓ | Zipper navigation |
+
+**Tier 3 (Lower Impact - Specialized)**
+| Module | Has Unit Tests | Notes |
+|--------|---------------|-------|
+| `effects` | ✓ | Effect system |
+| `continuation` | ✓ | Continuations |
+| `free` | ✓ | Free monad |
+| `dsl` | ✓ | DSL toolkit |
+| `units` | ✓ | Unit system |
+
+**Tier 4 (Solver/Constraint Modules)**
+| Module | Has Unit Tests | Notes |
+|--------|---------------|-------|
+| `sat` | ✓ | SAT solver |
+| `clp` | ✓ | Constraint logic programming |
+| `maxsat` | ✓ | MaxSAT solver |
+
+### Rewrite Skill (0% coverage)
+
+| Module | Has Unit Tests | Has QC Properties | Notes |
+|--------|---------------|-------------------|-------|
 | `rule` | ✓ | **NEEDED** | Rewrite rules |
 | `engine` | ✓ | **NEEDED** | Rewrite engine |
-| `sat` | ✓ | **NEEDED** | SAT solver |
-| `clp` | ✓ | **NEEDED** | Constraint logic |
+
+### Symbolic Skill (0% coverage)
+
+| Module | Has Unit Tests | Has QC Properties | Notes |
+|--------|---------------|-------------------|-------|
+| `expr` | ✓ | **NEEDED** | Expression AST |
+| `diff` | ✓ | **NEEDED** | Auto-diff |
+| `simplify` | ✓ | **NEEDED** | Expression simplification |
+| `integrate` | ✓ | **NEEDED** | Symbolic integration |
+| `solve` | ✓ | **NEEDED** | Equation solving |
+| `poly-canonical` | ✓ | **NEEDED** | Polynomial canonical forms |
+| `egraph-simplify` | ✓ | **NEEDED** | E-graph simplification |
+
+### Category Skill (0% coverage)
+
+| Module | Has Unit Tests | Has QC Properties | Notes |
+|--------|---------------|-------------------|-------|
+| `adjunction` | ✓ | **NEEDED** | Adjunctions |
+| `monad-derivation` | ✓ | **NEEDED** | Monad derivation |
+| `comonad` | ✓ | **NEEDED** | Comonads |
+| `kan-extension` | ✓ | **NEEDED** | Kan extensions |
+| `natural-transform` | ✓ | **NEEDED** | Natural transformations |
 | `abstract-interp` | ✓ | **NEEDED** | Abstract interpretation |
+| `free-algebra` | ✓ | **NEEDED** | Free algebras |
 
 ### Priority 3 Progress (2026-02-26)
 
@@ -208,39 +268,59 @@ Target these families next after Priority 1 and 2:
 - [x] `number-theory` batch (`5274ec2c`) QA pass recorded: `docs/peer-review/qa-5274ec2c-2026-02-26.md` (manual - Gemini auth failed).
 - [ ] `fp` batch QA pass recorded and verified (required before closeout).
 
-## Priority 4: FP Skill QuickCheck Wiring
+## Priority 4: FP/Related Skills QuickCheck Wiring
 
-The `fp` skill has 802 exports across 27 modules. Only 6 modules currently have QuickCheck property tests.
+### 4a: FP Core (686 exports, 5/37 modules covered)
 
-### High-Impact Targets (Tier 1)
+#### Tier 1: Control & Data Flow (High Impact)
+- [x] `state` - State monad laws (bind/return, get/put laws) - 10 properties
+- [x] `result` - Result/either type (functor/applicative/monad laws) - 22 properties
+- [x] `combinators` - Basic combinators (identity, composition laws) - 21 properties
+- [x] `logic` - Core logic programming (unification properties) - 18 properties
 
-These modules are foundational and used by many other parts of the system:
+#### Tier 2: Parsing & Streams (Medium Impact)
+- [ ] `parser` - Parser combinators (monad laws, alternation properties)
+- [ ] `fsm` - Finite state machines (acceptance equivalence, determinization)
+- [ ] `regex` - Regex engine (matching equivalence, compilation roundtrip)
+- [ ] `stream` - Lazy streams (lazy eval preserves semantics, memoization)
+- [ ] `zipper` - Zipper navigation (left/right inverse, focus preservation)
 
-- [ ] `state` - State monad laws and properties
-- [ ] `result` - Result/either type properties
-- [ ] `combinators` - Basic combinator properties
-- [ ] `logic` - Core logic programming properties
+#### Tier 3: Control Structures
+- [ ] `effects` - Effect system (handler composition, row polymorphism)
+- [ ] `continuation` - Continuations (shift/reset laws, abort properties)
+- [ ] `free` - Free monad (fold-free roundtrip, interpreter composition)
+- [ ] `dsl` - DSL toolkit (interpreter correctness, trace properties)
+- [ ] `units` - Unit system (dimensional analysis, conversion consistency)
 
-### Medium-Impact Targets (Tier 2)
+#### Tier 4: Solvers & Constraints
+- [ ] `sat` - SAT solver (satisfiability preservation, model correctness)
+- [ ] `clp` - Constraint logic (propagation correctness, solution validity)
+- [ ] `maxsat` - MaxSAT (optimality bounds, soft constraint handling)
 
-- [ ] `parser` - Parser combinator properties
-- [ ] `fsm` - Finite state machine properties  
-- [ ] `regex` - Regex engine properties
-- [ ] `stream` - Lazy stream properties
-- [ ] `zipper` - Zipper navigation properties
+### 4b: Rewrite Skill (30 exports, 0% covered)
 
-### Lower-Impact Targets (Tier 3)
+- [ ] `rule` - Rewrite rules (pattern matching, substitution correctness)
+- [ ] `engine` - Rewrite engine (confluence, termination, strategy correctness)
 
-- [ ] `effects` - Effect system properties
-- [ ] `continuation` - Continuation properties
-- [ ] `free` - Free monad properties
-- [ ] `dsl` - DSL toolkit properties
-- [ ] `expr` - Expression type properties
-- [ ] `diff` - Auto-diff properties
-- [ ] `units` - Unit system properties
-- [ ] `rule` / `engine` - Rewrite system properties
-- [ ] `sat` / `clp` - Solver properties
-- [ ] `abstract-interp` - Abstract interpretation properties
+### 4c: Symbolic Skill (45 exports, 0% covered)
+
+- [ ] `expr` - Expression AST (construction/deconstruction roundtrip)
+- [ ] `diff` - Auto-diff (derivative correctness, chain rule verification)
+- [ ] `simplify` - Expression simplification (semantic preservation)
+- [ ] `integrate` - Symbolic integration (derivative of integral = original)
+- [ ] `solve` - Equation solving (solution verification, completeness)
+- [ ] `poly-canonical` - Polynomial forms (canonicalization uniqueness)
+- [ ] `egraph-simplify` - E-graph simplification (equivalence preservation)
+
+### 4d: Category Skill (102 exports, 0% covered)
+
+- [ ] `adjunction` - Adjunctions (triangle identities, unit/counit laws)
+- [ ] `monad-derivation` - Monad derivation (adjunction→monad correctness)
+- [ ] `comonad` - Comonads (comonad laws, extract/duplicate)
+- [ ] `kan-extension` - Kan extensions (universal property, computation)
+- [ ] `natural-transform` - Natural transformations (naturality squares)
+- [ ] `abstract-interp` - Abstract interpretation (soundness, Galois connection)
+- [ ] `free-algebra` - Free algebras (universal property, fold correctness)
 
 ## Definition Of Done
 
