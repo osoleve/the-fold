@@ -334,6 +334,14 @@
         (assert-equal 0 (wumpus-game-arrows g))
         (assert-equal 1 (wumpus-game-moves-used g)))))
 
+  (define-test "shoot bare symbol -> error message, not crash"
+    (let ([game (make-wumpus-game *lattice-cave-graph*
+                  'fp 'crypto '() 3 30 0 'active '(fp) 0)])
+      (let-values ([(g msg) (wumpus-step-shoot game 'algebra)])
+        (assert-true (string-contains-wumpus msg "expected a list"))
+        (assert-equal 3 (wumpus-game-arrows g))
+        (assert-equal 1 (wumpus-game-moves-used g)))))
+
   (define-test "shoot invalid path (non-adjacent) -> miss"
     (let ([game (make-wumpus-game *lattice-cave-graph*
                   'fp 'crypto '() 3 30 0 'active '(fp) 0)])
@@ -342,13 +350,10 @@
         (assert-equal 2 (wumpus-game-arrows g)))))
 
   (define-test "shoot multi-room path hits wumpus"
+    ;; fp -> algebra -> egraph, wumpus at egraph
     (let ([game (make-wumpus-game *lattice-cave-graph*
-                  'fp 'data '() 3 30 0 'active '(fp) 0)])
-      ;; fp -> algebra -> ... need to check path
-      ;; fp neighbors include data directly
-      ;; Actually, let's check: is data adjacent to fp?
-      ;; data deps on fp and linalg, so fp<->data
-      (let-values ([(g msg) (wumpus-step-shoot game '(data))])
+                  'fp 'egraph '() 3 30 0 'active '(fp) 0)])
+      (let-values ([(g msg) (wumpus-step-shoot game '(algebra egraph))])
         (assert-equal 'won (wumpus-game-status g)))))
 
   (define-test "shoot on terminal game is no-op"

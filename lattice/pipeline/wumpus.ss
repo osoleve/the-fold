@@ -545,6 +545,13 @@
                   'moves-used (+ 1 (wumpus-game-moves-used game))))])
        (values g "Your quiver is empty."))]
 
+    ;; Invalid: not a list (e.g., bare symbol instead of '(room ...))
+    [(not (list? path))
+     (let ([g (wumpus-check-timeout
+                (wumpus-game-update game
+                  'moves-used (+ 1 (wumpus-game-moves-used game))))])
+       (values g "Invalid shot: expected a list of rooms, e.g. (wumpus-shoot! '(room1 room2))"))]
+
     ;; Fire arrow
     [else
      (let* ([path* (wumpus-take path *wumpus-arrow-range*)]
