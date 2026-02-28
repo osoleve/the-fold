@@ -35,19 +35,21 @@
                         (string-length result-section)
                         100)]  ; overhead for section wrappers
          [remaining (max 0 (- budget fixed-cost))]
-         ;; Variable sections — share remaining budget (6 shares)
-         [plan-budget (min (quotient remaining 6) 2000)]
-         [env-budget (min (quotient remaining 6) 1500)]
-         [loaded-budget (min (quotient remaining 12) 500)]
-         [journal-budget (min (quotient remaining 6) 1000)]
+         ;; Variable sections — share remaining budget (7 shares)
+         [plan-budget (min (quotient remaining 7) 2000)]
+         [env-budget (min (quotient remaining 7) 1500)]
+         [loaded-budget (min (quotient remaining 14) 500)]
+         [journal-budget (min (quotient remaining 7) 1000)]
+         [episodic-budget (min (quotient remaining 7) 1500)]
          [notes-budget (max 0 (- remaining plan-budget env-budget
-                                 loaded-budget journal-budget))]
+                                 loaded-budget journal-budget
+                                 episodic-budget))]
          ;; Render variable sections
          [plan-section (rlm2-render-plan state plan-budget)]
          [env-section (rlm2-render-env state env-budget)]
          [loaded-section (rlm2-render-loaded state loaded-budget)]
          [notes-section (rlm2-render-notes state notes-budget)]
-         [episodic-section (rlm2-render-episodic state)]
+         [episodic-section (rlm2-render-episodic state episodic-budget)]
          [journal-section (rlm2-render-journal state journal-budget)])
     (string-append
      "(rlm-state\n"
@@ -129,14 +131,35 @@
                      (string-append "  (notes\n    (" (rlm2-join-lines items) "))"))
                    (loop (cdr ns) (cons note acc) (+ used cost))))])))))
 
-(define (rlm2-render-episodic state)
+(define (rlm2-render-episodic state budget)
   (let ([episodic (rlm2-state-episodic state)])
     (if (null? episodic)
         "  (episodic ())"
-        (let ([items (map (lambda (entry)
-                            (format "     (~a . ~s)" (car entry) (cdr entry)))
-                          episodic)])
-          (string-append "  (episodic\n    (" (rlm2-join-lines items) "))")))))
+        ;; Show most recent entries that fit within budget
+        (let loop ([entries (reverse episodic)]  ; most recent first
+                   [acc '()]
+                   [used 0])
+          (cond
+            [(null? entries)
+             (let ([items (map (lambda (e)
+                                 (format "     (~a . ~s)" (car e) (cdr e)))
+                               acc)])
+               (string-append "  (episodic\n    (" (rlm2-join-lines items) "))"))]
+            [else
+             (let* ([entry (car entries)]
+                    [line (format "     (~a . ~s)" (car entry) (cdr entry))]
+                    [cost (+ (string-length line) 1)])
+               (if (> (+ used cost) budget)
+                   ;; Budget exhausted — render what we have with count of omitted
+                   (let* ([omitted (+ (length entries) (length acc) (- (length acc)))]
+                          [items (map (lambda (e)
+                                        (format "     (~a . ~s)" (car e) (cdr e)))
+                                      acc)]
+                          [prefix (if (> (length entries) 0)
+                                      (format "     ;; ... ~a earlier steps omitted\n" (length entries))
+                                      "")])
+                     (string-append "  (episodic\n    (" prefix (rlm2-join-lines items) "))"))
+                   (loop (cdr entries) (cons entry acc) (+ used cost))))])))))
 
 (define (rlm2-render-journal state budget)
   (let ([journal (rlm2-state-journal state)])
