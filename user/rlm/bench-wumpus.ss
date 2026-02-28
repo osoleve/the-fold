@@ -58,9 +58,9 @@
 ;;; ====
 ;;; Prompt Fitting
 ;;; ====
-;;; One LLM call before the episode loop: the model restates the game
-;;; rules in its own words. That restatement becomes the system prompt
-;;; for all episodes — the model plays by *its own* understanding.
+;;; Run separately: WUMPUS_FIT=1 RLM_INTEGRATION=1 scheme --script user/rlm/bench-wumpus.ss
+;;; Saves fitted prompt to user/rlm/wumpus-prompt.txt. The episode runner
+;;; reads WUMPUS_PROMPT=<file> to use it — same fitted prompt across all boxes.
 
 (define *wumpus-fit-instruction*
   (string-append
@@ -96,6 +96,20 @@
                         (rlm-chat-error-msg response)))
        (flush-output-port)
        *wumpus-system-prompt*])))
+
+;;; Load system prompt: WUMPUS_PROMPT file > raw *wumpus-system-prompt*
+(define (wumpus-load-system-prompt)
+  (let ([prompt-file (getenv "WUMPUS_PROMPT")])
+    (if (and prompt-file (file-exists? prompt-file))
+        (let ([text (call-with-input-file prompt-file
+                      (lambda (p) (get-string-all p)))])
+          (display (format "Using fitted prompt from ~a (~a chars)\n" prompt-file (string-length text)))
+          (flush-output-port)
+          text)
+        (begin
+          (display (format "Using raw system prompt (~a chars)\n" (string-length *wumpus-system-prompt*)))
+          (flush-output-port)
+          *wumpus-system-prompt*))))
 
 ;;; ====
 ;;; Runner
@@ -205,8 +219,7 @@
                      model-id host port n-episodes))
     (flush-output-port)
 
-    ;; Prompt fitting: model restates the rules in its own words
-    (let ([system-prompt (wumpus-fit-prompt provider)])
+    (let ([system-prompt (wumpus-load-system-prompt)])
 
     (let loop ([remaining seeds] [i 0] [results '()])
       (if (null? remaining)
@@ -268,6 +281,21 @@
           (let ([result (run-wumpus-episode provider system-prompt (car remaining) i n-episodes)])
             (loop (cdr remaining) (+ i 1) (cons result results))))))))
 
-;; Auto-run when invoked as script
+;; WUMPUS_FIT=1 — fit prompt and save to file, then exit
+;; RLM_INTEGRATION=1 — run episodes (optionally with WUMPUS_PROMPT=<file>)
+(when (getenv "WUMPUS_FIT")
+  (let* ([host (or (getenv "RLM_HOST") "localhost")]
+         [port (or (and (getenv "RLM_PORT") (string->number (getenv "RLM_PORT"))) 8000)]
+         [model-id (or (getenv "RLM_MODEL") "/models/Qwen3.5-27B-NVFP4")]
+         [provider (make-rlm-provider
+                     (format "http://~a:~a/v1/chat/completions" host port)
+                     model-id #f 'openai)]
+         [fitted (wumpus-fit-prompt provider)]
+         [out-file (or (getenv "WUMPUS_PROMPT") "user/rlm/wumpus-prompt.txt")])
+    (call-with-output-file out-file
+      (lambda (p) (put-string p fitted))
+      'replace)
+    (display (format "Saved to ~a\n" out-file))))
+
 (when (getenv "RLM_INTEGRATION")
   (run-wumpus-suite))
