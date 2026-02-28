@@ -56,10 +56,52 @@
     "This returns `(status reward)` — your final score.\n"))
 
 ;;; ====
+;;; Prompt Fitting
+;;; ====
+;;; One LLM call before the episode loop: the model restates the game
+;;; rules in its own words. That restatement becomes the system prompt
+;;; for all episodes — the model plays by *its own* understanding.
+
+(define *wumpus-fit-instruction*
+  (string-append
+    "You are about to play Hunt the Wumpus. Below are the full game rules.\n\n"
+    "Restate these rules as a concise briefing TO YOURSELF — in your own words, "
+    "in whatever format helps you play well. Include:\n"
+    "- Exact command syntax (eval, submit)\n"
+    "- The triangulation strategy for finding the wumpus\n"
+    "- How to avoid pits\n"
+    "- What each sense means\n\n"
+    "Do NOT add any rules that aren't listed. Do NOT embellish. "
+    "Be precise and concise — this will be your only reference during play.\n\n"
+    "---\n\n"))
+
+(define (wumpus-fit-prompt provider)
+  (display "Fitting prompt...\n")
+  (flush-output-port)
+  (let* ([messages (list
+                     (rlm2-make-msg "user"
+                       (string-append *wumpus-fit-instruction*
+                                      *wumpus-system-prompt*)))]
+         [response (rlm-chat provider messages 1024 0.3)])
+    (cond
+      [(rlm-chat-ok? response)
+       (let ([fitted (rlm-chat-text response)])
+         (display (format "  Fitted prompt: ~a chars (original: ~a)\n"
+                          (string-length fitted)
+                          (string-length *wumpus-system-prompt*)))
+         (flush-output-port)
+         fitted)]
+      [else
+       (display (format "  Fit failed (~a), using original prompt\n"
+                        (rlm-chat-error-msg response)))
+       (flush-output-port)
+       *wumpus-system-prompt*])))
+
+;;; ====
 ;;; Runner
 ;;; ====
 
-(define (run-wumpus-episode provider seed i total)
+(define (run-wumpus-episode provider system-prompt seed i total)
   (let* ([max-steps 60]
          [max-fuel 120000]
          [label (format "wumpus-~a" i)]
@@ -85,7 +127,7 @@
                       (lambda ()
                         (let ([config (append
                                         (make-rlm2-config
-                                          provider *wumpus-system-prompt*
+                                          provider system-prompt
                                           max-steps max-fuel
                                           2000  ; chunk-size
                                           1     ; max-depth
@@ -163,6 +205,9 @@
                      model-id host port n-episodes))
     (flush-output-port)
 
+    ;; Prompt fitting: model restates the rules in its own words
+    (let ([system-prompt (wumpus-fit-prompt provider)])
+
     (let loop ([remaining seeds] [i 0] [results '()])
       (if (null? remaining)
           ;; Done — report
@@ -213,14 +258,15 @@
                                  (model ,model-id)
                                  (mode "wumpus")
                                  (timestamp ,(rlm2-current-iso8601))
+                                 (fitted-prompt ,system-prompt)
                                  (episodes ,results))
                               port))
               'replace)
             (display (format "Results saved to ~a\n" results-file)))
 
           ;; Run next episode
-          (let ([result (run-wumpus-episode provider (car remaining) i n-episodes)])
-            (loop (cdr remaining) (+ i 1) (cons result results)))))))
+          (let ([result (run-wumpus-episode provider system-prompt (car remaining) i n-episodes)])
+            (loop (cdr remaining) (+ i 1) (cons result results))))))))
 
 ;; Auto-run when invoked as script
 (when (getenv "RLM_INTEGRATION")
