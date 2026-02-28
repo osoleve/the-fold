@@ -17,23 +17,23 @@
 
 (test-group "rlm2-expand-env-refs"
 
-  (define-test "expands retrieve with literal key"
+  (define-test "expands peek with literal key"
     (let* ([env (car (rlm-env-store! (make-rlm-env) 'x 42 'sexpr))]
-           [expr '(+ 1 (retrieve 'x))]
+           [expr '(+ 1 (peek 'x))]
            [expanded (rlm2-expand-env-refs expr env)])
-      ;; x=42, so (retrieve 'x) should become 42
+      ;; x=42, so (peek 'x) should become 42
       (assert-equal '(+ 1 42) expanded)))
 
-  (define-test "leaves retrieve with runtime key unchanged"
+  (define-test "leaves peek with runtime key unchanged"
     (let* ([env (car (rlm-env-store! (make-rlm-env) 'x 42 'sexpr))]
-           [expr '(retrieve some-var)]
+           [expr '(peek some-var)]
            [expanded (rlm2-expand-env-refs expr env)])
       ;; some-var is not a literal — leave unchanged
-      (assert-equal '(retrieve some-var) expanded)))
+      (assert-equal '(peek some-var) expanded)))
 
-  (define-test "expands nested retrieve"
+  (define-test "expands nested peek"
     (let* ([env (car (rlm-env-store! (make-rlm-env) 'data '(1 2 3) 'sexpr))]
-           [expr '(map + (retrieve 'data))]
+           [expr '(map + (peek 'data))]
            [expanded (rlm2-expand-env-refs expr env)])
       (assert-equal '(map + '(1 2 3)) expanded)))
 
@@ -45,17 +45,17 @@
 
   (define-test "does not expand missing keys"
     (let* ([env (make-rlm-env)]
-           [expr '(retrieve 'missing)]
+           [expr '(peek 'missing)]
            [expanded (rlm2-expand-env-refs expr env)])
-      (assert-equal '(retrieve 'missing) expanded)))
+      (assert-equal '(peek 'missing) expanded)))
 
   (define-test "expands large values for eval"
     ;; Values of any size should be expanded (cap removed — eval path, not HUD)
     (let* ([big-string (make-string 3000 #\x)]
            [env (car (rlm-env-store! (make-rlm-env) 'big big-string 'text))]
-           [expr '(string-length (retrieve 'big))]
+           [expr '(string-length (peek 'big))]
            [expanded (rlm2-expand-env-refs expr env)])
-      ;; The retrieve should be replaced with the actual value
+      ;; The peek should be replaced with the actual value
       (assert-true (pair? expanded))
       (assert-equal 'string-length (car expanded))
       (assert-true (string? (cadr expanded)))
@@ -356,6 +356,29 @@
             (lambda ()
               (let ([dir (string-append (current-directory) "/.rlm")])
                 (unless (file-exists? dir) (mkdir dir)))))))))
+)
+
+;;; ====
+;;; Setup Replay
+;;; ====
+
+(test-group "rlm2-replay-setup"
+
+  (define-test "empty setup returns state unchanged"
+    (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+           [cfg (make-rlm2-config-default 'p "sys")]
+           [s* (rlm2-replay-setup! s '() cfg)])
+      (assert-equal (rlm2-state-fuel s) (rlm2-state-fuel s*))
+      (assert-equal (rlm2-state-loaded s) (rlm2-state-loaded s*))
+      (assert-equal (rlm2-state-env s) (rlm2-state-env s*))))
+
+  (define-test "unknown action types are skipped"
+    (let* ([s (make-initial-rlm2-state "t" #f 1000)]
+           [cfg (make-rlm2-config-default 'p "sys")]
+           [s* (rlm2-replay-setup! s '((search "query") (think "hmm")) cfg)])
+      ;; search and think are not load/store/eval — should be skipped
+      (assert-equal (rlm2-state-fuel s) (rlm2-state-fuel s*))
+      (assert-equal (rlm2-state-loaded s) (rlm2-state-loaded s*))))
 )
 
 (run-all-tests)

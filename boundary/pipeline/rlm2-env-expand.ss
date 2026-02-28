@@ -7,11 +7,11 @@
 ;;; ====
 ;;;
 ;;; Inside (eval ...) and (store ...) expressions, the model may write
-;;; (retrieve 'key) to reference env values. We pre-expand these to
+;;; (peek 'key) to reference env values. We pre-expand these to
 ;;; their actual values before sending to IPC.
 
 ;;; Bare symbol expansion: after (store 'entries val), models can write
-;;; (filter pred entries) instead of (filter pred (retrieve 'entries)).
+;;; (filter pred entries) instead of (filter pred (peek 'entries)).
 ;;; The driver auto-inlines non-chunked stored values (<50K chars).
 ;;; Scope tracking prevents expanding lambda-bound variables.
 (define (rlm2-expand-env-refs expr env)
@@ -28,24 +28,16 @@
                  (< (caddr entry) 50000))))
      (let ([val (rlm-env-fetch env expr)])
        (if val (rlm2-quote-if-needed val) expr))]
-    ;; (retrieve 'key) -> expanded value
+    ;; (peek 'key) -> full value, (peek 'key n) -> truncated preview
     [(and (pair? expr)
-          (eq? (car expr) 'retrieve)
+          (eq? (car expr) 'peek)
           (pair? (cdr expr))
           (rlm2-literal-arg? (cadr expr)))
      (let* ([key (rlm2-unquote-key (cadr expr))]
-            [val (rlm-env-fetch env key)])
-       (if val
-           (rlm2-quote-if-needed val)
-           expr))]
-    ;; (peek 'key n) -> expanded preview
-    [(and (pair? expr)
-          (eq? (car expr) 'peek)
-          (>= (length (cdr expr)) 2)
-          (rlm2-literal-arg? (cadr expr)))
-     (let* ([key (rlm2-unquote-key (cadr expr))]
-            [n (caddr expr)]
-            [val (rlm-env-peek env key n)])
+            [has-n? (and (pair? (cddr expr)) (number? (caddr expr)))]
+            [val (if has-n?
+                     (rlm-env-peek env key (caddr expr))
+                     (rlm-env-fetch env key))])
        (if val (rlm2-quote-if-needed val) expr))]
     ;; (grep 'key pattern k) -> expanded results
     [(and (pair? expr)

@@ -191,9 +191,13 @@
 (doc 'type '(-> String String))
 (doc 'description "Build the system prompt for the agent — includes action grammar and semantics")
 (define (rlm2-build-system-prompt base-prompt)
-  (string-append
-   base-prompt
-   "\n\n"
+  ;; If base-prompt already contains the action grammar, it's a pre-built
+  ;; or fitted prompt — return it as-is (idempotent).
+  (if (and (string? base-prompt)
+           (> (string-length base-prompt) 100)
+           (rlm2-string-contains? base-prompt "Action grammar:"))
+      base-prompt
+      (string-append
    "You are an agent in The Fold. You receive a structured state (HUD) and emit "
    "a single S-expression action. Your output must be ONLY the action — no markdown, "
    "no prose before or after (use (think \"...\") for reasoning).\n\n"
@@ -211,19 +215,18 @@
    "- (reframe task) changes the current task without losing env, loaded modules, or memory.\n\n"
    "Environment & stored values:\n"
    "- After (store 'entries val), you can use entries as a bare variable in later expressions:\n"
-   "    (store 'entries (flatten (retrieve 'map-result)))\n"
+   "    (store 'entries (flatten map-result))\n"
    "    (store 'filtered (filter pred? entries))  ; bare symbol works!\n"
    "  The driver auto-expands bare symbols that match stored keys.\n"
-   "- (retrieve 'key) also works and is equivalent to using the bare symbol.\n"
+   "- (peek 'key) shows the full value. (peek 'key n) shows first n chars.\n"
    "- Stored values survive as structured data (lists, numbers, strings).\n"
-   "  You can use car, cdr, map, filter, etc. on stored values directly.\n"
-   "- Do NOT try to call retrieve inside a string passed to eval. Use (store ...) instead.\n\n"
+   "  You can use car, cdr, map, filter, etc. on stored values directly.\n\n"
    "Submit:\n"
    "- (submit expr) evaluates expr as Scheme code, then submits the RESULT.\n"
-   "- (retrieve 'key) inside submit is pre-expanded, just like in store/eval.\n"
+   "- Stored keys are bare Scheme variables. (submit answer) works directly.\n"
    "- Typical pattern: compute and store your answer, then submit it:\n"
    "    (store 'answer (map ...))\n"  ; in one step
-   "    (submit (retrieve 'answer))  ; in the next step\n"
+   "    (submit answer)              ; in the next step — bare symbol, not (peek 'answer)\n"
    "- Do NOT pass a string to submit. (submit \"(some code)\") submits the string literal, NOT the result.\n"
    "- Submit the TASK ANSWER, not observations about the process. Never submit error descriptions.\n\n"
    "Error recovery:\n"
@@ -233,7 +236,7 @@
    ;; --- Chunked values ---
    "Chunked values:\n"
    "Large values are automatically chunked for memory efficiency. "
-   "If (retrieve key) says \"value is chunked\", navigate with:\n"
+   "If (peek key) says \"value is chunked\", navigate with:\n"
    "  (peek key 500)          — Preview first 500 chars\n"
    "  (grep key \"pattern\" 5)  — Search chunks for pattern, top 5 matches\n"
    "  (slice key 0 3)         — Extract chunks 0, 1, 2 (0-indexed, exclusive end)\n\n"
@@ -247,7 +250,7 @@
    "Common pattern — chain actions in a begin:\n"
    "  (begin\n"
    "    (search \"eigenvalue decomposition\")\n"
-   "    (store 'result (map f (retrieve 'data))))\n"
+   "    (store 'result (map f data)))\n"
    "Do NOT put (think ...) inside (begin ...) — it wastes tokens and risks truncation.\n"
    "Use (think ...) only as a standalone action when you need to reason without acting.\n\n"
    ;; --- Worker prelude ---
@@ -257,7 +260,10 @@
    "  Strings: split-lines string-contains? string-split string-trim\n"
    "           string-prefix? string-suffix? string-index string-index-of\n"
    "           substr string-join string-replace extract-after\n"
-   "  Note: (sorted lst pred) wraps sort. (split-lines s) splits on newlines.\n"))
+   "  Note: (sorted lst pred) wraps sort. (split-lines s) splits on newlines.\n"
+   (if (and (string? base-prompt) (> (string-length base-prompt) 0))
+       (string-append "\n" base-prompt)
+       ""))))
 
 ;;; ====
 ;;; Action Grammar (full — always rendered in system prompt)
@@ -291,7 +297,7 @@
    "\n"
    "  Data:\n"
    "  (store key expr)        — Evaluate expr, store result with name\n"
-   "  (retrieve key)          — Fetch full content of env entry\n"
+   "  (peek key)              — Show full value of env entry\n"
    "  (peek key n)            — Preview first n chars of env entry\n"
    "  (grep key pattern k)    — Search env entry chunks, top-k results\n"
    "  (slice key start end)   — Extract chunk range [start, end) from env entry\n"
@@ -335,7 +341,7 @@
                     hints)]
          ;; Data when env non-empty
          [hints (if (not (null? env))
-                    (cons "  Data: retrieve, peek, grep, slice, store, map-chunks" hints)
+                    (cons "  Data: peek, grep, slice, store, map-chunks" hints)
                     hints)]
          ;; Code intel when modules loaded
          [hints (if (> (length loaded) 0)
@@ -521,7 +527,7 @@
 (define (rlm2-error-key-not-found key)
   (rlm2-error 'key-not-found
     (list 'given (format "~a" key))
-    (list 'hint "Use (retrieve 'key) only for keys shown in the env section of your HUD")
+    (list 'hint "Use (peek 'key) only for keys shown in the env section of your HUD")
     (list 'suggestion "Check (env ...) in your current state for available keys.")))
 
 (doc 'type '(-> String Any String Rlm2Diagnostic))
@@ -547,7 +553,7 @@
 (define (rlm2-nudge-think-streak count)
   (rlm2-nudge 'think-streak count
     (if (>= count 5)
-        "You have enough context. Compute your answer with (store 'answer expr), then (submit (retrieve 'answer))."
+        "You have enough context. Compute your answer with (store 'answer expr), then (submit answer)."
         "You have enough context to act. Try: search, eval, store, or grep.")))
 
 (doc 'type '(-> Rlm2Diagnostic))
@@ -602,6 +608,17 @@
 ;;; ====
 ;;; String Utilities (local, no external deps)
 ;;; ====
+
+;;; Simple substring containment check.
+(define (rlm2-string-contains? haystack needle)
+  (let ([hlen (string-length haystack)]
+        [nlen (string-length needle)])
+    (and (<= nlen hlen)
+         (let loop ([i 0])
+           (cond
+             [(> (+ i nlen) hlen) #f]
+             [(string=? (substring haystack i (+ i nlen)) needle) #t]
+             [else (loop (+ i 1))])))))
 
 (define (rlm2-join-lines items)
   (if (null? items)

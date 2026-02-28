@@ -162,10 +162,10 @@ Targets must be members of *rlm2-action-types* in rlm2.ss.")
     ;; symbols aliases
     (list     . symbols)
     (dir      . symbols)
-    ;; retrieve aliases
-    (get      . retrieve)
-    (fetch    . retrieve)
-    (cat      . retrieve)))
+    ;; peek aliases
+    (get      . peek)
+    (fetch    . peek)
+    (cat      . peek)))
 
 (doc 'type '(-> Symbol (Maybe Symbol)))
 (doc 'description "Look up the canonical action name for an alias. Returns #f if not an alias.")

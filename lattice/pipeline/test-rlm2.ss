@@ -156,6 +156,24 @@
       (assert-equal 8000 (rlm2-config-context-budget cfg))
       (assert-false (rlm2-config-verifier cfg))
       (assert-equal 2048 (rlm2-config-max-tokens cfg))))
+
+  (define-test "rlm2-config-setup defaults to empty"
+    (let ([cfg (make-rlm2-config 'p "sys" 10 5000 2000 2 3 8000 #f 1024)])
+      (assert-equal '() (rlm2-config-setup cfg))))
+
+  (define-test "rlm2-config-setup reads from index 12"
+    (let ([cfg (append (make-rlm2-config 'p "sys" 10 5000 2000 2 3 8000 #f 1024)
+                       (list '()    ; few-shot (index 11)
+                             '((load matrix) (store M (matrix-from-lists '((1 2) (3 4)))))))])
+      (assert-equal '((load matrix) (store M (matrix-from-lists '((1 2) (3 4)))))
+                    (rlm2-config-setup cfg))))
+
+  (define-test "rlm2-config-few-shot still works with setup present"
+    (let ([cfg (append (make-rlm2-config 'p "sys" 10 5000 2000 2 3 8000 #f 1024)
+                       (list '(("user" . "hello"))   ; few-shot
+                             '((load matrix))))])     ; setup
+      (assert-equal '(("user" . "hello")) (rlm2-config-few-shot cfg))
+      (assert-equal '((load matrix)) (rlm2-config-setup cfg))))
 )
 
 ;;; ====
@@ -171,7 +189,7 @@
     (assert-true (rlm2-action? '(load linalg/vec)))
     (assert-true (rlm2-action? '(eval (+ 1 2))))
     (assert-true (rlm2-action? '(store x (+ 1 2))))
-    (assert-true (rlm2-action? '(retrieve x)))
+    (assert-true (rlm2-action? '(peek x)))
     (assert-true (rlm2-action? '(peek input 200)))
     (assert-true (rlm2-action? '(grep input "pattern" 5)))
     (assert-true (rlm2-action? '(slice input 0 3)))
@@ -210,6 +228,8 @@
     (assert-equal '(+ 1 2) (rlm2-store-expr '(store x (+ 1 2))))
     (assert-equal 'input (rlm2-peek-key '(peek input 200)))
     (assert-equal 200 (rlm2-peek-n '(peek input 200)))
+    (assert-equal 'input (rlm2-peek-key '(peek input)))
+    (assert-false (rlm2-peek-n '(peek input)))
     (assert-equal "pattern" (rlm2-grep-pattern '(grep input "pattern" 5)))
     (assert-equal 5 (rlm2-grep-k '(grep input "pattern" 5)))
     (assert-equal 0 (rlm2-slice-start '(slice input 0 3)))
@@ -238,9 +258,17 @@
     (let ([r (rlm2-validate-action '(search "a" "b"))])
       (assert-false (rlm2-validation-ok? r))))
 
-  (define-test "validate-action rejects missing args"
-    (let ([r (rlm2-validate-action '(peek input))])
-      (assert-false (rlm2-validation-ok? r))))
+  (define-test "validate-action accepts peek with 1 or 2 args"
+    (let ([r1 (rlm2-validate-action '(peek input))]
+          [r2 (rlm2-validate-action '(peek input 500))])
+      (assert-true (rlm2-validation-ok? r1))
+      (assert-true (rlm2-validation-ok? r2))))
+
+  (define-test "validate-action rejects peek with 0 or 3 args"
+    (let ([r0 (rlm2-validate-action '(peek))]
+          [r3 (rlm2-validate-action '(peek input 500 extra))])
+      (assert-false (rlm2-validation-ok? r0))
+      (assert-false (rlm2-validation-ok? r3))))
 
   (define-test "validate-action rejects unknown type"
     (let ([r (rlm2-validate-action '(foobar 42))])
@@ -400,7 +428,7 @@
       (assert-equal "(split-lines *chunk*)" (rlm2-map-chunks-expr (rlm2-parse-result-action r)))))
 
   (define-test "parses eval with nested expression"
-    (let ([r (rlm2-parse-response "(eval (matrix-eigen (retrieve 'input)))")])
+    (let ([r (rlm2-parse-response "(eval (matrix-eigen input))")])
       (assert-true (rlm2-eval? (rlm2-parse-result-action r)))))
 
   (define-test "parses think alone"
@@ -581,6 +609,20 @@
       (assert-true (>= (rlm2-hud-contains? prompt "submit expr") 0))
       (assert-true (>= (rlm2-hud-contains? prompt "plan! items") 0))
       (assert-true (>= (rlm2-hud-contains? prompt "You are a math solver.") 0))))
+
+  (define-test "build-system-prompt is idempotent for fitted prompts"
+    ;; A prompt that already contains "Action grammar:" should pass through as-is
+    (let* ([original (rlm2-build-system-prompt "Example task.")]
+           [double (rlm2-build-system-prompt original)])
+      ;; Should be identical — not wrapped twice
+      (assert-equal (string-length original) (string-length double))
+      (assert-true (string=? original double))))
+
+  (define-test "build-system-prompt wraps short base-prompts"
+    ;; A short prompt without the grammar marker gets wrapped
+    (let ([prompt (rlm2-build-system-prompt "Just an example.")])
+      (assert-true (>= (rlm2-hud-contains? prompt "Action grammar:") 0))
+      (assert-true (>= (rlm2-hud-contains? prompt "Just an example.") 0))))
 )
 
 (test-group "rlm2-reflection-prompt"
@@ -618,8 +660,8 @@
     (assert-equal 42 (rlm2-unquote 42)))
 
   (define-test "accessors unquote parsed actions"
-    ;; After (read "(retrieve 'input)"), the arg is (quote input)
-    (assert-equal 'input (rlm2-retrieve-key '(retrieve (quote input))))
+    ;; After (read "(peek 'input)"), the arg is (quote input)
+    (assert-equal 'input (rlm2-peek-key '(peek (quote input))))
     (assert-equal 'linalg (rlm2-inspect-skill '(inspect (quote linalg))))
     (assert-equal 'linalg (rlm2-exports-skill '(exports (quote linalg))))
     (assert-equal 'vec (rlm2-load-module '(load (quote vec))))
@@ -629,7 +671,7 @@
     (assert-equal 'input (rlm2-slice-key '(slice (quote input) 0 3))))
 
   (define-test "accessors work with bare symbols too"
-    (assert-equal 'input (rlm2-retrieve-key '(retrieve input)))
+    (assert-equal 'input (rlm2-peek-key '(peek input)))
     (assert-equal 'linalg (rlm2-inspect-skill '(inspect linalg))))
 
   (define-test "expr accessors preserve quote forms"

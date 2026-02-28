@@ -201,7 +201,7 @@
                     (rlm2-state-plan state))]
          [loaded* (if (eq? action-type 'load)
                       (if (>= (length action) 2)
-                          (cons (cadr action) (rlm2-state-loaded state))
+                          (cons (collect-unquote-key (cadr action)) (rlm2-state-loaded state))
                           (rlm2-state-loaded state))
                       (rlm2-state-loaded state))]
          [notes* (if (and (string? note) (> (string-length note) 0))
@@ -251,6 +251,39 @@
     (phase . "reflect")
     (trajectory . ,traj-hex)))
 
+;;; ====
+;;; Action Quality Filters
+;;; ====
+
+;;; collect-action-nests-action? : Sexp -> Bool
+;;; Returns #t if an action (peek, search, load, etc.) appears nested
+;;; inside the argument position of eval, store, or submit.
+;;; These represent action/expression confusion — bad for SFT.
+(define (collect-action-nests-action? action)
+  (define *action-names* '(peek search inspect exports load
+                           submit eval store think plan! journal begin))
+  (define (check-expr expr)
+    ;; Walk an expression that SHOULD be pure Scheme.
+    ;; If we find an action name in function position, that's contamination.
+    (and (pair? expr)
+         (or (memq (car expr) *action-names*)
+             (exists check-expr (cdr expr)))))
+  (and (pair? action)
+       (case (car action)
+         [(eval)   (and (pair? (cdr action)) (check-expr (cadr action)))]
+         [(store)  (and (>= (length action) 3) (check-expr (caddr action)))]
+         [(submit) (and (pair? (cdr action)) (check-expr (cadr action)))]
+         [(begin)  (exists collect-action-nests-action? (cdr action))]
+         [else #f])))
+
+;;; collect-trajectory-clean? : (List StepRecord) -> Bool
+;;; Returns #t if no step in the trajectory contains action/expression confusion.
+(define (collect-trajectory-clean? steps)
+  (not (exists (lambda (step)
+                 (let ([action (cdr (assq 'action step))])
+                   (collect-action-nests-action? action)))
+               steps)))
+
 (define (collect-extract-trajectory traj-hex label)
   (display (format "\n  Extracting: ~a (~a...)\n" label
                    (substring traj-hex 0 (min 16 (string-length traj-hex)))))
@@ -258,6 +291,11 @@
   (let-values ([(config-data steps) (collect-walk-trajectory traj-hex)])
     (if (not config-data)
         (begin (display "    -> 0 examples (skipped)\n") '())
+        ;; Quality gate: drop trajectories with action/expression confusion
+        (if (not (collect-trajectory-clean? steps))
+            (begin
+              (display "    -> 0 examples (dropped: action/expression confusion)\n")
+              '())
         (let* ([sys-prompt-base (rlm2-config-system-prompt config-data)]
                [sys-prompt (rlm2-build-system-prompt sys-prompt-base)]
                [max-fuel (rlm2-config-max-fuel config-data)]
@@ -299,7 +337,7 @@
                                  state action note fuel-used step-hash)])
                   (loop (cdr remaining) state*
                         (append reflect-examples
-                                (cons act-example examples))))))))))
+                                (cons act-example examples)))))))))))
 
 ;;; ====
 ;;; JSONL Writer

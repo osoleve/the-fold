@@ -57,6 +57,13 @@
 (define *rlm2-timing-enabled?*
   (and (getenv "RLM_TIMING") #t))
 
+;;; Act temperature — overridable via RLM_TEMPERATURE env var (default 0.7)
+(define *rlm2-act-temperature*
+  (let ([env (getenv "RLM_TEMPERATURE")])
+    (if (and env (string->number env))
+        (string->number env)
+        0.7)))
+
 ;;; ====
 ;;; Mechanical Actions (skip LLM reflection, use template note)
 ;;; ====
@@ -67,6 +74,32 @@
 (define *rlm2-mechanical-actions*
   '(submit store load plan! journal memorize remember recall
     lookup definition symbols outline delegate idle reframe))
+
+;;; ====
+;;; Setup Replay (pre-load modules and bind variables before the agent starts)
+;;; ====
+;;;
+;;; Setup actions are executed silently before the main loop. They let
+;;; the bench harness pre-load modules and bind variables so the agent
+;;; starts with a prepared environment. No fuel cost — the model's
+;;; budget starts fresh after setup.
+
+(doc 'type '(-> Rlm2State (List Action) Rlm2Config Rlm2State))
+(doc 'description "Replay setup actions (load/store/eval) silently, threading state. Returns updated state.")
+(define (rlm2-replay-setup! state setup config)
+  (fold-left
+    (lambda (st action)
+      (let ([type (car action)])
+        (case type
+          [(load)  (let ([result (rlm2-exec-load st action)])
+                    (cadr result))]
+          [(store) (let ([result (rlm2-exec-store st action config)])
+                    (cadr result))]
+          [(eval)  (let ([result (rlm2-exec-eval st action config)])
+                    (cadr result))]
+          [else st])))
+    state
+    setup))
 
 ;;; ====
 ;;; Main Entry Point
@@ -105,8 +138,10 @@
     (parameterize ([*pipeline-session* session-id])
       ;; Load worker prelude into IPC session
       (rlm2-init-worker-prelude!)
-      ;; Drive the loop
-      (let loop ([state initial-state]
+      ;; Drive the loop (replay setup actions first if configured)
+      (let loop ([state (let ([setup (rlm2-config-setup config)])
+                          (if (null? setup) initial-state
+                              (rlm2-replay-setup! initial-state setup config)))]
                  [fingerprints '()]
                  [prev-step-hash #f]
                  [consecutive-thinks 0]
@@ -138,7 +173,7 @@
                               history-msgs
                               (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
-                                          messages (rlm2-config-max-tokens config) 0.7)]
+                                          messages (rlm2-config-max-tokens config) *rlm2-act-temperature*)]
                   [t2 (and *rlm2-timing-enabled?* (rlm2-time-ms))])
              (cond
                ;; LLM call failed
@@ -168,7 +203,7 @@
                        ;; Retry with higher budget if truncated
                        [retry-result (and truncated?
                                          (rlm-chat (rlm2-config-provider config)
-                                                   messages (min (* 4 (rlm2-config-max-tokens config)) 8192) 0.7))]
+                                                   messages (min (* 4 (rlm2-config-max-tokens config)) 8192) *rlm2-act-temperature*))]
                        ;; Use retry if it succeeded and parsed to non-think
                        [effective-text
                         (if (and retry-result (rlm-chat-ok? retry-result))
@@ -328,7 +363,6 @@
         [(load)     (rlm2-exec-load state action)]
         [(eval)     (rlm2-exec-eval state action config)]
         [(store)    (rlm2-exec-store state action config)]
-        [(retrieve) (rlm2-exec-retrieve state action)]
         [(peek)     (rlm2-exec-peek state action)]
         [(grep)     (rlm2-exec-grep state action)]
         [(slice)    (rlm2-exec-slice state action)]
@@ -523,37 +557,37 @@
                 #f)
               state 1))))
 
-(define (rlm2-exec-retrieve state action)
-  (let* ([key (rlm2-retrieve-key action)]
+(define (rlm2-exec-peek state action)
+  (let* ([key (rlm2-peek-key action)]
+         [n (rlm2-peek-n action)]   ; #f when (peek key) — means full fetch
          [env (rlm2-state-env state)]
          [entry (rlm-env-get env key)])
     (if (not entry)
-        (list (make-rlm2-observation 'retrieve key
+        (list (make-rlm2-observation 'peek key
                 (rlm2-format-diagnostic (rlm2-error-key-not-found key)) #f)
               state 1)
         (let ([tag (cadr entry)] [size (caddr entry)])
-          (if (eq? tag 'chunks)
-              ;; Chunked — advise to use peek/grep
-              (list (make-rlm2-observation 'retrieve key
-                      (format "Value '~a' is chunked (~a chars). Use (peek ~a n) or (grep ~a pattern k)."
-                              key size key key)
-                      #t)
-                    state 1)
-              ;; Regular — fetch from CAS
-              (let ([value (rlm-env-fetch env key)])
-                (list (make-rlm2-observation 'retrieve key
-                        (if value (format "~s" value) "CAS fetch failed")
-                        (if value #t #f))
-                      state 1)))))))
-
-(define (rlm2-exec-peek state action)
-  (let* ([key (rlm2-peek-key action)]
-         [n (rlm2-peek-n action)]
-         [result (rlm-env-peek (rlm2-state-env state) key n)])
-    (list (make-rlm2-observation 'peek key
-            (or result (rlm2-format-diagnostic (rlm2-error-key-not-found key)))
-            (if result #t #f))
-          state 1)))
+          (cond
+            ;; Truncated peek with explicit n
+            [n (let ([result (rlm-env-peek env key n)])
+                 (list (make-rlm2-observation 'peek key
+                         (or result (rlm2-format-diagnostic (rlm2-error-key-not-found key)))
+                         (if result #t #f))
+                       state 1))]
+            ;; Full fetch, but value is chunked — advise to use (peek key n) or (grep ...)
+            [(eq? tag 'chunks)
+             (list (make-rlm2-observation 'peek key
+                     (format "Value '~a' is chunked (~a chars). Use (peek '~a n) or (grep '~a \"pattern\" k)."
+                             key size key key)
+                     #t)
+                   state 1)]
+            ;; Full fetch of non-chunked value
+            [else
+             (let ([value (rlm-env-fetch env key)])
+               (list (make-rlm2-observation 'peek key
+                       (if value (format "~s" value) "CAS fetch failed")
+                       (if value #t #f))
+                     state 1))])))))
 
 (define (rlm2-exec-grep state action)
   (let* ([key (rlm2-grep-key action)]
@@ -1149,7 +1183,7 @@
                               history-msgs
                               (list (rlm2-make-msg "user" hud)))]
                   [act-response (rlm-chat (rlm2-config-provider config)
-                                          messages (rlm2-config-max-tokens config) 0.7)])
+                                          messages (rlm2-config-max-tokens config) *rlm2-act-temperature*)])
              (cond
                ;; LLM call failed — checkpoint and return error
                [(rlm-chat-err? act-response)
@@ -1172,7 +1206,7 @@
                                          (rlm-chat (rlm2-config-provider config)
                                                    messages
                                                    (min (* 4 (rlm2-config-max-tokens config)) 8192)
-                                                   0.7))]
+                                                   *rlm2-act-temperature*))]
                        [effective-text
                         (if (and retry-result (rlm-chat-ok? retry-result))
                             (let ([rt (rlm-chat-text retry-result)])
@@ -1441,6 +1475,9 @@
                                    (vector (hex->hash output-hex))))]
          [traj-hash (store-persistent! traj-blk)]
          [traj-hex (hash->hex traj-hash)])
+    ;; Cleanup: destroy the daemon session to free memory
+    (guard (ex [else #f])  ; don't let cleanup errors kill the result
+      (fold-ipc-eval "(bye)"))
     (list 'rlm2-run-result status output traj-hex env*)))
 
 (define (rlm2-store-config! config)

@@ -275,6 +275,11 @@
 (define (rlm2-config-few-shot cfg)
   (if (> (length cfg) 11) (list-ref cfg 11) '()))
 
+(doc 'type '(-> Rlm2Config (List Action)))
+(doc 'description "Setup actions to replay before the main loop. List of (load ...), (store ...), (eval ...) sexps. Empty list if not set.")
+(define (rlm2-config-setup cfg)
+  (if (> (length cfg) 12) (list-ref cfg 12) '()))
+
 (doc 'type '(-> RlmProvider String Rlm2Config))
 (doc 'description "Sensible defaults: 20 steps, 50k fuel, 2k chunks, depth 2, window 3, 8k budget, no verifier, 2048 max-tokens")
 (define (make-rlm2-config-default provider system-prompt)
@@ -298,23 +303,24 @@
 ;;; Action Language
 ;;; ====
 ;;;
-;;; 24 forms + begin. Each is a tagged list.
+;;; 23 forms + begin. Each is a tagged list.
 ;;;
 ;;; (search query)           (inspect skill)        (exports skill)
 ;;; (load module)            (eval expr)            (store key expr)
-;;; (retrieve key)           (peek key n)           (grep key pattern k)
-;;; (slice key start end)    (recall-step n)        (submit expr)
-;;; (think text)             (plan! items)          (map-chunks key expr)
-;;; (journal tag text)       (recall tag)           (memorize key text)
-;;; (remember query)         (lookup symbol)        (definition symbol)
-;;; (symbols query)          (outline file)         (delegate task input)
+;;; (peek key [n])           (grep key pattern k)   (slice key start end)
+;;; (recall-step n)          (submit expr)          (think text)
+;;; (plan! items)            (map-chunks key expr)  (journal tag text)
+;;; (recall tag)             (memorize key text)    (remember query)
+;;; (lookup symbol)          (definition symbol)    (symbols query)
+;;; (outline file)           (delegate task input)  (idle)
+;;; (reframe task)
 ;;; (begin action ...)
 
 (doc 'section 'rlm2-actions)
 
 ;;; Known action type symbols
 (define *rlm2-action-types*
-  '(search inspect exports load eval store retrieve peek
+  '(search inspect exports load eval store peek
     grep slice recall-step submit think plan! map-chunks
     journal recall memorize remember begin
     lookup definition symbols outline delegate
@@ -339,7 +345,6 @@
 (define (rlm2-load? a)        (and (pair? a) (eq? (car a) 'load)))
 (define (rlm2-eval? a)        (and (pair? a) (eq? (car a) 'eval)))
 (define (rlm2-store? a)       (and (pair? a) (eq? (car a) 'store)))
-(define (rlm2-retrieve? a)    (and (pair? a) (eq? (car a) 'retrieve)))
 (define (rlm2-peek? a)        (and (pair? a) (eq? (car a) 'peek)))
 (define (rlm2-grep? a)        (and (pair? a) (eq? (car a) 'grep)))
 (define (rlm2-slice? a)       (and (pair? a) (eq? (car a) 'slice)))
@@ -362,7 +367,7 @@
 (define (rlm2-reframe? a)  (and (pair? a) (eq? (car a) 'reframe)))
 
 ;;; Unquote helper: (quote x) -> x, else identity.
-;;; After `read`, model output like (retrieve 'x) has (quote x) as the arg.
+;;; After `read`, model output like (peek 'x) has (quote x) as the arg.
 (define (rlm2-unquote arg)
   (if (and (pair? arg) (eq? (car arg) 'quote) (pair? (cdr arg)))
       (cadr arg)
@@ -379,9 +384,8 @@
 (define (rlm2-eval-expr a)          (cadr a))                    ; (eval expr) — expr, no unquote
 (define (rlm2-store-key a)          (rlm2-unquote (cadr a)))     ; (store 'key expr)
 (define (rlm2-store-expr a)         (caddr a))                   ; (store key expr) — expr, no unquote
-(define (rlm2-retrieve-key a)       (rlm2-unquote (cadr a)))     ; (retrieve 'key)
-(define (rlm2-peek-key a)           (rlm2-unquote (cadr a)))     ; (peek 'key n)
-(define (rlm2-peek-n a)             (caddr a))                   ; (peek key n)
+(define (rlm2-peek-key a)           (rlm2-unquote (cadr a)))     ; (peek 'key) or (peek 'key n)
+(define (rlm2-peek-n a)             (if (null? (cddr a)) #f (caddr a))) ; #f when no n given
 (define (rlm2-grep-key a)           (rlm2-unquote (cadr a)))     ; (grep 'key pattern k)
 (define (rlm2-grep-pattern a)       (caddr a))                   ; (grep key pattern k)
 (define (rlm2-grep-k a)             (cadddr a))                  ; (grep key pattern k)
@@ -415,7 +419,7 @@
 ;;;
 ;;; Used by the parser to validate well-formedness.
 ;;; Maps action-type -> expected arg count (excluding tag).
-;;; #f means variadic (begin).
+;;; #f means variadic (begin). (min . max) means range arity.
 
 (doc 'section 'rlm2-action-arity)
 
@@ -426,8 +430,7 @@
     (load        . 1)
     (eval        . 1)
     (store       . 2)
-    (retrieve    . 1)
-    (peek        . 2)
+    (peek        . (1 . 2))
     (grep        . 3)
     (slice       . 3)
     (recall-step . 1)
@@ -448,8 +451,8 @@
     (idle        . 0)
     (reframe     . 1)))
 
-(doc 'type '(-> Symbol (Maybe Nat)))
-(doc 'description "Look up expected arity for an action type. #f for variadic (begin).")
+(doc 'type '(-> Symbol (Maybe (U Nat (Pair Nat Nat)))))
+(doc 'description "Look up expected arity for an action type. #f for variadic (begin). (min . max) for range.")
 (define (rlm2-action-expected-arity type)
   (let ([entry (assq type *rlm2-action-arity*)])
     (and entry (cdr entry))))
@@ -486,6 +489,15 @@
                       (if (eq? (car child-result) 'ok)
                           (loop (cdr children))
                           child-result)))))]
+         ;; Range arity (min . max)
+         [(pair? expected)
+          (let ([n (length args)]
+                [lo (car expected)]
+                [hi (cdr expected)])
+            (if (and (>= n lo) (<= n hi))
+                (list 'ok expr)
+                (list 'err (format "~a expects ~a-~a args, got ~a"
+                                   type lo hi n))))]
          ;; Fixed arity
          [(not (= (length args) expected))
           (list 'err (format "~a expects ~a arg~a, got ~a"
