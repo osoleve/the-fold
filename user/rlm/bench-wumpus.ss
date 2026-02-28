@@ -91,39 +91,33 @@
                                               setup))])
                           (rlm2-run config task ""))))])
         (let* ([status (rlm2-run-result-status result)]
-               [output (format "~a" (rlm2-run-result-output result))]
+               [output-str (format "~a" (rlm2-run-result-output result))]
                [traj (rlm2-run-result-trajectory-hash result)]
-               ;; Parse submitted result: expect (game-status reward)
+               ;; Parse submitted result: expect "(status reward)" string
                [submitted? (eq? status 'completed)]
-               [game-status (and submitted?
-                                 (let ([out (rlm2-run-result-output result)])
-                                   (if (and (pair? out) (symbol? (car out)))
-                                       (car out)
-                                       'unknown)))]
-               [reward (and submitted?
-                            (let ([out (rlm2-run-result-output result)])
-                              (if (and (pair? out) (pair? (cdr out))
-                                       (number? (cadr out)))
-                                  (cadr out)
-                                  0)))])
+               [parsed (and submitted?
+                            (guard (ex [else #f])
+                              (read (open-input-string output-str))))]
+               [game-status (if (and (pair? parsed) (symbol? (car parsed)))
+                                (car parsed) 'unknown)]
+               [reward (if (and (pair? parsed) (pair? (cdr parsed))
+                                (number? (cadr parsed)))
+                           (cadr parsed) 0)])
           (display (format "  RLM: ~a | Game: ~a | Reward: ~a | Time: ~a ms\n"
-                           status
-                           (or game-status "n/a")
-                           (or reward 0)
-                           ms))
+                           status game-status reward ms))
           (display (format "  Output: ~a\n"
-                           (if (> (string-length output) 200)
-                               (string-append (substring output 0 200) "...")
-                               output)))
+                           (if (> (string-length output-str) 200)
+                               (string-append (substring output-str 0 200) "...")
+                               output-str)))
           (flush-output-port)
 
           `((label . ,label)
             (seed . ,seed)
             (rlm-status . ,(symbol->string status))
-            (game-status . ,(if game-status (symbol->string game-status) "n/a"))
-            (reward . ,(or reward 0))
+            (game-status . ,(symbol->string game-status))
+            (reward . ,reward)
             (time-ms . ,ms)
-            (output . ,output)
+            (output . ,output-str)
             (trajectory . ,traj)))))))
 
 ;;; wall-clock-ms : (-> a) -> (values a Nat)
