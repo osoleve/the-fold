@@ -46,7 +46,7 @@
     "from your suspect list.\n"
     "3. Intersect candidate sets from 2-3 stench rooms to narrow to 1-2 suspects, "
     "then shoot.\n\n"
-    "For pits (draft): do NOT enter unvisited rooms from a draft-sensing room. "
+    "For the pit (draft): do NOT enter unvisited rooms from a draft-sensing room. "
     "Retreat to a visited room and approach from a different direction.\n\n"
     "Use `(think ...)` for deductive reasoning about candidate sets. "
     "The `(visited ...)` list in each observation shows where you've already been.\n\n"

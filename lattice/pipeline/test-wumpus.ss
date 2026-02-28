@@ -178,9 +178,9 @@
     (let ([g (wumpus-make-episode *lattice-cave-graph* (default-wumpus-config) 42)])
       (assert-true (pair? (memq (wumpus-game-player-room g) (wumpus-game-visited g))))))
 
-  (define-test "3 pits placed"
+  (define-test "1 pit placed"
     (let ([g (wumpus-make-episode *lattice-cave-graph* (default-wumpus-config) 42)])
-      (assert-equal 3 (length (wumpus-game-pit-rooms g)))))
+      (assert-equal 1 (length (wumpus-game-pit-rooms g)))))
 
   (define-test "player, wumpus, pits are all distinct rooms"
     (let* ([g (wumpus-make-episode *lattice-cave-graph* (default-wumpus-config) 42)]
