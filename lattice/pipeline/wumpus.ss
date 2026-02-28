@@ -199,9 +199,146 @@
                 (cave-graph-highest-degree g comp)))
             graph others)))))
 
-;;; The ready-to-use cave graph
+;;; The ready-to-use cave graph (full lattice — used as source for subgraph extraction)
 (define *lattice-cave-graph*
   (cave-graph-ensure-connected (deps->cave-graph *lattice-deps*)))
+
+;;; ====
+;;; Playable Subgraph Extraction
+;;; ====
+;;; The full lattice has power-law degree (fp=20, linalg=17, data=11).
+;;; Senses are useless at high-degree nodes. Extract a random connected
+;;; subgraph of 15-25 rooms where all degrees are 2-7, using only real
+;;; lattice edges. Different seeds → different slices of the lattice.
+
+(define *subgraph-target*  23)
+(define *subgraph-min*     15)
+(define *subgraph-max*     25)
+(define *subgraph-max-deg*  7)
+(define *subgraph-min-deg*  2)
+(define *subgraph-retries* 20)
+
+;;; Build a cave-graph from a subset of rooms, keeping only edges
+;;; where both endpoints are in the set.
+(define (induce-subgraph full-graph rooms)
+  (map (lambda (room)
+         (cons room (filter (lambda (n) (memq n rooms))
+                            (cave-graph-neighbors full-graph room))))
+       rooms))
+
+;;; Is the room set connected within the full graph?
+(define (wumpus-connected? full-graph rooms)
+  (or (null? rooms)
+      (let ([reached (cave-graph-bfs (induce-subgraph full-graph rooms)
+                                      (car rooms))])
+        (= (length reached) (length rooms)))))
+
+;;; Find room with minimum/maximum degree in induced subgraph.
+(define (wumpus-min-deg-room sg rooms)
+  (fold-left (lambda (best r)
+               (if (< (cave-graph-degree sg r) (cave-graph-degree sg best)) r best))
+             (car rooms) (cdr rooms)))
+
+(define (wumpus-max-deg-room sg rooms)
+  (fold-left (lambda (best r)
+               (if (> (cave-graph-degree sg r) (cave-graph-degree sg best)) r best))
+             (car rooms) (cdr rooms)))
+
+;;; Phase 1: Random walk to collect ~target rooms.
+;;; Walks through full graph but only collects rooms with full-graph degree ≥ 2.
+(define (wumpus-walk full-graph walkable start rng target)
+  (let loop ([cur start] [rooms (list start)] [rng rng] [steps 0])
+    (if (or (>= (length rooms) target) (>= steps 100))
+        (values rooms rng)
+        (let* ([nbrs (cave-graph-neighbors full-graph cur)]
+               [n (length nbrs)])
+          (if (= n 0)
+              (values rooms rng)
+              (let-values ([(idx rng*) (wumpus-rng-range rng n)])
+                (let* ([next (list-ref nbrs idx)]
+                       [rooms* (if (and (memq next walkable)
+                                        (not (memq next rooms)))
+                                   (cons next rooms)
+                                   rooms)])
+                  (loop next rooms* rng* (+ steps 1)))))))))
+
+;;; Phase 2: Trim over-degree hubs by removing their most peripheral neighbors.
+(define (wumpus-trim-hubs full-graph rooms)
+  (let loop ([rooms rooms])
+    (let* ([sg (induce-subgraph full-graph rooms)]
+           [hub (wumpus-max-deg-room sg rooms)])
+      (if (<= (cave-graph-degree sg hub) *subgraph-max-deg*)
+          rooms  ;; All within bounds
+          ;; Find hub's neighbor with lowest subgraph degree that can be removed
+          (let* ([nbrs (cave-graph-neighbors sg hub)]
+                 [candidate
+                   (find (lambda (r)
+                           (and (not (eq? r hub))
+                                (let ([rooms* (remq r rooms)])
+                                  (and (>= (length rooms*) *subgraph-min*)
+                                       (wumpus-connected? full-graph rooms*)))))
+                         ;; Try lowest-degree neighbors first (most peripheral)
+                         (let pick-min ([remaining nbrs] [sorted '()])
+                           (if (null? remaining)
+                               (reverse sorted)
+                               (let* ([best (fold-left
+                                              (lambda (b r)
+                                                (if (< (cave-graph-degree sg r)
+                                                       (cave-graph-degree sg b))
+                                                    r b))
+                                              (car remaining) (cdr remaining))]
+                                      [rest (remq best remaining)])
+                                 (pick-min rest (cons best sorted))))))])
+            (if candidate
+                (loop (remq candidate rooms))
+                rooms))))))  ;; Stuck — return best effort
+
+;;; Phase 3: Prune rooms with degree < min-deg.
+(define (wumpus-prune-leaves full-graph rooms)
+  (let loop ([rooms rooms])
+    (let* ([sg (induce-subgraph full-graph rooms)]
+           [leaf (find (lambda (r) (< (cave-graph-degree sg r) *subgraph-min-deg*))
+                       rooms)])
+      (if (not leaf)
+          rooms  ;; All within bounds
+          (let ([rooms* (remq leaf rooms)])
+            (if (and (>= (length rooms*) *subgraph-min*)
+                     (wumpus-connected? full-graph rooms*))
+                (loop rooms*)
+                rooms))))))  ;; Can't prune further
+
+;;; Validate: connected, size in bounds, all degrees in [min-deg, max-deg].
+(define (wumpus-subgraph-valid? sg)
+  (let ([rooms (cave-graph-rooms sg)])
+    (and (>= (length rooms) *subgraph-min*)
+         (<= (length rooms) *subgraph-max*)
+         (= (length (cave-graph-connected-components sg)) 1)
+         (not (exists (lambda (r) (> (cave-graph-degree sg r) *subgraph-max-deg*))
+                      rooms))
+         (not (exists (lambda (r) (< (cave-graph-degree sg r) *subgraph-min-deg*))
+                      rooms)))))
+
+;;; Main extraction: walk → trim → prune → validate, with retry.
+;;; Returns (values subgraph rng) or (values #f rng) on exhausted retries.
+(define (extract-playable-subgraph full-graph rng)
+  (let* ([walkable (filter (lambda (r) (>= (cave-graph-degree full-graph r) 2))
+                           (cave-graph-rooms full-graph))]
+         [n-walkable (length walkable)])
+    (let retry ([rng rng] [att 0])
+      (if (>= att *subgraph-retries*)
+          (values #f rng)
+          (let-values ([(idx rng*) (wumpus-rng-range rng n-walkable)])
+            (let* ([start (list-ref walkable idx)])
+              (let-values ([(rooms rng**) (wumpus-walk full-graph walkable start rng*
+                                                       *subgraph-target*)])
+                (let* ([rooms (wumpus-trim-hubs full-graph rooms)]
+                       [rooms (wumpus-prune-leaves full-graph rooms)]
+                       [sg (induce-subgraph full-graph rooms)])
+                  (if (wumpus-subgraph-valid? sg)
+                      (values sg rng**)
+                      ;; Advance RNG for diversity and retry
+                      (let ([rng*** (wumpus-rng-next (wumpus-rng-next (wumpus-rng-next rng**)))])
+                        (retry rng*** (+ att 1))))))))))))
 
 ;;; ====
 ;;; Game Configuration
@@ -282,22 +419,25 @@
       (cons (car lst) (wumpus-take (cdr lst) (- n 1)))))
 
 (define (wumpus-make-episode graph config seed)
-  (let* ([rng (make-wumpus-rng seed)]
-         [rooms (cave-graph-rooms graph)]
-         [n-pits (wumpus-config-pits config)]
-         [arrows (wumpus-config-arrows config)]
-         [max-moves (wumpus-config-max-moves config)])
-    (let-values ([(shuffled rng*) (wumpus-rng-shuffle rng rooms)])
-      (let* ([player (or (find (lambda (r) (>= (cave-graph-degree graph r) 2))
-                               shuffled)
-                         (car shuffled))]
-             [rest (filter (lambda (r) (not (eq? r player))) shuffled)]
-             [wumpus (car rest)]
-             [rest* (cdr rest)]
-             [pits (wumpus-take rest* n-pits)])
-        (make-wumpus-game graph player wumpus pits
-                           arrows max-moves 0 'active
-                           (list player) rng*)))))
+  (let* ([rng (make-wumpus-rng seed)])
+    ;; Extract a playable subgraph (15-25 rooms, degree 2-7)
+    (let-values ([(subgraph rng*) (extract-playable-subgraph graph rng)])
+      (let* ([sg (or subgraph graph)]  ;; Fallback to full graph if extraction fails
+             [rooms (cave-graph-rooms sg)]
+             [n-pits (wumpus-config-pits config)]
+             [arrows (wumpus-config-arrows config)]
+             [max-moves (wumpus-config-max-moves config)])
+        (let-values ([(shuffled rng**) (wumpus-rng-shuffle rng* rooms)])
+          (let* ([player (or (find (lambda (r) (>= (cave-graph-degree sg r) 2))
+                                   shuffled)
+                             (car shuffled))]
+                 [rest (filter (lambda (r) (not (eq? r player))) shuffled)]
+                 [wumpus (car rest)]
+                 [rest* (cdr rest)]
+                 [pits (wumpus-take rest* n-pits)])
+            (make-wumpus-game sg player wumpus pits
+                               arrows max-moves 0 'active
+                               (list player) rng**)))))))
 
 ;;; ====
 ;;; Perception
@@ -464,7 +604,7 @@
          [arrows (wumpus-game-arrows game)]
          [used (wumpus-game-moves-used game)]
          [maxm (wumpus-game-max-moves game)]
-         [n-visited (length (wumpus-game-visited game))]
+         [visited (wumpus-game-visited game)]
          [status (wumpus-game-status game)])
     (format "(wumpus\n  (room ~a)\n  (tunnels ~a)\n  (senses ~a)\n  (arrows ~a)\n  (moves ~a/~a)\n  (visited ~a)\n  (status ~a)\n  (message ~s))"
-            room neighbors senses arrows used maxm n-visited status message)))
+            room neighbors senses arrows used maxm visited status message)))

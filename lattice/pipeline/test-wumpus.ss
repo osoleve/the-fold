@@ -81,6 +81,67 @@
 )
 
 ;;; ====
+;;; Subgraph Extraction Tests
+;;; ====
+
+(test-group "subgraph-extraction"
+
+  (define-test "determinism: same seed -> same subgraph"
+    (let-values ([(sg1 r1) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))]
+                 [(sg2 r2) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))])
+      (assert-true (equal? (cave-graph-rooms sg1) (cave-graph-rooms sg2)))))
+
+  (define-test "subgraph size in [15, 25]"
+    (let-values ([(sg _) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))])
+      (let ([n (length (cave-graph-rooms sg))])
+        (assert-true (>= n 15))
+        (assert-true (<= n 25)))))
+
+  (define-test "all degrees in [2, 7]"
+    (let-values ([(sg _) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))])
+      (let ([rooms (cave-graph-rooms sg)])
+        (assert-false (exists (lambda (r) (> (cave-graph-degree sg r) 7)) rooms))
+        (assert-false (exists (lambda (r) (< (cave-graph-degree sg r) 2)) rooms)))))
+
+  (define-test "subgraph is connected"
+    (let-values ([(sg _) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))])
+      (assert-equal 1 (length (cave-graph-connected-components sg)))))
+
+  (define-test "all rooms exist in full graph"
+    (let-values ([(sg _) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))])
+      (let ([full-rooms (cave-graph-rooms *lattice-cave-graph*)])
+        (assert-false (exists (lambda (r) (not (memq r full-rooms)))
+                              (cave-graph-rooms sg))))))
+
+  (define-test "all edges exist in full graph (real topology)"
+    (let-values ([(sg _) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))])
+      (let ([ok? #t])
+        (for-each
+          (lambda (entry)
+            (for-each
+              (lambda (n)
+                (when (not (cave-graph-adjacent? *lattice-cave-graph* (car entry) n))
+                  (set! ok? #f)))
+              (cdr entry)))
+          sg)
+        (assert-true ok?))))
+
+  (define-test "different seeds produce different subgraphs"
+    (let-values ([(sg1 r1) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 42))]
+                 [(sg2 r2) (extract-playable-subgraph *lattice-cave-graph* (make-wumpus-rng 9999))])
+      ;; Rooms should differ (overwhelmingly likely)
+      (assert-false (equal? (cave-graph-rooms sg1) (cave-graph-rooms sg2)))))
+
+  (define-test "extraction succeeds for 20 random seeds"
+    (let loop ([i 0] [good 0])
+      (if (= i 20)
+          (assert-equal 20 good)
+          (let-values ([(sg _) (extract-playable-subgraph *lattice-cave-graph*
+                                 (make-wumpus-rng (* i 7919)))])
+            (loop (+ i 1) (if sg (+ good 1) good))))))
+)
+
+;;; ====
 ;;; Episode Creation Tests
 ;;; ====
 
@@ -130,9 +191,15 @@
       ;; All elements should be distinct
       (assert-equal (length all) (length (remove-duplicates all)))))
 
-  (define-test "player starts on a room with degree >= 2"
+  (define-test "game uses subgraph, not full graph"
     (let ([g (wumpus-make-episode *lattice-cave-graph* (default-wumpus-config) 42)])
-      (assert-true (>= (cave-graph-degree *lattice-cave-graph*
+      (let ([game-rooms (cave-graph-rooms (wumpus-game-cave-graph g))])
+        (assert-true (< (length game-rooms) 46))
+        (assert-true (>= (length game-rooms) 15)))))
+
+  (define-test "player degree >= 2 in game subgraph"
+    (let ([g (wumpus-make-episode *lattice-cave-graph* (default-wumpus-config) 42)])
+      (assert-true (>= (cave-graph-degree (wumpus-game-cave-graph g)
                           (wumpus-game-player-room g)) 2))))
 )
 
@@ -399,6 +466,14 @@
                    'fp 'crypto '() 3 30 0 'active '(fp) 0)]
            [obs (wumpus-format-observation game "The hunt begins.")])
       (assert-true (string-contains-wumpus obs "The hunt begins."))))
+
+  (define-test "visited shows room list, not count"
+    (let* ([game (make-wumpus-game *lattice-cave-graph*
+                   'fp 'crypto '() 3 30 0 'active '(algebra fp) 0)]
+           [obs (wumpus-format-observation game "test")])
+      ;; Should contain the room names, not just "2"
+      (assert-true (string-contains-wumpus obs "algebra"))
+      (assert-true (string-contains-wumpus obs "(visited (algebra fp)"))))
 )
 
 ;;; ====
@@ -417,15 +492,15 @@
   (define-test "session move returns observation"
     (load "lattice/pipeline/wumpus-session.ss")
     (wumpus-init! 42)
-    ;; seed 42: player=dsl, neighbors=(rewrite fp)
-    (let ([obs (wumpus-move! 'rewrite)])
-      (assert-true (string-contains-wumpus obs "rewrite"))))
+    ;; seed 42 with subgraph: player=data, neighbors include sim
+    (let ([obs (wumpus-move! 'sim)])
+      (assert-true (string-contains-wumpus obs "sim"))))
 
   (define-test "session result returns status+reward"
     (load "lattice/pipeline/wumpus-session.ss")
     (wumpus-init! 42)
-    ;; Walk into fp which is a pit for seed 42
-    (wumpus-move! 'fp)
+    ;; seed 42 with subgraph: linalg is a pit, adjacent to data (player start)
+    (wumpus-move! 'linalg)
     (let ([result (wumpus-result)])
       (assert-equal 'fell (car result))
       (assert-equal -1.0 (cadr result))
