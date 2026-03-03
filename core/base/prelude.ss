@@ -11,6 +11,200 @@
 (doc 'dependencies '())
 (doc 'note "BASE module — no internal core dependencies.")
 
+;;; ====
+;;; Fold-Native Standard Library
+;;; ====
+;;;
+;;; These implement standard list operations from Fold primitives (cons, car,
+;;; cdr, null?, pair?, eq?, arithmetic, comparisons, lambda, if, let).
+;;;
+;;; Without these, lattice code silently falls through to Chez built-ins.
+;;; That breaks the decomposability guarantee — fuel instrumentation, Rust
+;;; codegen, and BSL containment all require seeing through every operation.
+;;;
+;;; Placed before the rest of prelude because prelude itself uses them
+;;; (reverse in iota, length in mean, append in flatten, etc.).
+
+(doc 'section 'fold-native-stdlib)
+(doc 'note "Fold-native implementations of standard list operations.
+All decompose to: cons, car, cdr, null?, pair?, eq?, equal?,
+arithmetic, comparisons, lambda, if, let, apply.")
+
+;;; --- List measurement ---
+
+(define (length lst)
+  (doc 'type (-> (List α) Nat))
+  (doc 'description "Number of elements in a proper list.")
+  (doc 'export #t)
+  (let loop ([l lst] [n 0])
+    (if (null? l) n (loop (cdr l) (+ n 1)))))
+
+;;; --- List construction ---
+
+(define (reverse lst)
+  (doc 'type (-> (List α) (List α)))
+  (doc 'description "Reverse a proper list.")
+  (doc 'export #t)
+  (let loop ([l lst] [acc '()])
+    (if (null? l) acc (loop (cdr l) (cons (car l) acc)))))
+
+(doc append 'type (-> (List α) ... (List α)))
+(doc append 'description "Concatenate zero or more lists.")
+(doc append 'export #t)
+(define append
+  (let ([append2 (lambda (a b)
+                   (let loop ([l a])
+                     (if (null? l) b (cons (car l) (loop (cdr l))))))])
+    (case-lambda
+      [() '()]
+      [(a) a]
+      [(a b) (append2 a b)]
+      [(a b . rest)
+       (append2 a (apply append b rest))])))
+
+;;; --- Higher-order list operations ---
+
+(doc map 'type (-> (-> α β) (List α) (List β)))
+(doc map 'description "Apply function to each element, collecting results.")
+(doc map 'export #t)
+(define map
+  (case-lambda
+    [(f lst)
+     (let loop ([l lst])
+       (if (null? l) '()
+           (cons (f (car l)) (loop (cdr l)))))]
+    [(f l1 l2)
+     (let loop ([a l1] [b l2])
+       (if (or (null? a) (null? b)) '()
+           (cons (f (car a) (car b)) (loop (cdr a) (cdr b)))))]
+    [(f l1 l2 l3)
+     (let loop ([a l1] [b l2] [c l3])
+       (if (or (null? a) (null? b) (null? c)) '()
+           (cons (f (car a) (car b) (car c))
+                 (loop (cdr a) (cdr b) (cdr c)))))]))
+
+(doc for-each 'type (-> (-> α Void) (List α) Void))
+(doc for-each 'description "Apply function to each element for side effects.")
+(doc for-each 'export #t)
+(define for-each
+  (case-lambda
+    [(f lst)
+     (let loop ([l lst])
+       (unless (null? l)
+         (f (car l))
+         (loop (cdr l))))]
+    [(f l1 l2)
+     (let loop ([a l1] [b l2])
+       (unless (or (null? a) (null? b))
+         (f (car a) (car b))
+         (loop (cdr a) (cdr b))))]))
+
+;;; --- Association list lookup ---
+
+(define (assq key alist)
+  (doc 'type (-> Symbol (Alist Symbol ν) (Maybe (Pair Symbol ν))))
+  (doc 'description "Find pair with matching key using eq?.")
+  (doc 'export #t)
+  (let loop ([l alist])
+    (cond
+      [(null? l) #f]
+      [(eq? key (caar l)) (car l)]
+      [else (loop (cdr l))])))
+
+(define (assv key alist)
+  (doc 'type (-> α (Alist α ν) (Maybe (Pair α ν))))
+  (doc 'description "Find pair with matching key using eqv?.")
+  (doc 'export #t)
+  (let loop ([l alist])
+    (cond
+      [(null? l) #f]
+      [(eqv? key (caar l)) (car l)]
+      [else (loop (cdr l))])))
+
+(define (assoc key alist)
+  (doc 'type (-> α (Alist α ν) (Maybe (Pair α ν))))
+  (doc 'description "Find pair with matching key using equal?.")
+  (doc 'export #t)
+  (let loop ([l alist])
+    (cond
+      [(null? l) #f]
+      [(equal? key (caar l)) (car l)]
+      [else (loop (cdr l))])))
+
+;;; --- Membership test ---
+
+(define (memq x lst)
+  (doc 'type (-> α (List α) (Maybe (List α))))
+  (doc 'description "Find first occurrence using eq?. Returns tail starting at match.")
+  (doc 'export #t)
+  (let loop ([l lst])
+    (cond
+      [(null? l) #f]
+      [(eq? x (car l)) l]
+      [else (loop (cdr l))])))
+
+(define (memv x lst)
+  (doc 'type (-> α (List α) (Maybe (List α))))
+  (doc 'description "Find first occurrence using eqv?. Returns tail starting at match.")
+  (doc 'export #t)
+  (let loop ([l lst])
+    (cond
+      [(null? l) #f]
+      [(eqv? x (car l)) l]
+      [else (loop (cdr l))])))
+
+(define (member x lst)
+  (doc 'type (-> α (List α) (Maybe (List α))))
+  (doc 'description "Find first occurrence using equal?. Returns tail starting at match.")
+  (doc 'export #t)
+  (let loop ([l lst])
+    (cond
+      [(null? l) #f]
+      [(equal? x (car l)) l]
+      [else (loop (cdr l))])))
+
+;;; --- Indexed access ---
+
+(define (list-ref lst k)
+  (doc 'type (-> (List α) Nat α))
+  (doc 'description "Get element at zero-based index k.")
+  (doc 'export #t)
+  (if (= k 0)
+      (car lst)
+      (list-ref (cdr lst) (- k 1))))
+
+(define (list-tail lst k)
+  (doc 'type (-> (List α) Nat (List α)))
+  (doc 'description "Get tail of list starting at index k.")
+  (doc 'export #t)
+  (if (= k 0)
+      lst
+      (list-tail (cdr lst) (- k 1))))
+
+;;; --- Quantifiers ---
+
+(define (exists pred lst)
+  (doc 'type (-> (-> α Bool) (List α) Bool))
+  (doc 'description "True if predicate holds for any element.")
+  (doc 'export #t)
+  (let loop ([l lst])
+    (and (pair? l)
+         (or (pred (car l))
+             (loop (cdr l))))))
+
+(define (for-all pred lst)
+  (doc 'type (-> (-> α Bool) (List α) Bool))
+  (doc 'description "True if predicate holds for all elements.")
+  (doc 'export #t)
+  (let loop ([l lst])
+    (or (null? l)
+        (and (pred (car l))
+             (loop (cdr l))))))
+
+;;; ====
+;;; Prelude Utilities
+;;; ====
+
 (doc 'section 'list-predicates)
 
 (define (andmap pred lst)
