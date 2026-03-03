@@ -1,9 +1,8 @@
 ;;; lattice/fp/markov.ss -- Discrete Markov Chains
 ;;; @module markov
-;;; @requires prelude vec matrix transcendental
+;;; @requires vec matrix transcendental
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'prelude)
 (require 'vec)
 (require 'matrix)
 (require 'transcendental)

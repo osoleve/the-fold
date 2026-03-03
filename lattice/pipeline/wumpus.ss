@@ -352,9 +352,9 @@
 (define (wumpus-config-arrow-range cfg) (list-ref cfg 3))
 (define (wumpus-config-max-moves cfg)   (list-ref cfg 4))
 
-;; 3 arrows, 1 pit, range 3, 30 moves
+;; 3 arrows, 3 pits, range 3, 25 moves
 (define (default-wumpus-config)
-  (make-wumpus-config 3 1 3 30))
+  (make-wumpus-config 3 3 3 25))
 
 (define *wumpus-arrow-range* 3)
 

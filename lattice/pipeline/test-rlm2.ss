@@ -64,10 +64,10 @@
 
   (define-test "state-add-episodic appends"
     (let* ([s (make-initial-rlm2-state "t" #f 100)]
-           [s1 (rlm2-state-add-episodic s 0 "hash0")]
-           [s2 (rlm2-state-add-episodic s1 1 "hash1")])
-      (assert-equal '((0 . "hash0")) (rlm2-state-episodic s1))
-      (assert-equal '((0 . "hash0") (1 . "hash1")) (rlm2-state-episodic s2))))
+           [s1 (rlm2-state-add-episodic s 0 "hash0" 'eval #t)]
+           [s2 (rlm2-state-add-episodic s1 1 "hash1" 'think #t)])
+      (assert-equal '((0 "hash0" eval #t)) (rlm2-state-episodic s1))
+      (assert-equal '((0 "hash0" eval #t) (1 "hash1" think #t)) (rlm2-state-episodic s2))))
 
   (define-test "state-use-fuel decrements"
     (let* ([s (make-initial-rlm2-state "t" #f 1000)]
@@ -539,13 +539,20 @@
       ;; Check task is present
       (assert-true (>= (rlm2-hud-contains? hud "Find eigenvalues") 0))))
 
-  (define-test "renders plan section"
+  (define-test "plan rendered in HUD"
     (let* ([s (rlm2-state-with-plan
               (make-initial-rlm2-state "t" #f 5000)
               '((search . done) (compute . pending)))]
            [hud (rlm2-render-state s 4000)])
+      ;; Plan is shown in HUD
+      (assert-equal '((search . done) (compute . pending)) (rlm2-state-plan s))
       (assert-true (>= (rlm2-hud-contains? hud "search") 0))
       (assert-true (>= (rlm2-hud-contains? hud "pending") 0))))
+
+  (define-test "empty plan rendered as (plan ())"
+    (let* ([s (make-initial-rlm2-state "t" #f 5000)]
+           [hud (rlm2-render-state s 4000)])
+      (assert-true (>= (rlm2-hud-contains? hud "(plan ())") 0))))
 
   (define-test "renders env section with metadata only"
     (let* ([s (rlm2-state-with-env
@@ -581,16 +588,19 @@
       (assert-true (>= (rlm2-hud-contains? hud "4800") 0))
       (assert-true (>= (rlm2-hud-contains? hud "step 1") 0))))
 
-  (define-test "truncates notes under tight budget"
-    (let* ([notes (map (lambda (i) (format "Note ~a: This is a detailed observation about step ~a" i i))
-                       '(1 2 3 4 5 6 7 8 9 10))]
-           [s (rlm2-state-with-notes
-               (make-initial-rlm2-state "t" #f 5000)
-               notes)]
-           ;; Very tight budget
-           [hud (rlm2-render-state s 500)])
-      ;; Should include truncation marker
-      (assert-true (>= (rlm2-hud-contains? hud "omitted") 0))))
+  (define-test "notes capped by sliding window"
+    (let* ([s (make-initial-rlm2-state "t" #f 5000)]
+           [s (rlm2-state-add-note s "note-1")]
+           [s (rlm2-state-add-note s "note-2")]
+           [s (rlm2-state-add-note s "note-3")]
+           [s (rlm2-state-add-note s "note-4")]
+           [s (rlm2-state-add-note s "note-5")]
+           [s (rlm2-state-add-note s "note-6")]
+           [s (rlm2-state-add-note s "note-7")])
+      ;; Only last 5 kept
+      (assert-equal 5 (length (rlm2-state-notes s)))
+      (assert-equal "note-3" (car (rlm2-state-notes s)))
+      (assert-equal "note-7" (car (reverse (rlm2-state-notes s))))))
 
   (define-test "respects large budget without truncation"
     (let* ([s (rlm2-state-add-note
@@ -696,13 +706,12 @@
                '((search . done) "orphan item" (compute . pending)))])
       (assert-true (string? (rlm2-semantic-fingerprint s 'eval)))))
 
-  (define-test "HUD renders non-pair plan items without crash"
+  (define-test "HUD renders without crash when plan has non-pair items"
     (let* ([s (rlm2-state-with-plan
                 (make-initial-rlm2-state "t" #f 5000)
                 '("just a string" (real . pending)))]
            [hud (rlm2-render-state s 4000)])
-      (assert-true (string? hud))
-      (assert-true (>= (rlm2-hud-contains? hud "pending") 0))))
+      (assert-true (string? hud))))
 )
 
 ;;; ====

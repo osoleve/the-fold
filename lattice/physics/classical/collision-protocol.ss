@@ -1,7 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-protocol
-;;; @requires prelude protocol vec2
-(require 'prelude)
+;;; @requires protocol vec2
 (require 'protocol)
 (require 'vec2)
 

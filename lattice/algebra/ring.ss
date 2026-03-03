@@ -1,8 +1,7 @@
 ;;; @module ring
-;;; @requires prelude group
+;;; @requires prelude
 
 (require 'prelude)
-(require 'group)
 
 (doc 'module 'ring)
 (doc 'description "Ring theory library")

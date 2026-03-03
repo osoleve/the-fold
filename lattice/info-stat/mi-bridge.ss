@@ -1,13 +1,12 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module info-stat/mi-bridge
-;;; @requires prelude entropy empirical-info model-selection-info result-types summary-stats sort
+;;; @requires prelude entropy empirical-info model-selection-info result-types sort
 
 (require 'prelude)
 (require 'entropy)
 (require 'empirical-info)
 (require 'model-selection-info)
 (require 'result-types)
-(require 'summary-stats)
 (require 'sort)
 
 (doc 'module 'info-stat/mi-bridge)

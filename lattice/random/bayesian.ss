@@ -1,9 +1,8 @@
 ;;; lattice/random/bayesian.ss — Bayesian Inference
 ;;; @module bayesian
-;;; @requires prelude transcendental distributions
+;;; @requires prelude distributions
 
 (require 'prelude)
-(require 'transcendental)
 (require 'distributions)
 
 (doc 'module 'bayesian)

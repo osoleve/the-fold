@@ -1,9 +1,8 @@
 ;;; lattice/quickcheck/gen-linalg.ss — Generators for linear algebra types
 ;;; @module gen-linalg
-;;; @requires prelude qc-generators vec2 vec3 matrix quaternion
+;;; @requires qc-generators vec2 vec3 matrix quaternion
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'prelude)
 (require 'qc-generators)
 (require 'vec2)
 (require 'vec3)

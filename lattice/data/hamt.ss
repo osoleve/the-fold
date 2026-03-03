@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module hamt
-;;; @requires prelude dict
+;;; @requires prelude
 (require 'prelude)
-(require 'dict)
 
 (doc 'module 'hamt)
 (doc 'description "Persistent Hash Array Mapped Trie (HAMT)")

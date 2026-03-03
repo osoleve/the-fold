@@ -1,9 +1,8 @@
 ;;; lattice/fp/data/generic-zipper.ss — Generic Zipper Derivation
 ;;; @module generic-zipper
-;;; @requires prelude combinators
+;;; @requires prelude
 
 (require 'prelude)
-(require 'combinators)
 
 (doc 'module 'generic-zipper)
 (doc 'description "Generic Zipper Derivation

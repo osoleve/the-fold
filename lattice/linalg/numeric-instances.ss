@@ -1,8 +1,7 @@
 ;;; lattice/linalg/numeric-instances.ss — Numeric Type Instances
 ;;; @module numeric-instances
-;;; @requires prelude vec matrix
+;;; @requires vec matrix
 
-(require 'prelude)
 (require 'vec)
 (require 'matrix)
 

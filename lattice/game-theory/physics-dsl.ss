@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude free vec2
+;;; @requires prelude free
 (require 'prelude)
 (require 'free)
-(require 'vec2)
 
 (doc 'module 'physics-dsl)
 (doc 'description "Domain-specific language for physics simulations built on the Free monad. Separates simulation description from execution, enabling multiple interpreters: deterministic, stochastic, logging, and pure")

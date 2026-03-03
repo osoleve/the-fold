@@ -1,11 +1,10 @@
 ;;; lattice/data/graph/graph-bridge.ss — Bidirectional Graph-Matrix Bridge
 ;;; @module graph-bridge
-;;; @requires prelude vec matrix sparse graph-matrix graph-laplacian
+;;; @requires prelude matrix sparse graph-matrix graph-laplacian
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'vec)
 (require 'matrix)
 (require 'sparse)
 (require 'graph-matrix)

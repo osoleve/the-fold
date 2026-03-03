@@ -1,8 +1,7 @@
 ;;; @module markdown-html
-;;; @requires prelude markdown-ast
+;;; @requires prelude
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'markdown-ast)
 
 (doc 'module 'markdown-html)
 (doc 'description "HTML Renderer for Markdown AST - Converts markdown AST nodes to HTML strings")

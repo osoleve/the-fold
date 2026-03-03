@@ -1,12 +1,10 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module spectral-ts
-;;; @requires prelude dft window-functions ar result-types stat/distributions
+;;; @requires prelude dft window-functions result-types
 (require 'prelude)
 (require 'dft)
 (require 'window-functions)
-(require 'ar)
 (require 'result-types)
-(require 'stat/distributions)
 
 (doc 'module 'spectral-ts)
 (doc 'description "Spectral Methods for Time Series — bridges FFT/spectral analysis with time series modeling")

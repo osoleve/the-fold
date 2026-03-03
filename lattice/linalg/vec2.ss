@@ -1,8 +1,7 @@
 ;;; lattice/linalg/vec2.ss — 2D Vector Operations
 ;;; @module vec2
-;;; @requires prelude vec-common
+;;; @requires vec-common
 
-(require 'prelude)
 (require 'vec-common)
 
 (doc 'module 'vec2)

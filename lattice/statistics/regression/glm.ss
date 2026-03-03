@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module glm
-;;; @requires prelude iteration matrix matrix-decomp matrix-solvers result-types families link-functions stat/distributions
+;;; @requires prelude iteration matrix matrix-solvers result-types families link-functions stat/distributions
 (require 'prelude)
 (require 'iteration)
 (require 'matrix)
-(require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'result-types)
 (require 'families)

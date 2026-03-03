@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module optimize3d
-;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d traced-integrators3d rollout3d physics/optimize
+;;; @requires prelude vec3 quaternion reverse-diff traced-vec3 traced-quaternion traced-body3d rollout3d physics/optimize
 (require 'prelude)
 (require 'vec3)
 (require 'quaternion)
@@ -8,7 +8,6 @@
 (require 'traced-vec3)
 (require 'traced-quaternion)
 (require 'traced-body3d)
-(require 'traced-integrators3d)
 (require 'rollout3d)
 (require 'physics/optimize)
 

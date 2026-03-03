@@ -1,7 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module lenses
-;;; @requires prelude templates protocol-bundle vec2 rigid-body particles
-(require 'prelude)
+;;; @requires templates protocol-bundle vec2 rigid-body particles
 (require 'templates)
 (require 'protocol-bundle)
 (require 'vec2)

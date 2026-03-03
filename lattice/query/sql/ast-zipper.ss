@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude combinators tree-zipper zipper-lens
+;;; @requires prelude combinators tree-zipper
 (require 'prelude)
 (require 'combinators)
 (require 'tree-zipper)
-(require 'zipper-lens)
 
 (doc 'module 'ast-zipper)
 (doc 'description "Zipper for SQL AST Navigation")

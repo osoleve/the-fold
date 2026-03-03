@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module des/world
-;;; @requires prelude optics des/event state avl-tree
+;;; @requires prelude des/event state avl-tree
 (require 'prelude)
-(require 'optics)
 (require 'des/event)
 (require 'state)
 (require 'avl-tree)

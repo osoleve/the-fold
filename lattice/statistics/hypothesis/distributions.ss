@@ -1,7 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module stat/distributions
-;;; @requires prelude transcendental special-functions protocol
-(require 'prelude)
+;;; @requires transcendental special-functions protocol
 (require 'transcendental)
 (require 'special-functions)
 (require 'protocol)

@@ -1,12 +1,11 @@
 ;;; lattice/data/graph/random-graphs.ss — Random Graph Generators
 ;;; @module random-graphs
-;;; @requires prelude iteration graph-matrix prng
+;;; @requires prelude iteration prng
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'iteration)
-(require 'graph-matrix)
 (require 'prng)
 
 (doc 'module 'random-graphs)

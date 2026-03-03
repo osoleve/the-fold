@@ -1,8 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-impl
-;;; @requires prelude collision-protocol integrators rigid-body particles
-(require 'prelude)
-(require 'collision-protocol)
+;;; @requires integrators rigid-body particles
 (require 'integrators)
 (require 'rigid-body)
 (require 'particles)

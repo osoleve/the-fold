@@ -1,12 +1,10 @@
 ;;; lattice/signal/digital-filters.ss — Digital Filter Library
 ;;; @module digital-filters
-;;; @requires prelude complex dft convolution vec iteration
+;;; @requires prelude complex convolution iteration
 
 (require 'prelude)
 (require 'complex)
-(require 'dft)
 (require 'convolution)
-(require 'vec)
 (require 'iteration)
 
 (doc 'module 'digital-filters)

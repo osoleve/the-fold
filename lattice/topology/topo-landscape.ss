@@ -1,12 +1,11 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module topo-landscape
-;;; @requires prelude sort persistent vec hamt
+;;; @requires prelude sort persistent hamt
 
 (require 'prelude)
 (require 'sort)
 (require 'persistent)
-(require 'vec)
 (require 'hamt)
 
 (doc 'module 'topo-landscape)

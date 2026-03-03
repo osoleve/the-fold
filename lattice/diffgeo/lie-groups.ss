@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude matrix vec matrix-solvers
+;;; @requires prelude matrix vec
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
-(require 'matrix-solvers)
 
 (doc 'module 'lie-groups)
 (doc 'description "Lie Groups and Algebras - Rotation and transformation groups with their Lie algebras")

@@ -4,8 +4,6 @@
 
 (require 'prelude)
 (require 'iteration)
-(require 'vec)
-(require 'matrix)
 (require 'sparse)
 
 (doc 'module 'finite-diff)

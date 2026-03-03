@@ -1,7 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module diagnostics
-;;; @requires prelude iteration matrix matrix-solvers
-(require 'prelude)
+;;; @requires iteration matrix matrix-solvers
 (require 'iteration)
 (require 'matrix)
 (require 'matrix-solvers)

@@ -1,10 +1,9 @@
 ;;; lattice/quickcheck/quickcheck.ss — Property-based testing runner
 ;;; @module quickcheck
-;;; @requires prelude state prng qc-generators qc-shrink
+;;; @requires prelude prng qc-generators qc-shrink
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'state)
 (require 'prng)
 (require 'qc-generators)
 (require 'qc-shrink)

@@ -1,10 +1,8 @@
 ;;; lattice/linalg/matrix-blocked-decomp.ss — Parallelizable Decomposition Kernels
 ;;; @module matrix-blocked-decomp
-;;; @requires prelude vec matrix
+;;; @requires prelude
 
 (require 'prelude)
-(require 'vec)
-(require 'matrix)
 
 (doc 'module 'matrix-blocked-decomp)
 (doc 'description "Range-parameterized kernels extracted from LU and QR for parallel dispatch.")

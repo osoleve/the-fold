@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module constraints
-;;; @requires prelude vec2 rigid-body
+;;; @requires prelude rigid-body
 (require 'prelude)
-(require 'vec2)
 (require 'rigid-body)
 
 (doc 'module 'constraints)

@@ -35,30 +35,27 @@
                         (string-length result-section)
                         100)]  ; overhead for section wrappers
          [remaining (max 0 (- budget fixed-cost))]
-         ;; Variable sections — share remaining budget (7 shares)
-         [plan-budget (min (quotient remaining 7) 2000)]
-         [env-budget (min (quotient remaining 7) 1500)]
-         [loaded-budget (min (quotient remaining 14) 500)]
-         [journal-budget (min (quotient remaining 7) 1000)]
-         [episodic-budget (min (quotient remaining 7) 1500)]
-         [notes-budget (max 0 (- remaining plan-budget env-budget
-                                 loaded-budget journal-budget
-                                 episodic-budget))]
+         ;; Variable sections — share remaining budget
+         [env-budget (min (quotient remaining 4) 1500)]
+         [loaded-budget (min (quotient remaining 8) 500)]
+         [plan-budget (min (quotient remaining 12) 400)]
+         [journal-budget (min (quotient remaining 16) 300)]  ; tags only
+         [notes-budget (max 0 (- remaining env-budget
+                                 loaded-budget plan-budget
+                                 journal-budget))]
          ;; Render variable sections
-         [plan-section (rlm2-render-plan state plan-budget)]
          [env-section (rlm2-render-env state env-budget)]
          [loaded-section (rlm2-render-loaded state loaded-budget)]
+         [plan-section (rlm2-render-plan state plan-budget)]
          [notes-section (rlm2-render-notes state notes-budget)]
-         [episodic-section (rlm2-render-episodic state episodic-budget)]
          [journal-section (rlm2-render-journal state journal-budget)])
     (string-append
      "(rlm-state\n"
      task-section "\n"
-     plan-section "\n"
      env-section "\n"
      loaded-section "\n"
+     plan-section "\n"
      notes-section "\n"
-     episodic-section "\n"
      journal-section "\n"
      result-section "\n"
      fuel-section "\n"
@@ -111,49 +108,39 @@
   (let ([notes (rlm2-state-notes state)])
     (if (null? notes)
         "  (notes ())"
-        (let loop ([ns (reverse notes)]  ; most recent first for truncation
-                   [acc '()]
-                   [used 0])
-          (cond
-            [(null? ns)
-             (let ([items (map (lambda (n) (format "     ~s" n)) acc)])
-               (string-append "  (notes\n    (" (rlm2-join-lines items) "))"))]
-            [else
-             (let* ([note (car ns)]
-                    [cost (+ (string-length note) 10)])  ; overhead for quoting
-               (if (> (+ used cost) budget)
-                   ;; Budget exceeded — add truncation marker
-                   (let* ([remaining-count (length ns)]
-                          [marker (format "[~a earlier notes omitted — use recall-step for details]"
-                                          remaining-count)]
-                          [items (map (lambda (n) (format "     ~s" n))
-                                      (append (list marker) acc))])
-                     (string-append "  (notes\n    (" (rlm2-join-lines items) "))"))
-                   (loop (cdr ns) (cons note acc) (+ used cost))))])))))
+        (let* ([items (map (lambda (n)
+                             (let ([truncated (rlm2-truncate-to n (quotient budget (length notes)))])
+                               (format "     ~s" truncated)))
+                           notes)])
+          (string-append "  (notes\n    (" (rlm2-join-lines items) "))")))))
 
 (define (rlm2-render-episodic state budget)
   (let ([episodic (rlm2-state-episodic state)])
     (if (null? episodic)
         "  (episodic ())"
         ;; Show most recent entries that fit within budget
+        ;; Entry format: (step-num hash action-type ok?)
+        ;; HUD format:   (step-num action-type ok|fail)
         (let loop ([entries (reverse episodic)]  ; most recent first
                    [acc '()]
                    [used 0])
           (cond
             [(null? entries)
              (let ([items (map (lambda (e)
-                                 (format "     (~a . ~s)" (car e) (cdr e)))
+                                 (let ([n (car e)] [act (caddr e)] [ok? (cadddr e)])
+                                   (format "     (~a ~a ~a)" n act (if ok? 'ok 'fail))))
                                acc)])
                (string-append "  (episodic\n    (" (rlm2-join-lines items) "))"))]
             [else
              (let* ([entry (car entries)]
-                    [line (format "     (~a . ~s)" (car entry) (cdr entry))]
+                    [n (car entry)] [act (caddr entry)] [ok? (cadddr entry)]
+                    [line (format "     (~a ~a ~a)" n act (if ok? 'ok 'fail))]
                     [cost (+ (string-length line) 1)])
                (if (> (+ used cost) budget)
                    ;; Budget exhausted — render what we have with count of omitted
-                   (let* ([omitted (+ (length entries) (length acc) (- (length acc)))]
-                          [items (map (lambda (e)
-                                        (format "     (~a . ~s)" (car e) (cdr e)))
+                   (let* ([items (map (lambda (e)
+                                        (let ([n (car e)] [act (caddr e)] [ok? (cadddr e)])
+                                          (format "     (~a ~a ~a)" n act (if ok? 'ok 'fail))))
                                       acc)]
                           [prefix (if (> (length entries) 0)
                                       (format "     ;; ... ~a earlier steps omitted\n" (length entries))
@@ -165,28 +152,16 @@
   (let ([journal (rlm2-state-journal state)])
     (if (null? journal)
         "  (journal ())"
-        (let loop ([entries (reverse journal)]  ; most recent first
-                   [acc '()]
-                   [used 0])
-          (cond
-            [(null? entries)
-             (let ([items (map (lambda (e)
-                                 (format "     (~a . ~s)" (car e) (cdr e)))
-                               acc)])
-               (string-append "  (journal\n    (" (rlm2-join-lines items) "))"))]
-            [else
-             (let* ([entry (car entries)]
-                    [cost (+ (string-length (format "~a" (car entry)))
-                             (string-length (cdr entry)) 15)])
-               (if (> (+ used cost) budget)
-                   (let* ([remaining-count (length entries)]
-                          [marker (cons 'truncated
-                                        (format "~a earlier entries omitted" remaining-count))]
-                          [items (map (lambda (e)
-                                        (format "     (~a . ~s)" (car e) (cdr e)))
-                                      (cons marker acc))])
-                     (string-append "  (journal\n    (" (rlm2-join-lines items) "))"))
-                   (loop (cdr entries) (cons entry acc) (+ used cost))))])))))
+        ;; Show only unique tags — use (recall tag) to read contents
+        (let* ([tags (let loop ([entries journal] [seen '()] [acc '()])
+                       (if (null? entries) (reverse acc)
+                           (let ([tag (caar entries)])
+                             (if (memq tag seen)
+                                 (loop (cdr entries) seen acc)
+                                 (loop (cdr entries) (cons tag seen) (cons tag acc))))))]
+               [body (rlm2-join-with-space (map symbol->string tags))]
+               [truncated (rlm2-truncate-to body budget)])
+          (string-append "  (journal (tags " truncated "))")))))
 
 (define (rlm2-render-last-result state)
   (let ([result (rlm2-state-last-result state)])
@@ -229,7 +204,7 @@
    ;; --- Semantics ---
    "Semantics:\n"
    "- (begin ...) stops at the first error or (submit). Later actions do not run.\n"
-   "- (think ...) is ephemeral — it is fed to reflection but not stored in notes.\n"
+   "- (think ...) is ephemeral — use journal to record facts you need to keep.\n"
    "- (delegate task input) spawns a sub-agent with its own fuel budget. Use for focused sub-tasks.\n"
    "- (memorize key text) persists across agent runs. (remember query) does BM25 keyword search.\n"
    "- Eval results are auto-stored as step-N-result. Use (store key expr) to name values.\n"

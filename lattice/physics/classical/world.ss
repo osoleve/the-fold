@@ -1,14 +1,12 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module world
-;;; @requires prelude vec2 integrators collision-detection collision-response raycasting constraints constraint-solver sort hamt
+;;; @requires prelude integrators collision-detection collision-response raycasting constraints sort hamt
 (require 'prelude)
-(require 'vec2)
 (require 'integrators)
 (require 'collision-detection)
 (require 'collision-response)
 (require 'raycasting)
 (require 'constraints)
-(require 'constraint-solver)
 (require 'sort)
 (require 'hamt)
 

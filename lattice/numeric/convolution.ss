@@ -1,11 +1,10 @@
 ;;; lattice/numeric/convolution.ss — Convolution and Correlation
 ;;; @module convolution
-;;; @requires prelude complex dft vec iteration
+;;; @requires prelude complex dft iteration
 
 (require 'prelude)
 (require 'complex)
 (require 'dft)
-(require 'vec)
 (require 'iteration)
 
 (doc 'module 'convolution)

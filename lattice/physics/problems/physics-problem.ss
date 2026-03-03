@@ -1,12 +1,10 @@
 ;;; lattice/physics/problems/physics-problem.ss — Physics Problem DSL
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module physics-problem
-;;; @requires prelude vec2 sample parameter presentation distractor difficulty simulation
+;;; @requires prelude sample parameter distractor difficulty simulation
 (require 'prelude)
-(require 'vec2)
 (require 'sample)
 (require 'parameter)
-(require 'presentation)
 (require 'distractor)
 (require 'difficulty)
 (require 'simulation)

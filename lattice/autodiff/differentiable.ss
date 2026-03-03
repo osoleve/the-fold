@@ -1,9 +1,8 @@
 ;;; @module differentiable
-;;; @requires prelude kinds infer resolve comp-graph reverse-diff
+;;; @requires kinds infer resolve comp-graph reverse-diff
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-(require 'prelude)
 (require 'kinds)
 (require 'infer)
 (require 'resolve)

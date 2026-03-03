@@ -3,8 +3,6 @@
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers iteration
 
 (require 'prelude)
-(require 'vec)
-(require 'matrix)
 (require 'sparse)
 (require 'iterative-solvers)
 (require 'iteration)

@@ -2,10 +2,9 @@
   (load "core/lang/module.ss"))
 
 ;;; @module maxsat-bridge
-;;; @requires maxsat convergence sort
+;;; @requires maxsat sort
 
 (require 'maxsat)
-(require 'convergence)
 (require 'sort)
 
 (doc 'module 'maxsat-bridge)

@@ -6,7 +6,6 @@
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'sort)
-(require 'vec)
 (require 'geometry)
 (require 'heap)
 (require 'hamt)

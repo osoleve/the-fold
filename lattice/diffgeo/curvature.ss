@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude matrix vec iteration matrix-decomp matrix-solvers charts tangent
+;;; @requires prelude matrix vec iteration matrix-decomp matrix-solvers charts
 (require 'prelude)
 (require 'matrix)
 (require 'vec)
@@ -8,7 +8,6 @@
 (require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'charts)
-(require 'tangent)
 
 (doc 'module 'curvature)
 (doc 'description "Curvature Computations - Curvature measures for Riemannian manifolds and surfaces")

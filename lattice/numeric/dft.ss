@@ -1,10 +1,9 @@
 ;;; lattice/numeric/dft.ss — DFT/FFT Implementation
 ;;; @module dft
-;;; @requires prelude complex vec iteration
+;;; @requires prelude complex iteration
 
 (require 'prelude)
 (require 'complex)
-(require 'vec)
 (require 'iteration)
 
 (doc 'module 'dft)

@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module integrators
-;;; @requires prelude vec2 ode-integrators
+;;; @requires prelude ode-integrators
 (require 'prelude)
-(require 'vec2)
 (require 'ode-integrators)
 
 (doc 'module 'integrators)

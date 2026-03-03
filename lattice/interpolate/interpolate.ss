@@ -1,9 +1,8 @@
 ;;; lattice/interpolate/interpolate.ss — Numerical Interpolation
 ;;; @module interpolate
-;;; @requires prelude vec matrix matrix-decomp matrix-solvers numeric/polynomial iteration
+;;; @requires prelude matrix matrix-decomp matrix-solvers numeric/polynomial iteration
 
 (require 'prelude)
-(require 'vec)
 (require 'matrix)
 (require 'matrix-decomp)
 (require 'matrix-solvers)

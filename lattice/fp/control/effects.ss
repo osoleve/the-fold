@@ -1,10 +1,9 @@
 ;;; lattice/fp/control/effects.ss — Algebraic Effects
 ;;; @module effects
-;;; @requires prelude combinators continuation
+;;; @requires prelude combinators
 
 (require 'prelude)
 (require 'combinators)
-(require 'continuation)
 
 (doc 'module 'effects)
 (doc 'purity 'partial)  ; Global gensym counter for fresh names

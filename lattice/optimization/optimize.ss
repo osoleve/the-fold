@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude convergence line-search first-order newton lbfgs
+;;; @requires prelude convergence first-order newton lbfgs
 (require 'prelude)
 (require 'convergence)
-(require 'line-search)
 (require 'first-order)
 (require 'newton)
 (require 'lbfgs)

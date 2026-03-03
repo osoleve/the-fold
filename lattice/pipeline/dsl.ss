@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-;;; @requires pipeline/stage pipeline/effects pipeline/context council
+;;; @requires pipeline/stage pipeline/effects pipeline/context
 (require 'pipeline/stage)
 (require 'pipeline/effects)
 (require 'pipeline/context)
-(require 'council)
 
 (doc 'module 'pipeline/dsl)
 (doc 'description "User-Facing Pipeline DSL. Provides a clean syntax for defining pipelines. Pipelines are still S-expressions (homoiconic) but with convenient constructors and combinators.")

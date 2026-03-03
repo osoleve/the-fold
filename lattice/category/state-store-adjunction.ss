@@ -1,7 +1,6 @@
 ;;; @module state-store-adjunction
-;;; @requires prelude combinators templates adjunction comonad
+;;; @requires combinators templates adjunction comonad
 
-(require 'prelude)
 (require 'combinators)
 (require 'templates)
 (require 'adjunction)

@@ -1,8 +1,7 @@
 ;;; lattice/numeric/complex.ss — Complex Number Arithmetic
 ;;; @module complex
-;;; @requires prelude transcendental
+;;; @requires transcendental
 
-(require 'prelude)
 (require 'transcendental)
 
 (doc 'module 'complex)

@@ -1,7 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module constraint-solver3d
-;;; @requires prelude vec3 quaternion rigid-body3d constraints3d
-(require 'prelude)
+;;; @requires vec3 quaternion rigid-body3d constraints3d
 (require 'vec3)
 (require 'quaternion)
 (require 'rigid-body3d)

@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'sha256)
 (require 'hamt)
 
 ;;; @module meta/persist
-;;; @requires prelude sha256 hamt
+;;; @requires prelude hamt
 (doc 'module 'persist)
 (doc 'description "Lattice index persistence — pure serialization and deserialization logic")
 (doc 'layer 'lattice)

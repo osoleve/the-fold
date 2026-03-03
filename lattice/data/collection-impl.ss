@@ -9,7 +9,6 @@
 (require 'heap)
 (require 'kdtree)
 (require 'quadtree)
-(require 'combinators)  ; For just/nothing
 
 (doc 'module 'collection-impl)
 (doc 'description "Protocol implementations for lattice data structures.

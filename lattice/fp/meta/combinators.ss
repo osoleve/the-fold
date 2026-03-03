@@ -1,9 +1,8 @@
 ;;; lattice/fp/meta/combinators.ss — FP Combinators
 ;;; @module combinators
-;;; @requires prelude sort hamt
+;;; @requires prelude hamt
 
 (require 'prelude)
-(require 'sort)
 (require 'hamt)
 
 (doc 'module 'combinators)

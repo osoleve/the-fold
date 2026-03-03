@@ -1,11 +1,10 @@
 ;;; lattice/data/graph/graph-matrix.ss — Graph Matrix Representation
 ;;; @module graph-matrix
-;;; @requires prelude vec matrix sparse heap iteration
+;;; @requires prelude matrix sparse heap iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'vec)
 (require 'matrix)
 (require 'sparse)
 (require 'heap)

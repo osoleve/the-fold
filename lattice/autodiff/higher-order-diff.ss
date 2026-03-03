@@ -1,10 +1,9 @@
 ;;; @module higher-order-diff
-;;; @requires prelude vec matrix comp-graph reverse-diff hamt
+;;; @requires prelude matrix comp-graph reverse-diff hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'vec)
 (require 'matrix)
 (require 'comp-graph)
 (require 'reverse-diff)

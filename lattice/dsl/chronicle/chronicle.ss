@@ -1,9 +1,8 @@
 ;;; @module chronicle
-;;; @requires prelude combinators quasi
+;;; @requires prelude combinators
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'combinators)
-(require 'quasi)
 
 (doc 'module 'chronicle)
 (doc 'description "Chronicle: A Narrative DSL - Next-generation narrative engine")

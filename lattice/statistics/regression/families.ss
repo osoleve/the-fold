@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module families
-;;; @requires prelude transcendental
+;;; @requires prelude
 (require 'prelude)
-(require 'transcendental)
 
 (doc 'module 'families)
 (doc 'description "GLM Families — Variance functions and deviance for GLM families")

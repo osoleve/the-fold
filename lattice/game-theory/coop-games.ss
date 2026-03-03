@@ -1,11 +1,10 @@
 ;;; lattice/game-theory/coop-games.ss — Cooperative Game Theory
 ;;; @module coop-games
-;;; @requires prelude vec matrix matrix-solvers lp iteration
+;;; @requires prelude matrix matrix-solvers lp iteration
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'vec)
 (require 'matrix)
 (require 'matrix-solvers)
 (require 'lp)

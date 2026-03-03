@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module autodiff/ode-jacobian
-;;; @requires prelude reverse-diff matrix ode-system
+;;; @requires prelude reverse-diff matrix
 (require 'prelude)
 (require 'reverse-diff)
 (require 'matrix)
-(require 'ode-system)
 
 (doc 'module 'autodiff/ode-jacobian)
 (doc 'description "Bridge between autodiff exact Jacobians and ODE solver infrastructure.

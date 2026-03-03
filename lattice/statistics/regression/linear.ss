@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module linear
-;;; @requires prelude matrix matrix-decomp matrix-solvers result-types summary-stats diagnostics stat/distributions
+;;; @requires prelude matrix matrix-solvers result-types summary-stats diagnostics stat/distributions
 (require 'prelude)
 (require 'matrix)
-(require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'result-types)
 (require 'summary-stats)

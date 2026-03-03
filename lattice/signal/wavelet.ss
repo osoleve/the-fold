@@ -1,9 +1,8 @@
 ;;; lattice/signal/wavelet.ss — Wavelet Transforms
 ;;; @module wavelet
-;;; @requires prelude vec iteration
+;;; @requires prelude iteration
 
 (require 'prelude)
-(require 'vec)
 (require 'iteration)
 
 (doc 'module 'wavelet)

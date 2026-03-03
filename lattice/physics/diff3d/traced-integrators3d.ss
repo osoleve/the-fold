@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module traced-integrators3d
-;;; @requires prelude vec3 reverse-diff traced-vec3 traced-quaternion traced-body3d
+;;; @requires prelude reverse-diff traced-vec3 traced-quaternion traced-body3d
 (require 'prelude)
-(require 'vec3)
 (require 'reverse-diff)
 (require 'traced-vec3)
 (require 'traced-quaternion)

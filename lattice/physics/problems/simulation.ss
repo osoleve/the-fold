@@ -1,9 +1,8 @@
 ;;; lattice/physics/problems/simulation.ss — World Setup and Frame Capture
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module simulation
-;;; @requires prelude vec2 world ascii-renderer
+;;; @requires prelude world ascii-renderer
 (require 'prelude)
-(require 'vec2)
 (require 'world)
 (require 'ascii-renderer)
 

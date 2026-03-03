@@ -22,7 +22,7 @@
 ;;;   env      : Alist of (key type size hash) — inventory metadata
 ;;;   loaded   : List of Symbol — available lattice modules
 ;;;   notes    : List of String — semantic memory (reflection distillates)
-;;;   episodic : Alist of (step-num . cas-hash) — pointers to full records
+;;;   episodic : List of (step-num hash action-type ok?) — action log with CAS refs
 ;;;   journal  : List of (tag . text) — tagged within-run scratch
 ;;;   last-result : Any — most recent observation (cleared each step)
 ;;;   fuel     : Nat — remaining fuel budget
@@ -88,14 +88,18 @@
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
 (doc 'type '(-> Rlm2State String Rlm2State))
-(doc 'description "Return a new state with a note appended")
+(doc 'description "Return a new state with a note appended (sliding window, keeps last 5)")
+(define *rlm2-max-notes* 5)
 (define (rlm2-state-add-note s note)
-  (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
-                   (rlm2-state-loaded s)
-                   (append (rlm2-state-notes s) (list note))
-                   (rlm2-state-episodic s) (rlm2-state-journal s)
-                   (rlm2-state-last-result s)
-                   (rlm2-state-fuel s) (rlm2-state-step s)))
+  (let* ([notes (append (rlm2-state-notes s) (list note))]
+         [notes (if (> (length notes) *rlm2-max-notes*)
+                    (list-tail notes (- (length notes) *rlm2-max-notes*))
+                    notes)])
+    (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
+                     (rlm2-state-loaded s) notes
+                     (rlm2-state-episodic s) (rlm2-state-journal s)
+                     (rlm2-state-last-result s)
+                     (rlm2-state-fuel s) (rlm2-state-step s))))
 
 (doc 'type '(-> Rlm2State (List String) Rlm2State))
 (doc 'description "Return a new state with notes replaced (for compaction)")
@@ -106,12 +110,13 @@
                    (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
 
-(doc 'type '(-> Rlm2State Nat String Rlm2State))
-(doc 'description "Return a new state with an episodic entry added")
-(define (rlm2-state-add-episodic s step-num cas-hash)
+(doc 'type '(-> Rlm2State Nat String Symbol Boolean Rlm2State))
+(doc 'description "Return a new state with an episodic entry added: (step-num hash action-type ok?)")
+(define (rlm2-state-add-episodic s step-num cas-hash action-type ok?)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
-                   (append (rlm2-state-episodic s) (list (cons step-num cas-hash)))
+                   (append (rlm2-state-episodic s)
+                           (list (list step-num cas-hash action-type ok?)))
                    (rlm2-state-journal s)
                    (rlm2-state-last-result s)
                    (rlm2-state-fuel s) (rlm2-state-step s)))
@@ -435,7 +440,7 @@
     (slice       . 3)
     (recall-step . 1)
     (submit      . 1)
-    (think       . 1)
+    (think       . (0 . 1))
     (plan!       . 1)
     (map-chunks  . 2)
     (journal     . 2)
@@ -495,7 +500,10 @@
                 [lo (car expected)]
                 [hi (cdr expected)])
             (if (and (>= n lo) (<= n hi))
-                (list 'ok expr)
+                ;; Normalize bare (think) → (think "")
+                (list 'ok (if (and (eq? type 'think) (null? args))
+                              '(think "")
+                              expr))
                 (list 'err (format "~a expects ~a-~a args, got ~a"
                                    type lo hi n))))]
          ;; Fixed arity

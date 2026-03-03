@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude matrix matrix-decomp matrix-solvers reverse-diff higher-order-diff convergence line-search
+;;; @requires prelude matrix matrix-solvers reverse-diff higher-order-diff convergence line-search
 (require 'prelude)
 (require 'matrix)
-(require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'reverse-diff)
 (require 'higher-order-diff)

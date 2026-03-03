@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude matrix matrix-decomp matrix-eigen svd
+;;; @requires prelude matrix matrix-decomp svd
 (require 'prelude)
 (require 'matrix)
 (require 'matrix-decomp)
-(require 'matrix-eigen)
 (require 'svd)
 
 (doc 'module 'state-space)

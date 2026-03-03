@@ -1,7 +1,6 @@
 ;;; @module sat/literal
-;;; @requires prelude
+;;; @requires
 
-(require 'prelude)
 
 (doc 'module 'literal)
 (doc 'description "SAT literal representation - a variable with polarity")

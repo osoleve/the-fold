@@ -1,9 +1,8 @@
 ;;; lattice/numeric/fft-convolve.ss — FFT-based convolution bridge
 ;;; @module fft-convolve
-;;; @requires prelude complex dft iteration
+;;; @requires complex dft iteration
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'prelude)
 (require 'complex)
 (require 'dft)
 (require 'iteration)

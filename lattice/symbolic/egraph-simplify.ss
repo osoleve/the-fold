@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module egraph-simplify
-;;; @requires prelude egraph/extract expr simplify
+;;; @requires prelude egraph/extract expr
 ;;; lattice/symbolic/egraph-simplify.ss — E-Graph Equality Saturation for Symbolic Expressions
 ;;;
 ;;; Bridges the symbolic expression system (expr.ss) with the e-graph
@@ -16,7 +16,6 @@
 (require 'prelude)
 (require 'egraph/extract)  ; Pulls in egraph, match, saturation, cost
 (require 'expr)
-(require 'simplify)
 
 (doc 'module 'egraph-simplify)
 (doc 'bridges '(fp egraph))

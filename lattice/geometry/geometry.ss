@@ -1,7 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude vec3 matrix quaternion
-(require 'prelude)
+;;; @requires vec3 matrix quaternion
 (require 'vec3)
 (require 'matrix)
 (require 'quaternion)

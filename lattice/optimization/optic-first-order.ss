@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires traced-optics first-order
+;;; @requires traced-optics
 (require 'traced-optics)
-(require 'first-order)
 
 (doc 'module 'optic-first-order)
 (doc 'bridges '(optimization optics autodiff))

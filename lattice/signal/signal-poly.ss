@@ -1,10 +1,9 @@
 ;;; lattice/signal/signal-poly.ss — Polynomial Algebra for Signal Processing
 ;;; @module signal-poly
-;;; @requires field algebra/polynomial digital-filters
+;;; @requires field digital-filters
 
 (require 'prelude)
 (require 'field)
-(require 'algebra/polynomial)
 (require 'digital-filters)
 
 (doc 'module 'signal-poly)

@@ -1,9 +1,8 @@
 ;;; lattice/algebra/tropical-graph.ss — Tropical Algebra / Graph Algorithms Bridge
 ;;; @module tropical-graph
-;;; @requires prelude tropical graph-matrix
+;;; @requires tropical graph-matrix
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
-(require 'prelude)
 (require 'tropical)
 (require 'graph-matrix)
 

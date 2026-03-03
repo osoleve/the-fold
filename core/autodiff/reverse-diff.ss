@@ -16,12 +16,11 @@
 ;;;   - autodiff/comp-graph.ss (for tape infrastructure)
 
 ;;; @module reverse-diff
-;;; @requires prelude comp-graph
+;;; @requires prelude
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'comp-graph)
 
 ;;; ====
 ;;; Traced Values

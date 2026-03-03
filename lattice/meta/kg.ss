@@ -1,14 +1,13 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'sha256)
-(require 'block)
 (require 'cas)
 (require 'manifest)
 (require 'hamt)
 (require 'meta/concept-normalize)
 
 ;;; @module meta/kg
-;;; @requires prelude sha256 block cas manifest hamt meta/concept-normalize
+;;; @requires prelude sha256 cas manifest hamt meta/concept-normalize
 (doc 'module 'kg)
 (doc 'description "Knowledge graph — the source of truth for the skill lattice.
 Block-backed, CAS-stored, content-addressed. Skills, modules, exports,

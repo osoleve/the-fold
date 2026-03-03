@@ -31,7 +31,6 @@
 (require 'matrix-solvers)
 (require 'control/state-space)
 (require 'control/transfer-function)
-(require 'control/stability)
 (require 'control/controller-design)
 
 (doc 'module 'hinf-synthesis)

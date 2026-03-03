@@ -1,9 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module sql-lexer
-;;; @requires prelude parser sql-types
+;;; @requires prelude parser
 (require 'prelude)
 (require 'parser)
-(require 'sql-types)
 
 (define *sql-lexer-loaded* #t)
 

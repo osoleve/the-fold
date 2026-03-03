@@ -1,10 +1,9 @@
 ;;; @module rewrite/sexp-zipper
-;;; @requires prelude combinators tree-zipper zipper-lens
+;;; @requires prelude combinators tree-zipper
 
 (require 'prelude)
 (require 'combinators)
 (require 'tree-zipper)
-(require 'zipper-lens)
 
 (doc 'module 'rewrite/sexp-zipper)
 (doc 'purity 'total)

@@ -30,8 +30,10 @@
     (wumpus-format-observation game* msg)))
 
 (define (wumpus-result)
-  (list (wumpus-game-status *wumpus-game*)
-        (wumpus-reward *wumpus-game*)))
+  (if (wumpus-terminal? *wumpus-game*)
+      (list (wumpus-game-status *wumpus-game*)
+            (wumpus-reward *wumpus-game*))
+      (error 'wumpus-result "Game is still active — keep playing!")))
 
 (define (wumpus-done?)
   (wumpus-terminal? *wumpus-game*))

@@ -1,10 +1,8 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ar
-;;; @requires prelude iteration matrix matrix-decomp matrix-solvers result-types summary-stats acf-pacf stat/distributions
+;;; @requires prelude iteration matrix-solvers result-types summary-stats acf-pacf stat/distributions
 (require 'prelude)
 (require 'iteration)
-(require 'matrix)
-(require 'matrix-decomp)
 (require 'matrix-solvers)
 (require 'result-types)
 (require 'summary-stats)

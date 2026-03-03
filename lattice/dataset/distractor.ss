@@ -1,11 +1,10 @@
 ;;; lattice/dataset/distractor.ss — Plausible Wrong Answer Generation
 ;;; @module distractor
-;;; @requires prelude prng parameter sort
+;;; @requires prelude parameter sort
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'prng)
 (require 'parameter)
 (require 'sort)
 

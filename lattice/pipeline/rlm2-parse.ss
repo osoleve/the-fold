@@ -63,6 +63,76 @@
           (car alias-info) (cdr alias-info) (cdr alias-info)))
 
 ;;; ====
+;;; Think normalization
+;;; ====
+
+;;; Recover a (think ...) that read/validation couldn't handle.
+;;; Two cases:
+;;;   1. Truncated quoted: (think "long text that got cut off...
+;;;   2. Unquoted bare text: (think G8: analysis of feedback...
+;;; Returns a (think content) action or #f.
+(define (rlm2-try-partial-think text)
+  (let ([len (string-length text)])
+    (and (> len 8)
+         (char=? (string-ref text 0) #\()
+         (string=? (substring text 1 6) "think")
+         (char-whitespace? (string-ref text 6))
+         ;; Find start of content after (think<ws>
+         (let find-content ([i 7])
+           (cond
+             [(>= i len) (list 'think "")]
+             [(char-whitespace? (string-ref text i)) (find-content (+ i 1))]
+             ;; Quoted content — extract after opening quote
+             [(char=? (string-ref text i) #\")
+              (let ([start (+ i 1)])
+                (if (>= start len)
+                    (list 'think "")
+                    (let* ([raw (substring text start len)]
+                           [rlen (string-length raw)])
+                      (list 'think
+                        (cond
+                          ;; Strip trailing ") — complete but read failed for other reasons
+                          [(and (>= rlen 2)
+                                (char=? (string-ref raw (- rlen 1)) #\))
+                                (char=? (string-ref raw (- rlen 2)) #\"))
+                           (substring raw 0 (- rlen 2))]
+                          ;; Strip trailing " — almost complete
+                          [(and (>= rlen 1)
+                                (char=? (string-ref raw (- rlen 1)) #\"))
+                           (substring raw 0 (- rlen 1))]
+                          ;; Truncated mid-content — use as-is
+                          [else raw])))))]
+             ;; Unquoted bare text — model wrote (think G8: analysis...)
+             ;; Grab everything from here to end as content
+             [else
+              (list 'think (substring text i len))])))))
+
+(define (rlm2-unwrap-nested-think result)
+  ;; Safety net: if parsed action is (think "(think \"...\")"), unwrap one level.
+  ;; Primary defense is rlm2-try-partial-think; this catches the remaining case
+  ;; where read succeeded but the model intentionally double-wrapped.
+  (let ([action (rlm2-parse-result-action result)])
+    (if (and (pair? action)
+             (eq? (car action) 'think)
+             (>= (length action) 2)
+             (string? (cadr action))
+             (let ([t (rlm2-parse-trim (cadr action))])
+               (and (>= (string-length t) 7)
+                    (string=? (substring t 0 6) "(think"))))
+        ;; Try to parse the inner think
+        (let ([inner (guard (ex [else #f])
+                       (read (open-input-string (cadr action))))])
+          (if (and (pair? inner) (eq? (car inner) 'think) (>= (length inner) 2))
+              (make-rlm2-parse-result
+                (list 'think (cadr inner))
+                (rlm2-parse-result-thought result)
+                (rlm2-parse-result-raw result)
+                (rlm2-parse-result-candidate result)
+                (rlm2-parse-result-failure-reason result))
+              result))
+        result)))
+
+;;; ====
 ;;; Main entry point
 ;;; ====
 
@@ -75,9 +145,12 @@
       [(string=? trimmed "")
        (make-rlm2-parse-result (list 'think "") #f text #f "empty-input")]
       [else
-       (rlm2-parse-response-inner trimmed text)])))
+       (let ([result (rlm2-parse-response-inner trimmed text)])
+         ;; Unwrap double-nested thinks: model sometimes writes
+         ;; (think "(think \"actual content\")") — strip the inner wrapper
+         (rlm2-unwrap-nested-think result))])))
 
-;;; Inner dispatch: direct read → partial begin recovery → fuzzy extraction
+;;; Inner dispatch: direct read → partial begin → partial think → fuzzy
 (define (rlm2-parse-response-inner trimmed text)
   (let ([direct (rlm2-try-read-action trimmed)])
     (if (rlm2-try-ok? direct)
@@ -88,13 +161,19 @@
           (if alias-info
               (rlm2-parse-result-with-alias result alias-info)
               result))
-        ;; Direct read failed — try partial begin recovery, then fuzzy
+        ;; Direct read failed — try partial recovery before fuzzy
         (let ([partial (rlm2-try-partial-begin trimmed)])
           (if partial
               ;; Recovered actions from a truncated begin block
               (rlm2-extract-thought-and-action partial text)
-              ;; No partial begin — try fuzzy extraction
-              (rlm2-parse-fuzzy trimmed text direct))))))
+              ;; Try partial think recovery — prevents double-wrapping
+              ;; when (think "long text...) is truncated
+              (let ([partial-think (rlm2-try-partial-think trimmed)])
+                (if partial-think
+                    (make-rlm2-parse-result partial-think #f text
+                                           #f "partial-think-recovery")
+                    ;; No partial recovery — fuzzy extraction
+                    (rlm2-parse-fuzzy trimmed text direct))))))))
 
 ;;; Fuzzy extraction: find balanced parens in text, try to read+validate
 (define (rlm2-parse-fuzzy trimmed text direct)

@@ -1,10 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'bidirectional)
-(require 'schema)
 (require 'hamt)
 
 ;;; @module meta/cache-migration
-;;; @requires bidirectional schema hamt
+;;; @requires bidirectional hamt
 (doc 'module 'cache-migration)
 (doc 'description "Bidirectional cache format migrations for smooth upgrades")
 (doc 'layer 'lattice)

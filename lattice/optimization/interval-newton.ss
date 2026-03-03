@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires interval interval-global
+;;; @requires interval
 (require 'interval)
-(require 'interval-global)
 
 (doc 'module 'interval-newton)
 (doc 'description "Interval Newton method for guaranteed root enclosure and existence proofs")

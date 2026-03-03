@@ -1,11 +1,10 @@
 ;;; @module sparse-autodiff
-;;; @requires prelude vec matrix sparse comp-graph reverse-diff higher-order-diff hamt
+;;; @requires prelude vec sparse comp-graph reverse-diff higher-order-diff hamt
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'vec)
-(require 'matrix)
 (require 'sparse)
 (require 'comp-graph)
 (require 'reverse-diff)

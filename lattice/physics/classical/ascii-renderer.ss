@@ -1,8 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ascii-renderer
-;;; @requires prelude vec2 world sort
+;;; @requires prelude world sort
 (require 'prelude)
-(require 'vec2)
 (load "user/creations/ascii-video.ss")
 (require 'world)
 (require 'sort)

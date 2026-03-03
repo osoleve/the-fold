@@ -1,8 +1,7 @@
 ;;; lattice/fp/protocol.ss — Protocol Dispatch
 ;;; @module protocol
-;;; @requires prelude hamt
+;;; @requires hamt
 
-(require 'prelude)
 (require 'hamt)
 
 (doc 'module 'protocol)

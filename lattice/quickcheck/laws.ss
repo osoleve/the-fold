@@ -1,11 +1,10 @@
 ;;; lattice/quickcheck/laws.ss — Algebraic law checking via property-based testing
 ;;; @module qc-laws
-;;; @requires prelude qc-generators qc-shrink quickcheck
+;;; @requires prelude qc-generators quickcheck
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'qc-generators)
-(require 'qc-shrink)
 (require 'quickcheck)
 
 (doc 'module 'qc-laws)

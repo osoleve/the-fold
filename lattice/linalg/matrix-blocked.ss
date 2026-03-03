@@ -1,9 +1,7 @@
 ;;; lattice/linalg/matrix-blocked.ss — Blocked/Tiled Matrix Algorithms
 ;;; @module matrix-blocked
-;;; @requires prelude vec matrix
+;;; @requires matrix
 
-(require 'prelude)
-(require 'vec)
 (require 'matrix)
 
 (doc 'module 'matrix-blocked)

@@ -1,9 +1,8 @@
 ;;; @module epiplexity
-;;; @requires prelude entropy statistical-measures
+;;; @requires prelude entropy
 
 (require 'prelude)
 (require 'entropy)
-(require 'statistical-measures)
 
 (doc 'module 'epiplexity)
 (doc 'description "Epiplexity measures: structural information extraction from data")

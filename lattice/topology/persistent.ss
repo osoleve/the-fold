@@ -1,8 +1,7 @@
 ;;; lattice/topology/persistent.ss — Persistent Homology for TDA
 ;;; @module persistent
-;;; @requires homology simplicial-complex hamt
+;;; @requires simplicial-complex hamt
 
-(require 'homology)
 (require 'hamt)
 
 (doc 'module 'persistent)

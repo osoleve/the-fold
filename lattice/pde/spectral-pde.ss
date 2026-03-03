@@ -4,7 +4,6 @@
 
 (require 'prelude)
 (require 'iteration)
-(require 'vec)
 (require 'matrix)
 (require 'complex)
 (require 'dft)
