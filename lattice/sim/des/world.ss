@@ -1,11 +1,12 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 ;;; @module des/world
-;;; @requires prelude des/event state avl-tree
+;;; @requires prelude des/event fp/control/state avl-tree templates
 (require 'prelude)
 (require 'des/event)
-(require 'state)
+(require 'fp/control/state)
 (require 'avl-tree)
+(require 'templates)
 
 (doc 'module 'des/world)
 (doc 'description "Discrete Event Simulation — world state container with optics. A DES world holds the simulation clock, entity and metric stores (AVL trees for O(log n) access), the event queue, and RNG state. Lenses provide composable access into all fields.")
