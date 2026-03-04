@@ -1,9 +1,9 @@
 ;;; lattice/random/prng.ss — Pseudorandom Number Generation
 ;;; @module prng
-;;; @requires prelude state protocol
+;;; @requires prelude fp/control/state protocol
 
 (require 'prelude)
-(require 'state)
+(require 'fp/control/state)
 (require 'protocol)
 
 (doc 'module 'prng)

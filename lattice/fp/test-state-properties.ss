@@ -11,7 +11,7 @@
 (load "core/testing/test-framework.ss")
 (load "core/lang/module.ss")
 (require 'quickcheck)
-(require 'state)
+(require 'fp/control/state)
 
 ;;; ============================================================================
 ;;; Generators

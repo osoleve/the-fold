@@ -1,9 +1,9 @@
 ;;; lattice/random/probability.ss — Probability Monad
 ;;; @module probability
-;;; @requires prelude state prng distributions
+;;; @requires prelude fp/control/state prng distributions
 
 (require 'prelude)
-(require 'state)
+(require 'fp/control/state)
 (require 'prng)
 (require 'distributions)
 

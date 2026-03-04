@@ -1,10 +1,10 @@
 ;;; lattice/quickcheck/generators.ss — Sized, composable random generators
 ;;; @module qc-generators
-;;; @requires prelude state prng
+;;; @requires prelude fp/control/state prng
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'state)
+(require 'fp/control/state)
 (require 'prng)
 
 (doc 'module 'qc-generators)

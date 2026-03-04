@@ -1,9 +1,9 @@
 ;;; lattice/random/monte-carlo.ss — Monte Carlo Simulation
 ;;; @module monte-carlo
-;;; @requires prelude state transcendental prng distributions sort
+;;; @requires prelude fp/control/state transcendental prng distributions sort
 
 (require 'prelude)
-(require 'state)
+(require 'fp/control/state)
 (require 'transcendental)
 (require 'prng)
 (require 'distributions)

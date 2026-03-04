@@ -1,8 +1,8 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude state prng convergence sort
+;;; @requires prelude fp/control/state prng convergence sort
 (require 'prelude)
-(require 'state)
+(require 'fp/control/state)
 (require 'prng)
 (require 'convergence)
 (require 'sort)
