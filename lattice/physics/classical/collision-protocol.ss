@@ -1,7 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-protocol
-;;; @requires protocol vec2
-(require 'protocol)
+;;; @requires fp/protocol vec2
+(require 'fp/protocol)
 (require 'vec2)
 
 (doc "lattice/physics/classical/collision-protocol.ss — Collision Response Protocols")

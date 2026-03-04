@@ -1,8 +1,8 @@
 ;;; lattice/fp/protocol-introspect.ss — Protocol Introspection
 ;;; @module protocol-introspect
-;;; @requires protocol hamt
+;;; @requires fp/protocol hamt
 
-(require 'protocol)
+(require 'fp/protocol)
 (require 'hamt)
 
 (doc 'module 'protocol-introspect)

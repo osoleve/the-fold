@@ -7,9 +7,9 @@
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module model-protocol
-;;; @requires prelude protocol result-types sort
+;;; @requires prelude fp/protocol result-types sort
 (require 'prelude)
-(require 'protocol)
+(require 'fp/protocol)
 (require 'result-types)
 (require 'sort)
 

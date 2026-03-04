@@ -1,7 +1,7 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module collision-protocol3d
-;;; @requires protocol vec3 rigid-body3d
-(require 'protocol)
+;;; @requires fp/protocol vec3 rigid-body3d
+(require 'fp/protocol)
 (require 'vec3)
 (require 'rigid-body3d)
 

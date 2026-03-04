@@ -1,9 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module stat/distributions
-;;; @requires transcendental special-functions protocol
+;;; @requires transcendental special-functions fp/protocol
 (require 'transcendental)
 (require 'special-functions)
-(require 'protocol)
+(require 'fp/protocol)
 
 (doc 'module 'distributions)
 (doc 'description "Test Statistic Distributions — CDF and quantile functions for t, chi-squared, and F distributions")

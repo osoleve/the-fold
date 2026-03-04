@@ -6,13 +6,12 @@
 ;;; - Generic containment and distance queries
 ;;; - Heterogeneous scene graphs with unified traversal
 ;;;
-;;; @requires lattice/fp/protocol.ss
-;;; @requires lattice/geometry/geometry.ss
+;;; @requires prelude fp/protocol vec3 geometry
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
 (require 'prelude)
-(require 'protocol)
+(require 'fp/protocol)
 (require 'vec3)
 (require 'geometry)
 

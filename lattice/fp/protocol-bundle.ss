@@ -1,8 +1,8 @@
 ;;; lattice/fp/protocol-bundle.ss — Protocol Bundles
 ;;; @module protocol-bundle
-;;; @requires protocol hamt
+;;; @requires fp/protocol hamt
 
-(require 'protocol)
+(require 'fp/protocol)
 (require 'hamt)
 
 (doc 'module 'protocol-bundle)

@@ -1,12 +1,12 @@
 ;;; lattice/random/distributions.ss — Probability Distributions
 ;;; @module distributions
-;;; @requires prelude fp/control/state transcendental prng protocol
+;;; @requires prelude fp/control/state transcendental prng fp/protocol
 
 (require 'prelude)
 (require 'fp/control/state)
 (require 'transcendental)
 (require 'prng)
-(require 'protocol)
+(require 'fp/protocol)
 
 (doc 'module 'distributions)
 (doc 'description "Probability distributions with protocol-based interface.

@@ -3,7 +3,7 @@
 (load "core/testing/test-framework.ss")
 (load "core/lang/module.ss")
 (require 'quickcheck)
-(require 'protocol)
+(require 'fp/protocol)
 
 ;;; ============================================================================
 ;;; Helpers
