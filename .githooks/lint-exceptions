@@ -1,0 +1,7 @@
+# Known intentional unused requires — aggregator/loader modules that
+# re-export dependencies for downstream consumers.
+# Format: file_path  # reason
+#
+# Test and bench files are automatically excluded from lint checks.
+
+lattice/tiles/boardcraft.ss    # aggregator module — re-exports tile deps

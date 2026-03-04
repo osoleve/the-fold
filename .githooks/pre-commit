@@ -6,7 +6,8 @@
 #   1. Scheme test suite (always)
 #   2. Large file detection (always)
 #   3. Layer boundary violations (when core/ or lattice/ .ss files staged)
-#   4-6. Rust fmt/clippy/compile (when .rs files staged)
+#   4. Unused requires lint (when core/ or lattice/ .ss files staged)
+#   5-7. Rust fmt/clippy/compile (when .rs files staged)
 #
 # Install: git config core.hooksPath .githooks
 
@@ -30,7 +31,7 @@ SCHEME_PURITY_STAGED=$(git diff --cached --name-only --diff-filter=ACMR | grep -
 
 # Count total checks
 TOTAL_CHECKS=2
-[ -n "$SCHEME_PURITY_STAGED" ] && TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+[ -n "$SCHEME_PURITY_STAGED" ] && TOTAL_CHECKS=$((TOTAL_CHECKS + 2))  # layer + lint
 [ -n "$RUST_STAGED" ] && TOTAL_CHECKS=$((TOTAL_CHECKS + 3))
 
 # ============================================================================
@@ -177,7 +178,52 @@ if [ -n "$SCHEME_PURITY_STAGED" ]; then
 fi
 
 # ============================================================================
-# Checks 4-6: Rust (only if .rs files staged)
+# Check 4: Unused requires lint (only if core/ or lattice/ .ss files staged)
+# ============================================================================
+#
+# Runs lint-requires.ss in incremental mode on staged files only.
+# Skips test/bench files and files listed in .githooks/lint-exceptions.
+#
+if [ -n "$SCHEME_PURITY_STAGED" ]; then
+    CHECK_NUM=$((CHECK_NUM + 1))
+    echo -e "${YELLOW}[$CHECK_NUM/$TOTAL_CHECKS]${NC} Checking for unused requires..."
+
+    LINT_EXCEPTIONS=".githooks/lint-exceptions"
+    LINT_FILES=""
+
+    for file in $SCHEME_PURITY_STAGED; do
+        # Skip test and bench files
+        bname=$(basename "$file")
+        case "$bname" in
+            test-*|bench-*) continue ;;
+        esac
+
+        # Skip files in exceptions list
+        if [ -f "$LINT_EXCEPTIONS" ] && grep -q "^${file}" "$LINT_EXCEPTIONS" 2>/dev/null; then
+            continue
+        fi
+
+        LINT_FILES="$LINT_FILES $file"
+    done
+
+    if [ -n "$LINT_FILES" ]; then
+        if scheme --script lint-requires.ss --check --files $LINT_FILES > /tmp/lint-requires-output.txt 2>&1; then
+            echo -e "  ${GREEN}✓${NC} No unused requires"
+        else
+            echo -e "  ${RED}✗${NC} Unused requires detected:"
+            # Show the per-file findings (skip the build/scan boilerplate)
+            grep -E '^\S.*\.ss$|^  unused:' /tmp/lint-requires-output.txt | sed 's/^/      /' || true
+            echo "  Run 'scheme --script lint-requires.ss --fix' to auto-remove"
+            FAILED=1
+        fi
+        rm -f /tmp/lint-requires-output.txt
+    else
+        echo -e "  ${GREEN}✓${NC} No lintable files staged"
+    fi
+fi
+
+# ============================================================================
+# Checks 5-7: Rust (only if .rs files staged)
 # ============================================================================
 if [ -n "$RUST_STAGED" ]; then
     RUST_DIR="boundary/ffi/rust-accel"
