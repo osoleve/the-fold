@@ -31,16 +31,23 @@ Input: undirected adjacency matrix or edge list. Returns (list size matched-pair
 ;;; Find lowest common ancestor of v and w in the alternating tree.
 ;;; Walks from both vertices toward the root via base[] -> mate[] -> parent[]
 ;;; chain. The first base visited by both walks is the LCA.
+;;;
+;;; Safety invariant: walk-w does not guard against mate[bx] = -1
+;;; because walk-v always marks the root's base as visited first.
+;;; Since v and w share the same tree root, walk-w is guaranteed to
+;;; hit a visited base before reaching any unmatched vertex.
 
 (define (blossom-find-lca v w base mate parent n)
   (let ([visited (make-vector n #f)])
     ;; Walk from v toward root, marking bases as visited
+    ;; (terminates at root where mate = -1)
     (let walk-v ([x v])
       (let ([bx (vector-ref base x)])
         (vector-set! visited bx #t)
         (when (not (= (vector-ref mate bx) -1))
           (walk-v (vector-ref parent (vector-ref mate bx))))))
     ;; Walk from w toward root, find first visited base
+    ;; (safe: walk-v marked root, so we always find a hit)
     (let walk-w ([x w])
       (let ([bx (vector-ref base x)])
         (if (vector-ref visited bx)
