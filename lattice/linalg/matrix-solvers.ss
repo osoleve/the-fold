@@ -120,24 +120,7 @@ Dependencies (must be loaded by client in correct order):
                                 (vector-set! visited curr #t)
                                 (cycle-loop (vector-ref p curr) (+ len 1)))))))))))
 
-;;; matrix-determinant : Matrix → Num | Error
-;;; Compute the determinant of a square matrix A using LU decomposition.
-(doc matrix-determinant 'fuel-cost '(cubic n))
-(define (matrix-determinant a)
-  (doc 'export #t)
-  (if (not (matrix-square? a))
-      `(error not-square ,(matrix-rows a) ,(matrix-cols a))
-      (let ([lu (matrix-lu a)])
-           (if (and (pair? lu) (eq? (car lu) 'error))
-               (if (eq? (cadr lu) 'singular-matrix)
-                   0
-                   lu)
-               (let* ([u (cadr lu)]
-                      [p (caddr lu)]
-                      [diag (matrix-diagonal u)]
-                      [det-u (vec-fold * 1 diag)]
-                      [parity (permutation-parity p)])
-                     (* parity det-u))))))
+;;; matrix-determinant is now defined in matrix-decomp.ss (alias of matrix-det)
 
 (doc 'section 'least-squares
      'description "Least squares solutions for overdetermined systems")

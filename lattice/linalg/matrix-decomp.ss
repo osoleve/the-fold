@@ -40,13 +40,7 @@
         [data (matrix-data m)])
        (vector-set! data (+ (* i cols) j) val)))
 
-(define (matrix-column m j)
-  (doc 'description "Extract column j as a vector.")
-  (let* ([rows (matrix-rows m)]
-         [result (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            [(= i rows) result]
-            (vector-set! result i (matrix-ref m i j)))))
+;; matrix-col is provided by matrix.ss (which we require)
 
 (doc 'section 'lu-decomposition)
 
@@ -166,7 +160,7 @@
                   [v (let orth-loop ([p 0] [curr e-k])
                           (if (= p j)
                               curr
-                              (let* ([q-p (matrix-column q p)]
+                              (let* ([q-p (matrix-col q p)]
                                      [proj (vec-dot q-p curr)])
                                     (orth-loop (+ p 1)
                                                (vec-sub curr (vec-scale proj q-p))))))]
@@ -179,8 +173,8 @@
   (doc 'description "Orthogonalize columns j+1..n-1 against column j.")
   (do ([i (+ j 1) (+ i 1)])
       [(= i n)]
-      (let* ([col-i (matrix-column q i)]
-             [col-j (matrix-column q j)]
+      (let* ([col-i (matrix-col q i)]
+             [col-j (matrix-col q j)]
              [proj (vec-dot col-j col-i)])
             (matrix-set! r j i proj)
             (do ([row 0 (+ row 1)])
@@ -201,7 +195,7 @@
                  (let col-loop ([j 0])
                       (if (= j n)
                           (list q r)
-                          (let* ([col-j (matrix-column q j)]
+                          (let* ([col-j (matrix-col q j)]
                                  [norm (vec-norm col-j)])
                                 (if (< norm *matrix-tolerance*)
                                     ;; Linear dependence - find orthogonal basis vector
@@ -298,3 +292,6 @@
                               (* prod (permutation-sign p))
                               (loop (+ i 1)
                                     (* prod (matrix-ref u i i))))))))))
+
+;;; matrix-determinant : alias for matrix-det (canonical long name)
+(define matrix-determinant matrix-det)

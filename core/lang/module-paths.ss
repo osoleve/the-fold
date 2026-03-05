@@ -354,6 +354,12 @@
  ;; Game theory namespaced
  (register-module-path! 'game-theory/clp-equilibrium "lattice/game-theory/clp-equilibrium.ss")
 
+ ;; FP control (namespaced to avoid collision with bare 'state)
+ (register-module-path! 'fp/control/state "lattice/fp/control/state.ss")
+
+ ;; Pipeline (namespaced rlm2 for require 'pipeline/rlm2)
+ (register-module-path! 'pipeline/rlm2 "lattice/pipeline/rlm2.ss")
+
  ;; Meta modules (namespaced to avoid collisions with lattice concepts)
  (register-module-path! 'meta/fuel-vocab "lattice/meta/fuel-vocab.ss")
  (register-module-path! 'meta/purity-audit "lattice/meta/purity-audit.ss")

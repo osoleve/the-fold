@@ -258,7 +258,7 @@ Returns (v . u) pair, 'singular if (λI - A) not invertible, or error for comple
               (let* ([S (matrix-mul M-inv B)]
                      [j (modulo i m)]
                      [u-vec (make-vector m 0)]
-                     [v-vec (vec-scale -1.0 (matrix-col-vec S j))])
+                     [v-vec (vec-scale -1.0 (matrix-col S j))])
                 (vector-set! u-vec j 1.0)
                 (cons v-vec u-vec)))))))
 
@@ -310,15 +310,6 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                (store-eigenpair! V U i result)
                (loop (+ i 1))]))))))
 
-(define (matrix-col-vec M j)
-  (doc 'export #t)
-  (doc 'type "Matrix × Nat → Vector")
-  (doc 'description "Extract column j of matrix M as a vector")
-  (let* ([n (matrix-rows M)]
-         [v (make-vector n 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i n) v]
-      (vector-set! v i (matrix-ref M i j)))))
 
 (define (matrix-set-col-from-vec! M j v)
   (doc 'export #t)
@@ -349,14 +340,6 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                        (vector-set! coeffs k c-k)
                        (loop (+ k 1) M-new))))))
 
-(define (matrix-trace M)
-  (doc 'export #t)
-  (doc 'type "Matrix → Number")
-  (let ([n (min (matrix-rows M) (matrix-cols M))])
-       (let loop ([i 0] [sum 0])
-            (if (>= i n)
-                sum
-                (loop (+ i 1) (+ sum (matrix-ref M i i)))))))
 
 (define (poly-coeffs-vector poly n)
   (doc 'export #t)
@@ -488,7 +471,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                         [PBRP (matrix-mul P (matrix-mul BRinvBt P))]
                         [residual (matrix-add (matrix-add AtP PA)
                                               (matrix-sub Q PBRP))]
-                        [norm (matrix-frobenius-norm-local residual)])
+                        [norm (frobenius-norm residual)])
                        (if (< norm 1e-10)
                            P
                            ;; Solve Lyapunov equation for Newton step
@@ -659,7 +642,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                  (let* ([AtX (matrix-mul At X)]
                         [XA (matrix-mul X A)]
                         [residual (matrix-add (matrix-add AtX XA) Q)]
-                        [norm (matrix-frobenius-norm-local residual)])
+                        [norm (frobenius-norm residual)])
                        (if (< norm 1e-10)
                            X
                            ;; Use residual as correction (scaled gradient descent)
@@ -667,20 +650,6 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                   [X-new (matrix-sub X (matrix-scale alpha residual))])
                                  (loop X-new (+ iter 1)))))))))
 
-(define (matrix-frobenius-norm-local M)
-  (doc 'export #t)
-  (doc 'type "Matrix → Number")
-  (let* ([rows (matrix-rows M)]
-         [cols (matrix-cols M)])
-        (sqrt (let loop ([i 0] [sum 0])
-                   (if (>= i rows)
-                       sum
-                       (loop (+ i 1)
-                             (+ sum (let inner ([j 0] [row-sum 0])
-                                         (if (>= j cols)
-                                             row-sum
-                                             (inner (+ j 1)
-                                                    (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
 (define (dlqr sys Q R)
   (doc 'export #t)
@@ -723,7 +692,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                         [AtPA (matrix-mul At (matrix-mul P A))]
                         [AtPB-K (matrix-mul (matrix-mul At (matrix-mul P B)) K-temp)]
                         [P-new (matrix-add Q (matrix-sub AtPA AtPB-K))]
-                        [diff (matrix-frobenius-norm-local (matrix-sub P-new P))])
+                        [diff (frobenius-norm (matrix-sub P-new P))])
                        (if (< diff 1e-10)
                            P-new
                            (loop P-new (+ iter 1))))))))

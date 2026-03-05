@@ -246,7 +246,7 @@
                         [residual (matrix-add (matrix-add AtP PA) Q)]
                         [P-new (matrix-add P (matrix-scale dt residual))]
                         ;; Check convergence
-                        [diff (matrix-frobenius-norm (matrix-sub P-new P))])
+                        [diff (frobenius-norm (matrix-sub P-new P))])
                        (if (< diff 1e-10)
                            P-new
                            (loop P-new (+ iter 1))))))))
@@ -277,7 +277,7 @@
              (if (>= iter max-iter)
                  P
                  (let* ([P-new (matrix-add (matrix-mul At (matrix-mul P A)) Q)]
-                        [diff (matrix-frobenius-norm (matrix-sub P-new P))])
+                        [diff (frobenius-norm (matrix-sub P-new P))])
                        (if (< diff 1e-10)
                            P-new
                            (loop P-new (+ iter 1))))))))
@@ -306,21 +306,6 @@
                           (map complex-real (qr-algorithm-shifted M 50 1e-10)))])
         (all? (lambda (ev) (> ev 0)) eigenvalues)))
 
-;;; matrix-frobenius-norm : Matrix → Number
-;;; Compute Frobenius norm of a matrix.
-(define (matrix-frobenius-norm M)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows M)]
-         [cols (matrix-cols M)])
-        (sqrt (let loop ([i 0] [sum 0])
-                   (if (>= i rows)
-                       sum
-                       (loop (+ i 1)
-                             (+ sum (let inner ([j 0] [row-sum 0])
-                                         (if (>= j cols)
-                                             row-sum
-                                             (inner (+ j 1)
-                                                    (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
 ;;; ====
 ;;; Root Locus
@@ -750,17 +735,6 @@
                        [else
                         (pivot-loop (+ pr 1))]))))))
 
-;;; matrix-copy : Matrix → Matrix
-(define (matrix-copy M)
-  (doc 'export #t)
-  (let* ([m (matrix-rows M)]
-         [n (matrix-cols M)]
-         [result (make-matrix m n 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i m) result)
-            (do ([j 0 (+ j 1)])
-                ((= j n))
-                (matrix-set! result i j (matrix-ref M i j))))))
 
 ;;; matrix-swap-rows! : Matrix × Nat × Nat → void
 (define (matrix-swap-rows! M i j)

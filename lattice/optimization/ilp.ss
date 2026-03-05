@@ -1,6 +1,6 @@
 ;;; lattice/optimization/ilp.ss — Integer Linear Programming
 ;;; @module ilp
-;;; @requires lp iteration
+;;; @requires lp iteration vec matrix
 ;;; @description Integer linear programming via branch-and-bound
 ;;; @purity total
 ;;; @stability stable
@@ -9,6 +9,8 @@
   (load "core/lang/module.ss"))
 (require 'lp)
 (require 'iteration)
+(require 'vec)
+(require 'matrix)
 
 (doc 'module 'ilp)
 (doc 'description "Integer linear programming with branch-and-bound and cutting planes")
@@ -304,7 +306,7 @@ Empty list = pure LP, all indices = pure ILP")
                [else
                 (let* ([x-full (lp-result-x result)]
                        ;; Extract original variables (first n)
-                       [x (vector-take x-full n)]
+                       [x (vec-take x-full n)]
                        [z (vec-dot c x)])
                   (cond
                     ;; Prune if worse than best known
@@ -337,10 +339,6 @@ Empty list = pure LP, all indices = pure ILP")
                                               nodes)))
                        (explore))]))])))]))))
 
-;;; vector-take : Vec x Nat -> Vec
-;;; Take first n elements of vector.
-(define (vector-take v n)
-  (vec-tabulate n i (vector-ref v i)))
 
 ;;; ====
 ;;; Gomory Cutting Planes
@@ -389,10 +387,6 @@ Empty list = pure LP, all indices = pure ILP")
                                            (frac aij-bar))))])
                     (cons cut-coef cut-rhs))))))))
 
-;;; matrix-row : Matrix x Nat -> Vec
-;;; Extract row i as a vector.
-(define (matrix-row m i)
-  (vec-tabulate (matrix-cols m) j (matrix-ref m i j)))
 
 ;;; add-gomory-cut : LP x Vec x Num -> LP
 ;;; Add a Gomory cut to the LP.
@@ -442,7 +436,7 @@ Empty list = pure LP, all indices = pure ILP")
               [else
                (let* ([x (lp-result-x result)]
                       [n (vector-length (ilp-c ilp))]
-                      [x-orig (vector-take x n)])
+                      [x-orig (vec-take x n)])
                  (if (solution-is-integer? x-orig integers)
                      (make-ilp-optimal (round-solution x-orig integers)
                                       (vec-dot (ilp-c ilp) x-orig))
@@ -513,7 +507,7 @@ Empty list = pure LP, all indices = pure ILP")
                [result (ilp-solve ilp)])
           (if (ilp-optimal? result)
               (let* ([x-full (ilp-result-x result)]
-                     [x (vector-take x-full n)]
+                     [x (vec-take x-full n)]
                      [val (vec-dot values x)])
                 (cons x val))
               'infeasible))))))
@@ -604,78 +598,6 @@ Empty list = pure LP, all indices = pure ILP")
 ;;; Helper Functions
 ;;; ====
 
-;; iota is provided by prelude (via lp.ss)
-
-;;; vec-ones : Nat -> Vec
-;;; Create vector of ones.
-(define (vec-ones n)
-  (make-vector n 1))
-
-;;; vec-zeros : Nat -> Vec
-;;; Create vector of zeros.
-(define (vec-zeros n)
-  (make-vector n 0))
-
-;;; vec-negate : Vec -> Vec
-;;; Negate all elements.
-(define (vec-negate v)
-  (vec-tabulate (vector-length v) i (- (vector-ref v i))))
-
-;;; vec-append : Vec x Vec -> Vec
-;;; Concatenate two vectors.
-(define (vec-append v1 v2)
-  (let ([n1 (vector-length v1)]
-        [n2 (vector-length v2)])
-    (vec-tabulate (+ n1 n2) i
-      (if (< i n1)
-          (vector-ref v1 i)
-          (vector-ref v2 (- i n1))))))
-
-;;; vec-copy : Vec -> Vec
-;;; Copy a vector.
-(define (vec-copy v)
-  (vec-tabulate (vector-length v) i (vector-ref v i)))
-
-;;; vec-dot : Vec x Vec -> Num
-;;; Dot product.
-(define (vec-dot v1 v2)
-  (range-fold sum 0 i 0 (vector-length v1)
-    (+ sum (* (vector-ref v1 i) (vector-ref v2 i)))))
-
-;;; matrix-vstack : Matrix x Matrix -> Matrix
-;;; Vertically stack two matrices.
-(define (matrix-vstack m1 m2)
-  (let* ([r1 (matrix-rows m1)]
-         [r2 (matrix-rows m2)]
-         [c (matrix-cols m1)]
-         [result (make-matrix (+ r1 r2) c 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i r1)]
-      (do ([j 0 (+ j 1)])
-          [(= j c)]
-        (matrix-set! result i j (matrix-ref m1 i j))))
-    (do ([i 0 (+ i 1)])
-        [(= i r2) result]
-      (do ([j 0 (+ j 1)])
-          [(= j c)]
-        (matrix-set! result (+ r1 i) j (matrix-ref m2 i j))))))
-
-;;; matrix-hstack : Matrix x Matrix -> Matrix
-;;; Horizontally stack two matrices.
-(define (matrix-hstack m1 m2)
-  (let* ([r (matrix-rows m1)]
-         [c1 (matrix-cols m1)]
-         [c2 (matrix-cols m2)]
-         [result (make-matrix r (+ c1 c2) 0)])
-    (do ([i 0 (+ i 1)])
-        [(= i r)]
-      (do ([j 0 (+ j 1)])
-          [(= j c1)]
-        (matrix-set! result i j (matrix-ref m1 i j)))
-      (do ([j 0 (+ j 1)])
-          [(= j c2)]
-        (matrix-set! result i (+ c1 j) (matrix-ref m2 i j))))
-    result))
 
 ;;; ====
 ;;; Pretty Printing

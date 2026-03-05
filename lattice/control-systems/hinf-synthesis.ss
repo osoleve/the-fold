@@ -358,7 +358,7 @@
                         [XRX (matrix-mul X (matrix-mul R X))]
                         [residual (matrix-add (matrix-add AtX XA)
                                               (matrix-add Q XRX))]
-                        [res-norm (matrix-frobenius-norm-hinf residual)])
+                        [res-norm (frobenius-norm residual)])
                        (if (< res-norm 1e-10)
                            X
                            ;; Solve Lyapunov for Newton step
@@ -387,22 +387,8 @@
          [XRX (matrix-mul X (matrix-mul R X))]
          [residual (matrix-add (matrix-add AtX XA)
                                (matrix-add Q XRX))])
-        (matrix-frobenius-norm-hinf residual)))
+        (frobenius-norm residual)))
 
-(define (matrix-frobenius-norm-hinf M)
-  (doc 'export #t)
-  (doc 'type "Matrix → Number")
-  (let* ([rows (matrix-rows M)]
-         [cols (matrix-cols M)])
-        (sqrt (let loop ([i 0] [sum 0])
-                   (if (>= i rows)
-                       sum
-                       (loop (+ i 1)
-                             (+ sum (let inner ([j 0] [row-sum 0])
-                                         (if (>= j cols)
-                                             row-sum
-                                             (inner (+ j 1)
-                                                    (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
 (define (matrix-near-zero? M tol)
   (doc 'export #t)
@@ -435,7 +421,7 @@
                         [XA (matrix-mul X A)]
                         [residual (matrix-add (matrix-add AtX XA) Q)]
                         [X-new (matrix-sub X (matrix-scale dt residual))]
-                        [diff (matrix-frobenius-norm-hinf (matrix-sub X-new X))])
+                        [diff (frobenius-norm (matrix-sub X-new X))])
                        (if (< diff 1e-12)
                            X-new
                            (loop X-new (+ iter 1))))))))
@@ -503,7 +489,7 @@
                (cond
                 ;; Error result
                 [(and (pair? eigs) (eq? (car eigs) 'error))
-                 (matrix-frobenius-norm-hinf M)]
+                 (frobenius-norm M)]
                 ;; Vector of eigenvalues (what qr-algorithm-shifted returns)
                 [(vector? eigs)
                  (let loop ([i 0] [max-mag 0])
@@ -522,7 +508,7 @@
                           (let ([mag (complex-magnitude (car es))])
                                (loop (cdr es) (if (> mag max-mag) mag max-mag)))))]
                 ;; Fallback
-                [else (matrix-frobenius-norm-hinf M)]))])))
+                [else (frobenius-norm M)]))])))
 
 ;;; ============================================================================
 ;;; Controller Construction

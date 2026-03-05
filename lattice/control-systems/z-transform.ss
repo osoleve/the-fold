@@ -13,8 +13,10 @@
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude numeric/polynomial control/discrete-control
+;;; @requires prelude vec matrix numeric/polynomial control/discrete-control
 (require 'prelude)
+(require 'vec)
+(require 'matrix)
 (require 'numeric/polynomial)
 (require 'control/discrete-control)
 
@@ -340,7 +342,7 @@
             (if (> k n)
                 (make-poly coeffs)
                 (let* ([AM (matrix-mul A M)]
-                       [p-k (/ (- (matrix-trace-local AM)) k)]
+                       [p-k (/ (- (matrix-trace AM)) k)]
                        [M-next (if (= k n)
                                    (make-matrix n n 0)
                                    (matrix-add AM (matrix-scale p-k (matrix-identity n))))])
@@ -353,8 +355,8 @@
 ;;; Compute numerator polynomial for DTF from state-space.
 (define (compute-dtf-numerator A B C D n char-poly)
   (doc 'export #t)
-  (let* ([b-col (matrix-column-v B 0)]
-         [c-row (matrix-row-v C 0)]
+  (let* ([b-col (matrix-col B 0)]
+         [c-row (matrix-row C 0)]
          [d-val (matrix-ref D 0 0)]
          [char-coeffs (poly-coeffs char-poly)]
          [num-len (+ n 1)]
@@ -367,7 +369,7 @@
         (let loop ([k 0] [M (matrix-identity n)])
              (if (> k (- n 1))
                  (make-poly result)
-                 (let* ([CB (dot-product-local c-row (matrix-vec-mul-local M b-col))]
+                 (let* ([CB (vec-dot c-row (matrix-vec-mul M b-col))]
                         [coeff-idx (+ 1 k)])
                        (when (< coeff-idx num-len)
                              (vector-set! result coeff-idx
@@ -483,55 +485,6 @@
 (define pi 3.141592653589793)
 
 ;; string-join is provided by prelude
-
-;;; matrix-trace-local : Matrix → Number
-(define (matrix-trace-local M)
-  (doc 'export #t)
-  (let ([n (min (matrix-rows M) (matrix-cols M))])
-       (let loop ([i 0] [sum 0])
-            (if (= i n)
-                sum
-                (loop (+ i 1) (+ sum (matrix-ref M i i)))))))
-
-;;; matrix-column-v : Matrix × Nat → Vec
-(define (matrix-column-v M j)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows M)]
-         [result (make-vector rows)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (vector-set! result i (matrix-ref M i j)))))
-
-;;; matrix-row-v : Matrix × Nat → Vec
-(define (matrix-row-v M i)
-  (doc 'export #t)
-  (let* ([cols (matrix-cols M)]
-         [result (make-vector cols)])
-        (do ([j 0 (+ j 1)])
-            ((= j cols) result)
-            (vector-set! result j (matrix-ref M i j)))))
-
-;;; matrix-vec-mul-local : Matrix × Vec → Vec
-(define (matrix-vec-mul-local M v)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows M)]
-         [cols (matrix-cols M)]
-         [result (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (let loop ([j 0] [sum 0])
-                 (if (= j cols)
-                     (vector-set! result i sum)
-                     (loop (+ j 1) (+ sum (* (matrix-ref M i j) (vector-ref v j)))))))))
-
-;;; dot-product-local : Vec × Vec → Number
-(define (dot-product-local v1 v2)
-  (doc 'export #t)
-  (let ([n (vector-length v1)])
-       (let loop ([i 0] [sum 0])
-            (if (= i n)
-                sum
-                (loop (+ i 1) (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
 
 ;;; pad-poly-coeffs-local : Vec × Nat → Vec
 (define (pad-poly-coeffs-local coeffs n)

@@ -611,28 +611,7 @@
          [err (matrix-frobenius-norm diff)])
         (< err tol)))
 
-;;; matrix-frobenius-norm : Matrix → Num
-;;; Compute Frobenius norm ||A||_F = sqrt(sum of squares).
-(define (matrix-frobenius-norm m)
-  (doc 'export #t)
-  (let* ([data (matrix-data m)]
-         [n (vector-length data)])
-        (sqrt (let loop ([i 0] [sum 0])
-                   (if (= i n)
-                       sum
-                       (let ([x (vector-ref data i)])
-                            (loop (+ i 1) (+ sum (* x x)))))))))
+;;; matrix-frobenius-norm : backward-compat alias for frobenius-norm (from matrix.ss)
+(define matrix-frobenius-norm frobenius-norm)
 
-;;; ====
-;;; Matrix Column Extraction (if not defined elsewhere)
-;;; ====
-
-;;; matrix-col : Matrix × Nat → Vec
-;;; Extract column j as a vector.
-(define (matrix-col m j)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows m)]
-         [result (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (vector-set! result i (matrix-ref m i j)))))
+;; matrix-col is provided by matrix.ss (which we require)

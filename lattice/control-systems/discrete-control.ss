@@ -1,6 +1,6 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude matrix matrix-solvers matrix-eigen control/state-space
+;;; @requires prelude vec matrix matrix-solvers matrix-eigen control/state-space
 (require 'prelude)
 (require 'matrix)
 (require 'matrix-solvers)
@@ -226,8 +226,8 @@
   (doc 'export #t)
   (let ([A (dss-A sys)]
         [B (dss-B sys)])
-       (vec-add (matrix-vec-mul-v A x)
-                (matrix-vec-mul-v B u))))
+       (vec-add (matrix-vec-mul A x)
+                (matrix-vec-mul B u))))
 
 ;;; dss-output : DSS × Vec × Vec → Vec
 ;;; Compute output: y[k] = C*x[k] + D*u[k]
@@ -235,8 +235,8 @@
   (doc 'export #t)
   (let ([C (dss-C sys)]
         [D (dss-D sys)])
-       (vec-add (matrix-vec-mul-v C x)
-                (matrix-vec-mul-v D u))))
+       (vec-add (matrix-vec-mul C x)
+                (matrix-vec-mul D u))))
 
 ;;; dss-simulate : DSS × Vec × (List Vec) → (List Vec × List Vec)
 ;;; Simulate discrete system over input sequence.
@@ -376,113 +376,4 @@
                     (/ 1 (* 10 (apply max rates)))))]
          [else 0.1])))
 
-;;; ====
-;;; Helper Functions
-;;; ====
-
-;;; vec-add : Vec × Vec → Vec
-(define (vec-add v1 v2)
-  (doc 'export #t)
-  (let* ([n (vector-length v1)]
-         [result (make-vector n)])
-        (do ([i 0 (+ i 1)])
-            ((= i n) result)
-            (vector-set! result i (+ (vector-ref v1 i) (vector-ref v2 i))))))
-
-;;; matrix-vec-mul-v : Matrix × Vec → Vec
-(define (matrix-vec-mul-v M v)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows M)]
-         [cols (matrix-cols M)]
-         [result (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (let loop ([j 0] [sum 0])
-                 (if (= j cols)
-                     (vector-set! result i sum)
-                     (loop (+ j 1) (+ sum (* (matrix-ref M i j) (vector-ref v j)))))))))
-
 ;; make-list is provided by prelude (alias for replicate)
-
-;;; matrix-inverse : Matrix → Matrix | Error
-;;; Compute matrix inverse using LU decomposition.
-(define (matrix-inverse M)
-  (doc 'export #t)
-  (let* ([n (matrix-rows M)]
-         [result (make-matrix n n 0)])
-        ;; Solve M * X = I for each column of X
-        (let loop ([j 0])
-             (if (= j n)
-                 result
-                 (let* ([e-j (make-vector n 0)]
-                        [_ (vector-set! e-j j 1)]
-                        [col (solve-linear-system M e-j)])
-                       (if (error-result? col)
-                           col
-                           (begin
-                            (do ([i 0 (+ i 1)])
-                                ((= i n))
-                                (matrix-set! result i j (vector-ref col i)))
-                            (loop (+ j 1)))))))))
-
-;;; solve-linear-system : Matrix × Vec → Vec | Error
-;;; Solve A*x = b using Gaussian elimination with partial pivoting.
-(define (solve-linear-system A b)
-  (doc 'export #t)
-  (let* ([n (matrix-rows A)]
-         ;; Create augmented matrix
-         [aug (make-matrix n (+ n 1) 0)])
-        ;; Copy A and b into augmented matrix
-        (do ([i 0 (+ i 1)])
-            ((= i n))
-            (do ([j 0 (+ j 1)])
-                ((= j n))
-                (matrix-set! aug i j (matrix-ref A i j)))
-            (matrix-set! aug i n (vector-ref b i)))
-        ;; Forward elimination with partial pivoting
-        (let forward ([k 0])
-             (if (= k n)
-                 ;; Back substitution
-                 (let ([x (make-vector n 0)])
-                      (let back ([i (- n 1)])
-                           (if (< i 0)
-                               x
-                               (let* ([sum (let sum-loop ([j (+ i 1)] [s 0])
-                                                (if (= j n)
-                                                    s
-                                                    (sum-loop (+ j 1)
-                                                              (+ s (* (matrix-ref aug i j)
-                                                                      (vector-ref x j))))))]
-                                      [xi (/ (- (matrix-ref aug i n) sum)
-                                             (matrix-ref aug i i))])
-                                     (vector-set! x i xi)
-                                     (back (- i 1))))))
-                 ;; Find pivot
-                 (let* ([max-row k]
-                        [max-val (abs (matrix-ref aug k k))])
-                       (do ([i (+ k 1) (+ i 1)])
-                           ((= i n))
-                           (let ([val (abs (matrix-ref aug i k))])
-                                (when (> val max-val)
-                                      (set! max-row i)
-                                      (set! max-val val))))
-                       (if (< max-val 1e-14)
-                           '(error singular-matrix)
-                           (begin
-                            ;; Swap rows if needed
-                            (when (not (= max-row k))
-                                  (do ([j 0 (+ j 1)])
-                                      ((= j (+ n 1)))
-                                      (let ([tmp (matrix-ref aug k j)])
-                                           (matrix-set! aug k j (matrix-ref aug max-row j))
-                                           (matrix-set! aug max-row j tmp))))
-                            ;; Eliminate
-                            (do ([i (+ k 1) (+ i 1)])
-                                ((= i n))
-                                (let ([factor (/ (matrix-ref aug i k) (matrix-ref aug k k))])
-                                     (do ([j k (+ j 1)])
-                                         ((= j (+ n 1)))
-                                         (matrix-set! aug i j
-                                                      (- (matrix-ref aug i j)
-                                                         (* factor (matrix-ref aug k j)))))))
-                            (forward (+ k 1)))))))))

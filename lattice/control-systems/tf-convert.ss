@@ -14,8 +14,9 @@
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires prelude matrix control/state-space control/transfer-function
+;;; @requires prelude vec matrix control/state-space control/transfer-function
 (require 'prelude)
+(require 'vec)
 (require 'matrix)
 (require 'control/state-space)
 (require 'control/transfer-function)
@@ -62,7 +63,7 @@
 ;;; This computes the characteristic polynomial and adjugate simultaneously.
 (define (ss->tf-leverrier A B C D input-idx output-idx n)
   (doc 'export #t)
-  (let* ([b-col (matrix-column B input-idx)]
+  (let* ([b-col (matrix-col B input-idx)]
          [c-row (matrix-row C output-idx)]
          [d-val (matrix-ref D output-idx input-idx)]
          ;; Faddeev-LeVerrier iteration
@@ -120,7 +121,7 @@
              (if (null? mats)
                  result
                  (let* ([M (car mats)]
-                        [CB (dot-product-cv c-row (matrix-vec-mul M b-col))]
+                        [CB (vec-dot c-row (matrix-vec-mul M b-col))]
                         [coeff-idx (+ 1 k)])  ; s^{n-1-k} maps to index k+1
                        (if (< coeff-idx num-len)
                            (vector-set! result coeff-idx
@@ -213,60 +214,3 @@
                     ((= i len) result)
                     (vector-set! result (+ i offset) (vector-ref coeffs i)))))))
 
-;;; ====
-;;; Helper Functions
-;;; ====
-
-;;; matrix-column : Matrix × Nat → Vec
-;;; Extract column j as a vector.
-(define (matrix-column M j)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows M)]
-         [result (make-vector rows)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (vector-set! result i (matrix-ref M i j)))))
-
-;;; matrix-row : Matrix × Nat → Vec
-;;; Extract row i as a vector.
-(define (matrix-row M i)
-  (doc 'export #t)
-  (let* ([cols (matrix-cols M)]
-         [result (make-vector cols)])
-        (do ([j 0 (+ j 1)])
-            ((= j cols) result)
-            (vector-set! result j (matrix-ref M i j)))))
-
-;;; matrix-vec-mul : Matrix × Vec → Vec
-;;; Multiply matrix by column vector.
-(define (matrix-vec-mul M v)
-  (doc 'export #t)
-  (let* ([rows (matrix-rows M)]
-         [cols (matrix-cols M)]
-         [result (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (let loop ([j 0] [sum 0])
-                 (if (= j cols)
-                     (vector-set! result i sum)
-                     (loop (+ j 1) (+ sum (* (matrix-ref M i j) (vector-ref v j)))))))))
-
-;;; dot-product-cv : Vec × Vec → Number
-;;; Dot product of two vectors (c-row . b-col).
-(define (dot-product-cv v1 v2)
-  (doc 'export #t)
-  (let ([n (vector-length v1)])
-       (let loop ([i 0] [sum 0])
-            (if (= i n)
-                sum
-                (loop (+ i 1) (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
-
-;;; matrix-trace : Matrix → Number
-;;; Sum of diagonal elements.
-(define (matrix-trace M)
-  (doc 'export #t)
-  (let ([n (min (matrix-rows M) (matrix-cols M))])
-       (let loop ([i 0] [sum 0])
-            (if (= i n)
-                sum
-                (loop (+ i 1) (+ sum (matrix-ref M i i)))))))

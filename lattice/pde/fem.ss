@@ -569,29 +569,6 @@
                (sparse-pcg-loop A b x-new r-new z-new p-new rz-new M
                                 (+ iter 1) max-iter tol n))))])))
 
-;;; Vector operations for CG (if not already available)
-(define (vec-dot v1 v2)
-  (doc 'export #t)
-  (let ([n (vector-length v1)])
-    (let loop ([i 0] [sum 0.0])
-      (if (= i n)
-          sum
-          (loop (+ i 1) (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
-
-(define (vec-add v1 v2)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v1) i
-    (+ (vector-ref v1 i) (vector-ref v2 i))))
-
-(define (vec-sub v1 v2)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v1) i
-    (- (vector-ref v1 i) (vector-ref v2 i))))
-
-(define (vec-scale s v)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v) i
-    (* s (vector-ref v i))))
 
 ;;; ============================================================
 ;;; Section: FEM Solver
