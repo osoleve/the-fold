@@ -35,8 +35,8 @@
           (if (null? sexps)
               (if header-desc
                   ;; Prepend @description, filtering out the module-level (doc 'description ...)
-                  ;; Only remove untargeted descriptions in the header area (first ~15 lines)
-                  ;; to preserve function-level (doc 'description ...) forms deeper in the file
+                  ;; Only remove untargeted descriptions in the first ~15 top-level forms
+                  ;; (where module-level docs live) to preserve function-level descriptions
                   (cons (list path 0 'description (list header-desc) #f)
                         (filter (lambda (entry)
                                   (not (and (eq? (caddr entry) 'description)
