@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-layout.ss --- Force-directed graph layout algorithms
 ;;; @module graph-layout
 ;;; @requires prelude linalg/vec optics hamt iteration
+;;; @description Force-directed graph layout algorithms
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -34,11 +37,21 @@
 (define (layout-graph? x)
   (and (pair? x) (eq? (car x) 'layout-graph)))
 
-(define (node-id node) (list-ref node 1))
-(define (node-pos node) (list-ref node 2))
-(define (node-vel node) (list-ref node 3))
-(define (node-x node) (vector-ref (node-pos node) 0))
-(define (node-y node) (vector-ref (node-pos node) 1))
+(define (node-id node)
+  (doc 'export #t)
+  (list-ref node 1))
+(define (node-pos node)
+  (doc 'export #t)
+  (list-ref node 2))
+(define (node-vel node)
+  (doc 'export #t)
+  (list-ref node 3))
+(define (node-x node)
+  (doc 'export #t)
+  (vector-ref (node-pos node) 0))
+(define (node-y node)
+  (doc 'export #t)
+  (vector-ref (node-pos node) 1))
 
 (define (node-set-pos node new-pos)
   (list 'graph-node (node-id node) new-pos (node-vel node)))

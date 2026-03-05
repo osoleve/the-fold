@@ -1,6 +1,9 @@
 ;;; lattice/pde/finite-diff.ss — Finite Difference Methods
 ;;; @module finite-diff
 ;;; @requires prelude iteration linalg/vec linalg/matrix linalg/sparse
+;;; @description Finite difference methods for PDEs on regular grids. Gradient, Laplacian, divergence, curl operators. Poisson solver and diffusion stepping.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'iteration)

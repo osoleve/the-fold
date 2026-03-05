@@ -1,5 +1,8 @@
 ;;; @module verify
 ;;; @requires prelude normalize trace
+;;; @description Rule verification
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'normalize)

@@ -1,5 +1,8 @@
 ;;; @module staging
 ;;; @requires prelude combinators
+;;; @description Multi-stage programming with typed code
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'combinators)

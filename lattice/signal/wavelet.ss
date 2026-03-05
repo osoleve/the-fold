@@ -1,6 +1,9 @@
 ;;; lattice/signal/wavelet.ss — Wavelet Transforms
 ;;; @module wavelet
 ;;; @requires prelude iteration
+;;; @description Discrete wavelet transform: Haar, Daubechies-4, Daubechies-6 families. Multi-level decomposition and reconstruction. Denoising via thresholding.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'iteration)

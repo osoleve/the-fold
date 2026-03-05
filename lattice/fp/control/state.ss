@@ -1,6 +1,8 @@
 ;;; lattice/fp/control/state.ss — State Monad
 ;;; @module state
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)
@@ -56,6 +58,7 @@
 
 (define state-get
   (make-state (lambda (s) (cons s s))))
+(doc state-get 'export #t)
 (doc state-get 'type '(State s s))
 (doc state-get 'description "Get the current state")
 

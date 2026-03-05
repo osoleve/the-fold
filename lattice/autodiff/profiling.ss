@@ -1,5 +1,8 @@
 ;;; @module profiling
 ;;; @requires prelude comp-graph reverse-diff sort hamt
+;;; @description Performance profiling and debugging tools
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

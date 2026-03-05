@@ -1,5 +1,8 @@
 ;;; @module egraph/cost
 ;;; @requires prelude hamt egraph/egraph sort
+;;; @description Cost models for CUDA, CPU, and code size optimization
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/cost.ss — Cost Models for E-Graph Extraction
 ;;;
 ;;; Cost models assign numeric costs to e-nodes, enabling extraction
@@ -47,7 +50,9 @@
        (>= (vector-length x) 3)
        (eq? (vector-ref x 0) cost-model-tag)))
 
-(define (cost-model-name cm) (vector-ref cm 1))
+(define (cost-model-name cm)
+  (doc 'export #t)
+  (vector-ref cm 1))
 (define (cost-model-fn cm) (vector-ref cm 2))
 
 ;;; ============================================================
@@ -129,6 +134,7 @@
                           (+ acc (child-cost (vector-ref children i))))
                         0
                         (iota (vector-length children))))))))
+(doc 'ast-size-cost 'export #t)
 
 ;;; AST depth cost model: cost = 1 + max of child costs
 ;;; Minimizes maximum depth of extracted term.
@@ -142,6 +148,7 @@
                               (max acc (child-cost (vector-ref children i))))
                             0
                             (iota (vector-length children)))))))))
+(doc 'ast-depth-cost 'export #t)
 
 ;;; Leaf-only cost model: cost = number of leaves
 ;;; Useful for counting variable references.
@@ -155,6 +162,7 @@
                          (+ acc (child-cost (vector-ref children i))))
                        0
                        (iota (vector-length children))))))))
+(doc 'leaf-count-cost 'export #t)
 
 ;;; ============================================================
 ;;; Weighted Cost Models
@@ -217,6 +225,7 @@
 
 (define cuda-cost
   (make-weighted-cost cuda-op-costs 5))
+(doc 'cuda-cost 'export #t)
 
 ;;; ============================================================
 ;;; CPU Cost Model
@@ -245,6 +254,7 @@
 
 (define cpu-cost
   (make-weighted-cost cpu-op-costs 3))
+(doc 'cpu-cost 'export #t)
 
 ;;; ============================================================
 ;;; Code Size Cost Model
@@ -264,6 +274,7 @@
 
 (define code-size-cost
   (make-weighted-cost code-size-op-costs 1))
+(doc 'code-size-cost 'export #t)
 
 ;;; ============================================================
 ;;; Composite Cost Models

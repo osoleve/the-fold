@@ -1,6 +1,9 @@
 ;;; lattice/number-theory/fast-multiply.ss — Fast Multiplication Algorithms
 ;;; @module fast-multiply
 ;;; @requires prelude
+;;; @description Fast multiplication algorithms for large integers: schoolbook O(n²), Karatsuba O(n^1.585), and Toom-Cook/Toom-3 O(n^1.465). Operates on limb lists (base-B digit representation). Includes hybrid multiplier that automatically selects optimal algorithm based on input size. Foundation for arbitrary precision arithmetic.
+;;; @purity total
+;;; @stability stable
 ;;;
 ;;; Karatsuba and Toom-Cook multiplication for large integers.
 ;;; These algorithms work on "limb lists" - numbers represented as

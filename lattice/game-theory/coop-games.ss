@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/coop-games.ss — Cooperative Game Theory
 ;;; @module coop-games
 ;;; @requires prelude matrix matrix-solvers lp iteration
+;;; @description Coalitional games, Shapley value, core, bargaining
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

@@ -1,5 +1,8 @@
 ;;; @module patterns
 ;;; @requires prelude strategies
+;;; @description Parallel algorithm skeletons: D&C, reduce, scan, pipeline, sort
+;;; @purity total
+;;; @stability experimental
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

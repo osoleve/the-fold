@@ -1,5 +1,8 @@
 ;;; @module rewrite/sketch
 ;;; @requires prelude trace rule engine verify
+;;; @description Program sketching with holes
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'trace)

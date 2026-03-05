@@ -1,6 +1,8 @@
 ;;; lattice/fp/parsing/parser.ss — Parser Combinators
 ;;; @module parser
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

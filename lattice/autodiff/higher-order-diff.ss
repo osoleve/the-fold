@@ -1,5 +1,8 @@
 ;;; @module higher-order-diff
 ;;; @requires prelude matrix comp-graph reverse-diff hamt
+;;; @description Jacobian, Hessian, and vector products
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

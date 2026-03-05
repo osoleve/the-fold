@@ -1,6 +1,9 @@
 ;;; lattice/linalg/matrix-optics.ss — Optics for Matrix Operations
 ;;; @module matrix-optics
 ;;; @requires prelude matrix optics
+;;; @description Lenses and traversals for matrix manipulation
+;;; @purity total
+;;; @stability stable
 ;;;
 ;;; Provides lenses and traversals for matrix manipulation.
 ;;; These compose with traced-optics for gradient computation.

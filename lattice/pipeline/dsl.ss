@@ -37,6 +37,7 @@
 (doc stage* 'type '(-> Symbol Stage Stage))
 (doc stage* 'description "Alias for named-stage")
 (define stage* named-stage)
+(doc 'stage* 'export #t)
 
 (doc 'section 'configuration-helpers)
 
@@ -92,6 +93,7 @@
 (doc <-- 'type '(-> Stage Stage Stage))
 (doc <-- 'description "Reverse sequential composition")
 (define <-- stage-<<<)
+(doc '<-- 'export #t)
 
 (doc 'type '(-> a (-> a Stage) Stage))
 (doc 'description "Pipe value into stage constructor")
@@ -108,6 +110,7 @@
    (lambda (s)
            ;; Simple JSON-to-sexpr (interpreter provides real impl)
            (list 'json-parse s))))
+(doc 'parse-json 'export #t)
 
 (doc to-json 'type '(Stage ctx Any String))
 (doc to-json 'description "Convert S-expression to JSON string")
@@ -115,6 +118,7 @@
   (stage-arr
    (lambda (x)
            (list 'json-stringify x))))
+(doc 'to-json 'export #t)
 
 (doc split-lines 'type '(Stage ctx String (List String)))
 (doc split-lines 'description "Split string into lines")
@@ -123,6 +127,7 @@
    (lambda (s)
            ;; Simple split (interpreter provides real impl)
            (list 'split-lines s))))
+(doc 'split-lines 'export #t)
 
 (doc join-lines 'type '(Stage ctx (List String) String))
 (doc join-lines 'description "Join list of strings with newlines")
@@ -130,6 +135,7 @@
   (stage-arr
    (lambda (lines)
            (list 'join-lines lines))))
+(doc 'join-lines 'export #t)
 
 (doc 'section 'flow-control-patterns)
 

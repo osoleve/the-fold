@@ -1,6 +1,9 @@
 ;;; lattice/data/avl-tree.ss — AVL Tree
 ;;; @module avl-tree
 ;;; @requires prelude
+;;; @description Self-balancing AVL tree with O(log n) operations
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -67,6 +70,7 @@
          (avl-height (avl-right tree)))))
 
 (define (make-avl-node key value left right)
+  (doc 'export #t)
   (doc 'type '(-> κ α AVL AVL AVL))
   (doc 'description "Smart constructor that recomputes height")
   (avl-node (+ 1 (max (avl-height left) (avl-height right)))
@@ -442,8 +446,10 @@
   (avl-insert key key tree))
 
 (define avl-set-delete avl-delete)
+(doc 'avl-set-delete 'export #t)
 
 (define avl-set-member? avl-contains?)
+(doc 'avl-set-member? 'export #t)
 
 (define (avl-set-union t1 t2)
   (doc 'export #t)

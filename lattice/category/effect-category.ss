@@ -1,5 +1,8 @@
 ;;; @module effect-category
 ;;; @requires free-algebra effects
+;;; @description Categorical foundations of algebraic effects
+;;; @purity total
+;;; @stability stable
 
 (require 'free-algebra)
 (require 'effects)

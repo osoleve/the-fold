@@ -1,6 +1,9 @@
 ;;; lattice/data/kdtree.ss — K-D Tree for Spatial Queries
 ;;; @module kdtree
 ;;; @requires prelude
+;;; @description K-d tree for O(log n) nearest neighbor and range queries in any dimension
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -117,6 +120,7 @@ linear-time median selection (median-of-medians); this implementation uses sorti
 
 ;; Alias for API consistency with list->vector, list->string, etc.
 (define list->kdtree kdtree-build)
+(doc list->kdtree 'export #t)
 
 (define (kdtree-build-rec points k depth)
   ;; Build recursively, splitting on axis = depth mod k

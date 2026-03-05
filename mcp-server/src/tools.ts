@@ -287,7 +287,7 @@ export const tools: Tool[] = [
 
   {
     name: 'fold_inspect',
-    description: 'Get detailed information about a lattice skill: description, dependencies, modules, and exported functions. Does not require login.',
+    description: 'Get detailed information about a lattice skill or module: description, dependencies, modules, and exported functions. Does not require login.',
     inputSchema: {
       type: 'object',
       properties: {

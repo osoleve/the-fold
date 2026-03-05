@@ -1,5 +1,7 @@
 ;;; @module parser-examples
 ;;; @requires prelude parser
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'parser)

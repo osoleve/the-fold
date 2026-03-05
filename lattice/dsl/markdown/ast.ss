@@ -1,5 +1,8 @@
 ;;; @module markdown-ast
 ;;; @requires prelude
+;;; @description Markdown AST node constructors and predicates
+;;; @purity total
+;;; @stability experimental
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 

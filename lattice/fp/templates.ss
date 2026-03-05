@@ -1,6 +1,8 @@
 ;;; lattice/fp/templates.ss — FP Pattern Templates
 ;;; @module templates
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)
@@ -55,58 +57,69 @@
 (doc monoid-sum 'description "Monoid for numbers under addition (identity: 0)")
 (define monoid-sum
   (make-monoid 0 +))
+(doc 'monoid-sum 'export #t)
 
 (doc monoid-product 'type '(Monoid Number))
 (doc monoid-product 'description "Monoid for numbers under multiplication (identity: 1)")
 (define monoid-product
   (make-monoid 1 *))
+(doc 'monoid-product 'export #t)
 
 (doc monoid-list 'type '(Monoid (List a)))
 (doc monoid-list 'description "Monoid for lists under append (identity: empty list)")
 (define monoid-list
   (make-monoid '() append))
+(doc 'monoid-list 'export #t)
 
 (doc monoid-string 'type '(Monoid String))
 (doc monoid-string 'description "Monoid for strings under concatenation (identity: empty string)")
 (define monoid-string
   (make-monoid "" string-append))
+(doc 'monoid-string 'export #t)
 
 (doc monoid-all 'type '(Monoid Boolean))
 (doc monoid-all 'description "Monoid for booleans under AND (identity: #t)")
 (define monoid-all
   (make-monoid #t (lambda (a b) (and a b))))
+(doc 'monoid-all 'export #t)
 
 (doc monoid-any 'type '(Monoid Boolean))
 (doc monoid-any 'description "Monoid for booleans under OR (identity: #f)")
 (define monoid-any
   (make-monoid #f (lambda (a b) (or a b))))
+(doc 'monoid-any 'export #t)
 
 (doc monoid-first 'type '(Monoid (Maybe a)))
 (doc monoid-first 'description "Monoid taking first non-nothing value (identity: nothing)")
 (define monoid-first
   (make-monoid nothing
                (lambda (a b) (if (just? a) a b))))
+(doc 'monoid-first 'export #t)
 
 (doc monoid-last 'type '(Monoid (Maybe a)))
 (doc monoid-last 'description "Monoid taking last non-nothing value (identity: nothing)")
 (define monoid-last
   (make-monoid nothing
                (lambda (a b) (if (just? b) b a))))
+(doc 'monoid-last 'export #t)
 
 (doc monoid-max 'type '(Monoid Number))
 (doc monoid-max 'description "Monoid taking maximum (identity: -inf.0)")
 (define monoid-max
   (make-monoid -inf.0 max))
+(doc 'monoid-max 'export #t)
 
 (doc monoid-min 'type '(Monoid Number))
 (doc monoid-min 'description "Monoid taking minimum (identity: +inf.0)")
 (define monoid-min
   (make-monoid +inf.0 min))
+(doc 'monoid-min 'export #t)
 
 (doc monoid-endo 'type '(Monoid (-> a a)))
 (doc monoid-endo 'description "Monoid for endofunctions under composition (identity: id)")
 (define monoid-endo
   (make-monoid identity compose2))
+(doc 'monoid-endo 'export #t)
 
 (doc 'section 'monoid-operations)
 
@@ -198,6 +211,7 @@
                       xs))
    fold-right
    fold-left))
+(doc 'foldable-list 'export #t)
 
 (doc foldable-maybe 'type '(Foldable Maybe))
 (doc foldable-maybe 'description "Foldable instance for Maybe")
@@ -324,16 +338,19 @@
 (doc functor-list 'description "Functor instance for lists (fmap = map)")
 (define functor-list
   (make-named-functor 'list map))
+(doc 'functor-list 'export #t)
 
 (doc functor-maybe 'type '(FunctorDict Maybe))
 (doc functor-maybe 'description "Functor instance for Maybe")
 (define functor-maybe
   (make-named-functor 'maybe maybe-fmap))
+(doc 'functor-maybe 'export #t)
 
 (doc functor-either 'type '(FunctorDict Either))
 (doc functor-either 'description "Functor instance for Either (maps over Right)")
 (define functor-either
   (make-named-functor 'either either-fmap))
+(doc 'functor-either 'export #t)
 
 (doc functor-id 'type '(FunctorDict Id))
 (doc functor-id 'description "Identity functor; Id(f)(x) = f(x)")
@@ -404,6 +421,7 @@
    list
    (lambda (fs xs)
            (append-map (lambda (f) (map f xs)) fs))))
+(doc 'applicative-list 'export #t)
 
 (doc applicative-maybe 'type '(ApplicativeDict Maybe))
 (doc applicative-maybe 'description "Applicative for Maybe (short-circuits on nothing)")
@@ -414,6 +432,7 @@
            (if (and (just? mf) (just? mx))
                (just ((from-just mf) (from-just mx)))
                nothing))))
+(doc 'applicative-maybe 'export #t)
 
 (doc applicative-either 'type '(ApplicativeDict Either))
 (doc applicative-either 'description "Applicative for Either (short-circuits on Left)")

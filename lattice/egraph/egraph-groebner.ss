@@ -367,7 +367,6 @@
 ;;; Weights: exponentiation is expensive, addition is cheap.
 (doc 'type 'poly-degree-cost CostModel)
 (doc 'description 'poly-degree-cost "Cost model preferring lower-degree polynomial forms.")
-(doc 'export 'poly-degree-cost #t)
 (define poly-degree-cost
   (make-cost-model 'poly-degree
     (lambda (node child-cost)
@@ -405,6 +404,7 @@
                               (+ acc (child-cost (vector-ref children i))))
                             0
                             (iota (vector-length children))))])))))
+(doc 'poly-degree-cost 'export #t)
 
 ;;; ============================================================
 ;;; Combined Optimization

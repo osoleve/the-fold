@@ -1,5 +1,8 @@
 ;;; @module rewrite/proof-tactics
 ;;; @requires prelude engine rewrite/laws hamt
+;;; @description Proof tactics for equational reasoning
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'engine)

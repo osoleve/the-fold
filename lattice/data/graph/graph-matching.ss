@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-matching.ss — Maximum Matching (Edmonds' Blossom)
 ;;; @module graph-matching
 ;;; @requires prelude graph-matrix
+;;; @description Edmonds' Blossom algorithm for maximum matching in general graphs
+;;; @purity total
+;;; @stability stable
 ;;;
 ;;; Edmonds' Blossom algorithm for maximum cardinality matching in
 ;;; general (non-bipartite) graphs. O(V^3) time complexity.

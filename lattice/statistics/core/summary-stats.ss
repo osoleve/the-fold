@@ -321,6 +321,7 @@
 ;;; g1 = m3 / sigma^3 where m3 = (1/n) sum((xi - mu)^3), sigma = sqrt(m2).
 ;;; Symmetric distributions have skewness 0; right-skewed > 0, left-skewed < 0.
 (define (skewness xs)
+  (doc 'export #t)
   (doc 'type '(-> (List Num) Num))
   (doc 'description "Population skewness (third standardized moment)")
   (if (null? xs)
@@ -338,6 +339,7 @@
 ;;; Normal distribution has excess kurtosis 0; heavy-tailed > 0 (leptokurtic),
 ;;; light-tailed < 0 (platykurtic).
 (define (kurtosis xs)
+  (doc 'export #t)
   (doc 'type '(-> (List Num) Num))
   (doc 'description "Excess kurtosis (fourth standardized moment minus 3)")
   (if (null? xs)

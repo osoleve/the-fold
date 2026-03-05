@@ -42,13 +42,18 @@ and CAS storage.")
 (doc 'section 'primitives)
 
 (define spec/symbol   '(prim symbol?))
+(doc 'spec/symbol 'export #t)
 (define spec/string   '(prim string?))
+(doc 'spec/string 'export #t)
 (define spec/number   '(prim number?))
+(doc 'spec/number 'export #t)
 (define spec/integer  '(prim integer?))
 (define spec/boolean  '(prim boolean?))
+(doc 'spec/boolean 'export #t)
 (define spec/bytevector '(prim bytevector?))
 (define spec/pair     '(prim pair?))
 (define spec/null     '(prim null?))
+(doc 'spec/null 'export #t)
 (define spec/vector   '(prim vector?))
 (define spec/char     '(prim char?))
 (define spec/list     '(prim list?))
@@ -61,11 +66,15 @@ and CAS storage.")
 
 (doc 'type '(-> Spec ... Spec))
 (doc 'description "Combine specs with logical AND — all must pass.")
-(define (spec/and . specs) (cons 'and specs))
+(define (spec/and . specs)
+  (doc 'export #t)
+  (cons 'and specs))
 
 (doc 'type '(-> Spec ... Spec))
 (doc 'description "Combine specs with logical OR — at least one must pass.")
-(define (spec/or . specs) (cons 'or specs))
+(define (spec/or . specs)
+  (doc 'export #t)
+  (cons 'or specs))
 
 (doc 'type '(-> Spec Spec))
 (doc 'description "Negate a spec.")
@@ -79,7 +88,9 @@ and CAS storage.")
 
 (doc 'type '(-> Spec Spec))
 (doc 'description "Spec for a list where every element matches the given spec.")
-(define (spec/list-of elem-spec) (list 'list-of elem-spec))
+(define (spec/list-of elem-spec)
+  (doc 'export #t)
+  (list 'list-of elem-spec))
 
 (doc 'type '(-> Spec Spec))
 (doc 'description "Spec for a vector where every element matches the given spec.")
@@ -87,7 +98,9 @@ and CAS storage.")
 
 (doc 'type '(-> Spec Spec Spec))
 (doc 'description "Spec for a pair where car matches spec1 and cdr matches spec2.")
-(define (spec/pair-of car-spec cdr-spec) (list 'pair-of car-spec cdr-spec))
+(define (spec/pair-of car-spec cdr-spec)
+  (doc 'export #t)
+  (list 'pair-of car-spec cdr-spec))
 
 ;;; ============================================================
 ;;; Numeric / Size Constraints
@@ -97,7 +110,9 @@ and CAS storage.")
 
 (doc 'type '(-> Number Number Spec))
 (doc 'description "Spec for a number in [lo, hi] inclusive.")
-(define (spec/range lo hi) (list 'range lo hi))
+(define (spec/range lo hi)
+  (doc 'export #t)
+  (list 'range lo hi))
 
 (doc 'type '(-> Nat Spec))
 (doc 'description "Spec for a collection of exactly n elements.")
@@ -119,7 +134,9 @@ and CAS storage.")
 
 (doc 'type '(-> Symbol Spec Spec))
 (doc 'description "Spec for an optional field in a fields spec.")
-(define (spec/optional name spec) (list 'optional name spec))
+(define (spec/optional name spec)
+  (doc 'export #t)
+  (list 'optional name spec))
 
 ;;; ============================================================
 ;;; References
@@ -159,13 +176,19 @@ and CAS storage.")
        (pair? (assq 'hash (cdr x)))))
 
 (doc 'type '(-> Contract Symbol))
-(define (contract-name c) (cadr (assq 'name (cdr c))))
+(define (contract-name c)
+  (doc 'export #t)
+  (cadr (assq 'name (cdr c))))
 
 (doc 'type '(-> Contract Spec))
-(define (contract-spec c) (cadr (assq 'spec (cdr c))))
+(define (contract-spec c)
+  (doc 'export #t)
+  (cadr (assq 'spec (cdr c))))
 
 (doc 'type '(-> Contract String))
-(define (contract-hash c) (cadr (assq 'hash (cdr c))))
+(define (contract-hash c)
+  (doc 'export #t)
+  (cadr (assq 'hash (cdr c))))
 
 ;;; ============================================================
 ;;; Spec Checking (Predicate Mode)

@@ -1,4 +1,7 @@
 ;;; @module sha512
+;;; @description SHA-512 and SHA-384 hash functions (FIPS 180-4)
+;;; @purity total
+;;; @stability stable
 
 (doc 'module 'sha512)
 (doc 'description "SHA-512 hash function producing 64-byte (512-bit) digests (FIPS 180-4)")

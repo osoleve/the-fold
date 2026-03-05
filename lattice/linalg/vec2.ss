@@ -1,6 +1,9 @@
 ;;; lattice/linalg/vec2.ss — 2D Vector Operations
 ;;; @module vec2
 ;;; @requires vec-common
+;;; @description 2D vector specialization
+;;; @purity total
+;;; @stability stable
 
 (require 'vec-common)
 

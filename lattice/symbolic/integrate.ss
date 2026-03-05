@@ -1,5 +1,8 @@
 ;;; @module integrate
 ;;; @requires diff simplify
+;;; @description Symbolic integration
+;;; @purity total
+;;; @stability stable
 
 (require 'diff)
 (require 'simplify)

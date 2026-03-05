@@ -1,6 +1,9 @@
 ;;; lattice/geometry/mesh-gen.ss --- 2D/3D mesh generation algorithms
 ;;; @module mesh-gen
 ;;; @requires prelude linalg/vec geometry
+;;; @description 2D mesh generation with Delaunay triangulation (Bowyer-Watson), O(√n) point location via walking algorithm, barycentric interpolation, quality metrics (aspect ratio, angles), Ruppert refinement, Laplacian smoothing, adaptive area-based refinement, and boundary-constrained meshing (mesh inside polygon). BREAKING: delaunay-triangulate now returns a triangulation record with adjacency; use triangulation-triangles to extract the triangle list.
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -24,6 +27,7 @@
 (doc make-point2 'type '(-> Number Number Point2))
 (doc make-point2 'description "Create a 2D point")
 (define (make-point2 x y)
+  (doc 'export #t)
   (vector x y))
 
 ;;; ============================================================
@@ -101,8 +105,12 @@
 (doc location-bary 'description "Get barycentric coordinates as #(u v w)")
 (define (location-bary loc) (vector (vector-ref loc 2) (vector-ref loc 3) (vector-ref loc 4)))
 
-(define (point2-x p) (vector-ref p 0))
-(define (point2-y p) (vector-ref p 1))
+(define (point2-x p)
+  (doc 'export #t)
+  (vector-ref p 0))
+(define (point2-y p)
+  (doc 'export #t)
+  (vector-ref p 1))
 
 (doc vertex-key 'type '(-> Point2 (Cons Number Number)))
 (doc vertex-key 'description
@@ -131,14 +139,24 @@
 (doc make-tri2 'type '(-> Point2 Point2 Point2 Triangle2))
 (doc make-tri2 'description "Create a 2D triangle from three points (CCW order)")
 (define (make-tri2 p1 p2 p3)
+  (doc 'export #t)
   (list 'tri2 p1 p2 p3))
 
-(define (tri2? t) (and (pair? t) (eq? (car t) 'tri2)))
-(define (tri2-p1 t) (list-ref t 1))
-(define (tri2-p2 t) (list-ref t 2))
-(define (tri2-p3 t) (list-ref t 3))
+(define (tri2? t)
+  (doc 'export #t)
+  (and (pair? t) (eq? (car t) 'tri2)))
+(define (tri2-p1 t)
+  (doc 'export #t)
+  (list-ref t 1))
+(define (tri2-p2 t)
+  (doc 'export #t)
+  (list-ref t 2))
+(define (tri2-p3 t)
+  (doc 'export #t)
+  (list-ref t 3))
 
 (define (tri2-points t)
+  (doc 'export #t)
   (list (tri2-p1 t) (tri2-p2 t) (tri2-p3 t)))
 
 ;;; ============================================================
@@ -175,11 +193,13 @@
 (doc tri2-area 'type '(-> Triangle2 Number))
 (doc tri2-area 'description "Absolute area of triangle")
 (define (tri2-area tri)
+  (doc 'export #t)
   (abs (tri2-signed-area tri)))
 
 (doc tri2-circumcenter 'type '(-> Triangle2 (Or Point2 False)))
 (doc tri2-circumcenter 'description "Compute circumcenter of triangle. Returns #f for degenerate (collinear) triangles.")
 (define (tri2-circumcenter tri)
+  (doc 'export #t)
   (let* ([p1 (tri2-p1 tri)]
          [p2 (tri2-p2 tri)]
          [p3 (tri2-p3 tri)]
@@ -208,6 +228,7 @@
 (doc tri2-circumradius-sq 'type '(-> Triangle2 (Or Number False)))
 (doc tri2-circumradius-sq 'description "Squared circumradius of triangle. Returns #f for degenerate triangles.")
 (define (tri2-circumradius-sq tri)
+  (doc 'export #t)
   (let ([cc (tri2-circumcenter tri)])
     (if (not cc)
         #f
@@ -220,6 +241,7 @@
 (doc point-in-circumcircle? 'description "Test if point is inside triangle's circumcircle.
   Returns #f for degenerate (collinear) triangles.")
 (define (point-in-circumcircle? p tri)
+  (doc 'export #t)
   (let ([cc (tri2-circumcenter tri)])
     ;; Degenerate triangles have no finite circumcircle
     (if (not cc)
@@ -673,6 +695,7 @@
 (doc tri2-edge-lengths 'type '(-> Triangle2 (List Number)))
 (doc tri2-edge-lengths 'description "Return sorted list of edge lengths [shortest, middle, longest]")
 (define (tri2-edge-lengths tri)
+  (doc 'export #t)
   (let* ([p1 (tri2-p1 tri)]
          [p2 (tri2-p2 tri)]
          [p3 (tri2-p3 tri)]

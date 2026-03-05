@@ -1,5 +1,8 @@
 ;;; @module entropy
 ;;; @requires prelude transcendental
+;;; @description Shannon entropy and variants: joint, conditional, mutual information. Includes Renyi, min-entropy, collision entropy. Sample entropy estimation.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'transcendental)
@@ -248,7 +251,7 @@
             (entropy probs))))
 
 (define (count-occurrences lst)
-  (doc 'export #f)
+  (doc 'export #t)
   (doc 'type '(-> (List α) (List (Pair α Nat))))
   (doc 'description "Count frequency of each unique element")
   (let loop ([remaining lst] [counts '()])

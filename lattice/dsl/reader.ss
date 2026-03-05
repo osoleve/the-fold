@@ -1,5 +1,8 @@
 ;;; @module dsl/reader
 ;;; @requires prelude combinators
+;;; @description Extensible reader macros and readtables
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'combinators)

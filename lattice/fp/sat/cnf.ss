@@ -1,5 +1,8 @@
 ;;; @module sat/cnf
 ;;; @requires sat/clause sort
+;;; @description CNF formula representation and DIMACS I/O
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat/clause)
 (require 'sort)

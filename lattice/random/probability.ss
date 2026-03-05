@@ -1,6 +1,9 @@
 ;;; lattice/random/probability.ss — Probability Monad
 ;;; @module probability
 ;;; @requires prelude fp/control/state prng distributions
+;;; @description Probability monad for probabilistic programming
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'fp/control/state)

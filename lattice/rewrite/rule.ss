@@ -1,5 +1,8 @@
 ;;; @module rule
 ;;; @requires prelude
+;;; @description Rule data structures and accessors
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

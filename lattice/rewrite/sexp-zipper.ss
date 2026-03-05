@@ -1,5 +1,8 @@
 ;;; @module rewrite/sexp-zipper
 ;;; @requires prelude combinators tree-zipper
+;;; @description S-expression zipper for term navigation
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

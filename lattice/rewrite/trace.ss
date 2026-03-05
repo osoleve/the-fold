@@ -1,5 +1,8 @@
 ;;; @module trace
 ;;; @requires prelude
+;;; @description Rewrite trace visualization
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

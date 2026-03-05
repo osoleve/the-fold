@@ -1,6 +1,8 @@
 ;;; lattice/fp/data/zipper.ss — List Zipper
 ;;; @module zipper
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)
@@ -61,6 +63,7 @@
 
 (define zipper-empty
   (make-zipper '() nothing '()))
+(doc 'zipper-empty 'export #t)
 
 (define (zipper-empty? z)
   (doc 'export #t)

@@ -1,6 +1,9 @@
 ;;; lattice/topology/persistent.ss — Persistent Homology for TDA
 ;;; @module persistent
 ;;; @requires simplicial-complex hamt
+;;; @description Persistent homology, Vietoris-Rips filtrations, and TDA
+;;; @purity total
+;;; @stability experimental
 
 (require 'hamt)
 

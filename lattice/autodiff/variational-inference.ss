@@ -1,6 +1,9 @@
 ;;; lattice/autodiff/variational-inference.ss — Variational Inference Engine
 ;;; @module variational-inference
 ;;; @requires prelude reverse-diff prng distributions bayesian
+;;; @description Variational inference: ELBO, reparameterization trick, mean-field/full-covariance Gaussian
+;;; @purity partial
+;;; @stability stable
 
 (require 'prelude)
 (require 'reverse-diff)

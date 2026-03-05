@@ -1,5 +1,8 @@
 ;;; @module sat/literal
 ;;; @requires
+;;; @description SAT literal representation
+;;; @purity partial
+;;; @stability experimental
 
 
 (doc 'module 'literal)

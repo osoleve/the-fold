@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-community.ss — Community Detection
 ;;; @module graph-community
 ;;; @requires prelude sort hamt iteration
+;;; @description Community detection, Prim MST O((V+E) log V), Kruskal, modularity
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

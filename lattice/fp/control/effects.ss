@@ -1,6 +1,8 @@
 ;;; lattice/fp/control/effects.ss — Algebraic Effects
 ;;; @module effects
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)
@@ -79,28 +81,33 @@
                    (list (make-operation 'get 'Unit 's)
                          (make-operation 'put 's 'Unit)
                          (make-operation 'modify '(-> s s) 'Unit))))
+(doc 'sig-State 'export #t)
 
 ;;; Reader effect signature: ask/local operations
 (define sig-Reader
   (make-effect-sig 'Reader
                    (list (make-operation 'ask 'Unit 'r)
                          (make-operation 'local '(-> r r) 'a))))
+(doc 'sig-Reader 'export #t)
 
 ;;; Writer effect signature: tell operation
 (define sig-Writer
   (make-effect-sig 'Writer
                    (list (make-operation 'tell 'w 'Unit))))
+(doc 'sig-Writer 'export #t)
 
 ;;; Exception effect signature: throw operation
 (define sig-Exception
   (make-effect-sig 'Exception
                    (list (make-operation 'throw 'e 'a))))
+(doc 'sig-Exception 'export #t)
 
 ;;; NonDet effect signature: choose/fail operations
 (define sig-NonDet
   (make-effect-sig 'NonDet
                    (list (make-operation 'choose '(List a) 'a)
                          (make-operation 'fail 'Unit 'a))))
+(doc 'sig-NonDet 'export #t)
 
 ;;; Console effect signature: print/read operations
 (define sig-Console
@@ -113,6 +120,7 @@
   (make-effect-sig 'Async
                    (list (make-operation 'fork '(Eff e a) '(Future a))
                          (make-operation 'await '(Future a) 'a))))
+(doc 'sig-Async 'export #t)
 
 ;;; ====
 ;;; Effect Rows (Effect Type Tracking)
@@ -574,6 +582,7 @@
 ;;; state-get : Eff State s
 (define state-get
   (perform (make-effect 'state-get '())))
+(doc 'state-get 'export #t)
 
 ;;; state-put : s -> Eff State ()
 (define (state-put s)

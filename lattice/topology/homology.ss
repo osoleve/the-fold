@@ -1,5 +1,8 @@
 ;;; @module homology
 ;;; @requires simplicial-complex hamt
+;;; @description Homology groups and Betti numbers over Z₂ coefficients
+;;; @purity total
+;;; @stability experimental
 
 (require 'simplicial-complex)
 (require 'hamt)

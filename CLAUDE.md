@@ -215,7 +215,7 @@ When creating new modules, prefer `(require ...)` chains over `(load ...)`. The 
 (doc 'module 'my-module)
 ```
 
-The guarded bootstrap ensures `module.ss` loads exactly once. The `@module`/`@requires` annotations (space-separated, no commas) enable the reload system. All lattice modules follow this pattern — register new modules in `core/lang/module.ss` via `(register-module-path! 'name "path.ss")`. Use namespaced names (`'tiles/core`, `'physics/optimize`) when bare names collide.
+The guarded bootstrap ensures `module.ss` loads exactly once. The `@module`/`@requires` annotations (space-separated, no commas) enable the reload system. All lattice modules follow this pattern. **Modules with `@module` annotations are auto-discovered** — no manual registration needed. Only add `register-module-path!` calls to `core/lang/module-paths.ss` for: (1) modules without `@module` annotations, or (2) namespaced aliases for collision avoidance (`'tiles/core`, `'physics/optimize`).
 
 **Module Reloading:** `(rel! 'mod)` reloads a single module, `(rel+! 'mod)` reloads it with all dependents (topological order). Requires `@requires` annotations in headers.
 

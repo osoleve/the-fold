@@ -1,5 +1,8 @@
 ;;; @module sat/solver
 ;;; @requires sat/cnf sat/assignment sat/watches sort
+;;; @description CDCL solver with clause learning and 2WL
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat/cnf)
 (require 'sat/assignment)

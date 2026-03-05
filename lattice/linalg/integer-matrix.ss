@@ -1,6 +1,9 @@
 ;;; lattice/linalg/integer-matrix.ss — Integer Matrix Normal Forms
 ;;; @module integer-matrix
 ;;; @requires prelude matrix modular
+;;; @description Smith and Hermite normal forms for integer matrices
+;;; @purity total
+;;; @stability stable
 ;;;
 ;;; Smith and Hermite normal forms for integer matrices.
 ;;; Essential for:

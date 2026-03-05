@@ -1,6 +1,9 @@
 ;;; lattice/random/monte-carlo.ss — Monte Carlo Simulation
 ;;; @module monte-carlo
 ;;; @requires prelude fp/control/state transcendental prng distributions sort
+;;; @description Monte Carlo methods and MCMC
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'fp/control/state)
@@ -25,11 +28,13 @@
 
 
 (define (sample-mean samples)
+  (doc 'export #t)
   (if (null? samples)
       0
       (/ (fold-left + 0 samples) (length samples))))
 
 (define (sample-variance samples)
+  (doc 'export #t)
   (let ([n (length samples)])
        (if (<= n 1)
            0
@@ -39,15 +44,18 @@
                  (/ sum-sq (- n 1))))))
 
 (define (sample-std samples)
+  (doc 'export #t)
   (sqrt (sample-variance samples)))
 
 (define (sample-sem samples)
+  (doc 'export #t)
   (let ([n (length samples)])
        (if (<= n 0)
            0
            (/ (sample-std samples) (sqrt n)))))
 
 (define (sample-quantile samples p)
+  (doc 'export #t)
   (if (null? samples)
       0
       (let* ([sorted (sort-by < samples)]
@@ -60,19 +68,23 @@
                (* frac (list-ref sorted hi))))))
 
 (define (sample-median samples)
+  (doc 'export #t)
   (sample-quantile samples 0.5))
 
 (define (sample-min samples)
+  (doc 'export #t)
   (if (null? samples)
       +inf.0
       (fold-left min (car samples) (cdr samples))))
 
 (define (sample-max samples)
+  (doc 'export #t)
   (if (null? samples)
       -inf.0
       (fold-left max (car samples) (cdr samples))))
 
 (define (sample-summary samples)
+  (doc 'export #t)
   (let ([n (length samples)])
        (if (= n 0)
            '((n . 0))
@@ -94,6 +106,7 @@
 
 
 (define (mc-integrate f a b n)
+  (doc 'export #t)
   (let ([width (- b a)])
        (state-bind (random-list n (random-float-range a b))
                    (lambda (samples)
@@ -198,6 +211,7 @@
 
 
 (define (mh-step log-target proposal log-proposal current)
+  (doc 'export #t)
   (state-bind (proposal current)
               (lambda (proposed)
                       (state-bind random-float
@@ -222,6 +236,7 @@
                                                     (state-pure current))))))))
 
 (define (mh-chain log-target proposal initial n)
+  (doc 'export #t)
   (let loop ([i 0] [current initial] [acc '()])
        (if (>= i n)
            (state-pure (reverse acc))
@@ -340,6 +355,7 @@
 
 
 (define (control-variate-estimate f g g-mean sampler n)
+  (doc 'export #t)
   (state-bind (random-list n sampler)
               (lambda (samples)
                       (let* ([f-vals (map f samples)]
@@ -367,6 +383,7 @@
 
 
 (define (stratified-sample f a b k n)
+  (doc 'export #t)
   (let* ([per-stratum (max 1 (quotient n k))]
          [width (- b a)]
          [stratum-width (/ width k)])
@@ -397,6 +414,7 @@
 
 
 (define (effective-sample-size samples)
+  (doc 'export #t)
   (let* ([n (length samples)]
          [batch-size (max 1 (inexact->exact (floor (sqrt n))))]
          [n-batches (quotient n batch-size)]

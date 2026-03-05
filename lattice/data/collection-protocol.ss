@@ -1,6 +1,9 @@
 ;;; lattice/data/collection-protocol.ss — Unified Collection Protocols
 ;;; @module collection-protocol
 ;;; @requires prelude protocol
+;;; @description Unified protocols for collection operations: core, keyed, spatial, priority
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

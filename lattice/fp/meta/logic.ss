@@ -1,5 +1,7 @@
 ;;; @module logic
 ;;; @requires prelude combinators stream
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)
@@ -211,6 +213,7 @@
 
 ;;; fresh1 : (LVar → Goal) → Goal
 (define fresh1 call/fresh)
+(doc 'fresh1 'export #t)
 
 ;;; fresh2 : (LVar → LVar → Goal) → Goal
 (define (fresh2 f)

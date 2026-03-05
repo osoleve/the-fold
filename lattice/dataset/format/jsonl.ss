@@ -1,6 +1,9 @@
 ;;; lattice/dataset/format/jsonl.ss — JSONL Export via Bidirectional Optics
 ;;; @module jsonl
 ;;; @requires prelude optics sample
+;;; @description JSONL export via bidirectional optics
+;;; @purity partial
+;;; @stability experimental
 
 (load "core/base/prelude.ss")
 (load "lattice/optics/optics.ss")
@@ -32,8 +35,10 @@
 
 (define (json-object? x)
   (and (pair? x) (eq? (car x) 'json-object)))
+(doc 'json-object? 'export #t)
 
 (define (json-object-pairs obj) (cdr obj))
+(doc 'json-object-pairs 'export #t)
 
 ;;; make-json-array : (List Any) → JsonArray
 (define (make-json-array items)
@@ -42,8 +47,10 @@
 
 (define (json-array? x)
   (and (pair? x) (eq? (car x) 'json-array)))
+(doc 'json-array? 'export #t)
 
 (define (json-array-items arr) (cdr arr))
+(doc 'json-array-items 'export #t)
 
 ;;; ============================================================
 ;;; Part 2: Sample ↔ JSON Conversion

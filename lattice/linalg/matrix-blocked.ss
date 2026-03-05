@@ -1,6 +1,9 @@
 ;;; lattice/linalg/matrix-blocked.ss — Blocked/Tiled Matrix Algorithms
 ;;; @module matrix-blocked
 ;;; @requires matrix
+;;; @description Cache-efficient blocked/tiled matrix algorithms, Strassen
+;;; @purity total
+;;; @stability stable
 
 (require 'matrix)
 

@@ -87,6 +87,7 @@
 
 ;;; piece-empty : Piece
 (define piece-empty '())
+(doc 'piece-empty 'export #t)
 
 ;;; piece-singleton : Real × Real → Piece
 ;;; Single interval piece.

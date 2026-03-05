@@ -40,16 +40,19 @@
   (cadddr sys))
 
 (define (make-dds transition-fn dimension stochastic?)
+  (doc 'export #t)
   (doc 'type '(-> (-> α α) Nat Boolean DDS))
   (doc 'description "Create a discrete dynamical system")
   (list 'dds transition-fn dimension stochastic?))
 
 (define (make-deterministic-dds transition-fn dimension)
+  (doc 'export #t)
   (doc 'type '(-> (-> α α) Nat DDS))
   (doc 'description "Create a deterministic discrete dynamical system")
   (make-dds transition-fn dimension #f))
 
 (define (make-stochastic-dds transition-fn dimension)
+  (doc 'export #t)
   (doc 'type '(-> (-> α RNG (Pair α RNG)) Nat DDS))
   (doc 'description "Create a stochastic discrete dynamical system")
   (make-dds transition-fn dimension #t))
@@ -57,6 +60,7 @@
 (doc 'section 'common-discrete-dynamical-systems)
 
 (define (logistic-map r)
+  (doc 'export #t)
   (doc 'type '(-> Number DDS))
   (doc 'description "The logistic map: x_{n+1} = r * x_n * (1 - x_n). Classic example of chaos for r in [3.57, 4]")
   (make-deterministic-dds
@@ -64,6 +68,7 @@
    0))
 
 (define (tent-map mu)
+  (doc 'export #t)
   (doc 'type '(-> Number DDS))
   (doc 'description "The tent map: f(x) = mu * min(x, 1-x)")
   (make-deterministic-dds
@@ -71,6 +76,7 @@
    0))
 
 (define (henon-map a b)
+  (doc 'export #t)
   (doc 'type '(-> Number Number DDS))
   (doc 'description "The Henon map: x_{n+1} = 1 - a*x_n^2 + y_n, y_{n+1} = b*x_n. Classic 2D chaotic map")
   (make-deterministic-dds

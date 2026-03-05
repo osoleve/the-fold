@@ -1,5 +1,8 @@
 ;;; @module monad-derivation
 ;;; @requires adjunction
+;;; @description Monads from adjunctions
+;;; @purity total
+;;; @stability stable
 
 (require 'adjunction)
 

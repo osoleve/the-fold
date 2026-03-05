@@ -1,6 +1,9 @@
 ;;; lattice/category/natural-transform.ss — Natural Transformations
 ;;; @module natural-transform
 ;;; @requires prelude combinators templates
+;;; @description Natural transformations with composition
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

@@ -1,6 +1,8 @@
 ;;; lattice/fp/control/continuation.ss — Continuation Monad
 ;;; @module continuation
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

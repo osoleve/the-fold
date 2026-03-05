@@ -1,5 +1,8 @@
 ;;; @module differentiable
 ;;; @requires kinds infer resolve comp-graph reverse-diff
+;;; @description Differentiable type class for generic AD
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

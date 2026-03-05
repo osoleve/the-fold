@@ -1,6 +1,9 @@
 ;;; lattice/numeric/convolution.ss — Convolution and Correlation
 ;;; @module convolution
 ;;; @requires prelude complex dft iteration
+;;; @description Linear convolution: direct and FFT-based. Correlation and autocorrelation. 2D convolution for image processing. Matched filtering.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'complex)

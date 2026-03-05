@@ -1,5 +1,8 @@
 ;;; @module primality
 ;;; @requires prelude sort modular
+;;; @description Primality testing (trial division, Miller-Rabin), integer factorization (trial division, Pollard's rho), number-theoretic functions (Euler's totient, Carmichael's lambda, Möbius, radical), prime navigation and sieve of Eratosthenes, Legendre and Jacobi symbols.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'sort)

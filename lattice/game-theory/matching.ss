@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/matching.ss — Stable Matching
 ;;; @module matching
 ;;; @requires prelude lp ilp coop-games sort
+;;; @description Two-sided matching, Gale-Shapley, assignment games
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

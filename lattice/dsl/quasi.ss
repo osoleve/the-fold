@@ -1,5 +1,8 @@
 ;;; @module quasi
 ;;; @requires prelude combinators
+;;; @description Quasiquotation expansion and syntax objects
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'combinators)

@@ -119,6 +119,7 @@
         (list 'population (list->vector normalized)))))
 
 (define (population? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'population)))
 
 (define (pop-vec pop) (cadr pop))

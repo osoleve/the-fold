@@ -1,6 +1,8 @@
 ;;; lattice/fp/analysis/cost-analysis.ss — Cost Analysis
 ;;; @module cost-analysis
 ;;; @requires prelude sort
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'sort)

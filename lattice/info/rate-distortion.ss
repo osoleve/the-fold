@@ -1,5 +1,8 @@
 ;;; @module rate-distortion
 ;;; @requires entropy sort
+;;; @description Rate-distortion theory: distortion metrics, R(D) curves for Gaussian/binary sources, Lloyd-Max quantization, vector quantization, entropy-coded rates.
+;;; @purity total
+;;; @stability stable
 
 (require 'entropy)
 (require 'sort)

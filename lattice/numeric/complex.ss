@@ -1,6 +1,9 @@
 ;;; lattice/numeric/complex.ss — Complex Number Arithmetic
 ;;; @module complex
 ;;; @requires transcendental
+;;; @description Complex number representation and arithmetic. Rectangular and polar forms. Transcendental functions: exp, log, sqrt, trig, hyperbolic.
+;;; @purity total
+;;; @stability stable
 
 (require 'transcendental)
 

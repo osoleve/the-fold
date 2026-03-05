@@ -1,5 +1,8 @@
 ;;; @module egraph/extract
 ;;; @requires prelude hamt egraph/cost egraph/saturation
+;;; @description Cost-based extraction from e-graphs
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/extract.ss — Cost-Based E-Graph Extraction
 ;;;
 ;;; Extraction recovers a concrete term from an e-graph by choosing

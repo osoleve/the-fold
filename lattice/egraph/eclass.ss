@@ -1,5 +1,8 @@
 ;;; @module egraph/eclass
 ;;; @requires prelude hamt egraph/union-find
+;;; @description E-node and e-class representation for e-graphs
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/eclass.ss — E-Node and E-Class Representation
 ;;;
 ;;; E-nodes are operators applied to e-class IDs (not recursive terms).

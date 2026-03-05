@@ -1,5 +1,8 @@
 ;;; @module tropical
 ;;; @requires prelude matrix
+;;; @description Tropical semirings: min-plus, max-plus, matrix closure, eigenvalues, Newton polygons
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'matrix)

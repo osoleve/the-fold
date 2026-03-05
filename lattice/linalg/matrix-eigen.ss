@@ -1,6 +1,9 @@
 ;;; lattice/linalg/matrix-eigen.ss — Eigenvalue and Eigenvector Computation
 ;;; @module matrix-eigen
 ;;; @requires prelude vec matrix matrix-decomp
+;;; @description Eigenvalue computation
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)

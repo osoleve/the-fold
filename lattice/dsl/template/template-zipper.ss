@@ -1,5 +1,8 @@
 ;;; @module template-zipper
 ;;; @requires dsl/template rewrite/sexp-zipper
+;;; @description Hole-focused zipper navigation for templates
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'dsl/template)
 (require 'rewrite/sexp-zipper)

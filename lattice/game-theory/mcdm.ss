@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/mcdm.ss — Multi-Criteria Decision Making via Voting
 ;;; @module mcdm
 ;;; @requires voting
+;;; @description Multi-criteria decision making via voting aggregation
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -37,6 +40,7 @@
   (list 'decision-problem alternatives criteria scores))
 
 (define (decision-problem? x)
+  (doc 'export #t)
   (and (pair? x) (eq? 'decision-problem (car x))))
 
 (define (dp-alternatives dp)

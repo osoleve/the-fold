@@ -1,5 +1,8 @@
 ;;; @module group
 ;;; @requires prelude
+;;; @description Group theory: cyclic, symmetric, dihedral groups and homomorphisms
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

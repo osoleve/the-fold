@@ -1,5 +1,7 @@
 ;;; @module dsl
 ;;; @requires prelude free effects
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'free)
@@ -53,22 +55,27 @@
 (doc dsl-pure 'type '(-> a (DSL a)))
 (doc dsl-pure 'description "Lift a pure value into a DSL program")
 (define dsl-pure pure-free)
+(doc 'dsl-pure 'export #t)
 
 (doc dsl-pure? 'type '(-> (DSL a) Boolean))
 (doc dsl-pure? 'description "Test if DSL program is a pure value")
 (define dsl-pure? pure-free?)
+(doc 'dsl-pure? 'export #t)
 
 (doc dsl-suspended? 'type '(-> (DSL a) Boolean))
 (doc dsl-suspended? 'description "Test if DSL program is suspended on an instruction")
 (define dsl-suspended? free-suspended?)
+(doc 'dsl-suspended? 'export #t)
 
 (doc dsl-pure-value 'type '(-> (DSL a) a))
 (doc dsl-pure-value 'description "Extract pure value from completed DSL program")
 (define dsl-pure-value from-pure-free)
+(doc 'dsl-pure-value 'export #t)
 
 (doc dsl-instruction 'type '(-> (DSL a) (Instruction a)))
 (doc dsl-instruction 'description "Extract current instruction from suspended DSL program")
 (define dsl-instruction from-free)
+(doc 'dsl-instruction 'export #t)
 
 (define (dsl-bind m f)
   (doc 'export #t)

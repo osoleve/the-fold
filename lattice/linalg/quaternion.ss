@@ -1,6 +1,9 @@
 ;;; lattice/linalg/quaternion.ss — Quaternion Math
 ;;; @module quaternion
 ;;; @requires prelude vec3
+;;; @description Quaternion algebra for rotations
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec3)
@@ -208,20 +211,29 @@ Dependencies:
 ;;; ====
 
 ;;; quat-w : Quaternion → Number
-(define (quat-w q) (list-ref q 1))
+(define (quat-w q)
+  (doc 'export #t)
+  (list-ref q 1))
 
 ;;; quat-x : Quaternion → Number
-(define (quat-x q) (list-ref q 2))
+(define (quat-x q)
+  (doc 'export #t)
+  (list-ref q 2))
 
 ;;; quat-y : Quaternion → Number
-(define (quat-y q) (list-ref q 3))
+(define (quat-y q)
+  (doc 'export #t)
+  (list-ref q 3))
 
 ;;; quat-z : Quaternion → Number
-(define (quat-z q) (list-ref q 4))
+(define (quat-z q)
+  (doc 'export #t)
+  (list-ref q 4))
 
 ;;; quat-scalar : Quaternion → Number
 ;;; Get scalar (real) part.
 (define quat-scalar quat-w)
+(doc 'quat-scalar 'export #t)
 
 ;;; quat-vector : Quaternion → Vec3
 ;;; Get vector (imaginary) part.

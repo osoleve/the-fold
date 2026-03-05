@@ -1,5 +1,7 @@
 ;;; @module transcendental
 ;;; @requires
+;;; @purity mixed
+;;; @stability stable
 
 
 (doc 'module 'transcendental)

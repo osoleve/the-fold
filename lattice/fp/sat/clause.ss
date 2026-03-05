@@ -1,5 +1,8 @@
 ;;; @module sat/clause
 ;;; @requires sat/literal sort
+;;; @description Disjunctive clause representation
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat/literal)
 (require 'sort)

@@ -1,5 +1,8 @@
 ;;; @module modular
 ;;; @requires prelude
+;;; @description Modular arithmetic operations: addition, subtraction, multiplication, exponentiation. Extended GCD, modular inverse, CRT. Montgomery form for fast repeated modular multiplication. Quadratic residue testing and Tonelli-Shanks algorithm for modular square roots (essential for elliptic curve point decompression).
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

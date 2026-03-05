@@ -1,6 +1,9 @@
 ;;; lattice/optimization/lp.ss — Linear Programming
 ;;; @module lp
 ;;; @requires prelude vec matrix matrix-decomp matrix-solvers
+;;; @description Linear programming via two-phase simplex method
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

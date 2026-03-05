@@ -1,5 +1,8 @@
 ;;; @module adjunction
 ;;; @requires natural-transform
+;;; @description Adjunctions with triangle identities
+;;; @purity total
+;;; @stability stable
 
 (require 'natural-transform)
 

@@ -1,5 +1,8 @@
 ;;; @module poly-canonical
 ;;; @requires field algebra/polynomial expr simplify
+;;; @description Polynomial canonical form conversion
+;;; @purity total
+;;; @stability stable
 
 (require 'field)
 (require 'algebra/polynomial)

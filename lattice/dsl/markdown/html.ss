@@ -1,5 +1,8 @@
 ;;; @module markdown-html
 ;;; @requires prelude
+;;; @description HTML renderer for markdown AST
+;;; @purity total
+;;; @stability experimental
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 

@@ -1,6 +1,9 @@
 ;;; lattice/linalg/iteration.ss — Iteration Macros
 ;;; @module iteration
 ;;; @requires prelude
+;;; @description Iterative method utilities
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

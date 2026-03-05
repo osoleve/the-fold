@@ -219,6 +219,7 @@ Useful when all constraints have equal priority.")
   (list 'wco-result cost model domain num-soft))
 
 (define (wco-result? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Bool))
   (and (pair? x) (eq? (car x) 'wco-result)))
 

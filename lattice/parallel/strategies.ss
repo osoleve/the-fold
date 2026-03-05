@@ -1,5 +1,8 @@
 ;;; @module strategies
 ;;; @requires prelude cost-analysis
+;;; @description Strategy types, core strategies, and combinators for parallel plan generation
+;;; @purity total
+;;; @stability experimental
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -132,11 +135,21 @@ stages is a list of (stage-name . thunks) pairs.")
   (doc 'type '(-> Plan Symbol))
   (car p))
 
-(define (plan:seq? p) (and (pair? p) (eq? (car p) 'plan:seq)))
-(define (plan:par? p) (and (pair? p) (eq? (car p) 'plan:par)))
-(define (plan:chunk? p) (and (pair? p) (eq? (car p) 'plan:chunk)))
-(define (plan:tree? p) (and (pair? p) (eq? (car p) 'plan:tree)))
-(define (plan:race? p) (and (pair? p) (eq? (car p) 'plan:race)))
+(define (plan:seq? p)
+  (doc 'export #t)
+  (and (pair? p) (eq? (car p) 'plan:seq)))
+(define (plan:par? p)
+  (doc 'export #t)
+  (and (pair? p) (eq? (car p) 'plan:par)))
+(define (plan:chunk? p)
+  (doc 'export #t)
+  (and (pair? p) (eq? (car p) 'plan:chunk)))
+(define (plan:tree? p)
+  (doc 'export #t)
+  (and (pair? p) (eq? (car p) 'plan:tree)))
+(define (plan:race? p)
+  (doc 'export #t)
+  (and (pair? p) (eq? (car p) 'plan:race)))
 (define (plan:pipe? p) (and (pair? p) (eq? (car p) 'plan:pipe)))
 
 ;;; Plan accessors

@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-filtration.ss — Bridge from graph edge-weight filtration to persistent homology
 ;;; @module graph-filtration
 ;;; @requires prelude iteration graph-matrix simplicial-complex persistent
+;;; @description Edge-weight filtration to persistent homology
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)

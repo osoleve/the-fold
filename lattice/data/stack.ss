@@ -1,6 +1,9 @@
 ;;; lattice/data/stack.ss — LIFO Stack
 ;;; @module stack
 ;;; @requires prelude
+;;; @description LIFO stack operations
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -14,6 +17,7 @@
 (doc 'note "Immutable functional stack using simple list representation")
 
 (define stack-empty '())
+(doc stack-empty 'export #t)
 (doc stack-empty 'type 'Stack)
 (doc stack-empty 'description "The empty stack")
 

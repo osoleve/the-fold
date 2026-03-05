@@ -1,6 +1,9 @@
 ;;; lattice/linalg/matrix-solvers.ss — Linear Equation Solvers
 ;;; @module matrix-solvers
 ;;; @requires prelude vec matrix matrix-decomp iteration
+;;; @description Direct solvers, Levinson-Durbin for Toeplitz
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)
@@ -29,6 +32,7 @@ Dependencies (must be loaded by client in correct order):
      'type (-> Matrix Vec Vec)
      'description "Solve Ly = b where L is lower triangular")
 (define (matrix-forward-substitute l b)
+  (doc 'export #t)
   (let* ([n (vector-length b)]
          [y (make-vector n 0)])
         (do ([i 0 (+ i 1)])
@@ -45,6 +49,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; matrix-back-substitute : Matrix × Vec → Vec
 ;;; Solve Ux = y where U is upper triangular.
 (define (matrix-back-substitute u y)
+  (doc 'export #t)
   (let* ([n (vector-length y)]
          [x (make-vector n 0)])
         (do ([i (- n 1) (- i 1)])
@@ -99,6 +104,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; permutation-parity : Vec Nat → Int
 ;;; Compute the parity of a permutation vector. Returns 1 for even, -1 for odd.
 (define (permutation-parity p)
+  (doc 'export #t)
   (let* ([n (vector-length p)]
          [visited (make-vector n #f)])
         (let loop ([i 0] [swaps 0])
@@ -158,6 +164,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; matrix-gauss-elim : Matrix → Matrix
 ;;; Compute Row Echelon Form (REF) using Gaussian elimination with partial pivoting.
 (define (matrix-gauss-elim a)
+  (doc 'export #t)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)]
          [ref (matrix-copy a)])

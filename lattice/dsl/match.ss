@@ -1,5 +1,8 @@
 ;;; @module dsl/match
 ;;; @requires prelude combinators
+;;; @description Pattern matching compilation to decision trees
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'combinators)

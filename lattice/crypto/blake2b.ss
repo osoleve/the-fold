@@ -1,4 +1,7 @@
 ;;; @module blake2b
+;;; @description BLAKE2b hash function (RFC 7693)
+;;; @purity total
+;;; @stability stable
 
 (doc 'module 'blake2b)
 (doc 'description "BLAKE2b cryptographic hash function (RFC 7693) - faster than MD5, SHA-1, SHA-2, and SHA-3, yet at least as secure as SHA-3")

@@ -1,6 +1,9 @@
 ;;; lattice/linalg/iterative-solvers.ss — Iterative Linear System Solvers
 ;;; @module iterative-solvers
 ;;; @requires prelude vec matrix iteration
+;;; @description CG, GMRES, BiCGSTAB
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)

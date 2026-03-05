@@ -1,6 +1,9 @@
 ;;; lattice/signal/spectral-analysis.ss — Spectral Analysis Tools
 ;;; @module spectral-analysis
 ;;; @requires prelude complex dft window-functions iteration
+;;; @description Short-time Fourier transform and spectrogram computation. Welch power spectral density estimation. Spectral features: centroid, bandwidth, rolloff.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'complex)

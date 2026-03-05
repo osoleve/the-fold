@@ -1,5 +1,8 @@
 ;;; @module block-parser
 ;;; @requires prelude parser markdown-ast inline-parser
+;;; @description Block element parser (headings, paragraphs, lists)
+;;; @purity total
+;;; @stability experimental
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'parser)

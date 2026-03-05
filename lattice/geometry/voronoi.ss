@@ -1,6 +1,9 @@
 ;;; lattice/geometry/voronoi.ss --- Voronoi diagrams via Delaunay duality
 ;;; @module voronoi
 ;;; @requires prelude geometry/mesh-gen geometry/convex-hull sort hamt
+;;; @description Voronoi diagrams via Delaunay duality. Computes cells, neighbors, nearest site queries. Supports bounded Voronoi (clipped to rectangle) and Lloyd relaxation for uniform point distribution. Includes cell area computation and ASCII visualization.
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -32,11 +35,21 @@
 (define (make-voronoi sites vertices edges cells unbounded)
   (list 'voronoi sites vertices edges cells unbounded))
 
-(define (voronoi? v) (and (pair? v) (eq? (car v) 'voronoi)))
-(define (voronoi-sites v) (list-ref v 1))
-(define (voronoi-vertices v) (list-ref v 2))
-(define (voronoi-edges v) (list-ref v 3))
-(define (voronoi-cells v) (list-ref v 4))
+(define (voronoi? v)
+  (doc 'export #t)
+  (and (pair? v) (eq? (car v) 'voronoi)))
+(define (voronoi-sites v)
+  (doc 'export #t)
+  (list-ref v 1))
+(define (voronoi-vertices v)
+  (doc 'export #t)
+  (list-ref v 2))
+(define (voronoi-edges v)
+  (doc 'export #t)
+  (list-ref v 3))
+(define (voronoi-cells v)
+  (doc 'export #t)
+  (list-ref v 4))
 (define (voronoi-unbounded v) (list-ref v 5))
 
 (doc voronoi-cell-unbounded? 'export #t)
@@ -451,10 +464,15 @@
     (list 'voronoi-bounded sites bounded-cells)))
 
 (define (voronoi-bounded? v)
+  (doc 'export #t)
   (and (pair? v) (eq? (car v) 'voronoi-bounded)))
 
-(define (voronoi-bounded-sites v) (list-ref v 1))
-(define (voronoi-bounded-cells v) (list-ref v 2))
+(define (voronoi-bounded-sites v)
+  (doc 'export #t)
+  (list-ref v 1))
+(define (voronoi-bounded-cells v)
+  (doc 'export #t)
+  (list-ref v 2))
 
 (doc voronoi-bounded-cell 'export #t)
 (doc voronoi-bounded-cell 'type '(-> VoronoiBounded Int (List Point2)))

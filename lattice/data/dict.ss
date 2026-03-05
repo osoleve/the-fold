@@ -1,6 +1,9 @@
 ;;; lattice/data/dict.ss — Key-Value Dictionary
 ;;; @module dict
 ;;; @requires prelude
+;;; @description Key-value dictionary/map operations
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

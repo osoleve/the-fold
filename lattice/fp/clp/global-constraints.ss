@@ -1,5 +1,8 @@
 ;;; @module global-constraints
 ;;; @requires propagate
+;;; @description Global constraints (all-different, etc.)
+;;; @purity partial
+;;; @stability experimental
 
 (require 'propagate)
 

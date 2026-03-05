@@ -34,6 +34,7 @@
                              synthesis-prompt
                              require-consensus
                              timeout-per-model)
+  (doc 'export #t)
   (list 'council-config
         models mode rounds moderator topic-template
         round-prompts synthesis-prompt require-consensus timeout-per-model))
@@ -46,16 +47,24 @@
 ;;; Accessors
 
 ;;; council-models : CouncilConfig → (List Symbol)
-(define (council-models cfg) (list-ref cfg 1))
+(define (council-models cfg)
+  (doc 'export #t)
+  (list-ref cfg 1))
 
 ;;; council-mode : CouncilConfig → Symbol
-(define (council-mode cfg) (list-ref cfg 2))
+(define (council-mode cfg)
+  (doc 'export #t)
+  (list-ref cfg 2))
 
 ;;; council-rounds : CouncilConfig → Nat
-(define (council-rounds cfg) (list-ref cfg 3))
+(define (council-rounds cfg)
+  (doc 'export #t)
+  (list-ref cfg 3))
 
 ;;; council-moderator : CouncilConfig → Symbol
-(define (council-moderator cfg) (list-ref cfg 4))
+(define (council-moderator cfg)
+  (doc 'export #t)
+  (list-ref cfg 4))
 
 ;;; council-topic-template : CouncilConfig → String
 (define (council-topic-template cfg) (list-ref cfg 5))
@@ -70,7 +79,9 @@
 (define (council-require-consensus cfg) (list-ref cfg 8))
 
 ;;; council-timeout : CouncilConfig → Nat
-(define (council-timeout cfg) (list-ref cfg 9))
+(define (council-timeout cfg)
+  (doc 'export #t)
+  (list-ref cfg 9))
 
 (doc 'section 'council-result-types)
 

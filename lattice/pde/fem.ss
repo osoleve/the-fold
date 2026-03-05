@@ -1,6 +1,9 @@
 ;;; lattice/pde/fem.ss --- Finite Element Method for 2D PDEs
 ;;; @module fem
 ;;; @requires prelude sort vec matrix sparse iterative-solvers mesh-gen hamt iteration
+;;; @description Finite Element Method for solving elliptic PDEs on 2D triangular meshes. P1 (linear) elements with sparse matrix assembly and conjugate gradient solver. Solves Poisson equation with Dirichlet boundary conditions.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'sort)
@@ -75,11 +78,21 @@
             node-count              ; num-nodes
             (length elements)))))   ; num-elements
 
-(define (fem-mesh? m) (and (pair? m) (eq? (car m) 'fem-mesh)))
-(define (fem-mesh-nodes m) (list-ref m 1))
-(define (fem-mesh-elements m) (list-ref m 2))
-(define (fem-mesh-num-nodes m) (list-ref m 3))
-(define (fem-mesh-num-elements m) (list-ref m 4))
+(define (fem-mesh? m)
+  (doc 'export #t)
+  (and (pair? m) (eq? (car m) 'fem-mesh)))
+(define (fem-mesh-nodes m)
+  (doc 'export #t)
+  (list-ref m 1))
+(define (fem-mesh-elements m)
+  (doc 'export #t)
+  (list-ref m 2))
+(define (fem-mesh-num-nodes m)
+  (doc 'export #t)
+  (list-ref m 3))
+(define (fem-mesh-num-elements m)
+  (doc 'export #t)
+  (list-ref m 4))
 
 (doc fem-mesh-node 'type '(-> FEMMesh Nat Point2))
 (doc fem-mesh-node 'description "Get node coordinates by index")

@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/mechanism.ss — Mechanism Design
 ;;; @module mechanism
 ;;; @requires prelude
+;;; @description Auctions, VCG, incentive compatibility, double auctions
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

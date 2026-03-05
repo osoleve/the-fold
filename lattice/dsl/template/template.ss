@@ -1,5 +1,8 @@
 ;;; @module dsl/template
 ;;; @requires prelude
+;;; @description Grammar-driven code construction with holes
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 

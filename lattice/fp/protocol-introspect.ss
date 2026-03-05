@@ -1,6 +1,8 @@
 ;;; lattice/fp/protocol-introspect.ss — Protocol Introspection
 ;;; @module protocol-introspect
 ;;; @requires fp/protocol hamt
+;;; @purity mixed
+;;; @stability stable
 
 (require 'fp/protocol)
 (require 'hamt)
@@ -33,9 +35,13 @@
   (and (pair? x) (eq? 'protocol-doc (car x))))
 
 (define (protocol-doc-name doc) (list-ref doc 1))
+(doc 'protocol-doc-name 'export #t)
 (define (protocol-doc-docstring doc) (list-ref doc 2))
+(doc 'protocol-doc-docstring 'export #t)
 (define (protocol-doc-signature doc) (list-ref doc 3))
+(doc 'protocol-doc-signature 'export #t)
 (define (protocol-doc-module doc) (list-ref doc 4))
+(doc 'protocol-doc-module 'export #t)
 
 ;;; register-protocol-doc! : Symbol × String × (Or Signature #f) × (Or Symbol #f) → Void
 ;;; Register documentation for a protocol.

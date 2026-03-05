@@ -2,23 +2,82 @@
 ;;; @description Module path registration table. Maps module names to file paths.
 ;;; Loaded by module.ss — requires register-module-path! to be defined first.
 ;;;
-;;; When adding a new module, add a register-module-path! call in the
-;;; appropriate section below.
+;;; Structure:
+;;;   1. Auto-discovery: scan core/, lattice/, boundary/ for ;;; @module annotations
+;;;   2. Manual overrides: modules without annotations, or needing different names
+;;;   3. Namespaced aliases: collision-avoidance names (e.g., 'tiles/core for core.ss)
 
-;;; Initialize known module paths (core modules)
+;;; ====
+;;; Phase 1: Auto-discovery from @module annotations
+;;; ====
+
+;;; discover-module-paths! : -> Integer
+;;; Scan source directories for files with ;;; @module annotations.
+;;; Registers each as name -> path. Returns count of discovered modules.
+;;; Only registers if the name isn't already registered (manual overrides win).
+(define (discover-module-paths!)
+  (let ([count 0])
+    (define (scan-dir dir)
+      (when (file-directory? dir)
+        (for-each
+         (lambda (entry)
+           (let ([path (string-append dir "/" entry)])
+             (cond
+               [(and (not (char=? (string-ref entry 0) #\.))
+                     (file-directory? path))
+                (scan-dir path)]
+               [(and (> (string-length entry) 3)
+                     (string=? (substring entry (- (string-length entry) 3)
+                                          (string-length entry)) ".ss")
+                     ;; Skip test files — they're not modules
+                     (not (and (> (string-length entry) 5)
+                               (string=? (substring entry 0 5) "test-"))))
+                (guard (e [else (void)])
+                  (let ([p (open-input-file path)])
+                    (let loop ([i 0])
+                      (when (< i 8)
+                        (let ([line (get-line p)])
+                          (when (string? line)
+                            (if (and (> (string-length line) 12)
+                                     (string=? (substring line 0 12) ";;; @module "))
+                                ;; Found annotation — extract name and register
+                                (let* ([name-str (substring line 12 (string-length line))]
+                                       ;; Trim trailing whitespace/comments
+                                       [name-end (let scan ([j 0])
+                                                   (if (or (>= j (string-length name-str))
+                                                           (char=? (string-ref name-str j) #\space)
+                                                           (char=? (string-ref name-str j) #\tab))
+                                                       j
+                                                       (scan (+ j 1))))]
+                                       [name (string->symbol (substring name-str 0 name-end))])
+                                  (unless (hashtable-contains? *module-paths* name)
+                                    (hashtable-set! *module-paths* name path)
+                                    (set! count (+ count 1))))
+                                ;; Not this line — keep scanning
+                                (loop (+ i 1)))))))
+                    (close-input-port p)))])))
+         (directory-list dir))))
+    (scan-dir "core")
+    (scan-dir "lattice")
+    (scan-dir "boundary")
+    count))
+
+;;; ====
+;;; Phase 2: Manual overrides (modules without @module annotations)
+;;; ====
+;;; These modules predate the annotation convention or have names that
+;;; differ from their @module annotation. Listed explicitly so they
+;;; appear in (modules) and resolve correctly via require.
+
 (begin
- ;; BASE layer
+ ;; Core modules without @module annotations
  (register-module-path! 'prelude "core/base/prelude.ss")
  (register-module-path! 'sha256 "core/base/sha256.ss")
  (register-module-path! 'error "core/base/error.ss")
- 
- ;; Block layer
  (register-module-path! 'block "core/blocks/block.ss")
  (register-module-path! 'cas "core/blocks/cas.ss")
  (register-module-path! 'normalize "core/blocks/normalize.ss")
  (register-module-path! 'expand "core/blocks/expand.ss")
- 
- ;; Lang layer
  (register-module-path! 'parse "core/lang/parse.ss")
  (register-module-path! 'span "core/lang/span.ss")
  (register-module-path! 'fold-parse "core/lang/fold-parse.ss")
@@ -27,196 +86,33 @@
  (register-module-path! 'compile "core/lang/compile.ss")
  (register-module-path! 'module "core/lang/module.ss")
  (register-module-path! 'nbe "core/lang/nbe.ss")
- 
- ;; Types layer
  (register-module-path! 'types "core/types/types.ss")
  (register-module-path! 'kinds "core/types/kinds.ss")
  (register-module-path! 'infer "core/types/infer.ss")
  (register-module-path! 'resolve "core/types/resolve.ss")
  (register-module-path! 'annotate "core/types/annotate.ss")
  (register-module-path! 'dep-types "core/types/dep-types.ss")
- 
- ;; Query layer
- (register-module-path! 'query-dsl "lattice/query/query-dsl.ss")
- (register-module-path! 'aho-corasick "lattice/query/aho-corasick.ss")
- (register-module-path! 'optic-query "lattice/query/optic-query.ss")
- (register-module-path! 'query-macro "lattice/query/query-macro.ss")
- (register-module-path! 'ast-zipper "lattice/query/sql/ast-zipper.ss")
- (register-module-path! 'sql-types "lattice/query/sql/types.ss")
- (register-module-path! 'sql-lexer "lattice/query/sql/lexer.ss")
- (register-module-path! 'sql-validate "lattice/query/sql/validate.ss")
- (register-module-path! 'sql-parser "lattice/query/sql/parser.ss")
- (register-module-path! 'sql-dialect "lattice/query/sql/dialect.ss")
- (register-module-path! 'sql-format "lattice/query/sql/format.ss")
- (register-module-path! 'sql "lattice/query/sql/sql.ss")
- 
- ;; Data layer
- (register-module-path! 'stack "lattice/data/stack.ss")
- (register-module-path! 'queue "lattice/data/queue.ss")
- (register-module-path! 'set "lattice/data/set.ss")
- (register-module-path! 'dict "lattice/data/dict.ss")
- (register-module-path! 'data/alist "lattice/data/alist.ss")
- (register-module-path! 'collection-utils "lattice/data/collection-utils.ss")
- (register-module-path! 'graph-primitives "lattice/data/graph/graph-primitives.ss")
- (register-module-path! 'heap "lattice/data/heap.ss")
- (register-module-path! 'avl-tree "lattice/data/avl-tree.ss")
- (register-module-path! 'hamt "lattice/data/hamt.ss")
- (register-module-path! 'chase-lev-deque "lattice/data/chase-lev-deque.ss")
- (register-module-path! 'collection-protocol "lattice/data/collection-protocol.ss")
- (register-module-path! 'collection-impl "lattice/data/collection-impl.ss")
- (register-module-path! 'kdtree "lattice/data/kdtree.ss")
- (register-module-path! 'quadtree "lattice/data/quadtree.ss")
- (register-module-path! 'graph-matrix "lattice/data/graph/graph-matrix.ss")
- (register-module-path! 'graph-homology "lattice/data/graph/graph-homology.ss")
- (register-module-path! 'graph-filtration "lattice/data/graph/graph-filtration.ss")
- (register-module-path! 'graph-community "lattice/data/graph/graph-community.ss")
- (register-module-path! 'graph-layout "lattice/data/graph/graph-layout.ss")
- (register-module-path! 'pagerank "lattice/data/graph/pagerank.ss")
- (register-module-path! 'centrality "lattice/data/graph/centrality.ss")
- (register-module-path! 'random-graphs "lattice/data/graph/random-graphs.ss")
- (register-module-path! 'graph-bridge "lattice/data/graph/graph-bridge.ss")
- (register-module-path! 'spectral-community "lattice/data/graph/spectral-community.ss")
- (register-module-path! 'shortest-path "lattice/data/graph/shortest-path.ss")
- (register-module-path! 'max-flow "lattice/data/graph/max-flow.ss")
- (register-module-path! 'graph-matching "lattice/data/graph/graph-matching.ss")
+ (register-module-path! 'pretty-class "core/util/pretty-class.ss")
+ (register-module-path! 'comp-graph "core/autodiff/comp-graph.ss")
+ (register-module-path! 'reverse-diff "core/autodiff/reverse-diff.ss")
 
- ;; Optics layer
- (register-module-path! 'optics "lattice/optics/optics.ss")
- (register-module-path! 'profunctor-optics "lattice/optics/profunctor-optics.ss")
- (register-module-path! 'bidirectional "lattice/optics/bidirectional.ss")
- (register-module-path! 'format-iso "lattice/optics/format-iso.ss")
- (register-module-path! 'schema "lattice/optics/schema.ss")
- (register-module-path! 'block-migration "lattice/optics/block-migration.ss")
- (register-module-path! 'block-optics "lattice/optics/block-optics.ss")
-
- ;; Parallel layer
- (register-module-path! 'strategies "lattice/parallel/strategies.ss")
- (register-module-path! 'patterns "lattice/parallel/patterns.ss")
-
- ;; Linalg layer
- (register-module-path! 'iteration "lattice/linalg/iteration.ss")
- (register-module-path! 'vec-common "lattice/linalg/vec-common.ss")
- (register-module-path! 'vec "lattice/linalg/vec.ss")
- (register-module-path! 'vec2 "lattice/linalg/vec2.ss")
- (register-module-path! 'vec3 "lattice/linalg/vec3.ss")
- (register-module-path! 'matrix "lattice/linalg/matrix.ss")
- (register-module-path! 'matrix-decomp "lattice/linalg/matrix-decomp.ss")
- (register-module-path! 'matrix-solvers "lattice/linalg/matrix-solvers.ss")
- (register-module-path! 'matrix-eigen "lattice/linalg/matrix-eigen.ss")
- (register-module-path! 'svd "lattice/linalg/svd.ss")
- (register-module-path! 'sparse "lattice/linalg/sparse.ss")
- (register-module-path! 'matrix-blocked "lattice/linalg/matrix-blocked.ss")
- (register-module-path! 'matrix-blocked-decomp "lattice/linalg/matrix-blocked-decomp.ss")
- (register-module-path! 'iterative-solvers "lattice/linalg/iterative-solvers.ss")
- (register-module-path! 'integer-matrix "lattice/linalg/integer-matrix.ss")
- (register-module-path! 'numeric-instances "lattice/linalg/numeric-instances.ss")
- (register-module-path! 'dep-linalg "lattice/linalg/dep-linalg.ss")
- (register-module-path! 'graph-laplacian "lattice/linalg/graph-laplacian.ss")
- (register-module-path! 'quaternion "lattice/linalg/quaternion.ss")
- (register-module-path! 'matrix-optics "lattice/linalg/matrix-optics.ss")
- 
- ;; Numeric (foundation transforms)
- (register-module-path! 'complex "lattice/numeric/complex.ss")
- (register-module-path! 'complex-bridge "lattice/numeric/complex-bridge.ss")
- (register-module-path! 'dft "lattice/numeric/dft.ss")
- (register-module-path! 'numeric/polynomial "lattice/numeric/polynomial.ss")
- (register-module-path! 'window-functions "lattice/numeric/window-functions.ss")
- (register-module-path! 'convolution "lattice/numeric/convolution.ss")
- (register-module-path! 'fft-convolve "lattice/numeric/fft-convolve.ss")
- (register-module-path! 'vector-space "lattice/numeric/vector-space.ss")
- (register-module-path! 'ode-explicit "lattice/numeric/ode-explicit.ss")
-
- ;; Signal (digital signal processing)
- (register-module-path! 'digital-filters "lattice/signal/digital-filters.ss")
- (register-module-path! 'wavelet "lattice/signal/wavelet.ss")
- (register-module-path! 'spectral-analysis "lattice/signal/spectral-analysis.ss")
- (register-module-path! 'signal-poly "lattice/signal/signal-poly.ss")
-
- ;; Interpolate (curve fitting and approximation — merged into numeric)
- (register-module-path! 'interpolate "lattice/numeric/interpolate.ss")
-
- ;; Interval (verified arithmetic)
- (register-module-path! 'interval "lattice/interval/interval.ss")
- (register-module-path! 'affine "lattice/interval/affine.ss")
- (register-module-path! 'interval-integrate "lattice/interval/interval-integrate.ss")
-
- ;; PDE (partial differential equations)
- (register-module-path! 'fem "lattice/pde/fem.ss")
- (register-module-path! 'pde-time "lattice/pde/pde-time.ss")
- (register-module-path! 'finite-diff "lattice/pde/finite-diff.ss")
- (register-module-path! 'spectral-pde "lattice/pde/spectral-pde.ss")
- 
- ;; Number theory layer
- (register-module-path! 'modular "lattice/number-theory/modular.ss")
- (register-module-path! 'primality "lattice/number-theory/primality.ss")
- (register-module-path! 'fast-multiply "lattice/number-theory/fast-multiply.ss")
-
- ;; Crypto layer
- (register-module-path! 'sha512 "lattice/crypto/sha512.ss")
- (register-module-path! 'blake2b "lattice/crypto/blake2b.ss")
- (register-module-path! 'hmac "lattice/crypto/hmac.ss")
- (register-module-path! 'elliptic-curve "lattice/crypto/elliptic-curve.ss")
-
- ;; Info layer
- (register-module-path! 'entropy "lattice/info/entropy.ss")
- (register-module-path! 'coding "lattice/info/coding.ss")
- (register-module-path! 'channel-capacity "lattice/info/channel-capacity.ss")
- (register-module-path! 'statistical-measures "lattice/info/statistical-measures.ss")
- (register-module-path! 'epiplexity "lattice/info/epiplexity.ss")
- (register-module-path! 'rate-distortion "lattice/info/rate-distortion.ss")
- (register-module-path! 'model-selection-info "lattice/info/model-selection.ss")
- (register-module-path! 'empirical-info "lattice/info/empirical-info.ss")
- (register-module-path! 'partition-info "lattice/info/partition-info.ss")
-
- ;; Info-stat bridge layer
- (register-module-path! 'info-stat/mi-bridge "lattice/statistics/mi-bridge.ss")
-
- ;; Topology layer
- (register-module-path! 'simplicial-complex "lattice/topology/simplicial-complex.ss")
- (register-module-path! 'homology "lattice/topology/homology.ss")
- (register-module-path! 'persistent "lattice/topology/persistent.ss")
- (register-module-path! 'topo-landscape "lattice/topology/topo-landscape.ss")
-
- ;; Automata layer
- (register-module-path! 'statechart "lattice/automata/statechart.ss")
- (register-module-path! 'statechart-zipper "lattice/automata/statechart-zipper.ss")
-
- ;; Diffgeo layer
- (register-module-path! 'charts "lattice/diffgeo/charts.ss")
+ ;; Lattice modules without @module annotations
  (register-module-path! 'tangent "lattice/diffgeo/tangent.ss")
+ (register-module-path! 'geodesics "lattice/diffgeo/geodesics.ss")
+ (register-module-path! 'charts "lattice/diffgeo/charts.ss")
  (register-module-path! 'curvature "lattice/diffgeo/curvature.ss")
  (register-module-path! 'forms "lattice/diffgeo/forms.ss")
  (register-module-path! 'symbolic-metrics "lattice/diffgeo/symbolic-metrics.ss")
- (register-module-path! 'geodesics "lattice/diffgeo/geodesics.ss")
  (register-module-path! 'lie-groups "lattice/diffgeo/lie-groups.ss")
-
- ;; Sim layer
- (register-module-path! 'ode-state-vec "lattice/sim/dynamics/ode-state-vec.ss")
- (register-module-path! 'ode-system "lattice/sim/dynamics/ode-system.ss")
- (register-module-path! 'ode-state-space "lattice/sim/dynamics/ode-state-space.ss")
- (register-module-path! 'chaos "lattice/sim/dynamics/chaos.ss")
- (register-module-path! 'sim/stability "lattice/sim/dynamics/stability.ss")
- (register-module-path! 'sim/discrete "lattice/sim/dynamics/discrete.ss")
- (register-module-path! 'bifurcation "lattice/sim/dynamics/bifurcation.ss")
- (register-module-path! 'attractor-render "lattice/sim/dynamics/attractor-render.ss")
- (register-module-path! 'simulation-stream "lattice/sim/simulation-stream.ss")
- (register-module-path! 'des/event "lattice/sim/des/event.ss")
- (register-module-path! 'des/world "lattice/sim/des/world.ss")
- (register-module-path! 'des/engine "lattice/sim/des/engine.ss")
- (register-module-path! 'des/schedule "lattice/sim/des/schedule.ss")
- (register-module-path! 'des/replicate "lattice/sim/des/replicate.ss")
-
- ;; Dataset layer
- (register-module-path! 'difficulty "lattice/dataset/difficulty.ss")
- (register-module-path! 'parameter "lattice/dataset/parameter.ss")
- (register-module-path! 'distractor "lattice/dataset/distractor.ss")
- (register-module-path! 'sample "lattice/dataset/sample.ss")
-
- ;; Game theory layer
- (register-module-path! 'normal-form "lattice/game-theory/normal-form.ss")
- (register-module-path! 'extensive-form "lattice/game-theory/extensive-form.ss")
- (register-module-path! 'voting "lattice/game-theory/voting.ss")
- (register-module-path! 'mechanism "lattice/game-theory/mechanism.ss")
+ (register-module-path! 'optic-query "lattice/query/optic-query.ss")
+ (register-module-path! 'query-macro "lattice/query/query-macro.ss")
+ (register-module-path! 'ascii-render "lattice/geometry/ascii-render.ss")
+ (register-module-path! 'raymarch "lattice/geometry/raymarch.ss")
+ (register-module-path! 'mesh-sdf "lattice/geometry/mesh-sdf.ss")
+ (register-module-path! 'mesh-topology "lattice/geometry/mesh-topology.ss")
+ (register-module-path! 'marching-cubes "lattice/geometry/marching-cubes.ss")
+ (register-module-path! 'octree "lattice/geometry/octree.ss")
+ (register-module-path! 'obj-loader "lattice/geometry/obj-loader.ss")
  (register-module-path! 'fair-division "lattice/game-theory/fair-division.ss")
  (register-module-path! 'coop-games "lattice/game-theory/coop-games.ss")
  (register-module-path! 'matching "lattice/game-theory/matching.ss")
@@ -226,289 +122,17 @@
  (register-module-path! 'multi-winner "lattice/game-theory/multi-winner.ss")
  (register-module-path! 'evolutionary "lattice/game-theory/evolutionary.ss")
  (register-module-path! 'physics-dsl "lattice/game-theory/physics-dsl.ss")
- (register-module-path! 'game-theory/clp-equilibrium "lattice/game-theory/clp-equilibrium.ss")
-
- ;; Control systems layer
- (register-module-path! 'control/state-space "lattice/control-systems/state-space.ss")
- (register-module-path! 'control/transfer-function "lattice/control-systems/transfer-function.ss")
- (register-module-path! 'control/stability "lattice/control-systems/stability.ss")
- (register-module-path! 'control/controller-design "lattice/control-systems/controller-design.ss")
- (register-module-path! 'control/discrete-control "lattice/control-systems/discrete-control.ss")
- (register-module-path! 'control/hinf-synthesis "lattice/control-systems/hinf-synthesis.ss")
- (register-module-path! 'control/kalman "lattice/control-systems/kalman.ss")
- (register-module-path! 'control/digital-pid "lattice/control-systems/digital-pid.ss")
- (register-module-path! 'control/z-transform "lattice/control-systems/z-transform.ss")
- (register-module-path! 'control/tf-convert "lattice/control-systems/tf-convert.ss")
- (register-module-path! 'control/poly-algebra "lattice/control-systems/poly-algebra.ss")
-
- ;; Optimization layer
- (register-module-path! 'convergence "lattice/optimization/convergence.ss")
- (register-module-path! 'line-search "lattice/optimization/line-search.ss")
- (register-module-path! 'lp "lattice/optimization/lp.ss")
- (register-module-path! 'ilp "lattice/optimization/ilp.ss")
- (register-module-path! 'first-order "lattice/optimization/first-order.ss")
- (register-module-path! 'newton "lattice/optimization/newton.ss")
- (register-module-path! 'lbfgs "lattice/optimization/lbfgs.ss")
- (register-module-path! 'optimize "lattice/optimization/optimize.ss")
- (register-module-path! 'optic-first-order "lattice/optimization/optic-first-order.ss")
- (register-module-path! 'poly-optimize "lattice/optimization/poly-optimize.ss")
- (register-module-path! 'metaheuristic "lattice/optimization/metaheuristic.ss")
- (register-module-path! 'interval-global "lattice/optimization/interval-global.ss")
- (register-module-path! 'interval-newton "lattice/optimization/interval-newton.ss")
- (register-module-path! 'interval-contract "lattice/optimization/interval-contract.ss")
- (register-module-path! 'maxsat-bridge "lattice/optimization/maxsat-bridge.ss")
-
- ;; Geometry layer
- (register-module-path! 'geometry "lattice/geometry/geometry.ss")
- (register-module-path! 'bvh "lattice/geometry/bvh.ss")
- (register-module-path! 'mesh-sdf "lattice/geometry/mesh-sdf.ss")
- (register-module-path! 'mesh-topology "lattice/geometry/mesh-topology.ss")
- (register-module-path! 'mesh-gen "lattice/geometry/mesh-gen.ss")
- (register-module-path! 'convex-hull "lattice/geometry/convex-hull.ss")
- (register-module-path! 'voronoi "lattice/geometry/voronoi.ss")
- (register-module-path! 'obj-loader "lattice/geometry/obj-loader.ss")
- (register-module-path! 'ascii-render "lattice/geometry/ascii-render.ss")
- (register-module-path! 'raymarch "lattice/geometry/raymarch.ss")
- (register-module-path! 'marching-cubes "lattice/geometry/marching-cubes.ss")
- (register-module-path! 'octree "lattice/geometry/octree.ss")
- (register-module-path! 'shape-protocol "lattice/geometry/shape-protocol.ss")
- (register-module-path! 'geometry-optics "lattice/geometry/geometry-optics.ss")
-
- ;; Algebra
- (register-module-path! 'group "lattice/algebra/group.ss")
- (register-module-path! 'ring "lattice/algebra/ring.ss")
- (register-module-path! 'field "lattice/algebra/field.ss")
- (register-module-path! 'algebra/polynomial "lattice/algebra/polynomial.ss")
- (register-module-path! 'multivariate "lattice/algebra/multivariate.ss")
- (register-module-path! 'groebner "lattice/algebra/groebner.ss")
- (register-module-path! 'module-theory "lattice/algebra/module.ss")
- (register-module-path! 'galois "lattice/algebra/galois.ss")
- (register-module-path! 'field-ext "lattice/algebra/field-ext.ss")
- (register-module-path! 'poly-bridge "lattice/algebra/poly-bridge.ss")
- (register-module-path! 'tropical "lattice/algebra/tropical.ss")
- (register-module-path! 'tropical-graph "lattice/algebra/tropical-graph.ss")
-
- ;; IPC
- (register-module-path! 'ipc-protocol "lattice/ipc/protocol.ss")
-
- ;; UI
- (register-module-path! 'layout "lattice/ui/layout.ss")
- (register-module-path! 'presentation "lattice/dataset/presentation.ss")
-
- ;; E-graph
- (register-module-path! 'egraph/union-find "lattice/egraph/union-find.ss")
- (register-module-path! 'egraph/eclass "lattice/egraph/eclass.ss")
- (register-module-path! 'egraph/egraph "lattice/egraph/egraph.ss")
- (register-module-path! 'egraph/match "lattice/egraph/match.ss")
- (register-module-path! 'egraph/saturation "lattice/egraph/saturation.ss")
- (register-module-path! 'egraph/cost "lattice/egraph/cost.ss")
- (register-module-path! 'egraph/extract "lattice/egraph/extract.ss")
- (register-module-path! 'egraph/scheduler "lattice/egraph/scheduler.ss")
- (register-module-path! 'egraph-groebner "lattice/egraph/egraph-groebner.ss")
-
- ;; FP layers
- (register-module-path! 'sort "lattice/data/sort.ss")
- (register-module-path! 'combinators "lattice/fp/meta/combinators.ss")
- (register-module-path! 'tree-zipper "lattice/fp/data/tree-zipper.ss")
- (register-module-path! 'transcendental "lattice/fp/numeric/transcendental.ss")
- (register-module-path! 'parser-combinators "lattice/fp/parsing/parser.ss")
- (register-module-path! 'state "lattice/fp/control/state.ss")
- (register-module-path! 'protocol "lattice/fp/protocol.ss")
- (register-module-path! 'fp/protocol "lattice/fp/protocol.ss")  ; alias — prevents double-load
- (register-module-path! 'special-functions "lattice/fp/numeric/special-functions.ss")
- (register-module-path! 'units "lattice/fp/measure/units.ss")
- (register-module-path! 'pretty-class "core/util/pretty-class.ss")
- (register-module-path! 'pretty-instances "lattice/fp/pretty-instances.ss")
- (register-module-path! 'cost-analysis "lattice/fp/analysis/cost-analysis.ss")
- (register-module-path! 'fusion-detect "lattice/fp/analysis/fusion-detect.ss")
- (register-module-path! 'parallel-detect "lattice/fp/analysis/parallel-detect.ss")
- (register-module-path! 'multi-category "lattice/category/multi/category.ss")
- (register-module-path! 'domain "lattice/fp/clp/domain.ss")
- (register-module-path! 'templates "lattice/fp/templates.ss")
- (register-module-path! 'continuation "lattice/fp/control/continuation.ss")
- (register-module-path! 'free "lattice/fp/control/free.ss")
- (register-module-path! 'stream "lattice/fp/data/stream.ss")
- (register-module-path! 'zipper "lattice/fp/data/zipper.ss")
- (register-module-path! 'generic-zipper "lattice/fp/data/generic-zipper.ss")
- (register-module-path! 'fsm "lattice/fp/parsing/fsm.ss")
- (register-module-path! 'parser "lattice/fp/parsing/parser.ss")
- (register-module-path! 'result "lattice/fp/meta/result.ss")
- (register-module-path! 'protocol-bundle "lattice/fp/protocol-bundle.ss")
- (register-module-path! 'protocol-introspect "lattice/fp/protocol-introspect.ss")
- (register-module-path! 'natural-transform "lattice/category/natural-transform.ss")
- (register-module-path! 'kan-extension "lattice/category/kan-extension.ss")
- (register-module-path! 'qvec "lattice/fp/measure/qvec.ss")
- (register-module-path! 'markov "lattice/fp/markov.ss")
-
- ;; FP layer 2: depth-1 dependents
- (register-module-path! 'effects "lattice/fp/control/effects.ss")
- (register-module-path! 'fused-ops "lattice/fp/data/fused-ops.ss")
- (register-module-path! 'zipper-lens "lattice/fp/data/zipper-lens.ss")
- (register-module-path! 'logic "lattice/fp/meta/logic.ss")
- (register-module-path! 'parser-examples "lattice/fp/parsing/parser-examples.ss")
- (register-module-path! 'regex "lattice/fp/parsing/regex.ss")
- (register-module-path! 'parser-compile "lattice/fp/parsing/parser-compile.ss")
- (register-module-path! 'functor-general "lattice/category/multi/functor-general.ss")
- (register-module-path! 'expr "lattice/symbolic/expr.ss")
- (register-module-path! 'rule "lattice/rewrite/rule.ss")
- (register-module-path! 'trace "lattice/rewrite/trace.ss")
- (register-module-path! 'sat/literal "lattice/fp/sat/literal.ss")
- (register-module-path! 'adjunction "lattice/category/adjunction.ss")
-
- ;; FP layer 3: deeper dependents
- (register-module-path! 'random-effect "lattice/fp/control/random-effect.ss")
- (register-module-path! 'dsl "lattice/fp/meta/dsl.ss")
- (register-module-path! 'rewrite/sexp-zipper "lattice/rewrite/sexp-zipper.ss")
- (register-module-path! 'verify "lattice/rewrite/verify.ss")
- (register-module-path! 'goals "lattice/rewrite/goals.ss")
- (register-module-path! 'simplify "lattice/symbolic/simplify.ss")
- (register-module-path! 'egraph-simplify "lattice/symbolic/egraph-simplify.ss")
- (register-module-path! 'diff "lattice/symbolic/diff.ss")
- (register-module-path! 'sat/clause "lattice/fp/sat/clause.ss")
- (register-module-path! 'sat/assignment "lattice/fp/sat/assignment.ss")
- (register-module-path! 'sat/watches "lattice/fp/sat/watches.ss")
- (register-module-path! 'monad-derivation "lattice/category/monad-derivation.ss")
- (register-module-path! 'logic-adjunction "lattice/category/logic-adjunction.ss")
- (register-module-path! 'comonad "lattice/category/comonad.ss")
- (register-module-path! 'abstract-interp "lattice/category/abstract-interp.ss")
- (register-module-path! 'nat-transform-indexed "lattice/category/multi/nat-transform-indexed.ss")
- (register-module-path! 'store "lattice/fp/clp/store.ss")
-
- ;; FP layer 4: engine, solver, category
- (register-module-path! 'engine "lattice/rewrite/engine.ss")
- (register-module-path! 'solve "lattice/symbolic/solve.ss")
- (register-module-path! 'integrate "lattice/symbolic/integrate.ss")
- (register-module-path! 'poly-canonical "lattice/symbolic/poly-canonical.ss")
- (register-module-path! 'sat/cnf "lattice/fp/sat/cnf.ss")
- (register-module-path! 'sat/solver "lattice/fp/sat/solver.ss")
- (register-module-path! 'kleisli "lattice/category/kleisli.ss")
- (register-module-path! 'common-monads "lattice/category/common-monads.ss")
- (register-module-path! 'limits "lattice/category/limits.ss")
- (register-module-path! 'state-store-adjunction "lattice/category/state-store-adjunction.ss")
- (register-module-path! 'free-algebra "lattice/category/free-algebra.ss")
- (register-module-path! 'adjunction-inter "lattice/category/multi/adjunction-inter.ss")
- (register-module-path! 'fd-constraints "lattice/fp/clp/fd-constraints.ss")
-
- ;; FP layer 5-7: laws, SAT, CLP, effects
- (register-module-path! 'rewrite/laws "lattice/rewrite/laws.ss")
- (register-module-path! 'sat "lattice/fp/sat/sat.ss")
- (register-module-path! 'propagate "lattice/fp/clp/propagate.ss")
- (register-module-path! 'effect-adjunction "lattice/category/multi/effect-adjunction.ss")
- (register-module-path! 'effect-category "lattice/category/effect-category.ss")
- (register-module-path! 'rewrite/fusion-rules "lattice/rewrite/fusion-rules.ss")
- (register-module-path! 'rewrite/proof-tactics "lattice/rewrite/proof-tactics.ss")
- (register-module-path! 'rewrite/sketch "lattice/rewrite/sketch.ss")
- (register-module-path! 'maxsat "lattice/fp/sat/maxsat.ss")
- (register-module-path! 'label "lattice/fp/clp/label.ss")
- (register-module-path! 'global-constraints "lattice/fp/clp/global-constraints.ss")
- (register-module-path! 'clp "lattice/fp/clp/clp.ss")
-
- ;; Autodiff layer — core
- (register-module-path! 'comp-graph "core/autodiff/comp-graph.ss")
- (register-module-path! 'reverse-diff "core/autodiff/reverse-diff.ss")
- ;; Autodiff layer — lattice
- (register-module-path! 'higher-order-diff "lattice/autodiff/higher-order-diff.ss")
- (register-module-path! 'sparse-autodiff "lattice/autodiff/sparse-autodiff.ss")
- (register-module-path! 'differentiable "lattice/autodiff/differentiable.ss")
- (register-module-path! 'differentiable-signal "lattice/autodiff/differentiable-signal.ss")
- (register-module-path! 'profiling "lattice/autodiff/profiling.ss")
- (register-module-path! 'traced-optics "lattice/autodiff/traced-optics.ss")
- (register-module-path! 'optic-functors "lattice/autodiff/optic-functors.ss")
- (register-module-path! 'symbolic-diff "lattice/autodiff/symbolic-diff.ss")
- (register-module-path! 'variational-inference "lattice/autodiff/variational-inference.ss")
-
- ;; Random layer
- (register-module-path! 'prng "lattice/random/prng.ss")
- (register-module-path! 'distributions "lattice/random/distributions.ss")
- (register-module-path! 'probability "lattice/random/probability.ss")
- (register-module-path! 'monte-carlo "lattice/random/monte-carlo.ss")
- (register-module-path! 'bayesian "lattice/random/bayesian.ss")
-
- ;; QuickCheck layer
- (register-module-path! 'qc-generators "lattice/quickcheck/generators.ss")
- (register-module-path! 'qc-shrink "lattice/quickcheck/shrink.ss")
- (register-module-path! 'quickcheck "lattice/quickcheck/quickcheck.ss")
- (register-module-path! 'gen-linalg "lattice/quickcheck/gen-linalg.ss")
- (register-module-path! 'qc-laws "lattice/quickcheck/laws.ss")
-
- ;; Statistics core
- (register-module-path! 'summary-stats "lattice/statistics/core/summary-stats.ss")
- (register-module-path! 'result-types "lattice/statistics/core/result-types.ss")
- (register-module-path! 'diagnostics "lattice/statistics/core/diagnostics.ss")
- (register-module-path! 'design-matrix "lattice/statistics/core/design-matrix.ss")
- (register-module-path! 'model-protocol "lattice/statistics/core/model-protocol.ss")
-
- ;; Statistics hypothesis
- (register-module-path! 'stat/distributions "lattice/statistics/hypothesis/distributions.ss")
- (register-module-path! 't-test "lattice/statistics/hypothesis/t-test.ss")
- (register-module-path! 'f-test "lattice/statistics/hypothesis/f-test.ss")
- (register-module-path! 'chi-squared "lattice/statistics/hypothesis/chi-squared.ss")
- (register-module-path! 'anova "lattice/statistics/hypothesis/anova.ss")
-
- ;; Statistics regression
- (register-module-path! 'families "lattice/statistics/regression/families.ss")
- (register-module-path! 'link-functions "lattice/statistics/regression/link-functions.ss")
- (register-module-path! 'linear "lattice/statistics/regression/linear.ss")
- (register-module-path! 'regularized "lattice/statistics/regression/regularized.ss")
- (register-module-path! 'glm "lattice/statistics/regression/glm.ss")
- (register-module-path! 'traced-regression "lattice/statistics/regression/traced-regression.ss")
- (register-module-path! 'autodiff-fit "lattice/statistics/regression/autodiff-fit.ss")
-
- ;; Statistics timeseries
- (register-module-path! 'differencing "lattice/statistics/timeseries/differencing.ss")
- (register-module-path! 'exponential "lattice/statistics/timeseries/exponential.ss")
- (register-module-path! 'forecast "lattice/statistics/timeseries/forecast.ss")
- (register-module-path! 'acf-pacf "lattice/statistics/timeseries/acf-pacf.ss")
- (register-module-path! 'ar "lattice/statistics/timeseries/ar.ss")
- (register-module-path! 'ma "lattice/statistics/timeseries/ma.ss")
- (register-module-path! 'ar-poly "lattice/statistics/timeseries/ar-poly.ss")
- (register-module-path! 'spectral-ts "lattice/statistics/spectral-ts.ss")
-
- ;; DSL layer
- (register-module-path! 'tagless "lattice/dsl/tagless.ss")
- (register-module-path! 'quasi "lattice/dsl/quasi.ss")
- (register-module-path! 'staging "lattice/dsl/staging.ss")
- (register-module-path! 'dsl/reader "lattice/dsl/reader.ss")
- (register-module-path! 'dsl/match "lattice/dsl/match.ss")
- (register-module-path! 'dsl/compose "lattice/dsl/compose.ss")
- (register-module-path! 'partial-eval "lattice/dsl/partial-eval.ss")
- (register-module-path! 'chronicle "lattice/dsl/chronicle/chronicle.ss")
- (register-module-path! 'chronicle-parser "lattice/dsl/chronicle/chronicle-parser.ss")
- (register-module-path! 'tagless-chronicle "lattice/dsl/chronicle/tagless-chronicle.ss")
- (register-module-path! 'dsl/template "lattice/dsl/template/template.ss")
- (register-module-path! 'template-zipper "lattice/dsl/template/template-zipper.ss")
- (register-module-path! 'markdown-ast "lattice/dsl/markdown/ast.ss")
- (register-module-path! 'inline-parser "lattice/dsl/markdown/inline-parser.ss")
- (register-module-path! 'block-parser "lattice/dsl/markdown/block-parser.ss")
- (register-module-path! 'markdown-html "lattice/dsl/markdown/html.ss")
-
- ;; Tiles layer
- (register-module-path! 'tiles/core "lattice/tiles/core.ss")
- (register-module-path! 'tiles/square "lattice/tiles/square.ss")
- (register-module-path! 'tiles/hex "lattice/tiles/hex.ss")
- (register-module-path! 'tiles/triangle "lattice/tiles/triangle.ss")
- (register-module-path! 'pathfinding "lattice/tiles/pathfinding.ss")
- (register-module-path! 'visibility "lattice/tiles/visibility.ss")
- (register-module-path! 'tiles/render "lattice/tiles/render.ss")
- (register-module-path! 'tiles/units "lattice/tiles/units.ss")
- (register-module-path! 'turns "lattice/tiles/turns.ss")
- (register-module-path! 'topology-analysis "lattice/tiles/topology-analysis.ss")
- (register-module-path! 'boardcraft "lattice/tiles/boardcraft.ss")
-
- ;; Pipeline layer
- (register-module-path! 'pipeline/context "lattice/pipeline/context.ss")
- (register-module-path! 'pipeline/stage "lattice/pipeline/stage.ss")
- (register-module-path! 'pipeline/effects "lattice/pipeline/effects.ss")
  (register-module-path! 'council "lattice/pipeline/council.ss")
  (register-module-path! 'council-voting "lattice/pipeline/council-voting.ss")
  (register-module-path! 'curriculum "lattice/pipeline/curriculum.ss")
- (register-module-path! 'pipeline/dsl "lattice/pipeline/dsl.ss")
- (register-module-path! 'rlm2 "lattice/pipeline/rlm2.ss")
- (register-module-path! 'rlm2-hud "lattice/pipeline/rlm2-hud.ss")
- (register-module-path! 'rlm2-parse "lattice/pipeline/rlm2-parse.ss")
-
- ;; Physics classical (2D)
- (register-module-path! 'rigid-body "lattice/physics/classical/rigid-body.ss")
+ (register-module-path! 'bifurcation "lattice/sim/dynamics/bifurcation.ss")
+ (register-module-path! 'attractor-render "lattice/sim/dynamics/attractor-render.ss")
+ (register-module-path! 'simulation-stream "lattice/sim/simulation-stream.ss")
+ (register-module-path! 'difficulty "lattice/dataset/difficulty.ss")
+ (register-module-path! 'parameter "lattice/dataset/parameter.ss")
+ (register-module-path! 'distractor "lattice/dataset/distractor.ss")
+ (register-module-path! 'sample "lattice/dataset/sample.ss")
+ (register-module-path! 'presentation "lattice/dataset/presentation.ss")
  (register-module-path! 'collision-protocol "lattice/physics/classical/collision-protocol.ss")
  (register-module-path! 'collision-detection "lattice/physics/classical/collision-detection.ss")
  (register-module-path! 'collision-response "lattice/physics/classical/collision-response.ss")
@@ -522,8 +146,6 @@
  (register-module-path! 'raycasting "lattice/physics/classical/raycasting.ss")
  (register-module-path! 'world "lattice/physics/classical/world.ss")
  (register-module-path! 'ascii-renderer "lattice/physics/classical/ascii-renderer.ss")
-
- ;; Physics classical3d (3D)
  (register-module-path! 'rigid-body3d "lattice/physics/classical3d/rigid-body3d.ss")
  (register-module-path! 'shapes3d "lattice/physics/classical3d/shapes3d.ss")
  (register-module-path! 'collision-detection3d "lattice/physics/classical3d/collision-detection3d.ss")
@@ -532,8 +154,6 @@
  (register-module-path! 'collision-impl3d "lattice/physics/classical3d/collision-impl3d.ss")
  (register-module-path! 'constraint-solver3d "lattice/physics/classical3d/constraint-solver3d.ss")
  (register-module-path! 'world3d "lattice/physics/classical3d/world3d.ss")
-
- ;; Physics diff (shared + 2D differentiable)
  (register-module-path! 'dynamics-ops "lattice/physics/diff/dynamics-ops.ss")
  (register-module-path! 'traced-vec2 "lattice/physics/diff/traced-vec2.ss")
  (register-module-path! 'traced-body "lattice/physics/diff/traced-body.ss")
@@ -543,10 +163,7 @@
  (register-module-path! 'diff-collision "lattice/physics/diff/diff-collision.ss")
  (register-module-path! 'diff-constraints "lattice/physics/diff/diff-constraints.ss")
  (register-module-path! 'rollout "lattice/physics/diff/rollout.ss")
- (register-module-path! 'physics/optimize "lattice/physics/diff/optimize.ss")
  (register-module-path! 'optic-optimize "lattice/physics/diff/optic-optimize.ss")
-
- ;; Physics diff3d (3D differentiable)
  (register-module-path! 'traced-vec3 "lattice/physics/diff3d/traced-vec3.ss")
  (register-module-path! 'traced-quaternion "lattice/physics/diff3d/traced-quaternion.ss")
  (register-module-path! 'traced-body3d "lattice/physics/diff3d/traced-body3d.ss")
@@ -556,18 +173,189 @@
  (register-module-path! 'diff-constraints3d "lattice/physics/diff3d/diff-constraints3d.ss")
  (register-module-path! 'rollout3d "lattice/physics/diff3d/rollout3d.ss")
  (register-module-path! 'optimize3d "lattice/physics/diff3d/optimize3d.ss")
-
- ;; Physics lenses
  (register-module-path! 'lenses "lattice/physics/lenses/lenses.ss")
  (register-module-path! 'lenses3d "lattice/physics/lenses/lenses3d.ss")
  (register-module-path! 'optics-integration "lattice/physics/lenses/optics-integration.ss")
-
- ;; Physics problems
  (register-module-path! 'simulation "lattice/physics/problems/simulation.ss")
  (register-module-path! 'physics-problem "lattice/physics/problems/physics-problem.ss")
  (register-module-path! 'spatial "lattice/physics/problems/templates/spatial.ss")
 
- ;; Meta modules
+ ;; Tiles (no @module annotations)
+ (register-module-path! 'pathfinding "lattice/tiles/pathfinding.ss")
+ (register-module-path! 'visibility "lattice/tiles/visibility.ss")
+ (register-module-path! 'turns "lattice/tiles/turns.ss")
+ (register-module-path! 'topology-analysis "lattice/tiles/topology-analysis.ss")
+ (register-module-path! 'boardcraft "lattice/tiles/boardcraft.ss")
+
+ ;; Sim dynamics (no @module annotations)
+ (register-module-path! 'ode-system "lattice/sim/dynamics/ode-system.ss")
+ (register-module-path! 'chaos "lattice/sim/dynamics/chaos.ss")
+
+ ;; Game theory (no @module annotations)
+ (register-module-path! 'normal-form "lattice/game-theory/normal-form.ss")
+ (register-module-path! 'extensive-form "lattice/game-theory/extensive-form.ss")
+ (register-module-path! 'voting "lattice/game-theory/voting.ss")
+ (register-module-path! 'mechanism "lattice/game-theory/mechanism.ss")
+
+ ;; Query (no @module annotations)
+ (register-module-path! 'query-dsl "lattice/query/query-dsl.ss")
+ (register-module-path! 'aho-corasick "lattice/query/aho-corasick.ss")
+ (register-module-path! 'ast-zipper "lattice/query/sql/ast-zipper.ss")
+
+ ;; Optimization (no @module annotations)
+ (register-module-path! 'convergence "lattice/optimization/convergence.ss")
+ (register-module-path! 'line-search "lattice/optimization/line-search.ss")
+ (register-module-path! 'first-order "lattice/optimization/first-order.ss")
+ (register-module-path! 'newton "lattice/optimization/newton.ss")
+ (register-module-path! 'lbfgs "lattice/optimization/lbfgs.ss")
+ (register-module-path! 'optimize "lattice/optimization/optimize.ss")
+ (register-module-path! 'optic-first-order "lattice/optimization/optic-first-order.ss")
+ (register-module-path! 'poly-optimize "lattice/optimization/poly-optimize.ss")
+ (register-module-path! 'metaheuristic "lattice/optimization/metaheuristic.ss")
+ (register-module-path! 'interval-global "lattice/optimization/interval-global.ss")
+ (register-module-path! 'interval-newton "lattice/optimization/interval-newton.ss")
+ (register-module-path! 'interval-contract "lattice/optimization/interval-contract.ss")
+ (register-module-path! 'maxsat-bridge "lattice/optimization/maxsat-bridge.ss")
+
+ ;; Geometry (no @module annotations)
+ (register-module-path! 'geometry "lattice/geometry/geometry.ss")
+ (register-module-path! 'bvh "lattice/geometry/bvh.ss")
+ (register-module-path! 'shape-protocol "lattice/geometry/shape-protocol.ss")
+
+ ;; FP (no @module annotations)
+ (register-module-path! 'regex "lattice/fp/parsing/regex.ss")
+ (register-module-path! 'engine "lattice/rewrite/engine.ss")
+
+ ;; Interval (no @module annotation)
+ (register-module-path! 'interval-integrate "lattice/interval/interval-integrate.ss")
+
+ ;; Statistics (no @module annotations)
+ (register-module-path! 'model-protocol "lattice/statistics/core/model-protocol.ss")
+ (register-module-path! 'traced-regression "lattice/statistics/regression/traced-regression.ss")
+
+ ;; Pipeline (no @module annotations)
+ (register-module-path! 'rlm2 "lattice/pipeline/rlm2.ss")
+ (register-module-path! 'rlm2-hud "lattice/pipeline/rlm2-hud.ss")
+ (register-module-path! 'rlm2-parse "lattice/pipeline/rlm2-parse.ss")
+
+ ;; Name mismatches: registered name differs from @module annotation
+ (register-module-path! 'parser-combinators "lattice/fp/parsing/parser.ss")  ; @module parser
+ (register-module-path! 'module-theory "lattice/algebra/module.ss")          ; @module module (name clash)
+)
+
+;;; ====
+;;; Phase 3: Auto-discover from source annotations
+;;; ====
+;;; Scans core/, lattice/, boundary/ for ;;; @module headers.
+;;; Only registers modules not already in the table (Phase 2 overrides win).
+
+(discover-module-paths!)
+
+;;; ====
+;;; Phase 4: Namespaced aliases (collision avoidance)
+;;; ====
+;;; These register a namespaced name alongside (or replacing) the bare name.
+;;; Use (require 'dir/module) when multiple modules share the same bare name.
+
+(begin
+ ;; Numeric — collision with algebra/polynomial
+ (register-module-path! 'numeric/polynomial "lattice/numeric/polynomial.ss")
+
+ ;; Algebra — collision with numeric/polynomial
+ (register-module-path! 'algebra/polynomial "lattice/algebra/polynomial.ss")
+
+ ;; Data
+ (register-module-path! 'data/alist "lattice/data/alist.ss")
+
+ ;; Statistics — collision with random/distributions
+ (register-module-path! 'stat/distributions "lattice/statistics/hypothesis/distributions.ss")
+
+ ;; Info-stat bridge
+ (register-module-path! 'info-stat/mi-bridge "lattice/statistics/mi-bridge.ss")
+
+ ;; FP protocol (alias)
+ (register-module-path! 'fp/protocol "lattice/fp/protocol.ss")
+
+ ;; Tiles — collision with other core/square/hex/etc names
+ (register-module-path! 'tiles/core "lattice/tiles/core.ss")
+ (register-module-path! 'tiles/square "lattice/tiles/square.ss")
+ (register-module-path! 'tiles/hex "lattice/tiles/hex.ss")
+ (register-module-path! 'tiles/triangle "lattice/tiles/triangle.ss")
+ (register-module-path! 'tiles/render "lattice/tiles/render.ss")
+ (register-module-path! 'tiles/units "lattice/tiles/units.ss")
+
+ ;; Pipeline — collision with fp/pipeline concepts
+ (register-module-path! 'pipeline/context "lattice/pipeline/context.ss")
+ (register-module-path! 'pipeline/stage "lattice/pipeline/stage.ss")
+ (register-module-path! 'pipeline/effects "lattice/pipeline/effects.ss")
+ (register-module-path! 'pipeline/dsl "lattice/pipeline/dsl.ss")
+ (register-module-path! 'pipeline/rlm2-metrics "lattice/pipeline/rlm2-metrics.ss")
+
+ ;; DSL — collision with fp/dsl
+ (register-module-path! 'dsl/reader "lattice/dsl/reader.ss")
+ (register-module-path! 'dsl/match "lattice/dsl/match.ss")
+ (register-module-path! 'dsl/compose "lattice/dsl/compose.ss")
+ (register-module-path! 'dsl/template "lattice/dsl/template/template.ss")
+
+ ;; E-graph (namespaced for clarity)
+ (register-module-path! 'egraph/union-find "lattice/egraph/union-find.ss")
+ (register-module-path! 'egraph/eclass "lattice/egraph/eclass.ss")
+ (register-module-path! 'egraph/egraph "lattice/egraph/egraph.ss")
+ (register-module-path! 'egraph/match "lattice/egraph/match.ss")
+ (register-module-path! 'egraph/saturation "lattice/egraph/saturation.ss")
+ (register-module-path! 'egraph/cost "lattice/egraph/cost.ss")
+ (register-module-path! 'egraph/extract "lattice/egraph/extract.ss")
+ (register-module-path! 'egraph/scheduler "lattice/egraph/scheduler.ss")
+
+ ;; Control systems
+ (register-module-path! 'control/state-space "lattice/control-systems/state-space.ss")
+ (register-module-path! 'control/transfer-function "lattice/control-systems/transfer-function.ss")
+ (register-module-path! 'control/stability "lattice/control-systems/stability.ss")
+ (register-module-path! 'control/controller-design "lattice/control-systems/controller-design.ss")
+ (register-module-path! 'control/discrete-control "lattice/control-systems/discrete-control.ss")
+ (register-module-path! 'control/hinf-synthesis "lattice/control-systems/hinf-synthesis.ss")
+ (register-module-path! 'control/kalman "lattice/control-systems/kalman.ss")
+ (register-module-path! 'control/digital-pid "lattice/control-systems/digital-pid.ss")
+ (register-module-path! 'control/z-transform "lattice/control-systems/z-transform.ss")
+ (register-module-path! 'control/tf-convert "lattice/control-systems/tf-convert.ss")
+ (register-module-path! 'control/poly-algebra "lattice/control-systems/poly-algebra.ss")
+
+ ;; SAT (under fp/)
+ (register-module-path! 'sat/literal "lattice/fp/sat/literal.ss")
+ (register-module-path! 'sat/clause "lattice/fp/sat/clause.ss")
+ (register-module-path! 'sat/assignment "lattice/fp/sat/assignment.ss")
+ (register-module-path! 'sat/watches "lattice/fp/sat/watches.ss")
+ (register-module-path! 'sat/cnf "lattice/fp/sat/cnf.ss")
+ (register-module-path! 'sat/solver "lattice/fp/sat/solver.ss")
+
+ ;; DES (under sim/)
+ (register-module-path! 'des/event "lattice/sim/des/event.ss")
+ (register-module-path! 'des/world "lattice/sim/des/world.ss")
+ (register-module-path! 'des/engine "lattice/sim/des/engine.ss")
+ (register-module-path! 'des/schedule "lattice/sim/des/schedule.ss")
+ (register-module-path! 'des/replicate "lattice/sim/des/replicate.ss")
+
+ ;; Sim namespaced
+ (register-module-path! 'sim/stability "lattice/sim/dynamics/stability.ss")
+ (register-module-path! 'sim/discrete "lattice/sim/dynamics/discrete.ss")
+
+ ;; Rewrite namespaced
+ (register-module-path! 'rewrite/sexp-zipper "lattice/rewrite/sexp-zipper.ss")
+ (register-module-path! 'rewrite/laws "lattice/rewrite/laws.ss")
+ (register-module-path! 'rewrite/fusion-rules "lattice/rewrite/fusion-rules.ss")
+ (register-module-path! 'rewrite/proof-tactics "lattice/rewrite/proof-tactics.ss")
+ (register-module-path! 'rewrite/sketch "lattice/rewrite/sketch.ss")
+
+ ;; Physics namespaced
+ (register-module-path! 'physics/optimize "lattice/physics/diff/optimize.ss")
+
+ ;; Autodiff namespaced
+ (register-module-path! 'autodiff/ode-jacobian "lattice/autodiff/ode-jacobian.ss")
+
+ ;; Game theory namespaced
+ (register-module-path! 'game-theory/clp-equilibrium "lattice/game-theory/clp-equilibrium.ss")
+
+ ;; Meta modules (namespaced to avoid collisions with lattice concepts)
  (register-module-path! 'meta/fuel-vocab "lattice/meta/fuel-vocab.ss")
  (register-module-path! 'meta/purity-audit "lattice/meta/purity-audit.ss")
  (register-module-path! 'meta/bridge-discovery "lattice/meta/bridge-discovery.ss")
@@ -582,7 +370,6 @@
  (register-module-path! 'meta/skill-map "lattice/meta/skill-map.ss")
  (register-module-path! 'meta/derive-deps "lattice/meta/derive-deps.ss")
  (register-module-path! 'meta/fuel-normalize "lattice/meta/fuel-normalize.ss")
- (register-module-path! 'manifest "lattice/meta/manifest.ss")
  (register-module-path! 'meta/bm25 "lattice/meta/bm25.ss")
  (register-module-path! 'meta/cache-migration "lattice/meta/cache-migration.ss")
  (register-module-path! 'meta/dag "lattice/meta/dag.ss")
@@ -600,10 +387,7 @@
  (register-module-path! 'meta/analyzer-patterns "lattice/meta/analyzer-patterns.ss")
  (register-module-path! 'meta/analyzer-coverage "lattice/meta/analyzer-coverage.ss")
  (register-module-path! 'meta/analyzer-fuel "lattice/meta/analyzer-fuel.ss")
- (register-module-path! 'ode-adaptive "lattice/sim/dynamics/ode-adaptive.ss")
- (register-module-path! 'autodiff/ode-jacobian "lattice/autodiff/ode-jacobian.ss")
- (register-module-path! 'contract "lattice/validation/contract.ss")
- (register-module-path! 'pipeline/rlm2-metrics "lattice/pipeline/rlm2-metrics.ss")
 
- ;; Boundary modules
- (register-module-path! 'boundary/bbs "boundary/bbs/bbs.ss"))
+ ;; Boundary
+ (register-module-path! 'boundary/bbs "boundary/bbs/bbs.ss")
+)

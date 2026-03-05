@@ -1,5 +1,8 @@
 ;;; @module egraph/egraph
 ;;; @requires prelude hamt egraph/union-find egraph/eclass
+;;; @description E-graph with hashconsing, merging, and rebuild
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/egraph.ss — E-Graph with Hashconsing and Rebuilding
 ;;;
 ;;; The e-graph is the central data structure for equality saturation.

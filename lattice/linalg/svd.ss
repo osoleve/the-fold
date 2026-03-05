@@ -1,6 +1,9 @@
 ;;; lattice/linalg/svd.ss — Singular Value Decomposition
 ;;; @module svd
 ;;; @requires prelude vec matrix matrix-decomp matrix-eigen
+;;; @description Singular value decomposition
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)

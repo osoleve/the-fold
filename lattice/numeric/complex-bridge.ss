@@ -1,6 +1,9 @@
 ;;; lattice/numeric/complex-bridge.ss — Complex Number Bridge
 ;;; @module complex-bridge
 ;;; @requires prelude complex
+;;; @description Bridge between complex number arithmetic and linalg vector/matrix operations.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'complex)

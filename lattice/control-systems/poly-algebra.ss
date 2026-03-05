@@ -65,10 +65,14 @@
   (and (pair? p) (eq? (car p) 'alg-polynomial)))
 
 ;;; alg-poly-field : AlgPolynomial → Field
-(define (alg-poly-field p) (cadr p))
+(define (alg-poly-field p)
+  (doc 'export #t)
+  (cadr p))
 
 ;;; alg-poly-coeffs : AlgPolynomial → (List Coeff)
-(define (alg-poly-coeffs p) (caddr p))
+(define (alg-poly-coeffs p)
+  (doc 'export #t)
+  (caddr p))
 
 ;;; alg-poly-degree : AlgPolynomial → Nat
 (define (alg-poly-degree p)

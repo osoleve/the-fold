@@ -52,10 +52,18 @@
        (= (length x) 5)))
 
 ;;; Accessors
-(define (pid-Kp pid) (cadr pid))
-(define (pid-Ki pid) (caddr pid))
-(define (pid-Kd pid) (cadddr pid))
-(define (pid-Ts pid) (car (cddddr pid)))
+(define (pid-Kp pid)
+  (doc 'export #t)
+  (cadr pid))
+(define (pid-Ki pid)
+  (doc 'export #t)
+  (caddr pid))
+(define (pid-Kd pid)
+  (doc 'export #t)
+  (cadddr pid))
+(define (pid-Ts pid)
+  (doc 'export #t)
+  (car (cddddr pid)))
 
 ;;; ====
 ;;; PID State
@@ -78,8 +86,12 @@
        (= (length x) 4)))
 
 ;;; Accessors
-(define (pid-integral state) (cadr state))
-(define (pid-prev-error state) (caddr state))
+(define (pid-integral state)
+  (doc 'export #t)
+  (cadr state))
+(define (pid-prev-error state)
+  (doc 'export #t)
+  (caddr state))
 (define (pid-prev-output state) (cadddr state))
 
 ;;; ====

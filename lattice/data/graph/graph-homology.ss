@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-homology.ss — Homology-Based Cycle Analysis for Graphs
 ;;; @module graph-homology
 ;;; @requires prelude topology/homology
+;;; @description Homology-based cycle analysis: Betti numbers, cycle basis, tree/forest detection
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

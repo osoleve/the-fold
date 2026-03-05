@@ -376,6 +376,7 @@ For matrix parameters, use muon-matrix instead.")
   (muon-full f x0 lr 0.95 criteria))
 
 (define (muon-full f x0 lr beta criteria)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List TracedValue) TracedValue) (List Number) Number Number ConvergenceCriteria OptResult))
   (doc 'description "Muon optimizer for vectors with all hyperparameters")
   (doc 'param 'f "Objective function")

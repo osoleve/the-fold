@@ -310,6 +310,120 @@
         tiers)))
 
 
+(doc 'section 'module-level-dag)
+
+;;; ====
+;;; Module-Level DAG
+;;; ====
+;;; Computes module depth from @requires annotations.
+;;; Skill tier is derived as max depth of constituent modules.
+
+(doc *module-dag* 'type '(Alist Symbol (List Symbol)))
+(doc *module-dag* 'description "Module dependency graph from @requires annotations.
+Populated by module-dag-init! from scan-all-module-metadata.")
+(define *module-dag* '())
+
+(doc *module-depth-cache* 'type '(Alist Symbol (U Int Symbol)))
+(doc *module-depth-cache* 'description "Memoization cache for module-depth.")
+(define *module-depth-cache* '())
+
+(doc module-dag-init! 'type (-> Void))
+(doc module-dag-init! 'description "Initialize module-level DAG from scan-all-module-metadata.
+Must be called after module-meta.ss is loaded.")
+(doc module-dag-init! 'export #t)
+(define (module-dag-init!)
+  (when (top-level-bound? 'scan-all-module-metadata)
+    (let ([all-meta (scan-all-module-metadata)])
+      (set! *module-dag*
+            (map (lambda (meta)
+                   (cons (cdr (assq 'name meta))
+                         (cdr (assq 'requires meta))))
+                 all-meta))
+      (set! *module-depth-cache* '())
+      (printf "Module DAG initialized: ~a modules\n" (length *module-dag*)))))
+
+(doc module-deps 'type (-> Symbol (List Symbol)))
+(doc module-deps 'description "Get direct module dependencies from @requires.")
+(doc module-deps 'export #t)
+(define (module-deps mod-name)
+  (let ([entry (assq mod-name *module-dag*)])
+    (if entry (cdr entry) '())))
+
+(doc module-uses 'type (-> Symbol (List Symbol)))
+(doc module-uses 'description "Get modules that directly depend on this module.")
+(doc module-uses 'export #t)
+(define (module-uses mod-name)
+  (filter-map
+   (lambda (entry)
+     (and (memq mod-name (cdr entry))
+          (car entry)))
+   *module-dag*))
+
+(doc module-depth 'type (-> Symbol Int))
+(doc module-depth 'description "Compute maximum dependency depth of a module (memoized).
+Depth 0 = no dependencies, depth N = 1 + max(depth(deps)).
+Handles cycles by treating back-edges as depth 0.")
+(doc module-depth 'export #t)
+(define (module-depth mod-name)
+  (let ([cached (assq mod-name *module-depth-cache*)])
+    (cond
+      [(and cached (eq? (cdr cached) 'in-progress)) 0]
+      [cached (cdr cached)]
+      [else
+       (set! *module-depth-cache*
+             (cons (cons mod-name 'in-progress) *module-depth-cache*))
+       (let* ([deps (module-deps mod-name)]
+              [d (if (null? deps)
+                     0
+                     (+ 1 (apply max (map module-depth deps))))])
+         (set-cdr! (assq mod-name *module-depth-cache*) d)
+         d)])))
+
+(doc module-tiers 'type (-> (List (Pair Int (List Symbol)))))
+(doc module-tiers 'description "Group modules by their computed DAG depth.")
+(doc module-tiers 'export #t)
+(define (module-tiers)
+  (let ([tier-map '()])
+    (for-each
+     (lambda (entry)
+       (let* ([mod-name (car entry)]
+              [tier (module-depth mod-name)]
+              [existing (assq tier tier-map)])
+         (if existing
+             (set-cdr! existing (cons mod-name (cdr existing)))
+             (set! tier-map (cons (cons tier (list mod-name)) tier-map)))))
+     *module-dag*)
+    (sort-by (lambda (a b) (< (car a) (car b))) tier-map)))
+
+(doc module-max-depth 'type (-> Int))
+(doc module-max-depth 'description "Maximum depth of the module DAG.")
+(doc module-max-depth 'export #t)
+(define (module-max-depth)
+  (if (null? *module-dag*)
+      0
+      (apply max (map (lambda (e) (module-depth (car e))) *module-dag*))))
+
+(doc derive-skill-tier 'type (-> Symbol Int))
+(doc derive-skill-tier 'description "Derive a skill's tier as max depth of its constituent modules.
+Uses *module-paths* to find which modules belong to a skill directory.")
+(doc derive-skill-tier 'export #t)
+(define (derive-skill-tier skill-name)
+  (let* ([skill-prefix (string-append "lattice/" (symbol->string skill-name) "/")]
+         [all-paths (hashtable->alist *module-paths*)]
+         [skill-modules
+          (filter-map
+           (lambda (entry)
+             (let ([mod-name (car entry)]
+                   [path (cdr entry)])
+               (and (>= (string-length path) (string-length skill-prefix))
+                    (string=? skill-prefix
+                              (substring path 0 (string-length skill-prefix)))
+                    mod-name)))
+           all-paths)])
+    (if (null? skill-modules)
+        0
+        (apply max (map module-depth skill-modules)))))
+
 (doc 'section 'convenience-functions)
 
 (doc ld 'type (-> Symbol Void))

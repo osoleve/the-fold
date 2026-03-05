@@ -84,6 +84,7 @@
 (define forum-digest
   (effect 'fold
           (list 'call 'digest-posts '())))
+(doc 'forum-digest 'export #t)
 
 ;;; forum-browse : Symbol -> Nat -> Stage ctx i String
 ;;; Browse a channel.
@@ -130,6 +131,7 @@
 (define store-put
   (effect 'store
           (list 'put)))
+(doc 'store-put 'export #t)
 
 ;;; store-get : Hash -> Stage ctx i Any
 ;;; Retrieve value from CAS by hash.
@@ -355,6 +357,7 @@
 (define bbs-ready
   (effect 'bbs
           (list 'ready)))
+(doc 'bbs-ready 'export #t)
 
 ;;; bbs-ready-board : String -> Stage ctx i (List Issue)
 ;;; Get ready issues for a specific board.
@@ -390,12 +393,14 @@
 (define git-status
   (effect 'git
           (list 'status)))
+(doc 'git-status 'export #t)
 
 ;;; git-diff : Stage ctx i String
 ;;; Get git diff.
 (define git-diff
   (effect 'git
           (list 'diff)))
+(doc 'git-diff 'export #t)
 
 ;;; git-commit : String -> Stage ctx i String
 ;;; Commit with message, return hash.

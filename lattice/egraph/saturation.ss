@@ -1,5 +1,8 @@
 ;;; @module egraph/saturation
 ;;; @requires prelude egraph/match
+;;; @description Equality saturation loop with resource limits
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/saturation.ss — Equality Saturation Loop
 ;;;
 ;;; Equality saturation repeatedly applies rewrite rules until no new
@@ -54,9 +57,15 @@
        (>= (vector-length x) 4)
        (eq? (vector-ref x 0) saturation-config-tag)))
 
-(define (config-fuel cfg) (vector-ref cfg 1))
-(define (config-node-limit cfg) (vector-ref cfg 2))
-(define (config-iter-limit cfg) (vector-ref cfg 3))
+(define (config-fuel cfg)
+  (doc 'export #t)
+  (vector-ref cfg 1))
+(define (config-node-limit cfg)
+  (doc 'export #t)
+  (vector-ref cfg 2))
+(define (config-iter-limit cfg)
+  (doc 'export #t)
+  (vector-ref cfg 3))
 
 ;;; Default configuration
 (define (default-saturation-config)
@@ -93,11 +102,19 @@
        (>= (vector-length x) 6)
        (eq? (vector-ref x 0) saturation-result-tag)))
 
-(define (result-status r) (vector-ref r 1))
-(define (result-iterations r) (vector-ref r 2))
+(define (result-status r)
+  (doc 'export #t)
+  (vector-ref r 1))
+(define (result-iterations r)
+  (doc 'export #t)
+  (vector-ref r 2))
 (define (result-rules-applied r) (vector-ref r 3))
-(define (result-final-classes r) (vector-ref r 4))
-(define (result-final-nodes r) (vector-ref r 5))
+(define (result-final-classes r)
+  (doc 'export #t)
+  (vector-ref r 4))
+(define (result-final-nodes r)
+  (doc 'export #t)
+  (vector-ref r 5))
 
 (define (result-saturated? r)
   (doc 'type (-> SaturationResult Boolean))

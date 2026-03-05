@@ -1,6 +1,9 @@
 ;;; lattice/random/distributions.ss — Probability Distributions
 ;;; @module distributions
 ;;; @requires prelude fp/control/state transcendental prng fp/protocol
+;;; @description Probability distributions: normal, exponential, poisson, etc.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'fp/control/state)

@@ -61,15 +61,19 @@
 
 ;;; kalman-mean : Kalman → Num
 (define (kalman-mean kf) (cadr kf))
+(doc 'kalman-mean 'export #t)
 
 ;;; kalman-variance : Kalman → Num
 (define (kalman-variance kf) (caddr kf))
+(doc 'kalman-variance 'export #t)
 
 ;;; kalman-Q : Kalman → Num
 (define (kalman-Q kf) (cadddr kf))
+(doc 'kalman-Q 'export #t)
 
 ;;; kalman-R : Kalman → Num
 (define (kalman-R kf) (car (cddddr kf)))
+(doc 'kalman-R 'export #t)
 
 ;;; ====
 ;;; Kalman Filter Operations

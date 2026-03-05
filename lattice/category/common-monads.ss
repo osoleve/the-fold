@@ -1,5 +1,8 @@
 ;;; @module common-monads
 ;;; @requires monad-derivation
+;;; @description Standard monad derivations
+;;; @purity total
+;;; @stability stable
 
 (require 'monad-derivation)
 

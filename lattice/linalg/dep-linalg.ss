@@ -1,6 +1,9 @@
 ;;; lattice/linalg/dep-linalg.ss — Dependent Linear Algebra
 ;;; @module dep-linalg
 ;;; @requires prelude vec matrix
+;;; @description Dependently-typed linear algebra
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)
@@ -84,6 +87,7 @@
                                                      (Vec m α)    ; cotangent vector
                                                      (Vec n α)))))) ; input cotangent
     ))
+(doc dep-linalg-types 'export #t)
 
 (doc 'section 'vector-operations)
 

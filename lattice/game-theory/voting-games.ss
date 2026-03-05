@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/voting-games.ss — Voting Power Indices
 ;;; @module voting-games
 ;;; @requires voting coop-games
+;;; @description Bridge: voting rules to simple games, power indices
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

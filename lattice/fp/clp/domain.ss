@@ -1,6 +1,9 @@
 ;;; lattice/fp/clp/domain.ss — Finite Domains
 ;;; @module domain
 ;;; @requires prelude sort
+;;; @description Finite domain representation with intervals
+;;; @purity partial
+;;; @stability experimental
 
 (require 'prelude)
 (require 'sort)

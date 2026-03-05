@@ -1,6 +1,9 @@
 ;;; lattice/random/prng.ss — Pseudorandom Number Generation
 ;;; @module prng
 ;;; @requires prelude fp/control/state fp/protocol
+;;; @description PRNGs: PCG, Xorshift128+, Splitmix64 with State monad
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'fp/control/state)

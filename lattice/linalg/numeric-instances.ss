@@ -1,6 +1,9 @@
 ;;; lattice/linalg/numeric-instances.ss — Numeric Type Instances
 ;;; @module numeric-instances
 ;;; @requires vec matrix
+;;; @description Numeric type class instances
+;;; @purity total
+;;; @stability stable
 
 (require 'vec)
 (require 'matrix)
@@ -31,14 +34,17 @@ Dependencies:
      'type (-> (Vec Num) (Vec Num) (or (Vec Num) Error))
      'description "Element-wise addition")
 (define vec+ vec-add)
+(doc 'vec+ 'export #t)
 
 ;;; vec- : Vec Num × Vec Num → Vec Num | Error
 ;;; Element-wise subtraction.
 (define vec- vec-sub)
+(doc 'vec- 'export #t)
 
 ;;; vec* : Vec Num × Vec Num → Vec Num | Error
 ;;; Element-wise multiplication (Hadamard product).
 (define vec* vec-mul)
+(doc 'vec* 'export #t)
 
 ;;; vec-negate : Vec Num → Vec Num
 ;;; Negate all elements.
@@ -73,6 +79,7 @@ Dependencies:
 ;;; vec/ : Vec Num × Vec Num → Vec Num | Error
 ;;; Element-wise division.
 (define vec/ vec-div)
+(doc 'vec/ 'export #t)
 
 ;;; vec-recip : Vec Num → Vec Num
 ;;; Element-wise reciprocal (1/x).
@@ -197,10 +204,12 @@ Dependencies:
      'type (-> (Matrix Num) (Matrix Num) (or (Matrix Num) Error))
      'description "Element-wise addition")
 (define matrix+ matrix-add)
+(doc 'matrix+ 'export #t)
 
 ;;; matrix- : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise subtraction.
 (define matrix- matrix-sub)
+(doc 'matrix- 'export #t)
 
 ;;; matrix-hadamard : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise multiplication (Hadamard product).

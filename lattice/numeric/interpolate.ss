@@ -1,6 +1,9 @@
 ;;; lattice/numeric/interpolate.ss — Numerical Interpolation
 ;;; @module interpolate
 ;;; @requires prelude matrix matrix-decomp matrix-solvers numeric/polynomial iteration
+;;; @description Numerical interpolation and curve fitting: splines, Bezier, Chebyshev, B-splines, least squares.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'matrix)

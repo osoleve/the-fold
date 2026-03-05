@@ -229,10 +229,12 @@
 ;;; id-strategy : Expr → Expr
 ;;; Identity strategy (always succeeds, returns input unchanged).
 (define (id-strategy expr) expr)
+(doc 'id-strategy 'export #t)
 
 ;;; fail-strategy : Expr → #f
 ;;; Failure strategy (always fails).
 (define (fail-strategy expr) #f)
+(doc 'fail-strategy 'export #t)
 
 ;;; seq : Strategy × Strategy → Strategy
 ;;; Sequential composition: apply s1, then s2 to result.
@@ -275,6 +277,7 @@
                           (if (and result (not (equal? result current)))
                               (loop result (- remaining 1))
                               current)))))]))
+(doc 'repeat 'export #t)
 
 ;;; repeat-n : Strategy × Nat → Strategy
 ;;; Repeat at most n times.

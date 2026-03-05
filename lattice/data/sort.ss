@@ -1,6 +1,9 @@
 ;;; lattice/data/sort.ss — Sorting Algorithms
 ;;; @module sort
 ;;; @requires prelude
+;;; @description Sorting algorithms for lists and vectors: merge sort, quicksort, insertion sort, heapsort
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -119,6 +122,7 @@
 (doc 'section 'insertion-sort)
 
 (define (insert-sorted cmp x sorted)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) α (List α) (List α)))
   (doc 'description "Insert element into sorted list maintaining order")
   (cond

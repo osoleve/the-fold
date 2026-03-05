@@ -439,13 +439,14 @@ class FoldMCPServer {
 
     try {
       const response = await sendCommand(session.id, 'inspect', { skill });
-      if (response.error) {
-        throw new Error(response.error);
+      if (response.error || (response.output && response.output.includes('not found'))) {
+        throw new Error(response.error || 'not found');
       }
       return {
         content: [{ type: 'text', text: response.output }]
       };
     } catch {
+      // Fallback: li handles both skills and modules
       const safe = sanitizeSymbol(skill);
       const response = await sendRequest(session.id, `(li '${safe})`);
       if (response.error) {

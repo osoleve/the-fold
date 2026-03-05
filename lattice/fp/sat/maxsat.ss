@@ -1,5 +1,8 @@
 ;;; @module maxsat
 ;;; @requires sat
+;;; @description MaxSAT optimization - minimize unsatisfied soft clauses
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat)
 

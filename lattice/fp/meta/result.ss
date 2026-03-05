@@ -1,6 +1,8 @@
 ;;; lattice/fp/meta/result.ss — Result Type Operations
 ;;; @module result
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

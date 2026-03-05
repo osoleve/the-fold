@@ -1,5 +1,8 @@
 ;;; @module tagless
 ;;; @requires prelude hamt
+;;; @description Tagless final style interpreter/compiler composition
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'hamt)

@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-bridge.ss — Bidirectional Graph-Matrix Bridge
 ;;; @module graph-bridge
 ;;; @requires prelude matrix sparse graph-matrix graph-laplacian
+;;; @description Bidirectional graph-matrix bridge: graph ADT to/from adjacency and Laplacian
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -53,12 +56,15 @@
 
 (doc graph-edges 'type '(-> Graph (List Edge)))
 (define (graph-edges g) (cadr g))
+(doc 'graph-edges 'export #t)
 
 (doc graph-node-count 'type '(-> Graph Nat))
 (define (graph-node-count g) (caddr g))
+(doc 'graph-node-count 'export #t)
 
 (doc graph-directed? 'type '(-> Graph Boolean))
 (define (graph-directed? g) (cadddr g))
+(doc 'graph-directed? 'export #t)
 
 (doc graph-weighted? 'type '(-> Graph Boolean))
 (define (graph-weighted? g) (car (cddddr g)))

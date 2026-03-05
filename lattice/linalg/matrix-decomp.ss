@@ -1,6 +1,9 @@
 ;;; lattice/linalg/matrix-decomp.ss — Matrix Decompositions
 ;;; @module matrix-decomp
 ;;; @requires prelude vec matrix
+;;; @description LU, QR, Cholesky decomposition
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)
@@ -262,6 +265,7 @@
 (doc 'section 'determinant)
 
 (define (permutation-sign p)
+  (doc 'export #t)
   (doc 'description "Compute the sign of a permutation: (-1)^(number of inversions). An inversion is a pair (i, j) where i < j but P[i] > P[j].")
   (let ([n (vector-length p)])
        (let outer ([i 0] [swaps 0])

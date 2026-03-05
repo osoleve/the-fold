@@ -1,5 +1,8 @@
 ;;; @module vec
 ;;; @requires prelude iteration
+;;; @description Generic vector operations
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'iteration)
@@ -14,16 +17,19 @@
 (doc 'section 'vector-construction)
 
 (define (make-vec n init)
+  (doc 'export #t)
   (doc 'type '(-> Nat a (Vec a)))
   (doc 'description "Create a vector of n elements, all initialized to init")
   (make-vector n init))
 
 (define (vec-from-list lst)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (Vec a)))
   (doc 'description "Convert a list to a vector")
   (list->vector lst))
 
 (define (vec->list v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) (List a)))
   (doc 'description "Convert a vector to a list")
   (vector->list v))
@@ -37,6 +43,7 @@
 (doc 'section 'vector-accessors)
 
 (define (vec-ref v i)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) Nat (Or a Error)))
   (doc 'description "Get element at index (0-based)")
   (if (and (>= i 0) (< i (vector-length v)))
@@ -44,16 +51,19 @@
       `(error out-of-bounds ,i ,(vector-length v))))
 
 (define (vec-length v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) Nat))
   (doc 'description "Get the length of a vector")
   (vector-length v))
 
 (define (vec-empty? v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) Bool))
   (doc 'description "Check if vector is empty")
   (= (vector-length v) 0))
 
 (define (vec-first v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) (Or a Error)))
   (doc 'description "Get first element")
   (if (> (vector-length v) 0)
@@ -61,6 +71,7 @@
       '(error empty-vector)))
 
 (define (vec-last v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) (Or a Error)))
   (doc 'description "Get last element")
   (let ([n (vector-length v)])
@@ -71,23 +82,27 @@
 (doc 'section 'vector-transformations)
 
 (define (vec-map f v)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (Vec a) (Vec b)))
   (doc 'description "Apply function to each element")
   (doc 'fuel-cost '(linear n))
   (vec-map-idx i v (f (vector-ref v i))))
 
 (define (vec-fold f init v)
+  (doc 'export #t)
   (doc 'type '(-> (-> b a b) b (Vec a) b))
   (doc 'description "Left fold over vector elements")
   (doc 'fuel-cost '(linear n))
   (vec-fold-idx acc init i v (f acc (vector-ref v i))))
 
 (define (vec-fold-right f init v)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b b) b (Vec a) b))
   (doc 'description "Right fold over vector elements")
   (vec-fold-reverse acc init i v (f (vector-ref v i) acc)))
 
 (define (vec-zip-with f v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b c) (Vec a) (Vec b) (Or (Vec c) Error)))
   (doc 'description "Zip two vectors with a combining function")
   (let ([n1 (vector-length v1)]
@@ -97,6 +112,7 @@
            (vec-zip-map-idx i v1 v2 (f (vector-ref v1 i) (vector-ref v2 i))))))
 
 (define (vec-append v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) (Vec a) (Vec a)))
   (doc 'description "Concatenate two vectors")
   (let* ([n1 (vector-length v1)]
@@ -109,6 +125,7 @@
         result))
 
 (define (vec-take v n)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) Nat (Or (Vec a) Error)))
   (doc 'description "Take first n elements")
   (let ([len (vector-length v)])
@@ -118,6 +135,7 @@
                 (vec-tabulate n i (vector-ref src i))))))
 
 (define (vec-drop v n)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) Nat (Or (Vec a) Error)))
   (doc 'description "Drop first n elements")
   (let ([len (vector-length v)])
@@ -129,6 +147,7 @@
                 (vec-tabulate new-len i (vector-ref src (+ offset i)))))))
 
 (define (vec-slice v start end)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) Nat Nat (Or (Vec a) Error)))
   (doc 'description "Extract slice from start (inclusive) to end (exclusive)")
   (let ([len (vector-length v)])
@@ -145,17 +164,20 @@
 (doc 'section 'vector-arithmetic)
 
 (define (vec-add v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
   (doc 'description "Element-wise addition")
   (doc 'fuel-cost '(linear n))
   (vec-zip-with + v1 v2))
 
 (define (vec-sub v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
   (doc 'description "Element-wise subtraction")
   (vec-zip-with - v1 v2))
 
 (define (vec-mul v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or (Vec Num) Error)))
   (doc 'description "Element-wise multiplication (Hadamard product)")
   (vec-zip-with * v1 v2))
@@ -166,11 +188,13 @@
   (vec-zip-with / v1 v2))
 
 (define (vec-scale k v)
+  (doc 'export #t)
   (doc 'type '(-> Num (Vec Num) (Vec Num)))
   (doc 'description "Scalar multiplication")
   (vec-map (lambda (x) (* k x)) v))
 
 (define (vec-negate v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Vec Num)))
   (doc 'description "Negate all elements")
   (vec-map - v))
@@ -178,6 +202,7 @@
 (doc 'section 'vector-products-and-norms)
 
 (define (vec-dot v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or Num Error)))
   (doc 'description "Dot product (inner product)")
   (doc 'fuel-cost '(linear n))
@@ -212,6 +237,7 @@
       (vec-fold (lambda (acc x) (max acc (abs x))) 0 v)))
 
 (define (vec-normalize v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Or (Vec Num) Error)))
   (doc 'description "Normalize to unit length")
   (doc 'fuel-cost '(linear n))
@@ -221,6 +247,7 @@
            (vec-scale (/ 1 n) v))))
 
 (define (vec-distance v1 v2)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Vec Num) (Or Num Error)))
   (doc 'description "Euclidean distance between two vectors")
   (let ([diff (vec-sub v1 v2)])
@@ -256,6 +283,7 @@
 (doc 'section 'vector-utilities)
 
 (define (vec-sum v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) Num))
   (doc 'description "Sum of all elements")
   (doc 'fuel-cost '(linear n))
@@ -275,6 +303,7 @@
            (/ (vec-sum v) n))))
 
 (define (vec-min v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Or Num Error)))
   (doc 'description "Minimum element")
   (if (vec-empty? v)
@@ -282,6 +311,7 @@
       (vec-fold min (vector-ref v 0) v)))
 
 (define (vec-max v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec Num) (Or Num Error)))
   (doc 'description "Maximum element")
   (if (vec-empty? v)
@@ -307,6 +337,7 @@
                        (if (> (vector-ref v i) (vector-ref v max-i)) i max-i)))))
 
 (define (vec-reverse v)
+  (doc 'export #t)
   (doc 'type '(-> (Vec a) (Vec a)))
   (doc 'description "Reverse a vector")
   (let ([n (vector-length v)])
@@ -320,11 +351,13 @@
 (doc 'section 'special-vectors)
 
 (define (vec-zeros n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Vec Num)))
   (doc 'description "Vector of n zeros")
   (make-vector n 0))
 
 (define (vec-ones n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Vec Num)))
   (doc 'description "Vector of n ones")
   (make-vector n 1))
@@ -345,6 +378,7 @@
             (vec-tabulate n i (+ start (* i step))))))
 
 (define (vec-unit n k)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat (Vec Num)))
   (doc 'description "Unit vector: 1 at position k, 0 elsewhere")
   (let ([result (make-vector n 0)])

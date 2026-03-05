@@ -1,5 +1,8 @@
 ;;; @module traced-optics
 ;;; @requires prelude reverse-diff
+;;; @description Optics integration for gradient through focused paths
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

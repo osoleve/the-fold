@@ -1,6 +1,9 @@
 ;;; lattice/data/set.ss — Unordered Set
 ;;; @module set
 ;;; @requires prelude
+;;; @description Unordered collection with no duplicates
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -15,6 +18,7 @@
 (doc 'note "Simple list-based implementation. For large sets, consider balanced trees")
 
 (define set-empty '())
+(doc set-empty 'export #t)
 (doc set-empty 'type 'Set)
 (doc set-empty 'description "The empty set")
 

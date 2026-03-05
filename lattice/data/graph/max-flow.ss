@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/max-flow.ss — Max-Flow / Min-Cut
 ;;; @module max-flow
 ;;; @requires prelude
+;;; @description Edmonds-Karp max-flow, min-cut, bipartite matching
+;;; @purity total
+;;; @stability stable
 ;;;
 ;;; Edmonds-Karp (BFS-based Ford-Fulkerson) max-flow algorithm.
 ;;; O(VE²) time complexity.
@@ -63,7 +66,9 @@ Supports: max-flow computation, min-cut extraction, bipartite matching.")
   (caddr net))
 
 ;;; Edge accessors
-(define (edge-to e)       (vector-ref e 0))
+(define (edge-to e)
+  (doc 'export #t)
+  (vector-ref e 0))
 (define (edge-cap e)      (vector-ref e 1))
 (define (edge-flow e)     (vector-ref e 2))
 (define (edge-rev-idx e)  (vector-ref e 3))

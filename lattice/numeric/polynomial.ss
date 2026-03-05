@@ -1,6 +1,9 @@
 ;;; lattice/numeric/polynomial.ss — Numeric Polynomial Operations
 ;;; @module numeric/polynomial
 ;;; @requires prelude complex matrix matrix-decomp matrix-eigen hamt iteration
+;;; @description Numeric polynomials in descending coefficient order (vector-based). Evaluation, arithmetic, roots, and derivatives.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'complex)

@@ -1,5 +1,8 @@
 ;;; @module channel-capacity
 ;;; @requires entropy
+;;; @description Communication channel capacity computation. BSC, BEC, Z-channel, AWGN models. Blahut-Arimoto algorithm for general DMC capacity optimization.
+;;; @purity total
+;;; @stability stable
 
 (require 'entropy)
 

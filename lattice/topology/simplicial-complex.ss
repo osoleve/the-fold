@@ -1,5 +1,8 @@
 ;;; @module simplicial-complex
 ;;; @requires set sort
+;;; @description Core simplicial complex data structures and operations
+;;; @purity total
+;;; @stability experimental
 
 (require 'set)
 (require 'sort)

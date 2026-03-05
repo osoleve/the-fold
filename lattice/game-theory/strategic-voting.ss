@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/strategic-voting.ss — Strategic Voting Equilibrium Analysis
 ;;; @module strategic-voting
 ;;; @requires prelude voting hamt
+;;; @description Strategic voting equilibrium, price of anarchy, Gibbard-Satterthwaite
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -73,6 +76,7 @@
 ;;; best-response-improves? : Int PreferenceProfile (Profile -> Candidate) Ranking -> Bool
 ;;; Can voter improve by switching from current ballot?
 (define (best-response-improves? voter-idx current-profile voting-rule true-ranking)
+  (doc 'export #t)
   (doc 'type '(-> Nat PreferenceProfile VotingRule Ranking Bool))
   (let* ([current-winner (voting-rule current-profile)]
          [current-utility (voter-utility current-winner true-ranking)]

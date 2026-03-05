@@ -1,5 +1,8 @@
 ;;; @module expr
 ;;; @requires prelude
+;;; @description Symbolic expression representation
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

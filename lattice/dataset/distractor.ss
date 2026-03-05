@@ -1,6 +1,9 @@
 ;;; lattice/dataset/distractor.ss — Plausible Wrong Answer Generation
 ;;; @module distractor
 ;;; @requires prelude parameter sort
+;;; @description Plausible wrong answer generation
+;;; @purity partial
+;;; @stability experimental
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

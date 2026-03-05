@@ -1,6 +1,9 @@
 ;;; lattice/category/kan-extension.ss — Kan Extensions
 ;;; @module kan-extension
 ;;; @requires prelude combinators templates
+;;; @description Left and right Kan extensions
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

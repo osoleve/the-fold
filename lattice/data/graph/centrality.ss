@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/centrality.ss — Graph Centrality Measures
 ;;; @module centrality
 ;;; @requires prelude sort iteration
+;;; @description Eigenvector, Katz, closeness, betweenness centrality
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

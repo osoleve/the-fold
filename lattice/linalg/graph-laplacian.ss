@@ -1,6 +1,9 @@
 ;;; lattice/linalg/graph-laplacian.ss — Laplacian Matrices
 ;;; @module graph-laplacian
 ;;; @requires prelude matrix matrix-eigen graph-matrix sort
+;;; @description Graph Laplacian, spectral clustering, k-means
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'matrix)

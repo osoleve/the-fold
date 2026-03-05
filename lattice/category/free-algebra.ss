@@ -1,5 +1,8 @@
 ;;; @module free-algebra
 ;;; @requires adjunction rule engine
+;;; @description Free algebras and Free-Forgetful adjunction
+;;; @purity total
+;;; @stability stable
 
 (require 'adjunction)
 (require 'rule)

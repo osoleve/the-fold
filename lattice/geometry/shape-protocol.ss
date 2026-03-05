@@ -6,7 +6,11 @@
 ;;; - Generic containment and distance queries
 ;;; - Heterogeneous scene graphs with unified traversal
 ;;;
+;;; @module shape-protocol
 ;;; @requires prelude fp/protocol vec3 geometry
+;;; @description Unified protocol interface for all shape types. Enables polymorphic operations (intersect-ray, aabb, contains-point, distance, center, volume, surface-area, normal) across heterogeneous shape collections. Supports scene-level operations like closest-hit raycast, combined AABB, SDF, and total volume computation.
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

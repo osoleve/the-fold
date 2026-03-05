@@ -1,5 +1,8 @@
 ;;; @module coding
 ;;; @requires entropy sort
+;;; @description Source and channel coding: Huffman trees, arithmetic coding, LZ78 dictionary compression, run-length encoding, parity checks, Hamming (7,4) codes.
+;;; @purity total
+;;; @stability stable
 
 (require 'entropy)
 (require 'sort)

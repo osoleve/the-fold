@@ -1,6 +1,9 @@
 ;;; lattice/data/quadtree.ss — Quadtree for 2D Spatial Queries
 ;;; @module quadtree
 ;;; @requires prelude heap
+;;; @description Quadtree for 2D spatial queries with uniform subdivision
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -31,10 +34,15 @@ better for dynamic insertions and spatial locality queries.")
   (list 'bounds cx cy hw hh))
 
 (define (bounds? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'bounds)))
 
-(define (bounds-cx b) (cadr b))
-(define (bounds-cy b) (caddr b))
+(define (bounds-cx b)
+  (doc 'export #t)
+  (cadr b))
+(define (bounds-cy b)
+  (doc 'export #t)
+  (caddr b))
 (define (bounds-hw b) (cadddr b))
 (define (bounds-hh b) (car (cddddr b)))
 
@@ -58,6 +66,7 @@ better for dynamic insertions and spatial locality queries.")
 
 ;; Quadtree node: either a leaf with points or an internal node with 4 children
 (define quadtree-empty 'quadtree-empty)
+(doc 'quadtree-empty 'export #t)
 
 (define (quadtree-empty? tree)
   (doc 'export #t)
@@ -70,6 +79,7 @@ better for dynamic insertions and spatial locality queries.")
   (list 'quadtree-leaf bounds points))
 
 (define (quadtree-leaf? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'quadtree-leaf)))
 
 (define (quadtree-leaf-bounds node) (cadr node))
@@ -81,6 +91,7 @@ better for dynamic insertions and spatial locality queries.")
   (list 'quadtree-node bounds ne nw se sw))
 
 (define (quadtree-node? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'quadtree-node)))
 
 (define (quadtree-bounds node)

@@ -1,5 +1,8 @@
 ;;; @module sat
 ;;; @requires sat/solver
+;;; @description High-level API and common encodings
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat/solver)
 

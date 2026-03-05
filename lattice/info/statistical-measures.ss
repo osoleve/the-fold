@@ -1,5 +1,8 @@
 ;;; @module statistical-measures
 ;;; @requires prelude entropy transcendental
+;;; @description Probability distribution divergence measures: KL, JS, Hellinger, Bhattacharyya, chi-squared, total variation, alpha-divergence, and many more.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'entropy)

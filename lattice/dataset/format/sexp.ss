@@ -1,6 +1,9 @@
 ;;; lattice/dataset/format/sexp.ss — Canonical S-expression Format
 ;;; @module sexp
 ;;; @requires prelude sample sort
+;;; @description Canonical S-expression format
+;;; @purity partial
+;;; @stability experimental
 
 (load "core/base/prelude.ss")
 (load "lattice/dataset/sample.ss")

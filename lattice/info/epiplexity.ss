@@ -1,5 +1,8 @@
 ;;; @module epiplexity
 ;;; @requires prelude entropy
+;;; @description Prequential and requential epiplexity measures for sequence prediction evaluation and model comparison.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'entropy)

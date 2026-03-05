@@ -1,6 +1,9 @@
 ;;; lattice/dataset/parameter.ss — Parameter Ranges, Sampling, and Interpolation
 ;;; @module parameter
 ;;; @requires prelude prng distributions
+;;; @description Parameter ranges, sampling, and interpolation
+;;; @purity partial
+;;; @stability experimental
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

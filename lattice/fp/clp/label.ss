@@ -1,5 +1,8 @@
 ;;; @module label
 ;;; @requires propagate
+;;; @description Variable/value selection strategies for search
+;;; @purity partial
+;;; @stability experimental
 
 (require 'propagate)
 

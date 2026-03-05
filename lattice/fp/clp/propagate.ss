@@ -1,5 +1,8 @@
 ;;; @module propagate
 ;;; @requires fd-constraints
+;;; @description Arc/bounds consistency propagation engine
+;;; @purity partial
+;;; @stability experimental
 
 (require 'fd-constraints)
 

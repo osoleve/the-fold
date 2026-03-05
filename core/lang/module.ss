@@ -105,7 +105,7 @@ Dependencies:
 
 ;;; *header-scan-limit* : Nat
 ;;; Number of lines to scan for header annotations
-(define *header-scan-limit* 60)
+(define *header-scan-limit* 80)
 
 (define (register-module-path! name path)
   (doc 'type (-> Symbol String Void))
@@ -196,6 +196,71 @@ Dependencies:
                  (when result
                        (hashtable-set! *header-cache* filepath result))
                  result))))
+
+;;; ====
+;;; Extended Metadata Parsing
+;;; ====
+
+;;; parse-description : (List String) → (Option String)
+;;; Extract description from @description annotation.
+(define (parse-description lines)
+  (let loop ([lines lines])
+       (cond
+        [(null? lines) #f]
+        [else
+         (let ([desc (extract-annotation (car lines) "@description ")])
+              (if (and desc (> (string-length desc) 0))
+                  desc
+                  (loop (cdr lines))))])))
+
+;;; parse-symbol-list-annotation : (List String) × String → (List Symbol)
+;;; Extract a space-separated list of symbols from an annotation.
+(define (parse-symbol-list-annotation lines prefix)
+  (let loop ([lines lines] [acc '()])
+       (cond
+        [(null? lines) (reverse acc)]
+        [else
+         (let ([val (extract-annotation (car lines) prefix)])
+              (if val
+                  (let ([parsed (filter (lambda (s) (> (string-length (symbol->string s)) 0))
+                                        (map string->symbol
+                                             (filter (lambda (s) (> (string-length s) 0))
+                                                     (string-split val #\space))))])
+                       (loop (cdr lines) (append (reverse parsed) acc)))
+                  (loop (cdr lines) acc)))])))
+
+;;; parse-single-annotation : (List String) × String → (Option Symbol)
+;;; Extract a single symbol from an annotation (first occurrence).
+(define (parse-single-annotation lines prefix)
+  (let loop ([lines lines])
+       (cond
+        [(null? lines) #f]
+        [else
+         (let ([val (extract-annotation (car lines) prefix)])
+              (if (and val (> (string-length val) 0))
+                  (string->symbol val)
+                  (loop (cdr lines))))])))
+
+;;; parse-module-metadata : String → (Option Alist)
+;;; Parse all header annotations from a module file.
+;;; Returns an alist with keys: name, requires, description, keywords,
+;;; concepts, purity, stability. Returns #f if no @module annotation found.
+;;; Does NOT cache — intended for KG build, not hot-path module loading.
+(define (parse-module-metadata filepath)
+  (doc 'type (-> String (Option (List (Pair Symbol Any)))))
+  (doc 'description "Parse all module header annotations including description, keywords, concepts, purity, stability.")
+  (doc 'export #t)
+  (let ([lines (read-header-lines filepath *header-scan-limit*)])
+       (and lines
+            (let ([name (parse-module-name lines)])
+                 (and name
+                      (list (cons 'name name)
+                            (cons 'requires (parse-requires lines))
+                            (cons 'description (parse-description lines))
+                            (cons 'keywords (parse-symbol-list-annotation lines "@keywords "))
+                            (cons 'concepts (parse-symbol-list-annotation lines "@concepts "))
+                            (cons 'purity (parse-single-annotation lines "@purity "))
+                            (cons 'stability (parse-single-annotation lines "@stability "))))))))
 
 ;;; ====
 ;;; Path Resolution

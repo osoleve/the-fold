@@ -1,6 +1,9 @@
 ;;; lattice/linalg/matrix-blocked-decomp.ss — Parallelizable Decomposition Kernels
 ;;; @module matrix-blocked-decomp
 ;;; @requires prelude
+;;; @description Range-parameterized LU/QR kernels for parallel dispatch
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

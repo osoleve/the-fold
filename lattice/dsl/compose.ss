@@ -1,5 +1,8 @@
 ;;; @module dsl/compose
 ;;; @requires prelude tagless free effects
+;;; @description Functor row composition and effect handling
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'tagless)

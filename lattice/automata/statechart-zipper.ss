@@ -1,5 +1,8 @@
 ;;; @module statechart-zipper
 ;;; @requires prelude combinators tree-zipper
+;;; @description Zipper-based navigation and modification of statechart hierarchies
+;;; @purity partial
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

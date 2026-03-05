@@ -1,6 +1,9 @@
 ;;; lattice/linalg/sparse.ss — Sparse Matrix Operations
 ;;; @module sparse
 ;;; @requires prelude vec matrix sort hamt iteration
+;;; @description Sparse matrix formats
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)
@@ -54,19 +57,29 @@ Dependencies:
   (list 'sparse-coo rows cols row-indices col-indices values))
 
 ;;; sparse-coo-rows : SparseCOO → Nat
-(define (sparse-coo-rows m) (list-ref m 1))
+(define (sparse-coo-rows m)
+  (doc 'export #t)
+  (list-ref m 1))
 
 ;;; sparse-coo-cols : SparseCOO → Nat
-(define (sparse-coo-cols m) (list-ref m 2))
+(define (sparse-coo-cols m)
+  (doc 'export #t)
+  (list-ref m 2))
 
 ;;; sparse-coo-row-indices : SparseCOO → Vec
-(define (sparse-coo-row-indices m) (list-ref m 3))
+(define (sparse-coo-row-indices m)
+  (doc 'export #t)
+  (list-ref m 3))
 
 ;;; sparse-coo-col-indices : SparseCOO → Vec
-(define (sparse-coo-col-indices m) (list-ref m 4))
+(define (sparse-coo-col-indices m)
+  (doc 'export #t)
+  (list-ref m 4))
 
 ;;; sparse-coo-values : SparseCOO → Vec
-(define (sparse-coo-values m) (list-ref m 5))
+(define (sparse-coo-values m)
+  (doc 'export #t)
+  (list-ref m 5))
 
 ;;; sparse-coo-nnz : SparseCOO → Nat
 ;;; Number of non-zeros.

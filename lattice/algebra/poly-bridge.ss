@@ -1,5 +1,8 @@
 ;;; @module poly-bridge
 ;;; @requires field algebra/polynomial
+;;; @description Bridge between numeric (descending) and algebra (ascending) polynomial representations
+;;; @purity total
+;;; @stability stable
 
 (require 'field)
 (require 'algebra/polynomial)

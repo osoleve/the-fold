@@ -1,5 +1,8 @@
 ;;; @module elliptic-curve
 ;;; @requires prelude modular
+;;; @description Elliptic curve arithmetic: secp256k1, P-256, ECDH
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'modular)
@@ -35,11 +38,21 @@
   (doc 'export #t)
   (and (pair? x) (eq? (car x) 'ec-curve)))
 
-(define (ec-p curve) (list-ref curve 1))
-(define (ec-a curve) (list-ref curve 2))
-(define (ec-b curve) (list-ref curve 3))
-(define (ec-n curve) (list-ref curve 4))
-(define (ec-G curve) (list-ref curve 5))
+(define (ec-p curve)
+  (doc 'export #t)
+  (list-ref curve 1))
+(define (ec-a curve)
+  (doc 'export #t)
+  (list-ref curve 2))
+(define (ec-b curve)
+  (doc 'export #t)
+  (list-ref curve 3))
+(define (ec-n curve)
+  (doc 'export #t)
+  (list-ref curve 4))
+(define (ec-G curve)
+  (doc 'export #t)
+  (list-ref curve 5))
 
 ;;; Points in affine coordinates: (ec-point x y) or (ec-infinity)
 

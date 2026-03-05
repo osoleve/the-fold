@@ -1,5 +1,8 @@
 ;;; @module diff
 ;;; @requires expr
+;;; @description Symbolic differentiation
+;;; @purity total
+;;; @stability stable
 
 (require 'expr)
 

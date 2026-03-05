@@ -1,5 +1,7 @@
 ;;; @module tree-zipper
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

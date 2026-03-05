@@ -1,5 +1,8 @@
 ;;; @module kleisli
 ;;; @requires monad-derivation
+;;; @description Kleisli categories from monads
+;;; @purity total
+;;; @stability stable
 
 (require 'monad-derivation)
 

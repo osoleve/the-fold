@@ -1,5 +1,8 @@
 ;;; @module limits
 ;;; @requires logic-adjunction
+;;; @description Categorical limits and colimits
+;;; @purity total
+;;; @stability stable
 
 (require 'logic-adjunction)
 

@@ -91,8 +91,11 @@ Validates that the optic type supports differentiation (getter/fold/setter rejec
   (and (pair? x) (eq? (car x) 'diff-optic)))
 
 (define (diff-optic-kind dop) (list-ref dop 1))
+(doc 'diff-optic-kind 'export #t)
 (define (diff-optic-optic dop) (list-ref dop 2))
+(doc 'diff-optic-optic 'export #t)
 (define (diff-optic-focus-type dop) (list-ref dop 3))
+(doc 'diff-optic-focus-type 'export #t)
 
 (define (kind->focus-type kind)
   (case kind
@@ -385,6 +388,7 @@ the hand-wired traced-optics.ss gradient within epsilon tolerance.")
 ;;; gradients-close? : gradient × gradient × Number → Boolean
 ;;; Compare gradients structurally, allowing epsilon tolerance on numbers.
 (define (gradients-close? a b eps)
+  (doc 'export #t)
   (cond
     [(and (number? a) (number? b))
      (< (abs (- a b)) eps)]

@@ -1,6 +1,8 @@
 ;;; lattice/fp/meta/combinators.ss — FP Combinators
 ;;; @module combinators
 ;;; @requires prelude hamt
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'hamt)

@@ -1,5 +1,8 @@
 ;;; @module rewrite/laws
 ;;; @requires prelude rule engine hamt
+;;; @description Algebraic laws (monoid, functor, monad)
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'rule)

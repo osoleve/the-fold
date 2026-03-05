@@ -1,5 +1,8 @@
 ;;; @module inline-parser
 ;;; @requires prelude parser markdown-ast
+;;; @description Inline element parser (emphasis, code, links)
+;;; @purity total
+;;; @stability experimental
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'parser)

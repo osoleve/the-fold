@@ -1,5 +1,8 @@
 ;;; @module sparse-autodiff
 ;;; @requires prelude vec sparse comp-graph reverse-diff higher-order-diff hamt
+;;; @description Sparse autodiff for large systems
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

@@ -1,5 +1,8 @@
 ;;; @module goals
 ;;; @requires prelude rule
+;;; @description Goal-directed rewriting
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'rule)

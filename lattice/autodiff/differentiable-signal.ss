@@ -1,5 +1,8 @@
 ;;; @module differentiable-signal
 ;;; @requires prelude complex dft convolution reverse-diff
+;;; @description Differentiable signal processing
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

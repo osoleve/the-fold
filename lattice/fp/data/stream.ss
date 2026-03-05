@@ -1,6 +1,8 @@
 ;;; lattice/fp/data/stream.ss — Lazy Streams
 ;;; @module stream
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

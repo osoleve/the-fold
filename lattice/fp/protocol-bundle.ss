@@ -1,6 +1,8 @@
 ;;; lattice/fp/protocol-bundle.ss — Protocol Bundles
 ;;; @module protocol-bundle
 ;;; @requires fp/protocol hamt
+;;; @purity mixed
+;;; @stability stable
 
 (require 'fp/protocol)
 (require 'hamt)

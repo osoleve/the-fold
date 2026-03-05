@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/random-graphs.ss — Random Graph Generators
 ;;; @module random-graphs
 ;;; @requires prelude iteration prng
+;;; @description Erdos-Renyi, Barabasi-Albert, Watts-Strogatz generators
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

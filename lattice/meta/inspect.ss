@@ -493,13 +493,109 @@
             grouped))]))
 
 ;;; ====
+;;; Module-Level Inspection
+;;; ====
+
+(doc 'kg-module-exports 'type (-> Symbol (List Symbol)))
+(doc 'kg-module-exports 'description "Get exports for a module from the KG skill data.
+Searches all skill manifests for the module's export group.")
+(define (kg-module-exports mod-name)
+  (if (not (top-level-bound? 'kg-skill-data))
+      '()
+      (let loop ([skills (kg-skills)])
+        (if (null? skills)
+            '()
+            (let* ([skill-data (kg-skill-data (car skills))]
+                   [exports-raw (cdr (or (assq 'exports skill-data) '(exports)))])
+              (if (and (pair? exports-raw) (pair? (car exports-raw)))
+                  ;; Grouped format — look for our module
+                  (let ([group (assq mod-name exports-raw)])
+                    (if group
+                        (filter symbol? (cdr group))
+                        (loop (cdr skills))))
+                  (loop (cdr skills))))))))
+
+(doc lattice-module-info 'type (-> Symbol (Maybe Alist)))
+(doc lattice-module-info 'description "Get structured metadata for a single module.
+Uses scan-module-metadata for annotations, enriches exports from KG when source scanning is sparse.")
+(doc lattice-module-info 'export #t)
+(define (lattice-module-info mod-name)
+  (let ([path (and (top-level-bound? '*module-paths*)
+                   (hashtable-ref *module-paths* mod-name #f))])
+    (if (not path)
+        #f
+        (let ([meta (and (top-level-bound? 'scan-module-metadata)
+                         (guard (e [else #f])
+                           (scan-module-metadata path)))])
+          (if meta
+              ;; Full metadata from source annotations
+              (let* ([source-exports (cdr (assq 'exports meta))]
+                     [kg-exports (kg-module-exports mod-name)]
+                     ;; Use KG exports if they're richer than source-scanned
+                     [exports (if (> (length kg-exports) (length source-exports))
+                                  kg-exports
+                                  source-exports)]
+                     [depth (and (top-level-bound? 'module-depth)
+                                 (not (null? *module-dag*))
+                                 (module-depth mod-name))])
+                `((name . ,(cdr (assq 'name meta)))
+                  (path . ,(cdr (assq 'path meta)))
+                  (description . ,(or (cdr (assq 'description meta)) ""))
+                  (requires . ,(cdr (assq 'requires meta)))
+                  (purity . ,(or (cdr (assq 'purity meta)) 'unknown))
+                  (stability . ,(or (cdr (assq 'stability meta)) 'unknown))
+                  (keywords . ,(cdr (assq 'keywords meta)))
+                  (exports . ,exports)
+                  (export-count . ,(length exports))
+                  ,@(if depth `((depth . ,depth)) '())))
+              ;; Minimal info from path only
+              `((name . ,mod-name)
+                (path . ,path)))))))
+
+(doc lattice-describe-module 'type (-> Symbol Void))
+(doc lattice-describe-module 'description "Print module-level metadata in agent-compact format.")
+(doc lattice-describe-module 'export #t)
+(define (lattice-describe-module mod-name)
+  (let ([info (lattice-module-info mod-name)])
+    (if (not info)
+        (printf "Module not found: ~a\n" mod-name)
+        (let ([name (cdr (assq 'name info))]
+              [path (cdr (assq 'path info))]
+              [desc (let ([d (assq 'description info)]) (if d (cdr d) ""))]
+              [requires (let ([r (assq 'requires info)]) (if r (cdr r) '()))]
+              [purity (let ([p (assq 'purity info)]) (if p (cdr p) 'unknown))]
+              [stability (let ([s (assq 'stability info)]) (if s (cdr s) 'unknown))]
+              [exports (let ([e (assq 'exports info)]) (if e (cdr e) '()))]
+              [depth (let ([d (assq 'depth info)]) (if d (cdr d) #f))])
+          (printf "~a — ~a\n" name (if (string=? desc "") "(no description)" (truncate-string (first-line desc) 60)))
+          (printf "~a | ~a~a | ~a exports\n"
+                  purity stability
+                  (if depth (format " | depth ~a" depth) "")
+                  (length exports))
+          (printf "path: ~a\n" path)
+          (unless (null? requires)
+            (printf "requires: ~a\n" requires))
+          (when (pair? exports)
+            (printf "\nexports:\n")
+            (for-each (lambda (sym) (printf "  ~a\n" sym))
+                      (if (> (length exports) 30)
+                          (append (take 30 exports)
+                                  (list (string->symbol
+                                         (format "...and ~a more" (- (length exports) 30)))))
+                          exports)))))))
+
+;;; ====
 ;;; Convenience Functions (for REPL)
 ;;; ====
 
 ;;; li : Symbol -> void
-;;; Inspect skill (agent-compact)
-(define (li skill-name)
-  (lattice-describe skill-name))
+;;; Inspect skill or module (agent-compact)
+(define (li name)
+  (if (kg-skill-data name)
+      (lattice-describe name)
+      (if (lattice-module-info name)
+          (lattice-describe-module name)
+          (printf "Not found: ~a (not a skill or module)\n" name))))
 
 ;;; le : Symbol -> void
 ;;; List exports (agent-compact, grouped by module)

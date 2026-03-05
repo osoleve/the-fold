@@ -1,5 +1,8 @@
 ;;; @module clp
 ;;; @requires global-constraints label
+;;; @description Unified entry point and goal API
+;;; @purity partial
+;;; @stability experimental
 
 (require 'global-constraints)
 (require 'label)

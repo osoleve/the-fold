@@ -16,6 +16,8 @@
   (load "lattice/meta/skill-map.ss"))
 (unless (top-level-bound? 'derive-skill-deps)
   (load "lattice/meta/derive-deps.ss"))
+(unless (top-level-bound? 'scan-module-metadata)
+  (load "lattice/meta/module-meta.ss"))
 
 (doc 'module 'kg-io)
 (doc 'description "I/O layer for knowledge graph — manifest discovery, reading, CAS persistence,
@@ -466,30 +468,43 @@ Only considers symbols that are known exports in the KG.")
      '("lattice" "core" "boundary"))
     (kg-populate-types! (reverse type-pairs))))
 
+(define KG-ONTOLOGY-PATH "lattice/meta/ontology.sexp")
+
 ;;; kg-load-concept-ontology! : -> Void
-;;; Build concept ontology by scanning manifest files on disk for (concepts ...)
-;;; blocks.  Always reads from disk (not CAS-cached data) to ensure the ontology
-;;; reflects the current state of manifest files.  Children are derived from parent
-;;; declarations — never hand-maintained.
-;;; Called internally by kg-build! and kg-incremental-build! before concept extraction.
+;;; Load concept ontology. Tries ontology.sexp first (source of truth),
+;;; falls back to scanning manifest files for (concepts ...) blocks.
+;;; Called internally by kg-build!, kg-build-from-source!, and
+;;; kg-incremental-build! before concept extraction.
 (define (kg-load-concept-ontology!)
   (guard (e [else
              (printf "  Note: concept ontology not loaded (~a)\n" (condition-message e))])
-    (let* ([manifest-paths (find-manifests "lattice")]
-           [manifest-data-list
-            (filter-map
-             (lambda (path)
-               (guard (e [else #f])
-                 (let ([sexp (read-manifest-sexp path)])
-                   (if sexp (parse-manifest sexp) #f))))
-             manifest-paths)]
-           [ontology (build-ontology-from-manifests manifest-data-list)])
-      (install-concept-ontology! ontology)
-      (let ([issues (validate-ontology)])
-        (unless (null? issues)
-          (for-each (lambda (i) (printf "  ~a: ~a\n" (car i) (cdr i))) issues)))
-      (printf "  Concept ontology built from manifests: ~a concepts\n"
-              (length (concept-all))))))
+    (cond
+      ;; Preferred: read from standalone ontology file
+      [(file-exists? KG-ONTOLOGY-PATH)
+       (let ([ontology (call-with-input-file KG-ONTOLOGY-PATH read)])
+         (install-concept-ontology! ontology)
+         (let ([issues (validate-ontology)])
+           (unless (null? issues)
+             (for-each (lambda (i) (printf "  ~a: ~a\n" (car i) (cdr i))) issues)))
+         (printf "  Concept ontology loaded from ~a: ~a concepts\n"
+                 KG-ONTOLOGY-PATH (length (concept-all))))]
+      ;; Fallback: build from manifest (concepts ...) blocks
+      [else
+       (let* ([manifest-paths (find-manifests "lattice")]
+              [manifest-data-list
+               (filter-map
+                (lambda (path)
+                  (guard (e [else #f])
+                    (let ([sexp (read-manifest-sexp path)])
+                      (if sexp (parse-manifest sexp) #f))))
+                manifest-paths)]
+              [ontology (build-ontology-from-manifests manifest-data-list)])
+         (install-concept-ontology! ontology)
+         (let ([issues (validate-ontology)])
+           (unless (null? issues)
+             (for-each (lambda (i) (printf "  ~a: ~a\n" (car i) (cdr i))) issues)))
+         (printf "  Concept ontology built from manifests: ~a concepts\n"
+                 (length (concept-all))))])))
 
 (doc kg-build! 'type (-> Bytevector))
 (doc kg-build! 'description "Build knowledge graph from all manifests in lattice/.
@@ -569,6 +584,330 @@ from doc forms, and builds the root. Returns root hash.")
               (hamt-size *kg-type-sigs*)
               (length *kg-edges*))
       root-hash))))
+
+;;; ====
+;;; Source-Authoritative Build
+;;; ====
+
+;;; skill-from-path : String -> (Maybe Symbol)
+;;; Infer skill name from module file path.
+;;; "lattice/linalg/vec.ss" → linalg
+;;; "lattice/fp/control/state.ss" → fp
+;;; "core/..." → #f (not a lattice module)
+(define (skill-from-path filepath)
+  (and (> (string-length filepath) 8)
+       (string=? "lattice/" (substring filepath 0 8))
+       (let ([rest (substring filepath 8 (string-length filepath))])
+         (let loop ([i 0])
+           (cond
+             [(>= i (string-length rest)) #f]
+             [(char=? (string-ref rest i) #\/)
+              (if (> i 0)
+                  (string->symbol (substring rest 0 i))
+                  #f)]
+             [else (loop (+ i 1))])))))
+
+;;; weaker-purity : Symbol Symbol -> Symbol
+;;; Returns the weaker of two purity levels (total < partial < mixed).
+(define (weaker-purity a b)
+  (cond
+    [(not a) b]
+    [(not b) a]
+    [(eq? a 'mixed) 'mixed]
+    [(eq? b 'mixed) 'mixed]
+    [(eq? a 'partial) 'partial]
+    [(eq? b 'partial) 'partial]
+    [else 'total]))
+
+;;; weaker-stability : Symbol Symbol -> Symbol
+;;; Returns the weaker of two stability levels (stable < experimental).
+(define (weaker-stability a b)
+  (cond
+    [(not a) b]
+    [(not b) a]
+    [(eq? a 'experimental) 'experimental]
+    [(eq? b 'experimental) 'experimental]
+    [else 'stable]))
+
+;;; path-relative-to : String String -> String
+;;; Make filepath relative to base directory.
+;;; (path-relative-to "lattice/linalg/vec.ss" "lattice/linalg") → "vec.ss"
+(define (path-relative-to filepath base)
+  (let ([prefix (string-append base "/")])
+    (if (and (>= (string-length filepath) (string-length prefix))
+             (string=? prefix (substring filepath 0 (string-length prefix))))
+        (substring filepath (string-length prefix) (string-length filepath))
+        filepath)))
+
+;;; synthesize-manifest-from-modules : Symbol (List Alist) -> ManifestData
+;;; Given a skill name and list of module metadata alists, produce
+;;; a manifest-compatible alist for kg-add-skill!.
+(define (synthesize-manifest-from-modules skill-name module-metas)
+  (let ([skill-path (string-append "lattice/" (symbol->string skill-name))]
+        [purity 'total]
+        [stability 'stable]
+        [all-keywords '()]
+        [modules-list '()]
+        [exports-list '()]
+        [first-description #f])
+    (for-each
+     (lambda (meta)
+       (let ([mod-name (cdr (assq 'name meta))]
+             [mod-path (cdr (assq 'path meta))]
+             [description (cdr (assq 'description meta))]
+             [mod-purity (cdr (assq 'purity meta))]
+             [mod-stability (cdr (assq 'stability meta))]
+             [keywords (cdr (assq 'keywords meta))]
+             [mod-exports (cdr (assq 'exports meta))])
+         ;; Aggregate purity/stability
+         (when mod-purity (set! purity (weaker-purity purity mod-purity)))
+         (when mod-stability (set! stability (weaker-stability stability mod-stability)))
+         ;; Collect keywords
+         (set! all-keywords (append all-keywords keywords))
+         ;; First description becomes skill description
+         (when (and description (not first-description))
+           (set! first-description description))
+         ;; Build module entry: (name "relative-file.ss" "description")
+         (let ([relative-path (path-relative-to mod-path skill-path)])
+           (set! modules-list
+                 (cons (list mod-name relative-path (or description ""))
+                       modules-list)))
+         ;; Build exports group: (module-name sym1 sym2 ...)
+         (when (pair? mod-exports)
+           (set! exports-list
+                 (cons (cons mod-name mod-exports) exports-list)))))
+     module-metas)
+    ;; Construct manifest alist
+    (list (cons 'name skill-name)
+          (cons 'path skill-path)
+          (cons 'version "0.0.0")
+          (cons 'description (or first-description ""))
+          (cons 'purity purity)
+          (cons 'stability stability)
+          (cons 'fuel-bound "O(?)")
+          (cons 'deps '())  ;; Will be derived from @requires
+          (cons 'keywords (dedupe-symbols all-keywords))
+          (cons 'aliases '())
+          (cons 'modules (reverse modules-list))
+          (cons 'exports (reverse exports-list))
+          (cons 'concepts '()))))
+
+;;; build-source-skill-map : (List (Pair Symbol Alist)) -> (Alist Symbol Symbol)
+;;; Build module→skill mapping from source metadata (for dep derivation).
+;;; Input: ((skill-name . (list-of-module-metas)) ...)
+(define (build-source-skill-map skill-groups)
+  (let ([result '()])
+    (for-each
+     (lambda (group)
+       (let ([skill-name (car group)])
+         (for-each
+          (lambda (meta)
+            (let ([mod-name (cdr (assq 'name meta))])
+              (set! result (cons (cons mod-name skill-name) result))))
+          (cdr group))))
+     skill-groups)
+    result))
+
+;;; derive-source-skill-deps : Symbol (List Alist) (Alist Symbol Symbol) -> (List Symbol)
+;;; Derive deps for a skill from its constituent modules' @requires.
+(define (derive-source-skill-deps skill-name module-metas smap)
+  (let ([dep-skills '()])
+    (for-each
+     (lambda (meta)
+       (let ([requires (cdr (assq 'requires meta))])
+         (for-each
+          (lambda (req)
+            (let ([owner (skill-map-lookup smap req)])
+              (when (and owner (not (eq? owner skill-name)))
+                (unless (memq owner dep-skills)
+                  (set! dep-skills (cons owner dep-skills))))))
+          requires)))
+     module-metas)
+    (sort-symbols dep-skills)))
+
+;;; find-skill-curations : String -> (List String)
+;;; Discover skill curation files (*.sexp) in a directory tree.
+(define (find-skill-curations dir)
+  (let ([results '()])
+    (define (walk d)
+      (guard (exn [else (void)])
+        (let ([entries (directory-list d)])
+          (for-each
+           (lambda (entry)
+             (let ([full (string-append d "/" entry)])
+               (cond
+                 [(and (> (string-length entry) 5)
+                       (string=? ".sexp" (substring entry (- (string-length entry) 5)
+                                                    (string-length entry))))
+                  (set! results (cons full results))]
+                 [(and (not (char=? (string-ref entry 0) #\.))
+                       (file-directory? full))
+                  (walk full)])))
+           entries))))
+    (walk dir)
+    (reverse results)))
+
+;;; parse-skill-curation : SExp -> (Maybe Alist)
+;;; Parse a skill curation sexp into an alist with keys:
+;;; name, description, keywords, aliases, concepts, modules, prompts, suggested-queries.
+(define (parse-skill-curation sexp)
+  (and (pair? sexp)
+       (eq? (car sexp) 'skill)
+       (pair? (cdr sexp))
+       (let ([name (cadr sexp)])
+         (list
+          (cons 'name name)
+          (cons 'description (car-or-default (manifest-field sexp 'description) ""))
+          (cons 'keywords (flatten-single (manifest-field sexp 'keywords)))
+          (cons 'aliases (flatten-single (manifest-field sexp 'aliases)))
+          (cons 'concepts (or (manifest-field sexp 'concepts) '()))
+          (cons 'modules (flatten-single (manifest-field sexp 'modules)))
+          (cons 'prompts (or (manifest-field sexp 'prompts) '()))
+          (cons 'suggested-queries (or (manifest-field sexp 'suggested-queries) '()))))))
+
+;;; load-all-skill-curations : String -> (Alist Symbol Alist)
+;;; Load all curation files from a directory, return ((skill-name . curation-data) ...).
+(define (load-all-skill-curations dir)
+  (if (not (file-directory? dir))
+      '()
+      (let ([paths (find-skill-curations dir)])
+        (filter-map
+         (lambda (path)
+           (guard (e [else #f])
+             (let* ([sexp (call-with-input-file path read)]
+                    [data (parse-skill-curation sexp)])
+               (and data (cons (cdr (assq 'name data)) data)))))
+         paths))))
+
+;;; enrich-manifest-from-curation : ManifestData Alist -> ManifestData
+;;; Merge curation data (keywords, aliases, concepts) into a source-built manifest.
+(define (enrich-manifest-from-curation manifest curation)
+  (let* ([cur-keywords (cdr (assq 'keywords curation))]
+         [cur-aliases (cdr (assq 'aliases curation))]
+         [cur-concepts (cdr (assq 'concepts curation))]
+         [cur-desc (cdr (assq 'description curation))]
+         ;; Merge keywords
+         [m1 (let ([existing (cdr (assq 'keywords manifest))])
+               (if (pair? cur-keywords)
+                   (alist-set manifest 'keywords
+                              (dedupe-symbols (append existing cur-keywords)))
+                   manifest))]
+         ;; Merge aliases
+         [m2 (let ([existing (cdr (assq 'aliases m1))])
+               (if (pair? cur-aliases)
+                   (alist-set m1 'aliases
+                              (dedupe-symbols (append existing cur-aliases)))
+                   m1))]
+         ;; Merge concepts
+         [m3 (if (pair? cur-concepts)
+                 (alist-set m2 'concepts cur-concepts)
+                 m2)]
+         ;; Use curation description if source has none
+         [m4 (let ([existing (cdr (assq 'description m3))])
+               (if (and (or (not existing) (string=? existing ""))
+                        (string? cur-desc) (> (string-length cur-desc) 0))
+                   (alist-set m3 'description cur-desc)
+                   m3))])
+    m4))
+
+(doc kg-build-from-source! 'type (-> Bytevector))
+(doc kg-build-from-source! 'description "Build knowledge graph from module source annotations.
+Walks *module-paths*, scans each with scan-module-metadata, groups by skill
+directory, synthesizes manifest-compatible alists, and feeds to kg-add-skill!.
+If skills/ curation files exist, enriches with keywords, aliases, concepts.
+No manifest.sexp files are consulted. Returns root hash.")
+(define (kg-build-from-source!)
+  (kg-reset!)
+  (printf "Building KG from source annotations...\n")
+  ;; Phase 0: Scan all registered modules
+  (let* ([all-paths (hashtable->alist *module-paths*)]
+         [all-meta
+          (filter-map
+           (lambda (entry)
+             (let* ([mod-name (car entry)]
+                    [mod-path (cdr entry)]
+                    [meta (guard (e [else #f])
+                            (scan-module-metadata mod-path))])
+               (and meta (cons (skill-from-path mod-path) meta))))
+           all-paths)]
+         ;; Filter to lattice modules only (skill-from-path returned non-#f)
+         [lattice-meta (filter (lambda (e) (car e)) all-meta)])
+    (printf "  Scanned ~a modules (~a lattice)\n"
+            (length all-meta) (length lattice-meta))
+    ;; Phase 1: Group by skill
+    (let ([skill-groups '()])
+      (for-each
+       (lambda (entry)
+         (let* ([skill-name (car entry)]
+                [meta (cdr entry)]
+                [existing (assq skill-name skill-groups)])
+           (if existing
+               (set-cdr! existing (cons meta (cdr existing)))
+               (set! skill-groups (cons (cons skill-name (list meta)) skill-groups)))))
+       lattice-meta)
+      (printf "  Grouped into ~a skills\n" (length skill-groups))
+      ;; Phase 2: Build source-based skill map for dep derivation
+      (let* ([smap (build-source-skill-map skill-groups)]
+             ;; Phase 2b: Load curation files if available
+             [curations (load-all-skill-curations "skills")]
+             [_ (when (pair? curations)
+                  (printf "  Loaded ~a skill curation files\n" (length curations)))]
+             ;; Phase 3: Synthesize manifests and add skills
+             [synthetic-manifests
+              (map
+               (lambda (group)
+                 (let* ([skill-name (car group)]
+                        [module-metas (cdr group)]
+                        [manifest (synthesize-manifest-from-modules skill-name module-metas)]
+                        ;; Enrich from curation file if available
+                        [curation (assq skill-name curations)]
+                        [manifest (if curation
+                                      (enrich-manifest-from-curation manifest (cdr curation))
+                                      manifest)]
+                        ;; Derive deps from module @requires
+                        [deps (derive-source-skill-deps skill-name module-metas smap)]
+                        [manifest-with-deps (alist-set manifest 'deps deps)])
+                   (printf "  Loading: ~a (~a modules, ~a exports)\n"
+                           skill-name
+                           (length module-metas)
+                           (apply + (map (lambda (m)
+                                           (length (cdr (assq 'exports m))))
+                                         module-metas)))
+                   (kg-add-skill! manifest-with-deps)
+                   manifest-with-deps))
+               skill-groups)])
+        ;; Phase 4: Build dependency edges
+        (kg-build-deps!)
+        ;; Phase 5: Load concept ontology (still from manifests during transition)
+        (kg-load-concept-ontology!)
+        ;; Phase 5b: Register manifest aliases
+        (let ([alias-pairs
+               (filter-map
+                (lambda (entry)
+                  (let* ([skill-name (car entry)]
+                         [data (cdr entry)]
+                         [aliases-entry (assq 'aliases data)])
+                    (if (and aliases-entry (pair? (cdr aliases-entry)))
+                        (cons skill-name (cdr aliases-entry))
+                        #f)))
+                *kg-skill-data*)])
+          (when (pair? alias-pairs)
+            (register-manifest-aliases! alias-pairs)))
+        ;; Phase 6: Extract concepts from keywords
+        (kg-extract-concepts!)
+        ;; Phase 7: Extract type signatures from doc forms
+        (kg-extract-type-sigs!)
+        ;; Phase 8: Build root
+        (let ([root-hash (kg-build-root!)])
+          (kg-save-root! root-hash)
+          (printf "KG built from source: ~a skills, ~a modules, ~a exports, ~a concepts, ~a type-sigs, ~a edges\n"
+                  (length *kg-skills*)
+                  (length *kg-modules*)
+                  (length *kg-exports*)
+                  (length *kg-concepts*)
+                  (hamt-size *kg-type-sigs*)
+                  (length *kg-edges*))
+          root-hash)))))
 
 (doc kg-ensure! 'type (-> (Maybe Bytevector)))
 (doc kg-ensure! 'description "Initialize the knowledge graph. Tries three strategies in order:

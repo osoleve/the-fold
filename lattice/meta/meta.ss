@@ -19,7 +19,7 @@
 
 (doc lattice-init! 'type (-> Void))
 (doc lattice-init! 'description "Initialize the lattice tooling.
-Priority chain: CAS root → sexp cache → full manifest build.
+Priority chain: CAS root → sexp cache → manifest build.
 The CAS path is the KG-first fast path — if a root hash exists and
 all blocks are in the store, we skip both cache and manifest parsing.")
 (define (lattice-init!)
@@ -79,7 +79,7 @@ Priority chain: CAS root → sexp cache → full manifest build.")
           (lattice-init!)))
 
 (doc lattice-init-fresh! 'type (-> Void))
-(doc lattice-init-fresh! 'description "Force full rebuild, ignoring cache")
+(doc lattice-init-fresh! 'description "Force full rebuild from manifests, ignoring cache")
 (define (lattice-init-fresh!)
   (tier-cache-clear!)
   (kg-build!)
@@ -95,6 +95,23 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (printf "  Use (lr 'sym) to browse related\n")
   (printf "  Use (ls) for statistics\n")
   (printf "  Use (lh) for health check\n"))
+
+(doc lattice-init-source! 'type (-> Void))
+(doc lattice-init-source! 'description "Build KG from module source annotations + curation files only.
+No manifest.sexp files are consulted. Useful for testing the manifest-free path.
+Note: export coverage may be lower than manifest build (~75%) until all modules
+have complete (doc sym 'export #t) annotations.")
+(define (lattice-init-source!)
+  (tier-cache-clear!)
+  (kg-build-from-source!)
+  (lattice-index!)
+  (build-source-location-cache!)
+  (printf "\nLattice tooling initialized (source-only build)!\n")
+  (printf "  Use (lf \"query\") to search\n")
+  (printf "  Use (li 'skill) to inspect a skill or module\n")
+  (printf "  Use (lef \"file.ss\") to list exports from any file\n")
+  (printf "  Use (lsrc 'fn) for source location\n")
+  (printf "  Use (ls) for statistics\n"))
 
 (doc 'section 'source-location)
 
@@ -115,7 +132,8 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (printf "====\n\n")
   (printf "INITIALIZATION:\n")
   (printf "  (lattice-init!)           - Init with caching (fast if unchanged)\n")
-  (printf "  (lattice-init-fresh!)     - Force full rebuild\n\n")
+  (printf "  (lattice-init-fresh!)     - Force full rebuild from manifests\n")
+  (printf "  (lattice-init-source!)    - Build from source annotations only\n\n")
   (printf "SEARCH (agent-compact by default):\n")
   (printf "  (lf \"query\")              - Full-text search\n")
   (printf "  (lfe 'symbol)             - Exact lookup (falls back to substring)\n")
@@ -134,7 +152,7 @@ Priority chain: CAS root → sexp cache → full manifest build.")
   (printf "  (lattice-check-deps 'skill)  - Validate skill's deps\n")
   (printf "  (lattice-validate-all)    - Validate all skills\n\n")
   (printf "INSPECTION (agent-compact by default):\n")
-  (printf "  (li 'skill)               - Skill info (compact)\n")
+  (printf "  (li 'name)                - Skill or module info (compact)\n")
   (printf "  (le 'skill)               - Exports (grouped by module)\n")
   (printf "  (lm 'skill)               - Module details\n")
   (printf "  (li-pretty 'skill)        - Skill info (verbose)\n")

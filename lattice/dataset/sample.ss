@@ -1,6 +1,9 @@
 ;;; lattice/dataset/sample.ss — Sample Record Type with Q/A Lenses
 ;;; @module sample
 ;;; @requires prelude optics
+;;; @description Sample record type with Q/A lenses into state
+;;; @purity partial
+;;; @stability experimental
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

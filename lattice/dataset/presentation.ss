@@ -1,6 +1,9 @@
 ;;; lattice/dataset/presentation.ss — Layout Combinators for Visual Reasoning
 ;;; @module presentation
 ;;; @requires prelude layout
+;;; @description Layout combinators for frames + context
+;;; @purity partial
+;;; @stability experimental
 
 (require 'prelude)
 (require 'layout)

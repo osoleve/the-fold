@@ -1,5 +1,8 @@
 ;;; @module comonad
 ;;; @requires prelude combinators templates adjunction
+;;; @description Comonads (Store, Env, Traced, Stream)
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

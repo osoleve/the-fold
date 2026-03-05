@@ -1,6 +1,8 @@
 ;;; lattice/fp/control/free.ss — Free Monad
 ;;; @module free
 ;;; @requires prelude combinators
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

@@ -1,5 +1,8 @@
 ;;; @module egraph/match
 ;;; @requires prelude egraph/egraph
+;;; @description Pattern matching and rewrite rules for e-graphs
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/match.ss — Pattern Matching on E-Graphs
 ;;;
 ;;; Patterns are S-expressions with pattern variables (symbols starting with ?).
@@ -224,7 +227,9 @@
   (and (vector? x)
        (= (vector-length x) 2)
        (eq? (vector-ref x 0) eclass-ref-tag)))
+(doc 'eclass-ref? 'export #t)
 (define (eclass-ref-id x) (vector-ref x 1))
+(doc 'eclass-ref-id 'export #t)
 
 ;;; pattern-apply : Substitution × Pattern → Term
 ;;; Apply a substitution to a pattern, yielding a term.
@@ -261,7 +266,9 @@
   (cons lhs rhs))
 
 (define (rule-lhs rule) (car rule))
+(doc 'rule-lhs 'export #t)
 (define (rule-rhs rule) (cdr rule))
+(doc 'rule-rhs 'export #t)
 
 (define (rule? x)
   (doc 'type (-> Any Boolean))

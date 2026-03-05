@@ -1,5 +1,8 @@
 ;;; @module algebra/polynomial
 ;;; @requires prelude field
+;;; @description Univariate polynomial rings over fields: arithmetic, division, GCD, factorization
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'field)

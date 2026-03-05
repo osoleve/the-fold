@@ -1,5 +1,8 @@
 ;;; @module simplify
 ;;; @requires sort expr hamt
+;;; @description Algebraic simplification
+;;; @purity total
+;;; @stability stable
 
 (require 'sort)
 (require 'expr)

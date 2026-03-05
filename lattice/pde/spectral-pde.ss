@@ -1,6 +1,9 @@
 ;;; lattice/pde/spectral-pde.ss — Spectral Methods for PDEs
 ;;; @module spectral-pde
 ;;; @requires prelude iteration linalg/vec linalg/matrix numeric/complex numeric/dft
+;;; @description Spectral methods for PDEs via Chebyshev collocation. Differentiation matrices, BVP solvers, eigenvalue problems, and spectral time stepping.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'iteration)

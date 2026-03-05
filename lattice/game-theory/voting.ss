@@ -1,6 +1,9 @@
 ;;; lattice/game-theory/voting.ss — Social Choice and Voting Rules
 ;;; @module voting
 ;;; @requires prelude hamt
+;;; @description Social choice: plurality, Borda, Condorcet, Schulze
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

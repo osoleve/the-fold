@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/spectral-community.ss — Spectral Community Detection Bridge
 ;;; @module spectral-community
 ;;; @requires prelude graph-matrix graph-laplacian graph-community iteration
+;;; @description Spectral bipartition and community detection
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

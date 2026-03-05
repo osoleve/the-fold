@@ -1,6 +1,9 @@
 ;;; lattice/data/collection-utils.ss — Collection Utilities
 ;;; @module collection-utils
 ;;; @requires prelude block sha256 hamt
+;;; @description Higher-order collection operations
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -28,6 +31,7 @@
 (doc 'section 'core-collection-operations)
 
 (define (collection-hashes collection)
+  (doc 'export #t)
   (doc 'type '(-> Block (List Hash)))
   (doc 'description "Extract all hashes from a collection block")
   (let ([refs (block-refs collection)])

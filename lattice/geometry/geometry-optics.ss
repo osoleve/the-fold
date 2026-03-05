@@ -1,6 +1,9 @@
 ;;; lattice/geometry/geometry-optics.ss — Optics for Geometric Primitives
 ;;; @module geometry-optics
 ;;; @requires prelude optics geometry
+;;; @description Composable optics for geometric primitives. Provides lenses for Vec3, rays, planes, triangles, spheres, AABBs, and OBBs. Includes traversals for multi-element structures (triangle vertices, AABB corners), type prisms for safe access, and convenience combinators (translate-shape, transform-triangle).
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-matrix.ss — Graph Matrix Representation
 ;;; @module graph-matrix
 ;;; @requires prelude matrix sparse heap iteration
+;;; @description Adjacency matrices, Dijkstra O((V+E) log V), Floyd-Warshall, graph metrics
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -40,16 +43,20 @@
 
 ;;; edge-weighted? : Edge → Boolean
 (define (edge-weighted? edge)
+  (doc 'export #t)
   (= (length edge) 3))
 
 ;;; edge-from : Edge → Nat
-(define (edge-from edge) (car edge))
+(define (edge-from edge)
+  (doc 'export #t)
+  (car edge))
 
 ;;; edge-to : Edge → Nat
 (define (edge-to edge) (cadr edge))
 
 ;;; edge-weight : Edge → Num
 (define (edge-weight edge)
+  (doc 'export #t)
   (if (= (length edge) 3)
       (caddr edge)
       1))
@@ -57,6 +64,7 @@
 ;;; infer-node-count : (List Edge) → Nat
 ;;; Determine number of nodes from edge list (max node index + 1).
 (define (infer-node-count edges)
+  (doc 'export #t)
   (if (null? edges)
       0
       (+ 1 (fold-left (lambda (acc edge)
@@ -124,6 +132,7 @@
 ;;; make-adjacency-matrix : Nat → Matrix
 ;;; Create empty n×n adjacency matrix (all zeros).
 (define (make-adjacency-matrix n)
+  (doc 'export #t)
   (make-matrix n n 0))
 
 ;;; adjacency-matrix-add-edge! : Matrix × Nat × Nat × (Option Num) → Void

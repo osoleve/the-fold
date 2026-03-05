@@ -1,5 +1,8 @@
 ;;; @module field
 ;;; @requires prelude ring
+;;; @description Field theory: fields with division, Q, R, and Z_p fields
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'ring)

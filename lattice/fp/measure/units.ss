@@ -1,6 +1,8 @@
 ;;; lattice/fp/measure/units.ss — Physical Units
 ;;; @module units
 ;;; @requires prelude
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 
@@ -99,34 +101,42 @@ Examples:
 (doc dim-one 'type 'Dimension)
 (doc dim-one 'description "Dimensionless (scalar)")
 (define dim-one (make-dim 0 0 0 0 0 0 0))
+(doc 'dim-one 'export #t)
 
 (doc dim-length-base 'type 'Dimension)
 (doc dim-length-base 'description "Length — meter")
 (define dim-length-base (make-dim 1 0 0 0 0 0 0))
+(doc 'dim-length-base 'export #t)
 
 (doc dim-time-base 'type 'Dimension)
 (doc dim-time-base 'description "Time — second")
 (define dim-time-base (make-dim 0 1 0 0 0 0 0))
+(doc 'dim-time-base 'export #t)
 
 (doc dim-mass-base 'type 'Dimension)
 (doc dim-mass-base 'description "Mass — kilogram")
 (define dim-mass-base (make-dim 0 0 1 0 0 0 0))
+(doc 'dim-mass-base 'export #t)
 
 (doc dim-current-base 'type 'Dimension)
 (doc dim-current-base 'description "Electric current — ampere")
 (define dim-current-base (make-dim 0 0 0 1 0 0 0))
+(doc 'dim-current-base 'export #t)
 
 (doc dim-temperature-base 'type 'Dimension)
 (doc dim-temperature-base 'description "Temperature — kelvin")
 (define dim-temperature-base (make-dim 0 0 0 0 1 0 0))
+(doc 'dim-temperature-base 'export #t)
 
 (doc dim-amount-base 'type 'Dimension)
 (doc dim-amount-base 'description "Amount of substance — mole")
 (define dim-amount-base (make-dim 0 0 0 0 0 1 0))
+(doc 'dim-amount-base 'export #t)
 
 (doc dim-luminosity-base 'type 'Dimension)
 (doc dim-luminosity-base 'description "Luminous intensity — candela")
 (define dim-luminosity-base (make-dim 0 0 0 0 0 0 1))
+(doc 'dim-luminosity-base 'export #t)
 
 (doc 'section 'dimension-arithmetic)
 

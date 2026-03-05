@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/graph-primitives.ss — Pure Graph Data Structures
 ;;; @module graph-primitives
 ;;; @requires prelude sort hamt
+;;; @description Pure data structures: visited sets, queues, stacks, hash/cycle utilities
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -28,6 +31,7 @@
 (doc bytevector-hash 'type '(-> Bytevector Integer))
 (doc bytevector-hash 'description "Hash function for bytevectors (FNV-1a inspired)")
 (define (bytevector-hash bv)
+  (doc 'export #t)
   (let ([len (bytevector-length bv)])
        (let loop ([i 0] [h 2166136261])  ; FNV offset basis
             (if (>= i len)
@@ -41,21 +45,25 @@
 ;;; make-visited : → HAMT
 ;;; Create an empty visited set.
 (define (make-visited)
+  (doc 'export #t)
   hamt-empty)
 
 ;;; visited-add : HAMT Hash → HAMT
 ;;; Add a hash to the visited set. Returns new HAMT.
 (define (visited-add visited hash)
+  (doc 'export #t)
   (hamt-assoc hash #t visited))
 
 ;;; visited-contains? : HAMT Hash → Boolean
 ;;; Check if hash is in visited set. O(log32 n) lookup.
 (define (visited-contains? visited hash)
+  (doc 'export #t)
   (hamt-lookup hash visited))
 
 ;;; visited-remove : HAMT Hash → HAMT
 ;;; Remove a hash from the visited set. Used for backtracking.
 (define (visited-remove visited hash)
+  (doc 'export #t)
   (hamt-dissoc hash visited))
 
 ;;; --- Queue Operations (for BFS) ---

@@ -42,9 +42,13 @@
 
 ;;; dss-A, dss-B, dss-C, dss-D work like ss- accessors
 (define (dss-A sys) (if (dss? sys) (cadr sys) (ss-A sys)))
+(doc 'dss-A 'export #t)
 (define (dss-B sys) (if (dss? sys) (caddr sys) (ss-B sys)))
+(doc 'dss-B 'export #t)
 (define (dss-C sys) (if (dss? sys) (cadddr sys) (ss-C sys)))
+(doc 'dss-C 'export #t)
 (define (dss-D sys) (if (dss? sys) (car (cddddr sys)) (ss-D sys)))
+(doc 'dss-D 'export #t)
 
 ;;; dss-order : DSS → Nat
 (define (dss-order sys)

@@ -1,5 +1,8 @@
 ;;; @module abstract-interp
 ;;; @requires adjunction interval hamt
+;;; @description Abstract interpretation via Galois connections
+;;; @purity total
+;;; @stability stable
 
 (require 'adjunction)
 (require 'interval)

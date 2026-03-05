@@ -1,6 +1,9 @@
 ;;; lattice/numeric/fft-convolve.ss — FFT-based convolution bridge
 ;;; @module fft-convolve
 ;;; @requires complex dft iteration
+;;; @description FFT-based convolution for large signals. Overlap-add method.
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'complex)

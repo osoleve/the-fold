@@ -1,5 +1,8 @@
 ;;; @module hmac
 ;;; @requires sha256 sha512
+;;; @description HMAC keyed-hash message authentication (RFC 2104)
+;;; @purity total
+;;; @stability stable
 
 (require 'sha256)
 (require 'sha512)

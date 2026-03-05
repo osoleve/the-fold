@@ -1,5 +1,8 @@
 ;;; @module fd-constraints
 ;;; @requires store
+;;; @description Arithmetic FD constraints
+;;; @purity partial
+;;; @stability experimental
 
 (require 'store)
 

@@ -1,6 +1,9 @@
 ;;; lattice/numeric/dft.ss — DFT/FFT Implementation
 ;;; @module dft
 ;;; @requires prelude complex iteration
+;;; @description Discrete Fourier Transform: naive O(n^2) and radix-2 FFT O(n log n). Forward and inverse transforms. Spectrum analysis utilities.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'complex)

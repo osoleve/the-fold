@@ -1,6 +1,8 @@
 ;;; lattice/fp/data/generic-zipper.ss — Generic Zipper Derivation
 ;;; @module generic-zipper
 ;;; @requires prelude
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 

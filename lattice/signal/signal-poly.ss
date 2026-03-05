@@ -1,6 +1,9 @@
 ;;; lattice/signal/signal-poly.ss — Polynomial Algebra for Signal Processing
 ;;; @module signal-poly
 ;;; @requires field digital-filters
+;;; @description Polynomial algebra integration for signal processing. Filter stability analysis via Jury criterion. Filter simplification, cascade/parallel combination, deconvolution as polynomial division.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'field)

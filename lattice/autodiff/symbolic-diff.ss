@@ -1,5 +1,8 @@
 ;;; @module symbolic-diff
 ;;; @requires diff reverse-diff hamt
+;;; @description Bridge symbolic expressions to traced autodiff
+;;; @purity partial
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

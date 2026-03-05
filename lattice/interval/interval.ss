@@ -1,6 +1,9 @@
 ;;; lattice/interval/interval.ss — Verified Interval Arithmetic
 ;;; @module interval
 ;;; @requires prelude
+;;; @description Interval arithmetic for verified numerical computation. Represents sets of real numbers with guaranteed enclosure. Supports arithmetic, comparisons (three-valued logic), set operations, and transcendental elementary functions. Provides both standard (fast) and rigorous (directed rounding) versions.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 
@@ -848,6 +851,7 @@
 ;;; Check if interval [lo, hi] contains any point of form (base + k*period)
 ;;; for integer k.
 (define (interval-contains-critical? lo hi base period)
+  (doc 'export #t)
   ;; Find smallest k such that base + k*period >= lo
   (let* ([k-lo (ceiling (/ (- lo base) period))]
          [critical (+ base (* k-lo period))])

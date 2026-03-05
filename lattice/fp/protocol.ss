@@ -1,6 +1,8 @@
 ;;; lattice/fp/protocol.ss — Protocol Dispatch
 ;;; @module protocol
 ;;; @requires hamt
+;;; @purity mixed
+;;; @stability stable
 
 (require 'hamt)
 
@@ -129,6 +131,7 @@ Type Dispatch:
        (protocol-dispatch/default 'name obj default-fn args ...))]))
 
 (define implement-protocol! register-protocol-impl!)
+(doc 'implement-protocol! 'export #t)
 (doc 'implement-protocol! 'type '(-> Symbol Symbol Procedure Void))
 (doc 'implement-protocol! 'description "Alias for register-protocol-impl! (more intuitive name)")
 

@@ -67,9 +67,13 @@
   (and (pair? x) (eq? (car x) 'des-world)))
 
 (define (des-world-clock w)     (list-ref w 1))
+(doc 'des-world-clock 'export #t)
 (define (des-world-entities w)  (list-ref w 2))
+(doc 'des-world-entities 'export #t)
 (define (des-world-queue w)     (list-ref w 3))
+(doc 'des-world-queue 'export #t)
 (define (des-world-metrics w)   (list-ref w 4))
+(doc 'des-world-metrics 'export #t)
 (define (des-world-rng w)       (list-ref w 5))
 
 ;;;---------------------------------------------------------------------------

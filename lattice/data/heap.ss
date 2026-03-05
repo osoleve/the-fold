@@ -1,6 +1,9 @@
 ;;; lattice/data/heap.ss — Leftist Heap
 ;;; @module heap
 ;;; @requires prelude
+;;; @description Leftist heap and priority queue with O(log n) operations
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -65,6 +68,7 @@
 (doc 'section 'min-heap-operations)
 
 (define (make-heap-node value left right)
+  (doc 'export #t)
   (doc 'type '(-> α Heap Heap Heap))
   (doc 'description "Smart constructor that maintains leftist property. Always puts the subtree with larger rank on the left.")
   (let ([rank-l (heap-rank left)]

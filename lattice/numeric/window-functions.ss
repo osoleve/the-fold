@@ -1,6 +1,9 @@
 ;;; lattice/numeric/window-functions.ss — Window Functions for Signal Processing
 ;;; @module window-functions
 ;;; @requires prelude iteration
+;;; @description Windowing functions for spectral analysis: Hann, Hamming, Blackman, Bartlett, Kaiser. Window energy and power normalization.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'iteration)

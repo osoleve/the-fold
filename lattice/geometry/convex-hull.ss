@@ -1,6 +1,9 @@
 ;;; lattice/geometry/convex-hull.ss --- 2D convex hull algorithms
 ;;; @module convex-hull
 ;;; @requires prelude geometry/mesh-gen sort
+;;; @description 2D convex hull algorithms: Graham scan O(n log n), Quickhull O(n log n) expected. Includes hull properties (area, perimeter, centroid, diameter), point-in-hull tests, extreme point queries, support functions, and Minkowski sum/difference for collision detection.
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

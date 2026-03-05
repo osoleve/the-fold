@@ -1,5 +1,8 @@
 ;;; @module solve
 ;;; @requires expr simplify
+;;; @description Symbolic equation solving
+;;; @purity total
+;;; @stability stable
 
 (require 'expr)
 (require 'simplify)

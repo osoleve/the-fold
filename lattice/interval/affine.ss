@@ -1,6 +1,9 @@
 ;;; lattice/interval/affine.ss — Affine Arithmetic
 ;;; @module affine
 ;;; @requires prelude sort interval
+;;; @description Affine arithmetic for tighter bounds via correlation tracking. Solves the dependency problem in interval arithmetic. Affine forms represent values as x0 + sum(xi*ei) where ei are noise symbols in [-1, 1].
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'sort)

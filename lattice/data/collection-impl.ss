@@ -1,6 +1,9 @@
 ;;; lattice/data/collection-impl.ss — Protocol Implementations for Data Structures
 ;;; @module collection-impl
 ;;; @requires collection-protocol avl-tree heap kdtree quadtree
+;;; @description Protocol implementations for AVL, heap, kdtree, quadtree
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

@@ -1,6 +1,9 @@
 ;;; lattice/optimization/ilp.ss — Integer Linear Programming
 ;;; @module ilp
 ;;; @requires lp iteration
+;;; @description Integer linear programming via branch-and-bound
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

@@ -100,21 +100,31 @@
 ;;; Error accessors
 
 ;;; stage-err-code : (StageResult α) → Symbol
-(define (stage-err-code r) (list-ref r 2))
+(define (stage-err-code r)
+  (doc 'export #t)
+  (list-ref r 2))
 
 ;;; stage-err-message : (StageResult α) → String
-(define (stage-err-message r) (list-ref r 3))
+(define (stage-err-message r)
+  (doc 'export #t)
+  (list-ref r 3))
 
 ;;; stage-err-data : (StageResult α) → Any
-(define (stage-err-data r) (list-ref r 4))
+(define (stage-err-data r)
+  (doc 'export #t)
+  (list-ref r 4))
 
 ;;; Retry accessors
 
 ;;; stage-retry-reason : (StageResult α) → String
-(define (stage-retry-reason r) (list-ref r 2))
+(define (stage-retry-reason r)
+  (doc 'export #t)
+  (list-ref r 2))
 
 ;;; stage-retry-delay : (StageResult α) → Nat
-(define (stage-retry-delay r) (list-ref r 3))
+(define (stage-retry-delay r)
+  (doc 'export #t)
+  (list-ref r 3))
 
 (doc 'section 'stage-representation)
 (doc 'description "A stage is: ('stage name run-fn) where run-fn : ctx -> input -> StageResult output")

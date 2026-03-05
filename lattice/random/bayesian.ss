@@ -1,6 +1,9 @@
 ;;; lattice/random/bayesian.ss — Bayesian Inference
 ;;; @module bayesian
 ;;; @requires prelude distributions
+;;; @description Bayesian inference primitives
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'distributions)
@@ -28,8 +31,12 @@
   (doc 'export #t)
   (and (pair? p) (eq? (car p) 'beta-prior)))
 
-(define (beta-prior-alpha p) (cadr p))
-(define (beta-prior-beta p) (caddr p))
+(define (beta-prior-alpha p)
+  (doc 'export #t)
+  (cadr p))
+(define (beta-prior-beta p)
+  (doc 'export #t)
+  (caddr p))
 
 (define (beta-binomial-posterior prior k n)
   (doc 'export #t)
@@ -86,8 +93,12 @@
   (doc 'export #t)
   (and (pair? p) (eq? (car p) 'normal-prior)))
 
-(define (normal-prior-mean p) (cadr p))
-(define (normal-prior-variance p) (caddr p))
+(define (normal-prior-mean p)
+  (doc 'export #t)
+  (cadr p))
+(define (normal-prior-variance p)
+  (doc 'export #t)
+  (caddr p))
 
 (define (normal-normal-posterior prior sample-mean n known-variance)
   (doc 'export #t)
@@ -125,8 +136,12 @@
   (doc 'export #t)
   (and (pair? p) (eq? (car p) 'gamma-prior)))
 
-(define (gamma-prior-shape p) (cadr p))
-(define (gamma-prior-rate p) (caddr p))
+(define (gamma-prior-shape p)
+  (doc 'export #t)
+  (cadr p))
+(define (gamma-prior-rate p)
+  (doc 'export #t)
+  (caddr p))
 
 (define (gamma-poisson-posterior prior sum-obs n)
   (doc 'export #t)

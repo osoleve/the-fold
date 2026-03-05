@@ -1,5 +1,8 @@
 ;;; @module statechart
 ;;; @requires prelude combinators
+;;; @description Full statechart implementation: states, transitions, interpreter, validation
+;;; @purity partial
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

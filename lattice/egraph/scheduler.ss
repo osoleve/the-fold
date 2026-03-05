@@ -1,5 +1,8 @@
 ;;; @module egraph/scheduler
 ;;; @requires prelude egraph/saturation sort
+;;; @description Rule scheduling with backoff and priority strategies
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/scheduler.ss — Rule Scheduling for Equality Saturation
 ;;;
 ;;; Intelligent rule scheduling improves saturation performance by:
@@ -45,15 +48,20 @@
           1.0))          ; Current priority (1.0 = normal)
 
 (define (rule-stats? x)
+  (doc 'export #t)
   (and (vector? x)
        (>= (vector-length x) 6)
        (eq? (vector-ref x 0) rule-stats-tag)))
 
-(define (stats-rule s) (vector-ref s 1))
+(define (stats-rule s)
+  (doc 'export #t)
+  (vector-ref s 1))
 (define (stats-total-matches s) (vector-ref s 2))
 (define (stats-last-matches s) (vector-ref s 3))
 (define (stats-zero-streaks s) (vector-ref s 4))
-(define (stats-priority s) (vector-ref s 5))
+(define (stats-priority s)
+  (doc 'export #t)
+  (vector-ref s 5))
 
 (define (stats-set-total-matches! s v) (vector-set! s 2 v))
 (define (stats-set-last-matches! s v) (vector-set! s 3 v))
@@ -144,6 +152,7 @@
       state)))
 
 (define (should-run? stats)
+  (doc 'export #t)
   (doc 'type (-> RuleStats Boolean))
   (doc 'description "Check if rule should run based on priority.")
   (let ([priority (stats-priority stats)])
@@ -157,6 +166,7 @@
   (find (lambda (s) (equal? (stats-rule s) rule)) state))
 
 (define (update-stats! stats matches)
+  (doc 'export #t)
   (doc 'type (-> RuleStats Nat Void))
   (doc 'description "Update rule statistics based on match count.")
   ;; Update totals

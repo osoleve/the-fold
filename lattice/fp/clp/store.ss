@@ -1,5 +1,8 @@
 ;;; @module store
 ;;; @requires prelude logic domain
+;;; @description Constraint store with domains and propagators
+;;; @purity partial
+;;; @stability experimental
 
 (require 'prelude)
 (require 'logic)

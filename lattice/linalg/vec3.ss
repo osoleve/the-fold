@@ -1,6 +1,9 @@
 ;;; lattice/linalg/vec3.ss — 3D Vector Operations
 ;;; @module vec3
 ;;; @requires vec-common
+;;; @description 3D vector specialization
+;;; @purity total
+;;; @stability stable
 
 (require 'vec-common)
 

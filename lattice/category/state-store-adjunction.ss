@@ -1,5 +1,8 @@
 ;;; @module state-store-adjunction
 ;;; @requires combinators templates adjunction comonad
+;;; @description State-Store adjunction
+;;; @purity total
+;;; @stability stable
 
 (require 'combinators)
 (require 'templates)

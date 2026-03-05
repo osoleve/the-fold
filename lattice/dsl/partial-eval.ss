@@ -1,5 +1,8 @@
 ;;; @module partial-eval
 ;;; @requires prelude staging combinators
+;;; @description Online and offline partial evaluation
+;;; @purity total
+;;; @stability stable
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 (require 'prelude)
 (require 'staging)

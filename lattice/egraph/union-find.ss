@@ -1,5 +1,8 @@
 ;;; @module egraph/union-find
 ;;; @requires prelude hamt
+;;; @description Disjoint set with path compression and union by rank
+;;; @purity partial
+;;; @stability experimental
 ;;; lattice/egraph/union-find.ss — Disjoint Set (Union-Find) Data Structure
 ;;;
 ;;; Classic union-find with path compression and union by rank.

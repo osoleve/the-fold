@@ -1,5 +1,7 @@
 ;;; @module zipper-lens
 ;;; @requires prelude combinators templates zipper tree-zipper
+;;; @purity mixed
+;;; @stability stable
 
 (require 'prelude)
 (require 'combinators)

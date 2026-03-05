@@ -1,6 +1,9 @@
 ;;; lattice/signal/digital-filters.ss — Digital Filter Library
 ;;; @module digital-filters
 ;;; @requires prelude complex convolution iteration
+;;; @description FIR and IIR digital filter design. Butterworth and Chebyshev lowpass. Biquad sections, filter cascades, frequency response analysis.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'complex)

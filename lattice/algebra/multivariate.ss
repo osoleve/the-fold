@@ -1,5 +1,8 @@
 ;;; @module multivariate
 ;;; @requires prelude field sort
+;;; @description Multivariate polynomials over fields: sparse representation, orderings, division
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'field)

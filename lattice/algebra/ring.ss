@@ -1,5 +1,8 @@
 ;;; @module ring
 ;;; @requires prelude
+;;; @description Ring theory: rings, ideals, homomorphisms, and standard rings
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

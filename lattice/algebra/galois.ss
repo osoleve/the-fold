@@ -1,5 +1,8 @@
 ;;; @module galois
 ;;; @requires prelude field algebra/polynomial primality
+;;; @description Galois fields: GF(p), GF(p^n) extensions, GF(2^n) binary fields, irreducibles, primitives
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'field)
@@ -85,18 +88,23 @@
 ;;; representing a_0 + a_1*x + ... + a_{n-1}*x^{n-1}
 
 (define (make-gf-ext-element coeffs modulus base-field)
+  (doc 'export #t)
   (list 'gf-ext-element coeffs modulus base-field))
 
 (define (gf-ext-element? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'gf-ext-element)))
 
 (define (gf-ext-coeffs e)
+  (doc 'export #t)
   (list-ref e 1))
 
 (define (gf-ext-modulus e)
+  (doc 'export #t)
   (list-ref e 2))
 
 (define (gf-ext-base-field e)
+  (doc 'export #t)
   (list-ref e 3))
 
 ;;; Normalize coefficients to degree < n and remove trailing zeros
@@ -198,6 +206,7 @@
 
 ;;; GF(p^n) element addition
 (define (gf-ext-add a b base-field n modulus)
+  (doc 'export #t)
   (let* ([ca (gf-ext-coeffs a)]
          [cb (gf-ext-coeffs b)]
          [add-op (field-add-op base-field)]
@@ -220,6 +229,7 @@
 
 ;;; GF(p^n) element multiplication (with reduction)
 (define (gf-ext-mul a b base-field n modulus)
+  (doc 'export #t)
   (let* ([ca (gf-ext-coeffs a)]
          [cb (gf-ext-coeffs b)]
          ;; Convert to polynomials and multiply
@@ -235,6 +245,7 @@
 
 ;;; GF(p^n) element inversion using extended Euclidean algorithm
 (define (gf-ext-inv a base-field n modulus)
+  (doc 'export #t)
   (let* ([ca (gf-ext-coeffs a)]
          [pa (make-polynomial base-field ca)]
          ;; Extended GCD: gcd(a, modulus) = s*a + t*modulus

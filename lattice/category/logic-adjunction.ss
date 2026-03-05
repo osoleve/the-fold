@@ -1,5 +1,8 @@
 ;;; @module logic-adjunction
 ;;; @requires adjunction
+;;; @description Logic adjunctions (Galois connections)
+;;; @purity total
+;;; @stability stable
 
 (require 'adjunction)
 

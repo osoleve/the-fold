@@ -1,5 +1,8 @@
 ;;; @module sat/watches
 ;;; @requires sat/literal
+;;; @description Two-Watched Literals (2WL) for efficient unit propagation
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat/literal)
 

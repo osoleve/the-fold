@@ -1,6 +1,9 @@
 ;;; lattice/dataset/difficulty.ss — Difficulty Scoring and Calibration
 ;;; @module difficulty
 ;;; @requires prelude
+;;; @description Difficulty scoring and calibration
+;;; @purity partial
+;;; @stability experimental
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))

@@ -1,6 +1,9 @@
 ;;; lattice/data/queue.ss — FIFO Queue
 ;;; @module queue
 ;;; @requires prelude
+;;; @description FIFO queue with amortized O(1) ops
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
@@ -22,6 +25,7 @@
       (cons front back)))
 
 (define queue-empty (cons '() '()))
+(doc queue-empty 'export #t)
 (doc queue-empty 'type 'Queue)
 (doc queue-empty 'description "The empty queue")
 

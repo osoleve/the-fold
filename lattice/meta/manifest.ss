@@ -1,4 +1,7 @@
 ;;; @module manifest
+;;; @description Pure manifest parser
+;;; @purity partial
+;;; @stability stable
 (doc 'module 'manifest)
 (doc 'description "Pure functions for parsing lattice skill manifests. No I/O - takes S-expression input, returns structured data.")
 (doc 'layer 'lattice)

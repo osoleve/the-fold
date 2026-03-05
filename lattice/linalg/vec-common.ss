@@ -1,6 +1,9 @@
 ;;; lattice/linalg/vec-common.ss — Shared Vector Macros
 ;;; @module vec-common
 ;;; @requires prelude
+;;; @description Shared vector macros for vec2/vec3
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 

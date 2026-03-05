@@ -1,5 +1,8 @@
 ;;; @module matrix
 ;;; @requires prelude vec iteration
+;;; @description Dense matrix operations
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'vec)

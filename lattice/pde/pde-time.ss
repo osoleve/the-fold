@@ -1,6 +1,9 @@
 ;;; lattice/pde/pde-time.ss — Time stepping schemes for PDEs
 ;;; @module pde-time
 ;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers iteration vector-space ode-explicit
+;;; @description Time stepping schemes for time-dependent PDEs. Forward Euler, Backward Euler, Crank-Nicolson. Method of Lines with RK4. CFL stability conditions. Adaptive time stepping with Richardson extrapolation.
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'sparse)
@@ -50,16 +53,20 @@ Explicit methods delegate to generic ODE integrators via scheme-vec-vspace.")
 
 (doc pde-vec-add 'type '(-> Vector Vector Vector))
 (define pde-vec-add (vspace-add scheme-vec-vspace))
+(doc 'pde-vec-add 'export #t)
 
 (doc pde-vec-sub 'type '(-> Vector Vector Vector))
 (define pde-vec-sub (vspace-sub scheme-vec-vspace))
+(doc 'pde-vec-sub 'export #t)
 
 (doc pde-vec-scale 'type '(-> Number Vector Vector))
 (define pde-vec-scale (vspace-scale scheme-vec-vspace))
+(doc 'pde-vec-scale 'export #t)
 
 (doc pde-vec-madd 'type '(-> Vector Number Vector Vector))
 (doc pde-vec-madd 'description "Multiply-add: v1 + s * v2")
 (define pde-vec-madd (vspace-madd scheme-vec-vspace))
+(doc 'pde-vec-madd 'export #t)
 
 ;;; pde-vec-dot and pde-vec-norm are PDE-specific (used by CG solver)
 ;;; and not part of the minimal vspace interface.

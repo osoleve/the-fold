@@ -1,5 +1,8 @@
 ;;; @module sat/assignment
 ;;; @requires sat/literal
+;;; @description Partial assignment with decision levels
+;;; @purity partial
+;;; @stability experimental
 
 (require 'sat/literal)
 

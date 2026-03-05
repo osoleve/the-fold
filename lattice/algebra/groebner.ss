@@ -1,5 +1,8 @@
 ;;; @module groebner
 ;;; @requires prelude multivariate
+;;; @description Gröbner bases: Buchberger's algorithm, ideal membership, reduction
+;;; @purity total
+;;; @stability stable
 
 (require 'prelude)
 (require 'multivariate)

@@ -1,6 +1,9 @@
 ;;; lattice/data/graph/pagerank.ss — PageRank Algorithm
 ;;; @module pagerank
 ;;; @requires prelude iteration
+;;; @description PageRank importance scoring
+;;; @purity total
+;;; @stability stable
 
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
