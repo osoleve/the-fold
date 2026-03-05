@@ -1,12 +1,15 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ode-integrators
-;;; @requires prelude ode-state-vec ode-adaptive
+;;; @requires prelude ode-state-vec ode-adaptive ode-explicit
 (require 'prelude)
 (require 'ode-state-vec)
 (require 'ode-adaptive)
+(require 'ode-explicit)
 
 (doc 'module 'ode-integrators)
-(doc 'description "Numerical integration (ODE solving) methods for physics and scientific computing")
+(doc 'description "Numerical integration (ODE solving) methods for physics and scientific computing.
+Explicit methods delegate to generic-ode with list-vspace.
+Symplectic methods and energy diagnostics remain here.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 (doc 'note "Explicit methods: euler-step, midpoint-step, rk4-step. Symplectic methods: verlet-step, velocity-verlet-step, leapfrog-step")
@@ -15,7 +18,7 @@
 ;;;   - dt is timestep (number)
 
 ;;; ====
-;;; Vector Operations (backward-compat aliases for ode-state-vec)
+;;; Vector Operations (backward-compat aliases)
 ;;; ====
 
 (define state-add sv-add)
@@ -24,71 +27,32 @@
 (define state-madd sv-madd)
 
 ;;; ====
-;;; Explicit Integration Methods
+;;; Explicit Integration Methods (delegate to generic-ode)
 ;;; ====
 
 ;;; euler-step : ((Number × State) → State) × Number × State × Number → State
-;;; One step of forward Euler method.
-;;; y_{n+1} = y_n + dt * f(t_n, y_n)
-;;;
-;;; First-order accurate, simple but unstable for stiff problems.
+;;; One step of forward Euler method. First-order accurate.
 (define (euler-step f t state dt)
   (doc 'export #t)
-  (let ([derivative (f t state)])
-       (state-madd state dt derivative)))
+  (generic-euler-step list-vspace f t state dt))
 
 ;;; midpoint-step : ((Number × State) → State) × Number × State × Number → State
-;;; One step of midpoint method (RK2).
-;;; k1 = f(t_n, y_n)
-;;; k2 = f(t_n + dt/2, y_n + dt/2 * k1)
-;;; y_{n+1} = y_n + dt * k2
-;;;
-;;; Second-order accurate, more stable than Euler.
+;;; One step of midpoint method (RK2). Second-order accurate.
 (define (midpoint-step f t state dt)
   (doc 'export #t)
-  (let* ([k1 (f t state)]
-         [half-dt (/ dt 2)]
-         [mid-state (state-madd state half-dt k1)]
-         [k2 (f (+ t half-dt) mid-state)])
-        (state-madd state dt k2)))
+  (generic-midpoint-step list-vspace f t state dt))
 
 ;;; heun-step : ((Number × State) → State) × Number × State × Number → State
-;;; One step of Heun's method (improved Euler, RK2 variant).
-;;; k1 = f(t_n, y_n)
-;;; k2 = f(t_n + dt, y_n + dt * k1)
-;;; y_{n+1} = y_n + dt/2 * (k1 + k2)
-;;;
-;;; Second-order accurate, uses trapezoid rule.
+;;; One step of Heun's method (improved Euler, RK2 variant). Second-order accurate.
 (define (heun-step f t state dt)
   (doc 'export #t)
-  (let* ([k1 (f t state)]
-         [euler-state (state-madd state dt k1)]
-         [k2 (f (+ t dt) euler-state)]
-         [avg (state-add k1 k2)])
-        (state-madd state (/ dt 2) avg)))
+  (generic-heun-step list-vspace f t state dt))
 
 ;;; rk4-step : ((Number × State) → State) × Number × State × Number → State
 ;;; One step of classic 4th-order Runge-Kutta.
-;;; k1 = f(t_n, y_n)
-;;; k2 = f(t_n + dt/2, y_n + dt/2 * k1)
-;;; k3 = f(t_n + dt/2, y_n + dt/2 * k2)
-;;; k4 = f(t_n + dt, y_n + dt * k3)
-;;; y_{n+1} = y_n + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
-;;;
-;;; Fourth-order accurate, excellent for most non-stiff problems.
 (define (rk4-step f t state dt)
   (doc 'export #t)
-  (let* ([half-dt (/ dt 2)]
-         [k1 (f t state)]
-         [k2 (f (+ t half-dt) (state-madd state half-dt k1))]
-         [k3 (f (+ t half-dt) (state-madd state half-dt k2))]
-         [k4 (f (+ t dt) (state-madd state dt k3))]
-         ;; Weighted combination: (k1 + 2*k2 + 2*k3 + k4) / 6
-         [weighted (state-add k1
-                              (state-add (state-scale 2 k2)
-                                         (state-add (state-scale 2 k3)
-                                                    k4)))])
-        (state-madd state (/ dt 6) weighted)))
+  (generic-rk4-step list-vspace f t state dt))
 
 ;;; ====
 ;;; Symplectic Integration Methods
@@ -189,6 +153,7 @@
 ;;; integrate : Step × f × Number × State × Number × Nat → (List State)
 ;;; Integrate an ODE over n steps, returning list of states.
 ;;; step is one of euler-step, midpoint-step, rk4-step, etc.
+;;; step must have the legacy signature (f t state dt) → State.
 (define (integrate step f t0 state0 dt n)
   (doc 'export #t)
   (let loop ([t t0] [state state0] [i 0] [results (list state0)])

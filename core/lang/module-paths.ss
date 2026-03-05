@@ -123,6 +123,8 @@
  (register-module-path! 'window-functions "lattice/numeric/window-functions.ss")
  (register-module-path! 'convolution "lattice/numeric/convolution.ss")
  (register-module-path! 'fft-convolve "lattice/numeric/fft-convolve.ss")
+ (register-module-path! 'vector-space "lattice/numeric/vector-space.ss")
+ (register-module-path! 'ode-explicit "lattice/numeric/ode-explicit.ss")
 
  ;; Signal (digital signal processing)
  (register-module-path! 'digital-filters "lattice/signal/digital-filters.ss")

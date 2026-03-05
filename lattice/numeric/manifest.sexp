@@ -7,16 +7,17 @@
   (deps (linalg))
 
   (description
-   "Foundation numerical transforms and approximation: complex number arithmetic,
-    discrete Fourier transform (radix-2 FFT), windowing functions, convolution,
-    numeric polynomials, and interpolation/curve fitting (splines, Bezier,
-    Chebyshev, B-splines, least squares). These are the mathematical primitives
-    that signal processing, autodiff, and statistics build upon.")
+   "Foundation numerical transforms, approximation, and generic solvers: complex
+    number arithmetic, DFT/FFT, windowing, convolution, numeric polynomials,
+    interpolation/curve fitting, and vector-space-parameterized ODE integrators.
+    The vector-space abstraction enables the same algorithms (Euler, RK4, etc.)
+    to work over lists, Scheme vectors, or any custom representation.")
 
   (keywords (numerics fft dft complex-numbers convolution correlation
              polynomial window-functions hann hamming blackman kaiser
              interpolation spline bezier hermite lagrange chebyshev b-spline
-             curve-fitting regression least-squares))
+             curve-fitting regression least-squares
+             vector-space ode euler rk4 midpoint heun integrator))
   (aliases ())
 
   (concepts
@@ -67,7 +68,15 @@
     bezier-linear bezier-quadratic bezier-cubic bezier-general bezier-derivative
     polyfit linreg linreg-r2
     chebyshev-nodes chebyshev-nodes-interval chebyshev-t chebyshev-coeffs chebyshev-eval
-    bspline-basis bspline-curve))
+    bspline-basis bspline-curve)
+
+   (vector-space
+    make-vspace vspace? vspace-add vspace-sub vspace-scale vspace-madd
+    vspace-norm vspace-zero vspace-dim list-vspace scheme-vec-vspace)
+
+   (ode-explicit
+    generic-euler-step generic-midpoint-step generic-heun-step generic-rk4-step
+    generic-integrate))
 
   (modules
    (complex "complex.ss"
@@ -90,4 +99,10 @@
    (fft-convolve "fft-convolve.ss"
     "FFT-based convolution for large signals. Overlap-add method.")
    (interpolate "interpolate.ss"
-    "Numerical interpolation and curve fitting: splines, Bezier, Chebyshev, B-splines, least squares.")))
+    "Numerical interpolation and curve fitting: splines, Bezier, Chebyshev, B-splines, least squares.")
+   (vector-space "vector-space.ss"
+    "Lightweight computational vector-space abstraction. Bundles add/sub/scale/madd/norm/zero/dim
+     over opaque vector types. Instances: list-vspace (for ODE solvers), scheme-vec-vspace (for PDE/linalg).")
+   (ode-explicit "ode-explicit.ss"
+    "Generic explicit ODE integrators parameterized by vector-space: Euler, midpoint, Heun, RK4,
+     and multi-step integration loop. Used by physics, sim, and PDE modules.")))

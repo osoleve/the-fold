@@ -1,14 +1,15 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module ode-adaptive
-;;; @requires prelude ode-system ode-state-vec
+;;; @requires prelude ode-system ode-state-vec vector-space
 (require 'prelude)
 (require 'ode-system)
 (require 'ode-state-vec)
+(require 'vector-space)
 
 (doc 'module 'ode-adaptive)
 (doc 'description "Generic adaptive step-size ODE solver using embedded Dormand-Prince RK4(5).
 Provides error-controlled integration with PI step controller, min/max dt protection,
-and structured result output. Works with list-based state vectors and bridges to ode-system.")
+and structured result output. Parameterized by vector-space for generic vector operations.")
 (doc 'layer 'lattice)
 (doc 'purity 'total)
 
@@ -18,63 +19,66 @@ and structured result output. Works with list-based state vectors and bridges to
 
 (doc 'section 'rk45)
 
-(doc 'type '(-> (-> Number (List Number) (List Number))
-               Number (List Number) Number
-               (List (List Number) Number Number)))
-(doc 'description "Single Dormand-Prince RK4(5) step. Takes a right-hand-side
-function f(t, y) → dy/dt, current time, state, and step size.
-Returns (new-state error-estimate suggested-dt) where error-estimate is
-the RMS difference between the 5th and 4th order solutions.")
-(define (dp45-step f t y dt tol)
+(doc 'description "Single Dormand-Prince RK4(5) step, parameterized by vector-space.
+Takes a vspace, right-hand-side function f(t, y) → dy/dt, current time, state,
+step size, and tolerance. Returns (new-state error-estimate suggested-dt).")
+(define (dp45-step f t y dt tol . rest)
   (doc 'export #t)
-  (let* (;; Stage evaluations (Dormand-Prince coefficients)
+  ;; Optional vspace argument; defaults to list-vspace for backward compat
+  (let* ([vs (if (null? rest) list-vspace (car rest))]
+         [add (vspace-add vs)]
+         [scale (vspace-scale vs)]
+         [sub (vspace-sub vs)]
+         [madd (vspace-madd vs)]
+         [norm (vspace-norm vs)]
+         ;; Stage evaluations (Dormand-Prince coefficients)
          [k1 (f t y)]
          [k2 (f (+ t (* 1/5 dt))
-                (sv-madd y (* 1/5 dt) k1))]
+                (madd y (* 1/5 dt) k1))]
          [k3 (f (+ t (* 3/10 dt))
-                (sv-add y
-                        (sv-add (sv-scale (* 3/40 dt) k1)
-                                (sv-scale (* 9/40 dt) k2))))]
+                (add y
+                     (add (scale (* 3/40 dt) k1)
+                          (scale (* 9/40 dt) k2))))]
          [k4 (f (+ t (* 4/5 dt))
-                (sv-add y
-                        (sv-add (sv-scale (* 44/45 dt) k1)
-                                (sv-add (sv-scale (* -56/15 dt) k2)
-                                        (sv-scale (* 32/9 dt) k3)))))]
+                (add y
+                     (add (scale (* 44/45 dt) k1)
+                          (add (scale (* -56/15 dt) k2)
+                               (scale (* 32/9 dt) k3)))))]
          [k5 (f (+ t (* 8/9 dt))
-                (sv-add y
-                        (sv-add (sv-scale (* 19372/6561 dt) k1)
-                                (sv-add (sv-scale (* -25360/2187 dt) k2)
-                                        (sv-add (sv-scale (* 64448/6561 dt) k3)
-                                                (sv-scale (* -212/729 dt) k4))))))]
+                (add y
+                     (add (scale (* 19372/6561 dt) k1)
+                          (add (scale (* -25360/2187 dt) k2)
+                               (add (scale (* 64448/6561 dt) k3)
+                                    (scale (* -212/729 dt) k4))))))]
          [k6 (f (+ t dt)
-                (sv-add y
-                        (sv-add (sv-scale (* 9017/3168 dt) k1)
-                                (sv-add (sv-scale (* -355/33 dt) k2)
-                                        (sv-add (sv-scale (* 46732/5247 dt) k3)
-                                                (sv-add (sv-scale (* 49/176 dt) k4)
-                                                        (sv-scale (* -5103/18656 dt) k5)))))))]
+                (add y
+                     (add (scale (* 9017/3168 dt) k1)
+                          (add (scale (* -355/33 dt) k2)
+                               (add (scale (* 46732/5247 dt) k3)
+                                    (add (scale (* 49/176 dt) k4)
+                                         (scale (* -5103/18656 dt) k5)))))))]
          ;; 5th order solution (used as the result)
-         [y5 (sv-add y
-                     (sv-scale dt
-                               (sv-add (sv-scale 35/384 k1)
-                                       (sv-add (sv-scale 500/1113 k3)
-                                               (sv-add (sv-scale 125/192 k4)
-                                                       (sv-add (sv-scale -2187/6784 k5)
-                                                               (sv-scale 11/84 k6)))))))]
+         [y5 (add y
+                  (scale dt
+                         (add (scale 35/384 k1)
+                              (add (scale 500/1113 k3)
+                                   (add (scale 125/192 k4)
+                                        (add (scale -2187/6784 k5)
+                                             (scale 11/84 k6)))))))]
          ;; 4th order solution (for error estimate)
          [k7 (f (+ t dt) y5)]
-         [y4 (sv-add y
-                     (sv-scale dt
-                               (sv-add (sv-scale 5179/57600 k1)
-                                       (sv-add (sv-scale 7571/16695 k3)
-                                               (sv-add (sv-scale 393/640 k4)
-                                                       (sv-add (sv-scale -92097/339200 k5)
-                                                               (sv-add (sv-scale 187/2100 k6)
-                                                                       (sv-scale 1/40 k7))))))))]
-         ;; RMS error
-         [err-vec (sv-sub y5 y4)]
-         [err (sqrt (/ (apply + (map (lambda (e) (* e e)) err-vec))
-                       (length err-vec)))]
+         [y4 (add y
+                  (scale dt
+                         (add (scale 5179/57600 k1)
+                              (add (scale 7571/16695 k3)
+                                   (add (scale 393/640 k4)
+                                        (add (scale -92097/339200 k5)
+                                             (add (scale 187/2100 k6)
+                                                  (scale 1/40 k7))))))))]
+         ;; RMS error via vspace norm
+         [err-vec (sub y5 y4)]
+         [dim ((vspace-dim vs) y)]
+         [err (/ (norm err-vec) (sqrt dim))]
          ;; PI step controller: safety * (tol/error)^(1/5)
          [safety 0.9]
          [new-dt (* dt safety (expt (/ tol (max err 1e-10)) 1/5))])
@@ -113,16 +117,13 @@ the RMS difference between the 5th and 4th order solutions.")
 
 (doc 'section 'integration)
 
-(doc 'type '(-> (-> Number (List Number) (List Number))
-               Number (List Number) Number Alist
-               Alist))
 (doc 'description "Integrate an ODE with adaptive step-size control.
 
   f      : (t, y) → dy/dt  (right-hand side)
   t0     : initial time
-  y0     : initial state (list of numbers)
+  y0     : initial state
   t-final: end time
-  opts   : options alist (tolerance, max-steps, min-dt, max-dt-growth)
+  opts   : options alist (tolerance, max-steps, min-dt, max-dt-growth, vspace)
 
 Returns a result alist:
   trajectory : list of (time . state) pairs
@@ -135,6 +136,8 @@ Returns a result alist:
         [max-steps (ode-opt opts 'max-steps)]
         [min-dt (ode-opt opts 'min-dt)]
         [max-growth (ode-opt opts 'max-dt-growth)]
+        [vs (let ([pair (assq 'vspace opts)])
+              (if pair (cdr pair) list-vspace))]
         [dt0 (let ([pair (assq 'initial-dt opts)])
                (if pair (cdr pair)
                    ;; Default: 1/100th of interval
@@ -161,7 +164,7 @@ Returns a result alist:
                (cons 'truncated #t))]
         [else
          (let* ([dt-clamped (min dt (- t-final t))]
-                [result (dp45-step f t y dt-clamped tol)]
+                [result (dp45-step f t y dt-clamped tol vs)]
                 [y-new (car result)]
                 [err (cadr result)]
                 [dt-suggested (caddr result)])

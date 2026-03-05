@@ -1,14 +1,17 @@
 ;;; lattice/pde/pde-time.ss — Time stepping schemes for PDEs
 ;;; @module pde-time
-;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers iteration
+;;; @requires prelude linalg/vec linalg/matrix linalg/sparse linalg/iterative-solvers iteration vector-space ode-explicit
 
 (require 'prelude)
 (require 'sparse)
 (require 'iterative-solvers)
 (require 'iteration)
+(require 'vector-space)
+(require 'ode-explicit)
 
 (doc 'module 'pde-time)
-(doc 'description "Time stepping schemes for PDEs: explicit, implicit, and adaptive methods")
+(doc 'description "Time stepping schemes for PDEs: explicit, implicit, and adaptive methods.
+Explicit methods delegate to generic ODE integrators via scheme-vec-vspace.")
 (doc 'layer 'lattice)
 (doc 'purity 'partial)
 
@@ -37,35 +40,29 @@
 (define *pde-epsilon* 1e-30)  ; Minimum denominator to prevent division by zero
 
 ;;; ============================================================
-;;; Section 2: Vector Operations
+;;; Section 2: Vector Operations (aliases for scheme-vec-vspace)
 ;;; ============================================================
 
 (doc 'section 'vector-ops)
 
+;;; These are backward-compat aliases. The canonical operations live in
+;;; scheme-vec-vspace from lattice/numeric/vector-space.ss.
+
 (doc pde-vec-add 'type '(-> Vector Vector Vector))
-(define (pde-vec-add v1 v2)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v1) i
-    (+ (vector-ref v1 i) (vector-ref v2 i))))
+(define pde-vec-add (vspace-add scheme-vec-vspace))
 
 (doc pde-vec-sub 'type '(-> Vector Vector Vector))
-(define (pde-vec-sub v1 v2)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v1) i
-    (- (vector-ref v1 i) (vector-ref v2 i))))
+(define pde-vec-sub (vspace-sub scheme-vec-vspace))
 
 (doc pde-vec-scale 'type '(-> Number Vector Vector))
-(define (pde-vec-scale s v)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v) i
-    (* s (vector-ref v i))))
+(define pde-vec-scale (vspace-scale scheme-vec-vspace))
 
 (doc pde-vec-madd 'type '(-> Vector Number Vector Vector))
 (doc pde-vec-madd 'description "Multiply-add: v1 + s * v2")
-(define (pde-vec-madd v1 s v2)
-  (doc 'export #t)
-  (vec-tabulate (vector-length v1) i
-    (+ (vector-ref v1 i) (* s (vector-ref v2 i)))))
+(define pde-vec-madd (vspace-madd scheme-vec-vspace))
+
+;;; pde-vec-dot and pde-vec-norm are PDE-specific (used by CG solver)
+;;; and not part of the minimal vspace interface.
 
 (doc pde-vec-dot 'type '(-> Vector Vector Number))
 (define (pde-vec-dot v1 v2)
@@ -99,8 +96,8 @@
 (doc forward-euler-step 'description "One step of forward Euler: u^{n+1} = u^n + dt * f(u^n, t^n)")
 (define (forward-euler-step f u t dt)
   (doc 'export #t)
-  (let ([du (f u t)])
-    (pde-vec-madd u dt du)))
+  ;; PDE convention: f(u, t). Generic uses f(t, state). Swap args.
+  (generic-euler-step scheme-vec-vspace (lambda (t* u*) (f u* t*)) t u dt))
 
 (doc forward-euler-matrix-step 'type '(-> SparseCSR Vector Vector Number Vector))
 (doc forward-euler-matrix-step 'description "Forward Euler for du/dt = A*u + b")
@@ -218,7 +215,7 @@
     (values (car result) (cadr result) (caddr result))))
 
 ;;; ============================================================
-;;; Section 6: Method of Lines
+;;; Section 6: Method of Lines (delegates to generic ODE)
 ;;; ============================================================
 ;;;
 ;;; Discretize space first to get ODE system:
@@ -230,35 +227,31 @@
 (doc 'section 'method-of-lines)
 
 (doc mol-rhs 'type '(-> SparseCSR Vector (-> Vector Number Vector)))
-(doc mol-rhs 'description "Create MOL RHS function du/dt = A*u + b")
+(doc mol-rhs 'description "Create MOL RHS function du/dt = A*u + b.
+Returns f(u, t) in PDE convention (state first).")
 (define (mol-rhs A b)
   (doc 'export #t)
   (lambda (u t)
     (let ([Au (sparse-csr-vec-mul A u)])
       (pde-vec-add Au b))))
 
+;;; mol-rhs/ode : SparseCSR × Vector → (Number × Vector → Vector)
+;;; Same as mol-rhs but in ODE convention (time first) for generic integrators.
+(define (mol-rhs/ode A b)
+  (let ([f (mol-rhs A b)])
+    (lambda (t u) (f u t))))
+
 (doc mol-euler-step 'type '(-> SparseCSR Vector Vector Number Number Vector))
-(doc mol-euler-step 'description "MOL with forward Euler")
+(doc mol-euler-step 'description "MOL with forward Euler (delegates to generic)")
 (define (mol-euler-step A b u t dt)
   (doc 'export #t)
-  (let ([f (mol-rhs A b)])
-    (forward-euler-step f u t dt)))
+  (generic-euler-step scheme-vec-vspace (mol-rhs/ode A b) t u dt))
 
 (doc mol-rk4-step 'type '(-> SparseCSR Vector Vector Number Number Vector))
-(doc mol-rk4-step 'description "MOL with RK4 (4th order accurate)")
+(doc mol-rk4-step 'description "MOL with RK4, 4th order accurate (delegates to generic)")
 (define (mol-rk4-step A b u t dt)
   (doc 'export #t)
-  (let* ([f (mol-rhs A b)]
-         [half-dt (/ dt 2)]
-         [k1 (f u t)]
-         [k2 (f (pde-vec-madd u half-dt k1) (+ t half-dt))]
-         [k3 (f (pde-vec-madd u half-dt k2) (+ t half-dt))]
-         [k4 (f (pde-vec-madd u dt k3) (+ t dt))]
-         ;; u + dt/6 * (k1 + 2*k2 + 2*k3 + k4)
-         [weighted (pde-vec-add k1
-                                (pde-vec-add (pde-vec-scale 2 k2)
-                                             (pde-vec-add (pde-vec-scale 2 k3) k4)))])
-    (pde-vec-madd u (/ dt 6) weighted)))
+  (generic-rk4-step scheme-vec-vspace (mol-rhs/ode A b) t u dt))
 
 ;;; ============================================================
 ;;; Section 7: Stability Analysis
