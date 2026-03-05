@@ -128,9 +128,8 @@
               (kg-ensure!)
               ;; With derived deps + cycle breaking, roots are skills with
               ;; zero derived deps. These shift as module parsing improves.
-              ;; After fp split (fold-zy24): algebra has derived deps (data linalg number-theory)
+              ;; After dsl/template merge, fp is the sole root.
               (let ([roots (lattice-roots)])
-                   (assert-true (if (memq 'template roots) #t #f))
                    (assert-true (if (memq 'fp roots) #t #f))))
 
             (define-test test-lattice-deps-transitive

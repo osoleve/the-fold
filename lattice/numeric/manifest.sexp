@@ -7,14 +7,16 @@
   (deps (linalg))
 
   (description
-   "Foundation numerical transforms: complex number arithmetic, discrete Fourier
-    transform (radix-2 FFT), windowing functions for spectral analysis, convolution
-    and correlation, FFT-based convolution, and numeric polynomials (descending
-    order, vector-based). These are the mathematical primitives that signal
-    processing, autodiff, and statistics build upon.")
+   "Foundation numerical transforms and approximation: complex number arithmetic,
+    discrete Fourier transform (radix-2 FFT), windowing functions, convolution,
+    numeric polynomials, and interpolation/curve fitting (splines, Bezier,
+    Chebyshev, B-splines, least squares). These are the mathematical primitives
+    that signal processing, autodiff, and statistics build upon.")
 
   (keywords (numerics fft dft complex-numbers convolution correlation
-             polynomial window-functions hann hamming blackman kaiser))
+             polynomial window-functions hann hamming blackman kaiser
+             interpolation spline bezier hermite lagrange chebyshev b-spline
+             curve-fitting regression least-squares))
   (aliases ())
 
   (concepts
@@ -54,7 +56,18 @@
     convolve-direct-full convolve-direct-same convolve-direct-valid
     convolve-fft convolve convolve-circular convolve-2d
     correlate-direct correlate autocorrelate
-    matched-filter find-peaks vector-reverse normalize-signal))
+    matched-filter find-peaks vector-reverse normalize-signal)
+
+   (interpolate
+    binary-search-segment thomas-algorithm
+    lerp lerp-inverse interp-linear
+    lagrange-basis interp-lagrange divided-differences interp-newton
+    interp-hermite hermite-tangent-estimate
+    cubic-spline-natural spline-eval interp-cubic-spline
+    bezier-linear bezier-quadratic bezier-cubic bezier-general bezier-derivative
+    polyfit linreg linreg-r2
+    chebyshev-nodes chebyshev-nodes-interval chebyshev-t chebyshev-coeffs chebyshev-eval
+    bspline-basis bspline-curve))
 
   (modules
    (complex "complex.ss"
@@ -75,4 +88,6 @@
     "Linear convolution: direct and FFT-based. Correlation and autocorrelation.
      2D convolution for image processing. Matched filtering.")
    (fft-convolve "fft-convolve.ss"
-    "FFT-based convolution for large signals. Overlap-add method.")))
+    "FFT-based convolution for large signals. Overlap-add method.")
+   (interpolate "interpolate.ss"
+    "Numerical interpolation and curve fitting: splines, Bezier, Chebyshev, B-splines, least squares.")))

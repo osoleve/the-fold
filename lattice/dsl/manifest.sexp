@@ -71,7 +71,13 @@
             stage-match stage-fix infer-staged-type inline-staged)
    (template hole? hole-name find-holes new-template template-complete? template-hole-count
              fill-hole fill-holes compile-template try-compile-template
-             template->string template-status holes->string wrap-if-multiple))
+             template->string template-status holes->string wrap-if-multiple)
+   (template-zipper template->hole-zipper expr->hole-zipper hole-zipper->template hole-zipper->expr
+                     hole-zipper? hole-zipper-current hole-zipper-next hole-zipper-prev
+                     hole-zipper-fill hole-zipper-fill-current hole-zipper-fill-by-name
+                     hole-zipper-goto-index hole-zipper-first hole-zipper-last
+                     hole-zipper-count hole-zipper-position-string hole-zipper-complete?
+                     hole-zipper-undo hole-zipper-can-undo? hole-zipper-status hole-zipper-summary))
 
   (modules
    (tagless "tagless.ss" "Tagless final style interpreter/compiler composition")
@@ -81,4 +87,5 @@
    (reader "reader.ss" "Extensible reader macros and readtables")
    (quasi "quasi.ss" "Quasiquotation expansion and syntax objects")
    (staging "staging.ss" "Multi-stage programming with typed code")
-   (template "template/template.ss" "Grammar-driven code construction with holes")))
+   (template "template/template.ss" "Grammar-driven code construction with holes")
+   (template-zipper "template/template-zipper.ss" "Hole-focused zipper navigation for templates")))

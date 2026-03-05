@@ -1,10 +1,10 @@
-;;; lattice/interpolate/test-interpolate.ss — Tests for Interpolation Module
+;;; lattice/numeric/test-interpolate.ss — Tests for Interpolation Module
 ;;;
 ;;; Comprehensive tests for interpolation, splines, Bezier curves, and fitting.
 
 (load "core/lang/module.ss")
 (load "core/testing/test-framework.ss")
-(load "lattice/interpolate/interpolate.ss")
+(load "lattice/numeric/interpolate.ss")
 
 ;;; ====
 ;;; Test Helpers

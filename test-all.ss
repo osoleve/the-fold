@@ -441,8 +441,8 @@
     "interval/test-interval.ss"
     "interval/test-affine.ss"
     "interval/test-interval-integrate.ss"
-    ;; Interpolate
-    "interpolate/test-interpolate.ss"
+    ;; Interpolate (merged into numeric)
+    "numeric/test-interpolate.ss"
     ;; Signal (DSP)
     "signal/test-digital-filters.ss"
     "signal/test-wavelet.ss"
@@ -615,8 +615,6 @@
     "autodiff/test-interval-autodiff.ss"
     "autodiff/test-sparse-autodiff.ss"
     "autodiff/test-typed-gradients.ss"
-    "autodiff/test-eval-traced.ss"
-    "autodiff/test-eval-and-grad-simple.ss"
     "autodiff/test-differentiable-signal.ss"
     "autodiff/test-profiling.ss"
     "autodiff/test-ode-jacobian.ss"

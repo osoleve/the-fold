@@ -6,7 +6,7 @@
   (purity total)
   (stability experimental)
   (fuel-bound "O(n³) for regression, O(n²) for time series, O(n) for descriptive stats")
-  (deps (linalg fp algebra))
+  (deps (linalg fp algebra info))
 
   (description
    "Comprehensive statistical modeling library including linear and generalized
@@ -76,7 +76,13 @@
    (forecast mae mse rmse mape smape mase theil-u tracking-signal
              naive-forecast drift-forecast seasonal-naive-forecast
              mean-forecast forecast-intervals forecast-accuracy
-             time-series-cv combine-forecasts-mean combine-forecasts-weighted))
+             time-series-cv combine-forecasts-mean combine-forecasts-weighted)
+
+   ;; Info-statistics bridge (mutual information meets statistical modeling)
+   (info-stat/mi-bridge
+    mi-select-features mi-rank-features
+    model-aic-info model-bic-info model-aicc-info compare-models-info
+    kl-compare-distributions kl-compare-symmetric empirical-to-probs))
 
   (modules
    ;; Core modules
@@ -107,5 +113,9 @@
    (ar-poly "timeseries/ar-poly.ss" "Polynomial analysis for AR/MA models")
    (ma "timeseries/ma.ss" "Moving average models via innovations")
    (exponential "timeseries/exponential.ss" "Holt-Winters exponential smoothing")
-   (forecast "timeseries/forecast.ss" "Forecast accuracy and utilities")))
+   (forecast "timeseries/forecast.ss" "Forecast accuracy and utilities")
+
+   ;; Bridge module
+   (info-stat/mi-bridge "mi-bridge.ss"
+    "MI-based feature selection, entropy-based model comparison, KL divergence for distributions")))
 

@@ -380,9 +380,23 @@ Dependencies:
                            (string-append (symbol->string name) ".ss"))]
                  [start (current-time-ms)])
                 (load path)
-                (let ([duration (- (current-time-ms) start)])
-                     (hashtable-set! *module-registry* name (cons #t duration))
-                     (set! *load-order* (cons name *load-order*))))))
+                (let* ([duration (- (current-time-ms) start)]
+                       [entry (cons #t duration)])
+                     (hashtable-set! *module-registry* name entry)
+                     (set! *load-order* (cons name *load-order*))
+                     ;; Mark aliases (other names pointing to same path) as loaded
+                     ;; to prevent double-loading via different require names
+                     (let-values ([(keys vals) (hashtable-entries *module-paths*)])
+                       (let ([n (vector-length keys)])
+                         (let loop ([i 0])
+                           (when (< i n)
+                             (let ([k (vector-ref keys i)]
+                                   [v (vector-ref vals i)])
+                               (when (and (string=? v path)
+                                          (not (eq? k name))
+                                          (not (module-loaded? k)))
+                                 (hashtable-set! *module-registry* k entry)))
+                             (loop (+ i 1))))))))))
 
 ;;; format-cycle : Symbol × (List Symbol) → String
 ;;; Format a circular dependency chain for error message.

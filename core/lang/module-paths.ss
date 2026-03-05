@@ -37,7 +37,6 @@
  (register-module-path! 'dep-types "core/types/dep-types.ss")
  
  ;; Query layer
- (register-module-path! 'query "lattice/query/query.ss")
  (register-module-path! 'query-dsl "lattice/query/query-dsl.ss")
  (register-module-path! 'aho-corasick "lattice/query/aho-corasick.ss")
  (register-module-path! 'optic-query "lattice/query/optic-query.ss")
@@ -131,8 +130,8 @@
  (register-module-path! 'spectral-analysis "lattice/signal/spectral-analysis.ss")
  (register-module-path! 'signal-poly "lattice/signal/signal-poly.ss")
 
- ;; Interpolate (curve fitting and approximation)
- (register-module-path! 'interpolate "lattice/interpolate/interpolate.ss")
+ ;; Interpolate (curve fitting and approximation — merged into numeric)
+ (register-module-path! 'interpolate "lattice/numeric/interpolate.ss")
 
  ;; Interval (verified arithmetic)
  (register-module-path! 'interval "lattice/interval/interval.ss")
@@ -168,7 +167,7 @@
  (register-module-path! 'partition-info "lattice/info/partition-info.ss")
 
  ;; Info-stat bridge layer
- (register-module-path! 'info-stat/mi-bridge "lattice/info-stat/mi-bridge.ss")
+ (register-module-path! 'info-stat/mi-bridge "lattice/statistics/mi-bridge.ss")
 
  ;; Topology layer
  (register-module-path! 'simplicial-complex "lattice/topology/simplicial-complex.ss")
@@ -313,6 +312,7 @@
  (register-module-path! 'parser-combinators "lattice/fp/parsing/parser.ss")
  (register-module-path! 'state "lattice/fp/control/state.ss")
  (register-module-path! 'protocol "lattice/fp/protocol.ss")
+ (register-module-path! 'fp/protocol "lattice/fp/protocol.ss")  ; alias — prevents double-load
  (register-module-path! 'special-functions "lattice/fp/numeric/special-functions.ss")
  (register-module-path! 'units "lattice/fp/measure/units.ss")
  (register-module-path! 'pretty-class "core/util/pretty-class.ss")

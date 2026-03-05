@@ -1,5 +1,5 @@
 (load "core/testing/test-framework.ss")
-(load "lattice/info-stat/mi-bridge.ss")
+(load "lattice/statistics/mi-bridge.ss")
 
 ;;; Tests for info-stat/mi-bridge — the info-statistics bridge module
 
