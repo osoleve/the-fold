@@ -596,6 +596,7 @@
  (register-module-path! 'meta/analyzer-unused "lattice/meta/analyzer-unused.ss")
  (register-module-path! 'meta/analyzer-patterns "lattice/meta/analyzer-patterns.ss")
  (register-module-path! 'meta/analyzer-coverage "lattice/meta/analyzer-coverage.ss")
+ (register-module-path! 'meta/analyzer-fuel "lattice/meta/analyzer-fuel.ss")
  (register-module-path! 'ode-adaptive "lattice/sim/dynamics/ode-adaptive.ss")
  (register-module-path! 'autodiff/ode-jacobian "lattice/autodiff/ode-jacobian.ss")
  (register-module-path! 'contract "lattice/validation/contract.ss")

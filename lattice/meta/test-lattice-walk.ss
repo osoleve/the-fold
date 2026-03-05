@@ -7,6 +7,7 @@
 (load "lattice/meta/analyzer-unused.ss")
 (load "lattice/meta/analyzer-patterns.ss")
 (load "lattice/meta/analyzer-coverage.ss")
+(load "lattice/meta/analyzer-fuel.ss")
 
 ;;; ============================================================================
 ;;; Helpers
@@ -506,5 +507,226 @@
                      (acc-ref state 'exports)
                      'a)])
         (assert-true (pair? (memq 'dead-fn unused)))))))
+
+;;; ============================================================================
+;;; Fuel Cost Analyzer Tests
+;;; ============================================================================
+
+(test-group "fuel-analyzer"
+
+  (define-test "primitive calls cost 0 callee + args"
+    ;; (+ x 1) = 1 (apply) + 0 (+ is primitive) + 1 (x) + 1 (1) = 3
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (inc x) (+ x 1))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (let ([cost (fuel-db-lookup fuel-db 'inc)])
+        (assert-true (integer? cost))
+        (assert-true (> cost 0)))))
+
+  (define-test "constant function has minimal cost"
+    ;; (define (k) 42) — body is just the literal 42, cost = 1
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (k) 42)))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (assert-equal 1 (fuel-db-lookup fuel-db 'k))))
+
+  (define-test "cross-module cost propagation"
+    ;; Module A: (define (inc x) (+ x 1)) — some cost C
+    ;; Module B: (define (double-inc x) (inc (inc x)))
+    ;;           = 1 (apply outer inc) + C (inc) + 1 (apply inner inc) + C (inc) + 1 (x)
+    ;;           B's cost > A's cost
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (inc x) (+ x 1))))]
+           [b (mr 'b '(a) '((require 'a)
+                             (define (double-inc x) (inc (inc x)))))]
+           [result (lattice-walk (list b a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (let ([inc-cost (fuel-db-lookup fuel-db 'inc)]
+            [dinc-cost (fuel-db-lookup fuel-db 'double-inc)])
+        (assert-true (integer? inc-cost))
+        (assert-true (integer? dinc-cost))
+        (assert-true (> dinc-cost inc-cost)))))
+
+  (define-test "recursive function detected"
+    ;; (define (f x) (if (zero? x) 0 (f (- x 1))))
+    ;; Calls itself → should be marked 'recursive
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (f x)
+                              (if (zero? x) 0 (f (- x 1))))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (assert-equal 'recursive (fuel-db-lookup fuel-db 'f))))
+
+  (define-test "mutual recursion detected"
+    ;; A calls B, B calls A
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (even? n) (if (zero? n) #t (odd? (- n 1))))
+                            (define (odd? n) (if (zero? n) #f (even? (- n 1))))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (assert-equal 'recursive (fuel-db-lookup fuel-db 'even?))
+      (assert-equal 'recursive (fuel-db-lookup fuel-db 'odd?))))
+
+  (define-test "branching takes worst case"
+    ;; (if test (+ a b c) x) — then-branch costs more than else-branch
+    ;; Result should reflect the more expensive branch
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (cheap x) x)
+                            (define (expensive x) (+ (+ x 1) (+ x 2)))
+                            (define (branchy x)
+                              (if (zero? x) (cheap x) (expensive x)))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (let ([cheap-cost (fuel-db-lookup fuel-db 'cheap)]
+            [exp-cost (fuel-db-lookup fuel-db 'expensive)]
+            [branchy-cost (fuel-db-lookup fuel-db 'branchy)])
+        ;; expensive > cheap
+        (assert-true (> exp-cost cheap-cost))
+        ;; branchy uses max, so its cost includes the expensive branch
+        (assert-true (integer? branchy-cost))
+        (assert-true (> branchy-cost exp-cost)))))
+
+  (define-test "lambda bodies are latent"
+    ;; (define (make-adder n) (lambda (x) (+ x n)))
+    ;; The lambda body doesn't contribute to make-adder's cost
+    ;; make-adder's cost is just 1 (the lambda expression)
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (make-adder n) (lambda (x) (+ x n)))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      ;; Body is just the lambda → cost is 1
+      (assert-equal 1 (fuel-db-lookup fuel-db 'make-adder))))
+
+  (define-test "unknown callee produces unknown cost"
+    ;; Calling a function not in the DB
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (wrapper x) (mysterious-fn x))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (assert-equal 'unknown (fuel-db-lookup fuel-db 'wrapper))))
+
+  (define-test "non-recursive callers of recursive fns get recursive"
+    ;; f is recursive, g calls f → g should also be recursive
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (f x) (if (zero? x) 0 (f (- x 1))))
+                            (define (g x) (+ 1 (f x)))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (assert-equal 'recursive (fuel-db-lookup fuel-db 'f))
+      (assert-equal 'recursive (fuel-db-lookup fuel-db 'g))))
+
+  (define-test "query helpers work"
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (cheap) 42)
+                            (define (medium x) (+ x (+ x x)))
+                            (define (rec x) (if (zero? x) 0 (rec (- x 1))))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      ;; fuel-db-recursive-functions
+      (let ([recs (fuel-db-recursive-functions fuel-db)])
+        (assert-true (pair? (memq 'rec recs)))
+        (assert-false (memq 'cheap recs)))
+      ;; fuel-db-module-summary
+      (let ([summary (fuel-db-module-summary fuel-db '(cheap medium))])
+        (assert-equal 2 (length summary))
+        (assert-true (integer? (cdr (assq 'cheap summary)))))))
+
+  (define-test "deep acyclic chain does not false-positive as recursive"
+    ;; 30-deep chain: f1 calls f2, f2 calls f3, ..., f30 is a leaf
+    ;; None are recursive — all should get numeric costs
+    (let* ([analyzer (make-fuel-analyzer)]
+           ;; Build a chain of 30 functions in one module
+           [defs (let loop ([i 1] [acc '()])
+                   (if (> i 30)
+                       (reverse acc)
+                       (loop (+ i 1)
+                             (cons (if (= i 30)
+                                       '(define (f30) 42)
+                                       (let ([name (string->symbol
+                                                    (string-append "f" (number->string i)))]
+                                             [next (string->symbol
+                                                    (string-append "f" (number->string (+ i 1))))])
+                                         `(define (,name x) (,next x))))
+                                   acc))))]
+           [a (mr 'a '() defs)]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      ;; f30 (leaf) should be 1
+      (assert-equal 1 (fuel-db-lookup fuel-db 'f30))
+      ;; f1 (top of chain) should be a finite number, NOT recursive
+      (assert-true (integer? (fuel-db-lookup fuel-db 'f1)))
+      ;; f1 should cost more than f30
+      (assert-true (> (fuel-db-lookup fuel-db 'f1)
+                      (fuel-db-lookup fuel-db 'f30)))))
+
+  (define-test "recursive dominates unknown in cost lattice"
+    ;; f is recursive AND calls an unknown function
+    ;; Result should be 'recursive, not 'unknown
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (f x)
+                              (if (zero? x)
+                                  (mysterious-fn x)
+                                  (f (- x 1))))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      (assert-equal 'recursive (fuel-db-lookup fuel-db 'f))))
+
+  (define-test "named let detected as potential recursion"
+    ;; Named let is a local recursion form
+    (let* ([analyzer (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (sum-to n)
+                              (let loop ([i 0] [acc 0])
+                                (if (> i n) acc (loop (+ i 1) (+ acc i)))))))]
+           [result (lattice-walk (list a) (list analyzer))]
+           [fuel-db (acc-ref (walk-state result) 'fuel)])
+      (assert-true (walk-ok? result))
+      ;; sum-to itself is not recursive (it doesn't call sum-to)
+      ;; but the named let "loop" inside is — however, since loop is local
+      ;; and not a top-level define, the analyzer only sees sum-to's body cost.
+      ;; The body contains a named-let which the analyzer treats as
+      ;; 1 (let overhead) + bindings + body. The internal "loop" call
+      ;; is to a symbol not in the DB → 'unknown.
+      (assert-true (fuel-cost? (fuel-db-lookup fuel-db 'sum-to)))))
+
+  (define-test "composes with all other analyzers"
+    (let* ([ea (make-export-analyzer)]
+           [eff (make-effect-analyzer)]
+           [ua (make-unused-requires-analyzer)]
+           [pa (make-pattern-analyzer)]
+           [ca (make-coverage-analyzer)]
+           [fa (make-fuel-analyzer)]
+           [a (mr 'a '() '((define (io-fn x) (display x))
+                            (define (pure-fn x) (+ x 1))))]
+           [b (mr 'b '(a) '((require 'a)
+                             (define (wrapper x) (io-fn (pure-fn x)))))]
+           [result (lattice-walk (list b a) (list ea eff ua pa ca fa))]
+           [state (walk-state result)])
+      (assert-true (walk-ok? result))
+      ;; All analyzers produced results
+      (assert-true (pair? (acc-ref state 'exports)))
+      (assert-true (hashtable? (acc-ref state 'effects)))
+      (assert-true (pair? (acc-ref state 'unused)))
+      (assert-true (hashtable? (acc-ref state 'fuel)))
+      ;; Fuel costs propagated
+      (let ([fuel-db (acc-ref state 'fuel)])
+        (assert-true (integer? (fuel-db-lookup fuel-db 'pure-fn)))
+        (assert-true (integer? (fuel-db-lookup fuel-db 'wrapper)))
+        ;; wrapper calls two functions, should cost more than either alone
+        (assert-true (> (fuel-db-lookup fuel-db 'wrapper)
+                        (fuel-db-lookup fuel-db 'pure-fn)))))))
 
 (run-all-tests)

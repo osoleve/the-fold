@@ -1,6 +1,6 @@
 ;;; boundary/meta/lattice-walk-io.ss — I/O driver for lattice analysis walker
 ;;; @module lattice-walk-io
-;;; @requires file-io meta/lattice-walk meta/analyzer-exports meta/analyzer-effects meta/analyzer-unused meta/analyzer-patterns meta/analyzer-coverage
+;;; @requires file-io meta/lattice-walk meta/analyzer-exports meta/analyzer-effects meta/analyzer-unused meta/analyzer-patterns meta/analyzer-coverage meta/analyzer-fuel
 
 (unless (top-level-bound? 'read-all-sexps)
   (load "boundary/meta/file-io.ss"))
@@ -16,6 +16,8 @@
   (load "lattice/meta/analyzer-patterns.ss"))
 (unless (top-level-bound? 'make-coverage-analyzer)
   (load "lattice/meta/analyzer-coverage.ss"))
+(unless (top-level-bound? 'make-fuel-analyzer)
+  (load "lattice/meta/analyzer-fuel.ss"))
 
 (doc 'module 'lattice-walk-io)
 (doc 'description "I/O driver for the lattice analysis walker. Reads source files,
@@ -99,7 +101,8 @@ builds ModuleRecords, and runs the pure topsort walker with all analyzers.")
                           (make-effect-analyzer)
                           (make-unused-requires-analyzer)
                           (make-pattern-analyzer)
-                          (make-coverage-analyzer))]
+                          (make-coverage-analyzer)
+                          (make-fuel-analyzer))]
          [result (lattice-walk records analyzers)])
     result))
 
@@ -135,7 +138,10 @@ builds ModuleRecords, and runs the pure topsort walker with all analyzers.")
 
        ;; Export utilization summary
        (print-coverage-summary (acc-ref state 'coverage)
-                               (acc-ref state 'exports)))])
+                               (acc-ref state 'exports))
+
+       ;; Fuel cost summary
+       (print-fuel-summary (acc-ref state 'fuel)))])
   (display "\n"))
 
 ;;; print-effect-summary : Hashtable -> Void
@@ -282,6 +288,38 @@ builds ModuleRecords, and runs the pure topsort walker with all analyzers.")
                   (length dead-nonleaf))
           (display "  (Leaf modules excluded — consumed by boundary/tests/REPL)\n")
           (display "\n")))))
+
+;;; print-fuel-summary : Hashtable -> Void
+(define (print-fuel-summary fuel-db)
+  (display "  --- Fuel Cost Analysis ---\n")
+  (if (not fuel-db)
+      (display "  No data available.\n\n")
+      (let* ([keys (vector->list (hashtable-keys fuel-db))]
+             [costs (map (lambda (k) (hashtable-ref fuel-db k 'unknown)) keys)]
+             [numeric (filter integer? costs)]
+             [n-recursive (length (filter (lambda (c) (eq? c 'recursive)) costs))]
+             [n-unknown (length (filter (lambda (c) (eq? c 'unknown)) costs))]
+             [n-numeric (length numeric)])
+        (printf "  Total symbols: ~a\n" (length keys))
+        (printf "  Deterministic: ~a  Recursive: ~a  Unknown: ~a\n"
+                n-numeric n-recursive n-unknown)
+        (when (pair? numeric)
+          (let* ([sorted (list-sort > numeric)]
+                 [median-idx (quotient (length sorted) 2)])
+            (printf "  Cost range: ~a — ~a (median: ~a)\n"
+                    (car (reverse sorted))
+                    (car sorted)
+                    (list-ref sorted median-idx))))
+        ;; Show top-10 most expensive deterministic functions
+        (let ([hot (fuel-db-hot-functions fuel-db 0)])
+          (when (pair? hot)
+            (let ([top (if (> (length hot) 10) (list-head hot 10) hot)])
+              (display "\n  Top costly functions:\n")
+              (for-each
+               (lambda (entry)
+                 (printf "    ~a: ~a fuel\n" (car entry) (cdr entry)))
+               top))))
+        (display "\n"))))
 
 ;;; ============================================================================
 ;;; REPL Convenience

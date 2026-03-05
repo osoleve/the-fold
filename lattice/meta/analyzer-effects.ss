@@ -262,6 +262,7 @@ instead of 'unknown. Uses fixed-point iteration within each module.")
 
 ;;; extract-definitions : (List SExp) -> (List (Pair Symbol SExp))
 ;;; Extract top-level define forms as (name . body) pairs.
+(doc extract-definitions 'export #t)
 (define (extract-definitions sexps)
   (let loop ([forms sexps] [acc '()])
     (if (null? forms)
