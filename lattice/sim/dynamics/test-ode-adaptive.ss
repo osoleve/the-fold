@@ -198,4 +198,40 @@
       (assert-true (< (abs (- (cadr final) (exp -2))) 1e-6))
       (assert-true (< (abs (- (caddr final) (exp -3))) 1e-6)))))
 
+;;; ====
+;;; min-dt boundary behavior
+;;; ====
+
+(test-group "min-dt-boundary"
+
+  ;; A stiff derivative that produces large error, forcing repeated rejection
+  ;; down to min-dt. With a large min-dt (1e-2) and tight tolerance, the
+  ;; integrator must force-accept at the floor rather than loop forever.
+  (define-test "force-accepts at min-dt floor"
+    (let* ([f-stiff (lambda (t y) (list (* -50 (car y))))]
+           [opts '((tolerance . 1e-10) (min-dt . 1e-2) (max-steps . 100))]
+           [result (ode-adaptive-integrate f-stiff 0.0 '(1.0) 1.0 opts)])
+      ;; Should complete (not hang) and have rejections
+      (assert-true (> (cdr (assq 'rejections result)) 0))
+      (assert-true (> (cdr (assq 'steps result)) 0))))
+
+  ;; Verify accepted step sizes never drop below min-dt
+  (define-test "accepted dt stays above min-dt"
+    (let* ([f-stiff (lambda (t y) (list (* -50 (car y))))]
+           [opts '((tolerance . 1e-10) (min-dt . 1e-2) (max-steps . 200))]
+           [result (ode-adaptive-integrate f-stiff 0.0 '(1.0) 1.0 opts)]
+           [traj (cdr (assq 'trajectory result))]
+           [times (map car traj)]
+           [dts (let loop ([ts (cdr times)] [prev (car times)] [acc '()])
+                  (if (null? ts) (reverse acc)
+                      (loop (cdr ts) (car ts)
+                            (cons (- (car ts) prev) acc))))])
+      ;; Every actual time step should be >= min-dt (1e-2),
+      ;; except possibly the final step clamped to t-final
+      (assert-true
+        (let check ([ds (if (null? dts) '() (reverse (cdr (reverse dts))))])
+          (or (null? ds)
+              (and (>= (car ds) 0.0099) ;; slight tolerance for float
+                   (check (cdr ds)))))))))
+
 (run-all-tests)

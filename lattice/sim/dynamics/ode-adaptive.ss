@@ -171,12 +171,12 @@ Returns a result alist:
            (if (< err tol)
                ;; Accept step
                (let ([t-new (+ t dt-clamped)]
-                     [dt-next (min dt-suggested (* max-growth dt))])
+                     [dt-next (max min-dt (min dt-suggested (* max-growth dt)))])
                  (loop t-new y-new dt-next
                        (+ steps 1) rejections
                        (cons (cons t-new y-new) traj)))
                ;; Reject step — shrink dt, enforce minimum
-               (if (<= dt min-dt)
+               (if (<= dt-clamped min-dt)
                    ;; Already at minimum dt — accept anyway to avoid infinite loop
                    (let ([t-new (+ t dt-clamped)])
                      (loop t-new y-new min-dt
