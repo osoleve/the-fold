@@ -16,6 +16,7 @@
 (doc 'description "A discrete state-space system uses the same (ss A B C D) structure but with the interpretation: x[k+1] = A*x[k] + B*u[k], y[k] = C*x[k] + D*u[k]. We add metadata to distinguish discrete from continuous systems")
 
 (define (make-dss A B C D Ts)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix Matrix Matrix Number (U SS Error)))
   (doc 'description "Create a discrete-time state-space system with sample time Ts")
   (let ([result (make-ss A B C D)])
@@ -26,6 +27,7 @@
 ;;; dss? : Any → Boolean
 ;;; Check if value is a discrete state-space system.
 (define (dss? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'dss)
        (= (length x) 6)))
@@ -33,6 +35,7 @@
 ;;; dss-Ts : DSS → Number
 ;;; Get the sample time.
 (define (dss-Ts sys)
+  (doc 'export #t)
   (if (dss? sys)
       (list-ref sys 5)
       #f))
@@ -45,10 +48,12 @@
 
 ;;; dss-order : DSS → Nat
 (define (dss-order sys)
+  (doc 'export #t)
   (matrix-rows (dss-A sys)))
 
 ;;; error-result? : Any → Boolean
 (define (error-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'error)))
 
 ;;; ====
@@ -65,6 +70,7 @@
 ;;;
 ;;; This avoids the A^{-1} computation in the naive formula.
 (define (c2d-zoh sys Ts)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [C (ss-C sys)]
@@ -129,6 +135,7 @@
 ;;;   Cd = C
 ;;;   Dd = D + (Ts/2) * C * (I - A*Ts/2)^{-1} * B
 (define (c2d-tustin sys Ts)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [C (ss-C sys)]
@@ -164,6 +171,7 @@
 ;;; wc maps exactly to the continuous frequency wc.
 ;;; FIX: Corrected prewarping formula: Ts_mod = (2/wc) * tan(wc * Ts / 2)
 (define (c2d-tustin-prewarp sys Ts wc)
+  (doc 'export #t)
   (let* ([;; Prewarped sample time: Ts_mod = (2/wc) * tan(wc * Ts / 2)
           Ts-mod (* (/ 2 wc) (tan (* wc Ts 0.5)))])
         (c2d-tustin sys Ts-mod)))
@@ -178,6 +186,7 @@
 ;;;
 ;;; This is the inverse of c2d-tustin.
 (define (d2c-tustin dsys Ts)
+  (doc 'export #t)
   (let* ([Ad (dss-A dsys)]
          [Bd (dss-B dsys)]
          [Cd (dss-C dsys)]
@@ -210,6 +219,7 @@
 ;;; dss-step : DSS × Vec × Vec → Vec
 ;;; Compute one step: x[k+1] = A*x[k] + B*u[k]
 (define (dss-step sys x u)
+  (doc 'export #t)
   (let ([A (dss-A sys)]
         [B (dss-B sys)])
        (vec-add (matrix-vec-mul-v A x)
@@ -218,6 +228,7 @@
 ;;; dss-output : DSS × Vec × Vec → Vec
 ;;; Compute output: y[k] = C*x[k] + D*u[k]
 (define (dss-output sys x u)
+  (doc 'export #t)
   (let ([C (dss-C sys)]
         [D (dss-D sys)])
        (vec-add (matrix-vec-mul-v C x)
@@ -227,6 +238,7 @@
 ;;; Simulate discrete system over input sequence.
 ;;; Returns (states . outputs) where each is a list of vectors.
 (define (dss-simulate sys x0 inputs)
+  (doc 'export #t)
   (let loop ([x x0]
              [us inputs]
              [states (list x0)]
@@ -245,6 +257,7 @@
 ;;; Compute impulse response for n samples.
 ;;; Input is 1 at k=0, 0 elsewhere (for first input channel).
 (define (dss-impulse-response sys n)
+  (doc 'export #t)
   (let* ([m (matrix-cols (dss-B sys))]
          [n-states (dss-order sys)]
          [x0 (make-vector n-states 0)]
@@ -258,6 +271,7 @@
 ;;; Compute step response for n samples.
 ;;; Input is 1 for all k >= 0 (for first input channel).
 (define (dss-step-response sys n)
+  (doc 'export #t)
   (let* ([m (matrix-cols (dss-B sys))]
          [n-states (dss-order sys)]
          [x0 (make-vector n-states 0)]
@@ -274,6 +288,7 @@
 ;;; Check if discrete system is stable.
 ;;; Stable if all eigenvalues have magnitude < 1 (inside unit circle).
 (define (dss-stable? sys)
+  (doc 'export #t)
   (let* ([A (dss-A sys)]
          [eigs (qr-algorithm-shifted A)])
         (cond
@@ -309,6 +324,7 @@
 
 ;;; find-complex-at-index : Nat × List → (Real . Imag) | #f
 (define (find-complex-at-index i info)
+  (doc 'export #t)
   (cond
    [(null? info) #f]
    [(= i (caar info))
@@ -327,6 +343,7 @@
 ;;; Recommend sample rate based on system bandwidth.
 ;;; Rule of thumb: Ts should be 1/10 to 1/20 of fastest time constant.
 (define (recommend-sample-rate sys)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [eigs (qr-algorithm-shifted A)])
         (cond
@@ -361,6 +378,7 @@
 
 ;;; vec-add : Vec × Vec → Vec
 (define (vec-add v1 v2)
+  (doc 'export #t)
   (let* ([n (vector-length v1)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -369,6 +387,7 @@
 
 ;;; matrix-vec-mul-v : Matrix × Vec → Vec
 (define (matrix-vec-mul-v M v)
+  (doc 'export #t)
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)]
          [result (make-vector rows 0)])
@@ -384,6 +403,7 @@
 ;;; matrix-inverse : Matrix → Matrix | Error
 ;;; Compute matrix inverse using LU decomposition.
 (define (matrix-inverse M)
+  (doc 'export #t)
   (let* ([n (matrix-rows M)]
          [result (make-matrix n n 0)])
         ;; Solve M * X = I for each column of X
@@ -404,6 +424,7 @@
 ;;; solve-linear-system : Matrix × Vec → Vec | Error
 ;;; Solve A*x = b using Gaussian elimination with partial pivoting.
 (define (solve-linear-system A b)
+  (doc 'export #t)
   (let* ([n (matrix-rows A)]
          ;; Create augmented matrix
          [aug (make-matrix n (+ n 1) 0)])

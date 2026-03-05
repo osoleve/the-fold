@@ -24,6 +24,7 @@
 (doc make-markov-chain 'description "Construct a Markov chain from a row-stochastic transition matrix.
   Validates that the matrix is square and each row sums to ~1.")
 (define (make-markov-chain P)
+  (doc 'export #t)
   (let ([r (matrix-rows P)]
         [c (matrix-cols P)])
     (cond
@@ -37,6 +38,7 @@
 (doc markov-chain? 'type '(-> Any Bool))
 (doc markov-chain? 'description "Check if value is a Markov chain")
 (define (markov-chain? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'markov-chain)
        (pair? (cdr x))
@@ -45,11 +47,13 @@
 (doc markov-transition-matrix 'type '(-> MarkovChain Matrix))
 (doc markov-transition-matrix 'description "Extract the transition matrix from a Markov chain")
 (define (markov-transition-matrix mc)
+  (doc 'export #t)
   (cadr mc))
 
 (doc markov-num-states 'type '(-> MarkovChain Nat))
 (doc markov-num-states 'description "Number of states in the Markov chain")
 (define (markov-num-states mc)
+  (doc 'export #t)
   (matrix-rows (markov-transition-matrix mc)))
 
 ;;; ====
@@ -57,6 +61,7 @@
 ;;; ====
 
 (define (rows-stochastic? P tol)
+  (doc 'export #t)
   (doc 'description "Check that every row of P sums to approximately 1")
   (let ([r (matrix-rows P)]
         [c (matrix-cols P)]
@@ -82,12 +87,14 @@
 (doc markov-step 'description "Evolve a state distribution by one step: pi' = pi * P.
   pi is a row vector (length n), P is n x n row-stochastic.")
 (define (markov-step pi P)
+  (doc 'export #t)
   (vec-matrix-mul pi P))
 
 (doc markov-steps 'type '(-> Vec Matrix Nat Vec))
 (doc markov-steps 'description "Evolve a state distribution by n steps: pi * P^n.
   Uses repeated multiplication (not matrix exponentiation).")
 (define (markov-steps pi P n)
+  (doc 'export #t)
   (let loop ([v pi] [k n])
     (if (<= k 0)
         v
@@ -105,6 +112,7 @@
 (doc stationary-distribution 'param 'tol "Convergence tolerance on L1 norm of change (default 1e-10)")
 (doc stationary-distribution 'param 'max-iter "Maximum iterations (default 10000)")
 (define (stationary-distribution P . opts)
+  (doc 'export #t)
   (let* ([tol (if (and (pair? opts) (number? (car opts)))
                   (car opts)
                   1e-10)]
@@ -144,6 +152,7 @@
 (doc mixing-time 'param 'tol "Tolerance for stationary distribution convergence (default 1e-12)")
 (doc mixing-time 'param 'max-steps "Maximum steps to try (default 100000)")
 (define (mixing-time P epsilon . opts)
+  (doc 'export #t)
   (let* ([tol (if (and (pair? opts) (number? (car opts)))
                   (car opts)
                   1e-12)]
@@ -181,6 +190,7 @@
   We check irreducibility via the reachability matrix (P + I)^n > 0,
   and aperiodicity by verifying some power P^k has all positive entries.")
 (define (is-ergodic? P)
+  (doc 'export #t)
   (let ([n (matrix-rows P)])
     (and (is-irreducible? P)
          (is-aperiodic? P))))
@@ -188,6 +198,7 @@
 (doc is-irreducible? 'type '(-> Matrix Bool))
 (doc is-irreducible? 'description "Check if the chain is irreducible: every state is reachable from every other state")
 (define (is-irreducible? P)
+  (doc 'export #t)
   (let* ([n (matrix-rows P)]
          ;; Build a binary adjacency matrix: 1 where P(i,j) > 0
          [adj-data (make-vector (* n n) 0)]
@@ -207,6 +218,7 @@
   Sufficient condition: some diagonal entry of P is positive (self-loop) in an
   irreducible chain. Otherwise, check if P^k has all positive entries for some k.")
 (define (is-aperiodic? P)
+  (doc 'export #t)
   (let ([n (matrix-rows P)])
     ;; Quick check: if any state has a self-loop, aperiodicity is guaranteed
     ;; for an irreducible chain
@@ -233,6 +245,7 @@
 (doc markov-entropy-rate 'param 'P "Row-stochastic transition matrix")
 (doc markov-entropy-rate 'param 'pi "Optional stationary distribution vector")
 (define (markov-entropy-rate P . opts)
+  (doc 'export #t)
   (let* ([pi (if (and (pair? opts) (vector? (car opts)))
                  (car opts)
                  (stationary-distribution P))]
@@ -261,6 +274,7 @@
 ;;; ====
 
 (define (vec-sum-raw v)
+  (doc 'export #t)
   (doc 'description "Sum of vector elements (no error wrapping)")
   (let ([n (vector-length v)])
     (let loop ([i 0] [s 0])
@@ -268,6 +282,7 @@
           (loop (+ i 1) (+ s (vector-ref v i)))))))
 
 (define (l1-distance v1 v2)
+  (doc 'export #t)
   (doc 'description "L1 distance between two vectors")
   (let ([n (vector-length v1)])
     (let loop ([i 0] [s 0])
@@ -275,10 +290,12 @@
           (loop (+ i 1) (+ s (abs (- (vector-ref v1 i) (vector-ref v2 i)))))))))
 
 (define (total-variation-distance v1 v2)
+  (doc 'export #t)
   (doc 'description "Total variation distance = (1/2) * L1 distance")
   (* 0.5 (l1-distance v1 v2)))
 
 (define (all-positive? M)
+  (doc 'export #t)
   (doc 'description "Check if all entries in a matrix are positive (> 0)")
   (let ([data (matrix-data M)]
         [n (vector-length (matrix-data M))])
@@ -289,6 +306,7 @@
         [else (loop (+ i 1))]))))
 
 (define (all-positive-diagonal? M)
+  (doc 'export #t)
   (doc 'description "Check if all diagonal entries are positive")
   (let ([n (matrix-rows M)]
         [data (matrix-data M)])
@@ -299,6 +317,7 @@
               (loop (+ i 1)))))))
 
 (define (has-self-loop? P)
+  (doc 'export #t)
   (doc 'description "Check if any state has P(i,i) > 0")
   (let ([n (matrix-rows P)]
         [data (matrix-data P)])
@@ -309,6 +328,7 @@
               (loop (+ i 1)))))))
 
 (define (matrix-power-fast* M k)
+  (doc 'export #t)
   (doc 'description "Fast matrix power via repeated squaring (local, avoids depending on graph-matrix)")
   (cond [(= k 0) (matrix-identity (matrix-rows M))]
         [(= k 1) M]

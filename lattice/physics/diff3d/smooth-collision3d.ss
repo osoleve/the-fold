@@ -20,11 +20,13 @@
 ;;; SDF for a sphere centered at `center` with given `radius`.
 ;;; Returns signed distance: negative inside, positive outside.
 (define (traced-sdf-sphere point center radius)
+  (doc 'export #t)
   (traced-sub (traced-vec3-smooth-distance point center 1e-8) radius))
 
 ;;; traced-sdf-point-3d : TracedVec3 × TracedVec3 → TracedValue
 ;;; SDF for a point (radius = 0 sphere).
 (define (traced-sdf-point-3d query target)
+  (doc 'export #t)
   (traced-vec3-smooth-distance query target 1e-8))
 
 ;;; traced-sdf-box-3d : TracedVec3 × TracedVec3 × Vec3 → TracedValue
@@ -33,6 +35,7 @@
 ;;;   half-extents: (half-width, half-height, half-depth) - non-traced
 ;;; Uses smooth approximation for corners and edges.
 (define (traced-sdf-box-3d point center half-extents)
+  (doc 'export #t)
   (let* ([local (traced-vec3-sub point center)]
          ;; Distance to each axis boundary
          [dx (traced-sub (traced-smooth-abs (traced-vec3-x local) 1e-8)
@@ -61,6 +64,7 @@
 ;;;   a, b: capsule endpoints
 ;;;   radius: capsule radius
 (define (traced-sdf-capsule-3d point a b radius)
+  (doc 'export #t)
   (let* ([pa (traced-vec3-sub point a)]
          [ba (traced-vec3-sub b a)]
          ;; Project point onto line segment, clamped to [0, 1]
@@ -77,6 +81,7 @@
 ;;; traced-sdf-line-segment-3d : TracedVec3 × TracedVec3 × TracedVec3 → TracedValue
 ;;; SDF for a 3D line segment (zero-radius capsule).
 (define (traced-sdf-line-segment-3d point a b)
+  (doc 'export #t)
   (traced-sdf-capsule-3d point a b 0))
 
 ;;; traced-sdf-half-space : TracedVec3 × TracedVec3 × TracedVec3 → TracedValue
@@ -84,6 +89,7 @@
 ;;;   point-on-plane: any point on the plane boundary
 ;;;   normal: outward normal (pointing toward positive distance)
 (define (traced-sdf-half-space point point-on-plane normal)
+  (doc 'export #t)
   (traced-vec3-dot (traced-vec3-sub point point-on-plane) normal))
 
 ;;; ====
@@ -94,6 +100,7 @@
 ;;; SDF for the Minkowski sum of two spheres (their intersection region).
 ;;; Returns negative when spheres overlap.
 (define (traced-sdf-sphere-sphere pos-a radius-a pos-b radius-b)
+  (doc 'export #t)
   (traced-sub (traced-vec3-smooth-distance pos-a pos-b 1e-8)
               (+ radius-a radius-b)))
 
@@ -103,6 +110,7 @@
 ;;;   normal: points from A to B
 ;;;   penetration: positive when overlapping
 (define (traced-sphere-contact pos-a radius-a pos-b radius-b)
+  (doc 'export #t)
   (let* ([delta (traced-vec3-sub pos-b pos-a)]
          [dist (traced-vec3-smooth-magnitude delta 1e-8)]
          ;; Normal from A to B (smooth normalize)
@@ -121,6 +129,7 @@
 ;;; Contact between sphere and infinite plane.
 ;;; plane-normal points into the valid region (away from solid).
 (define (traced-sphere-plane-contact sphere-pos radius plane-point plane-normal)
+  (doc 'export #t)
   (let* (;; Signed distance from sphere center to plane
          [center-dist (traced-sdf-half-space sphere-pos plane-point plane-normal)]
          ;; Penetration is radius - center_dist (positive when penetrating)
@@ -147,6 +156,7 @@
 ;;;
 ;;; Returns force magnitude (always >= 0).
 (define (traced-soft-contact-force penetration stiffness alpha)
+  (doc 'export #t)
   (traced-mul stiffness (traced-softplus penetration alpha)))
 
 ;;; traced-soft-contact-force-damped : TracedValue × TracedValue × Number × Number × Number → TracedValue
@@ -157,6 +167,7 @@
 ;;;   damping: damping coefficient
 ;;;   alpha: softplus sharpness
 (define (traced-soft-contact-force-damped penetration approach-vel stiffness damping alpha)
+  (doc 'export #t)
   (let* ([spring-force (traced-soft-contact-force penetration stiffness alpha)]
          ;; Only damp when in contact (penetration > 0)
          [damping-force (traced-mul (traced-mul damping approach-vel)
@@ -172,6 +183,7 @@
 ;;; Compute soft contact force between two spheres.
 ;;; Returns force on body A (negate for force on body B).
 (define (traced-sphere-sphere-force pos-a vel-a radius-a pos-b vel-b radius-b stiffness damping alpha)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-sphere-contact pos-a radius-a pos-b radius-b))
    (lambda (contact normal penetration)
@@ -184,6 +196,7 @@
 ;;; Compute soft contact force between sphere and plane.
 ;;; Returns force on the sphere.
 (define (traced-sphere-plane-force pos vel radius plane-point plane-normal stiffness damping alpha)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-sphere-plane-contact pos radius plane-point plane-normal))
    (lambda (contact _ penetration)
@@ -199,6 +212,7 @@
 ;;; Force from horizontal ground plane at y = ground-y.
 ;;; Ground normal points up (+y).
 (define (traced-ground-plane-force-3d pos vel radius ground-y stiffness damping alpha)
+  (doc 'export #t)
   (traced-sphere-plane-force pos vel radius
                              (lift-vec3-const (vec3 0 ground-y 0))
                              (lift-vec3-const (vec3 0 1 0))  ; up
@@ -215,6 +229,7 @@
 ;;; The function f should take a TracedVec3 and return a TracedValue.
 ;;; This function wraps the scalar function to work with the gradient API.
 (define (vec3-gradient f p)
+  (doc 'export #t)
   ;; The gradient function passes traced scalars, so we wrap them in a TracedVec3
   ;; and call f, which expects a TracedVec3.
   (gradient (lambda (x y z)
@@ -229,6 +244,7 @@
 ;;; Compute normal direction from SDF at a point.
 ;;; Uses automatic differentiation to get gradient.
 (define (traced-sdf-normal-3d sdf-fn point)
+  (doc 'export #t)
   (let ([grads (vec3-gradient sdf-fn point)])
        (vec3-normalize (vec3 (car grads) (cadr grads) (caddr grads)))))
 
@@ -236,6 +252,7 @@
 ;;; Approximate closest point on surface using SDF gradient.
 ;;; closest = point - sdf(point) * normal
 (define (traced-sdf-closest-point-3d sdf-fn point)
+  (doc 'export #t)
   (let* ([tape (make-reverse-tape)]
          [traced-point (lift-vec3 point tape)]
          [sdf-val-traced (sdf-fn traced-point)]
@@ -259,6 +276,7 @@
 ;;;
 ;;; Uses tanh to smoothly interpolate between -μFn and +μFn.
 (define (traced-soft-friction-3d tangent-vel normal-force mu smoothness)
+  (doc 'export #t)
   (let* ([vel-mag (traced-vec3-smooth-magnitude tangent-vel 1e-8)]
          ;; Smooth sign function: tanh(v * smoothness)
          [vel-sign (traced-tanh (traced-mul vel-mag smoothness))]
@@ -275,6 +293,7 @@
 ;;;   normal-force: magnitude of normal force
 ;;;   mu: friction coefficient
 (define (traced-contact-friction-force-3d rel-vel normal normal-force mu)
+  (doc 'export #t)
   (let* (;; Decompose velocity into normal and tangent
          [vel-normal (traced-vec3-dot rel-vel normal)]
          [vel-tangent (traced-vec3-sub rel-vel
@@ -296,6 +315,7 @@
 ;;; make-soft-material-3d : Number × Number × Number × Number → SoftMaterial3D
 ;;; Create a soft contact material for 3D.
 (define (make-soft-material-3d stiffness damping alpha friction)
+  (doc 'export #t)
   (list 'soft-material-3d stiffness damping alpha friction))
 
 ;;; soft-material-3d-stiffness : SoftMaterial3D → Number
@@ -312,6 +332,7 @@
 
 ;;; default-soft-material-3d : → SoftMaterial3D
 (define (default-soft-material-3d)
+  (doc 'export #t)
   (make-soft-material-3d *default-contact-stiffness-3d*
                          *default-contact-damping-3d*
                          *default-contact-alpha-3d*
@@ -325,6 +346,7 @@
 ;;; Compute forces from rectangular boundary walls (6 faces).
 ;;;   min-corner, max-corner: boundary box
 (define (traced-wall-forces-3d pos vel radius min-corner max-corner mat)
+  (doc 'export #t)
   (let ([stiffness (soft-material-3d-stiffness mat)]
         [damping (soft-material-3d-damping mat)]
         [alpha (soft-material-3d-alpha mat)])
@@ -379,6 +401,7 @@
 ;;; Soft contact force between sphere and axis-aligned box.
 ;;; Uses SDF for smooth penetration calculation.
 (define (traced-sphere-box-force sphere-pos sphere-vel radius box-center box-half-extents stiffness damping alpha)
+  (doc 'export #t)
   (let* (;; SDF gives penetration (negative when inside, but we want positive penetration)
          [sdf-val (traced-sdf-box-3d sphere-pos box-center box-half-extents)]
          ;; Penetration = radius - sdf (positive when overlapping)

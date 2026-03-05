@@ -45,10 +45,12 @@
 
 ;;; alg-make-polynomial : Field × (List Coeff) → AlgPolynomial
 (define (alg-make-polynomial field coeffs)
+  (doc 'export #t)
   (list 'alg-polynomial field (alg-normalize-coeffs field coeffs)))
 
 ;;; alg-normalize-coeffs : Field × (List Coeff) → (List Coeff)
 (define (alg-normalize-coeffs field coeffs)
+  (doc 'export #t)
   (let ([zero (field-zero field)]
         [eq-fn (field-equal-fn field)])
     (let loop ([cs (reverse coeffs)])
@@ -59,6 +61,7 @@
 
 ;;; alg-polynomial? : Any → Boolean
 (define (alg-polynomial? p)
+  (doc 'export #t)
   (and (pair? p) (eq? (car p) 'alg-polynomial)))
 
 ;;; alg-poly-field : AlgPolynomial → Field
@@ -69,10 +72,12 @@
 
 ;;; alg-poly-degree : AlgPolynomial → Nat
 (define (alg-poly-degree p)
+  (doc 'export #t)
   (- (length (alg-poly-coeffs p)) 1))
 
 ;;; alg-poly-leading-coeff : AlgPolynomial → Coeff
 (define (alg-poly-leading-coeff p)
+  (doc 'export #t)
   (let ([coeffs (alg-poly-coeffs p)])
     (if (null? coeffs)
         (field-zero (alg-poly-field p))
@@ -80,6 +85,7 @@
 
 ;;; alg-poly-zero? : AlgPolynomial → Boolean
 (define (alg-poly-zero? p)
+  (doc 'export #t)
   (let ([F (alg-poly-field p)]
         [coeffs (alg-poly-coeffs p)])
     (and (= (length coeffs) 1)
@@ -87,14 +93,17 @@
 
 ;;; alg-poly-zero-over : Field → AlgPolynomial
 (define (alg-poly-zero-over field)
+  (doc 'export #t)
   (alg-make-polynomial field (list (field-zero field))))
 
 ;;; alg-poly-one-over : Field → AlgPolynomial
 (define (alg-poly-one-over field)
+  (doc 'export #t)
   (alg-make-polynomial field (list (field-one field))))
 
 ;;; alg-poly-add : AlgPolynomial × AlgPolynomial → AlgPolynomial
 (define (alg-poly-add p1 p2)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p1)]
          [c1 (alg-poly-coeffs p1)]
          [c2 (alg-poly-coeffs p2)]
@@ -103,6 +112,7 @@
 
 ;;; alg-add-coeffs : (α×α→α) × (List α) × (List α) × α → (List α)
 (define (alg-add-coeffs add c1 c2 zero)
+  (doc 'export #t)
   (cond
     [(null? c1) c2]
     [(null? c2) c1]
@@ -111,22 +121,26 @@
 
 ;;; alg-poly-neg : AlgPolynomial → AlgPolynomial
 (define (alg-poly-neg p)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p)]
          [neg (field-neg-fn F)])
     (alg-make-polynomial F (map neg (alg-poly-coeffs p)))))
 
 ;;; alg-poly-sub : AlgPolynomial × AlgPolynomial → AlgPolynomial
 (define (alg-poly-sub p1 p2)
+  (doc 'export #t)
   (alg-poly-add p1 (alg-poly-neg p2)))
 
 ;;; alg-poly-scale : AlgPolynomial × Coeff → AlgPolynomial
 (define (alg-poly-scale p c)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p)]
          [mul (field-mul-op F)])
     (alg-make-polynomial F (map (lambda (x) (mul c x)) (alg-poly-coeffs p)))))
 
 ;;; alg-poly-mul : AlgPolynomial × AlgPolynomial → AlgPolynomial
 (define (alg-poly-mul p1 p2)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p1)]
          [c1 (alg-poly-coeffs p1)]
          [c2 (alg-poly-coeffs p2)]
@@ -152,6 +166,7 @@
 
 ;;; list-set : (List α) × Nat × α → (List α)
 (define (list-set lst idx val)
+  (doc 'export #t)
   (if (= idx 0)
       (cons val (cdr lst))
       (cons (car lst) (list-set (cdr lst) (- idx 1) val))))
@@ -159,6 +174,7 @@
 ;;; alg-poly-divmod : AlgPolynomial × AlgPolynomial → (AlgPolynomial . AlgPolynomial)
 ;;; Polynomial division with remainder: p1 = q*p2 + r
 (define (alg-poly-divmod p1 p2)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p1)]
          [zero (field-zero F)]
          [div (field-div-fn F)])
@@ -179,6 +195,7 @@
 
 ;;; alg-poly-monomial : Field × Coeff × Nat → AlgPolynomial
 (define (alg-poly-monomial field coeff degree)
+  (doc 'export #t)
   (let ([zero (field-zero field)])
     (if ((field-equal-fn field) coeff zero)
         (alg-poly-zero-over field)
@@ -187,20 +204,24 @@
 
 ;;; alg-poly-mod : AlgPolynomial × AlgPolynomial → AlgPolynomial
 (define (alg-poly-mod p1 p2)
+  (doc 'export #t)
   (cdr (alg-poly-divmod p1 p2)))
 
 ;;; alg-poly-div : AlgPolynomial × AlgPolynomial → AlgPolynomial
 (define (alg-poly-div p1 p2)
+  (doc 'export #t)
   (car (alg-poly-divmod p1 p2)))
 
 ;;; alg-poly-gcd : AlgPolynomial × AlgPolynomial → AlgPolynomial
 (define (alg-poly-gcd p1 p2)
+  (doc 'export #t)
   (if (alg-poly-zero? p2)
       (alg-poly-make-monic p1)
       (alg-poly-gcd p2 (alg-poly-mod p1 p2))))
 
 ;;; alg-poly-make-monic : AlgPolynomial → AlgPolynomial
 (define (alg-poly-make-monic p)
+  (doc 'export #t)
   (if (alg-poly-zero? p)
       p
       (let* ([F (alg-poly-field p)]
@@ -211,6 +232,7 @@
 ;;; alg-poly-extended-gcd : AlgPolynomial × AlgPolynomial → (AlgPolynomial × AlgPolynomial × AlgPolynomial)
 ;;; Extended Euclidean algorithm. Returns (gcd, s, t) such that gcd = s*p1 + t*p2.
 (define (alg-poly-extended-gcd p1 p2)
+  (doc 'export #t)
   (let ([F (alg-poly-field p1)])
     (let loop ([old-r p1] [r p2]
                [old-s (alg-poly-one-over F)] [s (alg-poly-zero-over F)]
@@ -226,6 +248,7 @@
 ;;; alg-poly-square-free : AlgPolynomial → AlgPolynomial
 ;;; Compute square-free part: p / gcd(p, p')
 (define (alg-poly-square-free p)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p)]
          [p-deriv (alg-poly-derivative p)]
          [g (alg-poly-gcd p p-deriv)])
@@ -236,6 +259,7 @@
 ;;; alg-poly-derivative : AlgPolynomial → AlgPolynomial
 ;;; Formal derivative: d/dx (sum_i a_i x^i) = sum_i i*a_i x^{i-1}
 (define (alg-poly-derivative p)
+  (doc 'export #t)
   (let* ([F (alg-poly-field p)]
          [coeffs (alg-poly-coeffs p)]
          [n (length coeffs)])
@@ -253,6 +277,7 @@
 ;;; Yun's algorithm for square-free factorization.
 ;;; Returns list of (factor . multiplicity) pairs.
 (define (alg-poly-square-free-factorization p)
+  (doc 'export #t)
   (if (alg-poly-zero? p)
       '()
       (let* ([F (alg-poly-field p)]
@@ -267,6 +292,7 @@
 
 ;;; alg-sqf-iter : AlgPolynomial × AlgPolynomial × Nat × List → (List (AlgPolynomial . Nat))
 (define (alg-sqf-iter a c k factors)
+  (doc 'export #t)
   (let ([F (alg-poly-field a)])
     (if (<= (alg-poly-degree a) 0)
         (reverse factors)
@@ -281,6 +307,7 @@
 ;;; alg-poly->string : AlgPolynomial × Symbol → String
 ;;; Convert polynomial to string representation.
 (define (alg-poly->string p var)
+  (doc 'export #t)
   (let* ([coeffs (alg-poly-coeffs p)]
          [n (length coeffs)]
          [var-str (symbol->string var)])
@@ -312,6 +339,7 @@
 ;;; Numeric polynomials use tag 'poly and store coeffs as vector in cadr
 ;;; num-poly-coeffs : NumericPoly → Vector
 (define (num-poly-coeffs p)
+  (doc 'export #t)
   (cadr p))
 
 ;;; ====
@@ -340,6 +368,7 @@
 ;;; Convert from numeric polynomial (descending order) to algebra polynomial (ascending order).
 ;;; Descending #(a_n a_{n-1} ... a_0) → Ascending (a_0 a_1 ... a_n)
 (define (numeric->algebra-poly p field)
+  (doc 'export #t)
   (let* ([coeffs (num-poly-coeffs p)]
          [n (vector-length coeffs)]
          ;; Iterate 0..n-1 and cons to reverse order: descending → ascending
@@ -352,6 +381,7 @@
 ;;; algebra->numeric-poly : AlgebraPoly → Poly
 ;;; Convert from algebra polynomial (ascending order) to numeric polynomial (descending order).
 (define (algebra->numeric-poly ap)
+  (doc 'export #t)
   (let* ([coeffs (alg-poly-coeffs ap)]
          [n (length coeffs)]
          [desc-vec (make-vector n)])
@@ -368,6 +398,7 @@
 ;;; Uses polynomial GCD for exact pole-zero cancellation.
 ;;; Optional field parameter (defaults to Q-field for exact rationals).
 (define (tf-simplify tf . opts)
+  (doc 'export #t)
   (let* ([field (if (null? opts) Q-field (car opts))]
          [num (tf-num tf)]
          [den (tf-den tf)]
@@ -388,6 +419,7 @@
 ;;; Simplify transfer function using exact rational arithmetic.
 ;;; Converts coefficients to exact rationals for GCD computation.
 (define (tf-simplify-exact tf)
+  (doc 'export #t)
   (tf-simplify tf Q-field))
 
 ;;; ====
@@ -401,6 +433,7 @@
 ;;; Compute Routh array using exact rational arithmetic.
 ;;; Input is an algebra polynomial over Q-field (ascending order).
 (define (routh-array-exact apoly)
+  (doc 'export #t)
   (let* ([coeffs (alg-poly-coeffs apoly)]  ; Use algebra accessor
          [n (length coeffs)]
          [degree (- n 1)])
@@ -417,6 +450,7 @@
 ;;; make-routh-row : (List Coeff) × Nat × Nat × Nat → (List Coeff)
 ;;; Extract elements at positions start, start+2, start+4, ... from coefficients.
 (define (make-routh-row coeffs start row-len n)
+  (doc 'export #t)
   (let loop ([i 0] [acc '()])
     (if (>= i row-len)
         (reverse acc)
@@ -428,6 +462,7 @@
 ;;; routh-array-exact-iter : (List (List Coeff)) × Nat → (List (List Coeff))
 ;;; Build remaining rows of Routh array using exact rational arithmetic.
 (define (routh-array-exact-iter rows remaining)
+  (doc 'export #t)
   (if (<= remaining 0)
       (reverse rows)
       (let* ([prev-row (car rows)]
@@ -453,6 +488,7 @@
 
 ;;; make-routh-new-row : (List Coeff) × (List Coeff) × Coeff × Nat → (List Coeff)
 (define (make-routh-new-row prev-prev-row prev-row b len)
+  (doc 'export #t)
   (let ([a (car prev-prev-row)])
     (let loop ([i 0] [acc '()])
       (if (>= i (- len 1))
@@ -466,6 +502,7 @@
 ;;; Check stability using exact rational Routh-Hurwitz.
 ;;; Input is numeric polynomial (descending order).
 (define (routh-hurwitz-exact p)
+  (doc 'export #t)
   (let* ([alg-poly (numeric->algebra-poly p Q-field)]
          [array (routh-array-exact alg-poly)]
          [first-col (map car array)])
@@ -473,6 +510,7 @@
 
 ;;; has-sign-changes-exact? : (List Rational) → Boolean
 (define (has-sign-changes-exact? nums)
+  (doc 'export #t)
   (cond
     [(null? nums) #f]
     [(null? (cdr nums)) #f]
@@ -490,11 +528,13 @@
 ;;; tf-char-poly : TF → AlgebraPoly
 ;;; Get the characteristic polynomial (denominator) as algebra polynomial.
 (define (tf-char-poly tf)
+  (doc 'export #t)
   (numeric->algebra-poly (tf-den tf) Q-field))
 
 ;;; tf-char-poly-factored : TF → (List (AlgPolynomial × Nat))
 ;;; Get square-free factorization of characteristic polynomial.
 (define (tf-char-poly-factored tf)
+  (doc 'export #t)
   (alg-poly-square-free-factorization (tf-char-poly tf)))
 
 ;;; ====
@@ -506,6 +546,7 @@
 ;;; Returns (gcd, s, t) such that gcd = s*num1 + t*num2.
 ;;; Useful for controller synthesis.
 (define (tf-bezout tf1 tf2)
+  (doc 'export #t)
   (let* ([num1-alg (numeric->algebra-poly (tf-num tf1) Q-field)]
          [num2-alg (numeric->algebra-poly (tf-num tf2) Q-field)])
     (alg-poly-extended-gcd num1-alg num2-alg)))
@@ -518,6 +559,7 @@
 ;;; Check if numerator and denominator are coprime (GCD = 1).
 ;;; Returns #t if no common factors exist.
 (define (tf-coprime? tf)
+  (doc 'export #t)
   (let* ([num-alg (numeric->algebra-poly (tf-num tf) Q-field)]
          [den-alg (numeric->algebra-poly (tf-den tf) Q-field)]
          [gcd-alg (alg-poly-gcd num-alg den-alg)])
@@ -527,6 +569,7 @@
 ;;; Get the common factors (canceled pole-zero pairs) from transfer function.
 ;;; Returns list of factors that would be removed by tf-simplify.
 (define (tf-canceled-poles tf)
+  (doc 'export #t)
   (let* ([num-alg (numeric->algebra-poly (tf-num tf) Q-field)]
          [den-alg (numeric->algebra-poly (tf-den tf) Q-field)]
          [gcd-alg (alg-poly-gcd num-alg den-alg)])
@@ -541,15 +584,18 @@
 ;;; tf-num-exact->string : TF → String
 ;;; Display numerator with exact rational coefficients.
 (define (tf-num-exact->string tf)
+  (doc 'export #t)
   (alg-poly->string (numeric->algebra-poly (tf-num tf) Q-field) 's))
 
 ;;; tf-den-exact->string : TF → String
 ;;; Display denominator with exact rational coefficients.
 (define (tf-den-exact->string tf)
+  (doc 'export #t)
   (alg-poly->string (numeric->algebra-poly (tf-den tf) Q-field) 's))
 
 ;;; tf-exact->string : TF → String
 ;;; Display full transfer function with exact coefficients.
 (define (tf-exact->string tf)
+  (doc 'export #t)
   (string-append "(" (tf-num-exact->string tf) ") / ("
                  (tf-den-exact->string tf) ")"))

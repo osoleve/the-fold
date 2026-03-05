@@ -18,16 +18,19 @@
 (doc stack-empty 'description "The empty stack")
 
 (define (stack-empty? stack)
+  (doc 'export #t)
   (doc 'type (-> Stack Boolean))
   (doc 'description "Check if stack is empty")
   (null? stack))
 
 (define (stack-push elem stack)
+  (doc 'export #t)
   (doc 'type (-> α Stack Stack))
   (doc 'description "Push element onto stack")
   (cons elem stack))
 
 (define (stack-pop stack)
+  (doc 'export #t)
   (doc 'type (-> Stack (Values Stack α)))
   (doc 'description "Pop top element from stack")
   (if (null? stack)
@@ -35,6 +38,7 @@
       (values (cdr stack) (car stack))))
 
 (define (stack-peek stack)
+  (doc 'export #t)
   (doc 'type (-> Stack α))
   (doc 'description "Get top element without removing")
   (if (null? stack)
@@ -42,16 +46,19 @@
       (car stack)))
 
 (define (stack-size stack)
+  (doc 'export #t)
   (doc 'type (-> Stack Nat))
   (doc 'description "Get number of elements in stack")
   (length stack))
 
 (define (stack->list stack)
+  (doc 'export #t)
   (doc 'type (-> Stack (List α)))
   (doc 'description "Convert stack to list (top to bottom)")
   stack)
 
 (define (list->stack lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) Stack))
   (doc 'description "Convert list to stack (first element becomes top)")
   lst)

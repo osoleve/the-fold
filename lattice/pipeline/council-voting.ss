@@ -15,6 +15,7 @@
 
 (doc 'type '(-> Any Boolean))
 (define (voting-rule? x)
+  (doc 'export #t)
   (memq x '(plurality borda schulze copeland condorcet)))
 
 ;;; default-voting-rule : Symbol
@@ -35,6 +36,7 @@
 
 ;;; ranked-vote-config? : Any -> Boolean
 (define (ranked-vote-config? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'ranked-vote-config)))
 
 ;;; Accessors
@@ -62,6 +64,7 @@
 
 ;;; ranked-vote-result? : Any -> Boolean
 (define (ranked-vote-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'ranked-vote-result)))
 
 ;;; Result accessors
@@ -80,6 +83,7 @@
 ;;; Apply the specified voting rule to a profile.
 ;;; Returns (winner . full-ranking) where possible.
 (define (apply-voting-rule rule profile)
+  (doc 'export #t)
   (case rule
     [(plurality)
      (let ([sorted (map car (sort-by (lambda (a b) (> (cdr a) (cdr b)))
@@ -110,6 +114,7 @@
 
 ;;; remove : a × (List a) → (List a)
 (define (remove x lst)
+  (doc 'export #t)
   (filter (lambda (y) (not (equal? x y))) lst))
 
 ;;; ============================================================================
@@ -122,11 +127,13 @@
 ;;; proposals: list of proposals to rank
 ;;; rule: voting rule to use ('plurality, 'borda, 'schulze, 'copeland, 'condorcet)
 (define (council-vote-ranked models proposals rule)
+  (doc 'export #t)
   (council-vote-ranked-full models proposals rule #f #f 0))
 
 ;;; council-vote-ranked-full : (List Symbol) × (List Any) × Symbol × Bool × Bool × Nat → Stage
 ;;; Full configuration for ranked voting.
 (define (council-vote-ranked-full models proposals rule require-condorcet allow-ties discussion-rounds)
+  (doc 'export #t)
   (let ([config (make-ranked-vote-config
                  models proposals rule
                  require-condorcet allow-ties discussion-rounds)])
@@ -138,16 +145,19 @@
 ;;; council-schulze : (List Symbol) × (List Any) → Stage
 ;;; Convenience: Schulze method council.
 (define (council-schulze models proposals)
+  (doc 'export #t)
   (council-vote-ranked models proposals 'schulze))
 
 ;;; council-borda : (List Symbol) × (List Any) → Stage
 ;;; Convenience: Borda count council.
 (define (council-borda models proposals)
+  (doc 'export #t)
   (council-vote-ranked models proposals 'borda))
 
 ;;; council-condorcet : (List Symbol) × (List Any) → Stage
 ;;; Convenience: Condorcet method (Schulze fallback).
 (define (council-condorcet models proposals)
+  (doc 'export #t)
   (council-vote-ranked models proposals 'condorcet))
 
 (doc 'section 'deliberation-protocol)
@@ -166,6 +176,7 @@
 
 ;;; deliberation? : Any -> Boolean
 (define (deliberation? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'deliberation)))
 
 ;;; Accessors
@@ -179,6 +190,7 @@
 ;;; deliberate : Deliberation → Stage
 ;;; Execute a full deliberation process.
 (define (deliberate delib)
+  (doc 'export #t)
   (make-stage 'deliberate
               (lambda (ctx input)
                 (list 'stage-effect 'deliberation
@@ -190,6 +202,7 @@
 (doc 'description "Create a code review deliberation")
 (doc 'param 'verdicts "list of possible verdicts (e.g., '(\"approve\" \"request-changes\" \"reject\"))")
 (define (code-review-deliberation reviewers verdicts)
+  (doc 'export #t)
   (make-deliberation
    "Code Review"
    verdicts
@@ -201,6 +214,7 @@
 ;;; architecture-deliberation : (List Symbol) × (List String) → Deliberation
 ;;; Create an architecture decision deliberation.
 (define (architecture-deliberation architects options)
+  (doc 'export #t)
   (make-deliberation
    "Architecture Decision"
    options
@@ -212,6 +226,7 @@
 ;;; task-prioritization : (List Symbol) × (List String) → Deliberation
 ;;; Create a task prioritization deliberation.
 (define (task-prioritization agents tasks)
+  (doc 'export #t)
   (make-deliberation
    "Task Prioritization"
    tasks
@@ -225,6 +240,7 @@
 (doc 'type '(-> RankedVoteResult Alist))
 (doc 'description "Analyze voting result for insights")
 (define (analyze-deliberation-result result)
+  (doc 'export #t)
   (let* ([profile (rvr-profile result)]
          [winner (rvr-winner result)]
          [condorcet (rvr-condorcet result)]
@@ -241,12 +257,14 @@
 ;;; result-has-clear-winner? : RankedVoteResult → Boolean
 ;;; Check if result has a clear (Condorcet) winner.
 (define (result-has-clear-winner? result)
+  (doc 'export #t)
   (and (rvr-condorcet result)
        (equal? (rvr-winner result) (rvr-condorcet result))))
 
 ;;; result-controversy-score : RankedVoteResult → Number
 ;;; Higher score means more controversial (different rules give different winners).
 (define (result-controversy-score result)
+  (doc 'export #t)
   (let* ([profile (rvr-profile result)]
          [plurality-w (plurality-winner profile)]
          [borda-w (borda-winner profile)]
@@ -268,16 +286,19 @@
 ;;; quick-vote : (List Symbol) × (List Any) → Stage
 ;;; Fast plurality vote for simple decisions.
 (define (quick-vote voters options)
+  (doc 'export #t)
   (council-vote-ranked voters options 'plurality))
 
 ;;; consensus-vote : (List Symbol) × (List Any) → Stage
 ;;; Schulze vote seeking Condorcet winner.
 (define (consensus-vote voters options)
+  (doc 'export #t)
   (council-vote-ranked-full voters options 'schulze #t #f 1))
 
 ;;; diverse-council-vote : (List Any) → Stage
 ;;; Vote with diverse model set using Schulze.
 (define (diverse-council-vote proposals)
+  (doc 'export #t)
   (council-schulze '(opus sonnet haiku gemini-3) proposals))
 
 ;;; ============================================================================
@@ -286,10 +307,12 @@
 
 ;;; ranked-vote-effect? : Any → Bool
 (define (ranked-vote-effect? x)
+  (doc 'export #t)
   (and (stage-effect? x)
        (eq? (stage-effect-type x) 'ranked-vote)))
 
 ;;; deliberation-effect? : Any → Bool
 (define (deliberation-effect? x)
+  (doc 'export #t)
   (and (stage-effect? x)
        (eq? (stage-effect-type x) 'deliberation)))

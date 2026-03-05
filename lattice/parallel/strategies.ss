@@ -46,20 +46,24 @@ for planning.
   (thunk <id> <estimated-work>)")
 
 (define (make-thunk id estimated-work)
+  (doc 'export #t)
   (doc 'type '(-> Any Nat Thunk))
   (doc 'description "Create a thunk descriptor with ID and work estimate.")
   `(thunk ,id ,estimated-work))
 
 (define (thunk? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'thunk)
        (pair? (cdr x)) (pair? (cddr x))))
 
 (define (thunk-id t)
+  (doc 'export #t)
   (doc 'type '(-> Thunk Any))
   (cadr t))
 
 (define (thunk-work t)
+  (doc 'export #t)
   (doc 'type '(-> Thunk Nat))
   (caddr t))
 
@@ -77,32 +81,38 @@ Each plan type carries the thunks it governs plus any type-specific metadata.
 Plans compose: a plan:tree's sub-plans can be any plan type.")
 
 (define (plan:seq thunks)
+  (doc 'export #t)
   (doc 'type '(-> (List Thunk) Plan))
   (doc 'description "Sequential execution plan.")
   `(plan:seq ,thunks))
 
 (define (plan:par thunks)
+  (doc 'export #t)
   (doc 'type '(-> (List Thunk) Plan))
   (doc 'description "Parallel execution plan.")
   `(plan:par ,thunks))
 
 (define (plan:chunk size thunks)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Thunk) Plan))
   (doc 'description "Chunked parallel plan: partition into size-element chunks, run chunks in parallel.")
   `(plan:chunk ,size ,thunks))
 
 (define (plan:tree combiner sub-plans)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Plan) Plan))
   (doc 'description "Recursive parallel plan for divide-and-conquer.
 combiner names the function that merges sub-results.")
   `(plan:tree ,combiner ,sub-plans))
 
 (define (plan:race thunks)
+  (doc 'export #t)
   (doc 'type '(-> (List Thunk) Plan))
   (doc 'description "Speculative execution: run all thunks, take first to succeed.")
   `(plan:race ,thunks))
 
 (define (plan:pipe stages)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol (List Thunk))) Plan))
   (doc 'description "Pipeline plan: each stage feeds the next.
 stages is a list of (stage-name . thunks) pairs.")
@@ -111,12 +121,14 @@ stages is a list of (stage-name . thunks) pairs.")
 ;;; Plan predicates
 
 (define (plan? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (memq (car x) '(plan:seq plan:par plan:chunk plan:tree plan:race plan:pipe))
        #t))
 
 (define (plan-type p)
+  (doc 'export #t)
   (doc 'type '(-> Plan Symbol))
   (car p))
 
@@ -130,6 +142,7 @@ stages is a list of (stage-name . thunks) pairs.")
 ;;; Plan accessors
 
 (define (plan-thunks p)
+  (doc 'export #t)
   (doc 'type '(-> Plan (List Thunk)))
   (doc 'description "Get thunks from a flat plan (seq/par/chunk/race).")
   (case (plan-type p)
@@ -138,6 +151,7 @@ stages is a list of (stage-name . thunks) pairs.")
     [else (error 'plan-thunks "not a flat plan" p)]))
 
 (define (plan-chunk-size p)
+  (doc 'export #t)
   (doc 'type '(-> Plan Nat))
   (doc 'description "Get chunk size from a plan:chunk.")
   (if (plan:chunk? p)
@@ -145,6 +159,7 @@ stages is a list of (stage-name . thunks) pairs.")
       (error 'plan-chunk-size "not a plan:chunk" p)))
 
 (define (plan-combiner p)
+  (doc 'export #t)
   (doc 'type '(-> Plan Symbol))
   (doc 'description "Get combiner name from a plan:tree.")
   (if (plan:tree? p)
@@ -152,6 +167,7 @@ stages is a list of (stage-name . thunks) pairs.")
       (error 'plan-combiner "not a plan:tree" p)))
 
 (define (plan-sub-plans p)
+  (doc 'export #t)
   (doc 'type '(-> Plan (List Plan)))
   (doc 'description "Get sub-plans from a plan:tree.")
   (if (plan:tree? p)
@@ -159,6 +175,7 @@ stages is a list of (stage-name . thunks) pairs.")
       (error 'plan-sub-plans "not a plan:tree" p)))
 
 (define (plan-stages p)
+  (doc 'export #t)
   (doc 'type '(-> Plan (List (Pair Symbol (List Thunk)))))
   (doc 'description "Get stages from a plan:pipe.")
   (if (plan:pipe? p)
@@ -172,19 +189,23 @@ stages is a list of (stage-name . thunks) pairs.")
   (strategy <name> <transform-fn>)")
 
 (define (make-strategy name transform)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (-> (List Thunk) Nat Plan) Strategy))
   (doc 'description "Create a named strategy with a transform function.")
   `(strategy ,name ,transform))
 
 (define (strategy? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'strategy)))
 
 (define (strategy-name s)
+  (doc 'export #t)
   (doc 'type '(-> Strategy Symbol))
   (cadr s))
 
 (define (strategy-transform s)
+  (doc 'export #t)
   (doc 'type '(-> Strategy (-> (List Thunk) Nat Plan)))
   (caddr s))
 
@@ -194,12 +215,14 @@ stages is a list of (stage-name . thunks) pairs.")
   - proportional: divide fuel by estimated work weight")
 
 (define (fuel-budget-full fuel thunks)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Thunk) (List Nat)))
   (doc 'description "Each branch gets the full fuel budget.
 Matches core eval-par semantics where both branches get full fuel.")
   (map (lambda (_) fuel) thunks))
 
 (define (fuel-budget-proportional fuel thunks)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Thunk) (List Nat)))
   (doc 'description "Divide fuel proportionally by estimated work.")
   (let* ([total-work (fold-left + 0 (map thunk-work thunks))])
@@ -231,6 +254,7 @@ is below *min-parallel-work* or fewer than 2 thunks.")
             (plan:par thunks))))))
 
 (define (strategy/par-chunk n)
+  (doc 'export #t)
   (doc 'type '(-> Nat Strategy))
   (doc 'description "Split thunks into chunks of size n, run chunks in parallel.
 Within each chunk, execution is sequential.")
@@ -243,6 +267,7 @@ Within each chunk, execution is sequential.")
             (plan:chunk n thunks))))))
 
 (define (strategy/par-buffer max-in-flight)
+  (doc 'export #t)
   (doc 'type '(-> Nat Strategy))
   (doc 'description "Bounded parallelism: at most max-in-flight thunks executing concurrently.
 Produces chunked plan where chunk-size = max-in-flight.")
@@ -253,6 +278,7 @@ Produces chunked plan where chunk-size = max-in-flight.")
           (plan:chunk max-in-flight thunks)))))
 
 (define (strategy/speculate deadline)
+  (doc 'export #t)
   (doc 'type '(-> Nat Strategy))
   (doc 'description "Speculative execution: race all thunks with a fuel deadline.
 First to complete wins. Fuel IS cancellation — branches that exhaust
@@ -266,6 +292,7 @@ their fuel budget suspend naturally.")
                         thunks))))))
 
 (define (strategy/par-list s)
+  (doc 'export #t)
   (doc 'type '(-> Strategy Strategy))
   (doc 'description "Apply strategy s to each element of a thunk list.
 The resulting plan wraps the inner strategy's output for each thunk.")
@@ -283,6 +310,7 @@ The resulting plan wraps the inner strategy's output for each thunk.")
 (doc 'section 'combinators)
 
 (define (strategy-compose s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> Strategy Strategy Strategy))
   (doc 'description "Compose two strategies: apply s1 first, then refine with s2.
 If s1 produces a tree, s2 is applied to each leaf plan's thunks.")
@@ -293,6 +321,7 @@ If s1 produces a tree, s2 is applied to each leaf plan's thunks.")
        (refine-plan plan1 s2 fuel)))))
 
 (define (collect-plan-thunks plan)
+  (doc 'export #t)
   (doc 'type '(-> Plan (List Thunk)))
   (doc 'description "Collect all leaf thunks from a plan, recursing into sub-plans.
 Used by refine-plan to flatten refined plans back into thunk lists.")
@@ -304,6 +333,7 @@ Used by refine-plan to flatten refined plans back into thunk lists.")
     [else '()]))
 
 (define (refine-plan plan s fuel)
+  (doc 'export #t)
   (doc 'type '(-> Plan Strategy Nat Plan))
   (doc 'description "Apply strategy s to refine leaf plans within a composite plan.")
   (let ([transform (strategy-transform s)])
@@ -329,6 +359,7 @@ Used by refine-plan to flatten refined plans back into thunk lists.")
       [else plan])))
 
 (define (strategy-when-beneficial s)
+  (doc 'export #t)
   (doc 'type '(-> Strategy Strategy))
   (doc 'description "Apply strategy s only when cost analysis indicates parallelization
 is worthwhile. Falls back to sequential otherwise.
@@ -349,6 +380,7 @@ Uses *min-parallel-work* and *parallel-overhead* thresholds.")
 (doc 'section 'main-entry-point)
 
 (define (using strategy thunks fuel)
+  (doc 'export #t)
   (doc 'type '(-> Strategy (List Thunk) Nat Plan))
   (doc 'description "Main entry point: apply a strategy to thunks with given fuel budget.
 Returns a plan suitable for execution by the boundary layer.")

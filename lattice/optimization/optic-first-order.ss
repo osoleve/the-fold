@@ -28,6 +28,7 @@ Example:
 (doc 'section 'sgd)
 
 (define (sgd-at optic structure loss-fn lr max-iters)
+  (doc 'export #t)
   (doc 'type '(-> Optic s (-> s-traced Traced) Number Nat s))
   (doc 'description "SGD optimization at optic focus")
   (doc 'param 'optic "Lens/Affine focusing on parameter to optimize")
@@ -41,6 +42,7 @@ Example:
 (doc 'section 'momentum)
 
 (define (momentum-at optic structure loss-fn lr beta max-iters)
+  (doc 'export #t)
   (doc 'type '(-> Optic s (-> s-traced Traced) Number Number Nat s))
   (doc 'description "Gradient descent with momentum at optic focus")
   (doc 'param 'beta "Momentum coefficient (typically 0.9)")
@@ -59,6 +61,7 @@ Example:
 (doc 'section 'adam)
 
 (define (adam-at optic structure loss-fn lr max-iters)
+  (doc 'export #t)
   (doc 'type '(-> Optic s (-> s-traced Traced) Number Nat s))
   (doc 'description "Adam optimization at optic focus with default hyperparameters")
   (doc 'note "Uses default Adam hyperparameters:
@@ -70,6 +73,7 @@ Example:
 ;;; adam-at-full : Optic × s × (s-traced → Traced) × Number × Number × Number × Number × Nat → s
 ;;; Adam optimization with full hyperparameter control.
 (define (adam-at-full optic structure loss-fn lr beta1 beta2 epsilon max-iters)
+  (doc 'export #t)
   (let* ([focus (view optic structure)]
          [m (zero-like-value focus)]    ; First moment estimate
          [v (zero-like-value focus)])   ; Second moment estimate
@@ -93,6 +97,7 @@ Example:
 (doc 'section 'rmsprop)
 
 (define (rmsprop-at optic structure loss-fn lr gamma max-iters)
+  (doc 'export #t)
   (doc 'type '(-> Optic s (-> s-traced Traced) Number Number Nat s))
   (doc 'description "RMSprop optimization at optic focus")
   (doc 'param 'gamma "Decay rate (typically 0.9)")
@@ -117,6 +122,7 @@ Example:
 ;;; zero-like-value : α → α
 ;;; Create zero value matching structure.
 (define (zero-like-value val)
+  (doc 'export #t)
   (cond
     [(number? val) 0.0]
     [(vec2? val) (vec2 0.0 0.0)]
@@ -128,6 +134,7 @@ Example:
 ;;; scale-value : α × Number → α
 ;;; Scale a structured value by a scalar.
 (define (scale-value val factor)
+  (doc 'export #t)
   (cond
     [(number? val) (* val factor)]
     [(vec2? val) (vec2 (* (vec2-x val) factor)
@@ -140,6 +147,7 @@ Example:
 ;;; subtract-scaled-value : α × α × Number → α
 ;;; Compute val - scale * gradient.
 (define (subtract-scaled-value val grad scale)
+  (doc 'export #t)
   (cond
     [(number? val) (- val (* scale grad))]
     [(vec2? val) (vec2 (- (vec2-x val) (* scale (vec2-x grad)))
@@ -154,6 +162,7 @@ Example:
 ;;; square-value : α → α
 ;;; Element-wise square.
 (define (square-value val)
+  (doc 'export #t)
   (cond
     [(number? val) (* val val)]
     [(vec2? val) (vec2 (* (vec2-x val) (vec2-x val))
@@ -166,6 +175,7 @@ Example:
 ;;; sqrt-value : α → α
 ;;; Element-wise square root.
 (define (sqrt-value val)
+  (doc 'export #t)
   (cond
     [(number? val) (sqrt val)]
     [(vec2? val) (vec2 (sqrt (vec2-x val))
@@ -178,6 +188,7 @@ Example:
 ;;; add-values : α × α → α
 ;;; Element-wise addition.
 (define (add-values a b)
+  (doc 'export #t)
   (cond
     [(number? a) (+ a b)]
     [(vec2? a) (vec2 (+ (vec2-x a) (vec2-x b))
@@ -194,23 +205,27 @@ Example:
 ;;; momentum-velocity-update : v × grad × beta → v'
 ;;; v' = beta * v + grad
 (define (momentum-velocity-update v grad beta)
+  (doc 'export #t)
   (add-values (scale-value v beta) grad))
 
 ;;; adam-moment-update : m × grad × beta → m'
 ;;; m' = beta * m + (1 - beta) * grad
 (define (adam-moment-update m grad beta)
+  (doc 'export #t)
   (add-values (scale-value m beta)
               (scale-value grad (- 1 beta))))
 
 ;;; adam-second-moment-update : v × grad × beta → v'
 ;;; v' = beta * v + (1 - beta) * grad^2
 (define (adam-second-moment-update v grad beta)
+  (doc 'export #t)
   (add-values (scale-value v beta)
               (scale-value (square-value grad) (- 1 beta))))
 
 ;;; adam-update : focus × m-hat × v-hat × lr × epsilon → focus'
 ;;; focus' = focus - lr * m-hat / (sqrt(v-hat) + epsilon)
 (define (adam-update focus m-hat v-hat lr epsilon)
+  (doc 'export #t)
   (let ([denom (add-values (sqrt-value v-hat)
                            (if (number? v-hat) epsilon (scale-value (zero-like-value v-hat) 0)))])
     ;; Add epsilon element-wise (simplified: just add to sqrt result)
@@ -222,6 +237,7 @@ Example:
 ;;; divide-values : α × α → α
 ;;; Element-wise division.
 (define (divide-values a b)
+  (doc 'export #t)
   (cond
     [(number? a) (/ a b)]
     [(vec2? a) (vec2 (/ (vec2-x a) (vec2-x b))
@@ -234,6 +250,7 @@ Example:
 ;;; add-scalar-to-value : α × Number → α
 ;;; Add scalar to each element.
 (define (add-scalar-to-value val scalar)
+  (doc 'export #t)
   (cond
     [(number? val) (+ val scalar)]
     [(vec2? val) (vec2 (+ (vec2-x val) scalar)
@@ -246,12 +263,14 @@ Example:
 ;;; rmsprop-update-sq-avg : sq-avg × grad × gamma → sq-avg'
 ;;; sq-avg' = gamma * sq-avg + (1 - gamma) * grad^2
 (define (rmsprop-update-sq-avg sq-avg grad gamma)
+  (doc 'export #t)
   (add-values (scale-value sq-avg gamma)
               (scale-value (square-value grad) (- 1 gamma))))
 
 ;;; rmsprop-update : focus × grad × sq-avg × lr × epsilon → focus'
 ;;; focus' = focus - lr * grad / sqrt(sq_avg + epsilon)
 (define (rmsprop-update focus grad sq-avg lr epsilon)
+  (doc 'export #t)
   (subtract-scaled-value focus
                          (divide-values grad
                                         (sqrt-value (add-scalar-to-value sq-avg epsilon)))

@@ -13,6 +13,7 @@
 (doc 'section 'main-integration)
 
 (define (integrate expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol (Maybe Expr)))
   (doc 'description "Compute indefinite integral of expr with respect to var-sym, returns #f if unable")
   (let ([result (integrate-internal expr var-sym 0)])
@@ -21,6 +22,7 @@
            #f)))
 
 (define (integrate-internal expr var-sym depth)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
   (doc 'description "Internal integration with depth tracking to prevent infinite recursion")
   (if (> depth 20)
@@ -38,6 +40,7 @@
 (doc 'section 'integration-table)
 
 (define (integrate-table expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol (Maybe Expr)))
   (doc 'description "Table-based lookup for common integrals")
   (let ([x (var var-sym)])
@@ -123,6 +126,7 @@
 ;;; is-arcsin-integrand? : Expr × Symbol → Bool
 ;;; Check if expr is 1/sqrt(1-x^2)
 (define (is-arcsin-integrand? expr var-sym)
+  (doc 'export #t)
   (and (quotient? expr)
        (num? (quot-numer expr))
        (= (num-val (quot-numer expr)) 1)
@@ -141,6 +145,7 @@
 ;;; is-arctan-integrand? : Expr × Symbol → Bool
 ;;; Check if expr is 1/(1+x^2)
 (define (is-arctan-integrand? expr var-sym)
+  (doc 'export #t)
   (and (quotient? expr)
        (num? (quot-numer expr))
        (= (num-val (quot-numer expr)) 1)
@@ -163,6 +168,7 @@
 (doc 'section 'basic-integration-rules)
 
 (define (integrate-basic expr var-sym depth)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
   (doc 'description "Apply basic integration rules: sum, product with constants, difference, power")
   (cond
@@ -206,6 +212,7 @@
 ;;; integrate-product : Expr × Symbol × Depth → Expr | #f
 ;;; Handle product integration.
 (define (integrate-product expr var-sym depth)
+  (doc 'export #t)
   (let* ([factors (product-factors expr)]
          [const-factors (filter (lambda (f) (not (contains-var? f var-sym))) factors)]
          [var-factors (filter (lambda (f) (contains-var? f var-sym)) factors)])
@@ -225,6 +232,7 @@
 ;;; integrate-power : Expr × Symbol × Depth → Expr | #f
 ;;; Power rule and related.
 (define (integrate-power expr var-sym depth)
+  (doc 'export #t)
   (let ([base (pow-base expr)]
         [exp (pow-exp expr)])
        (cond
@@ -262,6 +270,7 @@
 ;;; integrate-quotient : Expr × Symbol × Depth → Expr | #f
 ;;; Handle quotient integration.
 (define (integrate-quotient expr var-sym depth)
+  (doc 'export #t)
   (let ([numer (quot-numer expr)]
         [denom (quot-denom expr)])
        (cond
@@ -294,6 +303,7 @@
 (doc 'section 'u-substitution)
 
 (define (integrate-by-substitution expr var-sym depth)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
   (doc 'description "Try u-substitution for common patterns")
   (or
@@ -305,6 +315,7 @@
 ;;; try-substitution-pattern : Expr × Symbol × Depth → Expr | #f
 ;;; Look for f(u) * u' pattern.
 (define (try-substitution-pattern expr var-sym depth)
+  (doc 'export #t)
   (if (not (product? expr))
       #f
       (let ([factors (product-factors expr)])
@@ -322,6 +333,7 @@
 ;;; find-antiderivative-match : (List Expr) × Expr × Symbol × Depth → Expr | #f
 ;;; Check if other-factors can be expressed as f(u) where du = potential-du dx.
 (define (find-antiderivative-match other-factors potential-du var-sym depth)
+  (doc 'export #t)
   ;; Try to find u such that d(u)/dx = potential-du
   ;; Then check if other-factors = f(u) for some integrable f
   (let ([candidates (find-u-candidates (fold-left product (num 1) other-factors) var-sym)])
@@ -342,6 +354,7 @@
 ;;; find-u-candidates : Expr × Symbol → (List Expr)
 ;;; Find potential u substitutions in an expression.
 (define (find-u-candidates expr var-sym)
+  (doc 'export #t)
   (cond
    [(num? expr) '()]
    [(var? expr) '()]
@@ -362,6 +375,7 @@
 ;;; substitute-u : (List Expr) × Expr × Symbol → Expr | #f
 ;;; Try to express factors in terms of u.
 (define (substitute-u factors u var-sym)
+  (doc 'export #t)
   ;; Simplified: just check if factors contain u directly
   (let ([combined (fold-left product (num 1) factors)])
        (if (can-express-in-u? combined u var-sym)
@@ -370,6 +384,7 @@
 
 ;;; can-express-in-u? : Expr × Expr × Symbol → Bool
 (define (can-express-in-u? expr u var-sym)
+  (doc 'export #t)
   ;; Check if expr only uses var-sym through u
   (cond
    [(expr=? expr u) #t]
@@ -384,6 +399,7 @@
 
 ;;; replace-with-u : Expr × Expr × Symbol → Expr
 (define (replace-with-u expr u var-sym)
+  (doc 'export #t)
   (cond
    [(expr=? expr u) (var 'u)]
    [(num? expr) expr]
@@ -398,6 +414,7 @@
 ;;; try-trig-substitution : Expr × Symbol × Depth → Expr | #f
 ;;; Try trigonometric substitutions.
 (define (try-trig-substitution expr var-sym depth)
+  (doc 'export #t)
   ;; For now, only handle simple patterns
   ;; sqrt(a^2 - x^2): x = a*sin(t)
   ;; sqrt(a^2 + x^2): x = a*tan(t)
@@ -407,6 +424,7 @@
 (doc 'section 'integration-by-parts)
 
 (define (integrate-by-parts expr var-sym depth)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
   (doc 'description "Try integration by parts: ∫u dv = uv - ∫v du")
   (if (not (product? expr))
@@ -428,10 +446,12 @@
 ;;; T = Trigonometric
 ;;; E = Exponential (worst u choice)
 (define (sort-by-liate factors)
+  (doc 'export #t)
   (sort-by (lambda (a b) (< (liate-priority a) (liate-priority b))) factors))
 
 ;;; liate-priority : Expr → Number
 (define (liate-priority expr)
+  (doc 'export #t)
   (cond
    [(and (app? expr) (eq? (app-fn expr) 'log)) 0]      ;; L
    [(and (app? expr) (memq (app-fn expr) '(asin acos atan))) 1]  ;; I
@@ -443,6 +463,7 @@
 
 ;;; polynomial? : Expr → Bool
 (define (polynomial? expr)
+  (doc 'export #t)
   (cond
    [(num? expr) #t]
    [(var? expr) #t]
@@ -456,6 +477,7 @@
 ;;; try-parts : Expr × Expr × Symbol × Depth → Expr | #f
 ;;; ∫u dv = uv - ∫v du
 (define (try-parts u dv var-sym depth)
+  (doc 'export #t)
   (let ([v (integrate-internal dv var-sym (+ depth 1))])
        (if (not v)
            #f
@@ -469,6 +491,7 @@
 (doc 'section 'partial-fractions)
 
 (define (integrate-partial-fractions expr var-sym depth)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Nat (Maybe Expr)))
   (doc 'description "Integrate rational functions using partial fractions")
   ;; Only handle simple cases for now
@@ -491,6 +514,7 @@
 
 ;;; integrate-linear-factors : Expr × Expr × Symbol × Depth → Expr | #f
 (define (integrate-linear-factors numer denom var-sym depth)
+  (doc 'export #t)
   ;; 1/((ax+b)(cx+d)) = A/(ax+b) + B/(cx+d)
   ;; where A = 1/(c*b/a - d), B = 1/(a*d/c - b)
   (let* ([factors (product-factors denom)]
@@ -517,6 +541,7 @@
 ;;; contains-var? : Expr × Symbol → Bool
 ;;; Check if expression contains the variable.
 (define (contains-var? expr var-sym)
+  (doc 'export #t)
   (cond
    [(num? expr) #f]
    [(var? expr) (eq? (var-name expr) var-sym)]
@@ -537,6 +562,7 @@
 ;;; linear-in? : Expr × Symbol → Bool
 ;;; Check if expression is linear in var: ax + b
 (define (linear-in? expr var-sym)
+  (doc 'export #t)
   (cond
    [(num? expr) #t]
    [(var? expr) #t]
@@ -560,6 +586,7 @@
 ;;; degree-of : Expr × Symbol → Number
 ;;; Get the degree of var in expression.
 (define (degree-of expr var-sym)
+  (doc 'export #t)
   (cond
    [(num? expr) 0]
    [(var? expr) (if (eq? (var-name expr) var-sym) 1 0)]
@@ -574,6 +601,7 @@
 ;;; linear-coefficients : Expr × Symbol → (List Expr Expr)
 ;;; Extract (a, b) from ax + b. Returns (1, 0) for just x, (0, c) for constant c.
 (define (linear-coefficients expr var-sym)
+  (doc 'export #t)
   (cond
    [(num? expr) (list (num 0) expr)]
    [(and (var? expr) (eq? (var-name expr) var-sym))
@@ -608,6 +636,7 @@
 
 ;;; remove-at-index : (List α) × Number → (List α)
 (define (remove-at-index lst i)
+  (doc 'export #t)
   (let loop ([l lst] [j 0] [acc '()])
        (cond
         [(null? l) (reverse acc)]
@@ -618,6 +647,7 @@
 
 ;;; fold-sum : (List Expr) → Expr
 (define (fold-sum exprs)
+  (doc 'export #t)
   (cond
    [(null? exprs) (num 0)]
    [(= (length exprs) 1) (car exprs)]
@@ -626,6 +656,7 @@
 (doc 'section 'definite-integrals)
 
 (define (definite-integral expr var-sym a b)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr Expr (Maybe Expr)))
   (doc 'description "Compute definite integral from a to b")
   (doc 'note "Returns F(b) - F(a) where F is the antiderivative")
@@ -639,6 +670,7 @@
 ;;; Compute definite integral numerically.
 ;;; Uses Simpson's rule.
 (define (definite-integral-numeric expr var-sym a b)
+  (doc 'export #t)
   (let ([F (integrate expr var-sym)])
        (if F
            (let ([env-a `((,var-sym . ,a))]

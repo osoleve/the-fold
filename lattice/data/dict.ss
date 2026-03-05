@@ -15,15 +15,18 @@
 (doc 'note "Simple alist-based implementation. For large dictionaries, consider balanced trees")
 
 (define dict-empty '())
+(doc dict-empty 'export #t)
 (doc dict-empty 'type 'Dict)
 (doc dict-empty 'description "The empty dictionary")
 
 (define (dict-empty? dict)
+  (doc 'export #t)
   (doc 'type (-> Dict Boolean))
   (doc 'description "Check if dictionary is empty")
   (null? dict))
 
 (define (dict-lookup key dict)
+  (doc 'export #t)
   (doc 'type (-> κ Dict (Maybe ν)))
   (doc 'description "Look up value by key")
   (let ([pair (assoc key dict)])
@@ -32,11 +35,13 @@
            #f)))
 
 (define (dict-has-key? key dict)
+  (doc 'export #t)
   (doc 'type (-> κ Dict Boolean))
   (doc 'description "Check if key exists in dictionary")
   (if (assoc key dict) #t #f))
 
 (define (dict-assoc key value dict)
+  (doc 'export #t)
   (doc 'type (-> κ ν Dict Dict))
   (doc 'description "Associate key with value")
   (doc 'note "If key exists, updates value. Otherwise adds new entry")
@@ -44,6 +49,7 @@
         (dict-dissoc key dict)))
 
 (define (dict-dissoc key dict)
+  (doc 'export #t)
   (doc 'type (-> κ Dict Dict))
   (doc 'description "Remove key from dictionary")
   (let loop ([remaining dict]
@@ -55,21 +61,25 @@
         [else (loop (cdr remaining) (cons (car remaining) acc))])))
 
 (define (dict-keys dict)
+  (doc 'export #t)
   (doc 'type (-> Dict (List κ)))
   (doc 'description "Get list of all keys")
   (map car dict))
 
 (define (dict-values dict)
+  (doc 'export #t)
   (doc 'type (-> Dict (List ν)))
   (doc 'description "Get list of all values")
   (map cdr dict))
 
 (define (dict-entries dict)
+  (doc 'export #t)
   (doc 'type (-> Dict (List (Pair κ ν))))
   (doc 'description "Get list of all key-value pairs")
   dict)
 
 (define (dict-merge dict1 dict2)
+  (doc 'export #t)
   (doc 'type (-> Dict Dict Dict))
   (doc 'description "Merge two dictionaries")
   (doc 'note "If keys overlap, dict2 wins")
@@ -83,6 +93,7 @@
                              result)))))
 
 (define (dict-map-values f dict)
+  (doc 'export #t)
   (doc 'type (-> (-> ν μ) Dict Dict))
   (doc 'description "Apply function to all values, keeping keys the same")
   (map (lambda (pair)
@@ -90,6 +101,7 @@
        dict))
 
 (define (dict-filter pred dict)
+  (doc 'export #t)
   (doc 'type (-> (-> κ ν Boolean) Dict Dict))
   (doc 'description "Filter dictionary by predicate on key-value pairs")
   (let loop ([remaining dict]
@@ -101,16 +113,19 @@
         [else (loop (cdr remaining) acc)])))
 
 (define (dict-size dict)
+  (doc 'export #t)
   (doc 'type (-> Dict Nat))
   (doc 'description "Get number of key-value pairs")
   (length dict))
 
 (define (dict->alist dict)
+  (doc 'export #t)
   (doc 'type (-> Dict (List (Pair κ ν))))
   (doc 'description "Convert dictionary to association list (identity)")
   dict)
 
 (define (alist->dict alist)
+  (doc 'export #t)
   (doc 'type (-> (List (Pair κ ν)) Dict))
   (doc 'description "Convert association list to dictionary (identity)")
   alist)

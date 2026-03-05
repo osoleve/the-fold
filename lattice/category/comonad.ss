@@ -42,10 +42,12 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;; Create a comonad from its functor and core operations.
 ;;; Note: duplicate is derived from extend via (extend id).
 (define (make-comonad functor extract-fn extend-fn)
+  (doc 'export #t)
   (list 'comonad functor extract-fn extend-fn))
 
 ;;; comonad? : Any → Boolean
 (define (comonad? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'comonad)
        (= (length x) 4)))
@@ -53,6 +55,7 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;; comonad-functor : Comonad → Functor
 ;;; Errors if not a valid comonad (consistent with comonad-extend).
 (define (comonad-functor w)
+  (doc 'export #t)
   (if (comonad? w)
       (cadr w)
       (error 'comonad-functor "not a valid comonad")))
@@ -60,6 +63,7 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;; comonad-extract : Comonad → (W a → a)
 ;;; Errors if not a valid comonad (consistent with comonad-extend).
 (define (comonad-extract w)
+  (doc 'export #t)
   (if (comonad? w)
       (caddr w)
       (error 'comonad-extract "not a valid comonad")))
@@ -67,6 +71,7 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;; comonad-extend : Comonad → ((W a → b) → W a → W b)
 ;;; Note: Default fallback is identity; caller should always provide a valid comonad.
 (define (comonad-extend w)
+  (doc 'export #t)
   (if (comonad? w)
       (cadddr w)
       ;; Fallback should preserve W structure. The minimal valid extend
@@ -83,16 +88,19 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;; Duplicate structure: every position sees itself in context.
 ;;; Derived as: duplicate = extend id
 (define (duplicate-with comonad wa)
+  (doc 'export #t)
   ((comonad-extend comonad) id wa))
 
 ;;; extract-with : Comonad × W a → a
 ;;; Apply comonad's extract operation.
 (define (extract-with comonad wa)
+  (doc 'export #t)
   ((comonad-extract comonad) wa))
 
 ;;; extend-with : Comonad × (W a → b) × W a → W b
 ;;; Apply comonad's extend operation.
 (define (extend-with comonad f wa)
+  (doc 'export #t)
   ((comonad-extend comonad) f wa))
 
 ;;; coflatmap : Comonad × (W a → b) × W a → W b
@@ -103,6 +111,7 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;; Comonadic extension operator (flip of extend).
 ;;; wa =>> f = extend f wa
 (define (=>> wa f comonad)
+  (doc 'export #t)
   (extend-with comonad f wa))
 
 ;;; ====
@@ -125,6 +134,7 @@ Key insight: Every adjunction F ⊣ G yields a comonad F∘G with:
 ;;;
 ;;; The extend operation applies f at each "position" in the duplicated structure.
 (define (comonad-from-adjunction adj)
+  (doc 'export #t)
   (let* ([F (adjunction-left adj)]
          [G (adjunction-right adj)]
          [η (adjunction-unit adj)]
@@ -173,10 +183,12 @@ Key uses:
 ;;; make-store : (s → a) × s → Store s a
 ;;; Create a Store from an accessor function and current position.
 (define (make-store accessor position)
+  (doc 'export #t)
   (list store-tag accessor position))
 
 ;;; store? : Any → Boolean
 (define (store? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) store-tag)
        (= (length x) 3)))
@@ -184,31 +196,37 @@ Key uses:
 ;;; store-accessor : Store s a → (s → a)
 ;;; Get the accessor function.
 (define (store-accessor st)
+  (doc 'export #t)
   (if (store? st) (cadr st) (error 'store-accessor "not a store")))
 
 ;;; store-position : Store s a → s
 ;;; Get the current position.
 (define (store-position st)
+  (doc 'export #t)
   (if (store? st) (caddr st) (error 'store-position "not a store")))
 
 ;;; store-peek : Store s a × s → a
 ;;; Peek at a value at a different position.
 (define (store-peek st pos)
+  (doc 'export #t)
   ((store-accessor st) pos))
 
 ;;; store-seek : Store s a × s → Store s a
 ;;; Move to a new position.
 (define (store-seek st new-pos)
+  (doc 'export #t)
   (make-store (store-accessor st) new-pos))
 
 ;;; store-seeks : Store s a × (s → s) → Store s a
 ;;; Move position by applying a function.
 (define (store-seeks st f)
+  (doc 'export #t)
   (store-seek st (f (store-position st))))
 
 ;;; store-experiment : Functor × Store s a × (s → f s) → f a
 ;;; Apply a functor-valued function to position and extract values.
 (define (store-experiment functor st f)
+  (doc 'export #t)
   (let ([accessor (store-accessor st)]
         [pos (store-position st)])
     ((functor-fmap functor) accessor (f pos))))
@@ -220,12 +238,14 @@ Key uses:
 ;;; store-extract : Store s a → a
 ;;; Extract the value at the current position.
 (define (store-extract st)
+  (doc 'export #t)
   ((store-accessor st) (store-position st)))
 
 ;;; store-extend : (Store s a → b) × Store s a → Store s b
 ;;; Extend a function over all positions.
 ;;; The new accessor at position p runs f on Store focused at p.
 (define (store-extend f st)
+  (doc 'export #t)
   (let ([accessor (store-accessor st)]
         [pos (store-position st)])
     (make-store
@@ -237,6 +257,7 @@ Key uses:
 ;;; store-duplicate : Store s a → Store s (Store s a)
 ;;; Duplicate: each position maps to the store focused at that position.
 (define (store-duplicate st)
+  (doc 'export #t)
   (store-extend id st))
 
 ;;; store-functor : Functor Store
@@ -257,6 +278,7 @@ Key uses:
 ;;; Copeek operation for Store: extract from second store at first store's position.
 ;;; Use with compose-comonads-with-dist* for Store-based composition.
 (define (store-copeek pos-store val-store)
+  (doc 'export #t)
   (store-peek val-store (store-position pos-store)))
 
 (doc 'section 'env-comonad)
@@ -273,20 +295,24 @@ distributes the environment.")
 
 ;;; make-env : e × a → Env e a
 (define (make-env environment value)
+  (doc 'export #t)
   (list env-tag environment value))
 
 ;;; env? : Any → Boolean
 (define (env? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) env-tag)
        (= (length x) 3)))
 
 ;;; env-environment : Env e a → e
 (define (env-environment e)
+  (doc 'export #t)
   (if (env? e) (cadr e) (error 'env-environment "not an env")))
 
 ;;; env-value : Env e a → a
 (define (env-value e)
+  (doc 'export #t)
   (if (env? e) (caddr e) (error 'env-value "not an env")))
 
 ;;; env-ask : Env e a → e
@@ -296,6 +322,7 @@ distributes the environment.")
 ;;; env-local : (e → e) × Env e a → Env e a
 ;;; Modify the environment.
 (define (env-local f e)
+  (doc 'export #t)
   (make-env (f (env-environment e)) (env-value e)))
 
 ;;; ====
@@ -305,15 +332,18 @@ distributes the environment.")
 ;;; env-extract : Env e a → a
 ;;; Extract the value (ignoring environment).
 (define (env-extract e)
+  (doc 'export #t)
   (env-value e))
 
 ;;; env-extend : (Env e a → b) × Env e a → Env e b
 ;;; Extend: apply function, keeping environment.
 (define (env-extend f e)
+  (doc 'export #t)
   (make-env (env-environment e) (f e)))
 
 ;;; env-duplicate : Env e a → Env e (Env e a)
 (define (env-duplicate e)
+  (doc 'export #t)
   (env-extend id e))
 
 ;;; env-functor : Functor Env
@@ -330,6 +360,7 @@ distributes the environment.")
 ;;; Copeek operation for Env: position is trivial, so just extract from value source.
 ;;; Use with compose-comonads-with-dist* (though the default works for Env).
 (define (env-copeek pos-env val-env)
+  (doc 'export #t)
   (env-value val-env))
 
 (doc 'section 'traced-comonad)
@@ -346,25 +377,30 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; make-traced : (m → a) × Monoid → Traced m a
 ;;; Create a Traced from a function and its monoid.
 (define (make-traced run-traced monoid)
+  (doc 'export #t)
   (list traced-tag run-traced monoid))
 
 ;;; traced? : Any → Boolean
 (define (traced? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) traced-tag)
        (= (length x) 3)))
 
 ;;; traced-run : Traced m a → (m → a)
 (define (traced-run t)
+  (doc 'export #t)
   (if (traced? t) (cadr t) (error 'traced-run "not a traced")))
 
 ;;; traced-monoid : Traced m a → Monoid
 (define (traced-monoid t)
+  (doc 'export #t)
   (if (traced? t) (caddr t) (error 'traced-monoid "not a traced")))
 
 ;;; run-traced : Traced m a × m → a
 ;;; Run the traced computation with accumulated value.
 (define (run-traced t m)
+  (doc 'export #t)
   ((traced-run t) m))
 
 ;;; ====
@@ -374,12 +410,14 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; traced-extract : Traced m a → a
 ;;; Extract: run with monoid identity.
 (define (traced-extract t)
+  (doc 'export #t)
   (let ([monoid (traced-monoid t)])
     ((traced-run t) (monoid-mempty monoid))))
 
 ;;; traced-extend : (Traced m a → b) × Traced m a → Traced m b
 ;;; Extend: the new traced at position m1 runs f on traced shifted by m1.
 (define (traced-extend f t)
+  (doc 'export #t)
   (let ([monoid (traced-monoid t)]
         [original-run (traced-run t)])
     (make-traced
@@ -392,11 +430,13 @@ The comonad threads a monoid through, allowing dependency tracking.")
 
 ;;; traced-duplicate : Traced m a → Traced m (Traced m a)
 (define (traced-duplicate t)
+  (doc 'export #t)
   (traced-extend id t))
 
 ;;; traced-functor : Monoid → Functor (Traced m)
 ;;; Note: Traced's functor depends on the monoid.
 (define (traced-functor monoid)
+  (doc 'export #t)
   (make-functor
    (lambda (f t)
      (make-traced
@@ -406,6 +446,7 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; traced-comonad : Monoid → Comonad (Traced m)
 ;;; Note: Traced comonad is parameterized by monoid.
 (define (traced-comonad monoid)
+  (doc 'export #t)
   (make-comonad
    (traced-functor monoid)
    traced-extract
@@ -419,6 +460,7 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; Law 1: extend extract = id
 ;;; Tests: extend extract wa = wa
 (define (verify-comonad-law-1 comonad wa eq?)
+  (doc 'export #t)
   (let* ([ext (comonad-extend comonad)]
          [extr (comonad-extract comonad)]
          [result (ext extr wa)])
@@ -428,6 +470,7 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; Law 2: extract . extend f = f
 ;;; Tests: extract (extend f wa) = f wa
 (define (verify-comonad-law-2 comonad f wa)
+  (doc 'export #t)
   (let* ([ext (comonad-extend comonad)]
          [extr (comonad-extract comonad)]
          [result (extr (ext f wa))])
@@ -437,6 +480,7 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; Law 3: extend f . extend g = extend (f . extend g)
 ;;; Tests: extend f (extend g wa) = extend (λw. f (extend g w)) wa
 (define (verify-comonad-law-3 comonad f g wa eq?)
+  (doc 'export #t)
   (let* ([ext (comonad-extend comonad)]
          [left (ext f (ext g wa))]
          [right (ext (lambda (w) (f (ext g w))) wa)])
@@ -445,6 +489,7 @@ The comonad threads a monoid through, allowing dependency tracking.")
 ;;; verify-comonad-laws : Comonad × (W a → b) × (W b → c) × W a × eq? → Boolean
 ;;; Verify all three comonad laws.
 (define (verify-comonad-laws comonad f g wa eq?)
+  (doc 'export #t)
   (and (verify-comonad-law-1 comonad wa eq?)
        (verify-comonad-law-2 comonad f wa)
        (verify-comonad-law-3 comonad f g wa eq?)))
@@ -483,6 +528,7 @@ Specific comonad pairs that DO compose naturally:
 ;;;
 ;;; This is the fully general composition that works for all comonads.
 (define (compose-comonads-with-dist* w1 w2 dist copeek)
+  (doc 'export #t)
   (let* ([f1 (comonad-functor w1)]
          [f2 (comonad-functor w2)]
          [ext1 (comonad-extend w1)]
@@ -549,6 +595,7 @@ Specific comonad pairs that DO compose naturally:
 ;;;   - δ ∘ W2(duplicate1) = duplicate1 ∘ δ ∘ W2(δ)
 ;;;   - δ ∘ duplicate2 = W1(duplicate2) ∘ δ
 (define (compose-comonads-with-dist w1 w2 dist)
+  (doc 'export #t)
   (compose-comonads-with-dist* w1 w2 dist
     ;; Default copeek: just extract from value source
     ;; Correct for Env and other position-trivial comonads
@@ -560,18 +607,21 @@ Specific comonad pairs that DO compose naturally:
 
 ;;; comonad->string : Comonad → String
 (define (comonad->string w)
+  (doc 'export #t)
   (if (comonad? w)
       "Comonad"
       "Not a comonad"))
 
 ;;; store->string : Store s a → String
 (define (store->string st)
+  (doc 'export #t)
   (if (store? st)
       (format "Store(pos=~a)" (store-position st))
       "Not a store"))
 
 ;;; env->string : Env e a → String
 (define (env->string e)
+  (doc 'export #t)
   (if (env? e)
       (format "Env(~a, ~a)" (env-environment e) (env-value e))
       "Not an env"))

@@ -20,11 +20,13 @@
 (define zipper-tag 'list-zipper)
 
 (define (make-zipper left focus right)
+  (doc 'export #t)
   (doc 'type '(-> (List α) (Maybe α) (List α) (ListZipper α)))
   (doc 'description "Internal constructor")
   (list zipper-tag left focus right))
 
 (define (zipper? z)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (doc 'description "Check if value is a list zipper")
   (and (pair? z)
@@ -32,6 +34,7 @@
        (= (length z) 4)))
 
 (define (zipper-left z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (List α)))
   (doc 'description "Get left context (reversed)")
   (if (zipper? z)
@@ -39,6 +42,7 @@
       (error 'zipper-left "not a zipper")))
 
 (define (zipper-focus-maybe z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (Maybe α)))
   (doc 'description "Get focus as Maybe")
   (if (zipper? z)
@@ -46,6 +50,7 @@
       (error 'zipper-focus-maybe "not a zipper")))
 
 (define (zipper-right z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (List α)))
   (doc 'description "Get right context")
   (if (zipper? z)
@@ -58,6 +63,7 @@
   (make-zipper '() nothing '()))
 
 (define (zipper-empty? z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Bool))
   (doc 'description "Check if zipper is empty")
   (and (zipper? z)
@@ -66,11 +72,13 @@
        (null? (zipper-right z))))
 
 (define (zipper-singleton x)
+  (doc 'export #t)
   (doc 'type '(-> α (ListZipper α)))
   (doc 'description "Create zipper with single element at focus")
   (make-zipper '() (just x) '()))
 
 (define (list->zipper lst)
+  (doc 'export #t)
   (doc 'type '(-> (List α) (ListZipper α)))
   (doc 'description "Convert list to zipper, focusing on first element")
   (if (null? lst)
@@ -78,6 +86,7 @@
       (make-zipper '() (just (car lst)) (cdr lst))))
 
 (define (zipper->list z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (List α)))
   (doc 'description "Convert zipper back to list")
   (let ([left (zipper-left z)]
@@ -89,6 +98,7 @@
                 (cons (from-just focus) right)))))
 
 (define (zipper-from-position lst pos)
+  (doc 'export #t)
   (doc 'type '(-> (List α) Nat (ListZipper α)))
   (doc 'description "Create zipper focused at given position (0-indexed). If position exceeds list length, focuses past the end")
   (let loop ([left '()] [rest lst] [n pos])
@@ -103,16 +113,19 @@
 (doc 'section 'navigation)
 
 (define (zipper-has-focus? z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Bool))
   (doc 'description "Check if zipper has a focused element")
   (just? (zipper-focus-maybe z)))
 
 (define (zipper-can-go-left? z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Bool))
   (doc 'description "Check if leftward movement is possible")
   (not (null? (zipper-left z))))
 
 (define (zipper-can-go-right? z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Bool))
   (doc 'description "Check if rightward movement is possible")
   (or (and (zipper-has-focus? z)
@@ -121,6 +134,7 @@
            (not (null? (zipper-right z))))))
 
 (define (zipper-left! z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (Maybe (ListZipper α))))
   (doc 'description "Move focus left. Returns nothing if at start")
   (let ([left (zipper-left z)]
@@ -137,6 +151,7 @@
               (cons (from-just focus) right)))))))
 
 (define (zipper-right! z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (Maybe (ListZipper α))))
   (doc 'description "Move focus right. Returns nothing if at end")
   (let ([left (zipper-left z)]
@@ -164,6 +179,7 @@
       [else nothing])))
 
 (define (zipper-start z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper α)))
   (doc 'description "Move to the start of the list")
   (let loop ([current z])
@@ -173,6 +189,7 @@
           (loop (from-just moved))))))
 
 (define (zipper-end z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper α)))
   (doc 'description "Move to the end of the list (last element focused)")
   (let loop ([current z])
@@ -185,16 +202,19 @@
                 (loop next)))))))
 
 (define (zipper-goto z pos)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Nat (ListZipper α)))
   (doc 'description "Move to specific position (0-indexed). Clamps to valid range")
   (zipper-from-position (zipper->list z) pos))
 
 (define (zipper-position z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Nat))
   (doc 'description "Get current position (0-indexed)")
   (length (zipper-left z)))
 
 (define (zipper-length z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Nat))
   (doc 'description "Get total length of the underlying list")
   (+ (length (zipper-left z))
@@ -204,6 +224,7 @@
 (doc 'section 'focus-operations)
 
 (define (zipper-focus z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) α))
   (doc 'description "Get the focused element. Error if no focus")
   (let ([focus (zipper-focus-maybe z)])
@@ -212,6 +233,7 @@
         (from-just focus))))
 
 (define (zipper-focus-or z default)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) α α))
   (doc 'description "Get focused element or default if none")
   (let ([focus (zipper-focus-maybe z)])
@@ -220,6 +242,7 @@
         (from-just focus))))
 
 (define (zipper-set z x)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) α (ListZipper α)))
   (doc 'description "Set the focused element. Error if no focus")
   (if (not (zipper-has-focus? z))
@@ -229,6 +252,7 @@
                    (zipper-right z))))
 
 (define (zipper-modify z f)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (-> α α) (ListZipper α)))
   (doc 'description "Modify the focused element. Error if no focus")
   (if (not (zipper-has-focus? z))
@@ -240,6 +264,7 @@
 (doc 'section 'insertion)
 
 (define (zipper-insert-left z x)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) α (ListZipper α)))
   (doc 'description "Insert element to the left of focus. If no focus, inserts at current position")
   (make-zipper (cons x (zipper-left z))
@@ -247,6 +272,7 @@
                (zipper-right z)))
 
 (define (zipper-insert-right z x)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) α (ListZipper α)))
   (doc 'description "Insert element to the right of focus. If past-end (no focus), element becomes new focus for convenient append semantics")
   (let ([focus (zipper-focus-maybe z)])
@@ -259,6 +285,7 @@
                      (cons x (zipper-right z))))))
 
 (define (zipper-insert-focus z x)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) α (ListZipper α)))
   (doc 'description "Insert element as the new focus, pushing old focus right")
   (let ([focus (zipper-focus-maybe z)]
@@ -272,6 +299,7 @@
 (doc 'section 'deletion)
 
 (define (zipper-delete z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper α)))
   (doc 'description "Delete focused element. Focus moves right if possible, else left")
   (if (not (zipper-has-focus? z))
@@ -290,6 +318,7 @@
           [else zipper-empty]))))
 
 (define (zipper-delete-left z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper α)))
   (doc 'description "Delete element immediately to the left of focus. No-op if nothing to the left")
   (let ([left (zipper-left z)])
@@ -300,6 +329,7 @@
                      (zipper-right z)))))
 
 (define (zipper-delete-right z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper α)))
   (doc 'description "Delete element immediately to the right of focus. No-op if nothing to the right")
   (let ([right (zipper-right z)])
@@ -312,6 +342,7 @@
 (doc 'section 'bulk-operations)
 
 (define (zipper-map f z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α β) (ListZipper α) (ListZipper β)))
   (doc 'description "Map function over all elements in zipper")
   (make-zipper (map f (zipper-left z))
@@ -319,21 +350,25 @@
                (map f (zipper-right z))))
 
 (define (zipper-filter pred z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Bool) (ListZipper α) (ListZipper α)))
   (doc 'description "Filter elements. Focus removed if it doesn't match predicate")
   (list->zipper (filter pred (zipper->list z))))
 
 (define (zipper-fold-left f init z)
+  (doc 'export #t)
   (doc 'type '(-> (-> β α β) β (ListZipper α) β))
   (doc 'description "Left fold over zipper elements in order")
   (fold-left f init (zipper->list z)))
 
 (define (zipper-fold-right f init z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α β β) β (ListZipper α) β))
   (doc 'description "Right fold over zipper elements")
   (fold-right f init (zipper->list z)))
 
 (define (zipper-find pred z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Bool) (ListZipper α) (Maybe (ListZipper α))))
   (doc 'description "Find first element matching predicate, returning zipper focused there")
   (let loop ([current (zipper-start z)])
@@ -347,6 +382,7 @@
              (loop (from-just next))))])))
 
 (define (zipper-find-index pred z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Bool) (ListZipper α) (Maybe Nat)))
   (doc 'description "Find index of first element matching predicate")
   (let loop ([lst (zipper->list z)] [idx 0])
@@ -358,22 +394,26 @@
 (doc 'section 'context-operations)
 
 (define (zipper-context z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (List α)))
   (doc 'description "Get all elements except focus (in order)")
   (append (reverse (zipper-left z))
           (zipper-right z)))
 
 (define (zipper-take-left z n)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Nat (List α)))
   (doc 'description "Take n elements to the left (in left-to-right order)")
   (reverse (take (min n (length (zipper-left z))) (zipper-left z))))
 
 (define (zipper-take-right z n)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Nat (List α)))
   (doc 'description "Take n elements to the right")
   (take (min n (length (zipper-right z))) (zipper-right z)))
 
 (define (zipper-window z left-count right-count)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) Nat Nat (List α)))
   (doc 'description "Get elements in window around focus (left-count, right-count). Includes focus in the middle")
   (append (zipper-take-left z left-count)
@@ -384,6 +424,7 @@
 (doc 'section 'splitting-and-joining)
 
 (define (zipper-split z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (Pair (List α) (List α))))
   (doc 'description "Split at focus into (left-elements, focus+right-elements)")
   (cons (reverse (zipper-left z))
@@ -392,6 +433,7 @@
             (zipper-right z))))
 
 (define (zipper-append z lst)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (List α) (ListZipper α)))
   (doc 'description "Append list to the right of zipper")
   (make-zipper (zipper-left z)
@@ -399,6 +441,7 @@
                (append (zipper-right z) lst)))
 
 (define (zipper-prepend lst z)
+  (doc 'export #t)
   (doc 'type '(-> (List α) (ListZipper α) (ListZipper α)))
   (doc 'description "Prepend list to the beginning of the underlying list")
   (make-zipper (append (zipper-left z) (reverse lst))
@@ -418,6 +461,7 @@
 (define zipper-extract zipper-focus)
 
 (define (zipper-extend f z)
+  (doc 'export #t)
   (doc 'type '(-> (-> (ListZipper α) β) (ListZipper α) (ListZipper β)))
   (doc 'description "Extend a contextual function to all positions. For each position, applies f to the zipper focused at that position. Optimized O(N) implementation")
   (if (zipper-empty? z)
@@ -428,6 +472,7 @@
         (zipper-from-position results current-pos))))
 
 (define (zipper-extend-collect f z)
+  (doc 'export #t)
   (doc 'type '(-> (-> (ListZipper α) β) (ListZipper α) (List β)))
   (doc 'description "Helper: traverse zipper collecting f(z) at each focused position")
   (let loop ([current z] [acc '()])
@@ -441,6 +486,7 @@
               (loop (from-just next) new-acc))))))
 
 (define (zipper-duplicate z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper (ListZipper α))))
   (doc 'description "Duplicate: zipper of all possible focuses")
   (zipper-extend (lambda (x) x) z))
@@ -454,6 +500,7 @@
 (doc 'section 'equality-and-display)
 
 (define (zipper-equal? z1 z2)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (ListZipper α) Bool))
   (doc 'description "Check equality of two zippers")
   (and (equal? (zipper-left z1) (zipper-left z2))
@@ -461,6 +508,7 @@
        (equal? (zipper-right z1) (zipper-right z2))))
 
 (define (zipper->string z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) String))
   (doc 'description "Convert zipper to string representation. Shows: [left...] >focus< [right...]")
   (let ([left (reverse (zipper-left z))]
@@ -494,6 +542,7 @@
 ;; iota, last provided by prelude
 
 (define (drop-right lst n)
+  (doc 'export #t)
   (doc 'type '(-> (List α) Nat (List α)))
   (doc 'description "Drop n elements from right of list")
   (let ([len (length lst)])

@@ -24,9 +24,11 @@
 (doc make-graph-node 'type '(-> Any Number Number GraphNode))
 (doc make-graph-node 'description "Create a graph node with id and position")
 (define (make-graph-node id x y)
+  (doc 'export #t)
   (list 'graph-node id (vector x y) (vector 0.0 0.0)))  ; id, pos, velocity
 
 (define (graph-node? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'graph-node)))
 
 (define (layout-graph? x)
@@ -75,6 +77,7 @@
 (doc make-layout-graph 'type '(-> (List Any) (List (Pair Any Any)) LayoutGraph))
 (doc make-layout-graph 'description "Create a layout graph from node IDs and edges")
 (define (make-layout-graph node-ids edges)
+  (doc 'export #t)
   (list 'layout-graph
         ;; Initialize nodes with random positions
         (map (lambda (id)
@@ -147,6 +150,7 @@
 (doc calculate-repulsion 'type '(-> GraphNode GraphNode Vec))
 (doc calculate-repulsion 'description "Calculate repulsive force between two nodes (Coulomb's law)")
 (define (calculate-repulsion node1 node2)
+  (doc 'export #t)
   (let* ([pos1 (node-pos node1)]
          [pos2 (node-pos node2)]
          [delta (vec-sub pos1 pos2)]
@@ -163,6 +167,7 @@
 (doc calculate-attraction 'type '(-> GraphNode GraphNode Vec))
 (doc calculate-attraction 'description "Calculate attractive force between connected nodes (Hooke's law)")
 (define (calculate-attraction node1 node2)
+  (doc 'export #t)
   (let* ([pos1 (node-pos node1)]
          [pos2 (node-pos node2)]
          [delta (vec-sub pos2 pos1)]
@@ -182,6 +187,7 @@
 (doc layout-step 'type '(-> LayoutGraph LayoutGraph))
 (doc layout-step 'description "Perform one iteration of force-directed layout")
 (define (layout-step graph)
+  (doc 'export #t)
   (let* ([nodes (graph-nodes graph)]
          [edges (graph-edges graph)]
          [n (length nodes)]
@@ -253,6 +259,7 @@
 (doc run-layout 'type '(-> LayoutGraph Nat LayoutGraph))
 (doc run-layout 'description "Run force-directed layout for n iterations")
 (define (run-layout graph n-iterations)
+  (doc 'export #t)
   (let loop ([g graph] [i 0])
     (if (>= i n-iterations)
         g
@@ -267,6 +274,7 @@
 (doc layout-bounds 'type '(-> LayoutGraph (Values Number Number Number Number)))
 (doc layout-bounds 'description "Get bounding box of layout: (min-x, min-y, max-x, max-y)")
 (define (layout-bounds graph)
+  (doc 'export #t)
   (let ([nodes (graph-nodes graph)])
     (if (null? nodes)
         (values 0 0 0 0)
@@ -288,6 +296,7 @@
 (doc normalize-layout 'type '(-> LayoutGraph Number Number Number LayoutGraph))
 (doc normalize-layout 'description "Normalize layout to fit within width x height with margin")
 (define (normalize-layout graph width height margin)
+  (doc 'export #t)
   (let-values ([(min-x min-y max-x max-y) (layout-bounds graph)])
     (let* ([range-x (max 1 (- max-x min-x))]
            [range-y (max 1 (- max-y min-y))]
@@ -315,6 +324,7 @@
 (doc hierarchical-layout 'type '(-> (List Any) (List (Pair Any Any)) (-> Any Nat) LayoutGraph))
 (doc hierarchical-layout 'description "Create hierarchical layout based on node depth/tier")
 (define (hierarchical-layout node-ids edges depth-fn)
+  (doc 'export #t)
   ;; Group nodes by depth
   (let* ([depths (map (lambda (id) (cons id (depth-fn id))) node-ids)]
          [max-depth (fold-left (lambda (m p) (max m (cdr p))) 0 depths)]
@@ -352,6 +362,7 @@
 (doc layout-from-adjacency 'type '(-> (List (Pair Any (List Any))) LayoutGraph))
 (doc layout-from-adjacency 'description "Create layout graph from adjacency list")
 (define (layout-from-adjacency adj-list)
+  (doc 'export #t)
   (let* ([node-ids (map car adj-list)]
          [edges (append-map (lambda (entry)
                               (let ([from (car entry)]

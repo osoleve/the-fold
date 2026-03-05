@@ -40,6 +40,7 @@
 ;;; dtf? : Any → Boolean
 ;;; Check if value is a discrete transfer function.
 (define (dtf? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'dtf)
        (= (length x) 4)
@@ -51,6 +52,7 @@
 ;;; Create discrete transfer function from numerator, denominator, and sample time.
 ;;; Normalizes denominator to monic form.
 (define (make-dtf num den Ts)
+  (doc 'export #t)
   (let ([lead (poly-leading den)])
        (if (zero? lead)
            '(error zero-denominator)
@@ -63,41 +65,49 @@
 ;;; dtf-from-coeffs : Vector × Vector × Number → DTF
 ;;; Create discrete TF from coefficient vectors (descending powers of z).
 (define (dtf-from-coeffs num-coeffs den-coeffs Ts)
+  (doc 'export #t)
   (make-dtf (make-poly num-coeffs) (make-poly den-coeffs) Ts))
 
 ;;; dtf-from-lists : (List Number) × (List Number) × Number → DTF
 ;;; Create discrete TF from lists of coefficients.
 (define (dtf-from-lists num-list den-list Ts)
+  (doc 'export #t)
   (make-dtf (poly-from-list num-list) (poly-from-list den-list) Ts))
 
 ;;; dtf-num : DTF → Poly
 ;;; Get the numerator polynomial.
 (define (dtf-num dtf)
+  (doc 'export #t)
   (cadr dtf))
 
 ;;; dtf-den : DTF → Poly
 ;;; Get the denominator polynomial.
 (define (dtf-den dtf)
+  (doc 'export #t)
   (caddr dtf))
 
 ;;; dtf-Ts : DTF → Number
 ;;; Get the sample time.
 (define (dtf-Ts dtf)
+  (doc 'export #t)
   (cadddr dtf))
 
 ;;; dtf-order : DTF → Nat
 ;;; Get the order (degree of denominator).
 (define (dtf-order dtf)
+  (doc 'export #t)
   (poly-degree (dtf-den dtf)))
 
 ;;; dtf-relative-degree : DTF → Int
 ;;; Get the relative degree (deg(den) - deg(num)).
 (define (dtf-relative-degree dtf)
+  (doc 'export #t)
   (- (poly-degree (dtf-den dtf)) (poly-degree (dtf-num dtf))))
 
 ;;; dtf-proper? : DTF → Boolean
 ;;; Check if discrete TF is proper (causal).
 (define (dtf-proper? dtf)
+  (doc 'export #t)
   (>= (dtf-relative-degree dtf) 0))
 
 ;;; ====
@@ -107,16 +117,19 @@
 ;;; dtf-poles : DTF → (List Complex)
 ;;; Get the poles (roots of denominator).
 (define (dtf-poles dtf)
+  (doc 'export #t)
   (poly-roots (dtf-den dtf)))
 
 ;;; dtf-zeros : DTF → (List Complex)
 ;;; Get the zeros (roots of numerator).
 (define (dtf-zeros dtf)
+  (doc 'export #t)
   (poly-roots (dtf-num dtf)))
 
 ;;; dtf-gain : DTF → Number
 ;;; Get the static gain H(1) - DC gain for discrete systems.
 (define (dtf-gain dtf)
+  (doc 'export #t)
   (let ([den-at-1 (poly-eval (dtf-den dtf) 1)])
        (if (< (abs den-at-1) 1e-15)
            'infinite
@@ -125,6 +138,7 @@
 ;;; dtf-from-poles-zeros : (List Complex) × (List Complex) × Number × Number → DTF
 ;;; Construct discrete TF from poles, zeros, gain, and sample time.
 (define (dtf-from-poles-zeros poles zeros gain Ts)
+  (doc 'export #t)
   (make-dtf (poly-from-roots zeros gain)
             (poly-from-roots poles 1)
             Ts))
@@ -136,6 +150,7 @@
 ;;; dtf-eval : DTF × Complex → Complex
 ;;; Evaluate H(z) at complex point z.
 (define (dtf-eval dtf z)
+  (doc 'export #t)
   (let ([num-val (poly-eval-complex (dtf-num dtf) z)]
         [den-val (poly-eval-complex (dtf-den dtf) z)])
        (complex-div num-val den-val)))
@@ -143,6 +158,7 @@
 ;;; dtf-eval-real : DTF × Number → Number
 ;;; Evaluate H(z) at real z value.
 (define (dtf-eval-real dtf z)
+  (doc 'export #t)
   (/ (poly-eval (dtf-num dtf) z) (poly-eval (dtf-den dtf) z)))
 
 ;;; ====
@@ -153,6 +169,7 @@
 ;;; Compute frequency response H(e^{jωTs}) for vector of frequencies ω.
 ;;; Returns vector of complex values.
 (define (dtf-freq-response dtf frequencies)
+  (doc 'export #t)
   (let* ([Ts (dtf-Ts dtf)]
          [n (vector-length frequencies)]
          [result (make-vector n)])
@@ -167,6 +184,7 @@
 ;;; dtf-magnitude : DTF × Vector → Vector
 ;;; Compute magnitude |H(e^{jωTs})| for vector of frequencies.
 (define (dtf-magnitude dtf frequencies)
+  (doc 'export #t)
   (let* ([resp (dtf-freq-response dtf frequencies)]
          [n (vector-length resp)]
          [result (make-vector n)])
@@ -177,6 +195,7 @@
 ;;; dtf-magnitude-db : DTF × Vector → Vector
 ;;; Compute magnitude in decibels.
 (define (dtf-magnitude-db dtf frequencies)
+  (doc 'export #t)
   (let* ([mag (dtf-magnitude dtf frequencies)]
          [n (vector-length mag)]
          [result (make-vector n)])
@@ -188,6 +207,7 @@
 ;;; dtf-phase : DTF × Vector → Vector
 ;;; Compute phase angle of H(e^{jωTs}) in radians.
 (define (dtf-phase dtf frequencies)
+  (doc 'export #t)
   (let* ([resp (dtf-freq-response dtf frequencies)]
          [n (vector-length resp)]
          [result (make-vector n)])
@@ -198,6 +218,7 @@
 ;;; dtf-phase-deg : DTF × Vector → Vector
 ;;; Compute phase angle in degrees.
 (define (dtf-phase-deg dtf frequencies)
+  (doc 'export #t)
   (let* ([phase-rad (dtf-phase dtf frequencies)]
          [n (vector-length phase-rad)]
          [result (make-vector n)])
@@ -213,6 +234,7 @@
 ;;; Series connection: H1(z) * H2(z)
 ;;; Both must have same sample time.
 (define (dtf-series dtf1 dtf2)
+  (doc 'export #t)
   (let ([Ts1 (dtf-Ts dtf1)]
         [Ts2 (dtf-Ts dtf2)])
        (if (not (= Ts1 Ts2))
@@ -224,6 +246,7 @@
 ;;; dtf-parallel : DTF × DTF → DTF
 ;;; Parallel connection: H1(z) + H2(z)
 (define (dtf-parallel dtf1 dtf2)
+  (doc 'export #t)
   (let ([Ts1 (dtf-Ts dtf1)]
         [Ts2 (dtf-Ts dtf2)])
        (if (not (= Ts1 Ts2))
@@ -239,6 +262,7 @@
 ;;; For negative feedback (default): H_cl = G / (1 + G*H)
 ;;; For positive feedback: H_cl = G / (1 - G*H)
 (define (dtf-feedback G H . sign)
+  (doc 'export #t)
   (let ([Ts-G (dtf-Ts G)]
         [Ts-H (dtf-Ts H)])
        (if (not (= Ts-G Ts-H))
@@ -256,6 +280,7 @@
 ;;; dtf-unity-feedback : DTF → DTF
 ;;; Unity negative feedback: H_cl = G / (1 + G)
 (define (dtf-unity-feedback G)
+  (doc 'export #t)
   (let ([unity (dtf-from-lists '(1) '(1) (dtf-Ts G))])
        (dtf-feedback G unity 'negative)))
 
@@ -267,6 +292,7 @@
 ;;; Check if discrete TF is stable.
 ;;; Stable if all poles have magnitude < 1 (inside unit circle).
 (define (dtf-stable? dtf)
+  (doc 'export #t)
   (let ([poles (dtf-poles dtf)])
        (if (pair? poles)
            (and (list? poles)
@@ -278,6 +304,7 @@
 ;;; dtf-pole-magnitudes : DTF → (List Number)
 ;;; Get magnitudes of all poles.
 (define (dtf-pole-magnitudes dtf)
+  (doc 'export #t)
   (map complex-magnitude (dtf-poles dtf)))
 
 ;;; ====
@@ -288,6 +315,7 @@
 ;;; Convert discrete state-space to discrete transfer function.
 ;;; Uses the same algorithm as ss->tf but interprets as z-domain.
 (define (dss->dtf dsys)
+  (doc 'export #t)
   (let* ([A (dss-A dsys)]
          [B (dss-B dsys)]
          [C (dss-C dsys)]
@@ -305,6 +333,7 @@
 ;;; compute-char-poly : Matrix × Nat → Poly
 ;;; Compute characteristic polynomial det(zI - A) using Faddeev-LeVerrier.
 (define (compute-char-poly A n)
+  (doc 'export #t)
   (let ([coeffs (make-vector (+ n 1) 0)])
        (vector-set! coeffs 0 1)  ; Leading coefficient
        (let loop ([k 1] [M (matrix-identity n)])
@@ -323,6 +352,7 @@
 ;;; compute-dtf-numerator : Matrix × Matrix × Matrix × Matrix × Nat × Poly → Poly
 ;;; Compute numerator polynomial for DTF from state-space.
 (define (compute-dtf-numerator A B C D n char-poly)
+  (doc 'export #t)
   (let* ([b-col (matrix-column-v B 0)]
          [c-row (matrix-row-v C 0)]
          [d-val (matrix-ref D 0 0)]
@@ -352,6 +382,7 @@
 ;;; dtf->dss : DTF → DSS
 ;;; Convert discrete TF to discrete state-space in controllable canonical form.
 (define (dtf->dss dtf)
+  (doc 'export #t)
   (let* ([num (dtf-num dtf)]
          [den (dtf-den dtf)]
          [Ts (dtf-Ts dtf)]
@@ -372,6 +403,7 @@
 
 ;;; dtf->dss-controllable : Poly × Poly × Number × Nat × Nat → DSS
 (define (dtf->dss-controllable num den Ts n m)
+  (doc 'export #t)
   (let* ([den-coeffs (poly-coeffs den)]
          [num-coeffs (poly-coeffs num)]
          [num-padded (pad-poly-coeffs-local num-coeffs (+ n 1))]
@@ -407,6 +439,7 @@
 ;;; dtf->string : DTF → String
 ;;; Pretty-print discrete transfer function.
 (define (dtf->string dtf)
+  (doc 'export #t)
   (let ([num-str (poly->string-z (dtf-num dtf))]
         [den-str (poly->string-z (dtf-den dtf))]
         [Ts (dtf-Ts dtf)])
@@ -415,6 +448,7 @@
 ;;; poly->string-z : Poly → String
 ;;; Convert polynomial to string using 'z' as variable.
 (define (poly->string-z p)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs p)]
          [n (- (vector-length coeffs) 1)]
          [terms '()])
@@ -442,6 +476,7 @@
 
 ;;; log10 : Number → Number
 (define (log10 x)
+  (doc 'export #t)
   (/ (log x) (log 10)))
 
 ;;; pi constant
@@ -451,6 +486,7 @@
 
 ;;; matrix-trace-local : Matrix → Number
 (define (matrix-trace-local M)
+  (doc 'export #t)
   (let ([n (min (matrix-rows M) (matrix-cols M))])
        (let loop ([i 0] [sum 0])
             (if (= i n)
@@ -459,6 +495,7 @@
 
 ;;; matrix-column-v : Matrix × Nat → Vec
 (define (matrix-column-v M j)
+  (doc 'export #t)
   (let* ([rows (matrix-rows M)]
          [result (make-vector rows)])
         (do ([i 0 (+ i 1)])
@@ -467,6 +504,7 @@
 
 ;;; matrix-row-v : Matrix × Nat → Vec
 (define (matrix-row-v M i)
+  (doc 'export #t)
   (let* ([cols (matrix-cols M)]
          [result (make-vector cols)])
         (do ([j 0 (+ j 1)])
@@ -475,6 +513,7 @@
 
 ;;; matrix-vec-mul-local : Matrix × Vec → Vec
 (define (matrix-vec-mul-local M v)
+  (doc 'export #t)
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)]
          [result (make-vector rows 0)])
@@ -487,6 +526,7 @@
 
 ;;; dot-product-local : Vec × Vec → Number
 (define (dot-product-local v1 v2)
+  (doc 'export #t)
   (let ([n (vector-length v1)])
        (let loop ([i 0] [sum 0])
             (if (= i n)
@@ -495,6 +535,7 @@
 
 ;;; pad-poly-coeffs-local : Vec × Nat → Vec
 (define (pad-poly-coeffs-local coeffs n)
+  (doc 'export #t)
   (let ([len (vector-length coeffs)])
        (if (>= len n)
            coeffs

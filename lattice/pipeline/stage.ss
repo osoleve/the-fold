@@ -18,68 +18,83 @@
 (doc 'type '(-> a (StageResult a)))
 (doc 'description "Successful result with value")
 (define (stage-ok value)
+  (doc 'export #t)
   (list 'stage-result 'ok value))
 
 ;;; stage-err : Symbol -> String -> Any -> StageResult a
 ;;; Failure with error code, message, and optional data.
 (define (stage-err code message data)
+  (doc 'export #t)
   (list 'stage-result 'err code message data))
 
 ;;; stage-retry : String -> Nat -> StageResult a
 ;;; Request retry with reason and delay (milliseconds).
 (define (stage-retry reason delay-ms)
+  (doc 'export #t)
   (list 'stage-result 'retry reason delay-ms))
 
 ;;; stage-skip : String -> StageResult a
 ;;; Skip this stage but continue pipeline.
 (define (stage-skip reason)
+  (doc 'export #t)
   (list 'stage-result 'skip reason))
 
 ;;; stage-halt : String -> StageResult a
 ;;; Stop entire pipeline.
 (define (stage-halt reason)
+  (doc 'export #t)
   (list 'stage-result 'halt reason))
 
 ;;; stage-await : Symbol -> StageResult a
 ;;; Suspend and wait for external signal by reference.
 (define (stage-await ref)
+  (doc 'export #t)
   (list 'stage-result 'await ref))
 
 ;;; stage-result? : Any -> Boolean
 (define (stage-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'stage-result)))
 
 ;;; stage-result-tag : StageResult a -> Symbol
 (define (stage-result-tag r)
+  (doc 'export #t)
   (list-ref r 1))
 
 ;;; stage-result-value : StageResult a -> a
 ;;; Extract value from ok result.
 (define (stage-result-value r)
+  (doc 'export #t)
   (list-ref r 2))
 
 ;;; stage-ok? : StageResult a -> Boolean
 (define (stage-ok? r)
+  (doc 'export #t)
   (and (stage-result? r) (eq? (stage-result-tag r) 'ok)))
 
 ;;; stage-err? : StageResult a -> Boolean
 (define (stage-err? r)
+  (doc 'export #t)
   (and (stage-result? r) (eq? (stage-result-tag r) 'err)))
 
 ;;; stage-retry? : StageResult a -> Boolean
 (define (stage-retry? r)
+  (doc 'export #t)
   (and (stage-result? r) (eq? (stage-result-tag r) 'retry)))
 
 ;;; stage-skip? : StageResult a -> Boolean
 (define (stage-skip? r)
+  (doc 'export #t)
   (and (stage-result? r) (eq? (stage-result-tag r) 'skip)))
 
 ;;; stage-halt? : StageResult a -> Boolean
 (define (stage-halt? r)
+  (doc 'export #t)
   (and (stage-result? r) (eq? (stage-result-tag r) 'halt)))
 
 ;;; stage-await? : StageResult a -> Boolean
 (define (stage-await? r)
+  (doc 'export #t)
   (and (stage-result? r) (eq? (stage-result-tag r) 'await)))
 
 ;;; Error accessors
@@ -106,23 +121,28 @@
 
 (doc 'type '(-> Symbol (-> ctx i (StageResult o)) (Stage ctx i o)))
 (define (make-stage name run-fn)
+  (doc 'export #t)
   (list 'stage name run-fn))
 
 ;;; stage? : Any -> Boolean
 (define (stage? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'stage)))
 
 ;;; stage-name : Stage ctx i o -> Symbol
 (define (stage-name s)
+  (doc 'export #t)
   (list-ref s 1))
 
 ;;; stage-run-fn : Stage ctx i o -> (ctx -> i -> StageResult o)
 (define (stage-run-fn s)
+  (doc 'export #t)
   (list-ref s 2))
 
 ;;; run-stage : Stage ctx i o -> ctx -> i -> StageResult o
 ;;; Execute a stage on context and input.
 (define (run-stage s ctx input)
+  (doc 'export #t)
   ((stage-run-fn s) ctx input))
 
 (doc 'section 'basic-constructors)
@@ -130,6 +150,7 @@
 (doc 'type '(-> a (Stage ctx i a)))
 (doc 'description "Inject a constant value, ignoring input")
 (define (stage-pure value)
+  (doc 'export #t)
   (make-stage 'pure
               (lambda (ctx input)
                       (stage-ok value))))
@@ -151,6 +172,7 @@
 ;;; stage-asks : (ctx -> a) -> Stage ctx i a
 ;;; Access part of the context.
 (define (stage-asks f)
+  (doc 'export #t)
   (make-stage 'asks
               (lambda (ctx input)
                       (stage-ok (f ctx)))))
@@ -158,6 +180,7 @@
 ;;; stage-local : (ctx -> ctx') -> Stage ctx' i o -> Stage ctx i o
 ;;; Run stage with modified context.
 (define (stage-local f stage)
+  (doc 'export #t)
   (make-stage 'local
               (lambda (ctx input)
                       (run-stage stage (f ctx) input))))
@@ -165,6 +188,7 @@
 ;;; stage-fail : Symbol -> String -> Stage ctx i o
 ;;; Always fail with given error.
 (define (stage-fail code message)
+  (doc 'export #t)
   (make-stage 'fail
               (lambda (ctx input)
                       (stage-err code message '()))))
@@ -172,6 +196,7 @@
 ;;; stage-halt-with : String -> Stage ctx i o
 ;;; Always halt pipeline.
 (define (stage-halt-with reason)
+  (doc 'export #t)
   (make-stage 'halt
               (lambda (ctx input)
                       (stage-halt reason))))
@@ -179,6 +204,7 @@
 ;;; stage-skip-with : String -> Stage ctx i i
 ;;; Skip this stage, pass input through.
 (define (stage-skip-with reason)
+  (doc 'export #t)
   (make-stage 'skip
               (lambda (ctx input)
                       (stage-skip reason))))
@@ -188,6 +214,7 @@
 (doc 'type '(-> (Stage ctx a b) (Stage ctx b c) (Stage ctx a c)))
 (doc 'description "Sequential composition (left to right)")
 (define (stage-compose s1 s2)
+  (doc 'export #t)
   (make-stage 'seq
               (lambda (ctx input)
                       (let ([r1 (run-stage s1 ctx input)])
@@ -198,16 +225,19 @@
 ;;; >>> : Stage ctx a b -> Stage ctx b c -> Stage ctx a c
 ;;; Sequential composition operator.
 (define (stage->>> s1 s2)
+  (doc 'export #t)
   (stage-compose s1 s2))
 
 ;;; <<< : Stage ctx b c -> Stage ctx a b -> Stage ctx a c
 ;;; Reverse sequential composition.
 (define (stage-<<< s2 s1)
+  (doc 'export #t)
   (stage-compose s1 s2))
 
 ;;; stage-first : Stage ctx a b -> Stage ctx (a . c) (b . c)
 ;;; Apply stage to first component of pair.
 (define (stage-first s)
+  (doc 'export #t)
   (make-stage 'first
               (lambda (ctx input)
                       (let ([a (car input)]
@@ -220,6 +250,7 @@
 ;;; stage-second : Stage ctx a b -> Stage ctx (c . a) (c . b)
 ;;; Apply stage to second component of pair.
 (define (stage-second s)
+  (doc 'export #t)
   (make-stage 'second
               (lambda (ctx input)
                       (let* ([c (car input)]
@@ -232,6 +263,7 @@
 ;;; stage-split : Stage ctx a b -> Stage ctx c d -> Stage ctx (a . c) (b . d)
 ;;; Apply two stages in parallel to pair components (***).
 (define (stage-split s1 s2)
+  (doc 'export #t)
   (stage->>> (stage-first s1) (stage-second s2)))
 
 ;;; *** : Stage ctx a b -> Stage ctx c d -> Stage ctx (a . c) (b . d)
@@ -240,6 +272,7 @@
 ;;; combine-fanout-results : StageResult a -> StageResult b -> Any -> StageResult (a . b)
 ;;; Combine results from two parallel stages.
 (define (combine-fanout-results r1 r2 input)
+  (doc 'export #t)
   (cond
    ;; Both pure values: pair them
    [(and (stage-ok? r1) (stage-ok? r2))
@@ -288,6 +321,7 @@
 ;;; Apply two stages to same input, pair results (&&&).
 ;;; Handles parallel execution if runtime supports it.
 (define (stage-fanout s1 s2)
+  (doc 'export #t)
   (make-stage 'fanout
               (lambda (ctx input)
                       (if (top-level-bound? 'fork-thread)
@@ -314,6 +348,7 @@
 ;;; stage-left : Stage ctx a b -> Stage ctx (Either a c) (Either b c)
 ;;; Apply stage to left values, pass right through.
 (define (stage-left s)
+  (doc 'export #t)
   (make-stage 'left
               (lambda (ctx input)
                       (if (left? input)
@@ -326,6 +361,7 @@
 ;;; stage-right : Stage ctx a b -> Stage ctx (Either c a) (Either c b)
 ;;; Apply stage to right values, pass left through.
 (define (stage-right s)
+  (doc 'export #t)
   (make-stage 'right
               (lambda (ctx input)
                       (if (right? input)
@@ -338,6 +374,7 @@
 ;;; stage-choice : Stage ctx a c -> Stage ctx b c -> Stage ctx (Either a b) c
 ;;; Route either left or right to appropriate stage (choice combinator).
 (define (stage-choice s-left s-right)
+  (doc 'export #t)
   (make-stage 'choice
               (lambda (ctx input)
                       (if (left? input)
@@ -350,6 +387,7 @@
 
 ;;; +++ : Stage ctx a b -> Stage ctx c d -> Stage ctx (Either a c) (Either b d)
 (define (stage-+++ s1 s2)
+  (doc 'export #t)
   (stage->>> (stage-left s1) (stage-right s2)))
 
 (doc 'section 'conditional-stages)
@@ -357,6 +395,7 @@
 (doc 'type '(-> (-> i Boolean) (Stage ctx i o) (Stage ctx i o) (Stage ctx i o)))
 (doc 'description "Conditional stage based on predicate")
 (define (stage-if pred then-stage else-stage)
+  (doc 'export #t)
   (make-stage 'if
               (lambda (ctx input)
                       (if (pred input)
@@ -366,16 +405,19 @@
 ;;; stage-when : (i -> Boolean) -> Stage ctx i i -> Stage ctx i i
 ;;; Run stage only if predicate holds, otherwise pass through.
 (define (stage-when pred stage)
+  (doc 'export #t)
   (stage-if pred stage stage-read))
 
 ;;; stage-unless : (i -> Boolean) -> Stage ctx i i -> Stage ctx i i
 ;;; Run stage only if predicate fails.
 (define (stage-unless pred stage)
+  (doc 'export #t)
   (stage-if pred stage-read stage))
 
 ;;; stage-case : List ((i -> Boolean) . Stage ctx i o) -> Stage ctx i o -> Stage ctx i o
 ;;; Pattern matching over stages.
 (define (stage-case cases default-stage)
+  (doc 'export #t)
   (make-stage 'case
               (lambda (ctx input)
                       (let loop ([cs cases])
@@ -390,6 +432,7 @@
 ;;; stage-guard : (i -> Boolean) -> String -> Stage ctx i i
 ;;; Assert condition or fail.
 (define (stage-guard pred error-message)
+  (doc 'export #t)
   (make-stage 'guard
               (lambda (ctx input)
                       (if (pred input)
@@ -401,6 +444,7 @@
 (doc 'type '(-> (Stage ctx a b) (-> b (Stage ctx b c)) (Stage ctx a c)))
 (doc 'description "Monadic bind for stages")
 (define (stage-bind s f)
+  (doc 'export #t)
   (make-stage 'bind
               (lambda (ctx input)
                       (let ([r (run-stage s ctx input)])
@@ -411,6 +455,7 @@
 ;;; stage-map : (a -> b) -> Stage ctx i a -> Stage ctx i b
 ;;; Map a function over stage output.
 (define (stage-map f s)
+  (doc 'export #t)
   (make-stage 'map
               (lambda (ctx input)
                       (let ([r (run-stage s ctx input)])
@@ -421,6 +466,7 @@
 ;;; stage-ap : Stage ctx i (a -> b) -> Stage ctx i a -> Stage ctx i b
 ;;; Applicative apply.
 (define (stage-ap sf sa)
+  (doc 'export #t)
   (stage-bind sf
               (lambda (f)
                       (stage-map f sa))))
@@ -428,6 +474,7 @@
 ;;; stage-sequence : List (Stage ctx i o) -> Stage ctx i (List o)
 ;;; Sequence stages, collecting results.
 (define (stage-sequence stages)
+  (doc 'export #t)
   (if (null? stages)
       (stage-pure '())
       (stage-bind (car stages)
@@ -438,6 +485,7 @@
 ;;; stage-traverse : (a -> Stage ctx i b) -> List a -> Stage ctx i (List b)
 ;;; Map and sequence.
 (define (stage-traverse f xs)
+  (doc 'export #t)
   (stage-sequence (map f xs)))
 
 (doc 'section 'iteration-looping)
@@ -445,6 +493,7 @@
 (doc 'type '(-> (-> b a (Stage ctx a b)) b (List a) (Stage ctx _ b)))
 (doc 'description "Fold over a list with stages")
 (define (stage-fold f init xs)
+  (doc 'export #t)
   (if (null? xs)
       (stage-pure init)
       (make-stage 'fold
@@ -460,12 +509,14 @@
 ;;; stage-for-each : (a -> Stage ctx _ _) -> List a -> Stage ctx _ ()
 ;;; Execute stage for each element (for side effects).
 (define (stage-for-each f xs)
+  (doc 'export #t)
   (stage-map (lambda (_) '())
              (stage-traverse f xs)))
 
 ;;; stage-repeat : Nat -> Stage ctx a a -> Stage ctx a a
 ;;; Repeat a stage n times.
 (define (stage-repeat n stage)
+  (doc 'export #t)
   (if (= n 0)
       stage-read
       (stage->>> stage (stage-repeat (- n 1) stage))))
@@ -473,6 +524,7 @@
 ;;; stage-while : (a -> Boolean) -> Stage ctx a a -> Stage ctx a a
 ;;; Repeat while predicate holds (with fuel limit).
 (define (stage-while pred stage)
+  (doc 'export #t)
   (make-stage 'while
               (lambda (ctx input)
                       (let loop ([current input] [fuel 1000])
@@ -491,12 +543,14 @@
 (doc 'type '(-> Symbol Any (Stage ctx i o)))
 (doc 'description "Create a stage that performs an effect")
 (define (make-effect-stage effect-type payload)
+  (doc 'export #t)
   (make-stage effect-type
               (lambda (ctx input)
                       (list 'stage-effect effect-type payload input))))
 
 ;;; stage-effect? : Any -> Boolean
 (define (stage-effect? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'stage-effect)))
 
 ;;; stage-effect-type : Effect -> Symbol
@@ -511,17 +565,20 @@
 ;;; fanout-effect? : Effect -> Boolean
 ;;; Check if effect is a combined fanout effect from parallel execution.
 (define (fanout-effect? e)
+  (doc 'export #t)
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'fanout)))
 
 ;;; fanout-effect-left : Effect -> Any
 ;;; Extract left branch result from fanout effect.
 (define (fanout-effect-left e)
+  (doc 'export #t)
   (car (stage-effect-payload e)))
 
 ;;; fanout-effect-right : Effect -> Any
 ;;; Extract right branch result from fanout effect.
 (define (fanout-effect-right e)
+  (doc 'export #t)
   (cdr (stage-effect-payload e)))
 
 (doc 'section 'utility-stages)
@@ -565,6 +622,7 @@
 ;;; stage-arr : (a -> b) -> Stage ctx a b
 ;;; Lift a pure function into a stage.
 (define (stage-arr f)
+  (doc 'export #t)
   (make-stage 'arr
               (lambda (ctx input)
                       (stage-ok (f input)))))
@@ -572,6 +630,7 @@
 ;;; stage-arr-ctx : (ctx -> a -> b) -> Stage ctx a b
 ;;; Lift a function that uses context.
 (define (stage-arr-ctx f)
+  (doc 'export #t)
   (make-stage 'arr-ctx
               (lambda (ctx input)
                       (stage-ok (f ctx input)))))
@@ -581,6 +640,7 @@
 (doc 'type '(-> (-> StageResult (Stage ctx i o)) (Stage ctx i o) (Stage ctx i o)))
 (doc 'description "Catch errors and handle them")
 (define (stage-catch handler stage)
+  (doc 'export #t)
   (make-stage 'catch
               (lambda (ctx input)
                       (let ([r (run-stage stage ctx input)])
@@ -591,6 +651,7 @@
 ;;; stage-recover : Alist (Symbol . Stage ctx i o) -> Stage ctx i o -> Stage ctx i o
 ;;; Recover from specific error codes.
 (define (stage-recover handlers stage)
+  (doc 'export #t)
   (stage-catch
    (lambda (err)
            (if (stage-err? err)
@@ -604,6 +665,7 @@
 ;;; stage-default : a -> Stage ctx i a -> Stage ctx i a
 ;;; Return default value on any error.
 (define (stage-default default-value stage)
+  (doc 'export #t)
   (stage-catch
    (lambda (err) (stage-pure default-value))
    stage))
@@ -611,6 +673,7 @@
 ;;; stage-optional : Stage ctx i a -> Stage ctx i (Maybe a)
 ;;; Convert errors to None, success to Some.
 (define (stage-optional stage)
+  (doc 'export #t)
   (stage-catch
    (lambda (err) (stage-pure '()))
    (stage-map (lambda (x) (list 'some x)) stage)))
@@ -620,6 +683,7 @@
 (doc 'type '(-> Symbol (List Stage) Stage))
 (doc 'description "Name a sequence of stages")
 (define (pipeline name . stages)
+  (doc 'export #t)
   (make-stage name
               (lambda (ctx input)
                       (let loop ([ss stages] [current input])
@@ -634,6 +698,7 @@
 ;;; Execute side effect without changing value (for logging/debugging).
 ;;; Note: This creates an effect that must be interpreted.
 (define (stage-tap f)
+  (doc 'export #t)
   (make-stage 'tap
               (lambda (ctx input)
                       (f input)
@@ -642,6 +707,7 @@
 ;;; stage-trace : String -> Stage ctx a a
 ;;; Log input with label (creates log effect).
 (define (stage-trace label)
+  (doc 'export #t)
   (make-effect-stage 'log (list 'trace label)))
 
 (doc 'section 'exports)

@@ -27,6 +27,7 @@ For fully differentiable physics, this module provides:
 ;;; Compute soft contact force and torque between two circular bodies.
 ;;; Returns (force-on-A, torque-on-A).
 (define (traced-circle-collision-force body-a radius-a body-b radius-b mat)
+  (doc 'export #t)
   (let* ([pos-a (traced-body-pos body-a)]
          [vel-a (traced-body-vel body-a)]
          [pos-b (traced-body-pos body-b)]
@@ -57,6 +58,7 @@ For fully differentiable physics, this module provides:
 ;;; Apply soft collision forces to both bodies for time dt.
 ;;; Returns updated (body-a, body-b).
 (define (traced-circle-collision-impulses body-a radius-a body-b radius-b mat dt)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-circle-collision-force body-a radius-a body-b radius-b mat))
    (lambda (force-a torque-a)
@@ -84,6 +86,7 @@ For fully differentiable physics, this module provides:
 ;;; Soft contact force from horizontal ground at y = ground-y.
 ;;; Returns (force, torque).
 (define (traced-ground-collision-force body radius ground-y mat)
+  (doc 'export #t)
   (let* ([pos (traced-body-pos body)]
          [stiffness (soft-material-stiffness mat)]
          [damping (soft-material-damping mat)]
@@ -117,6 +120,7 @@ For fully differentiable physics, this module provides:
 ;;; traced-ground-collision-step : TracedBody × Number × Number × SoftMaterial × Number → TracedBody
 ;;; Apply ground collision forces for time dt.
 (define (traced-ground-collision-step body radius ground-y mat dt)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-ground-collision-force body radius ground-y mat))
    (lambda (force torque)
@@ -133,10 +137,12 @@ For fully differentiable physics, this module provides:
 ;;; make-collision-pair : Nat × Nat × Number × Number → CollisionPair
 ;;; Define a collision pair for the system.
 (define (make-collision-pair idx-a idx-b radius-a radius-b)
+  (doc 'export #t)
   (list 'collision-pair idx-a idx-b radius-a radius-b))
 
 ;;; collision-pair? : Any → Boolean
 (define (collision-pair? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'collision-pair)))
 
 ;;; collision-pair-idx-a : CollisionPair → Nat
@@ -155,6 +161,7 @@ For fully differentiable physics, this module provides:
 ;;; Compute force and torque on each body from all collision pairs.
 ;;; Returns vector of (force, torque) per body.
 (define (traced-accumulate-collision-forces bodies pairs mat)
+  (doc 'export #t)
   (let* ([n (vector-length bodies)]
          ;; Initialize force accumulators
          [forces (make-vector n)]
@@ -204,6 +211,7 @@ For fully differentiable physics, this module provides:
 ;;;   approach-vel: initial approach velocity
 ;;; This is an approximation based on linearized contact dynamics.
 (define (effective-restitution stiffness damping mass approach-vel)
+  (doc 'export #t)
   (let* ([omega (sqrt (/ stiffness mass))]
          [zeta (/ damping (* 2 (sqrt (* stiffness mass))))])  ; damping ratio
         (if (>= zeta 1)
@@ -222,12 +230,14 @@ For fully differentiable physics, this module provides:
 ;;; Check if two circles overlap (for filtering).
 ;;; Uses traced values but returns boolean (non-differentiable).
 (define (traced-circles-overlapping? pos-a radius-a pos-b radius-b)
+  (doc 'export #t)
   (let ([dist (traced-value (traced-vec2-distance pos-a pos-b))])
        (< dist (+ radius-a radius-b))))
 
 ;;; traced-circle-ground-overlapping? : TracedVec2 × Number × Number → Boolean
 ;;; Check if circle overlaps ground plane.
 (define (traced-circle-ground-overlapping? pos radius ground-y)
+  (doc 'export #t)
   (< (traced-value (traced-vec2-y pos)) (+ ground-y radius)))
 
 ;;; ====
@@ -243,6 +253,7 @@ For fully differentiable physics, this module provides:
 ;;;   mat: soft material properties
 ;;;   dt: timestep
 (define (traced-collision-step body radius others ground-y mat dt)
+  (doc 'export #t)
   (let* (;; Accumulate forces from all collisions
          [initial-force (lift-vec2-const (vec2-zero))]
          [initial-torque 0]

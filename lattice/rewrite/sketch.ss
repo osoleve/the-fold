@@ -38,6 +38,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 (doc 'section "Goal Construction")
 
 (define (make-goal from to)
+  (doc 'export #t)
   (doc 'type (-> Expr Expr Goal))
   (doc 'description "Create a new goal from source to target expression. Use 'any as target for open-ended goals.")
   `((from . ,from)
@@ -48,6 +49,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; make-open-goal : Expr → Goal
 ;;; Create an open-ended goal (simplify without specific target).
 (define (make-open-goal from)
+  (doc 'export #t)
   (make-goal from 'any))
 
 ;;; ====
@@ -56,6 +58,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; goal? : Any → Boolean
 (define (goal? x)
+  (doc 'export #t)
   (and (pair? x)
        (assq 'from x)
        (assq 'to x)
@@ -63,19 +66,23 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; goal-open? : Goal → Boolean
 (define (goal-open? g)
+  (doc 'export #t)
   (eq? (goal-status g) 'open))
 
 ;;; goal-discharged? : Goal → Boolean
 (define (goal-discharged? g)
+  (doc 'export #t)
   (eq? (goal-status g) 'discharged))
 
 ;;; goal-blocked? : Goal → Boolean
 (define (goal-blocked? g)
+  (doc 'export #t)
   (eq? (goal-status g) 'blocked))
 
 ;;; goal-has-target? : Goal → Boolean
 ;;; True if goal has a specific target (not 'any).
 (define (goal-has-target? g)
+  (doc 'export #t)
   (not (eq? (goal-to g) 'any)))
 
 ;;; ====
@@ -84,18 +91,22 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; goal-from : Goal → Expr
 (define (goal-from g)
+  (doc 'export #t)
   (cdr (assq 'from g)))
 
 ;;; goal-to : Goal → Expr
 (define (goal-to g)
+  (doc 'export #t)
   (cdr (assq 'to g)))
 
 ;;; goal-status : Goal → Symbol
 (define (goal-status g)
+  (doc 'export #t)
   (cdr (assq 'status g)))
 
 ;;; goal-hints : Goal → (List Symbol)
 (define (goal-hints g)
+  (doc 'export #t)
   (let ([h (assq 'hints g)])
        (if h (cdr h) '())))
 
@@ -105,6 +116,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; goal-set-status : Goal × Symbol → Goal
 (define (goal-set-status g status)
+  (doc 'export #t)
   `((from . ,(goal-from g))
     (to . ,(goal-to g))
     (status . ,status)
@@ -112,6 +124,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; goal-set-hints : Goal × (List Symbol) → Goal
 (define (goal-set-hints g hints)
+  (doc 'export #t)
   `((from . ,(goal-from g))
     (to . ,(goal-to g))
     (status . ,(goal-status g))
@@ -120,6 +133,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; goal-advance : Goal × Expr → Goal
 ;;; Move goal forward: new 'from' is the rewritten expression.
 (define (goal-advance g new-from)
+  (doc 'export #t)
   `((from . ,new-from)
     (to . ,(goal-to g))
     (status . ,(goal-status g))
@@ -128,6 +142,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; goal-discharge : Goal → Goal
 ;;; Mark goal as discharged.
 (define (goal-discharge g)
+  (doc 'export #t)
   (goal-set-status g 'discharged))
 
 ;;; ====
@@ -140,16 +155,19 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; make-hole-step : Expr × Expr → Step
 ;;; Create a hole step representing an unproven transformation.
 (define (make-hole-step from to)
+  (doc 'export #t)
   (make-trace-step from to 'unknown '() '((hole . #t))))
 
 ;;; hole-step? : Step → Boolean
 ;;; Check if a step is a hole (unfilled).
 (define (hole-step? step)
+  (doc 'export #t)
   (eq? (step-rule step) 'unknown))
 
 ;;; fill-hole : Step × Rule × Bindings → Step
 ;;; Fill a hole with a concrete rule application.
 (define (fill-hole hole-step rule bindings)
+  (doc 'export #t)
   (make-trace-step (step-from hole-step)
                    (step-to hole-step)
                    (rule-name rule)
@@ -164,6 +182,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Create a new proof sketch for a property in a given context.
 ;;; The property is the expression to transform/prove.
 (define (make-sketch property context)
+  (doc 'export #t)
   (let ([trace (make-trace property)]
         [goal (make-open-goal property)])
        `((trace . ,trace)
@@ -175,6 +194,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; make-targeted-sketch : Expr × Expr × Alist → Sketch
 ;;; Create a sketch with a specific target expression.
 (define (make-targeted-sketch from to context)
+  (doc 'export #t)
   (let ([trace (make-trace from)]
         [goal (make-goal from to)])
        `((trace . ,trace)
@@ -189,6 +209,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch? : Any → Boolean
 (define (sketch? x)
+  (doc 'export #t)
   (and (pair? x)
        (assq 'trace x)
        (assq 'goals x)
@@ -198,6 +219,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; A sketch is complete when all goals are discharged
 ;;; and there are no holes remaining in the trace.
 (define (sketch-complete? sk)
+  (doc 'export #t)
   (let ([goals (sketch-goals sk)]
         [trace (sketch-trace sk)])
        (and (for-all goal-discharged? goals)
@@ -206,12 +228,14 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-has-holes? : Sketch → Boolean
 ;;; Check if the trace contains any hole steps.
 (define (sketch-has-holes? sk)
+  (doc 'export #t)
   (let ([steps (trace-steps (sketch-trace sk))])
        (exists hole-step? steps)))
 
 ;;; sketch-valid? : Sketch → Boolean
 ;;; Check if sketch is well-formed (goals consistent with trace).
 (define (sketch-valid? sk)
+  (doc 'export #t)
   (let ([trace (sketch-trace sk)]
         [goals (sketch-goals sk)])
        ;; Basic validity: trace and goals exist
@@ -225,29 +249,35 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-trace : Sketch → Trace
 (define (sketch-trace sk)
+  (doc 'export #t)
   (cdr (assq 'trace sk)))
 
 ;;; sketch-goals : Sketch → (List Goal)
 (define (sketch-goals sk)
+  (doc 'export #t)
   (cdr (assq 'goals sk)))
 
 ;;; sketch-context : Sketch → Alist
 (define (sketch-context sk)
+  (doc 'export #t)
   (cdr (assq 'context sk)))
 
 ;;; sketch-history : Sketch → (List Sketch)
 (define (sketch-history sk)
+  (doc 'export #t)
   (let ([h (assq 'history sk)])
        (if h (cdr h) '())))
 
 ;;; sketch-focused : Sketch → Nat | #f
 (define (sketch-focused sk)
+  (doc 'export #t)
   (let ([f (assq 'focused sk)])
        (if f (cdr f) #f)))
 
 ;;; sketch-current-goal : Sketch → Goal | #f
 ;;; Get the currently focused goal.
 (define (sketch-current-goal sk)
+  (doc 'export #t)
   (let ([idx (sketch-focused sk)]
         [goals (sketch-goals sk)])
        (if (and idx (< idx (length goals)))
@@ -257,24 +287,29 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-open-goals : Sketch → (List Goal)
 ;;; Get all goals that are still open.
 (define (sketch-open-goals sk)
+  (doc 'export #t)
   (filter goal-open? (sketch-goals sk)))
 
 ;;; sketch-goal-count : Sketch → Nat
 (define (sketch-goal-count sk)
+  (doc 'export #t)
   (length (sketch-goals sk)))
 
 ;;; sketch-open-goal-count : Sketch → Nat
 (define (sketch-open-goal-count sk)
+  (doc 'export #t)
   (length (sketch-open-goals sk)))
 
 ;;; sketch-expression : Sketch → Expr
 ;;; Get the current expression (trace final).
 (define (sketch-expression sk)
+  (doc 'export #t)
   (trace-final (sketch-trace sk)))
 
 ;;; sketch-initial : Sketch → Expr
 ;;; Get the initial expression.
 (define (sketch-initial sk)
+  (doc 'export #t)
   (trace-initial (sketch-trace sk)))
 
 ;;; ====
@@ -283,6 +318,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-set-trace : Sketch × Trace → Sketch
 (define (sketch-set-trace sk trace)
+  (doc 'export #t)
   `((trace . ,trace)
     (goals . ,(sketch-goals sk))
     (context . ,(sketch-context sk))
@@ -291,6 +327,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-set-goals : Sketch × (List Goal) → Sketch
 (define (sketch-set-goals sk goals)
+  (doc 'export #t)
   `((trace . ,(sketch-trace sk))
     (goals . ,goals)
     (context . ,(sketch-context sk))
@@ -299,6 +336,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-set-context : Sketch × Alist → Sketch
 (define (sketch-set-context sk context)
+  (doc 'export #t)
   `((trace . ,(sketch-trace sk))
     (goals . ,(sketch-goals sk))
     (context . ,context)
@@ -308,6 +346,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-push-history : Sketch → Sketch
 ;;; Save current state to history (for undo).
 (define (sketch-push-history sk)
+  (doc 'export #t)
   (let ([current-without-history
          `((trace . ,(sketch-trace sk))
            (goals . ,(sketch-goals sk))
@@ -322,6 +361,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-set-focused : Sketch × Nat → Sketch
 (define (sketch-set-focused sk idx)
+  (doc 'export #t)
   `((trace . ,(sketch-trace sk))
     (goals . ,(sketch-goals sk))
     (context . ,(sketch-context sk))
@@ -336,6 +376,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Restore previous sketch state from history.
 ;;; Returns unchanged sketch if history is empty.
 (define (sketch-undo sk)
+  (doc 'export #t)
   (let ([history (sketch-history sk)])
        (if (null? history)
            sk
@@ -350,10 +391,12 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-can-undo? : Sketch → Boolean
 (define (sketch-can-undo? sk)
+  (doc 'export #t)
   (not (null? (sketch-history sk))))
 
 ;;; sketch-undo-depth : Sketch → Nat
 (define (sketch-undo-depth sk)
+  (doc 'export #t)
   (length (sketch-history sk)))
 
 ;;; ====
@@ -369,6 +412,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Apply a tactic to the current goal.
 ;;; Saves state to history before applying.
 (define (sketch-apply-tactic sk tactic)
+  (doc 'export #t)
   (let ([sk-with-history (sketch-push-history sk)])
        (tactic sk-with-history)))
 
@@ -379,6 +423,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-apply-rule : Rule × Registry → Tactic
 ;;; Create a tactic that applies a specific rule.
 (define (tactic-apply-rule rule registry)
+  (doc 'export #t)
   (lambda (sk)
           (let ([goal (sketch-current-goal sk)])
                (if (not goal)
@@ -426,6 +471,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-assumption : Alist → Tactic
 ;;; Discharge goal if it matches an assumption in context.
 (define (tactic-assumption assumptions)
+  (doc 'export #t)
   (lambda (sk)
           (let ([goal (sketch-current-goal sk)])
                (if (not goal)
@@ -483,32 +529,38 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; compound-expr? : Expr -> Boolean
 ;;; Check if expression is a compound (pair, cons, tuple, etc.)
 (define (compound-expr? expr)
+  (doc 'export #t)
   (and (pair? expr)
        (memq (car expr) '(pair cons tuple vec list))))
 
 ;;; compound-tag : Expr -> Symbol
 ;;; Get the constructor tag of a compound expression.
 (define (compound-tag expr)
+  (doc 'export #t)
   (if (pair? expr) (car expr) #f))
 
 ;;; compound-arity : Expr -> Nat
 ;;; Get the number of components in a compound expression.
 (define (compound-arity expr)
+  (doc 'export #t)
   (if (pair? expr) (length (cdr expr)) 0))
 
 ;;; compound-components : Expr -> (List Expr)
 ;;; Get the components of a compound expression.
 (define (compound-components expr)
+  (doc 'export #t)
   (if (pair? expr) (cdr expr) '()))
 
 ;;; and-expr? : Expr -> Boolean
 ;;; Check if expression is an (and ...) conjunction.
 (define (and-expr? expr)
+  (doc 'export #t)
   (and (pair? expr) (eq? (car expr) 'and)))
 
 ;;; and-conjuncts : Expr -> (List Expr)
 ;;; Get conjuncts from an (and ...) expression.
 (define (and-conjuncts expr)
+  (doc 'export #t)
   (if (and-expr? expr) (cdr expr) '()))
 
 ;;; ====
@@ -519,6 +571,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Split a compound equality into component equalities.
 ;;; (pair a b) = (pair c d) becomes [a = c, b = d]
 (define (split-compound-goal sk goal from to)
+  (doc 'export #t)
   (let* ([from-parts (compound-components from)]
          [to-parts (compound-components to)]
          [new-goals (map (lambda (f t) (make-goal f t))
@@ -534,6 +587,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; split-and-goal : Sketch x Goal x Expr x Expr -> Sketch | #f
 ;;; When target is (and P Q), split into goals for P and Q.
 (define (split-and-goal sk goal from to)
+  (doc 'export #t)
   (let* ([conjuncts (and-conjuncts to)]
          ;; Each conjunct becomes a separate goal from the same 'from'
          [new-goals (map (lambda (conj) (make-goal from conj))
@@ -548,6 +602,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; split-and-from-goal : Sketch x Goal x Expr x Expr -> Sketch | #f
 ;;; When from is (and P Q), both P and Q must lead to target.
 (define (split-and-from-goal sk goal from to)
+  (doc 'export #t)
   (let* ([conjuncts (and-conjuncts from)]
          ;; Each conjunct is a separate path to the target
          [new-goals (map (lambda (conj) (make-goal conj to))
@@ -562,6 +617,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-replace-goal-with-many : (List Goal) x Nat x (List Goal) -> (List Goal)
 ;;; Replace goal at index with multiple new goals.
 (define (sketch-replace-goal-with-many goals idx new-goals)
+  (doc 'export #t)
   (let loop ([gs goals] [i 0] [acc '()])
        (if (null? gs)
            (reverse acc)
@@ -576,6 +632,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; sketch-update-goal : (List Goal) × Nat × Goal → (List Goal)
 (define (sketch-update-goal goals idx new-goal)
+  (doc 'export #t)
   (let loop ([gs goals] [i 0] [acc '()])
        (if (null? gs)
            (reverse acc)
@@ -591,6 +648,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Get suggested next steps for the current goal.
 ;;; Returns alist of (rule-name . description).
 (define (sketch-hints sk)
+  (doc 'export #t)
   (let ([goal (sketch-current-goal sk)])
        (if (not goal)
            '()
@@ -601,6 +659,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Find rules that could apply to the given expression.
 ;;; Requires *law-registry* to be defined (from laws.ss).
 (define (suggest-applicable-rules expr)
+  (doc 'export #t)
   (if (not (bound? '*law-registry*))
       '()  ; No registry available
       (let ([all-rules (vector->list (hashtable-values *law-registry*))])
@@ -616,6 +675,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; bound? : Symbol → Boolean
 ;;; Check if a symbol is bound (has a value).
 (define (bound? sym)
+  (doc 'export #t)
   (top-level-bound? sym))
 
 ;;; ====
@@ -625,6 +685,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-next-goal : Sketch → Sketch
 ;;; Move focus to next open goal.
 (define (sketch-next-goal sk)
+  (doc 'export #t)
   (let* ([goals (sketch-goals sk)]
          [current (sketch-focused sk)]
          [n (length goals)])
@@ -646,6 +707,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-prev-goal : Sketch → Sketch
 ;;; Move focus to previous open goal.
 (define (sketch-prev-goal sk)
+  (doc 'export #t)
   (let* ([goals (sketch-goals sk)]
          [current (sketch-focused sk)]
          [n (length goals)])
@@ -665,6 +727,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-focus-goal : Sketch × Nat → Sketch
 ;;; Focus on a specific goal by index.
 (define (sketch-focus-goal sk idx)
+  (doc 'export #t)
   (let ([goals (sketch-goals sk)])
        (if (< idx (length goals))
            (sketch-set-focused sk idx)
@@ -677,6 +740,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch->string : Sketch → String
 ;;; Format a sketch for display.
 (define (sketch->string sk)
+  (doc 'export #t)
   (let* ([goals (sketch-goals sk)]
          [open (sketch-open-goals sk)]
          [trace (sketch-trace sk)]
@@ -697,6 +761,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-progress : Sketch → (Nat . Nat)
 ;;; Return (discharged . total) goal counts.
 (define (sketch-progress sk)
+  (doc 'export #t)
   (let* ([goals (sketch-goals sk)]
          [discharged (filter goal-discharged? goals)])
         (cons (length discharged) (length goals))))
@@ -708,6 +773,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-verify : Sketch → Boolean
 ;;; Verify that all non-hole steps are valid equivalences.
 (define (sketch-verify sk)
+  (doc 'export #t)
   (let ([trace (sketch-trace sk)])
        (let ([steps (trace-steps trace)])
             (for-all
@@ -720,10 +786,12 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-holes : Sketch → (List Step)
 ;;; Get all hole steps from the sketch.
 (define (sketch-holes sk)
+  (doc 'export #t)
   (filter hole-step? (trace-steps (sketch-trace sk))))
 
 ;;; sketch-hole-count : Sketch → Nat
 (define (sketch-hole-count sk)
+  (doc 'export #t)
   (length (sketch-holes sk)))
 
 ;;; ====
@@ -733,16 +801,19 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-add-hypothesis : Sketch × Symbol × Expr → Sketch
 ;;; Add a hypothesis to the context.
 (define (sketch-add-hypothesis sk name expr)
+  (doc 'export #t)
   (let ([ctx (sketch-context sk)])
        (sketch-set-context sk (cons (cons name expr) ctx))))
 
 ;;; sketch-lookup-hypothesis : Sketch × Symbol → Expr | #f
 (define (sketch-lookup-hypothesis sk name)
+  (doc 'export #t)
   (let ([entry (assq name (sketch-context sk))])
        (if entry (cdr entry) #f)))
 
 ;;; sketch-clear-context : Sketch → Sketch
 (define (sketch-clear-context sk)
+  (doc 'export #t)
   (sketch-set-context sk '()))
 
 ;;; ====
@@ -752,6 +823,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-rewrite : Sketch × Symbol × Registry → Sketch | #f
 ;;; Apply a named rule to the current goal.
 (define (sketch-rewrite sk rule-name registry)
+  (doc 'export #t)
   (let ([rule (hashtable-ref registry rule-name #f)])
        (if rule
            (sketch-apply-tactic sk (tactic-apply-rule rule registry))
@@ -760,6 +832,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-simplify : Sketch × Strategy × Nat → Sketch
 ;;; Apply a strategy to simplify the current goal.
 (define (sketch-simplify sk strategy fuel)
+  (doc 'export #t)
   (let ([goal (sketch-current-goal sk)])
        (if (not goal)
            sk
@@ -787,6 +860,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; sketch-auto : Sketch × (List Rule) × Nat → Sketch
 ;;; Automatically apply rules until goal is discharged or fuel exhausted.
 (define (sketch-auto sk rules fuel)
+  (doc 'export #t)
   (if (or (<= fuel 0)
           (sketch-complete? sk)
           (not (sketch-current-goal sk)))

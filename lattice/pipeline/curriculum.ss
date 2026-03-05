@@ -16,11 +16,13 @@
 (doc 'section 'task-entry)
 
 (define (make-task-entry id skill module tier position name type description notes section deps available answer)
+  (doc 'export #t)
   (doc 'type (-> String Symbol Symbol Nat Nat Symbol String String (List String) (Maybe Symbol) (List Symbol) (List Symbol) String TaskEntry))
   (doc 'description "Construct a task-entry record for RL curriculum")
   (vector 'task-entry id skill module tier position name type description notes section deps available answer))
 
 (define (task-entry? x)
+  (doc 'export #t)
   (and (vector? x)
        (> (vector-length x) 0)
        (eq? (vector-ref x 0) 'task-entry)))
@@ -46,12 +48,14 @@
 (doc 'section 'doc-extraction)
 
 (define (doc-form? sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Boolean))
   (doc 'description "Is this a (doc ...) form?")
   (and (pair? sexp)
        (eq? (car sexp) 'doc)))
 
 (define (internal-doc-form? sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Boolean))
   (doc 'description "Is this a doc form inside a define body? Internal doc forms look like (doc 'type ...) or (doc 'description ...) where the second element is a quoted tag.")
   (and (doc-form? sexp)
@@ -60,12 +64,14 @@
        (eq? (car (cadr sexp)) 'quote)))
 
 (define (unwrap-quote val)
+  (doc 'export #t)
   (doc 'description "Strip (quote X) wrapper if present, returning X")
   (if (and (pair? val) (eq? (car val) 'quote) (pair? (cdr val)) (null? (cddr val)))
       (cadr val)
       val))
 
 (define (extract-doc-from-forms forms)
+  (doc 'export #t)
   (doc 'description "Extract type/desc/notes from a list of forms containing doc annotations")
   (let loop ([forms forms] [type ""] [desc ""] [notes '()])
     (if (null? forms)
@@ -86,6 +92,7 @@
               (loop (cdr forms) type desc notes))))))
 
 (define (extract-doc-annotations body)
+  (doc 'export #t)
   (doc 'type (-> (List SExp) (Values String String (List String))))
   (doc 'description "Extract type, description, and notes from doc forms in a define body. Returns (values type-string desc-string notes-list). Also looks inside case-lambda first clause.")
   (let-values ([(type desc notes) (extract-doc-from-forms body)])
@@ -106,6 +113,7 @@
         (values type desc notes))))
 
 (define (strip-doc-forms body)
+  (doc 'export #t)
   (doc 'type (-> (List SExp) (List SExp)))
   (doc 'description "Remove (doc ...) forms from a define body, keeping only executable code")
   (filter (lambda (form) (not (internal-doc-form? form))) body))
@@ -117,6 +125,7 @@
 (doc 'section 'define-recognition)
 
 (define (define-form? sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Boolean))
   (doc 'description "Is this a (define ...) form?")
   (and (pair? sexp)
@@ -124,6 +133,7 @@
        (>= (length sexp) 3)))
 
 (define (alias-define? sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Boolean))
   (doc 'description "Is this a (define x y) alias form where y is a simple symbol?")
   (and (define-form? sexp)
@@ -132,12 +142,14 @@
        (symbol? (caddr sexp))))
 
 (define (function-define? sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Boolean))
   (doc 'description "Is this a (define (f args...) body...) function definition?")
   (and (define-form? sexp)
        (pair? (cadr sexp))))
 
 (define (define-name sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Symbol))
   (doc 'description "Extract the name from a define form")
   (if (pair? (cadr sexp))
@@ -151,6 +163,7 @@
 (doc 'section 'section-tracking)
 
 (define (section-doc? sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Boolean))
   (doc 'description "Is this a (doc 'section ...) form?")
   (and (doc-form? sexp)
@@ -160,6 +173,7 @@
        (eq? (cadr (cadr sexp)) 'section)))
 
 (define (section-name sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp Symbol))
   (doc 'description "Extract section name from (doc 'section 'name)")
   (let ([val (caddr sexp)])
@@ -174,6 +188,7 @@
 (doc 'section 'external-docs)
 
 (define (external-doc-for? sexp name)
+  (doc 'export #t)
   (doc 'type (-> SExp Symbol Boolean))
   (doc 'description "Is this a (doc name 'tag value) form — external doc for a named define?")
   (and (doc-form? sexp)
@@ -181,6 +196,7 @@
        (eq? (cadr sexp) name)))
 
 (define (collect-external-docs sexps name)
+  (doc 'export #t)
   (doc 'type (-> (List SExp) Symbol (Values String String (List String))))
   (doc 'description "Collect type/description/notes from external doc forms following a define")
   (let loop ([forms sexps] [type ""] [desc ""] [notes '()])
@@ -212,17 +228,20 @@
 (doc 'section 'deps-extraction)
 
 (define (load-form? sexp)
+  (doc 'export #t)
   (and (pair? sexp)
        (eq? (car sexp) 'load)
        (>= (length sexp) 2)
        (string? (cadr sexp))))
 
 (define (require-form? sexp)
+  (doc 'export #t)
   (and (pair? sexp)
        (eq? (car sexp) 'require)
        (>= (length sexp) 2)))
 
 (define (extract-deps sexps)
+  (doc 'export #t)
   (doc 'type (-> (List SExp) (List String)))
   (doc 'description "Extract load/require dependencies from top-level forms")
   (let loop ([forms sexps] [deps '()])
@@ -243,6 +262,7 @@
 (doc 'section 'code-formatting)
 
 (define (sexp->code-string sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp String))
   (doc 'description "Convert an S-expression to a code string. Uses simple formatting — not the full pretty-printer (which lives in core/util/pretty.ss and would be a heavy dependency).")
   (cond
@@ -264,6 +284,7 @@
     [else (format "~a" sexp)]))
 
 (define (sexp->code-string-list sexp)
+  (doc 'export #t)
   (doc 'description "Handle proper and improper lists")
   (cond
     [(null? sexp) '()]
@@ -273,6 +294,7 @@
     [else (list "." (sexp->code-string sexp))]))
 
 (define (join sep strs)
+  (doc 'export #t)
   (doc 'type (-> String (List String) String))
   (if (null? strs) ""
       (let loop ([rest (cdr strs)] [acc (car strs)])
@@ -282,6 +304,7 @@
                   (string-append acc sep (car rest)))))))
 
 (define (strip-docs-deep sexp)
+  (doc 'export #t)
   (doc 'description "Recursively strip doc forms, including inside case-lambda clauses")
   (cond
     [(not (pair? sexp)) sexp]
@@ -296,6 +319,7 @@
     [else sexp]))
 
 (define (strip-define-docs sexp)
+  (doc 'export #t)
   (doc 'type (-> SExp SExp))
   (doc 'description "Strip doc forms from a define body, returning the cleaned define")
   (cond
@@ -320,6 +344,7 @@
 (doc 'section 'extraction)
 
 (define (extract-defines sexps skill-name module-name tier)
+  (doc 'export #t)
   (doc 'type (-> (List SExp) Symbol Symbol Nat (List TaskEntry)))
   (doc 'description "Walk sexps in order, accumulating available functions. For each define form, produce a task-entry with the functions defined earlier as 'available'. Tracks current section for grouping context.")
   (let ([deps (extract-deps sexps)])
@@ -378,6 +403,7 @@
 (doc 'section 'difficulty)
 
 (define (compute-difficulty tier skill-order position)
+  (doc 'export #t)
   (doc 'type (-> Nat Nat Nat Nat))
   (doc 'description "Compute difficulty score: tier * 10000 + skill-order * 100 + position")
   (+ (* tier 10000) (* skill-order 100) position))
@@ -389,6 +415,7 @@
 (doc 'section 'output)
 
 (define (task-entry->sexp te)
+  (doc 'export #t)
   (doc 'type (-> TaskEntry SExp))
   (doc 'description "Convert task-entry to S-expression for serialization")
   `(task-entry
@@ -407,6 +434,7 @@
     (answer ,(task-entry-answer te))))
 
 (define (task-entry->sexp/difficulty te difficulty)
+  (doc 'export #t)
   (doc 'type (-> TaskEntry Nat SExp))
   (doc 'description "Convert task-entry to S-expression with computed difficulty")
   `(task-entry

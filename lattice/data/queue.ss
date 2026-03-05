@@ -26,12 +26,14 @@
 (doc queue-empty 'description "The empty queue")
 
 (define (queue-empty? queue)
+  (doc 'export #t)
   (doc 'type (-> Queue Boolean))
   (doc 'description "Check if queue is empty")
   (and (null? (car queue))
        (null? (cdr queue))))
 
 (define (queue-enqueue elem queue)
+  (doc 'export #t)
   (doc 'type (-> α Queue Queue))
   (doc 'description "Add element to back of queue")
   (let ([front (car queue)]
@@ -39,6 +41,7 @@
        (make-queue front (cons elem back))))
 
 (define (queue-dequeue queue)
+  (doc 'export #t)
   (doc 'type (-> Queue (Values Queue α)))
   (doc 'description "Remove element from front of queue")
   (let ([front (car queue)]
@@ -49,6 +52,7 @@
                    (car front)))))
 
 (define (queue-peek queue)
+  (doc 'export #t)
   (doc 'type (-> Queue α))
   (doc 'description "Get front element without removing")
   (let ([front (car queue)])
@@ -57,17 +61,20 @@
            (car front))))
 
 (define (queue-size queue)
+  (doc 'export #t)
   (doc 'type (-> Queue Nat))
   (doc 'description "Get number of elements in queue")
   (+ (length (car queue))
      (length (cdr queue))))
 
 (define (queue->list queue)
+  (doc 'export #t)
   (doc 'type (-> Queue (List α)))
   (doc 'description "Convert queue to list (front to back order)")
   (append (car queue) (reverse (cdr queue))))
 
 (define (list->queue lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) Queue))
   (doc 'description "Convert list to queue (first element at front)")
   (cons lst '()))

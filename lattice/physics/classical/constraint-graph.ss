@@ -27,6 +27,7 @@
 (doc 'make-constraint-graph 'type '(-> (List Constraint) ConstraintGraph))
 (doc 'make-constraint-graph 'description "Build graph from constraints; entities=nodes, constraints=edges")
 (define (make-constraint-graph constraints)
+  (doc 'export #t)
   ;; Build adjacency list and constraint lookup
   ;; Thread three accumulators: adj HAMT, entity-constraints HAMT, all-entities list
   (let ([result
@@ -78,6 +79,7 @@
 
 (doc 'constraint-graph? 'type '(-> Any Boolean))
 (define (constraint-graph? g)
+  (doc 'export #t)
   (and (pair? g) (eq? (car g) 'constraint-graph)))
 
 (define (cg-adjacency g) (list-ref g 1))
@@ -88,11 +90,13 @@
 (doc 'cg-neighbors 'type '(-> ConstraintGraph EntityId (List EntityId)))
 (doc 'cg-neighbors 'description "Get neighbor entities of a given entity")
 (define (cg-neighbors graph entity-id)
+  (doc 'export #t)
   (hamt-lookup-or entity-id (cg-adjacency graph) '()))
 
 (doc 'cg-constraints-for 'type '(-> ConstraintGraph EntityId (List Constraint)))
 (doc 'cg-constraints-for 'description "Get constraints involving a given entity")
 (define (cg-constraints-for graph entity-id)
+  (doc 'export #t)
   (hamt-lookup-or entity-id (cg-entity-constraints graph) '()))
 
 ;;; ============================================================
@@ -106,6 +110,7 @@ Each island can be solved independently, enabling parallel simulation.")
 (doc 'cg-find-islands 'type '(-> ConstraintGraph (List Island)))
 (doc 'cg-find-islands 'description "Find all constraint islands (connected components)")
 (define (cg-find-islands graph)
+  (doc 'export #t)
   (let ([entities (cg-entities graph)]
         [visited (list hamt-empty)]  ; mutable box
         [islands '()])
@@ -148,10 +153,12 @@ Each island can be solved independently, enabling parallel simulation.")
 
 (doc 'make-island 'type '(-> (List EntityId) (List Constraint) Island))
 (define (make-island entities constraints)
+  (doc 'export #t)
   (list 'island entities constraints))
 
 (doc 'island? 'type '(-> Any Boolean))
 (define (island? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'island)))
 
 (define (island-entities island) (list-ref island 1))
@@ -160,11 +167,13 @@ Each island can be solved independently, enabling parallel simulation.")
 (doc 'island-size 'type '(-> Island Nat))
 (doc 'island-size 'description "Number of entities in island")
 (define (island-size island)
+  (doc 'export #t)
   (length (island-entities island)))
 
 (doc 'island-constraint-count 'type '(-> Island Nat))
 (doc 'island-constraint-count 'description "Number of constraints in island")
 (define (island-constraint-count island)
+  (doc 'export #t)
   (length (island-constraints island)))
 
 ;;; ============================================================
@@ -179,6 +188,7 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 (doc 'cg-find-sccs 'type '(-> ConstraintGraph (List SCC)))
 (doc 'cg-find-sccs 'description "Find strongly connected components using Tarjan's algorithm")
 (define (cg-find-sccs graph)
+  (doc 'export #t)
   (let ([entities (cg-entities graph)]
         [index-counter 0]
         [indices (list hamt-empty)]    ; mutable box: entity -> index
@@ -243,10 +253,12 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 
 (doc 'make-scc 'type '(-> (List EntityId) (List Constraint) SCC))
 (define (make-scc entities constraints)
+  (doc 'export #t)
   (list 'scc entities constraints))
 
 (doc 'scc? 'type '(-> Any Boolean))
 (define (scc? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'scc)))
 
 (define (scc-entities scc) (list-ref scc 1))
@@ -255,6 +267,7 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 (doc 'scc-internal-constraints 'type '(-> ConstraintGraph (List EntityId) (List Constraint)))
 (doc 'scc-internal-constraints 'description "Get constraints where both entities are in the SCC")
 (define (scc-internal-constraints graph entity-list)
+  (doc 'export #t)
   (let ([entity-set (fold-left (lambda (h e) (hamt-assoc e #t h))
                                hamt-empty entity-list)])
     ;; Fold over entities and their constraints, threading seen-set and result
@@ -282,11 +295,13 @@ Uses Tarjan's algorithm for O(V+E) complexity.")
 
 (doc 'scc-size 'type '(-> SCC Nat))
 (define (scc-size scc)
+  (doc 'export #t)
   (length (scc-entities scc)))
 
 (doc 'cg-scc-dag 'type '(-> ConstraintGraph (List SCC) SCCGraph))
 (doc 'cg-scc-dag 'description "Build DAG of SCCs for ordering constraint groups")
 (define (cg-scc-dag graph sccs)
+  (doc 'export #t)
   ;; Map entity to its SCC index
   (let* ([n (length sccs)]
          ;; Build entity->scc mapping via fold
@@ -323,6 +338,7 @@ ensuring dependencies are resolved before dependents.")
 (doc 'cg-toposort-constraints 'type '(-> ConstraintGraph (Maybe (List Constraint))))
 (doc 'cg-toposort-constraints 'description "Topologically sort constraints; returns #f if cyclic")
 (define (cg-toposort-constraints graph)
+  (doc 'export #t)
   ;; Build constraint dependency graph based on shared entities
   ;; A constraint C1 "depends on" C2 if they share an entity and C2 comes first
   ;; For simplicity, use SCC-based ordering
@@ -342,6 +358,7 @@ ensuring dependencies are resolved before dependents.")
 (doc 'toposort-dag 'type '(-> (Vector (List Nat)) (Maybe (List Nat))))
 (doc 'toposort-dag 'description "Topological sort on adjacency vector; returns #f if cyclic")
 (define (toposort-dag adj)
+  (doc 'export #t)
   (let* ([n (vector-length adj)]
          [in-degree (make-vector n 0)])
     ;; Calculate in-degrees
@@ -395,6 +412,7 @@ Constraints with the same color can be solved in parallel.")
 (doc 'cg-color-constraints 'type '(-> ConstraintGraph (List (List Constraint))))
 (doc 'cg-color-constraints 'description "Color constraints for parallelization; returns list of parallel groups")
 (define (cg-color-constraints graph)
+  (doc 'export #t)
   (let* ([constraints (cg-constraints graph)]
          [n (length constraints)]
          [constraint-vec (list->vector constraints)]
@@ -434,6 +452,7 @@ Constraints with the same color can be solved in parallel.")
 (doc 'build-constraint-conflicts 'type '(-> ConstraintGraph (List Constraint) (Vector (List Nat))))
 (doc 'build-constraint-conflicts 'description "Build adjacency: constraints conflict if they share an entity")
 (define (build-constraint-conflicts graph constraints)
+  (doc 'export #t)
   (let* ([n (length constraints)]
          [adj (make-vector n '())]
          ;; Map constraint-id to index (threaded fold)
@@ -466,6 +485,7 @@ Constraints with the same color can be solved in parallel.")
 (doc 'cg-chromatic-number 'type '(-> ConstraintGraph Nat))
 (doc 'cg-chromatic-number 'description "Number of colors used (= number of parallel groups)")
 (define (cg-chromatic-number graph)
+  (doc 'export #t)
   (length (cg-color-constraints graph)))
 
 ;;; ============================================================
@@ -477,6 +497,7 @@ Constraints with the same color can be solved in parallel.")
 (doc 'cg-stats 'type '(-> ConstraintGraph Alist))
 (doc 'cg-stats 'description "Compute statistics about constraint graph")
 (define (cg-stats graph)
+  (doc 'export #t)
   (let* ([entities (cg-entities graph)]
          [constraints (cg-constraints graph)]
          [islands (cg-find-islands graph)]
@@ -500,6 +521,7 @@ Constraints with the same color can be solved in parallel.")
 (doc 'cg-print-stats 'type '(-> ConstraintGraph Void))
 (doc 'cg-print-stats 'description "Print human-readable constraint graph statistics")
 (define (cg-print-stats graph)
+  (doc 'export #t)
   (let ([stats (cg-stats graph)])
     (printf "Constraint Graph Statistics:\n")
     (printf "  Entities:        ~a\n" (cdr (assq 'entities stats)))
@@ -524,6 +546,7 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
      "Convert constraint graph to simplicial complex for homology analysis.
       Entities become vertices, constraints become edges.")
 (define (cg->simplicial-complex graph)
+  (doc 'export #t)
   ;; Build vertex list from entity IDs (need numeric indices)
   (let* ([entities (cg-entities graph)]
          [entity->idx
@@ -557,6 +580,7 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
      "Count independent cycles in constraint graph (first Betti number B₁).
       B₁ = 0 means tree-like (good), B₁ > 0 means cycles exist (may indicate issues).")
 (define (cg-cycle-count graph)
+  (doc 'export #t)
   (let ([sc (cg->simplicial-complex graph)])
     (sc-betti sc 1)))
 
@@ -564,6 +588,7 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
 (doc 'cg-topology-analysis 'description
      "Full topological analysis: Betti numbers, Euler characteristic, cycle detection.")
 (define (cg-topology-analysis graph)
+  (doc 'export #t)
   (let* ([sc (cg->simplicial-complex graph)]
          [betti (sc-betti-numbers sc)]
          [euler (sc-euler sc)]
@@ -583,6 +608,7 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
       A bridge is an edge whose removal disconnects the graph.
       Non-bridge constraints participate in cycles.")
 (define (cg-find-bridges graph)
+  (doc 'export #t)
   ;; Tarjan's bridge-finding algorithm
   ;; Bridge: edge (u,v) where low[v] > disc[u]
   (let* ([entities (cg-entities graph)]
@@ -663,6 +689,7 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
       Uses Tarjan's bridge-finding algorithm in O(V+E) - much faster than naive approach.
       A constraint participates in a cycle iff it's NOT a bridge (removing it doesn't disconnect).")
 (define (cg-cycle-analysis graph)
+  (doc 'export #t)
   (let* ([topo (cg-topology-analysis graph)]
          [b1 (cdr (assq 'betti-1 topo))]
          [constraints (cg-constraints graph)]
@@ -693,6 +720,7 @@ B₁ > 0 indicates cyclic constraints (potential over-constraint or solver insta
 (doc 'cg-print-topology 'type '(-> ConstraintGraph Void))
 (doc 'cg-print-topology 'description "Print topological analysis of constraint graph")
 (define (cg-print-topology graph)
+  (doc 'export #t)
   (let ([topo (cg-topology-analysis graph)])
     (printf "Constraint Graph Topology:\n")
     (printf "  Vertices (entities): ~a\n" (cdr (assq 'vertices topo)))

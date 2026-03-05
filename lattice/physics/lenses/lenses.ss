@@ -392,6 +392,7 @@
 (doc apply-force-via-lens 'description "Apply a force to a body using lens-based access")
 (doc apply-force-via-lens 'note "force = mass * accel, so delta-v = force * dt / mass")
 (define (apply-force-via-lens vel-lens mass-lens force dt body)
+  (doc 'export #t)
   (let* ([mass (view mass-lens body)]
          [inv-mass (if (= mass 0) 0 (/ 1 mass))]
          [delta-v (vec2-scale force (* dt inv-mass))])
@@ -400,6 +401,7 @@
 (doc integrate-position-via-lens 'type '(-> (Lens Body Vec2) (Lens Body Vec2) Number Body Body))
 (doc integrate-position-via-lens 'description "Euler integration of position using lenses")
 (define (integrate-position-via-lens pos-lens vel-lens dt body)
+  (doc 'export #t)
   (let ([vel (view vel-lens body)])
     (over pos-lens (lambda (p) (vec2-add p (vec2-scale vel dt))) body)))
 
@@ -409,6 +411,7 @@
 (doc apply-torque-via-lens 'description "Apply torque to a body using lens-based access")
 (doc apply-torque-via-lens 'note "torque = inertia * angular-accel, so delta-omega = torque * dt / inertia")
 (define (apply-torque-via-lens angular-vel-lens inertia-lens torque dt body)
+  (doc 'export #t)
   (let* ([inertia (view inertia-lens body)]
          [inv-inertia (if (= inertia 0) 0 (/ 1 inertia))]
          [delta-omega (* torque dt inv-inertia)])
@@ -417,12 +420,14 @@
 (doc integrate-rotation-via-lens 'type '(-> (Lens Body Number) (Lens Body Number) Number Body Body))
 (doc integrate-rotation-via-lens 'description "Euler integration of rotation using lenses")
 (define (integrate-rotation-via-lens angle-lens angular-vel-lens dt body)
+  (doc 'export #t)
   (let ([omega (view angular-vel-lens body)])
     (over angle-lens (lambda (a) (+ a (* omega dt))) body)))
 
 (doc integrate-body-via-lens 'type '(-> (Lens Body Vec2) (Lens Body Vec2) (Lens Body Number) (Lens Body Number) Number Body Body))
 (doc integrate-body-via-lens 'description "Full Euler integration of position and rotation")
 (define (integrate-body-via-lens pos-lens vel-lens angle-lens angular-vel-lens dt body)
+  (doc 'export #t)
   (let* ([body1 (integrate-position-via-lens pos-lens vel-lens dt body)]
          [body2 (integrate-rotation-via-lens angle-lens angular-vel-lens dt body1)])
     body2))
@@ -432,6 +437,7 @@
 (doc apply-impulse-at-point-via-lens 'note "Produces both linear and angular effects: delta-v = J/m, delta-omega = (r x J)/I")
 (doc apply-impulse-at-point-via-lens 'note "Only use on bodies implementing rotational-body-ops")
 (define (apply-impulse-at-point-via-lens pos-lens vel-lens mass-lens angular-vel-lens inertia-lens impulse world-point body)
+  (doc 'export #t)
   (let* ([pos (view pos-lens body)]
          [mass (view mass-lens body)]
          [inertia (view inertia-lens body)]
@@ -455,11 +461,13 @@
 (doc rotates? 'type '(-> Body Boolean))
 (doc rotates? 'description "Check if a body supports rotational dynamics")
 (define (rotates? body)
+  (doc 'export #t)
   (implements-bundle? (get-type-tag body) rotational-body-ops))
 
 (doc apply-torque 'type '(-> Number Number Body Body))
 (doc apply-torque 'description "Apply torque to a body (no-op if body doesn't rotate)")
 (define (apply-torque torque dt body)
+  (doc 'export #t)
   (if (rotates? body)
       (apply-torque-via-lens body-angular-vel-lens body-inertia-lens torque dt body)
       body))
@@ -467,6 +475,7 @@
 (doc integrate-body 'type '(-> Number Body Body))
 (doc integrate-body 'description "Integrate position and rotation (if supported)")
 (define (integrate-body dt body)
+  (doc 'export #t)
   (let ([body1 (integrate-position-via-lens body-pos-lens body-vel-lens dt body)])
     (if (rotates? body1)
         (integrate-rotation-via-lens body-angle-lens body-angular-vel-lens dt body1)
@@ -475,6 +484,7 @@
 (doc apply-impulse-at-point 'type '(-> Vec2 Vec2 Body Body))
 (doc apply-impulse-at-point 'description "Apply impulse at world point (linear only if body doesn't rotate)")
 (define (apply-impulse-at-point impulse world-point body)
+  (doc 'export #t)
   (let* ([pos (view body-pos-lens body)]
          [mass (view body-mass-lens body)]
          [inv-mass (if (= mass 0) 0 (/ 1 mass))]

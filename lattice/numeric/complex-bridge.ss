@@ -16,6 +16,7 @@
 (doc 'section 'custom-to-native)
 
 (define (complex->native c)
+  (doc 'export #t)
   (doc 'type '(-> CustomComplex NativeComplex))
   (doc 'description "Convert lattice (complex r i) to Chez native complex")
   (if (custom-complex? c)
@@ -26,6 +27,7 @@
 ;;; Prepare any numeric value for native complex arithmetic.
 ;;; This is the "unwrap for calculation" function.
 (define (complex-compute x)
+  (doc 'export #t)
   (cond
     ;; Already native complex
     [(and (number? x) (not (real? x))) x]
@@ -45,6 +47,7 @@
 ;;; native->complex : NativeComplex → CustomComplex
 ;;; Convert Chez native complex to lattice (complex r i).
 (define (native->complex z)
+  (doc 'export #t)
   (if (and (number? z) (not (real? z)))
       (make-complex (real-part z) (imag-part z))
       (error 'native->complex "not a native complex" z)))
@@ -53,6 +56,7 @@
 ;;; Prepare a calculation result for storage/serialization.
 ;;; This is the "wrap for storage" function.
 (define (complex-store z)
+  (doc 'export #t)
   (cond
     ;; Native complex → custom
     [(and (number? z) (not (real? z)))
@@ -75,11 +79,13 @@
 ;;; complex-bridge-unary : (NativeComplex → NativeComplex) × CustomComplex → CustomComplex
 ;;; Apply a native unary operation, bridging through native complex.
 (define (complex-bridge-unary op c)
+  (doc 'export #t)
   (complex-store (op (complex-compute c))))
 
 ;;; complex-bridge-binary : (NC × NC → NC) × CC × CC → CC
 ;;; Apply a native binary operation, bridging through native complex.
 (define (complex-bridge-binary op c1 c2)
+  (doc 'export #t)
   (complex-store (op (complex-compute c1) (complex-compute c2))))
 
 ;;; ============================================================================
@@ -89,21 +95,25 @@
 ;;; c+ : CustomComplex × CustomComplex → CustomComplex
 ;;; Addition via native bridge.
 (define (c+ c1 c2)
+  (doc 'export #t)
   (complex-bridge-binary + c1 c2))
 
 ;;; c- : CustomComplex × CustomComplex → CustomComplex
 ;;; Subtraction via native bridge.
 (define (c- c1 c2)
+  (doc 'export #t)
   (complex-bridge-binary - c1 c2))
 
 ;;; c* : CustomComplex × CustomComplex → CustomComplex
 ;;; Multiplication via native bridge.
 (define (c* c1 c2)
+  (doc 'export #t)
   (complex-bridge-binary * c1 c2))
 
 ;;; c/ : CustomComplex × CustomComplex → CustomComplex
 ;;; Division via native bridge.
 (define (c/ c1 c2)
+  (doc 'export #t)
   (complex-bridge-binary / c1 c2))
 
 ;;; ============================================================================
@@ -112,31 +122,38 @@
 
 ;;; c-exp : CustomComplex → CustomComplex
 (define (c-exp c)
+  (doc 'export #t)
   (complex-bridge-unary exp c))
 
 ;;; c-log : CustomComplex → CustomComplex
 (define (c-log c)
+  (doc 'export #t)
   (complex-bridge-unary log c))
 
 ;;; c-sqrt : CustomComplex → CustomComplex
 (define (c-sqrt c)
+  (doc 'export #t)
   (complex-bridge-unary sqrt c))
 
 ;;; c-sin : CustomComplex → CustomComplex
 (define (c-sin c)
+  (doc 'export #t)
   (complex-bridge-unary sin c))
 
 ;;; c-cos : CustomComplex → CustomComplex
 (define (c-cos c)
+  (doc 'export #t)
   (complex-bridge-unary cos c))
 
 ;;; c-tan : CustomComplex → CustomComplex
 (define (c-tan c)
+  (doc 'export #t)
   (complex-bridge-unary tan c))
 
 ;;; c-pow : CustomComplex × CustomComplex → CustomComplex
 ;;; Exponentiation via native bridge.
 (define (c-pow base exponent)
+  (doc 'export #t)
   (complex-bridge-binary expt base exponent))
 
 ;;; ============================================================================
@@ -146,16 +163,19 @@
 ;;; c-magnitude : CustomComplex → Real
 ;;; Magnitude (absolute value) of custom complex.
 (define (c-magnitude c)
+  (doc 'export #t)
   (magnitude (complex-compute c)))
 
 ;;; c-angle : CustomComplex → Real
 ;;; Phase angle of custom complex.
 (define (c-angle c)
+  (doc 'export #t)
   (angle (complex-compute c)))
 
 ;;; c=? : CustomComplex × CustomComplex → Boolean
 ;;; Equality test for custom complex.
 (define (c=? c1 c2)
+  (doc 'export #t)
   (and (= (complex-real c1) (complex-real c2))
        (= (complex-imag c1) (complex-imag c2))))
 
@@ -166,11 +186,13 @@
 ;;; custom-complex? : Value → Boolean
 ;;; Check if value is a lattice custom complex.
 (define (custom-complex? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'complex)))
 
 ;;; ensure-complex : Value → CustomComplex
 ;;; Ensure value is a custom complex (convert if necessary).
 (define (ensure-complex x)
+  (doc 'export #t)
   (cond
     [(custom-complex? x) x]
     [(and (number? x) (not (real? x)))
@@ -186,17 +208,20 @@
 ;;; complex-compute-all : (List CustomComplex) → (List NativeComplex)
 ;;; Convert a list of custom complex to native for batch calculation.
 (define (complex-compute-all cs)
+  (doc 'export #t)
   (map complex-compute cs))
 
 ;;; complex-store-all : (List NativeComplex) → (List CustomComplex)
 ;;; Convert calculation results back to custom for storage.
 (define (complex-store-all zs)
+  (doc 'export #t)
   (map complex-store zs))
 
 ;;; with-native-complex : (List CustomComplex) × ((List NC) → (List NC)) → (List CC)
 ;;; Apply a batch operation in native complex space, returning custom.
 ;;; Use for efficient bulk calculations.
 (define (with-native-complex inputs computation)
+  (doc 'export #t)
   (complex-store-all
    (computation
     (complex-compute-all inputs))))

@@ -24,6 +24,7 @@
 ;;;
 ;;; Workers process disjoint row ranges → no write conflicts.
 (define (lu-column-update data n k from-row to-row)
+  (doc 'export #t)
   (let ([pivot (vector-ref data (+ (* k n) k))])
     (do ([i from-row (+ i 1)])
         ((= i to-row))
@@ -54,6 +55,7 @@
 ;;;
 ;;; Workers process disjoint column ranges → no write conflicts on Q or R.
 (define (qr-column-orthogonalize q-data r-data m n j from-col to-col)
+  (doc 'export #t)
   (do ([i from-col (+ i 1)])
       ((= i to-col))
     ;; Compute dot product of column j and column i of Q

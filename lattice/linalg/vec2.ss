@@ -91,6 +91,7 @@
 (doc 'section '2d-cross-product)
 
 (define (vec2-cross a b)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Vec2 Number))
   (doc 'description "2D cross product (z-component of 3D cross product)")
   (doc 'note "Returns the signed area of the parallelogram formed by the vectors")
@@ -98,17 +99,20 @@
      (* (vec2-y a) (vec2-x b))))
 
 (define vec2-perp-dot vec2-cross)
+(doc vec2-perp-dot 'export #t)
 (doc vec2-perp-dot 'type '(-> Vec2 Vec2 Number))
 (doc vec2-perp-dot 'description "Perpendicular dot product (same as cross)")
 
 (doc 'section '2d-angles)
 
 (define (vec2-angle v)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Number))
   (doc 'description "Angle of vector (radians, from positive x-axis)")
   (atan (vec2-y v) (vec2-x v)))
 
 (define (vec2-angle-between a b)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Vec2 Number))
   (doc 'description "Angle between two vectors (radians, unsigned)")
   (let ([cos-theta (/ (vec2-dot a b)
@@ -116,11 +120,13 @@
        (acos (max -1 (min 1 cos-theta)))))
 
 (define (vec2-angle-to a b)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Vec2 Number))
   (doc 'description "Signed angle from a to b (radians)")
   (atan (vec2-cross a b) (vec2-dot a b)))
 
 (define vec2-heading vec2-angle)
+(doc vec2-heading 'export #t)
 (doc vec2-heading 'type '(-> Vec2 Number))
 (doc vec2-heading 'description "Alias for angle")
 
@@ -203,11 +209,13 @@
 (doc 'section '2d-specific-construction)
 
 (define (vec2-from-angle angle)
+  (doc 'export #t)
   (doc 'type '(-> Number Vec2))
   (doc 'description "Create unit vector from angle (radians)")
   (vec2 (cos angle) (sin angle)))
 
 (define (vec2-from-polar r theta)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Vec2))
   (doc 'description "Create vector from polar coordinates (r, theta)")
   (vec2 (* r (cos theta)) (* r (sin theta))))
@@ -215,6 +223,7 @@
 (doc 'section '2d-rotation)
 
 (define (vec2-rotate v angle)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Number Vec2))
   (doc 'description "Rotate vector by angle (radians)")
   (let ([c (cos angle)]
@@ -225,21 +234,25 @@
              (+ (* x s) (* y c)))))
 
 (define (vec2-rotate-90 v)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Vec2))
   (doc 'description "Rotate 90 degrees counter-clockwise (perpendicular)")
   (vec2 (- (vec2-y v)) (vec2-x v)))
 
 (define (vec2-rotate-neg-90 v)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 Vec2))
   (doc 'description "Rotate 90 degrees clockwise")
   (vec2 (vec2-y v) (- (vec2-x v))))
 
 (define vec2-perp vec2-rotate-90)
+(doc vec2-perp 'export #t)
 (doc vec2-perp 'type '(-> Vec2 Vec2))
 (doc vec2-perp 'description "Perpendicular vector (rotate 90 CCW)")
 
 (doc 'section 'printing)
 
 (define (vec2->string v)
+  (doc 'export #t)
   (doc 'type '(-> Vec2 String))
   (format "(~a, ~a)" (vec2-x v) (vec2-y v)))

@@ -15,6 +15,7 @@
 (doc 'description "Statechart states form a rose tree where node value = state record and children = substates. Convert to/from tree-zipper's rose tree format")
 
 (define (state->tree state)
+  (doc 'export #t)
   (doc 'type '(-> State (Tree State)))
   (doc 'description "Convert a state hierarchy to a rose tree for zipper navigation. The tree value at each node is the full state record")
   (let ([substates (state-substates state)])
@@ -25,11 +26,13 @@
 ;;; Convert a rose tree back to a state hierarchy.
 ;;; Rebuilds parent references during conversion.
 (define (tree->state t)
+  (doc 'export #t)
   (tree->state-with-parent t #f))
 
 ;;; tree->state-with-parent : (Tree State) x (Option Symbol) -> State
 ;;; Helper that rebuilds parent references.
 (define (tree->state-with-parent t parent-id)
+  (doc 'export #t)
   (let* ([state (tree-value t)]
          [children (tree-children t)]
          [state-with-parent (set-state-parent state parent-id)]
@@ -58,15 +61,18 @@
 
 ;;; make-state-zipper : (TreeZipper State) -> StateZipper
 (define (make-state-zipper tree-z)
+  (doc 'export #t)
   (list state-zipper-tag tree-z))
 
 ;;; state-zipper? : a -> Bool
 (define (state-zipper? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) state-zipper-tag)))
 
 ;;; state-zipper-tree-z : StateZipper -> (TreeZipper State)
 (define (state-zipper-tree-z sz)
+  (doc 'export #t)
   (list-ref sz 1))
 
 ;;; ====
@@ -76,11 +82,13 @@
 ;;; state->zipper : State -> StateZipper
 ;;; Create a zipper focused at the root of a state hierarchy.
 (define (state->zipper state)
+  (doc 'export #t)
   (make-state-zipper (tree->zipper (state->tree state))))
 
 ;;; zipper->state : StateZipper -> State
 ;;; Reconstruct state hierarchy from zipper (navigates to root first).
 (define (zipper->state sz)
+  (doc 'export #t)
   (tree->state (zipper->tree (state-zipper-tree-z sz))))
 
 ;;; ====
@@ -90,21 +98,25 @@
 ;;; state-zipper-state : StateZipper -> State
 ;;; Get the currently focused state.
 (define (state-zipper-state sz)
+  (doc 'export #t)
   (tree-value (tree-zipper-focus (state-zipper-tree-z sz))))
 
 ;;; state-zipper-id : StateZipper -> Symbol
 ;;; Get the ID of the focused state.
 (define (state-zipper-id sz)
+  (doc 'export #t)
   (state-id (state-zipper-state sz)))
 
 ;;; state-zipper-type : StateZipper -> Symbol
 ;;; Get the type of the focused state.
 (define (state-zipper-type sz)
+  (doc 'export #t)
   (state-type (state-zipper-state sz)))
 
 ;;; state-zipper-set : StateZipper x State -> StateZipper
 ;;; Replace the focused state (keeps same position).
 (define (state-zipper-set sz new-state)
+  (doc 'export #t)
   (let* ([tz (state-zipper-tree-z sz)]
          [focus (tree-zipper-focus tz)]
          [new-tree (make-tree new-state (tree-children focus))]
@@ -114,6 +126,7 @@
 ;;; state-zipper-modify : StateZipper x (State -> State) -> StateZipper
 ;;; Modify the focused state.
 (define (state-zipper-modify sz f)
+  (doc 'export #t)
   (state-zipper-set sz (f (state-zipper-state sz))))
 
 ;;; ====
@@ -123,6 +136,7 @@
 ;;; state-zipper-up : StateZipper -> (Maybe StateZipper)
 ;;; Move focus to parent state.
 (define (state-zipper-up sz)
+  (doc 'export #t)
   (let ([result (tree-zipper-up (state-zipper-tree-z sz))])
     (if (nothing? result)
         nothing
@@ -131,6 +145,7 @@
 ;;; state-zipper-down : StateZipper -> (Maybe StateZipper)
 ;;; Move focus to first child state.
 (define (state-zipper-down sz)
+  (doc 'export #t)
   (let ([result (tree-zipper-down (state-zipper-tree-z sz))])
     (if (nothing? result)
         nothing
@@ -139,6 +154,7 @@
 ;;; state-zipper-left : StateZipper -> (Maybe StateZipper)
 ;;; Move focus to left sibling.
 (define (state-zipper-left sz)
+  (doc 'export #t)
   (let ([result (tree-zipper-left (state-zipper-tree-z sz))])
     (if (nothing? result)
         nothing
@@ -147,6 +163,7 @@
 ;;; state-zipper-right : StateZipper -> (Maybe StateZipper)
 ;;; Move focus to right sibling.
 (define (state-zipper-right sz)
+  (doc 'export #t)
   (let ([result (tree-zipper-right (state-zipper-tree-z sz))])
     (if (nothing? result)
         nothing
@@ -155,11 +172,13 @@
 ;;; state-zipper-root : StateZipper -> StateZipper
 ;;; Move focus to root state.
 (define (state-zipper-root sz)
+  (doc 'export #t)
   (make-state-zipper (tree-zipper-root (state-zipper-tree-z sz))))
 
 ;;; state-zipper-nth-child : StateZipper x Nat -> (Maybe StateZipper)
 ;;; Move to nth child (0-indexed).
 (define (state-zipper-nth-child sz n)
+  (doc 'export #t)
   (let ([result (tree-zipper-nth-child (state-zipper-tree-z sz) n)])
     (if (nothing? result)
         nothing
@@ -171,18 +190,22 @@
 
 ;;; state-zipper-at-root? : StateZipper -> Bool
 (define (state-zipper-at-root? sz)
+  (doc 'export #t)
   (tree-zipper-at-root? (state-zipper-tree-z sz)))
 
 ;;; state-zipper-at-leaf? : StateZipper -> Bool
 (define (state-zipper-at-leaf? sz)
+  (doc 'export #t)
   (tree-zipper-at-leaf? (state-zipper-tree-z sz)))
 
 ;;; state-zipper-can-go-up? : StateZipper -> Bool
 (define (state-zipper-can-go-up? sz)
+  (doc 'export #t)
   (tree-zipper-can-go-up? (state-zipper-tree-z sz)))
 
 ;;; state-zipper-can-go-down? : StateZipper -> Bool
 (define (state-zipper-can-go-down? sz)
+  (doc 'export #t)
   (tree-zipper-can-go-down? (state-zipper-tree-z sz)))
 
 ;;; ====
@@ -193,11 +216,13 @@
 ;;; Find a state by ID, returning zipper focused on it.
 ;;; Performs preorder traversal from current position.
 (define (state-zipper-find sz target-id)
+  (doc 'export #t)
   (state-zipper-find-from (state-zipper-root sz) target-id))
 
 ;;; state-zipper-find-from : StateZipper x Symbol -> (Maybe StateZipper)
 ;;; Find state by ID starting from current position (preorder).
 (define (state-zipper-find-from sz target-id)
+  (doc 'export #t)
   (cond
     ;; Found it
     [(eq? (state-zipper-id sz) target-id)
@@ -238,28 +263,33 @@
 ;;; Get all ancestor states from parent to root.
 ;;; O(depth) - extracted directly from zipper crumbs.
 (define (state-zipper-ancestors sz)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs (state-zipper-tree-z sz))])
     (map (lambda (crumb) (crumb-value crumb)) crumbs)))
 
 ;;; state-zipper-ancestor-ids : StateZipper -> (List Symbol)
 ;;; Get IDs of all ancestors.
 (define (state-zipper-ancestor-ids sz)
+  (doc 'export #t)
   (map state-id (state-zipper-ancestors sz)))
 
 ;;; state-zipper-path : StateZipper -> (List State)
 ;;; Get path from root to focus (inclusive).
 (define (state-zipper-path sz)
+  (doc 'export #t)
   (append (reverse (state-zipper-ancestors sz))
           (list (state-zipper-state sz))))
 
 ;;; state-zipper-path-ids : StateZipper -> (List Symbol)
 ;;; Get IDs of states from root to focus.
 (define (state-zipper-path-ids sz)
+  (doc 'export #t)
   (map state-id (state-zipper-path sz)))
 
 ;;; state-zipper-depth : StateZipper -> Nat
 ;;; Get depth in hierarchy (0 = root).
 (define (state-zipper-depth sz)
+  (doc 'export #t)
   (tree-zipper-depth (state-zipper-tree-z sz)))
 
 ;;; ====
@@ -275,6 +305,7 @@
 ;;; Find lowest common ancestor of two states by ID.
 ;;; More efficient than repeated find-state calls.
 (define (state-zipper-lca sz id1 id2)
+  (doc 'export #t)
   (let* ([root-sz (state-zipper-root sz)]
          [z1 (state-zipper-find root-sz id1)]
          [z2 (state-zipper-find root-sz id2)])
@@ -295,6 +326,7 @@
 ;;; common-prefix : (List a) x (List a) -> (List a)
 ;;; Find common prefix of two lists.
 (define (common-prefix xs ys)
+  (doc 'export #t)
   (cond
     [(or (null? xs) (null? ys)) '()]
     [(equal? (car xs) (car ys))
@@ -310,6 +342,7 @@
 ;;; state-zipper-is-descendant? : StateZipper x Symbol x Symbol -> Bool
 ;;; Check if child-id is a descendant of parent-id.
 (define (state-zipper-is-descendant? sz parent-id child-id)
+  (doc 'export #t)
   (let* ([root-sz (state-zipper-root sz)]
          [child-z (state-zipper-find root-sz child-id)])
     (if (nothing? child-z)
@@ -331,6 +364,7 @@
 ;;; Returns states from source up to (but not including) LCA, in exit order
 ;;; (innermost first, i.e., source -> ... -> just-below-LCA).
 (define (state-zipper-exit-path sz source-id target-id)
+  (doc 'export #t)
   (let* ([root-sz (state-zipper-root sz)]
          [source-z (state-zipper-find root-sz source-id)]
          [lca-result (state-zipper-lca sz source-id target-id)])
@@ -347,6 +381,7 @@
 ;;; Get states to enter when transitioning from source to target.
 ;;; Returns states from after LCA down to target (inclusive).
 (define (state-zipper-entry-path sz source-id target-id)
+  (doc 'export #t)
   (let* ([root-sz (state-zipper-root sz)]
          [target-z (state-zipper-find root-sz target-id)]
          [lca-result (state-zipper-lca sz source-id target-id)])
@@ -360,6 +395,7 @@
 
 ;;; takewhile-not : (a -> Bool) x (List a) -> (List a)
 (define (takewhile-not pred lst)
+  (doc 'export #t)
   (cond
     [(null? lst) '()]
     [(pred (car lst)) '()]
@@ -367,6 +403,7 @@
 
 ;;; dropwhile-not : (a -> Bool) x (List a) -> (List a)
 (define (dropwhile-not pred lst)
+  (doc 'export #t)
   (cond
     [(null? lst) '()]
     [(pred (car lst)) lst]
@@ -379,12 +416,14 @@
 ;;; state-zipper-preorder : StateZipper -> (List StateZipper)
 ;;; Get all state zippers in preorder traversal.
 (define (state-zipper-preorder sz)
+  (doc 'export #t)
   (map make-state-zipper
        (tree-zipper-preorder (state-zipper-tree-z (state-zipper-root sz)))))
 
 ;;; state-zipper-next : StateZipper -> (Maybe StateZipper)
 ;;; Move to next state in preorder traversal.
 (define (state-zipper-next sz)
+  (doc 'export #t)
   (let ([result (tree-zipper-next-preorder (state-zipper-tree-z sz))])
     (if (nothing? result)
         nothing
@@ -397,6 +436,7 @@
 ;;; state-zipper-find-if : StateZipper x (State -> Bool) -> (Maybe StateZipper)
 ;;; Find first state matching predicate (preorder).
 (define (state-zipper-find-if sz pred)
+  (doc 'export #t)
   (let loop ([current (just (state-zipper-root sz))])
     (cond
       [(nothing? current) nothing]
@@ -412,6 +452,7 @@
 ;;; state-zipper-collect : StateZipper x (State -> Bool) -> (List State)
 ;;; Collect all states matching predicate.
 (define (state-zipper-collect sz pred)
+  (doc 'export #t)
   (let loop ([current (just (state-zipper-root sz))] [acc '()])
     (cond
       [(nothing? current) (reverse acc)]
@@ -424,4 +465,5 @@
 ;;; state-zipper-collect-ids : StateZipper x (State -> Bool) -> (List Symbol)
 ;;; Collect IDs of states matching predicate.
 (define (state-zipper-collect-ids sz pred)
+  (doc 'export #t)
   (map state-id (state-zipper-collect sz pred)))

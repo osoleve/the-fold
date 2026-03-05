@@ -43,6 +43,7 @@ The adjunction's:
   - Morphisms: f : a → b ↦ f × id_S : (a, S) → (b, S)")
 
 (define (make-product-functor)
+  (doc 'export #t)
   (doc 'type '(-> Functor))
   (doc 'description "Create the product functor (−) × S for a fixed state type S.
 In our untyped setting, S is implicit in the structure.
@@ -63,6 +64,7 @@ fmap f (a, s) = (f a, s)")
   - Morphisms: f : a → b ↦ (f ∘ −) : (S → a) → (S → b)")
 
 (define (make-exponential-functor)
+  (doc 'export #t)
   (doc 'type '(-> Functor))
   (doc 'description "Create the exponential functor (−)^S.
 fmap f g = f ∘ g for g : S → a")
@@ -81,6 +83,7 @@ fmap f g = f ∘ g for g : S → a")
 ;;; η_a : a → (S → (a × S))
 ;;; η_a(x) = λs. (x, s)
 (define (make-state-store-unit)
+  (doc 'export #t)
   (make-nat-transform
    'state-store-unit
    functor-id
@@ -101,6 +104,7 @@ fmap f g = f ∘ g for g : S → a")
 ;;; ε_a : ((S → a) × S) → a
 ;;; ε_a(f, s) = f(s)
 (define (make-state-store-counit)
+  (doc 'export #t)
   (make-nat-transform
    'state-store-counit
    ;; Source: ((−) × S) ∘ (−)^S - the Store functor
@@ -134,12 +138,14 @@ State S a = S → (a × S)")
 ;;; state-from-adjunction-return : a → State S a
 ;;; Derived: return = η (unit of adjunction)
 (define (state-from-adjunction-return a)
+  (doc 'export #t)
   ((nat-transform-component (make-state-store-unit)) a))
 
 ;;; state-from-adjunction-join : State S (State S a) → State S a
 ;;; Derived: join = G(ε_F)
 ;;; For m : S → ((S → (a × S)) × S), join flattens to S → (a × S)
 (define (state-from-adjunction-join mm)
+  (doc 'export #t)
   (lambda (s)
     (let* ([outer-result (mm s)]           ; ((S → (a × S)), S)
            [inner-state (car outer-result)] ; S → (a × S)
@@ -149,6 +155,7 @@ State S a = S → (a × S)")
 ;;; state-from-adjunction-bind : State S a × (a → State S b) → State S b
 ;;; Derived: m >>= f = join (fmap f m)
 (define (state-from-adjunction-bind m f)
+  (doc 'export #t)
   (state-from-adjunction-join
    (lambda (s)
      (let ([result (m s)])
@@ -163,12 +170,14 @@ Store S a = (S → a) × S")
 ;;; store-from-adjunction-extract : Store S a → a
 ;;; Derived: extract = ε (counit of adjunction)
 (define (store-from-adjunction-extract store)
+  (doc 'export #t)
   ((nat-transform-component (make-state-store-counit)) store))
 
 ;;; store-from-adjunction-duplicate : Store S a → Store S (Store S a)
 ;;; Derived: duplicate = F(η_G)
 ;;; For (f, s) : (S → a) × S, duplicate = (λs'. (f, s'), s)
 (define (store-from-adjunction-duplicate store)
+  (doc 'export #t)
   (let ([f (car store)]
         [s (cdr store)])
     ;; New accessor: given position s', return store focused at s'
@@ -178,6 +187,7 @@ Store S a = (S → a) × S")
 ;;; store-from-adjunction-extend : (Store S a → b) × Store S a → Store S b
 ;;; Derived: extend g w = fmap g (duplicate w)
 (define (store-from-adjunction-extend g store)
+  (doc 'export #t)
   (let ([f (car store)]
         [s (cdr store)])
     ;; New accessor: at each position s', apply g to store focused there
@@ -192,11 +202,13 @@ Store S a = (S → a) × S")
 ;;; verify-state-store-triangle-left : (a × S) → Boolean
 ;;; Verify left triangle: ε_{F(a)} ∘ F(η_a) = id_{F(a)}
 (define (verify-state-store-triangle-left pair)
+  (doc 'export #t)
   (verify-triangle-left adj-state-store pair))
 
 ;;; verify-state-store-triangle-right : (S → a) → Boolean
 ;;; Verify right triangle: G(ε_a) ∘ η_{G(a)} = id_{G(a)}
 (define (verify-state-store-triangle-right func s-test)
+  (doc 'export #t)
   ;; We need to check at a specific input
   (let* ([η (nat-transform-component (make-state-store-unit))]
          [ε (nat-transform-component (make-state-store-counit))]
@@ -216,6 +228,7 @@ Store S a = (S → a) × S")
 ;;; verify-state-return-matches : a × S → Boolean
 ;;; Check that derived return matches standard State return.
 (define (verify-state-return-matches a s)
+  (doc 'export #t)
   (let* ([derived ((state-from-adjunction-return a) s)]
          [standard (cons a s)])  ; Standard: λs. (a, s)
     (equal? derived standard)))
@@ -223,6 +236,7 @@ Store S a = (S → a) × S")
 ;;; verify-store-extract-matches : (S → a) × S → Boolean
 ;;; Check that derived extract matches standard Store extract.
 (define (verify-store-extract-matches accessor pos)
+  (doc 'export #t)
   (let* ([store (cons accessor pos)]
          [derived (store-from-adjunction-extract store)]
          [standard (accessor pos)])  ; Standard: accessor(pos)
@@ -273,11 +287,13 @@ The adjunction encodes the curry/uncurry isomorphism categorically.")
 ;;; curry-via-adjunction : ((a × S) → b) → (a → S → b)
 ;;; Curry using adjunction transpose.
 (define (curry-via-adjunction f)
+  (doc 'export #t)
   (adjunction-transpose-left adj-state-store f))
 
 ;;; uncurry-via-adjunction : (a → S → b) → ((a × S) → b)
 ;;; Uncurry using adjunction transpose.
 (define (uncurry-via-adjunction g)
+  (doc 'export #t)
   (adjunction-transpose-right adj-state-store g))
 
 ;;; ====
@@ -286,4 +302,5 @@ The adjunction encodes the curry/uncurry isomorphism categorically.")
 
 ;;; adj-state-store->string : → String
 (define (adj-state-store->string)
+  (doc 'export #t)
   "(−) × S ⊣ (−)^S : Product-Exponential Adjunction")

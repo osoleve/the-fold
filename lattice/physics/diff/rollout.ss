@@ -31,6 +31,7 @@ Memory management:
 ;;; traced-rollout-with-gravity : TracedBody × TracedVec2 × Number × Nat → TracedBody
 ;;; Simple rollout with constant gravity.
 (define (traced-rollout-with-gravity initial-body gravity dt n)
+  (doc 'export #t)
   (traced-rollout initial-body
                   (lambda (body)
                           (traced-gravity-step body gravity dt))
@@ -40,6 +41,7 @@ Memory management:
 ;;; Rollout with general force field.
 ;;; force-fn returns (values linear-accel angular-accel) for body state.
 (define (traced-rollout-with-force initial-body force-fn dt n)
+  (doc 'export #t)
   (traced-rollout initial-body
                   (lambda (body)
                           (call-with-values
@@ -100,6 +102,7 @@ Memory management:
 ;;; Compute gradient of loss w.r.t. initial state for one segment.
 ;;; Returns gradients for (pos, vel, angle, omega).
 (define (compute-segment-gradient initial-body step-fn loss-fn segment-length)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
            (let* ([tape (make-reverse-tape)]
@@ -140,6 +143,7 @@ Memory management:
 ;;; Compute gradient of loss w.r.t. initial state using checkpointing.
 ;;; This is the main entry point for memory-efficient gradient computation.
 (define (checkpointed-gradient initial-body step-fn loss-fn num-steps)
+  (doc 'export #t)
   (let* ([ckpt-freq (checkpoint-interval num-steps)]
          ;; First, do a forward pass to store checkpoints
          [checkpoints (rollout-checkpoints initial-body step-fn num-steps ckpt-freq)]
@@ -187,6 +191,7 @@ Memory management:
 ;;; target-position-loss : Vec2 → (RigidBody2D → Number)
 ;;; Loss for reaching a target position.
 (define (target-position-loss target)
+  (doc 'export #t)
   (lambda (body)
           (vec2-distance-sq (rigid-body-pos body) target)))
 
@@ -203,6 +208,7 @@ Memory management:
 ;;; trajectory-loss : (List Vec2) → ((List RigidBody2D) → Number)
 ;;; Loss for following a trajectory of positions.
 (define (trajectory-loss target-positions)
+  (doc 'export #t)
   (lambda (trajectory)
           (let loop ([bodies trajectory]
                      [targets target-positions]
@@ -217,6 +223,7 @@ Memory management:
 ;;; energy-minimization-loss : RigidBody2D → Number
 ;;; Loss for minimizing kinetic energy.
 (define (energy-minimization-loss body)
+  (doc 'export #t)
   (let* ([ke (+ (* 0.5 (rigid-body-mass body)
                    (vec2-magnitude-sq (rigid-body-vel body)))
                 (* 0.5 (rigid-body-inertia body)
@@ -234,6 +241,7 @@ Memory management:
 ;;; Loss function for projectile hitting target.
 ;;; Takes initial velocity as input (for optimization).
 (define (projectile-hit-loss start-pos target gravity dt num-steps)
+  (doc 'export #t)
   (lambda (initial-vel)
           (with-fresh-ad-scope
            (lambda ()

@@ -17,6 +17,7 @@
 (define (span-start s) (list-ref s 1))
 (define (span-end s) (list-ref s 2))
 (define (merge-spans s1 s2)
+  (doc 'export #t)
   (if (and (source-span? s1) (source-span? s2))
       (make-source-span (span-start s1) (span-end s2))
       (or s1 s2)))
@@ -31,10 +32,12 @@
 
 ;;; sql-ast : Symbol × Span × Any... → AST
 (define (sql-ast tag span . data)
+  (doc 'export #t)
   (list 'sql-ast tag span data))
 
 ;;; sql-ast? : Any → Boolean
 (define (sql-ast? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'sql-ast)))
 
 ;;; sql-tag : AST → Symbol
@@ -48,6 +51,7 @@
 
 ;;; sql-ref : AST × Nat → Any
 (define (sql-ref node n)
+  (doc 'export #t)
   (list-ref (sql-data node) n))
 
 ;;; ====
@@ -57,6 +61,7 @@
 ;;; SELECT statement
 ;;; Data: (distinct? columns from-clause where-clause group-by having order-by limit)
 (define (make-select span distinct? columns from where group-by having order-by limit)
+  (doc 'export #t)
   (sql-ast 'select span distinct? columns from where group-by having order-by limit))
 
 (define (select? x) (and (sql-ast? x) (eq? (sql-tag x) 'select)))
@@ -72,6 +77,7 @@
 ;;; INSERT statement
 ;;; Data: (table columns values-or-select)
 (define (make-insert span table columns values)
+  (doc 'export #t)
   (sql-ast 'insert span table columns values))
 
 (define (insert? x) (and (sql-ast? x) (eq? (sql-tag x) 'insert)))
@@ -82,6 +88,7 @@
 ;;; UPDATE statement
 ;;; Data: (table set-clauses where-clause)
 (define (make-update span table set-clauses where)
+  (doc 'export #t)
   (sql-ast 'update span table set-clauses where))
 
 (define (update? x) (and (sql-ast? x) (eq? (sql-tag x) 'update)))
@@ -92,6 +99,7 @@
 ;;; DELETE statement
 ;;; Data: (table where-clause)
 (define (make-delete span table where)
+  (doc 'export #t)
   (sql-ast 'delete span table where))
 
 (define (delete? x) (and (sql-ast? x) (eq? (sql-tag x) 'delete)))
@@ -105,6 +113,7 @@
 ;;; Column reference
 ;;; Data: (table-alias column-name) or (column-name) for unqualified
 (define (make-column-ref span table-alias column-name)
+  (doc 'export #t)
   (sql-ast 'column-ref span table-alias column-name))
 
 (define (column-ref? x) (and (sql-ast? x) (eq? (sql-tag x) 'column-ref)))
@@ -113,6 +122,7 @@
 
 ;;; Star (SELECT *)
 (define (make-star span table-alias)
+  (doc 'export #t)
   (sql-ast 'star span table-alias))
 
 (define (star? x) (and (sql-ast? x) (eq? (sql-tag x) 'star)))
@@ -120,6 +130,7 @@
 
 ;;; Aliased expression (SELECT expr AS alias)
 (define (make-alias span expr alias-name)
+  (doc 'export #t)
   (sql-ast 'alias span expr alias-name))
 
 (define (alias? x) (and (sql-ast? x) (eq? (sql-tag x) 'alias)))
@@ -128,6 +139,7 @@
 
 ;;; Table reference with optional alias
 (define (make-table-ref span table-name alias-name)
+  (doc 'export #t)
   (sql-ast 'table-ref span table-name alias-name))
 
 (define (table-ref? x) (and (sql-ast? x) (eq? (sql-tag x) 'table-ref)))
@@ -136,6 +148,7 @@
 
 ;;; JOIN clause
 (define (make-join span type left right condition)
+  (doc 'export #t)
   (sql-ast 'join span type left right condition))
 
 (define (join? x) (and (sql-ast? x) (eq? (sql-tag x) 'join)))
@@ -146,6 +159,7 @@
 
 ;;; ORDER BY item
 (define (make-order-item span expr direction nulls)
+  (doc 'export #t)
   (sql-ast 'order-item span expr direction nulls))
 
 (define (order-item? x) (and (sql-ast? x) (eq? (sql-tag x) 'order-item)))
@@ -155,6 +169,7 @@
 
 ;;; LIMIT/OFFSET
 (define (make-limit-clause span limit offset)
+  (doc 'export #t)
   (sql-ast 'limit-clause span limit offset))
 
 (define (limit-clause? x) (and (sql-ast? x) (eq? (sql-tag x) 'limit-clause)))
@@ -167,6 +182,7 @@
 
 ;;; Literal values
 (define (make-literal span value type)
+  (doc 'export #t)
   (sql-ast 'literal span value type))
 
 (define (literal? x) (and (sql-ast? x) (eq? (sql-tag x) 'literal)))
@@ -175,6 +191,7 @@
 
 ;;; Binary operator
 (define (make-binary-op span op left right)
+  (doc 'export #t)
   (sql-ast 'binary-op span op left right))
 
 (define (binary-op? x) (and (sql-ast? x) (eq? (sql-tag x) 'binary-op)))
@@ -184,6 +201,7 @@
 
 ;;; Unary operator
 (define (make-unary-op span op operand)
+  (doc 'export #t)
   (sql-ast 'unary-op span op operand))
 
 (define (unary-op? x) (and (sql-ast? x) (eq? (sql-tag x) 'unary-op)))
@@ -192,6 +210,7 @@
 
 ;;; Function call
 (define (make-function-call span name args distinct?)
+  (doc 'export #t)
   (sql-ast 'function-call span name args distinct?))
 
 (define (function-call? x) (and (sql-ast? x) (eq? (sql-tag x) 'function-call)))
@@ -201,6 +220,7 @@
 
 ;;; CASE expression
 (define (make-case-expr span operand when-clauses else-clause)
+  (doc 'export #t)
   (sql-ast 'case-expr span operand when-clauses else-clause))
 
 (define (case-expr? x) (and (sql-ast? x) (eq? (sql-tag x) 'case-expr)))
@@ -210,6 +230,7 @@
 
 ;;; WHEN clause for CASE
 (define (make-when-clause span condition result)
+  (doc 'export #t)
   (sql-ast 'when-clause span condition result))
 
 (define (when-clause? x) (and (sql-ast? x) (eq? (sql-tag x) 'when-clause)))
@@ -218,6 +239,7 @@
 
 ;;; IN expression
 (define (make-in-expr span expr values not?)
+  (doc 'export #t)
   (sql-ast 'in-expr span expr values not?))
 
 (define (in-expr? x) (and (sql-ast? x) (eq? (sql-tag x) 'in-expr)))
@@ -227,6 +249,7 @@
 
 ;;; BETWEEN expression
 (define (make-between-expr span expr low high not?)
+  (doc 'export #t)
   (sql-ast 'between-expr span expr low high not?))
 
 (define (between-expr? x) (and (sql-ast? x) (eq? (sql-tag x) 'between-expr)))
@@ -237,6 +260,7 @@
 
 ;;; LIKE expression
 (define (make-like-expr span expr pattern escape not?)
+  (doc 'export #t)
   (sql-ast 'like-expr span expr pattern escape not?))
 
 (define (like-expr? x) (and (sql-ast? x) (eq? (sql-tag x) 'like-expr)))
@@ -247,6 +271,7 @@
 
 ;;; IS NULL / IS NOT NULL
 (define (make-is-null-expr span expr not?)
+  (doc 'export #t)
   (sql-ast 'is-null-expr span expr not?))
 
 (define (is-null-expr? x) (and (sql-ast? x) (eq? (sql-tag x) 'is-null-expr)))
@@ -255,6 +280,7 @@
 
 ;;; Subquery (SELECT inside another expression)
 (define (make-subquery span select)
+  (doc 'export #t)
   (sql-ast 'subquery span select))
 
 (define (subquery? x) (and (sql-ast? x) (eq? (sql-tag x) 'subquery)))
@@ -262,6 +288,7 @@
 
 ;;; EXISTS expression
 (define (make-exists-expr span subquery not?)
+  (doc 'export #t)
   (sql-ast 'exists-expr span subquery not?))
 
 (define (exists-expr? x) (and (sql-ast? x) (eq? (sql-tag x) 'exists-expr)))
@@ -274,6 +301,7 @@
 
 ;;; SET clause (column = value)
 (define (make-set-clause span column value)
+  (doc 'export #t)
   (sql-ast 'set-clause span column value))
 
 (define (set-clause? x) (and (sql-ast? x) (eq? (sql-tag x) 'set-clause)))
@@ -286,6 +314,7 @@
 
 ;;; VALUES clause (list of value lists)
 (define (make-values-clause span rows)
+  (doc 'export #t)
   (sql-ast 'values-clause span rows))
 
 (define (values-clause? x) (and (sql-ast? x) (eq? (sql-tag x) 'values-clause)))
@@ -293,6 +322,7 @@
 
 ;;; DEFAULT keyword (for INSERT)
 (define (make-default-value span)
+  (doc 'export #t)
   (sql-ast 'default span))
 
 (define (default-value? x) (and (sql-ast? x) (eq? (sql-tag x) 'default)))
@@ -315,11 +345,13 @@
 
 ;;; sql-statement? : Any → Boolean
 (define (sql-statement? x)
+  (doc 'export #t)
   (and (sql-ast? x)
        (memq (sql-tag x) '(select insert update delete))))
 
 ;;; sql-expression? : Any → Boolean
 (define (sql-expression? x)
+  (doc 'export #t)
   (and (sql-ast? x)
        (memq (sql-tag x) '(literal column-ref binary-op unary-op function-call
                            case-expr in-expr between-expr like-expr is-null-expr
@@ -328,6 +360,7 @@
 ;;; walk-ast : (AST → Any) × AST → Void
 ;;; Walk AST depth-first, calling visitor on each node.
 (define (walk-ast visitor node)
+  (doc 'export #t)
   (when (sql-ast? node)
         (visitor node)
         (for-each (lambda (child)
@@ -343,6 +376,7 @@
 ;;; collect-nodes : (AST → Boolean) × AST → (List AST)
 ;;; Collect all nodes matching predicate.
 (define (collect-nodes pred node)
+  (doc 'export #t)
   (let ([result '()])
        (walk-ast (lambda (n)
                          (when (pred n)

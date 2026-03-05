@@ -26,21 +26,25 @@
 ;;;   - Associativity:  mappend (mappend x y) z = mappend x (mappend y z)
 
 (define (make-monoid mempty mappend)
+  (doc 'export #t)
   (doc 'type '(-> a (-> a a a) (Monoid a)))
   (doc 'description "Create a monoid from identity element and associative binary operation")
   (list 'monoid mempty mappend))
 
 (define (monoid? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a Monoid dictionary")
   (and (pair? x) (eq? (car x) 'monoid)))
 
 (define (monoid-mempty m)
+  (doc 'export #t)
   (doc 'type '(-> (Monoid a) a))
   (doc 'description "Extract identity element from Monoid dictionary")
   (cadr m))
 
 (define (monoid-mappend m)
+  (doc 'export #t)
   (doc 'type '(-> (Monoid a) (-> a a a)))
   (doc 'description "Extract binary operation from Monoid dictionary")
   (caddr m))
@@ -107,11 +111,13 @@
 (doc 'section 'monoid-operations)
 
 (define (mconcat m xs)
+  (doc 'export #t)
   (doc 'type '(-> (Monoid a) (List a) a))
   (doc 'description "Fold a list using the monoid's binary operation and identity")
   (fold-left (monoid-mappend m) (monoid-mempty m) xs))
 
 (define (mtimes m n x)
+  (doc 'export #t)
   (doc 'type '(-> (Monoid a) Nat a a))
   (doc 'description "Combine value with itself n times using monoid")
   (if (<= n 0)
@@ -124,6 +130,7 @@
 (doc 'section 'monoid-verification)
 
 (define (verify-monoid-laws m test-values)
+  (doc 'export #t)
   (doc 'type '(-> (Monoid a) (List a) Boolean))
   (doc 'description "Check monoid laws (identity, associativity) hold for given test values")
   (let ([e (monoid-mempty m)]
@@ -150,26 +157,31 @@
 ;;;   - foldr : (a → b → b) → b → F a → b
 
 (define (make-foldable fold-map-fn foldr-fn foldl-fn)
+  (doc 'export #t)
   (doc 'type '(-> (-> (-> a m) (Monoid m) (f a) m) (-> (-> a b b) b (f a) b) (-> (-> b a b) b (f a) b) (Foldable f)))
   (doc 'description "Create a Foldable instance from fold-map, foldr, and foldl functions")
   (list 'foldable fold-map-fn foldr-fn foldl-fn))
 
 (define (foldable? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a Foldable dictionary")
   (and (pair? x) (eq? (car x) 'foldable)))
 
 (define (foldable-fold-map f)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (-> (-> a m) (Monoid m) (f a) m)))
   (doc 'description "Extract fold-map function from Foldable dictionary")
   (cadr f))
 
 (define (foldable-foldr f)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (-> (-> a b b) b (f a) b)))
   (doc 'description "Extract foldr function from Foldable dictionary")
   (caddr f))
 
 (define (foldable-foldl f)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (-> (-> b a b) b (f a) b)))
   (doc 'description "Extract foldl function from Foldable dictionary")
   (cadddr f))
@@ -207,26 +219,31 @@
 (doc 'section 'foldable-operations)
 
 (define (fold-with fld m container)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (Monoid a) (f a) a))
   (doc 'description "Fold container using monoid (fold-map with identity)")
   ((foldable-fold-map fld) identity m container))
 
 (define (to-list fld container)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (f a) (List a)))
   (doc 'description "Convert any foldable container to a list")
   ((foldable-foldr fld) cons '() container))
 
 (define (null-foldable? fld container)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (f a) Boolean))
   (doc 'description "Check if foldable container is empty")
   ((foldable-foldr fld) (lambda (x _) #f) #t container))
 
 (define (length-foldable fld container)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) (f a) Nat))
   (doc 'description "Count elements in foldable container")
   ((foldable-foldl fld) (lambda (n _) (+ n 1)) 0 container))
 
 (define (elem-foldable fld x container)
+  (doc 'export #t)
   (doc 'type '(-> (Foldable f) a (f a) Boolean))
   (doc 'description "Check if element is in foldable container")
   ((foldable-foldr fld)
@@ -240,16 +257,19 @@
 ;;;   - sequenceA : T (F a) → F (T a)
 
 (define (make-traversable traverse-fn)
+  (doc 'export #t)
   (doc 'type '(-> (-> (ApplicativeDict f) (-> a (f b)) (t a) (f (t b))) (Traversable t)))
   (doc 'description "Create a Traversable instance from a traverse function")
   (list 'traversable traverse-fn))
 
 (define (traversable? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a Traversable dictionary")
   (and (pair? x) (eq? (car x) 'traversable)))
 
 (define (traversable-traverse t)
+  (doc 'export #t)
   (doc 'type '(-> (Traversable t) (-> (ApplicativeDict f) (-> a (f b)) (t a) (f (t b)))))
   (doc 'description "Extract traverse function from Traversable dictionary")
   (cadr t))
@@ -266,26 +286,31 @@
 ;;;   ((functor-fmap F) func container)  ; correct - 2 args
 
 (define (make-functor fmap-fn)
+  (doc 'export #t)
   (doc 'type '(-> (-> (-> a b) (f a) (f b)) (FunctorDict f)))
   (doc 'description "Create a Functor dictionary from a 2-argument fmap function")
   (list 'functor fmap-fn))
 
 (define (make-named-functor name fmap-fn)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (-> (-> a b) (f a) (f b)) (FunctorDict f)))
   (doc 'description "Create a named Functor dictionary for debugging")
   (list 'functor fmap-fn name))
 
 (define (functor? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a Functor dictionary")
   (and (pair? x) (eq? (car x) 'functor)))
 
 (define (functor-fmap f)
+  (doc 'export #t)
   (doc 'type '(-> (FunctorDict f) (-> (-> a b) (f a) (f b))))
   (doc 'description "Extract fmap function from Functor dictionary")
   (cadr f))
 
 (define (functor-name f . args)
+  (doc 'export #t)
   (doc 'type '(-> (FunctorDict f) Symbol))
   (doc 'description "Get the name of the functor, or default if unnamed")
   (let ([default (if (null? args) 'F (car args))])
@@ -318,16 +343,19 @@
 (doc 'section 'functor-operations)
 
 (define (fmap-with func f container)
+  (doc 'export #t)
   (doc 'type '(-> (FunctorDict t) (-> a b) (t a) (t b)))
   (doc 'description "Apply fmap using given functor dictionary")
   ((functor-fmap func) f container))
 
 (define (replace-with func val container)
+  (doc 'export #t)
   (doc 'type '(-> (FunctorDict t) b (t a) (t b)))
   (doc 'description "Replace all values in container, keeping structure")
   (fmap-with func (const val) container))
 
 (define (void-with func container)
+  (doc 'export #t)
   (doc 'type '(-> (FunctorDict t) (t a) (t Unit)))
   (doc 'description "Discard all values, keeping structure")
   (replace-with func '() container))
@@ -344,21 +372,25 @@
 ;;;   - Interchange: u <*> pure y = pure ($ y) <*> u
 
 (define (make-applicative pure-fn ap-fn)
+  (doc 'export #t)
   (doc 'type '(-> (-> a (f a)) (-> (f (-> a b)) (f a) (f b)) (ApplicativeDict f)))
   (doc 'description "Create an Applicative dictionary from pure and ap functions")
   (list 'applicative pure-fn ap-fn))
 
 (define (applicative? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is an Applicative dictionary")
   (and (pair? x) (eq? (car x) 'applicative)))
 
 (define (applicative-pure ap)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (-> a (f a))))
   (doc 'description "Extract pure function from Applicative dictionary")
   (cadr ap))
 
 (define (applicative-ap ap)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (-> (f (-> a b)) (f a) (f b))))
   (doc 'description "Extract ap (<*>) function from Applicative dictionary")
   (caddr ap))
@@ -397,11 +429,13 @@
 (doc 'section 'applicative-operations)
 
 (define (ap-with ap ff fx)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (f (-> a b)) (f a) (f b)))
   (doc 'description "Apply wrapped function to wrapped value using Applicative dictionary")
   ((applicative-ap ap) ff fx))
 
 (define (lift-a2 ap f fx fy)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (-> a b c) (f a) (f b) (f c)))
   (doc 'description "Lift binary function into applicative context: pure f <*> fx <*> fy")
   (let* ([pure (applicative-pure ap)]
@@ -410,6 +444,7 @@
         (ap-fn ff fy)))
 
 (define (sequence-a ap actions)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (List (f a)) (f (List a))))
   (doc 'description "Sequence list of applicative actions into action producing list")
   (let ([cons-curried (lambda (x) (lambda (xs) (cons x xs)))])
@@ -419,6 +454,7 @@
                    actions)))
 
 (define (traverse-a ap f xs)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (-> a (f b)) (List a) (f (List b))))
   (doc 'description "Map each element with an applicative action, then sequence")
   (sequence-a ap (map f xs)))
@@ -435,21 +471,25 @@
 ;;;   - Put-Put: set l a' (set l a s) = set l a' s
 
 (define (make-lens getter setter)
+  (doc 'export #t)
   (doc 'type '(-> (-> s a) (-> a s s) (Lens s a)))
   (doc 'description "Create a lens from getter and setter functions")
   (list 'lens getter setter))
 
 (define (lens? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a Lens")
   (and (pair? x) (eq? (car x) 'lens)))
 
 (define (lens-getter l)
+  (doc 'export #t)
   (doc 'type '(-> (Lens s a) (-> s a)))
   (doc 'description "Extract getter function from Lens")
   (cadr l))
 
 (define (lens-setter l)
+  (doc 'export #t)
   (doc 'type '(-> (Lens s a) (-> a s s)))
   (doc 'description "Extract setter function from Lens")
   (caddr l))
@@ -457,21 +497,25 @@
 (doc 'section 'lens-operations)
 
 (define (view lens s)
+  (doc 'export #t)
   (doc 'type '(-> (Lens s a) s a))
   (doc 'description "Get the focused value through a lens")
   ((lens-getter lens) s))
 
 (define (set-lens lens a s)
+  (doc 'export #t)
   (doc 'type '(-> (Lens s a) a s s))
   (doc 'description "Set the focused value through a lens")
   ((lens-setter lens) a s))
 
 (define (over lens f s)
+  (doc 'export #t)
   (doc 'type '(-> (Lens s a) (-> a a) s s))
   (doc 'description "Modify the focused value by applying a function")
   (set-lens lens (f (view lens s)) s))
 
 (define (lens-compose outer inner)
+  (doc 'export #t)
   (doc 'type '(-> (Lens s a) (Lens a b) (Lens s b)))
   (doc 'description "Compose two lenses; outer focuses on intermediate, inner focuses deeper")
   (make-lens
@@ -503,6 +547,7 @@
   (make-lens cdr (lambda (t xs) (cons (car xs) t))))
 
 (define (lens-nth n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Lens (List a) a)))
   (doc 'description "Create a lens focusing on the nth element of a list")
   (make-lens
@@ -516,6 +561,7 @@
                         (loop (+ i 1) (cdr xs) (cons (car xs) acc))))))))
 
 (define (lens-key key)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (Lens (Alist Symbol v) v)))
   (doc 'description "Create a lens focusing on the value for a key in an association list")
   (make-lens
@@ -532,31 +578,37 @@
 ;;;   - review : Prism s a → a → s
 
 (define (make-prism match build)
+  (doc 'export #t)
   (doc 'type '(-> (-> s (Maybe a)) (-> a s) (Prism s a)))
   (doc 'description "Create a prism from match (partial getter) and build (constructor) functions")
   (list 'prism match build))
 
 (define (prism? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a Prism")
   (and (pair? x) (eq? (car x) 'prism)))
 
 (define (prism-match p)
+  (doc 'export #t)
   (doc 'type '(-> (Prism s a) (-> s (Maybe a))))
   (doc 'description "Extract match function from Prism")
   (cadr p))
 
 (define (prism-build p)
+  (doc 'export #t)
   (doc 'type '(-> (Prism s a) (-> a s)))
   (doc 'description "Extract build function from Prism")
   (caddr p))
 
 (define (preview prism s)
+  (doc 'export #t)
   (doc 'type '(-> (Prism s a) s (Maybe a)))
   (doc 'description "Try to extract focused value from sum type via prism")
   ((prism-match prism) s))
 
 (define (review prism a)
+  (doc 'export #t)
   (doc 'type '(-> (Prism s a) a s))
   (doc 'description "Construct sum type value from focused part via prism")
   ((prism-build prism) a))
@@ -588,18 +640,21 @@
 ;;; Generate code templates for common patterns.
 
 (define (gen-monoid-template type-name identity-expr append-expr)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Any Any Sexp))
   (doc 'description "Generate monoid instance code template as an S-expression")
   `(define ,(string->symbol (format "monoid-~a" type-name))
     (make-monoid ,identity-expr ,append-expr)))
 
 (define (gen-functor-template type-name map-fn)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol Sexp))
   (doc 'description "Generate functor instance code template as an S-expression")
   `(define ,(string->symbol (format "functor-~a" type-name))
     (make-functor ,map-fn)))
 
 (define (gen-lens-template struct-name field-name)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol Sexp))
   (doc 'description "Generate lens code template for a struct field as an S-expression")
   (let ([getter (string->symbol (format "~a-~a" struct-name field-name))]

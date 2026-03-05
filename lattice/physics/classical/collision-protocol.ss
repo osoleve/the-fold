@@ -48,6 +48,7 @@
 (doc "collision-capable? : Symbol → Boolean")
 (doc "Check if a type has registered all collision protocols.")
 (define (collision-capable? type-tag)
+  (doc 'export #t)
   (and (type-implements? type-tag 'col-inv-mass)
        (type-implements? type-tag 'col-inv-inertia)
        (type-implements? type-tag 'col-static?)
@@ -58,6 +59,7 @@
 (doc "assert-collision-capable! : Any → Any or Error")
 (doc "Assert that a value's type implements all collision protocols.")
 (define (assert-collision-capable! body)
+  (doc 'export #t)
   (let ([type-tag (get-type-tag body)])
     (if (collision-capable? type-tag)
         body
@@ -69,18 +71,21 @@
 (doc 'col-relative-vel-at 'type 'Body × Body × Vec2 → Vec2)
 (doc "Relative velocity at contact point (B relative to A).")
 (define (col-relative-vel-at body-a body-b contact)
+  (doc 'export #t)
   (vec2-sub (col-vel-at body-b contact)
             (col-vel-at body-a contact)))
 
 (doc 'col-normal-vel-at 'type 'Body × Body × Vec2 × Vec2 → Number)
 (doc "Velocity along collision normal at contact point.")
 (define (col-normal-vel-at body-a body-b contact normal)
+  (doc 'export #t)
   (vec2-dot (col-relative-vel-at body-a body-b contact) normal))
 
 (doc 'col-effective-mass 'type 'Body × Body × Vec2 × Vec2 → Number)
 (doc "Calculate effective mass for impulse calculation including rotation.")
 (doc "Returns +inf.0 for static-static collisions (infinite effective mass).")
 (define (col-effective-mass body-a body-b contact normal)
+  (doc 'export #t)
   (let* ([inv-m-a (col-inv-mass body-a)]
          [inv-m-b (col-inv-mass body-b)]
          [inv-i-a (col-inv-inertia body-a)]

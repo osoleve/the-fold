@@ -167,6 +167,7 @@
 ;;; path-length : (List Hash) → Integer
 ;;; Get length of a path (number of edges).
 (define (path-length path)
+  (doc 'export #t)
   (if (null? path)
       0
       (- (length path) 1)))

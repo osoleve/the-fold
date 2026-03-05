@@ -56,50 +56,65 @@
 (doc 'section 'algebra-accessors)
 
 (define (tl-scene d id text . choices)
+  (doc 'export #t)
   (apply (dict-ref d 'scene) id text choices))
 
 (define (tl-choice d label target guard effect)
+  (doc 'export #t)
   ((dict-ref d 'choice) label target guard effect))
 
 (define (tl-text d template)
+  (doc 'export #t)
   ((dict-ref d 'text) template))
 
 ;; Guards
 (define (tl-guard-always d)
+  (doc 'export #t)
   ((dict-ref d 'guard-always)))
 
 (define (tl-guard-flag d name)
+  (doc 'export #t)
   ((dict-ref d 'guard-flag) name))
 
 (define (tl-guard-item d name)
+  (doc 'export #t)
   ((dict-ref d 'guard-item) name))
 
 (define (tl-guard-var d name op value)
+  (doc 'export #t)
   ((dict-ref d 'guard-var) name op value))
 
 (define (tl-guard-and d . guards)
+  (doc 'export #t)
   (apply (dict-ref d 'guard-and) guards))
 
 (define (tl-guard-or d . guards)
+  (doc 'export #t)
   (apply (dict-ref d 'guard-or) guards))
 
 (define (tl-guard-not d guard)
+  (doc 'export #t)
   ((dict-ref d 'guard-not) guard))
 
 ;; Effects
 (define (tl-effect-noop d)
+  (doc 'export #t)
   ((dict-ref d 'effect-noop)))
 
 (define (tl-effect-flag d name value)
+  (doc 'export #t)
   ((dict-ref d 'effect-flag) name value))
 
 (define (tl-effect-item d action name)
+  (doc 'export #t)
   ((dict-ref d 'effect-item) action name))
 
 (define (tl-effect-var d name op value)
+  (doc 'export #t)
   ((dict-ref d 'effect-var) name op value))
 
 (define (tl-effect-seq d . effects)
+  (doc 'export #t)
   (apply (dict-ref d 'effect-seq) effects))
 
 (doc 'section 'runtime-interpreter)
@@ -205,11 +220,13 @@
 
 ;;; Helper for and-map / or-map
 (define (and-map pred lst)
+  (doc 'export #t)
   (or (null? lst)
       (and (pred (car lst))
            (and-map pred (cdr lst)))))
 
 (define (or-map pred lst)
+  (doc 'export #t)
   (and (not (null? lst))
        (or (pred (car lst))
            (or-map pred (cdr lst)))))
@@ -251,6 +268,7 @@
 
 ;;; validate-chronicle : ChronicleProgram -> ValidationResult
 (define (validate-chronicle program start-scene)
+  (doc 'export #t)
   (let* ([scenes (program validation-chronicle-dict)]
          [scene-ids (map car scenes)]
          [all-targets (append-map cdr scenes)])
@@ -309,11 +327,13 @@
    (lambda effects (string-join effects "; "))))
 
 (define (->string x)
+  (doc 'export #t)
   (if (string? x) x (format "~a" x)))
 
 ;;; chronicle->dot : ChronicleProgram -> String
 ;;; Generate GraphViz DOT format.
 (define (chronicle->dot program title)
+  (doc 'export #t)
   (let ([scenes (program graph-chronicle-dict)])
        (string-append
         "digraph " (symbol->string title) " {\n"
@@ -336,6 +356,7 @@
 ;;; chronicle->mermaid : ChronicleProgram -> String
 ;;; Generate Mermaid flowchart format.
 (define (chronicle->mermaid program)
+  (doc 'export #t)
   (let ([scenes (program graph-chronicle-dict)])
        (string-append
         "flowchart TD\n"
@@ -390,6 +411,7 @@
 
 ;;; analyze-chronicle : ChronicleProgram -> Analysis
 (define (analyze-chronicle program)
+  (doc 'export #t)
   (let ([scenes (program analysis-chronicle-dict)])
        (let ([scene-count (length scenes)]
              ;; scenes are (scene id choice-count text-len)
@@ -410,6 +432,7 @@
 ;;; A sample chronicle program in tagless final style.
 
 (define (mysterious-door-chronicle d)
+  (doc 'export #t)
   (list
    ;; Entrance scene
    (tl-scene d 'entrance
@@ -477,12 +500,14 @@
 
 ;;; make-chronicle-runtime : ChronicleProgram -> Runtime
 (define (make-chronicle-runtime program start-scene)
+  (doc 'export #t)
   (let ([scenes (program runtime-chronicle-dict)]
         [state '()])
        (list 'chronicle-runtime scenes start-scene state)))
 
 ;;; chronicle-runtime-scene : Runtime -> Scene
 (define (chronicle-runtime-scene runtime)
+  (doc 'export #t)
   (let ([scenes (list-ref runtime 1)]
         [current (list-ref runtime 2)])
        ;; Scenes are ((scene id text choices...) ...), find by id
@@ -495,6 +520,7 @@
 ;;; chronicle-runtime-choices : Runtime -> [Choice]
 ;;; Get visible choices (guards pass).
 (define (chronicle-runtime-choices runtime)
+  (doc 'export #t)
   (let* ([scene (chronicle-runtime-scene runtime)]
          [state (list-ref runtime 3)]
          [choices (cdddr scene)])  ; skip 'scene, id, text
@@ -506,6 +532,7 @@
 ;;; chronicle-runtime-choose : Runtime -> Int -> Runtime
 ;;; Make a choice and transition to next scene.
 (define (chronicle-runtime-choose runtime idx)
+  (doc 'export #t)
   (let* ([choices (chronicle-runtime-choices runtime)]
          [choice (list-ref choices idx)]
          [target (list-ref choice 2)]
@@ -518,6 +545,7 @@
 ;;; chronicle-runtime-text : Runtime -> String
 ;;; Get current scene text.
 (define (chronicle-runtime-text runtime)
+  (doc 'export #t)
   (let ([scene (chronicle-runtime-scene runtime)])
        (list-ref scene 2)))
 

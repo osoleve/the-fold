@@ -34,6 +34,7 @@ Type-specific fields are documented with each constructor.")
 (doc 'section 'goal-predicates)
 
 (define (goal? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if x is a well-formed goal structure.")
   (and (pair? x)
@@ -41,11 +42,13 @@ Type-specific fields are documented with each constructor.")
        (assq 'context x)))
 
 (define (goal-type g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (doc 'description "Extract the goal type.")
   (cdr (assq 'type g)))
 
 (define (goal-context g)
+  (doc 'export #t)
   (doc 'type '(-> Goal (List (Pair Symbol Type))))
   (doc 'description "Extract the goal's hypothesis context.")
   (cdr (assq 'context g)))
@@ -60,6 +63,7 @@ Structure:
   carrier -> optional type annotation for the equality")
 
 (define (make-eq-goal ctx lhs rhs . opts)
+  (doc 'export #t)
   (doc 'type '(-> Context Expr Expr (Optional Type) Goal))
   (doc 'description "Create a goal to prove lhs = rhs.")
   (let ([carrier (if (null? opts) #f (car opts))])
@@ -70,18 +74,22 @@ Structure:
          (carrier . ,carrier))))
 
 (define (eq-goal? g)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (goal? g) (eq? (goal-type g) 'eq)))
 
 (define (eq-goal-lhs g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Expr))
   (cdr (assq 'lhs g)))
 
 (define (eq-goal-rhs g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Expr))
   (cdr (assq 'rhs g)))
 
 (define (eq-goal-carrier g)
+  (doc 'export #t)
   (doc 'type '(-> Goal (Union Type Boolean)))
   (let ([c (assq 'carrier g)])
        (if c (cdr c) #f)))
@@ -95,6 +103,7 @@ Structure:
   op      -> the binary operation")
 
 (define (make-assoc-goal ctx op)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Goal))
   (doc 'description "Create a goal to prove op is associative.")
   `((type . assoc)
@@ -102,10 +111,12 @@ Structure:
     (op . ,op)))
 
 (define (assoc-goal? g)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (goal? g) (eq? (goal-type g) 'assoc)))
 
 (define (assoc-goal-op g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (cdr (assq 'op g)))
 
@@ -119,6 +130,7 @@ Structure:
   identity -> the identity element")
 
 (define (make-left-id-goal ctx op identity)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Expr Goal))
   (doc 'description "Create a goal to prove e is a left identity for op.")
   `((type . left-id)
@@ -127,14 +139,17 @@ Structure:
     (identity . ,identity)))
 
 (define (left-id-goal? g)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (goal? g) (eq? (goal-type g) 'left-id)))
 
 (define (left-id-goal-op g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (cdr (assq 'op g)))
 
 (define (left-id-goal-identity g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Expr))
   (cdr (assq 'identity g)))
 
@@ -147,6 +162,7 @@ Structure:
   identity -> the identity element")
 
 (define (make-right-id-goal ctx op identity)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Expr Goal))
   (doc 'description "Create a goal to prove e is a right identity for op.")
   `((type . right-id)
@@ -155,18 +171,22 @@ Structure:
     (identity . ,identity)))
 
 (define (right-id-goal? g)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (goal? g) (eq? (goal-type g) 'right-id)))
 
 (define (right-id-goal-op g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (cdr (assq 'op g)))
 
 (define (right-id-goal-identity g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Expr))
   (cdr (assq 'identity g)))
 
 (define (make-id-goal ctx op identity side)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Expr Symbol Goal))
   (doc 'description "Create an identity goal with specified side ('left or 'right).")
   (case side
@@ -175,6 +195,7 @@ Structure:
         [else    (make-left-id-goal ctx op identity)]))
 
 (define (id-goal? g)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if goal is any kind of identity goal.")
   (or (left-id-goal? g) (right-id-goal? g)))
@@ -193,6 +214,7 @@ Structure:
   side     -> 'left, 'right, or 'both")
 
 (define (make-inv-goal ctx op inv identity side)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Symbol Expr Symbol Goal))
   (doc 'description "Create a goal to prove inv is an inverse for op.")
   `((type . inv)
@@ -203,28 +225,34 @@ Structure:
     (side . ,side)))
 
 (define (inv-goal? g)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (goal? g) (eq? (goal-type g) 'inv)))
 
 (define (inv-goal-op g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (cdr (assq 'op g)))
 
 (define (inv-goal-inv g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (cdr (assq 'inv g)))
 
 (define (inv-goal-identity g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Expr))
   (cdr (assq 'identity g)))
 
 (define (inv-goal-side g)
+  (doc 'export #t)
   (doc 'type '(-> Goal Symbol))
   (cdr (assq 'side g)))
 
 (doc 'section 'goal-decomposition)
 
 (define (decompose-goal goal)
+  (doc 'export #t)
   (doc 'type '(-> Goal (List eq-goal)))
   (doc 'description "Expand a high-level goal into concrete equality goals with metavariables.
 
@@ -292,6 +320,7 @@ Inverse decomposes to one or two equalities depending on side.")
 (doc 'section 'goal-utilities)
 
 (define (goal->string g)
+  (doc 'export #t)
   (doc 'type '(-> Goal String))
   (doc 'description "Format a goal for display.")
   (case (goal-type g)
@@ -317,6 +346,7 @@ Inverse decomposes to one or two equalities depending on side.")
          (format "Unknown goal: ~a" g)]))
 
 (define (goal-vars g)
+  (doc 'export #t)
   (doc 'type '(-> Goal (List Symbol)))
   (doc 'description "Collect metavariable names from decomposed goal.")
   (let ([eqs (decompose-goal g)])
@@ -326,6 +356,7 @@ Inverse decomposes to one or two equalities depending on side.")
                    eqs)))
 
 (define (goal-vars-unique g)
+  (doc 'export #t)
   (doc 'type '(-> Goal (List Symbol)))
   (doc 'description "Collect unique metavariable names.")
   (let ([vars (goal-vars g)])
@@ -338,6 +369,7 @@ Inverse decomposes to one or two equalities depending on side.")
 (doc 'section 'goal-comparison)
 
 (define (goals-equal? g1 g2)
+  (doc 'export #t)
   (doc 'type '(-> Goal Goal Boolean))
   (doc 'description "Check if two goals are structurally equal.")
   (and (eq? (goal-type g1) (goal-type g2))
@@ -363,6 +395,7 @@ Inverse decomposes to one or two equalities depending on side.")
 (doc 'section 'goal-transformation)
 
 (define (flip-eq-goal g)
+  (doc 'export #t)
   (doc 'type '(-> eq-goal eq-goal))
   (doc 'description "Swap lhs and rhs of an equality goal (symmetry).")
   (if (eq-goal? g)
@@ -373,6 +406,7 @@ Inverse decomposes to one or two equalities depending on side.")
       g))
 
 (define (add-hypothesis g hyp)
+  (doc 'export #t)
   (doc 'type '(-> Goal (Pair Symbol Type) Goal))
   (doc 'description "Add a hypothesis to a goal's context.")
   (let ([type (goal-type g)]
@@ -387,6 +421,7 @@ Inverse decomposes to one or two equalities depending on side.")
 (doc 'description "Convenience constructors for common algebraic structures.")
 
 (define (monoid-goals ctx op identity)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Expr (List Goal)))
   (doc 'description "Create all three monoid law goals for operation op with identity e.")
   (list (make-assoc-goal ctx op)
@@ -394,12 +429,14 @@ Inverse decomposes to one or two equalities depending on side.")
         (make-right-id-goal ctx op identity)))
 
 (define (group-goals ctx op inv identity)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol Symbol Expr (List Goal)))
   (doc 'description "Create all group law goals: monoid laws plus inverse laws.")
   (append (monoid-goals ctx op identity)
           (list (make-inv-goal ctx op inv identity 'both))))
 
 (define (semigroup-goals ctx op)
+  (doc 'export #t)
   (doc 'type '(-> Context Symbol (List Goal)))
   (doc 'description "Create semigroup goal (just associativity).")
   (list (make-assoc-goal ctx op)))

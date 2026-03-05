@@ -19,11 +19,13 @@
 (doc set-empty 'description "The empty set")
 
 (define (set-empty? set)
+  (doc 'export #t)
   (doc 'type (-> Set Boolean))
   (doc 'description "Check if set is empty")
   (null? set))
 
 (define (set-member? elem set)
+  (doc 'export #t)
   (doc 'type (-> α Set Boolean))
   (doc 'description "Check if element is in set")
   (cond
@@ -32,6 +34,7 @@
    [else (set-member? elem (cdr set))]))
 
 (define (set-add elem set)
+  (doc 'export #t)
   (doc 'type (-> α Set Set))
   (doc 'description "Add element to set")
   (if (set-member? elem set)
@@ -39,6 +42,7 @@
       (cons elem set)))
 
 (define (set-remove elem set)
+  (doc 'export #t)
   (doc 'type (-> α Set Set))
   (doc 'description "Remove element from set")
   (let loop ([remaining set]
@@ -50,6 +54,7 @@
         [else (loop (cdr remaining) (cons (car remaining) acc))])))
 
 (define (set-union set1 set2)
+  (doc 'export #t)
   (doc 'type (-> Set Set Set))
   (doc 'description "Union of two sets")
   (let loop ([remaining set1]
@@ -60,6 +65,7 @@
                  (set-add (car remaining) result)))))
 
 (define (set-intersection set1 set2)
+  (doc 'export #t)
   (doc 'type (-> Set Set Set))
   (doc 'description "Intersection of two sets")
   (let loop ([remaining set1]
@@ -71,6 +77,7 @@
         [else (loop (cdr remaining) acc)])))
 
 (define (set-difference set1 set2)
+  (doc 'export #t)
   (doc 'type (-> Set Set Set))
   (doc 'description "Elements in set1 but not in set2")
   (let loop ([remaining set1]
@@ -82,6 +89,7 @@
         [else (loop (cdr remaining) (cons (car remaining) acc))])))
 
 (define (set-subset? set1 set2)
+  (doc 'export #t)
   (doc 'type (-> Set Set Boolean))
   (doc 'description "Check if set1 is a subset of set2")
   (let loop ([remaining set1])
@@ -92,16 +100,19 @@
         [else #f])))
 
 (define (set-size set)
+  (doc 'export #t)
   (doc 'type (-> Set Nat))
   (doc 'description "Get number of elements in set")
   (length set))
 
 (define (set->list set)
+  (doc 'export #t)
   (doc 'type (-> Set (List α)))
   (doc 'description "Convert set to list (arbitrary order)")
   set)
 
 (define (list->set lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) Set))
   (doc 'description "Convert list to set (removes duplicates)")
   (let loop ([remaining lst]

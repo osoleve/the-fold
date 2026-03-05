@@ -54,6 +54,7 @@ KEY DEFINITIONS:
 ;;; NOTE: We don't represent all morphisms explicitly. In Set, morphisms
 ;;; are Scheme functions. In Σ-Alg, morphisms are algebra homomorphisms.
 (define (make-category name obj? mor? dom cod id-at compose)
+  (doc 'export #t)
   (doc 'type '(-> Symbol
                   (-> Any Boolean)
                   (-> Any Boolean)
@@ -65,36 +66,44 @@ KEY DEFINITIONS:
   (list 'category name obj? mor? dom cod id-at compose))
 
 (define (category? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'category)
        (= (length x) 8)))
 
 (define (category-name cat)
+  (doc 'export #t)
   (doc 'type '(-> Category Symbol))
   (if (category? cat) (cadr cat) 'unknown))
 
 (define (category-obj? cat)
+  (doc 'export #t)
   (doc 'type '(-> Category (-> Any Boolean)))
   (if (category? cat) (caddr cat) (lambda (_) #f)))
 
 (define (category-mor? cat)
+  (doc 'export #t)
   (doc 'type '(-> Category (-> Any Boolean)))
   (if (category? cat) (cadddr cat) (lambda (_) #f)))
 
 (define (category-dom cat)
+  (doc 'export #t)
   (doc 'type '(-> Category (-> Mor Obj)))
   (if (category? cat) (car (cddddr cat)) #f))
 
 (define (category-cod cat)
+  (doc 'export #t)
   (doc 'type '(-> Category (-> Mor Obj)))
   (if (category? cat) (cadr (cddddr cat)) #f))
 
 (define (category-id-at cat)
+  (doc 'export #t)
   (doc 'type '(-> Category (-> Obj Mor)))
   (if (category? cat) (caddr (cddddr cat)) #f))
 
 (define (category-compose cat)
+  (doc 'export #t)
   (doc 'type '(-> Category (-> Mor Mor Mor)))
   (if (category? cat) (cadddr (cddddr cat)) #f))
 
@@ -105,12 +114,14 @@ KEY DEFINITIONS:
 ;;; cat-id : Category × Obj → Mor
 ;;; Get the identity morphism at an object.
 (define (cat-id cat obj)
+  (doc 'export #t)
   (doc 'type '(-> Category Obj Mor))
   ((category-id-at cat) obj))
 
 ;;; cat-compose : Category × Mor × Mor → Mor
 ;;; Compose two morphisms: (g ∘ f) where cod(f) = dom(g).
 (define (cat-compose cat g f)
+  (doc 'export #t)
   (doc 'type '(-> Category Mor Mor Mor))
   ((category-compose cat) g f))
 
@@ -179,6 +190,7 @@ The counit ε_A : Free(U(A)) → A is indexed by algebras A ∈ Σ-Alg.")
 ;;; NOTE: This depends on algebra?, algebra-hom?, etc. from free-algebra.ss.
 ;;; Since this is multi-category infrastructure, we define predicates inline.
 (define (cat-Alg sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature Category))
   (doc 'description "Construct the category of Σ-algebras for signature Σ.
 Objects: Σ-algebras
@@ -232,6 +244,7 @@ Morphisms: Algebra homomorphisms")
 ;;; verify-category-identity : Category × Obj × Mor → Boolean
 ;;; Verify identity law: id ∘ f = f = f ∘ id
 (define (verify-category-identity cat obj f test-value)
+  (doc 'export #t)
   (doc 'type '(-> Category Obj Mor Any Boolean))
   (doc 'description "Verify identity morphism law for a specific morphism.
 f should be a morphism with domain/codomain = obj.")
@@ -245,6 +258,7 @@ f should be a morphism with domain/codomain = obj.")
 ;;; verify-category-associativity : Category × Mor × Mor × Mor × Any → Boolean
 ;;; Verify associativity: (h ∘ g) ∘ f = h ∘ (g ∘ f)
 (define (verify-category-associativity cat h g f test-value)
+  (doc 'export #t)
   (doc 'type '(-> Category Mor Mor Mor Any Boolean))
   (doc 'description "Verify composition associativity for three morphisms.")
   (let ([compose (category-compose cat)])
@@ -257,6 +271,7 @@ f should be a morphism with domain/codomain = obj.")
 
 ;;; category->string : Category → String
 (define (category->string cat)
+  (doc 'export #t)
   (doc 'type '(-> Category String))
   (if (category? cat)
       (format "Category<~a>" (category-name cat))

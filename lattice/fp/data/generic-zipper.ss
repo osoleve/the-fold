@@ -47,35 +47,43 @@ Type grammar:
 (doc 'section 'type-constructors)
 
 (define type-zero 0)
+(doc type-zero 'export #t)
 (doc type-zero 'type 'Type)
 (doc type-zero 'description "The empty/void type. Has no inhabitants.")
 
 (define type-one 1)
+(doc type-one 'export #t)
 (doc type-one 'type 'Type)
 (doc type-one 'description "The unit type. Has exactly one inhabitant.")
 
 (define (type-zero? t)
+  (doc 'export #t)
   (doc 'type '(-> Type Bool))
   (equal? t 0))
 
 (define (type-one? t)
+  (doc 'export #t)
   (doc 'type '(-> Type Bool))
   (equal? t 1))
 
 (define (type-var name)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Type))
   (doc 'description "A type variable.")
   (list 'var name))
 
 (define (type-var? t)
+  (doc 'export #t)
   (doc 'type '(-> Type Bool))
   (and (pair? t) (eq? (car t) 'var)))
 
 (define (type-var-name t)
+  (doc 'export #t)
   (doc 'type '(-> Type Symbol))
   (cadr t))
 
 (define (type-sum . types)
+  (doc 'export #t)
   (doc 'type '(-> Type ... Type))
   (doc 'description "Sum type (tagged union). Represents A + B + C + ...")
   (cond
@@ -84,14 +92,17 @@ Type grammar:
     [else (cons '+ types)]))
 
 (define (type-sum? t)
+  (doc 'export #t)
   (doc 'type '(-> Type Bool))
   (and (pair? t) (eq? (car t) '+)))
 
 (define (type-sum-components t)
+  (doc 'export #t)
   (doc 'type '(-> Type (List Type)))
   (if (type-sum? t) (cdr t) (list t)))
 
 (define (type-prod . types)
+  (doc 'export #t)
   (doc 'type '(-> Type ... Type))
   (doc 'description "Product type (tuple). Represents A × B × C × ...")
   (cond
@@ -100,33 +111,40 @@ Type grammar:
     [else (cons '* types)]))
 
 (define (type-prod? t)
+  (doc 'export #t)
   (doc 'type '(-> Type Bool))
   (and (pair? t) (eq? (car t) '*)))
 
 (define (type-prod-components t)
+  (doc 'export #t)
   (doc 'type '(-> Type (List Type)))
   (if (type-prod? t) (cdr t) (list t)))
 
 (define (type-rec var body)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Type Type))
   (doc 'description "Recursive type μX. T where X may appear in T.")
   (list 'mu var body))
 
 (define (type-rec? t)
+  (doc 'export #t)
   (doc 'type '(-> Type Bool))
   (and (pair? t) (eq? (car t) 'mu)))
 
 (define (type-rec-var t)
+  (doc 'export #t)
   (doc 'type '(-> Type Symbol))
   (cadr t))
 
 (define (type-rec-body t)
+  (doc 'export #t)
   (doc 'type '(-> Type Type))
   (caddr t))
 
 (doc 'section 'common-type-patterns)
 
 (define (type-list elem-type)
+  (doc 'export #t)
   (doc 'type '(-> Type Type))
   (doc 'description "List a = μL. 1 + a × L")
   (type-rec 'L
@@ -134,25 +152,30 @@ Type grammar:
               (type-prod elem-type (type-var 'L)))))
 
 (define (type-maybe elem-type)
+  (doc 'export #t)
   (doc 'type '(-> Type Type))
   (doc 'description "Maybe a = 1 + a")
   (type-sum type-one elem-type))
 
 (define (type-pair a b)
+  (doc 'export #t)
   (doc 'type '(-> Type Type Type))
   (type-prod a b))
 
 (define (type-either a b)
+  (doc 'export #t)
   (doc 'type '(-> Type Type Type))
   (type-sum a b))
 
 (define (type-rose-tree elem-type)
+  (doc 'export #t)
   (doc 'type '(-> Type Type))
   (doc 'description "Rose tree (n-ary tree): Tree a = μT. a × List(T)")
   (type-rec 'T
     (type-prod elem-type (type-list (type-var 'T)))))
 
 (define (type-binary-tree elem-type)
+  (doc 'export #t)
   (doc 'type '(-> Type Type))
   (doc 'description "Binary tree: BTree a = μT. 1 + a × T × T")
   (type-rec 'T
@@ -173,6 +196,7 @@ Differentiation rules:
   D[μX.F]/a = ...      (recursive types are more complex)")
 
 (define (type-deriv t v)
+  (doc 'export #t)
   (doc 'type '(-> Type Symbol Type))
   (doc 'description "Compute the derivative of type t with respect to variable v.")
   (cond
@@ -204,6 +228,7 @@ Differentiation rules:
     [else type-zero]))
 
 (define (type-deriv-prod components v)
+  (doc 'export #t)
   (doc 'type '(-> (List Type) Symbol Type))
   (doc 'description "Product rule for n-ary products.
 d(T1 × T2 × ... × Tn)/da =
@@ -224,6 +249,7 @@ d(T1 × T2 × ... × Tn)/da =
                 (iota n)))))
 
 (define (type-subst t v replacement)
+  (doc 'export #t)
   (doc 'type '(-> Type Symbol Type Type))
   (doc 'description "Substitute type `replacement` for variable `v` in type `t`.")
   (cond
@@ -257,6 +283,7 @@ d(T1 × T2 × ... × Tn)/da =
 (doc 'section 'type-simplification)
 
 (define (type-simplify t)
+  (doc 'export #t)
   (doc 'type '(-> Type Type))
   (doc 'description "Simplify type expressions by eliminating 0s and 1s.")
   (cond
@@ -288,6 +315,7 @@ d(T1 × T2 × ... × Tn)/da =
     [else t]))
 
 (define (any pred lst)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Bool) (List α) Bool))
   (cond
     [(null? lst) #f]
@@ -297,12 +325,14 @@ d(T1 × T2 × ... × Tn)/da =
 (doc 'section 'zipper-type-construction)
 
 (define (make-zipper-type t v)
+  (doc 'export #t)
   (doc 'type '(-> Type Symbol Type))
   (doc 'description "Construct the zipper type for type T focused on variable v.
 Zipper T = T' × T where T' is the derivative (context).")
   (type-prod (type-simplify (type-deriv t v)) t))
 
 (define (context-type t v)
+  (doc 'export #t)
   (doc 'type '(-> Type Symbol Type))
   (doc 'description "Get just the context type (derivative) for a type.")
   (type-simplify (type-deriv t v)))
@@ -317,22 +347,26 @@ where:
 (define generic-zipper-tag 'generic-zipper)
 
 (define (make-generic-zipper focus contexts)
+  (doc 'export #t)
   (doc 'type '(-> α (List Context) (GenericZipper α)))
   (list generic-zipper-tag focus contexts))
 
 (define (generic-zipper? z)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? z)
        (eq? (car z) generic-zipper-tag)
        (= (length z) 3)))
 
 (define (generic-zipper-focus z)
+  (doc 'export #t)
   (doc 'type '(-> (GenericZipper α) α))
   (if (generic-zipper? z)
       (list-ref z 1)
       (error 'generic-zipper-focus "not a generic zipper")))
 
 (define (generic-zipper-contexts z)
+  (doc 'export #t)
   (doc 'type '(-> (GenericZipper α) (List Context)))
   (if (generic-zipper? z)
       (list-ref z 2)
@@ -349,6 +383,7 @@ For a sum type A + B + C where B has the hole:
 (define context-frame-tag 'context-frame)
 
 (define (make-context-frame kind position siblings)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Nat (List Val) ContextFrame))
   (doc 'param 'kind "'prod or 'sum")
   (doc 'param 'position "which component has the hole (0-indexed)")
@@ -356,38 +391,46 @@ For a sum type A + B + C where B has the hole:
   (list context-frame-tag kind position siblings))
 
 (define (context-frame? f)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? f)
        (eq? (car f) context-frame-tag)))
 
 (define (context-frame-kind f)
+  (doc 'export #t)
   (doc 'type '(-> ContextFrame Symbol))
   (list-ref f 1))
 
 (define (context-frame-position f)
+  (doc 'export #t)
   (doc 'type '(-> ContextFrame Nat))
   (list-ref f 2))
 
 (define (context-frame-siblings f)
+  (doc 'export #t)
   (doc 'type '(-> ContextFrame (List Val)))
   (list-ref f 3))
 
 (doc 'section 'generic-zipper-operations)
 
 (define (generic-zipper-at-root? z)
+  (doc 'export #t)
   (doc 'type '(-> (GenericZipper α) Bool))
   (null? (generic-zipper-contexts z)))
 
 (define (generic-zipper-depth z)
+  (doc 'export #t)
   (doc 'type '(-> (GenericZipper α) Nat))
   (length (generic-zipper-contexts z)))
 
 (define (generic-zipper-set z new-focus)
+  (doc 'export #t)
   (doc 'type '(-> (GenericZipper α) α (GenericZipper α)))
   (doc 'description "Replace the focused value.")
   (make-generic-zipper new-focus (generic-zipper-contexts z)))
 
 (define (generic-zipper-modify z f)
+  (doc 'export #t)
   (doc 'type '(-> (GenericZipper α) (-> α α) (GenericZipper α)))
   (doc 'description "Apply a function to the focused value.")
   (make-generic-zipper (f (generic-zipper-focus z))
@@ -396,6 +439,7 @@ For a sum type A + B + C where B has the hole:
 (doc 'section 'type-display)
 
 (define (type->string t)
+  (doc 'export #t)
   (doc 'type '(-> Type String))
   (doc 'description "Pretty-print a type expression.")
   (cond

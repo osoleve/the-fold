@@ -18,15 +18,18 @@
 (doc 'section 'documentation)
 
 (define *protocol-docs* hamt-empty)
+(doc *protocol-docs* 'export #t)
 (doc *protocol-docs* 'type '(HAMT Symbol ProtocolDoc))
 (doc *protocol-docs* 'description "Registry mapping protocol names to their documentation records")
 
 ;;; ProtocolDoc structure:
 ;;;   (protocol-doc name docstring signature module)
 (define (make-protocol-doc name docstring signature module)
+  (doc 'export #t)
   (list 'protocol-doc name docstring signature module))
 
 (define (protocol-doc? x)
+  (doc 'export #t)
   (and (pair? x) (eq? 'protocol-doc (car x))))
 
 (define (protocol-doc-name doc) (list-ref doc 1))
@@ -37,16 +40,19 @@
 ;;; register-protocol-doc! : Symbol × String × (Or Signature #f) × (Or Symbol #f) → Void
 ;;; Register documentation for a protocol.
 (define (register-protocol-doc! name docstring signature module)
+  (doc 'export #t)
   (set! *protocol-docs* (hamt-assoc name
     (make-protocol-doc name docstring signature module) *protocol-docs*)))
 
 ;;; get-protocol-doc : Symbol → ProtocolDoc | #f
 (define (get-protocol-doc name)
+  (doc 'export #t)
   (hamt-lookup name *protocol-docs*))
 
 ;;; protocol-docstring : Symbol → String | #f
 ;;; Get just the docstring for a protocol.
 (define (protocol-docstring name)
+  (doc 'export #t)
   (let ([doc (get-protocol-doc name)])
     (and doc (protocol-doc-docstring doc))))
 
@@ -60,6 +66,7 @@
 ;;; List all protocols that a type implements.
 ;;; Scans the entire protocol registry (O(protocols × types)).
 (define (protocols-for-type type-tag)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Symbol)))
   (doc 'description "Find all protocols implemented by a given type tag")
   (filter
@@ -70,6 +77,7 @@
 ;;; all-type-tags : → (List Symbol)
 ;;; Collect all unique type tags across all protocols.
 (define (all-type-tags)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol)))
   (doc 'description "List all type tags that implement any protocol")
   (let ([seen (fold-left
@@ -92,6 +100,7 @@
 ;;; protocol-describe : Symbol → String
 ;;; Generate a rich description of a protocol.
 (define (protocol-describe proto-name)
+  (doc 'export #t)
   (doc 'type '(-> Symbol String))
   (doc 'description "Generate human-readable description of a protocol")
   (let* ([doc (get-protocol-doc proto-name)]
@@ -119,6 +128,7 @@
 ;;; type-describe : Symbol → String
 ;;; Generate a description of what protocols a type implements.
 (define (type-describe type-tag)
+  (doc 'export #t)
   (doc 'type '(-> Symbol String))
   (doc 'description "Generate human-readable description of a type's protocol implementations")
   (let ([protos (protocols-for-type type-tag)])
@@ -141,6 +151,7 @@
 
 ;;; truncate-string : String × Number → String
 (define (truncate-string s max-len)
+  (doc 'export #t)
   (if (<= (string-length s) max-len)
       s
       (string-append (substring s 0 (- max-len 3)) "...")))
@@ -156,6 +167,7 @@
 ;;; Rows = protocols, Columns = types.
 ;;; Optional type-tags/proto-names to limit display.
 (define (protocol-matrix . args)
+  (doc 'export #t)
   (doc 'type '(-> (Optional (List Symbol)) (Optional (List Symbol)) String))
   (doc 'description "ASCII matrix of protocol/type relationships. ✓ = implements")
   (let* ([types (if (and (pair? args) (pair? (car args)))
@@ -170,6 +182,7 @@
 
 ;;; build-matrix-string : (List Symbol) × (List Symbol) → String
 (define (build-matrix-string protos types)
+  (doc 'export #t)
   (let* ([proto-col-width (min 25 (+ 2 (apply max (map symbol-length protos))))]
          [type-col-width 12]
          [header (build-header types type-col-width proto-col-width)]
@@ -181,6 +194,7 @@
 
 ;;; build-header : (List Symbol) × Number × Number → String
 (define (build-header types type-width proto-width)
+  (doc 'export #t)
   (string-append
     (pad-right "" proto-width)
     (apply string-append
@@ -189,6 +203,7 @@
 
 ;;; build-row : Symbol × (List Symbol) × Number × Number → String
 (define (build-row proto types type-width proto-width)
+  (doc 'export #t)
   (string-append
     (pad-right (truncate-symbol proto (- proto-width 1)) proto-width)
     (apply string-append
@@ -199,6 +214,7 @@
 
 ;;; pad-right : String × Number → String
 (define (pad-right s width)
+  (doc 'export #t)
   (let ([len (string-length s)])
     (if (>= len width)
         (substring s 0 width)
@@ -206,10 +222,12 @@
 
 ;;; symbol-length : Symbol → Number
 (define (symbol-length s)
+  (doc 'export #t)
   (string-length (symbol->string s)))
 
 ;;; truncate-symbol : Symbol × Number → String
 (define (truncate-symbol s max-len)
+  (doc 'export #t)
   (truncate-string (symbol->string s) max-len))
 
 ;;; ============================================================
@@ -219,6 +237,7 @@
 ;;; protocol-graph : → String
 ;;; Show a text-based graph of protocol → type relationships.
 (define (protocol-graph)
+  (doc 'export #t)
   (doc 'type '(-> String))
   (doc 'description "Text-based graph showing protocol → type relationships")
   (let ([protos (list-protocols)])
@@ -238,6 +257,7 @@
 
 ;;; format-impl-tree : (List Symbol) → String
 (define (format-impl-tree impls)
+  (doc 'export #t)
   (let loop ([remaining impls] [result ""])
     (cond
       [(null? remaining) result]
@@ -256,6 +276,7 @@
 ;;; protocol-stats : → AssocList
 ;;; Return statistics about the protocol system.
 (define (protocol-stats)
+  (doc 'export #t)
   (doc 'type '(-> (List (Symbol . Number))))
   (doc 'description "Statistics about registered protocols and types")
   (let* ([protos (list-protocols)]
@@ -271,6 +292,7 @@
 
 ;;; print-protocol-stats : → Void
 (define (print-protocol-stats)
+  (doc 'export #t)
   (let ([stats (protocol-stats)])
     (display "Protocol System Statistics\n")
     (display (make-string 40 #\-))
@@ -315,16 +337,19 @@
 ;;; pi : Symbol → Void (Protocol Info)
 ;;; Quick REPL command to describe a protocol.
 (define (pi proto-name)
+  (doc 'export #t)
   (display (protocol-describe proto-name)))
 
 ;;; ti : Symbol → Void (Type Info)
 ;;; Quick REPL command to describe a type.
 (define (ti type-tag)
+  (doc 'export #t)
   (display (type-describe type-tag)))
 
 ;;; pm : → Void (Protocol Matrix)
 ;;; Quick REPL command to show protocol matrix.
 (define (pm)
+  (doc 'export #t)
   (display (protocol-matrix)))
 
 ;;; ============================================================

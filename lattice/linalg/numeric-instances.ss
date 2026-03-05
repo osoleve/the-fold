@@ -47,11 +47,13 @@ Dependencies:
 ;;; vec-abs : Vec Num → Vec Num
 ;;; Element-wise absolute value.
 (define (vec-abs v)
+  (doc 'export #t)
   (vec-map abs v))
 
 ;;; vec-signum : Vec Num → Vec Num
 ;;; Element-wise signum (-1, 0, or 1).
 (define (vec-signum v)
+  (doc 'export #t)
   (vec-map (lambda (x)
                    (cond [(< x 0) -1]
                          [(> x 0) 1]
@@ -61,6 +63,7 @@ Dependencies:
 ;;; vec-from-integer : Nat × Int → Vec Int
 ;;; Create a vector of n copies of the integer.
 (define (vec-from-integer n val)
+  (doc 'export #t)
   (make-vec n val))
 
 ;;; ====
@@ -74,6 +77,7 @@ Dependencies:
 ;;; vec-recip : Vec Num → Vec Num
 ;;; Element-wise reciprocal (1/x).
 (define (vec-recip v)
+  (doc 'export #t)
   (vec-map (lambda (x) (/ 1 x)) v))
 
 (doc 'section 'vec-floating-instance
@@ -83,71 +87,85 @@ Dependencies:
      'type (-> Nat (Vec Num))
      'description "Create a vector of n copies of pi")
 (define (vec-pi n)
+  (doc 'export #t)
   (make-vec n 3.141592653589793))
 
 ;;; vec-exp : Vec Num → Vec Num
 ;;; Element-wise exponential.
 (define (vec-exp v)
+  (doc 'export #t)
   (vec-map exp v))
 
 ;;; vec-log : Vec Num → Vec Num
 ;;; Element-wise natural logarithm.
 (define (vec-log v)
+  (doc 'export #t)
   (vec-map log v))
 
 ;;; vec-sqrt : Vec Num → Vec Num
 ;;; Element-wise square root.
 (define (vec-sqrt v)
+  (doc 'export #t)
   (vec-map sqrt v))
 
 ;;; vec-pow : Vec Num × Vec Num → Vec Num | Error
 ;;; Element-wise exponentiation.
 (define (vec-pow v1 v2)
+  (doc 'export #t)
   (vec-zip-with expt v1 v2))
 
 ;;; vec-sin : Vec Num → Vec Num
 ;;; Element-wise sine.
 (define (vec-sin v)
+  (doc 'export #t)
   (vec-map sin v))
 
 ;;; vec-cos : Vec Num → Vec Num
 ;;; Element-wise cosine.
 (define (vec-cos v)
+  (doc 'export #t)
   (vec-map cos v))
 
 ;;; vec-tan : Vec Num → Vec Num
 ;;; Element-wise tangent.
 (define (vec-tan v)
+  (doc 'export #t)
   (vec-map tan v))
 
 ;;; vec-asin : Vec Num → Vec Num
 ;;; Element-wise arc sine.
 (define (vec-asin v)
+  (doc 'export #t)
   (vec-map asin v))
 
 ;;; vec-acos : Vec Num → Vec Num
 ;;; Element-wise arc cosine.
 (define (vec-acos v)
+  (doc 'export #t)
   (vec-map acos v))
 
 ;;; vec-atan : Vec Num → Vec Num
 ;;; Element-wise arc tangent.
 (define (vec-atan v)
+  (doc 'export #t)
   (vec-map atan v))
 
 ;;; vec-sinh : Vec Num → Vec Num
 ;;; Element-wise hyperbolic sine.
 (define (vec-sinh v)
+  (doc 'export #t)
   (vec-map (lambda (x) (/ (- (exp x) (exp (- x))) 2)) v))
 
 ;;; vec-cosh : Vec Num → Vec Num
 ;;; Element-wise hyperbolic cosine.
 (define (vec-cosh v)
+  (doc 'export #t)
   (vec-map (lambda (x) (/ (+ (exp x) (exp (- x))) 2)) v))
 
 ;;; vec-tanh : Vec Num → Vec Num
 ;;; Element-wise hyperbolic tangent.
 (define (vec-tanh v)
+  (doc 'export #t)
   (vec-map (lambda (x)
                    (let ([ex (exp x)]
                          [e-x (exp (- x))])
@@ -157,16 +175,19 @@ Dependencies:
 ;;; vec-asinh : Vec Num → Vec Num
 ;;; Element-wise inverse hyperbolic sine.
 (define (vec-asinh v)
+  (doc 'export #t)
   (vec-map (lambda (x) (log (+ x (sqrt (+ (* x x) 1))))) v))
 
 ;;; vec-acosh : Vec Num → Vec Num
 ;;; Element-wise inverse hyperbolic cosine.
 (define (vec-acosh v)
+  (doc 'export #t)
   (vec-map (lambda (x) (log (+ x (sqrt (- (* x x) 1))))) v))
 
 ;;; vec-atanh : Vec Num → Vec Num
 ;;; Element-wise inverse hyperbolic tangent.
 (define (vec-atanh v)
+  (doc 'export #t)
   (vec-map (lambda (x) (/ (log (/ (+ 1 x) (- 1 x))) 2)) v))
 
 (doc 'section 'matrix-num-instance
@@ -184,6 +205,7 @@ Dependencies:
 ;;; matrix-hadamard : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise multiplication (Hadamard product).
 (define (matrix-hadamard m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)]
         [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)]
@@ -205,16 +227,19 @@ Dependencies:
 ;;; matrix-negate : Matrix Num → Matrix Num
 ;;; Negate all elements.
 (define (matrix-negate m)
+  (doc 'export #t)
   (matrix-map - m))
 
 ;;; matrix-abs : Matrix Num → Matrix Num
 ;;; Element-wise absolute value.
 (define (matrix-abs m)
+  (doc 'export #t)
   (matrix-map abs m))
 
 ;;; matrix-signum : Matrix Num → Matrix Num
 ;;; Element-wise signum.
 (define (matrix-signum m)
+  (doc 'export #t)
   (matrix-map (lambda (x)
                       (cond [(< x 0) -1]
                             [(> x 0) 1]
@@ -224,6 +249,7 @@ Dependencies:
 ;;; matrix-from-integer : Nat × Nat × Int → Matrix Int
 ;;; Create a matrix filled with copies of the integer.
 (define (matrix-from-integer rows cols val)
+  (doc 'export #t)
   (make-matrix rows cols val))
 
 ;;; ====
@@ -233,6 +259,7 @@ Dependencies:
 ;;; matrix/ : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise division.
 (define (matrix/ m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)]
         [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)]
@@ -251,6 +278,7 @@ Dependencies:
 ;;; matrix-recip : Matrix Num → Matrix Num
 ;;; Element-wise reciprocal.
 (define (matrix-recip m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (/ 1 x)) m))
 
 ;;; ====
@@ -260,26 +288,31 @@ Dependencies:
 ;;; matrix-pi : Nat × Nat → Matrix Num
 ;;; Create a matrix filled with pi.
 (define (matrix-pi rows cols)
+  (doc 'export #t)
   (make-matrix rows cols 3.141592653589793))
 
 ;;; matrix-exp : Matrix Num → Matrix Num
 ;;; Element-wise exponential.
 (define (matrix-exp m)
+  (doc 'export #t)
   (matrix-map exp m))
 
 ;;; matrix-log : Matrix Num → Matrix Num
 ;;; Element-wise natural logarithm.
 (define (matrix-log m)
+  (doc 'export #t)
   (matrix-map log m))
 
 ;;; matrix-sqrt : Matrix Num → Matrix Num
 ;;; Element-wise square root.
 (define (matrix-sqrt m)
+  (doc 'export #t)
   (matrix-map sqrt m))
 
 ;;; matrix-pow : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise exponentiation.
 (define (matrix-pow m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)]
         [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)]
@@ -298,46 +331,55 @@ Dependencies:
 ;;; matrix-sin : Matrix Num → Matrix Num
 ;;; Element-wise sine.
 (define (matrix-sin m)
+  (doc 'export #t)
   (matrix-map sin m))
 
 ;;; matrix-cos : Matrix Num → Matrix Num
 ;;; Element-wise cosine.
 (define (matrix-cos m)
+  (doc 'export #t)
   (matrix-map cos m))
 
 ;;; matrix-tan : Matrix Num → Matrix Num
 ;;; Element-wise tangent.
 (define (matrix-tan m)
+  (doc 'export #t)
   (matrix-map tan m))
 
 ;;; matrix-asin : Matrix Num → Matrix Num
 ;;; Element-wise arc sine.
 (define (matrix-asin m)
+  (doc 'export #t)
   (matrix-map asin m))
 
 ;;; matrix-acos : Matrix Num → Matrix Num
 ;;; Element-wise arc cosine.
 (define (matrix-acos m)
+  (doc 'export #t)
   (matrix-map acos m))
 
 ;;; matrix-atan : Matrix Num → Matrix Num
 ;;; Element-wise arc tangent.
 (define (matrix-atan m)
+  (doc 'export #t)
   (matrix-map atan m))
 
 ;;; matrix-sinh : Matrix Num → Matrix Num
 ;;; Element-wise hyperbolic sine.
 (define (matrix-sinh m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (/ (- (exp x) (exp (- x))) 2)) m))
 
 ;;; matrix-cosh : Matrix Num → Matrix Num
 ;;; Element-wise hyperbolic cosine.
 (define (matrix-cosh m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (/ (+ (exp x) (exp (- x))) 2)) m))
 
 ;;; matrix-tanh : Matrix Num → Matrix Num
 ;;; Element-wise hyperbolic tangent.
 (define (matrix-tanh m)
+  (doc 'export #t)
   (matrix-map (lambda (x)
                       (let ([ex (exp x)]
                             [e-x (exp (- x))])
@@ -347,16 +389,19 @@ Dependencies:
 ;;; matrix-asinh : Matrix Num → Matrix Num
 ;;; Element-wise inverse hyperbolic sine.
 (define (matrix-asinh m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (log (+ x (sqrt (+ (* x x) 1))))) m))
 
 ;;; matrix-acosh : Matrix Num → Matrix Num
 ;;; Element-wise inverse hyperbolic cosine.
 (define (matrix-acosh m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (log (+ x (sqrt (- (* x x) 1))))) m))
 
 ;;; matrix-atanh : Matrix Num → Matrix Num
 ;;; Element-wise inverse hyperbolic tangent.
 (define (matrix-atanh m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (/ (log (/ (+ 1 x) (- 1 x))) 2)) m))
 
 ;;; ====
@@ -368,6 +413,7 @@ Dependencies:
 ;;; scalar-vec+ : Num × Vec Num → Vec Num
 ;;; Add scalar to each element.
 (define (scalar-vec+ k v)
+  (doc 'export #t)
   (vec-map (lambda (x) (+ k x)) v))
 
 ;;; scalar-vec* : Num × Vec Num → Vec Num
@@ -377,6 +423,7 @@ Dependencies:
 ;;; scalar-matrix+ : Num × Matrix Num → Matrix Num
 ;;; Add scalar to each element.
 (define (scalar-matrix+ k m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (+ k x)) m))
 
 ;;; scalar-matrix* : Num × Matrix Num → Matrix Num
@@ -402,12 +449,14 @@ Dependencies:
 ;;; vec-pure : a → Vec a
 ;;; Wrap value in a singleton vector.
 (define (vec-pure x)
+  (doc 'export #t)
   (vector x))
 
 ;;; vec-ap : Vec (a → b) × Vec a → Vec b | Error
 ;;; Apply a vector of functions to a vector of values.
 ;;; Supports broadcasting: if one operand is length-1, it broadcasts to match the other.
 (define (vec-ap fs xs)
+  (doc 'export #t)
   (let ([nf (vec-length fs)]
         [nx (vec-length xs)])
        (cond
@@ -437,16 +486,19 @@ Dependencies:
 ;;; vec-lift2 : (a × b → c) × Vec a × Vec b → Vec c | Error
 ;;; Lift a binary function to work on vectors element-wise.
 (define (vec-lift2 f v1 v2)
+  (doc 'export #t)
   (vec-zip-with f v1 v2))
 
 ;;; matrix-pure : Nat × Nat × a → Matrix a
 ;;; Create a matrix filled with a value.
 (define (matrix-pure rows cols x)
+  (doc 'export #t)
   (make-matrix rows cols x))
 
 ;;; matrix-ap : Matrix (a → b) × Matrix a → Matrix b | Error
 ;;; Apply a matrix of functions to a matrix of values.
 (define (matrix-ap mf mx)
+  (doc 'export #t)
   (let ([rf (matrix-rows mf)]
         [cf (matrix-cols mf)]
         [rx (matrix-rows mx)]
@@ -464,6 +516,7 @@ Dependencies:
 ;;; matrix-lift2 : (a × b → c) × Matrix a × Matrix b → Matrix c | Error
 ;;; Lift a binary function to work on matrices element-wise.
 (define (matrix-lift2 f m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)]
         [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)]

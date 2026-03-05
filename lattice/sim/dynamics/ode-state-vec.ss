@@ -13,24 +13,29 @@ ode-integrators to avoid duplication.")
 ;;; sv-add : (List Number) x (List Number) -> (List Number)
 ;;; Add two state vectors element-wise.
 (define (sv-add a b)
+  (doc 'export #t)
   (map + a b))
 
 ;;; sv-sub : (List Number) x (List Number) -> (List Number)
 ;;; Subtract two state vectors element-wise.
 (define (sv-sub a b)
+  (doc 'export #t)
   (map - a b))
 
 ;;; sv-scale : Number x (List Number) -> (List Number)
 ;;; Scale a state vector by a scalar.
 (define (sv-scale k v)
+  (doc 'export #t)
   (map (lambda (x) (* k x)) v))
 
 ;;; sv-madd : (List Number) x Number x (List Number) -> (List Number)
 ;;; Fused multiply-add: a + k*b
 (define (sv-madd a k b)
+  (doc 'export #t)
   (map (lambda (ai bi) (+ ai (* k bi))) a b))
 
 ;;; sv-norm : (List Number) -> Number
 ;;; Euclidean norm of a state vector.
 (define (sv-norm v)
+  (doc 'export #t)
   (sqrt (apply + (map (lambda (x) (* x x)) v))))

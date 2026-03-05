@@ -22,6 +22,7 @@ and offline analysis.")
 (doc 'type '(-> (List Rlm2StepRecord) Alist))
 (doc 'description "Count actions by type across all steps")
 (define (rlm2-action-histogram steps)
+  (doc 'export #t)
   (let loop ([steps steps] [counts '()])
     (if (null? steps)
         (sort-by (lambda (a b) (> (cdr a) (cdr b))) counts)
@@ -41,6 +42,7 @@ and offline analysis.")
 (doc 'type '(-> (List Rlm2StepRecord) Nat))
 (doc 'description "Count distinct action types used across all steps")
 (define (rlm2-action-diversity steps)
+  (doc 'export #t)
   (let loop ([steps steps] [seen '()])
     (if (null? steps)
         (length seen)
@@ -53,6 +55,7 @@ and offline analysis.")
 (doc 'type '(-> (List Rlm2StepRecord) (List Rlm2StepRecord)))
 (doc 'description "Extract all submit attempts from step records")
 (define (rlm2-submit-attempts steps)
+  (doc 'export #t)
   (filter (lambda (step)
             (let ([action (rlm2-step-record-action step)])
               (and (pair? action) (eq? (car action) 'submit))))
@@ -61,6 +64,7 @@ and offline analysis.")
 (doc 'type '(-> (List Rlm2StepRecord) Nat))
 (doc 'description "Count failed submit attempts (verifier rejected or eval error)")
 (define (rlm2-failed-submissions steps)
+  (doc 'export #t)
   (length (filter (lambda (step)
                     (let ([obs (rlm2-step-record-observation step)])
                       (and (rlm2-observation? obs)
@@ -70,6 +74,7 @@ and offline analysis.")
 (doc 'type '(-> (List Rlm2StepRecord) Nat))
 (doc 'description "Count successful submit attempts")
 (define (rlm2-successful-submissions steps)
+  (doc 'export #t)
   (length (filter (lambda (step)
                     (let ([obs (rlm2-step-record-observation step)])
                       (and (rlm2-observation? obs)
@@ -85,6 +90,7 @@ and offline analysis.")
 (doc 'type '(-> (List Rlm2StepRecord) (List Boolean)))
 (doc 'description "Map each step to whether its observation succeeded (ok=true)")
 (define (rlm2-success-trace steps)
+  (doc 'export #t)
   (map (lambda (step)
          (let ([obs (rlm2-step-record-observation step)])
            (and (rlm2-observation? obs)
@@ -96,6 +102,7 @@ and offline analysis.")
 (doc 'description "Compute success rate over a sliding window of the last N items.
 Returns ratio of #t values in the window [0.0, 1.0].")
 (define (rlm2-windowed-success-rate trace window)
+  (doc 'export #t)
   (let* ([len (length trace)]
          [start (max 0 (- len window))]
          [window-items (list-tail trace start)]
@@ -107,6 +114,7 @@ Returns ratio of #t values in the window [0.0, 1.0].")
 (doc 'type '(-> (List Rlm2StepRecord) Flonum))
 (doc 'description "Overall success rate: fraction of steps with ok=true observations")
 (define (rlm2-overall-success-rate steps)
+  (doc 'export #t)
   (if (null? steps) 0.0
       (let ([trace (rlm2-success-trace steps)])
         (rlm2-windowed-success-rate trace (length trace)))))
@@ -121,6 +129,7 @@ Returns ratio of #t values in the window [0.0, 1.0].")
 (doc 'description "Fuel utilization: fraction of initial budget consumed.
 Requires the initial fuel budget as second argument.")
 (define (rlm2-fuel-utilization steps initial-fuel)
+  (doc 'export #t)
   (if (or (= initial-fuel 0) (null? steps))
       0.0
       (/ (length steps) initial-fuel)))
@@ -129,6 +138,7 @@ Requires the initial fuel budget as second argument.")
 (doc 'description "Productive action ratio: non-think, non-idle steps / total steps.
 Higher = more decisive agent.")
 (define (rlm2-productive-ratio steps)
+  (doc 'export #t)
   (if (null? steps) 0.0
       (let ([productive (filter (lambda (step)
                                   (let ([action (rlm2-step-record-action step)])
@@ -150,6 +160,7 @@ steps: the full step record list.
 initial-fuel: the starting fuel budget.
 Returns an alist of near-miss indicators.")
 (define (rlm2-near-miss-report status steps initial-fuel)
+  (doc 'export #t)
   (let* ([total (length steps)]
          [submits (rlm2-submit-attempts steps)]
          [failed-subs (rlm2-failed-submissions steps)]
@@ -202,11 +213,13 @@ Returns an alist of near-miss indicators.")
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a near-miss report")
 (define (rlm2-near-miss-report? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-near-miss-report)))
 
 (doc 'type '(-> Rlm2NearMissReport Any))
 (doc 'description "Extract a field from a near-miss report by key")
 (define (rlm2-near-miss-field report key)
+  (doc 'export #t)
   (let loop ([fields (cdr report)])
     (cond
       [(null? fields) #f]
@@ -218,11 +231,13 @@ Returns an alist of near-miss indicators.")
 (doc 'type '(-> Rlm2NearMissReport Flonum))
 (doc 'description "Extract the near-miss score [0.0, 1.0] from a report")
 (define (rlm2-near-miss-score report)
+  (doc 'export #t)
   (rlm2-near-miss-field report 'near-miss-score))
 
 (doc 'type '(-> Rlm2NearMissReport Boolean))
 (doc 'description "True if the report indicates a near-miss (score >= 0.4)")
 (define (rlm2-near-miss? report)
+  (doc 'export #t)
   (>= (rlm2-near-miss-score report) 0.4))
 
 ;;; ====
@@ -235,6 +250,7 @@ Returns an alist of near-miss indicators.")
 (doc 'description "Extract action type bigrams from step sequence.
 Useful for detecting common transition patterns (e.g., search→eval, eval→store).")
 (define (rlm2-action-bigrams steps)
+  (doc 'export #t)
   (if (or (null? steps) (null? (cdr steps)))
       '()
       (let loop ([steps steps] [bigrams '()])
@@ -251,6 +267,7 @@ Useful for detecting common transition patterns (e.g., search→eval, eval→sto
 (doc 'description "Count how many consecutive same-type action runs occurred.
 Returns alist of (type . max-run-length). High values indicate repetitive behavior.")
 (define (rlm2-max-runs steps)
+  (doc 'export #t)
   (if (null? steps) '()
       (let loop ([steps (cdr steps)]
                  [current-type (let ([a (rlm2-step-record-action (car steps))])
@@ -286,6 +303,7 @@ Returns alist of (type . max-run-length). High values indicate repetitive behavi
 (doc 'type '(-> Symbol (List Rlm2StepRecord) Nat Rlm2Metrics))
 (doc 'description "Compute all metrics for an episode. Returns a comprehensive alist.")
 (define (rlm2-episode-metrics status steps initial-fuel)
+  (doc 'export #t)
   (list 'rlm2-episode-metrics
         (list 'histogram (rlm2-action-histogram steps))
         (list 'diversity (rlm2-action-diversity steps))
@@ -298,10 +316,12 @@ Returns alist of (type . max-run-length). High values indicate repetitive behavi
 
 (doc 'type '(-> Any Boolean))
 (define (rlm2-episode-metrics? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-episode-metrics)))
 
 (doc 'type '(-> Rlm2Metrics Any))
 (define (rlm2-metrics-field metrics key)
+  (doc 'export #t)
   (let loop ([fields (cdr metrics)])
     (cond
       [(null? fields) #f]

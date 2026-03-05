@@ -32,6 +32,7 @@
 ;;;   - pi evaluates to π
 ;;;   - e evaluates to Euler's number
 (define (eval-expr expr env)
+  (doc 'export #t)
   (cond
    ;; Numeric constant
    [(num? expr) (num-val expr)]
@@ -96,6 +97,7 @@
 ;;; eval-expr-safe : Expr × Env → Number | #f
 ;;; Safe version that returns #f on error.
 (define (eval-expr-safe expr env)
+  (doc 'export #t)
   (guard (c [else #f])
          (eval-expr expr env)))
 
@@ -107,6 +109,7 @@
 ;;; Simplify an expression using algebraic rules.
 ;;; Applies rules repeatedly until fixed point.
 (define (simplify expr)
+  (doc 'export #t)
   (let ([simplified (simplify-once expr)])
        (if (expr=? simplified expr)
            simplified
@@ -115,6 +118,7 @@
 ;;; simplify-once : Expr → Expr
 ;;; Single pass of simplification.
 (define (simplify-once expr)
+  (doc 'export #t)
   (cond
    ;; Atoms: already simplified
    [(num? expr) expr]
@@ -150,6 +154,7 @@
 ;;; simplify-sum : (List Expr) → Expr
 ;;; Simplify a sum by collecting numeric terms and like terms.
 (define (simplify-sum terms)
+  (doc 'export #t)
   (let* ([flat-terms (flatten-sums terms)]
          [numeric-sum (apply + (filter-map get-numeric flat-terms))]
          [non-numeric (filter (lambda (e) (not (num? e))) flat-terms)]
@@ -167,6 +172,7 @@
 ;;; flatten-sums : (List Expr) → (List Expr)
 ;;; Flatten nested sums: (+ a (+ b c)) → (+ a b c)
 (define (flatten-sums terms)
+  (doc 'export #t)
   (append-map (lambda (e)
                       (if (sum? e)
                           (flatten-sums (sum-terms e))
@@ -175,6 +181,7 @@
 
 ;;; get-numeric : Expr → Number | #f
 (define (get-numeric e)
+  (doc 'export #t)
   (if (num? e) (num-val e) #f))
 
 ;;; filter-map provided by prelude
@@ -182,6 +189,7 @@
 ;;; collect-like-terms : (List Expr) → (List Expr)
 ;;; Collect terms like x + x → 2*x
 (define (collect-like-terms terms)
+  (doc 'export #t)
   (let ([table (fold-left
                 (lambda (acc term)
                   (let-values ([(coef base) (extract-coefficient term)])
@@ -203,6 +211,7 @@
 ;;; Extract numeric coefficient from a term.
 ;;; x → (1, x), 2*x → (2, x), -x → (-1, x)
 (define (extract-coefficient term)
+  (doc 'export #t)
   (cond
    [(num? term) (values (num-val term) (num 1))]
    [(and (product? term)
@@ -217,6 +226,7 @@
 
 ;;; make-sum-from-list : (List Expr) → Expr
 (define (make-sum-from-list terms)
+  (doc 'export #t)
   (cond
    [(null? terms) (num 0)]
    [(= (length terms) 1) (car terms)]
@@ -225,6 +235,7 @@
 ;;; simplify-product : (List Expr) → Expr
 ;;; Simplify a product.
 (define (simplify-product factors)
+  (doc 'export #t)
   (let* ([flat-factors (flatten-products factors)]
          [numeric-prod (apply * (filter-map get-numeric flat-factors))]
          [non-numeric (filter (lambda (e) (not (num? e))) flat-factors)])
@@ -242,6 +253,7 @@
 
 ;;; flatten-products : (List Expr) → (List Expr)
 (define (flatten-products factors)
+  (doc 'export #t)
   (append-map (lambda (e)
                       (if (product? e)
                           (flatten-products (product-factors e))
@@ -250,6 +262,7 @@
 
 ;;; make-product-from-list : (List Expr) → Expr
 (define (make-product-from-list factors)
+  (doc 'export #t)
   (cond
    [(null? factors) (num 1)]
    [(= (length factors) 1) (car factors)]
@@ -257,6 +270,7 @@
 
 ;;; simplify-diff : Expr × Expr → Expr
 (define (simplify-diff left right)
+  (doc 'export #t)
   (cond
    ;; x - 0 = x
    [(and (num? right) (= (num-val right) 0)) left]
@@ -271,6 +285,7 @@
 
 ;;; simplify-neg : Expr → Expr
 (define (simplify-neg e)
+  (doc 'export #t)
   (cond
    ;; -n = -n (fold constant)
    [(num? e) (num (- (num-val e)))]
@@ -287,6 +302,7 @@
 
 ;;; simplify-quot : Expr × Expr → Expr
 (define (simplify-quot numer denom)
+  (doc 'export #t)
   (cond
    ;; 0/x = 0
    [(and (num? numer) (= (num-val numer) 0)) (num 0)]
@@ -304,6 +320,7 @@
 
 ;;; simplify-pow : Expr × Expr → Expr
 (define (simplify-pow base exp)
+  (doc 'export #t)
   (cond
    ;; x^0 = 1
    [(and (num? exp) (= (num-val exp) 0)) (num 1)]
@@ -324,6 +341,7 @@
 
 ;;; simplify-app : Symbol × Expr → Expr
 (define (simplify-app fn arg)
+  (doc 'export #t)
   (cond
    ;; sin(0) = 0
    [(and (eq? fn 'sin) (num? arg) (= (num-val arg) 0)) (num 0)]
@@ -357,6 +375,7 @@
 ;;;   (define f (expr-to-traced (power (var 'x) (num 2)) '(x)))
 ;;;   (gradient f '(3.0))  ; → (6.0) [derivative of x^2 at x=3]
 (define (expr-to-traced expr vars)
+  (doc 'export #t)
   (lambda traced-args
           (let ([env (map cons vars traced-args)])
                (eval-traced expr env))))
@@ -365,6 +384,7 @@
 ;;; Evaluate expression with traced values.
 ;;; env is ((symbol . traced-value) ...)
 (define (eval-traced expr env)
+  (doc 'export #t)
   (cond
    ;; Numeric constant: return as plain number (traced ops handle this)
    [(num? expr) (num-val expr)]
@@ -448,6 +468,7 @@
 ;;;   - Symbolic simplification of derivatives
 ;;;   - Efficient numerical evaluation via autodiff
 (define (symbolic-gradient-fn expr vars)
+  (doc 'export #t)
   (let* ([grad-exprs (map simplify (sym-gradient expr vars))]
          [traced-fns (map (lambda (g) (expr-to-traced g vars)) grad-exprs)])
         (lambda (point)
@@ -461,6 +482,7 @@
 ;;; symbolic-jacobian-fn : (List Expr) × (List Symbol) → ((List Number) → (List (List Number)))
 ;;; Create a numerical Jacobian function from symbolic expressions.
 (define (symbolic-jacobian-fn exprs vars)
+  (doc 'export #t)
   (let* ([jac-exprs (sym-jacobian exprs vars)]
          [simplified (map (lambda (row) (map simplify row)) jac-exprs)]
          [traced-rows (map (lambda (row)
@@ -479,6 +501,7 @@
 ;;; symbolic-hessian-fn : Expr × (List Symbol) → ((List Number) → (List (List Number)))
 ;;; Create a numerical Hessian function from a symbolic expression.
 (define (symbolic-hessian-fn expr vars)
+  (doc 'export #t)
   (let* ([hess-exprs (sym-hessian expr vars)]
          [simplified (map (lambda (row) (map simplify row)) hess-exprs)]
          [traced-rows (map (lambda (row)
@@ -498,6 +521,7 @@
 ;;; Verify symbolic derivative matches autodiff at a point.
 ;;; Useful for testing and debugging.
 (define (verify-derivative expr var-sym test-val tolerance)
+  (doc 'export #t)
   (let* ([sym-deriv (simplify (deriv expr var-sym))]
          [sym-val (eval-expr sym-deriv `((,var-sym . ,test-val)))]
          [traced-fn (expr-to-traced expr (list var-sym))]
@@ -511,6 +535,7 @@
 ;;; expr->infix : Expr → String
 ;;; Convert expression to readable infix notation.
 (define (expr->infix expr)
+  (doc 'export #t)
   (cond
    [(num? expr)
     (let ([n (num-val expr)])

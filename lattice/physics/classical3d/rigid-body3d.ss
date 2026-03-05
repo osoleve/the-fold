@@ -15,32 +15,38 @@
 ;;; mat3-identity : → Mat3
 ;;; Identity 3x3 matrix.
 (define (mat3-identity)
+  (doc 'export #t)
   '((1 0 0) (0 1 0) (0 0 1)))
 
 ;;; mat3-zero : → Mat3
 ;;; Zero 3x3 matrix.
 (define (mat3-zero)
+  (doc 'export #t)
   '((0 0 0) (0 0 0) (0 0 0)))
 
 ;;; mat3-diagonal : Number × Number × Number → Mat3
 ;;; Create diagonal matrix.
 (define (mat3-diagonal a b c)
+  (doc 'export #t)
   (list (list a 0 0) (list 0 b 0) (list 0 0 c)))
 
 ;;; mat3-ref : Mat3 × Nat × Nat → Number
 ;;; Get element at (row, col).
 (define (mat3-ref m i j)
+  (doc 'export #t)
   (list-ref (list-ref m i) j))
 
 ;;; mat3-row : Mat3 × Nat → Vec3
 ;;; Get row as vec3.
 (define (mat3-row m i)
+  (doc 'export #t)
   (let ([row (list-ref m i)])
        (vec3 (list-ref row 0) (list-ref row 1) (list-ref row 2))))
 
 ;;; mat3-col : Mat3 × Nat → Vec3
 ;;; Get column as vec3.
 (define (mat3-col m j)
+  (doc 'export #t)
   (vec3 (mat3-ref m 0 j)
         (mat3-ref m 1 j)
         (mat3-ref m 2 j)))
@@ -48,6 +54,7 @@
 ;;; mat3-transpose : Mat3 → Mat3
 ;;; Transpose matrix.
 (define (mat3-transpose m)
+  (doc 'export #t)
   (list (list (mat3-ref m 0 0) (mat3-ref m 1 0) (mat3-ref m 2 0))
         (list (mat3-ref m 0 1) (mat3-ref m 1 1) (mat3-ref m 2 1))
         (list (mat3-ref m 0 2) (mat3-ref m 1 2) (mat3-ref m 2 2))))
@@ -55,11 +62,13 @@
 ;;; mat3-scale : Mat3 × Number → Mat3
 ;;; Scale all elements.
 (define (mat3-scale m s)
+  (doc 'export #t)
   (map (lambda (row) (map (lambda (x) (* x s)) row)) m))
 
 ;;; mat3-add : Mat3 × Mat3 → Mat3
 ;;; Add matrices.
 (define (mat3-add a b)
+  (doc 'export #t)
   (map (lambda (ra rb)
                (map + ra rb))
        a b))
@@ -67,6 +76,7 @@
 ;;; mat3-mul-vec3 : Mat3 × Vec3 → Vec3
 ;;; Matrix-vector multiplication.
 (define (mat3-mul-vec3 m v)
+  (doc 'export #t)
   (vec3 (+ (* (mat3-ref m 0 0) (vec3-x v))
            (* (mat3-ref m 0 1) (vec3-y v))
            (* (mat3-ref m 0 2) (vec3-z v)))
@@ -80,6 +90,7 @@
 ;;; mat3-mul : Mat3 × Mat3 → Mat3
 ;;; Matrix-matrix multiplication.
 (define (mat3-mul a b)
+  (doc 'export #t)
   (list
    (list (+ (* (mat3-ref a 0 0) (mat3-ref b 0 0))
             (* (mat3-ref a 0 1) (mat3-ref b 1 0))
@@ -112,6 +123,7 @@
 ;;; mat3-determinant : Mat3 → Number
 ;;; Compute determinant.
 (define (mat3-determinant m)
+  (doc 'export #t)
   (let ([a (mat3-ref m 0 0)] [b (mat3-ref m 0 1)] [c (mat3-ref m 0 2)]
         [d (mat3-ref m 1 0)] [e (mat3-ref m 1 1)] [f (mat3-ref m 1 2)]
         [g (mat3-ref m 2 0)] [h (mat3-ref m 2 1)] [i (mat3-ref m 2 2)])
@@ -122,6 +134,7 @@
 ;;; mat3-inverse : Mat3 → Mat3
 ;;; Compute inverse (assumes non-singular).
 (define (mat3-inverse m)
+  (doc 'export #t)
   (let* ([det (mat3-determinant m)]
          [inv-det (/ 1 det)]
          [a (mat3-ref m 0 0)] [b (mat3-ref m 0 1)] [c (mat3-ref m 0 2)]
@@ -141,6 +154,7 @@
 ;;; mat3-zero? : Mat3 → Boolean
 ;;; Check if matrix is zero.
 (define (mat3-zero? m)
+  (doc 'export #t)
   (andmap (lambda (row)
                   (andmap (lambda (x) (< (abs x) 1e-10)) row))
           m))
@@ -153,6 +167,7 @@
 ;;; Inertia tensor for solid sphere.
 ;;; I = (2/5) * m * r² * Identity
 (define (inertia-solid-sphere mass radius)
+  (doc 'export #t)
   (let ([I (* (/ 2 5) mass radius radius)])
        (mat3-diagonal I I I)))
 
@@ -160,6 +175,7 @@
 ;;; Inertia tensor for hollow sphere (thin shell).
 ;;; I = (2/3) * m * r² * Identity
 (define (inertia-hollow-sphere mass radius)
+  (doc 'export #t)
   (let ([I (* (/ 2 3) mass radius radius)])
        (mat3-diagonal I I I)))
 
@@ -171,6 +187,7 @@
 ;;;   Iyy = (1/12) * m * (4*hx² + 4*hz²) = (1/3) * m * (hx² + hz²)
 ;;;   Izz = (1/12) * m * (4*hx² + 4*hy²) = (1/3) * m * (hx² + hy²)
 (define (inertia-solid-box mass hx hy hz)
+  (doc 'export #t)
   (let* ([hx2 (* hx hx)]
          [hy2 (* hy hy)]
          [hz2 (* hz hz)]
@@ -186,6 +203,7 @@
 ;;;   Ixx = Iyy = (1/12) * m * (3*r² + 4*h²) = (1/4) * m * r² + (1/3) * m * h²
 ;;;   Izz = (1/2) * m * r²
 (define (inertia-solid-cylinder mass radius half-height)
+  (doc 'export #t)
   (let* ([r2 (* radius radius)]
          [h2 (* half-height half-height)]
          [Ixy (+ (* (/ 1 4) mass r2) (* (/ 1 3) mass h2))]
@@ -198,6 +216,7 @@
 ;;;   Ixx = Iyy = (1/3) * m * L²
 ;;;   Izz = 0 (idealized, use small value)
 (define (inertia-solid-rod mass half-length)
+  (doc 'export #t)
   (let ([I (* (/ 1 3) mass half-length half-length)])
        (mat3-diagonal I I 1e-10)))
 
@@ -205,6 +224,7 @@
 ;;; Inertia tensor for point mass at origin.
 ;;; All zeros (no resistance to rotation about any axis through the point).
 (define (inertia-point-mass mass)
+  (doc 'export #t)
   (mat3-zero))
 
 ;;; ====
@@ -222,11 +242,13 @@
 ;;;   inertia: inertia tensor (body-space)
 ;;;   inv-inertia: inverse inertia tensor (body-space)
 (define (rigid-body-3d pos vel orientation angular-vel mass inv-mass inertia inv-inertia)
+  (doc 'export #t)
   (list 'rigid-body-3d pos vel orientation angular-vel mass inv-mass inertia inv-inertia))
 
 ;;; make-rigid-body-3d : Vec3 × Vec3 × Quat × Vec3 × Number × Mat3 → RigidBody3D
 ;;; Create rigid body, computing inverse mass and inverse inertia.
 (define (make-rigid-body-3d pos vel orientation angular-vel mass inertia)
+  (doc 'export #t)
   (let ([inv-mass (if (= mass 0) 0 (/ 1 mass))]
         [inv-inertia (if (or (= mass 0) (mat3-zero? inertia))
                          (mat3-zero)
@@ -236,12 +258,14 @@
 ;;; make-static-body-3d : Vec3 × Quat → RigidBody3D
 ;;; Create static (immovable) body.
 (define (make-static-body-3d pos orientation)
+  (doc 'export #t)
   (rigid-body-3d pos (vec3-zero) orientation (vec3-zero)
                  0 0 (mat3-zero) (mat3-zero)))
 
 ;;; make-dynamic-sphere : Vec3 × Vec3 × Number × Number → RigidBody3D
 ;;; Create dynamic sphere with proper inertia.
 (define (make-dynamic-sphere pos vel mass radius)
+  (doc 'export #t)
   (make-rigid-body-3d pos vel (quat-identity) (vec3-zero)
                       mass (inertia-solid-sphere mass radius)))
 
@@ -249,6 +273,7 @@
 ;;; Create dynamic box with proper inertia.
 ;;; half-extents: (hx, hy, hz)
 (define (make-dynamic-box pos vel mass half-extents)
+  (doc 'export #t)
   (make-rigid-body-3d pos vel (quat-identity) (vec3-zero)
                       mass (inertia-solid-box mass
                                               (vec3-x half-extents)
@@ -261,6 +286,7 @@
 
 ;;; rigid-body-3d? : Any → Boolean
 (define (rigid-body-3d? b)
+  (doc 'export #t)
   (and (pair? b) (eq? (car b) 'rigid-body-3d)))
 
 ;;; rigid-body-3d-pos : RigidBody3D → Vec3
@@ -289,10 +315,12 @@
 
 ;;; rigid-body-3d-static? : RigidBody3D → Boolean
 (define (rigid-body-3d-static? b)
+  (doc 'export #t)
   (= (rigid-body-3d-inv-mass b) 0))
 
 ;;; rigid-body-3d-dynamic? : RigidBody3D → Boolean
 (define (rigid-body-3d-dynamic? b)
+  (doc 'export #t)
   (not (rigid-body-3d-static? b)))
 
 ;;; ====
@@ -301,6 +329,7 @@
 
 ;;; rigid-body-3d-with-pos : RigidBody3D × Vec3 → RigidBody3D
 (define (rigid-body-3d-with-pos b new-pos)
+  (doc 'export #t)
   (rigid-body-3d new-pos
                  (rigid-body-3d-vel b)
                  (rigid-body-3d-orientation b)
@@ -312,6 +341,7 @@
 
 ;;; rigid-body-3d-with-vel : RigidBody3D × Vec3 → RigidBody3D
 (define (rigid-body-3d-with-vel b new-vel)
+  (doc 'export #t)
   (rigid-body-3d (rigid-body-3d-pos b)
                  new-vel
                  (rigid-body-3d-orientation b)
@@ -323,6 +353,7 @@
 
 ;;; rigid-body-3d-with-orientation : RigidBody3D × Quaternion → RigidBody3D
 (define (rigid-body-3d-with-orientation b new-orientation)
+  (doc 'export #t)
   (rigid-body-3d (rigid-body-3d-pos b)
                  (rigid-body-3d-vel b)
                  new-orientation
@@ -334,6 +365,7 @@
 
 ;;; rigid-body-3d-with-angular-vel : RigidBody3D × Vec3 → RigidBody3D
 (define (rigid-body-3d-with-angular-vel b new-angular-vel)
+  (doc 'export #t)
   (rigid-body-3d (rigid-body-3d-pos b)
                  (rigid-body-3d-vel b)
                  (rigid-body-3d-orientation b)
@@ -346,6 +378,7 @@
 ;;; rigid-body-3d-with-state : RigidBody3D × Vec3 × Vec3 × Quat × Vec3 → RigidBody3D
 ;;; Update all dynamic state at once.
 (define (rigid-body-3d-with-state b new-pos new-vel new-orientation new-angular-vel)
+  (doc 'export #t)
   (rigid-body-3d new-pos new-vel new-orientation new-angular-vel
                  (rigid-body-3d-mass b)
                  (rigid-body-3d-inv-mass b)
@@ -359,23 +392,27 @@
 ;;; rigid-body-3d-local-to-world : RigidBody3D × Vec3 → Vec3
 ;;; Transform point from body-local to world coordinates.
 (define (rigid-body-3d-local-to-world b local-point)
+  (doc 'export #t)
   (vec3-add (rigid-body-3d-pos b)
             (quat-rotate-vec3 (rigid-body-3d-orientation b) local-point)))
 
 ;;; rigid-body-3d-world-to-local : RigidBody3D × Vec3 → Vec3
 ;;; Transform point from world to body-local coordinates.
 (define (rigid-body-3d-world-to-local b world-point)
+  (doc 'export #t)
   (quat-rotate-vec3-inverse (rigid-body-3d-orientation b)
                             (vec3-sub world-point (rigid-body-3d-pos b))))
 
 ;;; rigid-body-3d-local-to-world-dir : RigidBody3D × Vec3 → Vec3
 ;;; Transform direction (no translation) from body-local to world.
 (define (rigid-body-3d-local-to-world-dir b local-dir)
+  (doc 'export #t)
   (quat-rotate-vec3 (rigid-body-3d-orientation b) local-dir))
 
 ;;; rigid-body-3d-world-to-local-dir : RigidBody3D × Vec3 → Vec3
 ;;; Transform direction from world to body-local.
 (define (rigid-body-3d-world-to-local-dir b world-dir)
+  (doc 'export #t)
   (quat-rotate-vec3-inverse (rigid-body-3d-orientation b) world-dir))
 
 ;;; ====
@@ -387,6 +424,7 @@
 ;;; I_world = R * I_body * R^T
 ;;; where R is the rotation matrix from the body's quaternion.
 (define (rigid-body-3d-world-inertia b)
+  (doc 'export #t)
   (let* ([q (rigid-body-3d-orientation b)]
          [R (quat-to-rotation-matrix q)]
          [I-body (rigid-body-3d-inertia b)]
@@ -397,6 +435,7 @@
 ;;; Get inverse inertia tensor in world coordinates.
 ;;; I_world^-1 = R * I_body^-1 * R^T
 (define (rigid-body-3d-world-inv-inertia b)
+  (doc 'export #t)
   (let* ([q (rigid-body-3d-orientation b)]
          [R (quat-to-rotation-matrix q)]
          [I-inv-body (rigid-body-3d-inv-inertia b)]
@@ -412,6 +451,7 @@
 ;;; v_point = v_cm + omega × r
 ;;; where r = point - pos
 (define (rigid-body-3d-velocity-at b world-point)
+  (doc 'export #t)
   (let* ([r (vec3-sub world-point (rigid-body-3d-pos b))]
          [omega (rigid-body-3d-angular-vel b)]
          [omega-cross-r (vec3-cross omega r)])
@@ -420,17 +460,20 @@
 ;;; rigid-body-3d-momentum : RigidBody3D → Vec3
 ;;; Linear momentum: p = m * v
 (define (rigid-body-3d-momentum b)
+  (doc 'export #t)
   (vec3-scale (rigid-body-3d-vel b) (rigid-body-3d-mass b)))
 
 ;;; rigid-body-3d-angular-momentum : RigidBody3D → Vec3
 ;;; Angular momentum: L = I_world * omega
 (define (rigid-body-3d-angular-momentum b)
+  (doc 'export #t)
   (mat3-mul-vec3 (rigid-body-3d-world-inertia b)
                  (rigid-body-3d-angular-vel b)))
 
 ;;; rigid-body-3d-kinetic-energy : RigidBody3D → Number
 ;;; Total kinetic energy: KE = 0.5*m*v² + 0.5*omega·(I*omega)
 (define (rigid-body-3d-kinetic-energy b)
+  (doc 'export #t)
   (let* ([m (rigid-body-3d-mass b)]
          [v (rigid-body-3d-vel b)]
          [omega (rigid-body-3d-angular-vel b)]
@@ -449,6 +492,7 @@
 ;;; Torque causes angular acceleration: alpha = I^-1 * tau
 ;;; where tau = r × F
 (define (rigid-body-3d-apply-force b force world-point dt)
+  (doc 'export #t)
   (if (rigid-body-3d-static? b)
       b
       (let* ([r (vec3-sub world-point (rigid-body-3d-pos b))]
@@ -469,6 +513,7 @@
 ;;; Delta-v = J / m
 ;;; Delta-omega = I^-1 * (r × J)
 (define (rigid-body-3d-apply-impulse b impulse world-point)
+  (doc 'export #t)
   (if (rigid-body-3d-static? b)
       b
       (let* ([r (vec3-sub world-point (rigid-body-3d-pos b))]
@@ -486,6 +531,7 @@
 ;;; rigid-body-3d-apply-central-force : RigidBody3D × Vec3 × Number → RigidBody3D
 ;;; Apply force at center of mass (no torque).
 (define (rigid-body-3d-apply-central-force b force dt)
+  (doc 'export #t)
   (if (rigid-body-3d-static? b)
       b
       (let* ([accel (vec3-scale force (rigid-body-3d-inv-mass b))]
@@ -496,6 +542,7 @@
 ;;; rigid-body-3d-apply-central-impulse : RigidBody3D × Vec3 → RigidBody3D
 ;;; Apply impulse at center of mass (no angular change).
 (define (rigid-body-3d-apply-central-impulse b impulse)
+  (doc 'export #t)
   (if (rigid-body-3d-static? b)
       b
       (let ([delta-vel (vec3-scale impulse (rigid-body-3d-inv-mass b))])
@@ -504,6 +551,7 @@
 ;;; rigid-body-3d-apply-torque : RigidBody3D × Vec3 × Number → RigidBody3D
 ;;; Apply torque for duration dt.
 (define (rigid-body-3d-apply-torque b torque dt)
+  (doc 'export #t)
   (if (rigid-body-3d-static? b)
       b
       (let* ([angular-accel (mat3-mul-vec3 (rigid-body-3d-world-inv-inertia b) torque)]
@@ -514,6 +562,7 @@
 ;;; rigid-body-3d-apply-torque-impulse : RigidBody3D × Vec3 → RigidBody3D
 ;;; Apply angular impulse directly.
 (define (rigid-body-3d-apply-torque-impulse b torque-impulse)
+  (doc 'export #t)
   (if (rigid-body-3d-static? b)
       b
       (let ([delta-angular-vel (mat3-mul-vec3 (rigid-body-3d-world-inv-inertia b)

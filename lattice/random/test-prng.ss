@@ -12,6 +12,7 @@
 
 (load "core/lang/module.ss")
 (load "core/test-framework.ss")
+(load "lattice/data/sort.ss")
 (load "lattice/random/prng.ss")
 
 ;;; ====

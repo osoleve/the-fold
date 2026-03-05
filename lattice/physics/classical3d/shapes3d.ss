@@ -13,10 +13,12 @@
 ;;; sphere3d : Vec3 × Number → Sphere3D
 ;;; Create a sphere with given center and radius.
 (define (sphere3d center radius)
+  (doc 'export #t)
   (list 'sphere3d center radius))
 
 ;;; sphere3d? : Any → Boolean
 (define (sphere3d? s)
+  (doc 'export #t)
   (and (pair? s) (eq? (car s) 'sphere3d)))
 
 ;;; sphere3d-center : Sphere3D → Vec3
@@ -31,18 +33,21 @@
 ;;; sphere3d-volume : Sphere3D → Number
 ;;; V = (4/3) * π * r³
 (define (sphere3d-volume s)
+  (doc 'export #t)
   (let ([r (sphere3d-radius s)])
        (* (/ 4 3) 3.141592653589793 r r r)))
 
 ;;; sphere3d-surface-area : Sphere3D → Number
 ;;; A = 4 * π * r²
 (define (sphere3d-surface-area s)
+  (doc 'export #t)
   (let ([r (sphere3d-radius s)])
        (* 4 3.141592653589793 r r)))
 
 ;;; sphere3d-aabb : Sphere3D → AABB3D
 ;;; Get axis-aligned bounding box.
 (define (sphere3d-aabb s)
+  (doc 'export #t)
   (let ([c (sphere3d-center s)]
         [r (sphere3d-radius s)])
        (aabb3d (vec3-sub c (vec3 r r r))
@@ -51,16 +56,19 @@
 ;;; sphere3d-with-center : Sphere3D × Vec3 → Sphere3D
 ;;; Create new sphere with different center.
 (define (sphere3d-with-center s new-center)
+  (doc 'export #t)
   (sphere3d new-center (sphere3d-radius s)))
 
 ;;; sphere3d-with-radius : Sphere3D × Number → Sphere3D
 ;;; Create new sphere with different radius.
 (define (sphere3d-with-radius s new-radius)
+  (doc 'export #t)
   (sphere3d (sphere3d-center s) new-radius))
 
 ;;; sphere3d-contains-point? : Sphere3D × Vec3 → Boolean
 ;;; Check if point is inside or on sphere.
 (define (sphere3d-contains-point? s p)
+  (doc 'export #t)
   (<= (vec3-distance-sq (sphere3d-center s) p)
       (* (sphere3d-radius s) (sphere3d-radius s))))
 
@@ -72,10 +80,12 @@
 ;;; Create a box with given center and half-extents.
 ;;; Half-extents = (half-width, half-height, half-depth).
 (define (box3d center half-extents)
+  (doc 'export #t)
   (list 'box3d center half-extents))
 
 ;;; box3d? : Any → Boolean
 (define (box3d? b)
+  (doc 'export #t)
   (and (pair? b) (eq? (car b) 'box3d)))
 
 ;;; box3d-center : Box3D → Vec3
@@ -87,27 +97,32 @@
 ;;; box3d-extents : Box3D → Vec3
 ;;; Full extents (width, height, depth).
 (define (box3d-extents b)
+  (doc 'export #t)
   (vec3-scale (box3d-half-extents b) 2))
 
 ;;; box3d-min : Box3D → Vec3
 ;;; Minimum corner.
 (define (box3d-min b)
+  (doc 'export #t)
   (vec3-sub (box3d-center b) (box3d-half-extents b)))
 
 ;;; box3d-max : Box3D → Vec3
 ;;; Maximum corner.
 (define (box3d-max b)
+  (doc 'export #t)
   (vec3-add (box3d-center b) (box3d-half-extents b)))
 
 ;;; box3d-volume : Box3D → Number
 ;;; V = 8 * hx * hy * hz
 (define (box3d-volume b)
+  (doc 'export #t)
   (let ([h (box3d-half-extents b)])
        (* 8 (vec3-x h) (vec3-y h) (vec3-z h))))
 
 ;;; box3d-surface-area : Box3D → Number
 ;;; A = 8 * (hx*hy + hy*hz + hz*hx)
 (define (box3d-surface-area b)
+  (doc 'export #t)
   (let* ([h (box3d-half-extents b)]
          [hx (vec3-x h)] [hy (vec3-y h)] [hz (vec3-z h)])
         (* 8 (+ (* hx hy) (* hy hz) (* hz hx)))))
@@ -115,21 +130,25 @@
 ;;; box3d-aabb : Box3D → AABB3D
 ;;; Get axis-aligned bounding box (same as box for axis-aligned box).
 (define (box3d-aabb b)
+  (doc 'export #t)
   (aabb3d (box3d-min b) (box3d-max b)))
 
 ;;; box3d-with-center : Box3D × Vec3 → Box3D
 ;;; Create new box with different center.
 (define (box3d-with-center b new-center)
+  (doc 'export #t)
   (box3d new-center (box3d-half-extents b)))
 
 ;;; box3d-with-half-extents : Box3D × Vec3 → Box3D
 ;;; Create new box with different half-extents.
 (define (box3d-with-half-extents b new-half-extents)
+  (doc 'export #t)
   (box3d (box3d-center b) new-half-extents))
 
 ;;; box3d-contains-point? : Box3D × Vec3 → Boolean
 ;;; Check if point is inside or on box.
 (define (box3d-contains-point? b p)
+  (doc 'export #t)
   (let ([c (box3d-center b)]
         [h (box3d-half-extents b)])
        (let ([dx (abs (- (vec3-x p) (vec3-x c)))]
@@ -143,6 +162,7 @@
 ;;; Get one of the 8 corners by index (0-7).
 ;;; Index bits: bit0=x-sign, bit1=y-sign, bit2=z-sign
 (define (box3d-corner b i)
+  (doc 'export #t)
   (let ([c (box3d-center b)]
         [h (box3d-half-extents b)])
        (let ([sx (if (= (bitwise-and i 1) 0) -1 1)]
@@ -155,6 +175,7 @@
 ;;; box3d-corners : Box3D → (List Vec3)
 ;;; Get all 8 corners.
 (define (box3d-corners b)
+  (doc 'export #t)
   (map (lambda (i) (box3d-corner b i)) (iota 8)))
 
 ;;; ====
@@ -164,10 +185,12 @@
 ;;; aabb3d : Vec3 × Vec3 → AABB3D
 ;;; Create AABB from min and max corners.
 (define (aabb3d min-corner max-corner)
+  (doc 'export #t)
   (list 'aabb3d min-corner max-corner))
 
 ;;; aabb3d? : Any → Boolean
 (define (aabb3d? a)
+  (doc 'export #t)
   (and (pair? a) (eq? (car a) 'aabb3d)))
 
 ;;; aabb3d-min : AABB3D → Vec3
@@ -178,29 +201,35 @@
 
 ;;; aabb3d-center : AABB3D → Vec3
 (define (aabb3d-center a)
+  (doc 'export #t)
   (vec3-scale (vec3-add (aabb3d-min a) (aabb3d-max a)) 0.5))
 
 ;;; aabb3d-half-extents : AABB3D → Vec3
 (define (aabb3d-half-extents a)
+  (doc 'export #t)
   (vec3-scale (vec3-sub (aabb3d-max a) (aabb3d-min a)) 0.5))
 
 ;;; aabb3d-extents : AABB3D → Vec3
 (define (aabb3d-extents a)
+  (doc 'export #t)
   (vec3-sub (aabb3d-max a) (aabb3d-min a)))
 
 ;;; aabb3d-volume : AABB3D → Number
 (define (aabb3d-volume a)
+  (doc 'export #t)
   (let ([e (aabb3d-extents a)])
        (* (vec3-x e) (vec3-y e) (vec3-z e))))
 
 ;;; aabb3d-surface-area : AABB3D → Number
 (define (aabb3d-surface-area a)
+  (doc 'export #t)
   (let* ([e (aabb3d-extents a)]
          [ex (vec3-x e)] [ey (vec3-y e)] [ez (vec3-z e)])
         (* 2 (+ (* ex ey) (* ey ez) (* ez ex)))))
 
 ;;; aabb3d-contains-point? : AABB3D × Vec3 → Boolean
 (define (aabb3d-contains-point? a p)
+  (doc 'export #t)
   (let ([min-c (aabb3d-min a)]
         [max-c (aabb3d-max a)])
        (and (>= (vec3-x p) (vec3-x min-c)) (<= (vec3-x p) (vec3-x max-c))
@@ -210,6 +239,7 @@
 ;;; aabb3d-intersects? : AABB3D × AABB3D → Boolean
 ;;; Check if two AABBs intersect.
 (define (aabb3d-intersects? a b)
+  (doc 'export #t)
   (let ([a-min (aabb3d-min a)] [a-max (aabb3d-max a)]
         [b-min (aabb3d-min b)] [b-max (aabb3d-max b)])
        (and (<= (vec3-x a-min) (vec3-x b-max)) (>= (vec3-x a-max) (vec3-x b-min))
@@ -219,6 +249,7 @@
 ;;; aabb3d-merge : AABB3D × AABB3D → AABB3D
 ;;; Create AABB that contains both inputs.
 (define (aabb3d-merge a b)
+  (doc 'export #t)
   (aabb3d (vec3 (min (vec3-x (aabb3d-min a)) (vec3-x (aabb3d-min b)))
                 (min (vec3-y (aabb3d-min a)) (vec3-y (aabb3d-min b)))
                 (min (vec3-z (aabb3d-min a)) (vec3-z (aabb3d-min b))))
@@ -229,6 +260,7 @@
 ;;; aabb3d-expand : AABB3D × Number → AABB3D
 ;;; Expand AABB by delta in all directions.
 (define (aabb3d-expand a delta)
+  (doc 'export #t)
   (let ([d (vec3 delta delta delta)])
        (aabb3d (vec3-sub (aabb3d-min a) d)
                (vec3-add (aabb3d-max a) d))))
@@ -236,6 +268,7 @@
 ;;; aabb3d-from-points : (List Vec3) → AABB3D
 ;;; Create smallest AABB containing all points.
 (define (aabb3d-from-points points)
+  (doc 'export #t)
   (if (null? points)
       (aabb3d (vec3-zero) (vec3-zero))
       (let loop ([pts (cdr points)]
@@ -259,11 +292,13 @@
 ;;; shape3d? : Any → Boolean
 ;;; Check if value is any 3D shape.
 (define (shape3d? s)
+  (doc 'export #t)
   (or (sphere3d? s) (box3d? s) (aabb3d? s)))
 
 ;;; shape3d-aabb : Shape3D → AABB3D
 ;;; Get AABB for any shape.
 (define (shape3d-aabb s)
+  (doc 'export #t)
   (cond
    [(sphere3d? s) (sphere3d-aabb s)]
    [(box3d? s) (box3d-aabb s)]
@@ -273,6 +308,7 @@
 ;;; shape3d-center : Shape3D → Vec3
 ;;; Get center of any shape.
 (define (shape3d-center s)
+  (doc 'export #t)
   (cond
    [(sphere3d? s) (sphere3d-center s)]
    [(box3d? s) (box3d-center s)]
@@ -282,6 +318,7 @@
 ;;; shape3d-contains-point? : Shape3D × Vec3 → Boolean
 ;;; Check if point is inside or on shape.
 (define (shape3d-contains-point? s p)
+  (doc 'export #t)
   (cond
    [(sphere3d? s) (sphere3d-contains-point? s p)]
    [(box3d? s) (box3d-contains-point? s p)]

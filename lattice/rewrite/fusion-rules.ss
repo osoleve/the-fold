@@ -268,6 +268,7 @@ Eliminates intermediate list allocation.")
 (doc 'section "Initialize Fusion Laws")
 
 (define (init-fusion-laws!)
+  (doc 'export #t)
   (doc 'type (-> Void))
   (doc 'description "Register all fusion rules in the law registry.")
   ;; Map-Map Fusion
@@ -311,6 +312,7 @@ Eliminates intermediate list allocation.")
 (doc 'section "Convenience Strategies")
 
 (define (fusion-rules)
+  (doc 'export #t)
   (doc 'type (-> (List Rule)))
   (doc 'description "Get all fusion rules.")
   (laws-by-category 'fusion))
@@ -337,6 +339,7 @@ Eliminates intermediate list allocation.")
 (doc 'section "Fusion Analysis")
 
 (define (count-traversals expr)
+  (doc 'export #t)
   (doc 'type (-> Expr Nat))
   (doc 'description "Count the number of list traversals in an expression. Useful for measuring fusion effectiveness.")
   (let ([traversal-ops '(map filter foldl foldr flatten reverse
@@ -350,6 +353,7 @@ Eliminates intermediate list allocation.")
       (apply + (map count-traversals expr))])))
 
 (define (fusion-potential expr)
+  (doc 'export #t)
   (doc 'type (-> Expr (Pair Nat Nat)))
   (doc 'description "Returns (before-count . after-count) showing traversal reduction.")
   (let* ([before (count-traversals expr)]

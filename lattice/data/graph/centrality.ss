@@ -64,6 +64,7 @@
 (doc eigenvector-centrality 'note "Works best for connected graphs; for directed graphs, considers both in-links; disconnected components may have zero centrality")
 (doc eigenvector-centrality 'note "For node i: x_i = (1/λ) × Σ A_ij × x_j where λ is the largest eigenvalue")
 (define (eigenvector-centrality adj . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [m (matrix-cols adj)])
         (if (not (= n m))
@@ -153,6 +154,7 @@
 (doc eigenvector-centrality-from-edges 'type '(-> (List Edge) [Nat] [Nat] [Num] Vec))
 (doc eigenvector-centrality-from-edges 'description "Compute eigenvector centrality from edge list")
 (define (eigenvector-centrality-from-edges edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (pair? opts) (integer? (car opts)))
                 (car opts)
                 (infer-node-count edges))]
@@ -172,6 +174,7 @@
 (doc katz-centrality 'returns "Vector of Katz centrality scores")
 (doc katz-centrality 'note "Unlike eigenvector centrality, all nodes get non-zero score; α controls how much weight distant connections receive")
 (define (katz-centrality adj . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [m (matrix-cols adj)])
         (if (not (= n m))
@@ -224,6 +227,7 @@
 (doc katz-centrality-from-edges 'type '(-> (List Edge) [Nat] [Num] [Num] Vec))
 (doc katz-centrality-from-edges 'description "Compute Katz centrality from edge list")
 (define (katz-centrality-from-edges edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (pair? opts) (integer? (car opts)))
                 (car opts)
                 (infer-node-count edges))]
@@ -240,6 +244,7 @@
 (doc closeness-centrality 'returns "Vector of closeness centrality scores")
 (doc closeness-centrality 'note "Standard closeness can give misleading results for disconnected graphs; use harmonic=true. Harmonic closeness: H(v) = Σ 1/d(v,u)")
 (define (closeness-centrality dist . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows dist)]
          [harmonic (if (pair? opts) (car opts) #f)])
         (vec-tabulate n i
@@ -278,12 +283,14 @@
 (doc closeness-centrality-from-adj 'type '(-> Matrix [Boolean] Vec))
 (doc closeness-centrality-from-adj 'description "Compute closeness centrality from adjacency matrix")
 (define (closeness-centrality-from-adj adj . opts)
+  (doc 'export #t)
   (let ([dist (floyd-warshall adj)])
        (apply closeness-centrality (cons dist opts))))
 
 (doc closeness-centrality-from-edges 'type '(-> (List Edge) [Nat] [Boolean] Vec))
 (doc closeness-centrality-from-edges 'description "Compute closeness centrality from edge list")
 (define (closeness-centrality-from-edges edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (pair? opts) (integer? (car opts)))
                 (car opts)
                 (infer-node-count edges))]
@@ -300,6 +307,7 @@
 (doc betweenness-centrality 'note "Complexity: O(nm) where m = edges, n = nodes")
 (doc betweenness-centrality 'note "For weighted shortest-path betweenness, use Dijkstra-based variant (not yet implemented)")
 (define (betweenness-centrality adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [cb (make-vector n 0.0)])
         ;; Run BFS/Dijkstra from each source
@@ -370,6 +378,7 @@
 (doc betweenness-centrality-from-edges 'type '(-> (List Edge) [Nat] Vec))
 (doc betweenness-centrality-from-edges 'description "Compute betweenness centrality from edge list")
 (define (betweenness-centrality-from-edges edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (pair? opts) (integer? (car opts)))
                 (car opts)
                 (infer-node-count edges))]
@@ -379,6 +388,7 @@
 (doc rank-by-centrality 'type '(-> Vec (List (Pair Nat Num))))
 (doc rank-by-centrality 'description "Return nodes ranked by centrality score (highest first)")
 (define (rank-by-centrality scores)
+  (doc 'export #t)
   (let* ([n (vector-length scores)]
          [pairs (let loop ([i 0] [acc '()])
                      (if (= i n)
@@ -390,12 +400,14 @@
 (doc top-k-central 'type '(-> Vec Nat (List (Pair Nat Num))))
 (doc top-k-central 'description "Return top k nodes by centrality")
 (define (top-k-central scores k)
+  (doc 'export #t)
   (let ([ranked (rank-by-centrality scores)])
        (take k ranked)))
 
 (doc centrality-correlation 'type '(-> Vec Vec Num))
 (doc centrality-correlation 'description "Compute Pearson correlation between two centrality measures; returns value in [-1, 1]")
 (define (centrality-correlation c1 c2)
+  (doc 'export #t)
   (let* ([n (vector-length c1)]
          [mean1 (/ (vec-fold + 0 c1) n)]
          [mean2 (/ (vec-fold + 0 c2) n)])
@@ -415,6 +427,7 @@
 (doc all-centralities 'type '(-> Matrix (List (Pair Symbol Vec))))
 (doc all-centralities 'description "Compute all centrality measures for comparison; returns alist of (name . scores) pairs")
 (define (all-centralities adj)
+  (doc 'export #t)
   (let ([dist (floyd-warshall adj)])
        (list (cons 'eigenvector (eigenvector-centrality adj))
              (cons 'katz (katz-centrality adj))
@@ -424,6 +437,7 @@
 (doc centrality-summary 'type '(-> Matrix String))
 (doc centrality-summary 'description "Human-readable summary of centrality rankings")
 (define (centrality-summary adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [all (all-centralities adj)]
          [ev-top (car (top-k-central (cdr (assoc 'eigenvector all)) 1))]

@@ -47,12 +47,14 @@ Convolution Gradient:
 (doc 'section 'vector-utilities)
 
 (define (traced-vec? v)
+  (doc 'export #t)
   (doc 'type '(-> (Vector alpha) Boolean))
   (and (vector? v)
        (> (vector-length v) 0)
        (traced? (vector-ref v 0))))
 
 (define (vec-extract-values v)
+  (doc 'export #t)
   (doc 'type '(-> (Vector (Either Traced Number)) (Vector Number)))
   (let* ([n (vector-length v)]
          [result (make-vector n)])
@@ -61,6 +63,7 @@ Convolution Gradient:
             (vector-set! result i (traced-value (vector-ref v i))))))
 
 (define (vec-extract-tape v)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Traced) (Option Tape)))
   (if (and (vector? v) (> (vector-length v) 0) (traced? (vector-ref v 0)))
       (traced-tape (vector-ref v 0))
@@ -69,6 +72,7 @@ Convolution Gradient:
 (doc 'section 'dft-vjp)
 
 (define (dft-vjp output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Complex) (Vector Complex)))
   (doc 'description "DFT VJP (Vector-Jacobian Product)")
   (let* ([n (vector-length output-grad)]
@@ -80,6 +84,7 @@ Convolution Gradient:
             (vector-set! result i (complex-scale n (vector-ref idft-result i))))))
 
 (define (dft-vjp-real output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Number) (Vector Number)))
   (let* ([grad (dft-vjp output-grad)]
          [n (vector-length grad)]
@@ -91,6 +96,7 @@ Convolution Gradient:
 (doc 'section 'idft-vjp)
 
 (define (idft-vjp output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Complex) (Vector Complex)))
   (doc 'description "IDFT VJP - computes dL/dX = DFT(dL/dx) / N")
   (let* ([n (vector-length output-grad)]
@@ -107,12 +113,14 @@ Convolution Gradient:
                  (vector-set! result i (complex-scale (/ 1.0 n) g))))))
 
 (define (idft-vjp-real output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Number) (Vector Complex)))
   (idft-vjp (real->complex-vec output-grad)))
 
 (doc 'section 'convolution-vjp)
 
 (define (convolve-vjp-signal output-grad kernel mode)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Number) (Vector Number) Symbol (Vector Number)))
   (doc 'description "VJP for convolution with respect to signal")
   (let* ([m (vector-length kernel)]
@@ -161,6 +169,7 @@ Convolution Gradient:
 
 ;;; convolve-vjp-kernel : (Vector Number) × (Vector Number) × Symbol × Int → (Vector Number)
 (define (convolve-vjp-kernel output-grad signal mode kernel-len)
+  (doc 'export #t)
   (let* ([n (vector-length signal)]
          [m kernel-len]
          [grad-len (vector-length output-grad)])
@@ -219,6 +228,7 @@ Convolution Gradient:
 (doc 'section 'traced-dft)
 
 (define (traced-dft-real x)
+  (doc 'export #t)
   (doc 'type '(-> (Vector (Either Traced Number)) (Vector Traced)))
   (doc 'description "Traced DFT operation for real-valued signals")
   (let* ([tape (vec-extract-tape x)]
@@ -258,6 +268,7 @@ Convolution Gradient:
                            (vector-set! result (+ (* 2 k) 1) (traced im im-id tape))))))))
 
 (define (make-dft-re-local-grads n k)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (List Number)))
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))])
@@ -266,6 +277,7 @@ Convolution Gradient:
            (vector-set! result m (cos (/ (* -1 two-pi k m) n))))))
 
 (define (make-dft-im-local-grads n k)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (List Number)))
   (let ([result (make-vector n)]
         [two-pi (* 2 (pi-value))])
@@ -276,6 +288,7 @@ Convolution Gradient:
 (doc 'section 'high-level-operations)
 
 (define (diff-dft signal loss-fn)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Number) (-> (Vector Complex) Number) (Vector Number)))
   (doc 'description "Compute gradient of loss function w.r.t. signal through DFT")
   (let* ([n (vector-length signal)]
@@ -307,6 +320,7 @@ Convolution Gradient:
         (dft-vjp-real grad-X)))
 
 (define (diff-convolution signal kernel mode loss-fn)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Number) (Vector Number) Symbol (-> (Vector Number) Number) (Values (Vector Number) (Vector Number))))
   (doc 'description "Compute gradients w.r.t. both signal and kernel through convolution")
   (let* ([output (convolve signal kernel mode)]
@@ -330,6 +344,7 @@ Convolution Gradient:
 (doc 'section 'traced-convolution)
 
 (define (traced-convolve-1d signal kernel mode)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Traced) (Vector Number) Symbol (Vector Traced)))
   (doc 'description "Traced convolution integrated with autodiff")
   (let* ([tape (vec-extract-tape signal)]
@@ -360,6 +375,7 @@ Convolution Gradient:
                            (vector-set! result i (traced out-val out-id tape))))))))
 
 (define (make-conv-local-grads i n m kernel mode)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int (Vector Number) Symbol (List Number)))
   (let ([grads (make-vector n 0)])
        (case mode
@@ -390,6 +406,7 @@ Convolution Gradient:
 (doc 'section 'power-spectrum)
 
 (define (power-spectrum-grad X output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Complex) (Vector Number) (Vector Complex)))
   (doc 'description "Gradient of power spectrum: d(|X[k]|^2)/dX[k] = 2*conj(X[k])")
   (let* ([n (vector-length X)]
@@ -405,6 +422,7 @@ Convolution Gradient:
                   (vector-set! result k grad)))))
 
 (define (power-spectrum-grad-real X output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Complex) (Vector Number) (Vector Complex)))
   (let* ([n (vector-length X)]
          [result (make-vector n)])
@@ -421,6 +439,7 @@ Convolution Gradient:
 (doc 'section 'magnitude-spectrum)
 
 (define (magnitude-spectrum-grad X output-grad)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Complex) (Vector Number) (Vector Complex)))
   (doc 'description "Gradient of magnitude spectrum")
   (let* ([n (vector-length X)]
@@ -441,6 +460,7 @@ Convolution Gradient:
 (doc 'section 'spectral-loss)
 
 (define (spectral-mse-grad X1 X2)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Complex) (Vector Complex) (Values Number (Vector Complex))))
   (doc 'description "Mean squared error gradient in spectral domain")
   (let* ([n (vector-length X1)]
@@ -455,6 +475,7 @@ Convolution Gradient:
                        (loop (+ k 1) (+ total d-mag-sq)))))))
 
 (define (spectral-mse-signal-grad signal target-spectrum)
+  (doc 'export #t)
   (doc 'type '(-> (Vector Number) (Vector Complex) (Vector Number)))
   (let* ([X (dft (real->complex-vec signal))]
          [_ (spectral-mse-grad X target-spectrum)]

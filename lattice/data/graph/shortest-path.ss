@@ -39,6 +39,7 @@ negative-weight cycle is reachable from the source.")
 (doc bellman-ford 'returns "(ok dist . pred) or (negative-cycle . v) where v is on the cycle")
 (doc bellman-ford 'note "Time: O(V*E). Space: O(V). Handles negative edges but detects negative cycles.")
 (define (bellman-ford adj source)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [dist (vec-tabulate n i (if (= i source) 0 *infinity*))]
          [pred (make-vector n -1)])
@@ -80,6 +81,7 @@ negative-weight cycle is reachable from the source.")
 ;;; bellman-ford-collect-edges : (Union Matrix SparseCSR) x Nat -> (List (List Nat Nat Num))
 ;;; Extract all edges as (u v weight) triples. Skips zero entries (no edge).
 (define (bellman-ford-collect-edges adj n)
+  (doc 'export #t)
   (let loop-i ([i 0] [edges '()])
     (if (= i n)
         edges
@@ -102,6 +104,7 @@ Returns list of node indices from source to target, or #f if unreachable.")
 (doc shortest-path-reconstruct 'param 'source "Source node")
 (doc shortest-path-reconstruct 'param 'target "Target node")
 (define (shortest-path-reconstruct pred source target)
+  (doc 'export #t)
   (if (and (not (= source target))
            (= (vector-ref pred target) -1))
       #f  ; Unreachable
@@ -121,6 +124,7 @@ Returns list of node indices from source to target, or #f if unreachable.")
 (doc bellman-ford-distance 'description "Shortest distance from source to target, handling negative edges.
 Returns numeric distance, *infinity* if unreachable, or 'negative-cycle.")
 (define (bellman-ford-distance adj source target)
+  (doc 'export #t)
   (let ([result (bellman-ford adj source)])
     (if (eq? (car result) 'negative-cycle)
         'negative-cycle
@@ -130,6 +134,7 @@ Returns numeric distance, *infinity* if unreachable, or 'negative-cycle.")
 (doc bellman-ford-path 'description "Shortest path from source to target, handling negative edges.
 Returns path as node list, #f if unreachable, or 'negative-cycle.")
 (define (bellman-ford-path adj source target)
+  (doc 'export #t)
   (let ([result (bellman-ford adj source)])
     (if (eq? (car result) 'negative-cycle)
         'negative-cycle

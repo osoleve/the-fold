@@ -40,6 +40,7 @@ of type A → M(B). The category structure provides composition.")
 ;;; make-kleisli-category : MonadOps → KleisliCategory
 ;;; Construct the Kleisli category for a monad.
 (define (make-kleisli-category monad-ops)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps KleisliCategory))
   (doc 'description "Create the Kleisli category K(M) for monad M")
   (let ([return-fn (monad-ops-return monad-ops)]
@@ -54,20 +55,24 @@ of type A → M(B). The category structure provides composition.")
               (bind-fn (f x) g))))))
 
 (define (kleisli-category? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'kleisli-category)
        (= (length x) 5)))
 
 (define (kleisli-category-name kc)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory Symbol))
   (if (kleisli-category? kc) (cadr kc) 'unknown))
 
 (define (kleisli-category-monad kc)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory MonadOps))
   (if (kleisli-category? kc) (caddr kc) #f))
 
 (define (kleisli-identity kc)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> a (M a))))
   (doc 'description "Get the identity morphism (return) for the Kleisli category")
   (if (kleisli-category? kc) (cadddr kc) #f))
@@ -76,6 +81,7 @@ of type A → M(B). The category structure provides composition.")
 ;;; Get the fish operator (>=>) - LEFT-TO-RIGHT Kleisli composition.
 ;;; Named 'fish' to avoid confusion with mathematical 'compose' (right-to-left).
 (define (kleisli-fish kc)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> (-> a (M b)) (-> b (M c)) (-> a (M c)))))
   (doc 'description "Get the fish operator (>=>) - left-to-right Kleisli composition")
   (if (kleisli-category? kc) (car (cddddr kc)) #f))
@@ -83,6 +89,7 @@ of type A → M(B). The category structure provides composition.")
 ;;; kleisli-compose : KleisliCategory → ((B → M C) → (A → M B) → (A → M C))
 ;;; Mathematical composition (right-to-left): g ∘ f means "f then g"
 (define (kleisli-compose kc)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> (-> b (M c)) (-> a (M b)) (-> a (M c)))))
   (doc 'description "Right-to-left Kleisli composition: (g ∘ f) x = f x >>= g")
   (let ([fish (kleisli-fish kc)])
@@ -99,6 +106,7 @@ operations.")
 ;;; kleisli-id : KleisliCategory → (A → M A)
 ;;; The identity Kleisli arrow at any type.
 (define (kleisli-id kc)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> a (M a))))
   (kleisli-identity kc))
 
@@ -106,6 +114,7 @@ operations.")
 ;;; Compose two Kleisli arrows (left-to-right, like >>>)
 ;;; (f >>> g) x = f x >>= g
 (define (kleisli->>> kc f g)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> a (M b)) (-> b (M c)) (-> a (M c))))
   (doc 'description "Left-to-right Kleisli composition: f >>> g = f >=> g")
   ((kleisli-fish kc) f g))
@@ -114,6 +123,7 @@ operations.")
 ;;; Compose two Kleisli arrows (right-to-left, like <<<)
 ;;; (g <<< f) x = f x >>= g
 (define (kleisli-<<< kc g f)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> b (M c)) (-> a (M b)) (-> a (M c))))
   (doc 'description "Right-to-left Kleisli composition: g <<< f = f >=> g")
   ((kleisli-fish kc) f g))
@@ -121,6 +131,7 @@ operations.")
 ;;; fish : KleisliCategory × (A → M B) × (B → M C) → (A → M C)
 ;;; Alias for kleisli->>> using the traditional 'fish' name
 (define (fish kc f g)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> a (M b)) (-> b (M c)) (-> a (M c))))
   (doc 'description "The 'fish' operator (>=>): Kleisli composition")
   (kleisli->>> kc f g))
@@ -129,6 +140,7 @@ operations.")
 ;;; Lift a pure function into a Kleisli arrow.
 ;;; lift f = return . f
 (define (kleisli-lift kc f)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> a b) (-> a (M b))))
   (doc 'description "Lift a pure function to a Kleisli arrow: lift f = return . f")
   (let ([return-fn (kleisli-identity kc)])
@@ -138,6 +150,7 @@ operations.")
 ;;; kleisli-map : KleisliCategory × (A → B) × M A → M B
 ;;; Apply a pure function inside the monad (fmap via Kleisli)
 (define (kleisli-map kc f ma)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (-> a b) (M a) (M b)))
   (let* ([monad (kleisli-category-monad kc)]
          [fmap-fn (monad-ops-fmap monad)])
@@ -161,10 +174,12 @@ variants that accept a custom equality predicate.")
 ;;; Check: return >=> f = f (at a specific input)
 ;;; Uses equal? - works for data-based monads (List, Maybe)
 (define (verify-kleisli-left-identity kc f a)
+  (doc 'export #t)
   (verify-kleisli-left-identity-with-eq kc f a equal?))
 
 ;;; verify-kleisli-left-identity-with-eq : KleisliCategory × (A → M B) × A × Eq → Boolean
 (define (verify-kleisli-left-identity-with-eq kc f a eq?)
+  (doc 'export #t)
   (let* ([return-fn (kleisli-identity kc)]
          [fish (kleisli-fish kc)]
          [lhs ((fish return-fn f) a)]
@@ -174,9 +189,11 @@ variants that accept a custom equality predicate.")
 ;;; verify-kleisli-right-identity : KleisliCategory × (A → M B) × A → Boolean
 ;;; Check: f >=> return = f (at a specific input)
 (define (verify-kleisli-right-identity kc f a)
+  (doc 'export #t)
   (verify-kleisli-right-identity-with-eq kc f a equal?))
 
 (define (verify-kleisli-right-identity-with-eq kc f a eq?)
+  (doc 'export #t)
   (let* ([return-fn (kleisli-identity kc)]
          [fish (kleisli-fish kc)]
          [lhs ((fish f return-fn) a)]
@@ -186,9 +203,11 @@ variants that accept a custom equality predicate.")
 ;;; verify-kleisli-associativity : KleisliCategory × Arrows × A → Boolean
 ;;; Check: (f >=> g) >=> h = f >=> (g >=> h) (at a specific input)
 (define (verify-kleisli-associativity kc f g h a)
+  (doc 'export #t)
   (verify-kleisli-associativity-with-eq kc f g h a equal?))
 
 (define (verify-kleisli-associativity-with-eq kc f g h a eq?)
+  (doc 'export #t)
   (let* ([fish (kleisli-fish kc)]
          [lhs ((fish (fish f g) h) a)]
          [rhs ((fish f (fish g h)) a)])
@@ -197,9 +216,11 @@ variants that accept a custom equality predicate.")
 ;;; verify-kleisli-laws : KleisliCategory × Arrows × TestValue → Boolean
 ;;; Verify all three category laws.
 (define (verify-kleisli-laws kc f g h a)
+  (doc 'export #t)
   (verify-kleisli-laws-with-eq kc f g h a equal?))
 
 (define (verify-kleisli-laws-with-eq kc f g h a eq?)
+  (doc 'export #t)
   (and (verify-kleisli-left-identity-with-eq kc f a eq?)
        (verify-kleisli-right-identity-with-eq kc f a eq?)
        (verify-kleisli-associativity-with-eq kc f g h a eq?)))
@@ -217,6 +238,7 @@ expressed in terms of Kleisli composition.")
 ;;; sequence [f] = f
 ;;; sequence (f:fs) = f >=> sequence fs
 (define (kleisli-sequence kc arrows)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory (List (-> a (M a))) (-> a (M a))))
   (if (null? arrows)
       (kleisli-identity kc)
@@ -228,6 +250,7 @@ expressed in terms of Kleisli composition.")
 ;;; kleisli-pipe : KleisliCategory × A × [A → M A] → M A
 ;;; Feed a value through a sequence of Kleisli arrows.
 (define (kleisli-pipe kc x arrows)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory a (List (-> a (M a))) (M a)))
   ((kleisli-sequence kc arrows) x))
 
@@ -237,6 +260,7 @@ expressed in terms of Kleisli composition.")
 ;;; replicate 1 f = f
 ;;; replicate n f = f >=> f >=> ... (n times)
 (define (kleisli-replicate kc n f)
+  (doc 'export #t)
   (doc 'type '(-> KleisliCategory Nat (-> a (M a)) (-> a (M a))))
   (cond
     [(<= n 0) (kleisli-identity kc)]
@@ -266,6 +290,7 @@ expressed in terms of Kleisli composition.")
 
 ;;; kleisli-category->string : KleisliCategory → String
 (define (kleisli-category->string kc)
+  (doc 'export #t)
   (if (kleisli-category? kc)
       (format "Kleisli<~a>" (kleisli-category-name kc))
       "Not a Kleisli category"))

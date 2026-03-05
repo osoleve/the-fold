@@ -10,10 +10,12 @@
 
 ;;; Helper to extract choice text
 (define (choice-text c)
+  (doc 'export #t)
   (cadr c))  ; (choice text target guard effect)
 
 ;;; Create a runtime and test a specific path
 (define (test-path)
+  (doc 'export #t)
   (display "Testing a story path:\n")
   (display "----\n\n")
   

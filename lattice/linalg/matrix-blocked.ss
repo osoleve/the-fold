@@ -26,6 +26,7 @@
 ;;; Tiled i-k-j matrix multiplication for cache efficiency.
 ;;; Outer loops iterate over tile-triples, inner loops over elements within tiles.
 (define (matrix-mul-blocked m1 m2 . bs-arg)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
     (if (not (= c1 r2))
@@ -64,6 +65,7 @@
 ;;; Blocked matmul writing to a pre-allocated result vector for rows [row-from, row-to).
 ;;; Used by parallel dispatch to partition work across workers without allocation.
 (define (matrix-mul-blocked-into! m1 m2 result row-from row-to . bs-arg)
+  (doc 'export #t)
   (let* ([c1 (matrix-cols m1)]
          [c2 (matrix-cols m2)]
          [bs (if (null? bs-arg) *default-block-size* (car bs-arg))]
@@ -100,6 +102,7 @@
 ;;; matrix-transpose-blocked : Matrix × [Nat] → Matrix
 ;;; Tiled transpose for cache efficiency on large matrices.
 (define (matrix-transpose-blocked m . bs-arg)
+  (doc 'export #t)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [bs (if (null? bs-arg) *default-block-size* (car bs-arg))]
@@ -124,6 +127,7 @@
 ;;; matrix-transpose-blocked-into! : Matrix × Vector × Nat × Nat × [Nat] → Void
 ;;; Blocked transpose writing tile-rows [row-from, row-to) to pre-allocated result.
 (define (matrix-transpose-blocked-into! m result row-from row-to . bs-arg)
+  (doc 'export #t)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [bs (if (null? bs-arg) *default-block-size* (car bs-arg))]
@@ -233,6 +237,7 @@
 ;;; Strassen algorithm O(n^2.807). Pads non-pow2 / non-square to next pow2.
 ;;; Falls back to blocked multiply below threshold.
 (define (matrix-mul-strassen m1 m2 . threshold-arg)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
     (if (not (= c1 r2))

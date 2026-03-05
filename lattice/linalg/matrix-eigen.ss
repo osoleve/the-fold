@@ -47,6 +47,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
      'param '(tol "Convergence tolerance")
      'returns "(eigenvalue . eigenvector) or error")
 (define (power-iteration a . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (if (not (= n m))
@@ -106,6 +107,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; This preserves eigenvalues and converges to upper triangular (Schur form)
 ;;; for real eigenvalues, or block upper triangular for complex pairs.
 (define (qr-algorithm a . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (if (not (= n m))
@@ -160,6 +162,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; QR algorithm with Wilkinson shift for faster convergence.
 ;;; The shift accelerates convergence especially for clustered eigenvalues.
 (define (qr-algorithm-shifted a . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (if (not (= n m))
@@ -349,6 +352,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; Inverse iteration solves (A - λI)x = v repeatedly, converging to
 ;;; the eigenvector for the eigenvalue closest to λ.
 (define (inverse-iteration a lambda-approx . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (if (not (= n m))
@@ -419,6 +423,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;;   (error complex-eigenvalues eigenvalues info) - Matrix has complex eigenvalues
 ;;;   (error eigenvector-computation-failed index eigenvalue) - Could not compute eigenvector
 (define (eigen-decomposition a . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (if (not (= n m))
@@ -474,6 +479,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; The QR algorithm on symmetric matrices converges to a diagonal matrix,
 ;;; and the product of Q matrices gives the eigenvector matrix.
 (define (symmetric-eigen a . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (cond
@@ -533,6 +539,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;;
 ;;; Compute the spectral radius (largest absolute eigenvalue).
 (define (spectral-radius a . opts)
+  (doc 'export #t)
   (let* ([rows (matrix-rows a)]
          [max-iter (if (and (pair? opts) (integer? (car opts)))
                        (car opts)
@@ -560,6 +567,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; Estimate the condition number based on eigenvalues.
 ;;; For normal matrices: kappa = |lambda_max| / |lambda_min|
 (define (eigenvalue-condition a . opts)
+  (doc 'export #t)
   (let* ([max-iter (if (and (pair? opts) (integer? (car opts)))
                        (car opts)
                        *eigen-max-iterations*)]
@@ -599,6 +607,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; (complex-eigenvalues eigenvalue-vector complex-info) where complex-info
 ;;; is a list of (index real-part imaginary-part) for each complex pair.
 (define (eigenvalues a)
+  (doc 'export #t)
   (if (matrix-symmetric? a)
       (let ([result (symmetric-eigen a)])
            (if (and (pair? result) (eq? (car result) 'error))
@@ -610,6 +619,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; Convenience function to get just eigenvectors.
 ;;; Returns error for matrices with complex eigenvalues.
 (define (eigenvectors a)
+  (doc 'export #t)
   (let ([result (eigen-decomposition a)])
        (cond
         ;; Check for explicit error
@@ -624,6 +634,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; verify-eigenvalue : Matrix × Num × Vec × [Num] → Boolean
 ;;; Check if (λ, v) is an eigenpair: ||Av - λv|| < tol
 (define (verify-eigenvalue a lambda v . opts)
+  (doc 'export #t)
   (let* ([tol (if (pair? opts) (car opts) *eigen-tolerance*)]
          [av (matrix-vec-mul a v)]
          [lambda-v (vec-scale lambda v)]
@@ -634,6 +645,7 @@ Converges to the eigenvector for the eigenvalue with largest |λ|."
 ;;; verify-decomposition : Matrix × Vec × Matrix × [Num] → Boolean
 ;;; Check if A ≈ V × D × V^(-1) for eigenvalue decomposition
 (define (verify-decomposition a eigenvalues eigenvectors . opts)
+  (doc 'export #t)
   (let* ([tol (if (pair? opts) (car opts) (* 100 *eigen-tolerance*))]
          [n (matrix-rows a)])
         ;; Check each eigenpair

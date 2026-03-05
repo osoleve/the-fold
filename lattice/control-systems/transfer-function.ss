@@ -38,6 +38,7 @@
 ;;; tf? : Any → Boolean
 ;;; Check if value is a transfer function.
 (define (tf? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'tf)
        (= (length x) 3)
@@ -48,6 +49,7 @@
 ;;; Create transfer function from numerator and denominator polynomials.
 ;;; Normalizes denominator to monic form.
 (define (make-tf num den)
+  (doc 'export #t)
   (let ([lead (poly-leading den)])
        (if (zero? lead)
            '(error zero-denominator)
@@ -59,42 +61,50 @@
 ;;; tf-from-coeffs : Vector × Vector → TF
 ;;; Create transfer function from coefficient vectors (descending powers).
 (define (tf-from-coeffs num-coeffs den-coeffs)
+  (doc 'export #t)
   (make-tf (make-poly num-coeffs) (make-poly den-coeffs)))
 
 ;;; tf-from-lists : (List Number) × (List Number) → TF
 ;;; Create transfer function from lists of coefficients.
 (define (tf-from-lists num-list den-list)
+  (doc 'export #t)
   (make-tf (poly-from-list num-list) (poly-from-list den-list)))
 
 ;;; tf-num : TF → Poly
 ;;; Get the numerator polynomial.
 (define (tf-num tf)
+  (doc 'export #t)
   (cadr tf))
 
 ;;; tf-den : TF → Poly
 ;;; Get the denominator polynomial.
 (define (tf-den tf)
+  (doc 'export #t)
   (caddr tf))
 
 ;;; tf-order : TF → Nat
 ;;; Get the order (degree of denominator).
 (define (tf-order tf)
+  (doc 'export #t)
   (poly-degree (tf-den tf)))
 
 ;;; tf-relative-degree : TF → Int
 ;;; Get the relative degree (deg(den) - deg(num)).
 ;;; Positive means strictly proper, zero means proper, negative means improper.
 (define (tf-relative-degree tf)
+  (doc 'export #t)
   (- (poly-degree (tf-den tf)) (poly-degree (tf-num tf))))
 
 ;;; tf-proper? : TF → Boolean
 ;;; Check if transfer function is proper (deg(num) <= deg(den)).
 (define (tf-proper? tf)
+  (doc 'export #t)
   (>= (tf-relative-degree tf) 0))
 
 ;;; tf-strictly-proper? : TF → Boolean
 ;;; Check if transfer function is strictly proper (deg(num) < deg(den)).
 (define (tf-strictly-proper? tf)
+  (doc 'export #t)
   (> (tf-relative-degree tf) 0))
 
 ;;; ====
@@ -104,16 +114,19 @@
 ;;; tf-poles : TF → (List Complex)
 ;;; Get the poles (roots of denominator).
 (define (tf-poles tf)
+  (doc 'export #t)
   (poly-roots (tf-den tf)))
 
 ;;; tf-zeros : TF → (List Complex)
 ;;; Get the zeros (roots of numerator).
 (define (tf-zeros tf)
+  (doc 'export #t)
   (poly-roots (tf-num tf)))
 
 ;;; tf-from-poles-zeros : (List Complex) × (List Complex) × Number → TF
 ;;; Construct transfer function from poles, zeros, and gain.
 (define (tf-from-poles-zeros poles zeros gain)
+  (doc 'export #t)
   (make-tf (poly-from-roots zeros gain)
            (poly-from-roots poles 1)))
 
@@ -121,6 +134,7 @@
 ;;; Get the static gain (high-frequency gain for proper systems).
 ;;; For H(s) = (b_n*s^n + ...)/(s^m + ...), gain = b_n when n=m.
 (define (tf-gain tf)
+  (doc 'export #t)
   (/ (poly-leading (tf-num tf)) (poly-leading (tf-den tf))))
 
 ;;; ====
@@ -130,6 +144,7 @@
 ;;; tf-eval : TF × Complex → Complex
 ;;; Evaluate H(s) at complex frequency s.
 (define (tf-eval tf s)
+  (doc 'export #t)
   (let ([num-val (poly-eval-complex (tf-num tf) s)]
         [den-val (poly-eval-complex (tf-den tf) s)])
        (complex-div num-val den-val)))
@@ -137,12 +152,14 @@
 ;;; tf-eval-real : TF × Number → Number
 ;;; Evaluate H(s) at real s value (for real systems on real axis).
 (define (tf-eval-real tf s)
+  (doc 'export #t)
   (/ (poly-eval (tf-num tf) s) (poly-eval (tf-den tf) s)))
 
 ;;; tf-dc-gain : TF → Number | 'infinite
 ;;; Compute DC gain H(0).
 ;;; Returns 'infinite if there's a pole at origin.
 (define (tf-dc-gain tf)
+  (doc 'export #t)
   (let ([den-at-zero (poly-eval (tf-den tf) 0)])
        (if (< (abs den-at-zero) 1e-15)
            'infinite
@@ -156,6 +173,7 @@
 ;;; Compute frequency response H(jw) for vector of frequencies w.
 ;;; Returns vector of complex values.
 (define (tf-freq-response tf frequencies)
+  (doc 'export #t)
   (let* ([n (vector-length frequencies)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -167,6 +185,7 @@
 ;;; tf-magnitude : TF × Vector → Vector
 ;;; Compute magnitude |H(jw)| for vector of frequencies.
 (define (tf-magnitude tf frequencies)
+  (doc 'export #t)
   (let* ([resp (tf-freq-response tf frequencies)]
          [n (vector-length resp)]
          [result (make-vector n)])
@@ -177,6 +196,7 @@
 ;;; tf-magnitude-db : TF × Vector → Vector
 ;;; Compute magnitude in decibels: 20*log10(|H(jw)|).
 (define (tf-magnitude-db tf frequencies)
+  (doc 'export #t)
   (let* ([mag (tf-magnitude tf frequencies)]
          [n (vector-length mag)]
          [result (make-vector n)])
@@ -188,6 +208,7 @@
 ;;; tf-phase : TF × Vector → Vector
 ;;; Compute phase angle of H(jw) in radians.
 (define (tf-phase tf frequencies)
+  (doc 'export #t)
   (let* ([resp (tf-freq-response tf frequencies)]
          [n (vector-length resp)]
          [result (make-vector n)])
@@ -198,6 +219,7 @@
 ;;; tf-phase-deg : TF × Vector → Vector
 ;;; Compute phase angle in degrees.
 (define (tf-phase-deg tf frequencies)
+  (doc 'export #t)
   (let* ([phase-rad (tf-phase tf frequencies)]
          [n (vector-length phase-rad)]
          [result (make-vector n)])
@@ -212,6 +234,7 @@
 ;;;   n-points: number of points
 ;;; Returns: (frequencies magnitude-dB phase-degrees)
 (define (tf-bode-data tf start-exp end-exp n-points)
+  (doc 'export #t)
   (let* ([freqs (logspace start-exp end-exp n-points)]
          [mag-db (tf-magnitude-db tf freqs)]
          [phase-deg (tf-phase-deg tf freqs)])
@@ -225,6 +248,7 @@
 ;;; Series connection: H1(s) * H2(s)
 ;;; Output of H1 feeds into input of H2.
 (define (tf-series tf1 tf2)
+  (doc 'export #t)
   (make-tf (poly-mul (tf-num tf1) (tf-num tf2))
            (poly-mul (tf-den tf1) (tf-den tf2))))
 
@@ -232,6 +256,7 @@
 ;;; Parallel connection: H1(s) + H2(s)
 ;;; Cross-multiply to get common denominator.
 (define (tf-parallel tf1 tf2)
+  (doc 'export #t)
   (let* ([n1 (tf-num tf1)] [d1 (tf-den tf1)]
          [n2 (tf-num tf2)] [d2 (tf-den tf2)])
         (make-tf (poly-add (poly-mul n1 d2) (poly-mul n2 d1))
@@ -243,6 +268,7 @@
 ;;; For positive feedback: H_cl = G / (1 - G*H)
 ;;; G is forward path, H is feedback path.
 (define (tf-feedback G H . sign)
+  (doc 'export #t)
   (let* ([neg? (or (null? sign) (eq? (car sign) 'negative))]
          [nG (tf-num G)] [dG (tf-den G)]
          [nH (tf-num H)] [dH (tf-den H)]
@@ -261,6 +287,7 @@
 ;;; tf-unity-feedback : TF → TF
 ;;; Unity negative feedback: H_cl = G / (1 + G)
 (define (tf-unity-feedback G)
+  (doc 'export #t)
   (tf-feedback G (tf-from-lists '(1) '(1)) 'negative))
 
 ;;; ====
@@ -271,6 +298,7 @@
 ;;; Check if transfer function is stable.
 ;;; Stable if all poles have negative real parts.
 (define (tf-stable? tf)
+  (doc 'export #t)
   (let ([poles (tf-poles tf)])
        (if (pair? poles)
            (and (list? poles)
@@ -282,6 +310,7 @@
 ;;; tf-pole-real-parts : TF → (List Number)
 ;;; Get real parts of all poles.
 (define (tf-pole-real-parts tf)
+  (doc 'export #t)
   (map complex-real (tf-poles tf)))
 
 ;;; ====
@@ -291,6 +320,7 @@
 ;;; tf->string : TF → String
 ;;; Pretty-print transfer function.
 (define (tf->string tf)
+  (doc 'export #t)
   (let ([num-str (poly->string (tf-num tf))]
         [den-str (poly->string (tf-den tf))])
        (string-append "(" num-str ") / (" den-str ")")))
@@ -301,6 +331,7 @@
 
 ;;; log10 : Number → Number
 (define (log10 x)
+  (doc 'export #t)
   (/ (log x) (log 10)))
 
 ;;; pi constant

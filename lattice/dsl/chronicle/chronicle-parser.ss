@@ -46,10 +46,12 @@
 
 ;;; Lexeme: parser followed by whitespace
 (define (lexeme p)
+  (doc 'export #t)
   (parser-left p whitespace))
 
 ;;; Symbol: parse a keyword/identifier followed by whitespace
 (define (symbol str)
+  (doc 'export #t)
   (lexeme (parser-string str)))
 
 (doc 'section 'identifiers-and-strings)
@@ -119,6 +121,7 @@
 
 ;;; Actual guard parser (delayed to allow forward reference)
 (define (parse-guard-impl)
+  (doc 'export #t)
   (parser-choice
    (list
     ;; and(g1, g2, ...)
@@ -429,6 +432,7 @@
 ;;; parse-chronicle-text : String -> Either Error Chronicle
 ;;; Parse textual chronicle DSL and compile to Chronicle structure.
 (define (parse-chronicle-text input)
+  (doc 'export #t)
   (let ([result (parse-all (parser-then whitespace parse-chronicle) input)])
        (if (right? result)
            (let ([ast (from-right result)])
@@ -438,6 +442,7 @@
 
 ;;; Helper: replace character in string
 (define (string-replace str old new)
+  (doc 'export #t)
   (list->string
    (map (lambda (c) (if (char=? c (string-ref old 0)) (string-ref new 0) c))
         (string->list str))))
@@ -447,6 +452,7 @@
 ;;; chronicle-from-text : String -> Chronicle
 ;;; Parse text and return chronicle (or error).
 (define (chronicle-from-text input)
+  (doc 'export #t)
   (let ([result (parse-chronicle-text input)])
        (if (right? result)
            (from-right result)

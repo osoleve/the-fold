@@ -51,29 +51,35 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; make-proof-goal : Expr x Expr x Context -> Goal
 (define (make-proof-goal lhs rhs ctx)
+  (doc 'export #t)
   `(goal ,lhs ,rhs ,ctx))
 
 ;;; proof-goal? : Any -> Boolean
 (define (proof-goal? g)
+  (doc 'export #t)
   (and (pair? g)
        (eq? (car g) 'goal)
        (= (length g) 4)))
 
 ;;; goal-lhs : Goal -> Expr
 (define (goal-lhs g)
+  (doc 'export #t)
   (if (proof-goal? g) (cadr g) #f))
 
 ;;; goal-rhs : Goal -> Expr
 (define (goal-rhs g)
+  (doc 'export #t)
   (if (proof-goal? g) (caddr g) #f))
 
 ;;; goal-context : Goal -> Context
 (define (goal-context g)
+  (doc 'export #t)
   (if (proof-goal? g) (cadddr g) '()))
 
 ;;; goal-trivial? : Goal -> Boolean
 ;;; Check if goal is syntactically trivial (lhs = rhs).
 (define (goal-trivial? g)
+  (doc 'export #t)
   (and (proof-goal? g)
        (equal? (goal-lhs g) (goal-rhs g))))
 
@@ -90,30 +96,37 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; tactic-success : (List Goal) x Builder -> TacticResult
 (define (tactic-success subgoals builder)
+  (doc 'export #t)
   `(ok ,subgoals ,builder))
 
 ;;; tactic-failure : Any -> TacticResult
 (define (tactic-failure reason)
+  (doc 'export #t)
   `(error ,reason))
 
 ;;; tactic-success? : TacticResult -> Boolean
 (define (tactic-success? r)
+  (doc 'export #t)
   (and (pair? r) (eq? (car r) 'ok)))
 
 ;;; tactic-failure? : TacticResult -> Boolean
 (define (tactic-failure? r)
+  (doc 'export #t)
   (and (pair? r) (eq? (car r) 'error)))
 
 ;;; tactic-subgoals : TacticResult -> (List Goal)
 (define (tactic-subgoals r)
+  (doc 'export #t)
   (if (tactic-success? r) (cadr r) '()))
 
 ;;; tactic-builder : TacticResult -> Builder
 (define (tactic-builder r)
+  (doc 'export #t)
   (if (tactic-success? r) (caddr r) (lambda args 'error)))
 
 ;;; tactic-error : TacticResult -> Any
 (define (tactic-error r)
+  (doc 'export #t)
   (if (tactic-failure? r) (cadr r) #f))
 
 ;;; ====
@@ -124,6 +137,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Prove x = x using reflexivity.
 ;;; Succeeds if lhs and rhs are syntactically equal.
 (define (tactic-refl goal)
+  (doc 'export #t)
   (if (not (proof-goal? goal))
       (tactic-failure '(not-a-goal))
       (let ([lhs (goal-lhs goal)]
@@ -138,6 +152,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Transform goal y = x into subgoal x = y.
 ;;; The proof uses symmetry: if we prove x = y, sym gives y = x.
 (define (tactic-sym goal)
+  (doc 'export #t)
   (if (not (proof-goal? goal))
       (tactic-failure '(not-a-goal))
       (let* ([lhs (goal-lhs goal)]   ; y
@@ -155,6 +170,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Split goal x = z into subgoals x = mid and mid = z.
 ;;; Uses transitivity to chain the proofs.
 (define (tactic-trans mid)
+  (doc 'export #t)
   (lambda (goal)
           (if (not (proof-goal? goal))
               (tactic-failure '(not-a-goal))
@@ -174,6 +190,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Apply a named law from the registry to rewrite the goal.
 ;;; Rewrites the lhs using the law and checks if it equals rhs.
 (define (tactic-rewrite law-name)
+  (doc 'export #t)
   (lambda (goal)
           (if (not (proof-goal? goal))
               (tactic-failure '(not-a-goal))
@@ -211,6 +228,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-topdown : Strategy -> Goal -> TacticResult
 ;;; Apply a rewrite strategy top-down through the lhs expression.
 (define (tactic-topdown strategy)
+  (doc 'export #t)
   (lambda (goal)
           (if (not (proof-goal? goal))
               (tactic-failure '(not-a-goal))
@@ -237,6 +255,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-bottomup : Strategy -> Goal -> TacticResult
 ;;; Apply a rewrite strategy bottom-up through the lhs expression.
 (define (tactic-bottomup strategy)
+  (doc 'export #t)
   (lambda (goal)
           (if (not (proof-goal? goal))
               (tactic-failure '(not-a-goal))
@@ -261,6 +280,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-try : Tactic -> Goal -> TacticResult
 ;;; Apply tactic, succeed even if it fails (goal unchanged).
 (define (tactic-try t)
+  (doc 'export #t)
   (lambda (goal)
           (let ([result (t goal)])
                (if (tactic-success? result)
@@ -325,6 +345,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Fold builders into a single proof.
 ;;; Builders may be thunks (no subgoals) or take a list of proofs.
 (define (fold-proofs builders proofs)
+  (doc 'export #t)
   (if (null? builders)
       (if (null? proofs) '(refl) (car proofs))
       (let ([b (car builders)]
@@ -342,6 +363,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-then : Tactic x Tactic -> Tactic
 ;;; Sequential composition: apply t1, then apply t2 to all subgoals.
 (define (tactic-then t1 t2)
+  (doc 'export #t)
   (lambda (goal)
           (let ([r1 (t1 goal)])
                (if (tactic-failure? r1)
@@ -367,6 +389,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; build-combined-proof : Builder x (List Builder) x (List Proof) -> Proof
 ;;; Helper to build proof from nested builders.
 (define (build-combined-proof outer-builder inner-builders proofs)
+  (doc 'export #t)
   (let* ([num-builders (length inner-builders)]
          [proofs-per (if (zero? num-builders) 0 (quotient (length proofs) num-builders))]
          [inner-proofs
@@ -391,6 +414,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 
 ;;; drop-n : (List a) x Nat -> (List a)
 (define (drop-n lst n)
+  (doc 'export #t)
   (if (or (null? lst) (<= n 0))
       lst
       (drop-n (cdr lst) (- n 1))))
@@ -398,6 +422,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; tactic-orelse : Tactic x Tactic -> Tactic
 ;;; Try first tactic, if fails try second.
 (define (tactic-orelse t1 t2)
+  (doc 'export #t)
   (lambda (goal)
           (let ([r1 (t1 goal)])
                (if (tactic-success? r1)
@@ -464,18 +489,21 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; register-auto-law! : Symbol -> void
 ;;; Add a law to the auto-law set by name.
 (define (register-auto-law! law-name)
+  (doc 'export #t)
   (unless (memq law-name *auto-laws-extra*)
           (set! *auto-laws-extra* (cons law-name *auto-laws-extra*))))
 
 ;;; register-auto-category! : Symbol -> void
 ;;; Add a category to auto-include in auto-laws.
 (define (register-auto-category! category)
+  (doc 'export #t)
   (unless (memq category *auto-law-categories*)
           (set! *auto-law-categories* (cons category *auto-law-categories*))))
 
 ;;; unregister-auto-category! : Symbol -> void
 ;;; Remove a category from auto-inclusion.
 (define (unregister-auto-category! category)
+  (doc 'export #t)
   (set! *auto-law-categories*
         (filter (lambda (c) (not (eq? c category))) *auto-law-categories*)))
 
@@ -484,6 +512,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Combines: base laws + laws from auto-categories + extra laws.
 ;;; Removes duplicates while preserving order (base laws tried first).
 (define (auto-laws)
+  (doc 'export #t)
   (let* ([base *auto-laws-base*]
          [category-laws (append-map (lambda (cat)
                                             (map rule-name (laws-by-category cat)))
@@ -502,6 +531,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; auto-laws-by-category : Symbol -> (List Symbol)
 ;;; Get auto-law names from a specific category.
 (define (auto-laws-by-category category)
+  (doc 'export #t)
   (map rule-name (laws-by-category category)))
 
 ;;; *auto-laws* : (List Symbol)
@@ -526,6 +556,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; 1. Reflexivity
 ;;; 2. All laws from (auto-laws) - includes base laws, fusion rules, etc.
 (define (tactic-auto goal)
+  (doc 'export #t)
   (if (not (proof-goal? goal))
       (tactic-failure '(not-a-goal))
       ;; Try reflexivity first
@@ -552,6 +583,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; expr->key : Expr -> String
 ;;; Convert expression to string key for cycle detection.
 (define (expr->key expr)
+  (doc 'export #t)
   (format "~s" expr))
 
 ;;; tactic-search : Nat -> Goal -> TacticResult
@@ -572,6 +604,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; search-dfs : Expr x Expr x Context x Nat x HAMT -> TacticResult
 ;;; Depth-first search from current expression to target.
 (define (search-dfs current target ctx depth visited)
+  (doc 'export #t)
   (cond
    ;; Reached target
    [(equal? current target)
@@ -620,6 +653,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; Lift a rewrite strategy to a tactic.
 ;;; The strategy is applied to the lhs of the goal.
 (define (strategy->tactic strategy)
+  (doc 'export #t)
   (lambda (goal)
           (if (not (proof-goal? goal))
               (tactic-failure '(not-a-goal))
@@ -643,6 +677,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; law->tactic : Symbol -> Tactic
 ;;; Create a tactic from a named law.
 (define (law->tactic name)
+  (doc 'export #t)
   (let ([law (get-law name)])
        (if law
            (strategy->tactic (rule->strategy law))
@@ -651,6 +686,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; simplify-tactic : Strategy -> Tactic
 ;;; Create a tactic that simplifies using a strategy exhaustively.
 (define (simplify-tactic strategy)
+  (doc 'export #t)
   (strategy->tactic (innermost strategy)))
 
 ;;; ====
@@ -691,6 +727,7 @@ This is Lattice code: pure, total, assumes perfect input.")
 ;;; prove-with-tactics : Expr x Expr x (List Tactic) -> (Result Proof Error)
 ;;; Execute a sequence of tactics to prove lhs = rhs.
 (define (prove-with-tactics lhs rhs tactics)
+  (doc 'export #t)
   (let ([initial-goal (make-proof-goal lhs rhs '())])
        (let loop ([current-goal initial-goal]
                   [remaining tactics]

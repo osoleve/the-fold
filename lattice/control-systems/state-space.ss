@@ -30,6 +30,7 @@ where:
 where A, B, C, D are matrices with compatible dimensions.")
 
 (define (ss? sys)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if value is a state space system")
   (and (pair? sys)
@@ -43,36 +44,43 @@ where A, B, C, D are matrices with compatible dimensions.")
 (doc 'section 'accessors)
 
 (define (ss-A sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix))
   (doc 'description "Get the A (state) matrix")
   (cadr sys))
 
 (define (ss-B sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix))
   (doc 'description "Get the B (input) matrix")
   (caddr sys))
 
 (define (ss-C sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix))
   (doc 'description "Get the C (output) matrix")
   (cadddr sys))
 
 (define (ss-D sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix))
   (doc 'description "Get the D (feedthrough) matrix")
   (car (cddddr sys)))
 
 (define (ss-order sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Nat))
   (doc 'description "Get the order (number of states) of the system")
   (matrix-rows (ss-A sys)))
 
 (define (ss-inputs sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Nat))
   (doc 'description "Get the number of inputs")
   (matrix-cols (ss-B sys)))
 
 (define (ss-outputs sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Nat))
   (doc 'description "Get the number of outputs")
   (matrix-rows (ss-C sys)))
@@ -80,6 +88,7 @@ where A, B, C, D are matrices with compatible dimensions.")
 (doc 'section 'construction)
 
 (define (make-ss A B C D)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix Matrix Matrix (Either SS Error)))
   (doc 'description "Create a state space system, validating dimensions")
   (let ([n (matrix-rows A)])
@@ -98,6 +107,7 @@ where A, B, C, D are matrices with compatible dimensions.")
          (list 'ss A B C D)])))
 
 (define (ss-from-lists A-lists B-lists C-lists D-lists)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Number)) (List (List Number)) (List (List Number)) (List (List Number)) SS))
   (doc 'description "Create state space from nested lists")
   (make-ss (matrix-from-lists A-lists)
@@ -108,12 +118,14 @@ where A, B, C, D are matrices with compatible dimensions.")
 (doc 'section 'operations)
 
 (define (ss-state-equation sys x u)
+  (doc 'export #t)
   (doc 'type '(-> SS Vec Vec Vec))
   (doc 'description "Compute x' = A*x + B*u")
   (vec-add (matrix-vec-mul (ss-A sys) x)
            (matrix-vec-mul (ss-B sys) u)))
 
 (define (ss-output-equation sys x u)
+  (doc 'export #t)
   (doc 'type '(-> SS Vec Vec Vec))
   (doc 'description "Compute y = C*x + D*u")
   (vec-add (matrix-vec-mul (ss-C sys) x)
@@ -137,6 +149,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
   (list 1 1/2 1/10 1/120 1/1680 1/30240 1/665280))
 
 (define (matrix-1norm m)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Real))
   (doc 'description "Compute 1-norm (max column sum of absolute values)")
   (let ([rows (matrix-rows m)]
@@ -151,6 +164,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                                    (+ col-sum (abs (matrix-ref m i j))))))))))
 
 (define (matrix-pade-6 A)
+  (doc 'export #t)
   (doc 'type '(-> Matrix (Pair Matrix Matrix)))
   (doc 'description "Compute [6,6] Padé numerator N and denominator D matrices. Returns (N . D) where e^A ≈ D^(-1) * N")
   (let* ([n (matrix-rows A)]
@@ -179,6 +193,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
         (cons N D)))
 
 (define (matrix-exp A)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix))
   (doc 'description "Compute matrix exponential using Scaling and Squaring with [6,6] Padé. Numerically robust for a wide range of matrices.")
   (let* ([n (matrix-rows A)]
@@ -198,6 +213,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                  (square (+ k 1) (matrix-mul result result))))))
 
 (define (apply-permutation-to-matrix perm-vec B)
+  (doc 'export #t)
   (doc 'type '(-> Vector Matrix Matrix))
   (doc 'description "Apply permutation vector to matrix rows: result[i,:] = B[perm[i],:]")
   (let* ([n (vector-length perm-vec)]
@@ -211,6 +227,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                              (matrix-ref B (vector-ref perm-vec i) j))))))
 
 (define (matrix-solve-system A B)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix Matrix))
   (doc 'description "Solve A * X = B for X using LU decomposition. Returns X = A^(-1) * B")
   (let* ([n (matrix-rows A)]
@@ -226,6 +243,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                        (back-substitute U Y))))))
 
 (define (forward-substitute L B)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix Matrix))
   (doc 'description "Solve L * Y = B where L is lower triangular")
   (let* ([n (matrix-rows L)]
@@ -246,6 +264,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                                      (matrix-ref L i i))))))))
 
 (define (back-substitute U Y)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix Matrix))
   (doc 'description "Solve U * X = Y where U is upper triangular")
   (let* ([n (matrix-rows U)]
@@ -266,6 +285,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                                      (matrix-ref U i i))))))))
 
 (define (ss-transition-matrix sys t)
+  (doc 'export #t)
   (doc 'type '(-> SS Num Matrix))
   (doc 'description "Compute the state transition matrix Φ(t) = e^(A*t) using numerically robust Scaling and Squaring with Padé")
   (matrix-exp (matrix-scale t (ss-A sys))))
@@ -273,6 +293,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
 (doc 'section 'controllability)
 
 (define (ss-controllability-matrix sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix))
   (doc 'description "Compute the controllability matrix C = [B AB A²B ... A^(n-1)B]")
   (let* ([A (ss-A sys)]
@@ -303,6 +324,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                               (append cols new-cols)))))))
 
 (define (matrix-column-as-matrix m j)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Nat Matrix))
   (doc 'description "Extract column j as an n×1 matrix")
   (let* ([n (matrix-rows m)]
@@ -312,6 +334,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
             (matrix-set! result i 0 (matrix-ref m i j)))))
 
 (define (ss-controllable? sys tolerance)
+  (doc 'export #t)
   (doc 'type '(-> SS Num Boolean))
   (doc 'description "Check if system is controllable (controllability matrix has full row rank). Uses tolerance for numerical rank check.")
   (let* ([C-mat (ss-controllability-matrix sys)]
@@ -322,6 +345,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
 (doc 'section 'observability)
 
 (define (ss-observability-matrix sys)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix))
   (doc 'description "Compute the observability matrix O = [C; CA; CA²; ...; CA^(n-1)]")
   (let* ([A (ss-A sys)]
@@ -349,6 +373,7 @@ Precomputed: b_k = (2n-k)! * n! / ((2n)! * (n-k)! * k!) for n=6")
                              (cons CAk rows)))))))
 
 (define (ss-observable? sys tolerance)
+  (doc 'export #t)
   (doc 'type '(-> SS Num Boolean))
   (doc 'description "Check if system is observable (observability matrix has full column rank)")
   (let* ([O-mat (ss-observability-matrix sys)]
@@ -369,6 +394,7 @@ For discrete-time systems:
   A'*Wo*A - Wo + C'*C = 0")
 
 (define (ss-controllability-gramian-finite sys N)
+  (doc 'export #t)
   (doc 'type '(-> SS Nat Matrix))
   (doc 'description "Compute finite-horizon controllability Gramian by direct sum. Wc = sum_{k=0}^{N-1} A^k * B * B' * (A')^k")
   (let* ([A (ss-A sys)]
@@ -390,6 +416,7 @@ For discrete-time systems:
                        (loop (+ k 1) (matrix-mul Ak A)))))))
 
 (define (ss-observability-gramian-finite sys N)
+  (doc 'export #t)
   (doc 'type '(-> SS Nat Matrix))
   (doc 'description "Compute finite-horizon observability Gramian by direct sum. Wo = sum_{k=0}^{N-1} (A')^k * C' * C * A^k")
   (let* ([A (ss-A sys)]
@@ -419,6 +446,7 @@ For discrete-time systems:
 (doc 'note "SVD-based rank is the gold standard for numerical rank determination. Falls back to QR if SVD fails.")
 
 (define (matrix-rank-svd m tolerance)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Num Nat))
   (doc 'description "Compute numerical rank using SVD (gold standard). Counts singular values that exceed tolerance.")
   (guard (e [else (matrix-rank-qr m tolerance)])
@@ -435,6 +463,7 @@ For discrete-time systems:
                                      (count (+ i 1) rank)))))))))
 
 (define (matrix-rank-qr m tolerance)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Num Nat))
   (doc 'description "Compute numerical rank using QR decomposition (faster but less robust). Counts diagonal elements of R that exceed tolerance.")
   (let ([qr-result (matrix-qr m)])
@@ -450,6 +479,7 @@ For discrete-time systems:
                               (count (+ i 1) rank))))))))
 
 (define (matrix-rank m tolerance)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Num Nat))
   (doc 'description "Compute numerical rank. Uses SVD for robustness.")
   (matrix-rank-svd m tolerance))
@@ -467,6 +497,7 @@ This decouples the state equations into independent modes.
 Note: Full modal decomposition requires eigenvalue computation, which is complex. Here we provide a simplified version that applies a given transformation matrix.")
 
 (define (ss-transform sys T T-inv)
+  (doc 'export #t)
   (doc 'type '(-> SS Matrix Matrix SS))
   (doc 'description "Apply similarity transformation: new states z = T⁻¹x. Returns transformed system (T⁻¹AT, T⁻¹B, CT, D)")
   (let ([A (ss-A sys)]
@@ -481,6 +512,7 @@ Note: Full modal decomposition requires eigenvalue computation, which is complex
 (doc 'section 'common-forms)
 
 (define (ss-identity-output A B)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix SS))
   (doc 'description "Create a system with identity C (full state output) and no feedthrough")
   (let* ([n (matrix-rows A)]
@@ -490,6 +522,7 @@ Note: Full modal decomposition requires eigenvalue computation, which is complex
         (make-ss A B C D)))
 
 (define (ss-scalar a b c d)
+  (doc 'export #t)
   (doc 'type '(-> Num Num Num Num SS))
   (doc 'description "Create a first-order scalar system. x' = a*x + b*u, y = c*x + d*u")
   (make-ss (matrix-from-lists (list (list a)))
@@ -498,6 +531,7 @@ Note: Full modal decomposition requires eigenvalue computation, which is complex
            (matrix-from-lists (list (list d)))))
 
 (define (ss-integrator n)
+  (doc 'export #t)
   (doc 'type '(-> Nat SS))
   (doc 'description "Create an n-th order integrator chain. x₁' = x₂, x₂' = x₃, ..., xₙ' = u, y = x₁")
   (let ([A (make-matrix n n 0)]
@@ -514,6 +548,7 @@ Note: Full modal decomposition requires eigenvalue computation, which is complex
 (doc 'section 'display)
 
 (define (ss->string sys)
+  (doc 'export #t)
   (doc 'type '(-> SS String))
   (doc 'description "Convert state space system to string representation")
   (let ([n (ss-order sys)]

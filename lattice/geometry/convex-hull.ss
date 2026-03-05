@@ -26,6 +26,7 @@
       Zero = collinear.
       Negative = p3 is right of p1→p2 (CW turn).")
 (define (cross-product-2d p1 p2 p3)
+  (doc 'export #t)
   (let ([x1 (point2-x p1)] [y1 (point2-y p1)]
         [x2 (point2-x p2)] [y2 (point2-y p2)]
         [x3 (point2-x p3)] [y3 (point2-y p3)])
@@ -35,16 +36,19 @@
 (doc ccw? 'type '(-> Point2 Point2 Point2 Boolean))
 (doc ccw? 'description "True if p1→p2→p3 makes a counterclockwise turn")
 (define (ccw? p1 p2 p3)
+  (doc 'export #t)
   (> (cross-product-2d p1 p2 p3) 0))
 
 (doc collinear? 'type '(-> Point2 Point2 Point2 Boolean))
 (doc collinear? 'description "True if p1, p2, p3 are collinear (within epsilon)")
 (define (collinear? p1 p2 p3)
+  (doc 'export #t)
   (< (abs (cross-product-2d p1 p2 p3)) 1e-10))
 
 (doc point2-distance-sq 'type '(-> Point2 Point2 Number))
 (doc point2-distance-sq 'description "Squared Euclidean distance between two 2D points")
 (define (point2-distance-sq p1 p2)
+  (doc 'export #t)
   (let ([dx (- (point2-x p2) (point2-x p1))]
         [dy (- (point2-y p2) (point2-y p1))])
     (+ (* dx dx) (* dy dy))))
@@ -59,6 +63,7 @@
 (doc find-lowest-point 'description
      "Find the point with lowest y-coordinate (leftmost if tie)")
 (define (find-lowest-point points)
+  (doc 'export #t)
   (fold-left
    (lambda (best p)
      (cond
@@ -72,6 +77,7 @@
 (doc polar-angle 'type '(-> Point2 Point2 Number))
 (doc polar-angle 'description "Compute polar angle of p relative to origin")
 (define (polar-angle origin p)
+  (doc 'export #t)
   (atan (- (point2-y p) (point2-y origin))
         (- (point2-x p) (point2-x origin))))
 
@@ -79,6 +85,7 @@
 (doc sort-by-polar-angle 'description
      "Sort points by polar angle around origin. For collinear points, keep furthest.")
 (define (sort-by-polar-angle origin points)
+  (doc 'export #t)
   ;; Remove origin from points
   (let* ([others (filter (lambda (p)
                            (not (and (= (point2-x p) (point2-x origin))
@@ -102,6 +109,7 @@
 (doc remove-collinear-except-furthest 'description
      "From a polar-angle-sorted list, remove collinear points except the furthest from origin")
 (define (remove-collinear-except-furthest origin sorted)
+  (doc 'export #t)
   (if (null? sorted)
       '()
       (let loop ([remaining (cdr sorted)]
@@ -127,6 +135,7 @@
       Returns vertices in counterclockwise order.
       O(n log n) time complexity.")
 (define (graham-scan points)
+  (doc 'export #t)
   (cond
     ;; Edge cases
     [(< (length points) 3) points]
@@ -159,6 +168,7 @@
      "Signed distance from point p to line through a and b.
       Positive = left of line (when facing from a to b).")
 (define (point-line-distance p a b)
+  (doc 'export #t)
   (let ([dx (- (point2-x b) (point2-x a))]
         [dy (- (point2-y b) (point2-y a))]
         [px (- (point2-x p) (point2-x a))]
@@ -169,6 +179,7 @@
 (doc find-extreme-points 'type '(-> (Listof Point2) (values Point2 Point2)))
 (doc find-extreme-points 'description "Find leftmost and rightmost points")
 (define (find-extreme-points points)
+  (doc 'export #t)
   (let loop ([remaining (cdr points)]
              [left (car points)]
              [right (car points)])
@@ -182,11 +193,13 @@
 (doc points-above-line 'type '(-> (Listof Point2) Point2 Point2 (Listof Point2)))
 (doc points-above-line 'description "Filter points that are strictly left of (above) line a→b")
 (define (points-above-line points a b)
+  (doc 'export #t)
   (filter (lambda (p) (> (cross-product-2d a b p) 1e-10)) points))
 
 (doc find-furthest-from-line 'type '(-> (Listof Point2) Point2 Point2 Point2))
 (doc find-furthest-from-line 'description "Find point furthest from line a→b")
 (define (find-furthest-from-line points a b)
+  (doc 'export #t)
   ;; Use cross product magnitude directly to avoid sqrt.
   ;; cross = (b-a) × (p-a) = distance * |b-a|
   ;; Since |b-a| is constant for all comparisons, comparing |cross| works.
@@ -205,6 +218,7 @@
 (doc quickhull-recurse 'type '(-> (Listof Point2) Point2 Point2 (Listof Point2)))
 (doc quickhull-recurse 'description "Recursive step: find hull points between a and b")
 (define (quickhull-recurse points a b)
+  (doc 'export #t)
   (let ([above (points-above-line points a b)])
     (if (null? above)
         '()
@@ -219,6 +233,7 @@
       Returns vertices in counterclockwise order.
       O(n log n) expected, O(n²) worst case.")
 (define (quickhull points)
+  (doc 'export #t)
   (cond
     [(< (length points) 3) points]
     [else
@@ -246,12 +261,14 @@
      "Compute 2D convex hull (default algorithm: Graham scan).
       Returns vertices in counterclockwise order.")
 (define (convex-hull points)
+  (doc 'export #t)
   (graham-scan points))
 
 (doc convex-hull-area 'type '(-> (Listof Point2) Number))
 (doc convex-hull-area 'description
      "Compute area of convex hull using shoelace formula. O(n) time.")
 (define (convex-hull-area hull)
+  (doc 'export #t)
   (if (< (length hull) 3)
       0
       (let ([first (car hull)])
@@ -270,6 +287,7 @@
 (doc convex-hull-perimeter 'type '(-> (Listof Point2) Number))
 (doc convex-hull-perimeter 'description "Compute perimeter of convex hull. O(n) time.")
 (define (convex-hull-perimeter hull)
+  (doc 'export #t)
   (if (< (length hull) 2)
       0
       (let ([first (car hull)])
@@ -285,6 +303,7 @@
      "Test if point is inside or on boundary of convex hull.
       Uses sign of cross products with all edges. O(n) time.")
 (define (point-in-convex-hull? p hull)
+  (doc 'export #t)
   (if (< (length hull) 3)
       #f
       (let ([first (car hull)])
@@ -302,6 +321,7 @@
 (doc convex-hull-centroid 'description
      "Compute centroid (center of mass) of convex hull polygon. O(n) time.")
 (define (convex-hull-centroid hull)
+  (doc 'export #t)
   (if (null? hull)
       (make-point2 0 0)
       (let ([first (car hull)]
@@ -329,6 +349,7 @@
      "Compute diameter of convex hull (max distance between any two vertices).
       O(n²) time using vector for O(1) access. Rotating calipers would be O(n).")
 (define (convex-hull-diameter hull)
+  (doc 'export #t)
   (if (< (length hull) 2)
       0
       ;; Convert to vector for O(1) random access, making this O(n²) not O(n³)
@@ -355,6 +376,7 @@
      "Find extreme point in given direction (unit vector).
       Returns the point p maximizing (p · direction).")
 (define (extreme-point points direction)
+  (doc 'export #t)
   (let ([dx (point2-x direction)]
         [dy (point2-y direction)])
     (fold-left
@@ -370,6 +392,7 @@
      "Support function h(d) = max{p · d : p ∈ hull}.
       Fundamental for Minkowski operations.")
 (define (support-function points direction)
+  (doc 'export #t)
   (let* ([dx (point2-x direction)]
          [dy (point2-y direction)]
          [ext (extreme-point points direction)])
@@ -389,6 +412,7 @@
       Result is convex if inputs are convex.
       O(n + m) for convex inputs.")
 (define (minkowski-sum hull-a hull-b)
+  (doc 'export #t)
   (if (or (null? hull-a) (null? hull-b))
       '()
       ;; For two convex polygons in CCW order, merge their edge directions
@@ -407,6 +431,7 @@
 (doc normalize-angle 'type '(-> Number Number))
 (doc normalize-angle 'description "Normalize angle to [0, 2π)")
 (define (normalize-angle a)
+  (doc 'export #t)
   (let ([two-pi (* 2 3.141592653589793)])
     (let loop ([angle a])
       (cond
@@ -418,6 +443,7 @@
 (doc polygon-edges 'description "Extract edge vectors with their polar angles (normalized to [0, 2π)).
                                  Filters out zero-length edges to avoid atan(0,0) errors.")
 (define (polygon-edges hull)
+  (doc 'export #t)
   (if (null? hull)
       '()
       (let ([n (length hull)])
@@ -438,6 +464,7 @@
 (doc merge-edges-ccw 'type '(-> (Listof (Pair Point2 Number)) (Listof (Pair Point2 Number)) (Listof Point2)))
 (doc merge-edges-ccw 'description "Merge two edge lists in CCW (increasing angle) order")
 (define (merge-edges-ccw edges-a edges-b)
+  (doc 'export #t)
   (let loop ([a edges-a] [b edges-b] [result '()])
     (cond
       [(and (null? a) (null? b)) (reverse result)]
@@ -451,6 +478,7 @@
 (doc build-polygon-from-edges 'type '(-> Point2 (Listof Point2) (Listof Point2)))
 (doc build-polygon-from-edges 'description "Build polygon vertices by walking edges from start")
 (define (build-polygon-from-edges start edges)
+  (doc 'export #t)
   (let loop ([remaining edges]
              [current start]
              [result (list start)])
@@ -466,6 +494,7 @@
      "Compute Minkowski difference A ⊖ B = A ⊕ (-B).
       Used for collision detection: A and B intersect iff origin ∈ (A ⊖ B).")
 (define (minkowski-difference hull-a hull-b)
+  (doc 'export #t)
   ;; Negating a convex hull produces another convex hull (reflection through origin).
   ;; CCW winding becomes CW, so reverse to restore CCW order.
   ;; This avoids O(n log n) hull recomputation - just O(n) negate + reverse.
@@ -486,5 +515,6 @@
      "Test if two convex hulls intersect.
       Uses Minkowski difference: intersect iff origin ∈ (A ⊖ B).")
 (define (hulls-intersect? hull-a hull-b)
+  (doc 'export #t)
   (let ([diff (minkowski-difference hull-a hull-b)])
     (point-in-convex-hull? (make-point2 0 0) diff)))

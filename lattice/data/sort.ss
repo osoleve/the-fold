@@ -37,6 +37,7 @@
               (cdr rest)))))
 
 (define (merge-sort-by cmp lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) (List α) (List α)))
   (doc 'description "Sort list using merge sort with custom comparator")
   (doc 'note "Stable: equal elements maintain their original order")
@@ -53,20 +54,25 @@
                  cmp)))))
 
 (define (merge-sort lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Sort list in ascending order using merge sort")
   (merge-sort-by < lst))
 
 (define sort merge-sort)
+(doc sort 'export #t)
 (doc sort 'description "Sort list in ascending order (alias for merge-sort)")
 
 (define sort-by merge-sort-by)
+(doc sort-by 'export #t)
 (doc sort-by 'description "Sort list with custom comparator (alias for merge-sort-by)")
 
 (define stable-sort merge-sort)
+(doc stable-sort 'export #t)
 (doc stable-sort 'description "Stable sort in ascending order (alias for merge-sort)")
 
 (define stable-sort-by merge-sort-by)
+(doc stable-sort-by 'export #t)
 (doc stable-sort-by 'description "Stable sort with custom comparator")
 
 (doc 'section 'quicksort)
@@ -88,6 +94,7 @@
              (loop (cdr xs) lt (cons x eq) gt)])))))
 
 (define (quicksort-by cmp lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) (List α) (List α)))
   (doc 'description "Sort list using quicksort with custom comparator")
   (doc 'note "Not stable: equal elements may be reordered")
@@ -104,6 +111,7 @@
                 (quicksort-by cmp gt)))))
 
 (define (quicksort lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Sort list in ascending order using quicksort")
   (quicksort-by < lst))
@@ -119,6 +127,7 @@
     [else (cons (car sorted) (insert-sorted cmp x (cdr sorted)))]))
 
 (define (insertion-sort-by cmp lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) (List α) (List α)))
   (doc 'description "Sort list using insertion sort with custom comparator")
   (doc 'note "Stable: equal elements maintain their original order")
@@ -128,6 +137,7 @@
              lst))
 
 (define (insertion-sort lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Sort list in ascending order using insertion sort")
   (insertion-sort-by < lst))
@@ -135,6 +145,7 @@
 (doc 'section 'sort-by-key)
 
 (define (sort-by-key key-fn lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α β) (List α) (List α)))
   (doc 'description "Sort list by a key function (Schwartzian transform)")
   (doc 'note "Uses merge sort internally for stability")
@@ -147,6 +158,7 @@
     (map cdr sorted)))
 
 (define (sort-by-key-desc key-fn lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α β) (List α) (List α)))
   (doc 'description "Sort list by key function in descending order")
   (let* ([decorated (map (lambda (x) (cons (key-fn x) x)) lst)]
@@ -156,11 +168,13 @@
 (doc 'section 'descending-variants)
 
 (define (sort-desc lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Sort list in descending order")
   (merge-sort-by > lst))
 
 (define (quicksort-desc lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Sort list in descending order using quicksort")
   (quicksort-by > lst))
@@ -168,11 +182,13 @@
 (doc 'section 'utilities)
 
 (define (sorted? lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) Boolean))
   (doc 'description "Check if list is sorted in ascending order")
   (sorted-by? < lst))
 
 (define (sorted-by? cmp lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) (List α) Boolean))
   (doc 'description "Check if list is sorted according to comparator")
   (or (null? lst)
@@ -181,11 +197,13 @@
            (sorted-by? cmp (cdr lst)))))
 
 (define (sorted-desc? lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) Boolean))
   (doc 'description "Check if list is sorted in descending order")
   (sorted-by? > lst))
 
 (define (unique-sorted lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Remove adjacent duplicates from a sorted list")
   (if (or (null? lst) (null? (cdr lst)))
@@ -195,11 +213,13 @@
           (cons (car lst) (unique-sorted (cdr lst))))))
 
 (define (sort-unique lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) (List α)))
   (doc 'description "Sort list and remove duplicates")
   (unique-sorted (sort lst)))
 
 (define (nth-smallest n lst)
+  (doc 'export #t)
   (doc 'type (-> Nat (List α) α))
   (doc 'description "Find the nth smallest element (0-indexed)")
   (doc 'note "Uses quickselect for O(n) average performance")
@@ -220,6 +240,7 @@
            (nth-smallest (- n lt-len 1 (length eq)) gt)]))))
 
 (define (median lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) α))
   (doc 'description "Find the median element")
   (let ([len (length lst)])
@@ -228,6 +249,7 @@
         (nth-smallest (quotient len 2) lst))))
 
 (define (min-element lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) α))
   (doc 'description "Find minimum element")
   (doc 'complexity "O(n)")
@@ -238,6 +260,7 @@
                  (cdr lst))))
 
 (define (max-element lst)
+  (doc 'export #t)
   (doc 'type (-> (List α) α))
   (doc 'description "Find maximum element")
   (doc 'complexity "O(n)")
@@ -248,6 +271,7 @@
                  (cdr lst))))
 
 (define (min-by key-fn lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α β) (List α) α))
   (doc 'description "Find element with minimum key value")
   (if (null? lst)
@@ -261,6 +285,7 @@
                       (cdr lst)))))
 
 (define (max-by key-fn lst)
+  (doc 'export #t)
   (doc 'type (-> (-> α β) (List α) α))
   (doc 'description "Find element with maximum key value")
   (if (null? lst)
@@ -276,6 +301,7 @@
 (doc 'section 'top-k)
 
 (define (take-sorted n lst)
+  (doc 'export #t)
   (doc 'type (-> Nat (List α) (List α)))
   (doc 'description "Get first n elements of sorted list")
   (if (or (= n 0) (null? lst))
@@ -283,11 +309,13 @@
       (cons (car lst) (take-sorted (- n 1) (cdr lst)))))
 
 (define (top-k k lst)
+  (doc 'export #t)
   (doc 'type (-> Nat (List α) (List α)))
   (doc 'description "Get k largest elements (in descending order)")
   (take-sorted k (sort-desc lst)))
 
 (define (bottom-k k lst)
+  (doc 'export #t)
   (doc 'type (-> Nat (List α) (List α)))
   (doc 'description "Get k smallest elements (in ascending order)")
   (take-sorted k (sort lst)))
@@ -302,6 +330,7 @@
     (vector-set! vec j tmp)))
 
 (define (vector-sort-by! cmp vec)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) (Vector α) Void))
   (doc 'description "Sort vector in-place using heapsort with custom comparator")
   (doc 'note "O(n log n) worst-case, O(1) extra space")
@@ -336,6 +365,7 @@
         (loop (- end 1))))))
 
 (define (vector-sort-by cmp vec)
+  (doc 'export #t)
   (doc 'type (-> (-> α α Boolean) (Vector α) (Vector α)))
   (doc 'description "Return new sorted vector using custom comparator")
   (doc 'note "Non-destructive: original vector is unchanged")

@@ -42,17 +42,20 @@ Where component-fn : ∀A. F(A) → G(A)
 In our untyped setting, component-fn is a single polymorphic function.")
 
 (define (make-nat-transform name source target component)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Functor Functor (-> (F A) (G A)) NatTransform))
   (doc 'description "Create a natural transformation from F to G")
   (list 'nat-transform name source target component))
 
 (define (nat-transform? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'nat-transform)
        (= (length x) 5)))
 
 (define (nat-transform-name η)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform Symbol))
   (doc 'description "Get the name of a natural transformation.
 Errors if η is not a valid nat-transform (fail-fast)")
@@ -61,6 +64,7 @@ Errors if η is not a valid nat-transform (fail-fast)")
       (error 'nat-transform-name "expected nat-transform" η)))
 
 (define (nat-transform-source η)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform Functor))
   (doc 'description "The source functor F in η : F ⟹ G.
 Errors if η is not a valid nat-transform (fail-fast)")
@@ -69,6 +73,7 @@ Errors if η is not a valid nat-transform (fail-fast)")
       (error 'nat-transform-source "expected nat-transform" η)))
 
 (define (nat-transform-target η)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform Functor))
   (doc 'description "The target functor G in η : F ⟹ G.
 Errors if η is not a valid nat-transform (fail-fast)")
@@ -77,6 +82,7 @@ Errors if η is not a valid nat-transform (fail-fast)")
       (error 'nat-transform-target "expected nat-transform" η)))
 
 (define (nat-transform-component η)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform (-> (F A) (G A))))
   (doc 'description "The component function η_A.
 Errors if η is not a valid nat-transform (fail-fast)")
@@ -85,6 +91,7 @@ Errors if η is not a valid nat-transform (fail-fast)")
       (error 'nat-transform-component "expected nat-transform" η)))
 
 (define (nat-apply η x)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform (F A) (G A)))
   (doc 'description "Apply the natural transformation at a value.
 η_A(x) for x : F(A)")
@@ -93,6 +100,7 @@ Errors if η is not a valid nat-transform (fail-fast)")
 (doc 'section 'identity)
 
 (define (nat-id functor)
+  (doc 'export #t)
   (doc 'type '(-> Functor NatTransform))
   (doc 'description "The identity natural transformation id_F : F ⟹ F
 Components are all identity functions: (id_F)_A = id_{F(A)}")
@@ -107,6 +115,7 @@ Given η : F ⟹ G and ε : G ⟹ H, their vertical composition
        F(A) ---η_A---> G(A) ---ε_A---> H(A)")
 
 (define (nat-compose ε η)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform NatTransform NatTransform))
   (doc 'description "Vertical composition: (ε ∘ η) where η : F ⟹ G and ε : G ⟹ H
 Precondition: both arguments are valid nat-transforms,
@@ -145,6 +154,7 @@ this simplifies to composing the functors and transformations.")
 ;;; Horizontal composition: (η * ε)
 ;;; Given η : F ⟹ G and ε : H ⟹ K, produces (η * ε) : H∘F ⟹ K∘G
 (define (nat-horizontal η ε)
+  (doc 'export #t)
   (let* ([F (nat-transform-source η)]
          [G (nat-transform-target η)]
          [H (nat-transform-source ε)]
@@ -192,6 +202,7 @@ produces (H ▷ η) : H∘F ⟹ H∘G with (H ▷ η)_A = H(η_A)")
 ;;; Right whiskering: (η ◁ H) : F∘H ⟹ G∘H
 ;;; Given η : F ⟹ G and functor H, precompose with H
 (define (nat-whisker-right η H)
+  (doc 'export #t)
   (let* ([F (nat-transform-source η)]
          [G (nat-transform-target η)]
          [η-comp (nat-transform-component η)]
@@ -221,6 +232,7 @@ produces (H ▷ η) : H∘F ⟹ H∘G with (H ▷ η)_A = H(η_A)")
 ;;; Left whiskering: (H ▷ η) : H∘F ⟹ H∘G
 ;;; Given functor H and η : F ⟹ G, postcompose with H
 (define (nat-whisker-left H η)
+  (doc 'export #t)
   (let* ([F (nat-transform-source η)]
          [G (nat-transform-target η)]
          [η-comp (nat-transform-component η)]
@@ -256,10 +268,12 @@ there exists ε : G ⟹ F such that ε ∘ η = id_F and η ∘ ε = id_G.")
 ;;; make-nat-iso : Symbol × Functor × Functor × (F(A) → G(A)) × (G(A) → F(A)) → NatIso
 ;;; Create a natural isomorphism with explicit inverse.
 (define (make-nat-iso name source target forward inverse)
+  (doc 'export #t)
   (list 'nat-iso name source target forward inverse))
 
 ;;; nat-iso? : Any → Boolean
 (define (nat-iso? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'nat-iso)
        (= (length x) 6)))
@@ -268,6 +282,7 @@ there exists ε : G ⟹ F such that ε ∘ η = id_F and η ∘ ε = id_G.")
 ;;; The forward direction η : F ⟹ G
 ;;; Errors if iso is not a valid nat-iso (fail-fast)
 (define (nat-iso-forward iso)
+  (doc 'export #t)
   (if (nat-iso? iso)
       (make-nat-transform
        (cadr iso)
@@ -280,6 +295,7 @@ there exists ε : G ⟹ F such that ε ∘ η = id_F and η ∘ ε = id_G.")
 ;;; The inverse direction ε : G ⟹ F
 ;;; Errors if iso is not a valid nat-iso (fail-fast)
 (define (nat-iso-inverse iso)
+  (doc 'export #t)
   (if (nat-iso? iso)
       (make-nat-transform
        (string->symbol (format "~a⁻¹" (cadr iso)))
@@ -301,6 +317,7 @@ specific values and functions.")
 ;;; Check that naturality holds for a specific morphism and value.
 ;;; Tests: G(f)(η_A(x)) = η_B(F(f)(x))
 (define (check-naturality η f x)
+  (doc 'export #t)
   (let* ([F (nat-transform-source η)]
          [G (nat-transform-target η)]
          [η-comp (nat-transform-component η)]
@@ -316,6 +333,7 @@ specific values and functions.")
 ;;; verify-naturality : NatTransform × (List (Pair Fn Value)) → Boolean
 ;;; Verify naturality for a list of (function, value) test cases.
 (define (verify-naturality η test-cases)
+  (doc 'export #t)
   (andmap (lambda (tc)
             (check-naturality η (car tc) (cdr tc)))
           test-cases))
@@ -351,6 +369,7 @@ specific values and functions.")
 ;;; nat-maybe-to-either : (E → NatTransform from Maybe to Either E)
 ;;; Given a default error value, transform Maybe to Either
 (define (nat-maybe-to-either default-error)
+  (doc 'export #t)
   (make-nat-transform
    'maybe->either
    functor-maybe
@@ -412,6 +431,7 @@ This is the multiplication of the List monad")
 
 ;;; nat-transform->string : NatTransform → String
 (define (nat-transform->string η)
+  (doc 'export #t)
   (if (nat-transform? η)
       (format "~a : ~a ⟹ ~a"
               (nat-transform-name η)

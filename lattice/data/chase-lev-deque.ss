@@ -19,6 +19,7 @@ Uses monotonic 64-bit indices to avoid ABA problem.")
 ;;; Generation counter detects resize-in-progress for thieves
 
 (define (make-chase-lev-deque initial-capacity)
+  (doc 'export #t)
   (doc 'type '(-> Nat ChaselevDeque))
   (doc 'description "Create empty deque with given initial capacity.")
   (list 'chase-lev-deque
@@ -28,6 +29,7 @@ Uses monotonic 64-bit indices to avoid ABA problem.")
         (box 0)))                                 ; generation (incremented on resize)
 
 (define (chase-lev-deque? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'chase-lev-deque)))
 
@@ -41,16 +43,19 @@ Uses monotonic 64-bit indices to avoid ABA problem.")
 (define (deque-generation-box d) (list-ref d 4))
 
 (define (deque-size d)
+  (doc 'export #t)
   (doc 'type '(-> ChaselevDeque Nat))
   (doc 'description "Approximate size (racy but useful for debugging).")
   (max 0 (- (deque-bottom d) (deque-top d))))
 
 (define (deque-empty? d)
+  (doc 'export #t)
   (doc 'type '(-> ChaselevDeque Boolean))
   (doc 'description "Check if deque appears empty.")
   (<= (deque-bottom d) (deque-top d)))
 
 (define (deque-push! d task)
+  (doc 'export #t)
   (doc 'type '(-> ChaselevDeque Task Void))
   (doc 'description "Owner pushes task to bottom. Resizes if full.")
   (let* ([b (deque-bottom d)]
@@ -97,6 +102,7 @@ Increments generation to signal thieves that buffer changed.")
           (loop))))))
 
 (define (deque-pop! d)
+  (doc 'export #t)
   (doc 'type '(-> ChaselevDeque (U Task 'empty)))
   (doc 'description "Owner pops from bottom. Returns 'empty if deque is empty.
 Uses CAS for memory barrier and when contending with thieves on last element.")
@@ -137,6 +143,7 @@ Uses CAS for memory barrier and when contending with thieves on last element.")
                  'empty)))]))))
 
 (define (deque-steal! d)
+  (doc 'export #t)
   (doc 'type '(-> ChaselevDeque (U Task 'empty 'abort)))
   (doc 'description "Thief steals from top. Returns task, 'empty, or 'abort.
 Aborts if CAS fails or if generation changed (resize detected).")

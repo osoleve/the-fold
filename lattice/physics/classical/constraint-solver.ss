@@ -21,6 +21,7 @@
 (doc "Apply an impulse at a world point to an entity.")
 (doc "Updates both linear and angular velocity.")
 (define (apply-constraint-impulse! world entity-id impulse world-point)
+  (doc 'export #t)
   (let ([entity (world-get-entity world entity-id)])
        (when (and entity (not (entity-static? entity)))
              (let* ([body (entity-body entity)]
@@ -39,6 +40,7 @@
 (doc 'solve-distance-velocity 'type 'World x Constraint x Number -> Void)
 (doc "Solve velocity constraint for distance joint.")
 (define (solve-distance-velocity world constraint dt)
+  (doc 'export #t)
   (let* ([data (constraint-data constraint)]
          [local-a (distance-data-anchor-a data)]
          [local-b (distance-data-anchor-b data)]
@@ -124,6 +126,7 @@
 (doc 'correct-distance-position 'type 'World x Constraint -> Void)
 (doc "Apply position correction for distance constraint.")
 (define (correct-distance-position world constraint)
+  (doc 'export #t)
   (let* ([data (constraint-data constraint)]
          [target-dist (distance-data-target data)]
          [entity-a-id (constraint-entity-a constraint)]
@@ -197,6 +200,7 @@
 (doc "Solve velocity constraint for revolute joint.")
 (doc "Both anchors must move together (2D point-to-point).")
 (define (solve-revolute-velocity world constraint dt)
+  (doc 'export #t)
   (let* ([data (constraint-data constraint)]
          [local-a (revolute-data-anchor-a data)]
          [local-b (revolute-data-anchor-b data)]
@@ -287,6 +291,7 @@
 (doc 'correct-revolute-position 'type 'World x Constraint -> Void)
 (doc "Apply position correction for revolute joint.")
 (define (correct-revolute-position world constraint)
+  (doc 'export #t)
   (let* ([entity-a-id (constraint-entity-a constraint)]
          [entity-b-id (constraint-entity-b constraint)]
          [entity-a (world-get-entity world entity-a-id)]
@@ -352,6 +357,7 @@
 (doc "Solve velocity constraint for spring (soft constraint).")
 (doc "No position correction needed - spring force handles it.")
 (define (solve-spring-velocity world constraint dt)
+  (doc 'export #t)
   (let* ([data (constraint-data constraint)]
          [rest-length (spring-data-rest-length data)]
          [stiffness (spring-data-stiffness data)]
@@ -407,6 +413,7 @@
 
 (doc "Springs don't need position correction (soft constraint)")
 (define (correct-spring-position world constraint)
+  (doc 'export #t)
   (void))
 
 (doc 'section 'weld)
@@ -414,6 +421,7 @@
 (doc 'solve-weld-velocity 'type 'World x Constraint x Number -> Void)
 (doc "Solve velocity constraint for weld joint (no relative motion).")
 (define (solve-weld-velocity world constraint dt)
+  (doc 'export #t)
   ;; First solve the point constraint (same as revolute)
   (solve-revolute-velocity world constraint dt)
   
@@ -471,6 +479,7 @@
 (doc 'correct-weld-position 'type 'World x Constraint -> Void)
 (doc "Apply position and angle correction for weld joint.")
 (define (correct-weld-position world constraint)
+  (doc 'export #t)
   ;; First correct the point constraint
   (correct-revolute-position world constraint)
   
@@ -523,6 +532,7 @@
 (doc 'make-distance-joint 'type 'Any x Any x Any x Vec2 x Vec2 x Number -> Constraint)
 (doc "Create a distance constraint between two entities.")
 (define (make-distance-joint id entity-a entity-b local-anchor-a local-anchor-b distance)
+  (doc 'export #t)
   (make-constraint 'distance id entity-a entity-b
                    (make-distance-constraint-data local-anchor-a local-anchor-b distance)
                    solve-distance-velocity
@@ -532,6 +542,7 @@
 (doc 'make-revolute-joint 'type 'Any x Any x Any x Vec2 x Vec2 -> Constraint)
 (doc "Create a revolute joint between two entities.")
 (define (make-revolute-joint id entity-a entity-b local-anchor-a local-anchor-b)
+  (doc 'export #t)
   (make-constraint 'revolute id entity-a entity-b
                    (make-revolute-constraint-data local-anchor-a local-anchor-b)
                    solve-revolute-velocity
@@ -551,6 +562,7 @@
 (doc 'make-weld-joint 'type 'Any x Any x Any x Vec2 x Vec2 x Number -> Constraint)
 (doc "Create a weld joint between two entities.")
 (define (make-weld-joint id entity-a entity-b local-anchor-a local-anchor-b ref-angle)
+  (doc 'export #t)
   (make-constraint 'weld id entity-a entity-b
                    (make-weld-constraint-data local-anchor-a local-anchor-b ref-angle)
                    solve-weld-velocity

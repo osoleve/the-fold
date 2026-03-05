@@ -29,6 +29,7 @@
 (doc >>> 'description "Left-to-right optic composition (like Haskell's >>> or lens's .)")
 (doc >>> 'note "(>>> outer inner) = (optic-compose outer inner)")
 (define (>>> outer inner)
+  (doc 'export #t)
   (optic-compose outer inner))
 
 (doc 'section 'lens-to-optic-adapters)
@@ -38,6 +39,7 @@
 (doc physics-lens->optic 'type '(-> Lens Optic))
 (doc physics-lens->optic 'description "Explicit conversion (identity since both use same representation)")
 (define (physics-lens->optic lens)
+  (doc 'export #t)
   lens)
 
 (doc 'section 'traversals-for-physics-collections)
@@ -70,6 +72,7 @@
 (doc bodies-filtered 'type '(-> (-> Body Boolean) (Traversal (List Body) Body)))
 (doc bodies-filtered 'description "Traverse bodies matching predicate")
 (define (bodies-filtered pred)
+  (doc 'export #t)
   (make-traversal
    (lambda (f bodies)
      (map (lambda (b) (if (pred b) (f b) b)) bodies))
@@ -92,6 +95,7 @@
 (doc make-body-affine 'description "Create an affine for optional body properties")
 (doc make-body-affine 'note "Returns nothing if body doesn't match type predicate")
 (define (make-body-affine getter-fn setter-fn type-pred)
+  (doc 'export #t)
   (make-affine
    (lambda (b)
      (if (type-pred b)
@@ -183,23 +187,28 @@
 (doc make-world 'type '(-> (List (Pair Symbol Body)) World))
 (doc make-world 'description "Create a world as an association list of named bodies")
 (define (make-world bodies)
+  (doc 'export #t)
   (list 'world bodies))
 
 (doc world? 'type '(-> Any Boolean))
 (define (world? w)
+  (doc 'export #t)
   (and (pair? w) (eq? (car w) 'world)))
 
 (doc world-bodies 'type '(-> World (List (Pair Symbol Body))))
 (define (world-bodies w)
+  (doc 'export #t)
   (cadr w))
 
 (doc world-with-bodies 'type '(-> World (List (Pair Symbol Body)) World))
 (define (world-with-bodies w new-bodies)
+  (doc 'export #t)
   (make-world new-bodies))
 
 (doc world-body 'type '(-> Symbol (Affine World Body)))
 (doc world-body 'description "Focus on a named body in the world (may not exist)")
 (define (world-body name)
+  (doc 'export #t)
   (make-affine
    (lambda (w)
      (let ([entry (assq name (world-bodies w))])
@@ -242,38 +251,45 @@
 (doc body-view 'type '(-> Body Lens a))
 (doc body-view 'description "View using optics operator")
 (define (body-view body lens)
+  (doc 'export #t)
   (^. body lens))
 
 (doc body-modify 'type '(-> Body Lens (-> a a) Body))
 (doc body-modify 'description "Modify using optics operators")
 (define (body-modify body lens f)
+  (doc 'export #t)
   (& body (%~ lens f)))
 
 (doc body-set 'type '(-> Body Lens a Body))
 (doc body-set 'description "Set using optics operators")
 (define (body-set body lens val)
+  (doc 'export #t)
   (& body (.~ lens val)))
 
 (doc body-preview 'type '(-> Body Affine (Maybe a)))
 (doc body-preview 'description "Preview through affine (safe access)")
 (define (body-preview body affine)
+  (doc 'export #t)
   (^? body affine))
 
 (doc apply-gravity 'type '(-> Number (-> Body Body)))
 (doc apply-gravity 'description "Apply gravity to a body's velocity using optics")
 (define (apply-gravity g)
+  (doc 'export #t)
   (lambda (body)
     (& body (%~ (body. vel y) (lambda (vy) (+ vy g))))))
 
 (doc apply-impulse 'type '(-> Vec2 (-> Body Body)))
 (doc apply-impulse 'description "Apply velocity impulse using optics")
 (define (apply-impulse impulse)
+  (doc 'export #t)
   (lambda (body)
     (& body (%~ (body. vel) (lambda (v) (vec2-add v impulse))))))
 
 (doc move-by 'type '(-> Vec2 (-> Body Body)))
 (doc move-by 'description "Move body by offset using optics")
 (define (move-by offset)
+  (doc 'export #t)
   (lambda (body)
     (& body (%~ (body. pos) (lambda (p) (vec2-add p offset))))))
 
@@ -287,11 +303,13 @@
 (doc total-mass 'type '(-> (List Body) Number))
 (doc total-mass 'description "Sum masses of all bodies using fold")
 (define (total-mass bodies)
+  (doc 'export #t)
   (fold-sum (fold-compose fold-bodies (lens->fold body-mass-lens)) bodies))
 
 (doc center-of-mass 'type '(-> (List Body) Vec2))
 (doc center-of-mass 'description "Compute center of mass using folds")
 (define (center-of-mass bodies)
+  (doc 'export #t)
   (let* ([total-m (total-mass bodies)]
          [weighted-sum
           (fold-left
@@ -308,6 +326,7 @@
 (doc bodies-in-region 'type '(-> Vec2 Number (Fold (List Body) Body)))
 (doc bodies-in-region 'description "Fold over bodies within radius of point")
 (define (bodies-in-region center radius)
+  (doc 'export #t)
   (make-fold
    (lambda (bodies)
      (filter
@@ -332,6 +351,7 @@
 (doc body-speed-getter 'type '(-> Body Number))
 (doc body-speed-getter 'description "Get speed (velocity magnitude) of a body")
 (define (body-speed-getter b)
+  (doc 'export #t)
   (vec2-length (view body-vel-lens b)))
 
 (doc 'section 'physics-step-with-optics)
@@ -339,6 +359,7 @@
 (doc step-body 'type '(-> Number (-> Body Body)))
 (doc step-body 'description "Single Euler integration step using optics")
 (define (step-body dt)
+  (doc 'export #t)
   (lambda (body)
     (let ([vel (^. body body-vel-lens)])
       (& body (%~ body-pos-lens (lambda (p) (vec2-add p (vec2-scale vel dt))))))))
@@ -346,18 +367,21 @@
 (doc step-bodies 'type '(-> Number (-> (List Body) (List Body))))
 (doc step-bodies 'description "Step all bodies using traversal")
 (define (step-bodies dt)
+  (doc 'export #t)
   (lambda (bodies)
     (traversal-over bodies-each (step-body dt) bodies)))
 
 (doc step-world 'type '(-> Number (-> World World)))
 (doc step-world 'description "Step all bodies in world using traversal")
 (define (step-world dt)
+  (doc 'export #t)
   (lambda (w)
     (traversal-over world-all-bodies (step-body dt) w)))
 
 (doc apply-forces-to-world 'type '(-> (List (Pair Symbol Vec2)) (-> World World)))
 (doc apply-forces-to-world 'description "Apply named forces to bodies")
 (define (apply-forces-to-world forces)
+  (doc 'export #t)
   (lambda (w)
     (fold-left
      (lambda (world force-pair)

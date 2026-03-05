@@ -42,6 +42,7 @@ Dependencies:
 (doc sparse-coo?
      'type (-> Any Boolean))
 (define (sparse-coo? m)
+  (doc 'export #t)
   (and (pair? m)
        (eq? (car m) 'sparse-coo)
        (= (length m) 6)))
@@ -49,6 +50,7 @@ Dependencies:
 ;;; make-sparse-coo : Nat × Nat × Vec × Vec × Vec → SparseCOO
 ;;; Create COO matrix from parallel vectors of (row, col, value).
 (define (make-sparse-coo rows cols row-indices col-indices values)
+  (doc 'export #t)
   (list 'sparse-coo rows cols row-indices col-indices values))
 
 ;;; sparse-coo-rows : SparseCOO → Nat
@@ -69,6 +71,7 @@ Dependencies:
 ;;; sparse-coo-nnz : SparseCOO → Nat
 ;;; Number of non-zeros.
 (define (sparse-coo-nnz m)
+  (doc 'export #t)
   (vector-length (sparse-coo-values m)))
 
 ;;; sparse-coo-from-triplets : Nat × Nat × (List (Nat × Nat × Num)) → SparseCOO
@@ -81,6 +84,7 @@ Dependencies:
 ;;; If you need duplicate summing, pre-process triplets or use sparse-coo-add-impl
 ;;; which uses a hash accumulator that naturally sums duplicate coordinates.
 (define (sparse-coo-from-triplets rows cols triplets)
+  (doc 'export #t)
   (let* ([n (length triplets)]
          [row-idx (make-vector n 0)]
          [col-idx (make-vector n 0)]
@@ -97,6 +101,7 @@ Dependencies:
 ;;; Get element at (i, j). O(nnz) - use CSR/CSC for frequent access.
 ;;; NOTE: If duplicates exist at (i,j), returns the FIRST entry found.
 (define (sparse-coo-ref m i j)
+  (doc 'export #t)
   (let ([row-idx (sparse-coo-row-indices m)]
         [col-idx (sparse-coo-col-indices m)]
         [vals (sparse-coo-values m)]
@@ -115,12 +120,14 @@ Dependencies:
 (doc sparse-csr?
      'type (-> Any Boolean))
 (define (sparse-csr? m)
+  (doc 'export #t)
   (and (pair? m)
        (eq? (car m) 'sparse-csr)
        (= (length m) 6)))
 
 ;;; make-sparse-csr : Nat × Nat × Vec × Vec × Vec → SparseCSR
 (define (make-sparse-csr rows cols row-ptrs col-indices values)
+  (doc 'export #t)
   (list 'sparse-csr rows cols row-ptrs col-indices values))
 
 ;;; sparse-csr-rows : SparseCSR → Nat
@@ -140,11 +147,13 @@ Dependencies:
 
 ;;; sparse-csr-nnz : SparseCSR → Nat
 (define (sparse-csr-nnz m)
+  (doc 'export #t)
   (vector-length (sparse-csr-values m)))
 
 ;;; sparse-csr-ref : SparseCSR × Nat × Nat → Num
 ;;; Get element at (i, j). O(cols_in_row) via binary search potential.
 (define (sparse-csr-ref m i j)
+  (doc 'export #t)
   (let* ([row-ptrs (sparse-csr-row-ptrs m)]
          [col-idx (sparse-csr-col-indices m)]
          [vals (sparse-csr-values m)]
@@ -159,6 +168,7 @@ Dependencies:
 ;;; sparse-csr-row : SparseCSR × Nat → (List (Nat × Num))
 ;;; Get row i as list of (col, value) pairs.
 (define (sparse-csr-row m i)
+  (doc 'export #t)
   (let* ([row-ptrs (sparse-csr-row-ptrs m)]
          [col-idx (sparse-csr-col-indices m)]
          [vals (sparse-csr-values m)]
@@ -174,6 +184,7 @@ Dependencies:
 ;;; Get row i as association list of (col . value) pairs.
 ;;; More memory-efficient than sparse-csr-row for iteration.
 (define (sparse-csr-row-alist m i)
+  (doc 'export #t)
   (let* ([row-ptrs (sparse-csr-row-ptrs m)]
          [col-idx (sparse-csr-col-indices m)]
          [vals (sparse-csr-values m)]
@@ -193,12 +204,14 @@ Dependencies:
 
 ;;; sparse-csc? : Any → Boolean
 (define (sparse-csc? m)
+  (doc 'export #t)
   (and (pair? m)
        (eq? (car m) 'sparse-csc)
        (= (length m) 6)))
 
 ;;; make-sparse-csc : Nat × Nat × Vec × Vec × Vec → SparseCSC
 (define (make-sparse-csc rows cols col-ptrs row-indices values)
+  (doc 'export #t)
   (list 'sparse-csc rows cols col-ptrs row-indices values))
 
 ;;; sparse-csc-rows : SparseCSC → Nat
@@ -218,10 +231,12 @@ Dependencies:
 
 ;;; sparse-csc-nnz : SparseCSC → Nat
 (define (sparse-csc-nnz m)
+  (doc 'export #t)
   (vector-length (sparse-csc-values m)))
 
 ;;; sparse-csc-ref : SparseCSC × Nat × Nat → Num
 (define (sparse-csc-ref m i j)
+  (doc 'export #t)
   (let* ([col-ptrs (sparse-csc-col-ptrs m)]
          [row-idx (sparse-csc-row-indices m)]
          [vals (sparse-csc-values m)]
@@ -236,6 +251,7 @@ Dependencies:
 ;;; sparse-csc-col : SparseCSC × Nat → (List (Nat × Num))
 ;;; Get column j as list of (row, value) pairs.
 (define (sparse-csc-col m j)
+  (doc 'export #t)
   (let* ([col-ptrs (sparse-csc-col-ptrs m)]
          [row-idx (sparse-csc-row-indices m)]
          [vals (sparse-csc-values m)]
@@ -254,6 +270,7 @@ Dependencies:
      'type (-> SparseCOO SparseCSR)
      'description "Convert COO to CSR format. Uses sort-based algorithm. Complexity: O(nnz log nnz) time, O(nnz) space.")
 (define (coo->csr coo)
+  (doc 'export #t)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
          [row-idx (sparse-coo-row-indices coo)]
@@ -311,6 +328,7 @@ Dependencies:
 ;;; Uses sort-based algorithm to avoid O(cols) auxiliary storage.
 ;;; Complexity: O(nnz log nnz) time, O(nnz) space.
 (define (coo->csc coo)
+  (doc 'export #t)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
          [row-idx (sparse-coo-row-indices coo)]
@@ -366,6 +384,7 @@ Dependencies:
 ;;; csr->coo : SparseCSR → SparseCOO
 ;;; Convert CSR to COO format.
 (define (csr->coo csr)
+  (doc 'export #t)
   (let* ([rows (sparse-csr-rows csr)]
          [cols (sparse-csr-cols csr)]
          [row-ptrs (sparse-csr-row-ptrs csr)]
@@ -389,6 +408,7 @@ Dependencies:
 ;;; csc->coo : SparseCSC → SparseCOO
 ;;; Convert CSC to COO format.
 (define (csc->coo csc)
+  (doc 'export #t)
   (let* ([rows (sparse-csc-rows csc)]
          [cols (sparse-csc-cols csc)]
          [col-ptrs (sparse-csc-col-ptrs csc)]
@@ -411,10 +431,12 @@ Dependencies:
 
 ;;; csr->csc : SparseCSR → SparseCSC
 (define (csr->csc csr)
+  (doc 'export #t)
   (coo->csc (csr->coo csr)))
 
 ;;; csc->csr : SparseCSC → SparseCSR
 (define (csc->csr csc)
+  (doc 'export #t)
   (coo->csr (csc->coo csc)))
 
 ;;; ====
@@ -424,6 +446,7 @@ Dependencies:
 ;;; dense->sparse-coo : Matrix × [Num] → SparseCOO
 ;;; Convert dense matrix to COO, dropping values below tolerance.
 (define (dense->sparse-coo m . tol-arg)
+  (doc 'export #t)
   (let* ([tol (if (null? tol-arg) 0 (car tol-arg))]
          [rows (matrix-rows m)]
          [cols (matrix-cols m)]
@@ -454,11 +477,13 @@ Dependencies:
 
 ;;; dense->sparse-csr : Matrix × [Num] → SparseCSR
 (define (dense->sparse-csr m . tol-arg)
+  (doc 'export #t)
   (let ([tol (if (null? tol-arg) 0 (car tol-arg))])
        (coo->csr (dense->sparse-coo m tol))))
 
 ;;; sparse-coo->dense : SparseCOO → Matrix
 (define (sparse-coo->dense coo)
+  (doc 'export #t)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
          [row-idx (sparse-coo-row-indices coo)]
@@ -475,6 +500,7 @@ Dependencies:
 
 ;;; sparse-csr->dense : SparseCSR → Matrix
 (define (sparse-csr->dense csr)
+  (doc 'export #t)
   (let* ([rows (sparse-csr-rows csr)]
          [cols (sparse-csr-cols csr)]
          [row-ptrs (sparse-csr-row-ptrs csr)]
@@ -493,6 +519,7 @@ Dependencies:
 
 ;;; sparse-csc->dense : SparseCSC → Matrix
 (define (sparse-csc->dense csc)
+  (doc 'export #t)
   (sparse-csr->dense (csc->csr csc)))
 
 (doc 'section 'sparse-matvec
@@ -502,6 +529,7 @@ Dependencies:
      'type (-> SparseCSR Vec (or Vec Error))
      'description "y = A * x where A is sparse CSR. O(nnz).")
 (define (sparse-csr-vec-mul m v)
+  (doc 'export #t)
   (let* ([rows (sparse-csr-rows m)]
          [cols (sparse-csr-cols m)]
          [n (vector-length v)])
@@ -520,6 +548,7 @@ Dependencies:
 ;;; sparse-csc-vec-mul : SparseCSC × Vec → Vec | Error
 ;;; y = A * x where A is sparse CSC. O(nnz).
 (define (sparse-csc-vec-mul m v)
+  (doc 'export #t)
   (let* ([rows (sparse-csc-rows m)]
          [cols (sparse-csc-cols m)]
          [n (vector-length v)])
@@ -545,6 +574,7 @@ Dependencies:
 ;;; sparse-coo-vec-mul : SparseCOO × Vec → Vec | Error
 ;;; y = A * x where A is sparse COO. O(nnz).
 (define (sparse-coo-vec-mul m v)
+  (doc 'export #t)
   (let* ([rows (sparse-coo-rows m)]
          [cols (sparse-coo-cols m)]
          [n (vector-length v)])
@@ -571,6 +601,7 @@ Dependencies:
 ;;; sparse-csr-add : SparseCSR × SparseCSR → SparseCSR | Error
 ;;; C = A + B for CSR matrices.
 (define (sparse-csr-add a b)
+  (doc 'export #t)
   (let ([ra (sparse-csr-rows a)] [ca (sparse-csr-cols a)]
         [rb (sparse-csr-rows b)] [cb (sparse-csr-cols b)])
        (if (not (and (= ra rb) (= ca cb)))
@@ -583,6 +614,7 @@ Dependencies:
 
 ;;; sparse-coo-add : SparseCOO × SparseCOO → SparseCOO | Error
 (define (sparse-coo-add a b)
+  (doc 'export #t)
   (let ([ra (sparse-coo-rows a)] [ca (sparse-coo-cols a)]
         [rb (sparse-coo-rows b)] [cb (sparse-coo-cols b)])
        (if (not (and (= ra rb) (= ca cb)))
@@ -594,6 +626,7 @@ Dependencies:
 ;;; Drops values with |v| < epsilon to prevent floating-point fill-in.
 ;;; Complexity: O(nnz_a + nnz_b) space and time.
 (define (sparse-coo-add-impl a b . eps-arg)
+  (doc 'export #t)
   (let* ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
          [rows (sparse-coo-rows a)]
          [cols (sparse-coo-cols a)]
@@ -660,6 +693,7 @@ Dependencies:
 ;;; Uses COO intermediate to avoid O(cols) auxiliary storage.
 ;;; Complexity: O(nnz log nnz) time, O(nnz) space.
 (define (sparse-csr-transpose csr)
+  (doc 'export #t)
   ;; Convert to COO, transpose, convert back to CSR using sort-based algorithm
   (let ([coo (csr->coo csr)])
        (coo->csr (sparse-coo-transpose coo))))
@@ -667,6 +701,7 @@ Dependencies:
 ;;; sparse-coo-transpose : SparseCOO → SparseCOO
 ;;; Transpose: swap row and column indices.
 (define (sparse-coo-transpose coo)
+  (doc 'export #t)
   (make-sparse-coo (sparse-coo-cols coo)
                    (sparse-coo-rows coo)
                    (vec-copy (sparse-coo-col-indices coo))
@@ -676,6 +711,7 @@ Dependencies:
 ;;; sparse-csc-transpose : SparseCSC → SparseCSC
 ;;; Transpose CSC matrix.
 (define (sparse-csc-transpose csc)
+  (doc 'export #t)
   ;; CSC transpose is essentially reinterpreting CSC as CSR of transpose
   (make-sparse-csc (sparse-csc-cols csc)
                    (sparse-csc-rows csc)
@@ -690,6 +726,7 @@ Dependencies:
      'type (-> SparseCSR SparseCSR [Num] (or SparseCSR Error))
      'description "C = A * B where A is m×k and B is k×n. Uses sparse row accumulator (HAMT). Drops values with |v| < epsilon. Complexity: O(nnz_a * avg_nnz_per_row_b) time.")
 (define (sparse-csr-mul a b . eps-arg)
+  (doc 'export #t)
   (let ([eps (if (null? eps-arg) *sparse-epsilon* (car eps-arg))]
         [ma (sparse-csr-rows a)] [ka (sparse-csr-cols a)]
         [kb (sparse-csr-rows b)] [nb (sparse-csr-cols b)])
@@ -762,6 +799,7 @@ Dependencies:
 ;;; sparse-csr-scale : Num × SparseCSR → SparseCSR
 ;;; Scale all values by constant.
 (define (sparse-csr-scale k csr)
+  (doc 'export #t)
   (make-sparse-csr (sparse-csr-rows csr)
                    (sparse-csr-cols csr)
                    (vec-copy (sparse-csr-row-ptrs csr))
@@ -770,6 +808,7 @@ Dependencies:
 
 ;;; sparse-coo-scale : Num × SparseCOO → SparseCOO
 (define (sparse-coo-scale k coo)
+  (doc 'export #t)
   (make-sparse-coo (sparse-coo-rows coo)
                    (sparse-coo-cols coo)
                    (vec-copy (sparse-coo-row-indices coo))
@@ -783,6 +822,7 @@ Dependencies:
 ;;; sparse-identity : Nat → SparseCSR
 ;;; n×n sparse identity matrix.
 (define (sparse-identity n)
+  (doc 'export #t)
   (let ([row-ptrs (vec-tabulate (+ n 1) i i)]
         [col-idx (vec-tabulate n i i)]
         [vals (make-vector n 1)])
@@ -791,6 +831,7 @@ Dependencies:
 ;;; sparse-diagonal : Vec → SparseCSR
 ;;; Create sparse diagonal matrix.
 (define (sparse-diagonal v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [row-ptrs (vec-tabulate (+ n 1) i i)]
          [col-idx (vec-tabulate n i i)]
@@ -804,6 +845,7 @@ Dependencies:
 ;;; sparse-shape : Sparse → (Nat × Nat)
 ;;; Get dimensions of any sparse format.
 (define (sparse-shape m)
+  (doc 'export #t)
   (cond
    [(sparse-coo? m) (cons (sparse-coo-rows m) (sparse-coo-cols m))]
    [(sparse-csr? m) (cons (sparse-csr-rows m) (sparse-csr-cols m))]
@@ -813,6 +855,7 @@ Dependencies:
 ;;; sparse-nnz : Sparse → Nat
 ;;; Get number of non-zeros for any format.
 (define (sparse-nnz m)
+  (doc 'export #t)
   (cond
    [(sparse-coo? m) (sparse-coo-nnz m)]
    [(sparse-csr? m) (sparse-csr-nnz m)]
@@ -822,6 +865,7 @@ Dependencies:
 ;;; sparse-density : Sparse → Num
 ;;; Fraction of non-zero elements.
 (define (sparse-density m)
+  (doc 'export #t)
   (let ([shape (sparse-shape m)]
         [nnz (sparse-nnz m)])
        (/ nnz (* (car shape) (cdr shape)))))
@@ -830,6 +874,7 @@ Dependencies:
 ;;; Ratio of sparse storage to dense storage.
 ;;; < 1 means sparse is more efficient.
 (define (sparse-memory-ratio m)
+  (doc 'export #t)
   (let* ([shape (sparse-shape m)]
          [rows (car shape)]
          [cols (cdr shape)]
@@ -855,6 +900,7 @@ Dependencies:
 ;;; Drop all entries with |value| < tolerance.
 ;;; Useful for cleaning up after operations that don't use tolerance.
 (define (sparse-coo-drop-below tol coo)
+  (doc 'export #t)
   (let* ([rows (sparse-coo-rows coo)]
          [cols (sparse-coo-cols coo)]
          [row-idx (sparse-coo-row-indices coo)]
@@ -888,17 +934,20 @@ Dependencies:
 ;;; sparse-csr-drop-below : Num × SparseCSR → SparseCSR
 ;;; Drop all entries with |value| < tolerance from CSR matrix.
 (define (sparse-csr-drop-below tol csr)
+  (doc 'export #t)
   (coo->csr (sparse-coo-drop-below tol (csr->coo csr))))
 
 ;;; sparse-csc-drop-below : Num × SparseCSC → SparseCSC
 ;;; Drop all entries with |value| < tolerance from CSC matrix.
 (define (sparse-csc-drop-below tol csc)
+  (doc 'export #t)
   (coo->csc (sparse-coo-drop-below tol (csc->coo csc))))
 
 ;;; sparse-approx-equal? : Sparse × Sparse × [Num] → Boolean
 ;;; Check if two sparse matrices are approximately equal within tolerance.
 ;;; Compares structure and values.
 (define (sparse-approx-equal? a b . tol-arg)
+  (doc 'export #t)
   (let ([tol (if (null? tol-arg) *sparse-epsilon* (car tol-arg))])
     (cond
       ;; Different formats: convert both to COO and compare
@@ -921,6 +970,7 @@ Dependencies:
 ;;; sparse-coo-approx-equal? : SparseCOO × SparseCOO × Num → Boolean
 ;;; Check if two COO matrices are approximately equal.
 (define (sparse-coo-approx-equal? a b tol)
+  (doc 'export #t)
   (and (= (sparse-coo-rows a) (sparse-coo-rows b))
        (= (sparse-coo-cols a) (sparse-coo-cols b))
        ;; Compute A - B and check if all entries are below tolerance

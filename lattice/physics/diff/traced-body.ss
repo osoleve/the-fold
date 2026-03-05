@@ -30,6 +30,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; make-traced-body : TracedVec2 × TracedVec2 × TracedValue × TracedValue × Number × Number → TracedBody
 ;;; Create a traced rigid body.
 (define (make-traced-body pos vel angle angular-vel mass inertia)
+  (doc 'export #t)
   (list 'traced-body
         pos
         vel
@@ -42,6 +43,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 
 ;;; traced-body? : Any → Boolean
 (define (traced-body? b)
+  (doc 'export #t)
   (and (pair? b) (eq? (car b) 'traced-body)))
 
 ;;; ====
@@ -74,6 +76,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 
 ;;; traced-body-static? : TracedBody → Boolean
 (define (traced-body-static? b)
+  (doc 'export #t)
   (= (traced-body-inv-mass b) 0))
 
 ;;; ====
@@ -82,6 +85,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 
 ;;; traced-body-with-pos : TracedBody × TracedVec2 → TracedBody
 (define (traced-body-with-pos b new-pos)
+  (doc 'export #t)
   (make-traced-body new-pos
                     (traced-body-vel b)
                     (traced-body-angle b)
@@ -91,6 +95,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 
 ;;; traced-body-with-vel : TracedBody × TracedVec2 → TracedBody
 (define (traced-body-with-vel b new-vel)
+  (doc 'export #t)
   (make-traced-body (traced-body-pos b)
                     new-vel
                     (traced-body-angle b)
@@ -100,6 +105,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 
 ;;; traced-body-with-angle : TracedBody × TracedValue → TracedBody
 (define (traced-body-with-angle b new-angle)
+  (doc 'export #t)
   (make-traced-body (traced-body-pos b)
                     (traced-body-vel b)
                     new-angle
@@ -109,6 +115,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 
 ;;; traced-body-with-angular-vel : TracedBody × TracedValue → TracedBody
 (define (traced-body-with-angular-vel b new-angular-vel)
+  (doc 'export #t)
   (make-traced-body (traced-body-pos b)
                     (traced-body-vel b)
                     (traced-body-angle b)
@@ -119,6 +126,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; traced-body-with-state : TracedBody × TracedVec2 × TracedVec2 × TracedValue × TracedValue → TracedBody
 ;;; Update all kinematic state at once.
 (define (traced-body-with-state b new-pos new-vel new-angle new-angular-vel)
+  (doc 'export #t)
   (make-traced-body new-pos
                     new-vel
                     new-angle
@@ -133,6 +141,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; trace-rigid-body : RigidBody2D × Tape → TracedBody
 ;;; Convert a regular rigid body to a traced body (creates traced variables).
 (define (trace-rigid-body rb tape)
+  (doc 'export #t)
   (make-traced-body (lift-vec2 (rigid-body-pos rb) tape)
                     (lift-vec2 (rigid-body-vel rb) tape)
                     (make-traced-var (rigid-body-angle rb) tape)
@@ -143,6 +152,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; unpack-traced-body : TracedBody → RigidBody2D
 ;;; Extract numeric values from traced body into a regular rigid body.
 (define (unpack-traced-body tb)
+  (doc 'export #t)
   (make-rigid-body (unpack-traced-vec2 (traced-body-pos tb))
                    (unpack-traced-vec2 (traced-body-vel tb))
                    (traced-value (traced-body-angle tb))
@@ -157,6 +167,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; make-traced-static-body : TracedVec2 × TracedValue → TracedBody
 ;;; Create a static (immovable) traced rigid body.
 (define (make-traced-static-body pos angle)
+  (doc 'export #t)
   (let* ([tape (or (and (traced? (traced-vec2-x pos))
                         (traced-tape (traced-vec2-x pos)))
                    (and (traced? angle) (traced-tape angle)))])
@@ -176,6 +187,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; traced-body-state->list : TracedBody → (List TracedValue)
 ;;; Flatten body state to list of traced values: (px, py, vx, vy, angle, omega).
 (define (traced-body-state->list tb)
+  (doc 'export #t)
   (list (traced-vec2-x (traced-body-pos tb))
         (traced-vec2-y (traced-body-pos tb))
         (traced-vec2-x (traced-body-vel tb))
@@ -186,6 +198,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; list->traced-body-state : (List TracedValue) × Number × Number → TracedBody
 ;;; Reconstruct body state from flattened list.
 (define (list->traced-body-state vals mass inertia)
+  (doc 'export #t)
   (make-traced-body (traced-vec2 (list-ref vals 0) (list-ref vals 1))
                     (traced-vec2 (list-ref vals 2) (list-ref vals 3))
                     (list-ref vals 4)
@@ -206,6 +219,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; v_point = v_cm + ω × r
 ;;; In 2D: v_point = v_cm + ω * perp(r)
 (define (traced-body-velocity-at body world-point)
+  (doc 'export #t)
   (let* ([r (traced-vec2-sub world-point (traced-body-pos body))]
          [omega (traced-body-angular-vel body)]
          ;; ω × r in 2D: (-ω*ry, ω*rx)
@@ -217,6 +231,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; Apply an impulse J at world-space point contact.
 ;;; Changes linear velocity by J/m and angular velocity by (r × J)/I.
 (define (traced-apply-impulse body impulse contact)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (let* ([r (traced-vec2-sub contact (traced-body-pos body))]
@@ -240,11 +255,13 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; Apply force F at world-space point for duration dt.
 ;;; This is equivalent to applying impulse F*dt.
 (define (traced-apply-force body force point dt)
+  (doc 'export #t)
   (traced-apply-impulse body (traced-vec2-scale force dt) point))
 
 ;;; traced-apply-central-force : TracedBody × TracedVec2 × TracedValue → TracedBody
 ;;; Apply force at center of mass (no torque).
 (define (traced-apply-central-force body force dt)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (let* ([impulse (traced-vec2-scale force dt)]
@@ -255,6 +272,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; traced-apply-torque : TracedBody × TracedValue × TracedValue → TracedBody
 ;;; Apply torque τ for duration dt.
 (define (traced-apply-torque body torque dt)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (let* ([delta-omega (traced-mul (traced-mul torque dt)
@@ -282,6 +300,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; Transform a point from body-local coordinates to world coordinates.
 ;;; world = pos + rotate(local, angle)
 (define (traced-local-to-world body local-point)
+  (doc 'export #t)
   (traced-vec2-add (traced-body-pos body)
                    (traced-vec2-rotate local-point (traced-body-angle body))))
 
@@ -289,6 +308,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; Transform a point from world coordinates to body-local coordinates.
 ;;; local = rotate(world - pos, -angle)
 (define (traced-world-to-local body world-point)
+  (doc 'export #t)
   (traced-vec2-rotate (traced-vec2-sub world-point (traced-body-pos body))
                       (traced-neg (traced-body-angle body))))
 
@@ -296,11 +316,13 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; Transform a direction vector from body-local to world coordinates.
 ;;; (No translation, only rotation.)
 (define (traced-local-dir-to-world body local-dir)
+  (doc 'export #t)
   (traced-vec2-rotate local-dir (traced-body-angle body)))
 
 ;;; traced-world-dir-to-local : TracedBody × TracedVec2 → TracedVec2
 ;;; Transform a direction vector from world to body-local coordinates.
 (define (traced-world-dir-to-local body world-dir)
+  (doc 'export #t)
   (traced-vec2-rotate world-dir (traced-neg (traced-body-angle body))))
 
 ;;; ====
@@ -310,6 +332,7 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; traced-body-kinetic-energy : TracedBody → TracedValue
 ;;; Compute total kinetic energy: (1/2)mv² + (1/2)Iω²
 (define (traced-body-kinetic-energy body)
+  (doc 'export #t)
   (let* ([m (traced-body-mass body)]
          [I (traced-body-inertia body)]
          [v-sq (traced-vec2-magnitude-sq (traced-body-vel body))]
@@ -321,9 +344,11 @@ Mass and inertia are treated as constants (non-differentiable) by default.")
 ;;; traced-body-momentum : TracedBody → TracedVec2
 ;;; Compute linear momentum: p = mv
 (define (traced-body-momentum body)
+  (doc 'export #t)
   (traced-vec2-scale (traced-body-vel body) (traced-body-mass body)))
 
 ;;; traced-body-angular-momentum : TracedBody → TracedValue
 ;;; Compute angular momentum about center of mass: L = Iω
 (define (traced-body-angular-momentum body)
+  (doc 'export #t)
   (traced-mul (traced-body-inertia body) (traced-body-angular-vel body)))

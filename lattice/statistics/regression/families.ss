@@ -18,6 +18,7 @@
 
 (doc 'section 'family-structure)
 (define (make-glm-family name variance deviance-contrib valid-mu? initialize)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (-> Num Num) (-> Num Num Num) (-> Num Bool) (-> Num Num) GLMFamily))
   (doc 'description "Create a GLM family")
   (doc 'param 'name "family name (gaussian, binomial, poisson, gamma)")
@@ -29,6 +30,7 @@
 
 ;;; glm-family? : Any → Bool
 (define (glm-family? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'glm-family)))
 
 ;;; Accessors
@@ -214,6 +216,7 @@
 ;;; compute-deviance : GLMFamily × Vec × Vec → Num
 ;;; Compute total deviance for a fitted model.
 (define (compute-deviance family y mu)
+  (doc 'export #t)
   (let* ([n (vector-length y)]
          [dev-fn (family-deviance-contrib family)])
         (let loop ([i 0] [total 0])
@@ -226,6 +229,7 @@
 ;;; compute-null-deviance : GLMFamily × Vec → Num
 ;;; Compute null model deviance (intercept-only model).
 (define (compute-null-deviance family y)
+  (doc 'export #t)
   (let* ([n (vector-length y)]
          [y-mean (let loop ([i 0] [s 0])
                       (if (= i n)
@@ -238,4 +242,5 @@
 ;;; AIC = deviance + 2*p
 ;;; More precisely, AIC = -2*loglik + 2*p, and deviance = -2*(loglik - loglik_saturated)
 (define (compute-aic deviance n p)
+  (doc 'export #t)
   (+ deviance (* 2 p)))

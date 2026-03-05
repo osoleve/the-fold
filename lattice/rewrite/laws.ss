@@ -27,9 +27,11 @@ This is Lattice code: pure, total, assumes reasonable input.")
 (doc 'section "Law Registry")
 
 (define *law-registry* hamt-empty)
+(doc *law-registry* 'export #t)
 (doc *law-registry* 'description "Global registry of all laws")
 
 (define (register-law! law)
+  (doc 'export #t)
   (doc 'type (-> Rule Void))
   (doc 'description "Add a law to the registry.")
   (set! *law-registry* (hamt-assoc (rule-name law) law *law-registry*)))
@@ -37,27 +39,32 @@ This is Lattice code: pure, total, assumes reasonable input.")
 ;;; get-law : Symbol → Rule | #f
 ;;; Retrieve a law by name.
 (define (get-law name)
+  (doc 'export #t)
   (hamt-lookup name *law-registry*))
 
 ;;; all-laws : → (List Rule)
 ;;; Get all registered laws.
 (define (all-laws)
+  (doc 'export #t)
   (hamt-values *law-registry*))
 
 ;;; laws-by-category : Symbol → (List Rule)
 ;;; Get all laws in a category.
 (define (laws-by-category category)
+  (doc 'export #t)
   (filter (lambda (law) (eq? (rule-category law) category))
           (all-laws)))
 
 ;;; law-names : → (List Symbol)
 ;;; Get all law names.
 (define (law-names)
+  (doc 'export #t)
   (hamt-keys *law-registry*))
 
 ;;; law-categories : → (List Symbol)
 ;;; Get all unique categories.
 (define (law-categories)
+  (doc 'export #t)
   (let ([cats (map rule-category (all-laws))])
        (let loop ([cs cats] [seen '()] [acc '()])
             (cond
@@ -300,6 +307,7 @@ This is Lattice code: pure, total, assumes reasonable input.")
 ;;; ====
 
 (define (init-standard-laws!)
+  (doc 'export #t)
   ;; Semigroup
   (register-law! semigroup-assoc)
   (register-law! semigroup-assoc-rev)

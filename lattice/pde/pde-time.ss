@@ -44,27 +44,32 @@
 
 (doc pde-vec-add 'type '(-> Vector Vector Vector))
 (define (pde-vec-add v1 v2)
+  (doc 'export #t)
   (vec-tabulate (vector-length v1) i
     (+ (vector-ref v1 i) (vector-ref v2 i))))
 
 (doc pde-vec-sub 'type '(-> Vector Vector Vector))
 (define (pde-vec-sub v1 v2)
+  (doc 'export #t)
   (vec-tabulate (vector-length v1) i
     (- (vector-ref v1 i) (vector-ref v2 i))))
 
 (doc pde-vec-scale 'type '(-> Number Vector Vector))
 (define (pde-vec-scale s v)
+  (doc 'export #t)
   (vec-tabulate (vector-length v) i
     (* s (vector-ref v i))))
 
 (doc pde-vec-madd 'type '(-> Vector Number Vector Vector))
 (doc pde-vec-madd 'description "Multiply-add: v1 + s * v2")
 (define (pde-vec-madd v1 s v2)
+  (doc 'export #t)
   (vec-tabulate (vector-length v1) i
     (+ (vector-ref v1 i) (* s (vector-ref v2 i)))))
 
 (doc pde-vec-dot 'type '(-> Vector Vector Number))
 (define (pde-vec-dot v1 v2)
+  (doc 'export #t)
   (let ([n (vector-length v1)])
     (let loop ([i 0] [sum 0.0])
       (if (= i n)
@@ -73,6 +78,7 @@
 
 (doc pde-vec-norm 'type '(-> Vector Number))
 (define (pde-vec-norm v)
+  (doc 'export #t)
   (sqrt (pde-vec-dot v v)))
 
 ;;; ============================================================
@@ -92,12 +98,14 @@
 (doc forward-euler-step 'type '(-> (-> Vector Number Vector) Vector Number Number Vector))
 (doc forward-euler-step 'description "One step of forward Euler: u^{n+1} = u^n + dt * f(u^n, t^n)")
 (define (forward-euler-step f u t dt)
+  (doc 'export #t)
   (let ([du (f u t)])
     (pde-vec-madd u dt du)))
 
 (doc forward-euler-matrix-step 'type '(-> SparseCSR Vector Vector Number Vector))
 (doc forward-euler-matrix-step 'description "Forward Euler for du/dt = A*u + b")
 (define (forward-euler-matrix-step A u b dt)
+  (doc 'export #t)
   ;; u^{n+1} = u^n + dt * (A*u^n + b)
   (let* ([Au (sparse-csr-vec-mul A u)]
          [rhs (pde-vec-add Au b)])
@@ -106,6 +114,7 @@
 (doc forward-euler-mass-step 'type '(-> SparseCSR SparseCSR Vector Vector Number Number Number Vector))
 (doc forward-euler-mass-step 'description "Forward Euler for M*du/dt = A*u + b with lumped mass approximation")
 (define (forward-euler-mass-step M-diag A u b dt tol max-iter)
+  (doc 'export #t)
   ;; Lumped mass: use diagonal of M for efficiency
   ;; u^{n+1} = u^n + dt * M_diag^{-1} * (A*u^n + b)
   (let* ([Au (sparse-csr-vec-mul A u)]
@@ -136,6 +145,7 @@
 (doc backward-euler-linear-step 'description "Backward Euler for M*du/dt = A*u + b (returns solution, residual, iterations)")
 (doc backward-euler-linear-step 'note "Uses CG solver - requires (M - dt*A) to be symmetric positive definite (e.g., pure diffusion). Will fail or diverge for non-SPD systems like advection-diffusion.")
 (define (backward-euler-linear-step M A u b dt tol max-iter)
+  (doc 'export #t)
   ;; Solve: (M - dt*A) u^{n+1} = M*u^n + dt*b
   ;; Build LHS: M - dt*A
   (let* ([n (sparse-csr-rows M)]
@@ -150,6 +160,7 @@
 (doc backward-euler-identity-step 'type '(-> SparseCSR Vector Vector Number Number Number (Values Vector Number Nat)))
 (doc backward-euler-identity-step 'description "Backward Euler for du/dt = A*u + b (M = I)")
 (define (backward-euler-identity-step A u b dt tol max-iter)
+  (doc 'export #t)
   ;; Solve: (I - dt*A) u^{n+1} = u^n + dt*b
   (let* ([n (sparse-csr-rows A)]
          ;; I - dt*A
@@ -177,6 +188,7 @@
 (doc crank-nicolson-step 'description "Crank-Nicolson for M*du/dt = A*u + b")
 (doc crank-nicolson-step 'note "Uses CG solver - requires (M - dt/2*A) to be symmetric positive definite (e.g., pure diffusion). Will fail or diverge for non-SPD systems.")
 (define (crank-nicolson-step M A u b dt tol max-iter)
+  (doc 'export #t)
   ;; Solve: (M - dt/2*A) u^{n+1} = (M + dt/2*A) u^n + dt*b
   (let* ([half-dt (/ dt 2)]
          [n (sparse-csr-rows M)]
@@ -192,6 +204,7 @@
 (doc crank-nicolson-identity-step 'type '(-> SparseCSR Vector Vector Number Number Number (Values Vector Number Nat)))
 (doc crank-nicolson-identity-step 'description "Crank-Nicolson for du/dt = A*u + b (M = I)")
 (define (crank-nicolson-identity-step A u b dt tol max-iter)
+  (doc 'export #t)
   (let* ([half-dt (/ dt 2)]
          [n (sparse-csr-rows A)]
          [I (sparse-csr-identity n)]
@@ -219,6 +232,7 @@
 (doc mol-rhs 'type '(-> SparseCSR Vector (-> Vector Number Vector)))
 (doc mol-rhs 'description "Create MOL RHS function du/dt = A*u + b")
 (define (mol-rhs A b)
+  (doc 'export #t)
   (lambda (u t)
     (let ([Au (sparse-csr-vec-mul A u)])
       (pde-vec-add Au b))))
@@ -226,12 +240,14 @@
 (doc mol-euler-step 'type '(-> SparseCSR Vector Vector Number Number Vector))
 (doc mol-euler-step 'description "MOL with forward Euler")
 (define (mol-euler-step A b u t dt)
+  (doc 'export #t)
   (let ([f (mol-rhs A b)])
     (forward-euler-step f u t dt)))
 
 (doc mol-rk4-step 'type '(-> SparseCSR Vector Vector Number Number Vector))
 (doc mol-rk4-step 'description "MOL with RK4 (4th order accurate)")
 (define (mol-rk4-step A b u t dt)
+  (doc 'export #t)
   (let* ([f (mol-rhs A b)]
          [half-dt (/ dt 2)]
          [k1 (f u t)]
@@ -258,6 +274,7 @@
 (doc cfl-parabolic 'description "Compute stable dt for parabolic PDE (heat equation)")
 (doc cfl-parabolic 'note "dt < safety * h² / (2 * dim * alpha) for explicit methods")
 (define (cfl-parabolic h alpha dim)
+  (doc 'export #t)
   ;; CFL for forward Euler on heat equation in dim dimensions
   ;; dt < h² / (2 * dim * alpha)
   (let ([safety 0.9])  ; Safety factor
@@ -267,6 +284,7 @@
 (doc cfl-hyperbolic 'description "Compute stable dt for hyperbolic PDE (wave equation)")
 (doc cfl-hyperbolic 'note "dt < safety * h / c for explicit methods")
 (define (cfl-hyperbolic h c)
+  (doc 'export #t)
   ;; CFL for wave equation: dt < h / c
   (let ([safety 0.9])
     (* safety (/ h c))))
@@ -275,6 +293,7 @@
 (doc estimate-mesh-spacing 'description "Estimate characteristic mesh spacing from node coordinates")
 (doc estimate-mesh-spacing 'note "Assumes nodes are sorted in linear 1D order (adjacent indices = spatial neighbors). For 2D/3D unstructured meshes, use proper spatial queries instead.")
 (define (estimate-mesh-spacing nodes)
+  (doc 'export #t)
   ;; Use minimum distance between adjacent nodes as estimate
   ;; For regular grids, this gives h directly
   (let* ([n (vector-length nodes)]
@@ -309,6 +328,7 @@
 (doc adaptive-euler-step 'description "Adaptive forward Euler with error control")
 (doc adaptive-euler-step 'returns "(values u_new dt_new error)")
 (define (adaptive-euler-step f u t dt tol safety)
+  (doc 'export #t)
   ;; Richardson extrapolation: compare full step with two half steps
   (let* ([half-dt (/ dt 2)]
          ;; One full step
@@ -331,6 +351,7 @@
 (doc integrate-adaptive 'type '(-> (-> Vector Number Vector) Vector Number Number Number Number Number Number (List (Pair Number Vector))))
 (doc integrate-adaptive 'description "Integrate PDE with adaptive time stepping")
 (define (integrate-adaptive f u0 t0 t-end dt0 tol safety max-steps)
+  (doc 'export #t)
   ;; Returns list of (t . u) pairs
   (let loop ([t t0] [u u0] [dt dt0] [steps 0] [results (list (cons t0 (vector-copy u0)))])
     (cond
@@ -356,6 +377,7 @@
 (doc sparse-csr-identity 'type '(-> Nat SparseCSR))
 (doc sparse-csr-identity 'description "Create sparse identity matrix in CSR format")
 (define (sparse-csr-identity n)
+  (doc 'export #t)
   (let* ([row-ptrs (make-vector (+ n 1) 0)]
          [col-indices (make-vector n 0)]
          [values (make-vector n 1.0)])
@@ -375,6 +397,7 @@
 (doc sparse-cg-solve 'type '(-> SparseCSR Vector Vector Number Number (List Vector Number Nat)))
 (doc sparse-cg-solve 'description "Solve Ax = b using conjugate gradient")
 (define (sparse-cg-solve A b x0 tol max-iter)
+  (doc 'export #t)
   ;; CG for Ax = b where A is sparse CSR
   (let* ([n (sparse-csr-rows A)]
          ;; r = b - Ax
@@ -387,6 +410,7 @@
         (cg-loop A b (vector-copy x0) r p rr 0 max-iter tol n))))
 
 (define (cg-loop A b x r p rr iter max-iter tol n)
+  (doc 'export #t)
   (let ([r-norm (sqrt rr)])
     (cond
       [(< r-norm tol)
@@ -417,6 +441,7 @@
 (doc make-time-stepper 'description "Create time stepper function for given method")
 (doc make-time-stepper 'note "Methods: forward-euler, backward-euler, crank-nicolson, mol-rk4")
 (define (make-time-stepper method M A b)
+  (doc 'export #t)
   (case method
     [(forward-euler)
      (let ([M-diag (sparse-csr-diagonal-vec M)])
@@ -444,6 +469,7 @@
 (doc sparse-csr-diagonal-vec 'type '(-> SparseCSR Vector))
 (doc sparse-csr-diagonal-vec 'description "Extract diagonal elements of sparse CSR matrix")
 (define (sparse-csr-diagonal-vec A)
+  (doc 'export #t)
   (let* ([n (sparse-csr-rows A)]
          [row-ptrs (sparse-csr-row-ptrs A)]
          [col-indices (sparse-csr-col-indices A)]
@@ -467,6 +493,7 @@
 (doc integrate-pde 'type '(-> (-> Vector Number Number Vector) Vector Number Number Number Nat (List (Pair Number Vector))))
 (doc integrate-pde 'description "Integrate PDE over time interval [t0, t-end] with fixed time step")
 (define (integrate-pde stepper u0 t0 t-end dt max-steps)
+  (doc 'export #t)
   (let loop ([t t0] [u (vector-copy u0)] [steps 0] [results (list (cons t0 (vector-copy u0)))])
     (cond
       [(>= t t-end) (reverse results)]

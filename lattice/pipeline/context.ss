@@ -14,10 +14,12 @@
 
 (doc 'type '(-> Alist Persona String Symbol Alist Nat PipelineContext))
 (define (make-pipeline-context config persona session-id run-id env fuel)
+  (doc 'export #t)
   (list 'pipeline-context config persona session-id run-id env fuel))
 
 (doc 'type '(-> Any Boolean))
 (define (pipeline-context? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'pipeline-context)))
 
 (doc 'section 'accessors)
@@ -36,6 +38,7 @@
 
 (doc 'type '(-> PipelineContext Alist PipelineContext))
 (define (ctx-with-config ctx config)
+  (doc 'export #t)
   (make-pipeline-context config
                          (ctx-persona ctx)
                          (ctx-session-id ctx)
@@ -45,6 +48,7 @@
 
 (doc 'type '(-> PipelineContext Persona PipelineContext))
 (define (ctx-with-persona ctx persona)
+  (doc 'export #t)
   (make-pipeline-context (ctx-config ctx)
                          persona
                          (ctx-session-id ctx)
@@ -54,6 +58,7 @@
 
 (doc 'type '(-> PipelineContext String PipelineContext))
 (define (ctx-with-session ctx session-id)
+  (doc 'export #t)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
                          session-id
@@ -63,6 +68,7 @@
 
 (doc 'type '(-> PipelineContext String PipelineContext))
 (define (ctx-with-run-id ctx run-id)
+  (doc 'export #t)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
                          (ctx-session-id ctx)
@@ -72,6 +78,7 @@
 
 (doc 'type '(-> PipelineContext Alist PipelineContext))
 (define (ctx-with-env ctx env)
+  (doc 'export #t)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
                          (ctx-session-id ctx)
@@ -82,10 +89,12 @@
 (doc 'type '(-> PipelineContext Alist PipelineContext))
 (doc 'description "Add to existing environment")
 (define (ctx-extend-env ctx additions)
+  (doc 'export #t)
   (ctx-with-env ctx (append additions (ctx-env ctx))))
 
 (doc 'type '(-> PipelineContext Nat PipelineContext))
 (define (ctx-with-fuel ctx fuel)
+  (doc 'export #t)
   (make-pipeline-context (ctx-config ctx)
                          (ctx-persona ctx)
                          (ctx-session-id ctx)
@@ -96,17 +105,20 @@
 (doc 'type '(-> PipelineContext Nat PipelineContext))
 (doc 'description "Decrease fuel by amount")
 (define (ctx-consume-fuel ctx amount)
+  (doc 'export #t)
   (ctx-with-fuel ctx (max 0 (- (ctx-fuel ctx) amount))))
 
 (doc 'type '(-> PipelineContext Symbol Any))
 (doc 'description "Look up environment variable")
 (define (ctx-env-ref ctx key)
+  (doc 'export #t)
   (let ([entry (assq key (ctx-env ctx))])
        (if entry (cdr entry) #f)))
 
 (doc 'type '(-> PipelineContext Symbol Any))
 (doc 'description "Look up config value")
 (define (ctx-config-ref ctx key)
+  (doc 'export #t)
   (let ([entry (assq key (ctx-config ctx))])
        (if entry (cdr entry) #f)))
 
@@ -115,10 +127,12 @@
 
 (doc 'type '(-> List List List List List PipelineState))
 (define (make-pipeline-state log artifacts checkpoints metrics cache)
+  (doc 'export #t)
   (list 'pipeline-state log artifacts checkpoints metrics cache))
 
 (doc 'type '(-> Any Boolean))
 (define (pipeline-state? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'pipeline-state)))
 
 (doc 'section 'state-accessors)
@@ -137,6 +151,7 @@
 
 (doc 'type '(-> PipelineState LogEntry PipelineState))
 (define (state-add-log st entry)
+  (doc 'export #t)
   (make-pipeline-state (cons entry (state-log st))
                        (state-artifacts st)
                        (state-checkpoints st)
@@ -145,6 +160,7 @@
 
 ;;; state-add-artifact : PipelineState -> Symbol -> Any -> PipelineState
 (define (state-add-artifact st name value)
+  (doc 'export #t)
   (make-pipeline-state (state-log st)
                        (cons (cons name value) (state-artifacts st))
                        (state-checkpoints st)
@@ -153,6 +169,7 @@
 
 ;;; state-set-checkpoint : PipelineState -> Symbol -> Any -> PipelineState
 (define (state-set-checkpoint st name value)
+  (doc 'export #t)
   (make-pipeline-state (state-log st)
                        (state-artifacts st)
                        (cons (cons name value)
@@ -163,11 +180,13 @@
 
 ;;; state-get-checkpoint : PipelineState -> Symbol -> Any
 (define (state-get-checkpoint st name)
+  (doc 'export #t)
   (let ([entry (assq name (state-checkpoints st))])
        (if entry (cdr entry) #f)))
 
 ;;; state-add-metric : PipelineState -> Symbol -> Number -> PipelineState
 (define (state-add-metric st name value)
+  (doc 'export #t)
   (make-pipeline-state (state-log st)
                        (state-artifacts st)
                        (state-checkpoints st)
@@ -177,6 +196,7 @@
 ;;; state-cache-put : PipelineState -> Any -> Any -> PipelineState
 ;;; Add to cache (key-value).
 (define (state-cache-put st key value)
+  (doc 'export #t)
   (make-pipeline-state (state-log st)
                        (state-artifacts st)
                        (state-checkpoints st)
@@ -185,6 +205,7 @@
 
 ;;; state-cache-get : PipelineState -> Any -> Any
 (define (state-cache-get st key)
+  (doc 'export #t)
   (let ([entry (assoc key (state-cache st))])
        (if entry (cdr entry) #f)))
 
@@ -192,10 +213,12 @@
 
 (doc 'type '(-> Symbol String Any LogEntry))
 (define (make-log-entry level message data)
+  (doc 'export #t)
   (list 'log-entry level message data (current-timestamp)))
 
 (doc 'description "Simple timestamp (seconds since epoch approximation)")
 (define (current-timestamp)
+  (doc 'export #t)
   (doc 'note "Interpreter will provide real timestamp")
   0)
 
@@ -230,6 +253,7 @@
 
 ;;; run-record? : Any -> Boolean
 (define (run-record? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'run-record)))
 
 ;;; Run record accessors
@@ -250,10 +274,12 @@
 
 (doc 'type '(-> Symbol Stage Alist PipelineDef))
 (define (make-pipeline-def name stage config)
+  (doc 'export #t)
   (list 'pipeline-def name stage config))
 
 ;;; pipeline-def? : Any -> Boolean
 (define (pipeline-def? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'pipeline-def)))
 
 ;;; Pipeline def accessors
@@ -268,10 +294,12 @@
 
 (doc 'type '(-> Symbol String Alist Persona))
 (define (make-persona name system-prompt config)
+  (doc 'export #t)
   (list 'persona name system-prompt config))
 
 ;;; persona? : Any -> Boolean
 (define (persona? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'persona)))
 
 ;;; Persona accessors
@@ -282,6 +310,7 @@
 ;;; persona-tier : Persona -> Symbol
 ;;; Get the tier (shepherd, builder, player).
 (define (persona-tier p)
+  (doc 'export #t)
   (let ([cfg (persona-config p)])
        (let ([entry (assq 'tier cfg)])
             (if entry (cdr entry) 'player))))
@@ -289,6 +318,7 @@
 ;;; persona-model : Persona -> Symbol
 ;;; Get preferred model.
 (define (persona-model p)
+  (doc 'export #t)
   (let ([cfg (persona-config p)])
        (let ([entry (assq 'model cfg)])
             (if entry (cdr entry) 'sonnet))))
@@ -296,6 +326,7 @@
 ;;; persona-channels : Persona -> (List Symbol . List Symbol)
 ;;; Get (read-channels . write-channels).
 (define (persona-channels p)
+  (doc 'export #t)
   (let ([cfg (persona-config p)])
        (let ([read (assq 'read-channels cfg)]
              [write (assq 'write-channels cfg)])
@@ -306,21 +337,25 @@
 
 (doc 'type '(-> String Schedule))
 (define (make-cron-schedule cron-expr)
+  (doc 'export #t)
   (list 'schedule 'cron cron-expr))
 
 ;;; make-interval-schedule : Nat -> Schedule
 ;;; Interval in seconds.
 (define (make-interval-schedule seconds)
+  (doc 'export #t)
   (list 'schedule 'interval seconds))
 
 ;;; make-tag-schedule : String -> Schedule
 ;;; Trigger on forum tag.
 (define (make-tag-schedule tag-pattern)
+  (doc 'export #t)
   (list 'schedule 'tag tag-pattern))
 
 ;;; make-event-schedule : Symbol -> Schedule
 ;;; Trigger on named event.
 (define (make-event-schedule event-name)
+  (doc 'export #t)
   (list 'schedule 'event event-name))
 
 ;;; make-manual-schedule : Schedule
@@ -330,6 +365,7 @@
 
 ;;; schedule? : Any -> Boolean
 (define (schedule? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'schedule)))
 
 ;;; schedule-type : Schedule -> Symbol
@@ -337,6 +373,7 @@
 
 ;;; schedule-spec : Schedule -> Any
 (define (schedule-spec s)
+  (doc 'export #t)
   (if (> (length s) 2)
       (list-ref s 2)
       #f))
@@ -345,10 +382,12 @@
 
 (doc 'type '(-> Nat (-> Nat Nat) (-> Symbol Boolean) Symbol RetryPolicy))
 (define (make-retry-policy max-attempts delay-fn retry-on on-exhaust)
+  (doc 'export #t)
   (list 'retry-policy max-attempts delay-fn retry-on on-exhaust))
 
 ;;; retry-policy? : Any -> Boolean
 (define (retry-policy? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'retry-policy)))
 
 ;;; Retry policy accessors
@@ -396,6 +435,7 @@
 
 (doc 'type '(-> PipelineContext PipelineState (Pair Context State)))
 (define (make-ctx-state ctx state)
+  (doc 'export #t)
   (cons ctx state))
 
 ;;; ctx-of : (Context . State) -> Context
@@ -406,9 +446,11 @@
 
 ;;; update-state : (Context . State) -> (State -> State) -> (Context . State)
 (define (update-state cs f)
+  (doc 'export #t)
   (cons (ctx-of cs) (f (state-of cs))))
 
 ;;; update-ctx : (Context . State) -> (Context -> Context) -> (Context . State)
 (define (update-ctx cs f)
+  (doc 'export #t)
   (cons (f (ctx-of cs)) (state-of cs)))
 

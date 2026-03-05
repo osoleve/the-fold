@@ -16,6 +16,7 @@
 (doc 'type '(-> Nat Nat (List Nat)))
 (doc 'description "Helper: range from start to start+count-1")
 (define (range-from start count)
+  (doc 'export #t)
   (let loop ([i 0] [acc '()])
        (if (= i count)
            (reverse acc)
@@ -39,6 +40,7 @@
 
 ;;; council-config? : Any -> Boolean
 (define (council-config? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'council-config)))
 
 ;;; Accessors
@@ -85,6 +87,7 @@
 
 ;;; council-result? : Any -> Boolean
 (define (council-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'council-result)))
 
 ;;; Result accessors
@@ -115,6 +118,7 @@
 (doc 'param 'rounds "number of rounds")
 (doc 'param 'moderator "model to synthesize at end")
 (define (council-sequential models rounds moderator)
+  (doc 'export #t)
   (let ([default-prompts
           (map (lambda (r)
                        (cond
@@ -126,6 +130,7 @@
 
 ;;; council-sequential-with-prompts : (List Symbol) × Nat × Symbol × (List String) → (Stage ctx String CouncilResult)
 (define (council-sequential-with-prompts models rounds moderator round-prompts)
+  (doc 'export #t)
   (make-stage 'council-sequential
               (lambda (ctx input)
                       (list 'stage-effect 'council
@@ -149,11 +154,13 @@
 (doc 'param 'models "list of model names")
 (doc 'param 'synthesizer "model to combine responses")
 (define (council-parallel models synthesizer)
+  (doc 'export #t)
   (council-parallel-with-prompt models synthesizer
                                 "Synthesize these independent perspectives into a coherent summary."))
 
 ;;; council-parallel-with-prompt : (List Symbol) × Symbol × String → (Stage ctx String CouncilResult)
 (define (council-parallel-with-prompt models synthesizer synthesis-prompt)
+  (doc 'export #t)
   (make-stage 'council-parallel
               (lambda (ctx input)
                       (list 'stage-effect 'council
@@ -179,6 +186,7 @@
 ;;; council-vote : (List Symbol) × (List String) → (Stage ctx String (Pair Symbol (Alist String Nat)))
 ;;; Returns (winner . vote-counts)
 (define (council-vote models options)
+  (doc 'export #t)
   (make-stage 'council-vote
               (lambda (ctx input)
                       (list 'stage-effect 'council
@@ -210,6 +218,7 @@
 ;;; council-debate : Symbol × Symbol × Symbol → (Stage ctx String CouncilResult)
 ;;; pro-model, con-model, judge-model
 (define (council-debate pro-model con-model judge-model)
+  (doc 'export #t)
   (make-stage 'council-debate
               (lambda (ctx input)
                       (list 'stage-effect 'council
@@ -238,6 +247,7 @@
 ;;; models: participating models
 ;;; max-rounds: maximum rounds before giving up
 (define (council-consensus models max-rounds)
+  (doc 'export #t)
   (make-stage 'council-consensus
               (lambda (ctx input)
                       (list 'stage-effect 'council
@@ -263,6 +273,7 @@
 ;;; with-council-moderator : Symbol × (Stage ctx α CouncilResult) → (Stage ctx α CouncilResult)
 ;;; Override the moderator for a council stage.
 (define (with-council-moderator moderator council-stage)
+  (doc 'export #t)
   (make-stage 'with-moderator
               (lambda (ctx input)
                       (let ([result (run-stage council-stage ctx input)])
@@ -289,6 +300,7 @@
 ;;; with-council-timeout : Nat × (Stage ctx α CouncilResult) → (Stage ctx α CouncilResult)
 ;;; Set timeout per model (milliseconds).
 (define (with-council-timeout timeout-ms council-stage)
+  (doc 'export #t)
   (make-stage 'with-timeout
               (lambda (ctx input)
                       (let ([result (run-stage council-stage ctx input)])
@@ -319,6 +331,7 @@
 ;;; extract-consensus : CouncilResult → (Maybe String)
 ;;; Get consensus text if reached.
 (define (extract-consensus result)
+  (doc 'export #t)
   (if (and (council-result? result) (result-consensus result))
       (result-synthesis result)
       #f))
@@ -326,6 +339,7 @@
 ;;; extract-dissent : CouncilResult → (List (Pair Symbol String))
 ;;; Get dissenting views.
 (define (extract-dissent result)
+  (doc 'export #t)
   (if (council-result? result)
       (result-dissent result)
       '()))
@@ -333,6 +347,7 @@
 ;;; count-votes : CouncilResult → (Alist String Nat)
 ;;; Get vote counts.
 (define (count-votes result)
+  (doc 'export #t)
   (if (council-result? result)
       (result-votes result)
       '()))
@@ -340,6 +355,7 @@
 ;;; majority-position : CouncilResult → (Maybe String)
 ;;; Get the majority position if one exists.
 (define (majority-position result)
+  (doc 'export #t)
   (if (council-result? result)
       (let ([votes (result-votes result)])
            (if (null? votes)
@@ -374,6 +390,7 @@
 ;;; technical-debate : Symbol → (Stage ctx String CouncilResult)
 ;;; Debate a technical topic between Opus and Gemini.
 (define (technical-debate topic-perspective)
+  (doc 'export #t)
   (council-debate 'opus 'gemini-3 'sonnet))
 
 ;;; ====
@@ -383,6 +400,7 @@
 ;;; council : CouncilConfig → (Stage ctx String CouncilResult)
 ;;; General council constructor from config.
 (define (council config)
+  (doc 'export #t)
   (make-stage 'council
               (lambda (ctx input)
                       (list 'stage-effect 'council
@@ -391,6 +409,7 @@
 ;;; council-then : (Stage ctx String CouncilResult) × (CouncilResult → (Stage ctx CouncilResult β)) → (Stage ctx String β)
 ;;; Chain council result to another stage.
 (define (council-then council-stage handler)
+  (doc 'export #t)
   (stage-bind council-stage
               (lambda (result)
                       (handler result))))
@@ -398,6 +417,7 @@
 ;;; council-on-consensus : (Stage ctx String CouncilResult) × (Stage ctx CouncilResult β) → (Stage ctx String (Either CouncilResult β))
 ;;; Execute continuation only if consensus reached.
 (define (council-on-consensus council-stage continuation)
+  (doc 'export #t)
   (stage-bind council-stage
               (lambda (result)
                       (if (and (council-result? result) (result-consensus result))
@@ -407,6 +427,7 @@
 ;;; council-escalate-on-no-consensus : (Stage ctx String CouncilResult) × Symbol → (Stage ctx String CouncilResult)
 ;;; Create bead if no consensus reached.
 (define (council-escalate-on-no-consensus council-stage escalation-channel)
+  (doc 'export #t)
   (stage-bind council-stage
               (lambda (result)
                       (if (and (council-result? result) (not (result-consensus result)))
@@ -424,18 +445,22 @@
 ;;; council-effect? : Any → Bool
 ;;; Checks for standard stage-effect with 'council type.
 (define (council-effect? x)
+  (doc 'export #t)
   (and (stage-effect? x)
        (eq? (stage-effect-type x) 'council)))
 
 ;;; council-effect-mode : CouncilEffect → Symbol
 ;;; Payload structure: (list mode config topic)
 (define (council-effect-mode e)
+  (doc 'export #t)
   (car (stage-effect-payload e)))
 
 ;;; council-effect-config : CouncilEffect → CouncilConfig
 (define (council-effect-config e)
+  (doc 'export #t)
   (cadr (stage-effect-payload e)))
 
 ;;; council-effect-topic : CouncilEffect → String
 (define (council-effect-topic e)
+  (doc 'export #t)
   (caddr (stage-effect-payload e)))

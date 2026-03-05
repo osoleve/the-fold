@@ -22,6 +22,7 @@
 
 ;;; dialect-valid? : Symbol → Boolean
 (define (dialect-valid? dialect)
+  (doc 'export #t)
   (memq dialect sql-dialects))
 
 ;;; ====
@@ -74,6 +75,7 @@
 ;;; dialect-config : Symbol → Alist
 ;;; Returns configuration for a dialect
 (define (dialect-config dialect)
+  (doc 'export #t)
   (case dialect
         [(ansi)
          '((string-concat . ||)
@@ -119,6 +121,7 @@
 
 ;;; dialect-get : Symbol × Symbol → Any
 (define (dialect-get dialect key)
+  (doc 'export #t)
   (let ([config (dialect-config dialect)])
        (let ([pair (assq key config)])
             (if pair (cdr pair)
@@ -131,6 +134,7 @@
 ;;; translate-ast : AST × Symbol × Symbol → AST
 ;;; Transform AST from source dialect to target dialect
 (define (translate-ast ast from-dialect to-dialect)
+  (doc 'export #t)
   (if (eq? from-dialect to-dialect)
       ast
       (transform-node ast from-dialect to-dialect)))
@@ -138,6 +142,7 @@
 ;;; transform-node : AST × Symbol × Symbol → AST
 ;;; Recursively transform AST node
 (define (transform-node node from to)
+  (doc 'export #t)
   (cond
    [(not (sql-ast? node)) node]
    [(select? node) (transform-select node from to)]
@@ -152,6 +157,7 @@
 ;;; transform-children : AST × Symbol × Symbol → AST
 ;;; Transform all child nodes
 (define (transform-children node from to)
+  (doc 'export #t)
   (let ([tag (sql-tag node)]
         [span (sql-span node)]
         [data (sql-data node)])
@@ -173,6 +179,7 @@
 
 ;;; transform-select : AST × Symbol × Symbol → AST
 (define (transform-select node from to)
+  (doc 'export #t)
   (let* ([span (sql-span node)]
          [distinct? (select-distinct? node)]
          [columns (map (lambda (c) (transform-node c from to)) (select-columns node))]
@@ -198,6 +205,7 @@
 ;;; transform-limit : AST × Symbol × Symbol → AST
 ;;; LIMIT/OFFSET varies significantly between dialects
 (define (transform-limit limit from to)
+  (doc 'export #t)
   (if (not limit)
       #f
       ;; For now, keep the same structure - formatting handles differences
@@ -209,6 +217,7 @@
 
 ;;; transform-binary-op : AST × Symbol × Symbol → AST
 (define (transform-binary-op node from to)
+  (doc 'export #t)
   (let* ([span (sql-span node)]
          [op (binary-op-op node)]
          [left (transform-node (binary-op-left node) from to)]
@@ -223,6 +232,7 @@
 ;;; Note: We use 'concat as the internal symbol because '|| is the empty symbol in Chez Scheme
 ;;; (the |...| syntax escapes symbol names, so || = empty symbol with length 0)
 (define (transform-concat left right span from to)
+  (doc 'export #t)
   (let ([concat-style (dialect-get to 'string-concat)])
        (case concat-style
              [(||) (make-binary-op span 'concat left right)]  ; Keep as 'concat, formatter outputs "||"
@@ -234,6 +244,7 @@
 
 ;;; transform-function-call : AST × Symbol × Symbol → AST
 (define (transform-function-call node from to)
+  (doc 'export #t)
   (let* ([span (sql-span node)]
          [name (function-call-name node)]
          [args (map (lambda (a) (if (sql-ast? a) (transform-node a from to) a))
@@ -247,6 +258,7 @@
 ;;; transform-function-name : String × Symbol × Symbol → String
 ;;; Map function names between dialects
 (define (transform-function-name name from to)
+  (doc 'export #t)
   (cond
    ;; LENGTH variations
    [(string-ci-equal? name "LENGTH")
@@ -272,6 +284,7 @@
 
 ;;; transform-null-function : Symbol → String
 (define (transform-null-function dialect)
+  (doc 'export #t)
   (case (dialect-get dialect 'null-coalesce)
         [(coalesce) "COALESCE"]
         [(ifnull) "IFNULL"]
@@ -281,6 +294,7 @@
 
 ;;; transform-literal : AST × Symbol × Symbol → AST
 (define (transform-literal node from to)
+  (doc 'export #t)
   (let* ([span (sql-span node)]
          [value (literal-value node)]
          [type (literal-type node)])
@@ -299,12 +313,15 @@
 ;;; ====
 
 (define (transform-insert node from to)
+  (doc 'export #t)
   (transform-children node from to))
 
 (define (transform-update node from to)
+  (doc 'export #t)
   (transform-children node from to))
 
 (define (transform-delete node from to)
+  (doc 'export #t)
   (transform-children node from to))
 
 ;;; ====
@@ -314,6 +331,7 @@
 ;;; format-sql-dialect : AST × Symbol × Alist → String
 ;;; Format AST for specific dialect
 (define (format-sql-dialect ast dialect . opts-arg)
+  (doc 'export #t)
   (let* ([opts (if (null? opts-arg) default-format-options (car opts-arg))]
          [dialect-opts (cons (cons 'dialect dialect) opts)])
         (format-sql-with-dialect ast dialect-opts)))
@@ -321,6 +339,7 @@
 ;;; format-sql-with-dialect : AST × Alist → String
 ;;; Format with dialect-specific rules
 (define (format-sql-with-dialect ast opts)
+  (doc 'export #t)
   (let ([dialect (get-option opts 'dialect 'ansi)])
        (cond
         [(select? ast) (format-select-dialect ast dialect opts)]
@@ -331,6 +350,7 @@
 
 ;;; format-select-dialect : AST × Symbol × Alist → String
 (define (format-select-dialect ast dialect opts)
+  (doc 'export #t)
   (let* ([compact? (get-option opts 'compact #f)]
          [nl (if compact? " " "
 ")]
@@ -379,6 +399,7 @@
 
 ;;; format-limit-dialect : AST × Symbol × Alist → String
 (define (format-limit-dialect limit dialect opts)
+  (doc 'export #t)
   (if (not limit)
       ""
       (let ([val (limit-value limit)]
@@ -416,18 +437,22 @@
 
 ;;; format-expression-dialect : AST × Symbol × Alist → String
 (define (format-expression-dialect expr dialect opts)
+  (doc 'export #t)
   ;; For now, use standard formatting
   ;; Could extend to handle dialect-specific expression formatting
   (format-expression expr opts))
 
 ;;; Placeholders for other statement types
 (define (format-insert-dialect ast dialect opts)
+  (doc 'export #t)
   (format-insert ast opts))
 
 (define (format-update-dialect ast dialect opts)
+  (doc 'export #t)
   (format-update ast opts))
 
 (define (format-delete-dialect ast dialect opts)
+  (doc 'export #t)
   (format-delete ast opts))
 
 ;;; ====
@@ -436,6 +461,7 @@
 
 ;;; quote-identifier : String × Symbol → String
 (define (quote-identifier name dialect)
+  (doc 'export #t)
   (let ([quote-style (dialect-get dialect 'identifier-quote)])
        (cond
         [(char? quote-style)
@@ -451,6 +477,7 @@
 ;;; translate-sql : String × Symbol × Symbol → Either Error String
 ;;; Parse SQL, translate AST, format for target dialect
 (define (translate-sql input from-dialect to-dialect . opts-arg)
+  (doc 'export #t)
   (let ([opts (if (null? opts-arg) default-format-options (car opts-arg))])
        (unless (dialect-valid? from-dialect)
                (error 'translate-sql "Invalid source dialect" from-dialect))
@@ -467,6 +494,7 @@
 ;;; translate-sql-all : String × Symbol → Alist
 ;;; Translate SQL to all supported dialects
 (define (translate-sql-all input from-dialect)
+  (doc 'export #t)
   (map (lambda (dialect)
                (cons dialect
                      (let ([result (translate-sql input from-dialect dialect)])

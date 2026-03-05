@@ -32,11 +32,13 @@ penetration depth, computed via SDFs.")
 ;;; SDF for a circle centered at `center` with given `radius`.
 ;;; Returns signed distance: negative inside, positive outside.
 (define (traced-sdf-circle point center radius)
+  (doc 'export #t)
   (traced-sub (traced-vec2-smooth-distance point center 1e-8) radius))
 
 ;;; traced-sdf-point : TracedVec2 × TracedVec2 → TracedValue
 ;;; SDF for a point (radius = 0 circle).
 (define (traced-sdf-point query target)
+  (doc 'export #t)
   (traced-vec2-smooth-distance query target 1e-8))
 
 ;;; traced-sdf-box : TracedVec2 × TracedVec2 × TracedVec2 → TracedValue
@@ -45,6 +47,7 @@ penetration depth, computed via SDFs.")
 ;;;   half-extents: (half-width, half-height)
 ;;; Uses smooth approximation for corners.
 (define (traced-sdf-box point center half-extents)
+  (doc 'export #t)
   (let* ([local (traced-vec2-sub point center)]
          ;; Distance to each axis
          [dx (traced-sub (traced-smooth-abs (traced-vec2-x local) 1e-8)
@@ -67,6 +70,7 @@ penetration depth, computed via SDFs.")
 ;;;   a, b: capsule endpoints
 ;;;   radius: capsule radius
 (define (traced-sdf-capsule point a b radius)
+  (doc 'export #t)
   (let* ([pa (traced-vec2-sub point a)]
          [ba (traced-vec2-sub b a)]
          ;; Project point onto line segment, clamped to [0, 1]
@@ -83,6 +87,7 @@ penetration depth, computed via SDFs.")
 ;;; traced-sdf-line-segment : TracedVec2 × TracedVec2 × TracedVec2 → TracedValue
 ;;; SDF for a line segment (zero-radius capsule).
 (define (traced-sdf-line-segment point a b)
+  (doc 'export #t)
   (traced-sdf-capsule point a b 0))
 
 ;;; traced-sdf-half-plane : TracedVec2 × TracedVec2 × TracedVec2 → TracedValue
@@ -90,6 +95,7 @@ penetration depth, computed via SDFs.")
 ;;;   point-on-plane: any point on the plane boundary
 ;;;   normal: outward normal (pointing toward positive distance)
 (define (traced-sdf-half-plane point point-on-plane normal)
+  (doc 'export #t)
   (traced-vec2-dot (traced-vec2-sub point point-on-plane) normal))
 
 ;;; ====
@@ -100,6 +106,7 @@ penetration depth, computed via SDFs.")
 ;;; SDF for the Minkowski sum of two circles (their intersection region).
 ;;; Returns negative when circles overlap.
 (define (traced-sdf-circle-circle pos-a radius-a pos-b radius-b)
+  (doc 'export #t)
   (traced-sub (traced-vec2-smooth-distance pos-a pos-b 1e-8)
               (+ radius-a radius-b)))
 
@@ -109,6 +116,7 @@ penetration depth, computed via SDFs.")
 ;;;   normal: points from A to B
 ;;;   penetration: positive when overlapping
 (define (traced-circle-contact pos-a radius-a pos-b radius-b)
+  (doc 'export #t)
   (let* ([delta (traced-vec2-sub pos-b pos-a)]
          [dist (traced-vec2-smooth-magnitude delta 1e-8)]
          ;; Normal from A to B (smooth normalize)
@@ -127,6 +135,7 @@ penetration depth, computed via SDFs.")
 ;;; Contact between circle and infinite plane.
 ;;; plane-normal points into the valid region (away from solid).
 (define (traced-circle-plane-contact circle-pos radius plane-point plane-normal)
+  (doc 'export #t)
   (let* (;; Signed distance from circle center to plane
          [center-dist (traced-sdf-half-plane circle-pos plane-point plane-normal)]
          ;; Penetration is radius - center_dist (positive when penetrating)
@@ -159,6 +168,7 @@ penetration depth, computed via SDFs.")
 ;;;
 ;;; Returns force magnitude (always >= 0).
 (define (traced-soft-contact-force penetration stiffness alpha)
+  (doc 'export #t)
   (traced-mul stiffness (traced-softplus penetration alpha)))
 
 ;;; traced-soft-contact-force-damped : TracedValue × TracedValue × Number × Number × Number → TracedValue
@@ -169,6 +179,7 @@ penetration depth, computed via SDFs.")
 ;;;   damping: damping coefficient
 ;;;   alpha: softplus sharpness
 (define (traced-soft-contact-force-damped penetration approach-vel stiffness damping alpha)
+  (doc 'export #t)
   (let* ([spring-force (traced-soft-contact-force penetration stiffness alpha)]
          ;; Only damp when in contact (penetration > 0) and approaching
          [in-contact (traced-softplus penetration alpha)]  ; smooth indicator
@@ -185,6 +196,7 @@ penetration depth, computed via SDFs.")
 ;;; Compute soft contact force between two circles.
 ;;; Returns force on body A (negate for force on body B).
 (define (traced-circle-circle-force pos-a vel-a radius-a pos-b vel-b radius-b stiffness damping alpha)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-circle-contact pos-a radius-a pos-b radius-b))
    (lambda (contact normal penetration)
@@ -197,6 +209,7 @@ penetration depth, computed via SDFs.")
 ;;; Compute soft contact force between circle and plane.
 ;;; Returns force on the circle.
 (define (traced-circle-plane-force pos vel radius plane-point plane-normal stiffness damping alpha)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-circle-plane-contact pos radius plane-point plane-normal))
    (lambda (contact _ penetration)
@@ -212,6 +225,7 @@ penetration depth, computed via SDFs.")
 ;;; Force from horizontal ground plane at y = ground-y.
 ;;; Ground normal points up (+y).
 (define (traced-ground-plane-force pos vel radius ground-y stiffness damping alpha)
+  (doc 'export #t)
   (traced-circle-plane-force pos vel radius
                              (lift-vec2-const (vec2 0 ground-y))
                              (lift-vec2-const (vec2 0 1))  ; up
@@ -227,12 +241,14 @@ penetration depth, computed via SDFs.")
 ;;; Compute normal direction from SDF at a point.
 ;;; Uses automatic differentiation to get gradient.
 (define (traced-sdf-normal sdf-fn point)
+  (doc 'export #t)
   (vec2-normalize (vec2-gradient sdf-fn point)))
 
 ;;; traced-sdf-closest-point : (TracedVec2 → TracedValue) × Vec2 → Vec2
 ;;; Approximate closest point on surface using SDF gradient.
 ;;; closest = point - sdf(point) * normal
 (define (traced-sdf-closest-point sdf-fn point)
+  (doc 'export #t)
   (let* ([tape (make-reverse-tape)]
          [traced-point (lift-vec2 point tape)]
          [sdf-val-traced (sdf-fn traced-point)]
@@ -256,6 +272,7 @@ penetration depth, computed via SDFs.")
 ;;;
 ;;; Uses tanh to smoothly interpolate between -μFn and +μFn.
 (define (traced-soft-friction tangent-vel normal-force mu smoothness)
+  (doc 'export #t)
   (let* ([vel-mag (traced-vec2-smooth-magnitude tangent-vel 1e-8)]
          ;; Smooth sign function: tanh(v * smoothness)
          [vel-sign (traced-tanh (traced-mul vel-mag smoothness))]
@@ -272,6 +289,7 @@ penetration depth, computed via SDFs.")
 ;;;   normal-force: magnitude of normal force
 ;;;   mu: friction coefficient
 (define (traced-contact-friction-force rel-vel normal normal-force mu)
+  (doc 'export #t)
   (let* (;; Decompose velocity into normal and tangent
          [vel-normal (traced-vec2-dot rel-vel normal)]
          [vel-tangent (traced-vec2-sub rel-vel
@@ -293,10 +311,12 @@ penetration depth, computed via SDFs.")
 ;;; make-soft-material : Number × Number × Number × Number → SoftMaterial
 ;;; Create a soft contact material.
 (define (make-soft-material stiffness damping alpha friction)
+  (doc 'export #t)
   (list 'soft-material stiffness damping alpha friction))
 
 ;;; soft-material? : Any → Boolean
 (define (soft-material? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'soft-material)))
 
 ;;; soft-material-stiffness : SoftMaterial → Number
@@ -313,6 +333,7 @@ penetration depth, computed via SDFs.")
 
 ;;; default-soft-material : → SoftMaterial
 (define (default-soft-material)
+  (doc 'export #t)
   (make-soft-material *default-contact-stiffness*
                       *default-contact-damping*
                       *default-contact-alpha*
@@ -326,6 +347,7 @@ penetration depth, computed via SDFs.")
 ;;; Compute forces from rectangular boundary walls.
 ;;;   min-corner, max-corner: boundary box
 (define (traced-wall-forces pos vel radius min-corner max-corner mat)
+  (doc 'export #t)
   (let ([stiffness (soft-material-stiffness mat)]
         [damping (soft-material-damping mat)]
         [alpha (soft-material-alpha mat)])

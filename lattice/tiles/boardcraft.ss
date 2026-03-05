@@ -11,6 +11,7 @@
 (doc 'section 'quick-reference)
 
 (define (boardcraft-help)
+  (doc 'export #t)
   (doc 'description "Display BoardCraft SDK quick reference guide")
   (doc 'returns "Void - prints help text to stdout")
   (display "=============== BOARDCRAFT SDK -- Quick Reference ===============

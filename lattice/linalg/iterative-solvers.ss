@@ -41,12 +41,14 @@ Do NOT load dependencies here to avoid redefinition issues.")
      'type (-> Matrix Vec Vec Num)
      'description "Compute ||Ax - b||")
 (define (residual a x b)
+  (doc 'export #t)
   (let ([ax (matrix-vec-mul a x)])
        (vec-norm (vec-sub ax b))))
 
 (doc converged?
      'type (-> Num Num Boolean))
 (define (converged? res tol)
+  (doc 'export #t)
   (< res tol))
 
 (doc 'section 'jacobi-iteration
@@ -70,6 +72,7 @@ Properties:
      'param '(tol "Convergence tolerance")
      'returns "(list solution iterations final-residual) or error")
 (define (jacobi a b . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (cond
@@ -138,6 +141,7 @@ Properties:
   - Converges if A is symmetric positive-definite or strictly diagonally dominant"
      'note "Arguments same as jacobi")
 (define (gauss-seidel a b . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (cond
@@ -166,6 +170,7 @@ Properties:
 (doc gauss-seidel-loop
      'type (-> Matrix Vec Vec Nat Nat Num Nat (or (list Vec Nat Num) Error)))
 (define (gauss-seidel-loop a b x iter max-iter tol n)
+  (doc 'export #t)
   (let ([res (residual a x b)])
        (cond
         [(converged? res tol)
@@ -216,6 +221,7 @@ Properties:
      'param '(max-iter "Maximum iterations")
      'param '(tol "Convergence tolerance"))
 (define (sor a b omega . opts)
+  (doc 'export #t)
   (cond
    [(or (<= omega 0) (>= omega 2))
     `(error invalid-omega ,omega)]
@@ -248,6 +254,7 @@ Properties:
 (doc sor-loop
      'type (-> Matrix Vec Num Vec Nat Nat Num Nat (or (list Vec Nat Num) Error)))
 (define (sor-loop a b omega x iter max-iter tol n)
+  (doc 'export #t)
   (let ([res (residual a x b)])
        (cond
         [(converged? res tol)
@@ -300,6 +307,7 @@ Algorithm:
     β_k = (r_{k+1} · r_{k+1}) / (r_k · r_k)
     p_{k+1} = r_{k+1} + β_k * p_k")
 (define (conjugate-gradient a b . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (cond
@@ -337,6 +345,7 @@ Algorithm:
      'type (-> Matrix Vec Vec Vec Vec Num Nat Nat Num Nat (or (list Vec Nat Num) Error))
      'description "CG loop: a, b=system; x=current solution; r=residual; p=search direction; rr=r·r")
 (define (cg-loop a b x r p rr iter max-iter tol n)
+  (doc 'export #t)
   (let ([r-norm (sqrt rr)])
        (cond
         [(< r-norm tol)
@@ -378,6 +387,7 @@ Algorithm modification:
   z_k = M^{-1} r_k
   Use z instead of r for direction updates")
 (define (pcg a b solve-precond . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (cond
@@ -416,6 +426,7 @@ Algorithm modification:
 (doc pcg-loop
      'type (-> Matrix Vec Proc Vec Vec Vec Vec Num Nat Nat Num Nat ...))
 (define (pcg-loop a b solve-precond x r z p rz iter max-iter tol n)
+  (doc 'export #t)
   (let ([r-norm (vec-norm r)])
        (cond
         [(< r-norm tol)
@@ -455,6 +466,7 @@ Properties:
      'param '(max-iter "Maximum total iterations")
      'param '(tol "Convergence tolerance"))
 (define (gmres a b . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [m (matrix-cols a)])
         (cond
@@ -490,6 +502,7 @@ Properties:
      'type (-> Matrix Vec Nat Vec Nat Nat Num Nat (or (list Vec Nat Num) Error))
      'description "Outer loop for restarted GMRES")
 (define (gmres-outer a b restart x total-iter max-iter tol n)
+  (doc 'export #t)
   (let* ([ax (matrix-vec-mul a x)]
          [r (vec-sub b ax)]
          [r-norm (vec-norm r)])
@@ -514,6 +527,7 @@ Properties:
      'type (-> Matrix Vec Vec Vec Num Nat Num Nat (or (list Vec Nat Num) Error))
      'description "Inner GMRES using Arnoldi process")
 (define (gmres-arnoldi a b x0 r0 beta restart tol n)
+  (doc 'export #t)
   ;; V: matrix of Arnoldi vectors (n × (restart+1))
   ;; H: upper Hessenberg matrix ((restart+1) × restart)
   (let* ([k restart]
@@ -532,6 +546,7 @@ Properties:
 (doc gmres-arnoldi-loop
      'type (-> ... (or (list Vec Nat Num) Error)))
 (define (gmres-arnoldi-loop a h-data v-list g cs sn j k tol n x0 r0)
+  (doc 'export #t)
   (if (>= j k)
       ;; Reached restart limit - solve least squares and return
       (gmres-solve-update h-data v-list g j n x0)
@@ -595,6 +610,7 @@ Properties:
      'type (-> Vec Vec Vec Nat Nat Void)
      'description "Apply stored Givens rotations to column j of H")
 (define (apply-givens-rotations h-data cs sn j k)
+  (doc 'export #t)
   (do ([i 0 (+ i 1)])
       ((= i j))
       (let* ([h-ij-idx (+ (* i k) j)]
@@ -612,6 +628,7 @@ Properties:
      'type (-> Num Num (cons Num Num))
      'description "Compute Givens rotation (c, s) such that [c s; -s c] * [a; b] = [r; 0]")
 (define (compute-givens a-val b-val)
+  (doc 'export #t)
   (cond
    [(= b-val 0)
     (cons 1.0 0.0)]
@@ -630,6 +647,7 @@ Properties:
      'type (-> Vec List Vec Nat Nat Vec (list Vec Nat Num))
      'description "Solve triangular system and update x")
 (define (gmres-solve-update h-data v-list g m n x0)
+  (doc 'export #t)
   (let ([y (make-vector m 0.0)]
         [k (if (= m 0) 1 m)])  ; Prevent division by zero
        ;; Back-substitution: H[:m,:m] is upper triangular
@@ -672,12 +690,14 @@ Properties:
 (doc vector-copy
      'type (-> Vec Vec))
 (define (vector-copy v)
+  (doc 'export #t)
   (vec-tabulate (vector-length v) i (vector-ref v i)))
 
 (doc make-jacobi-preconditioner
      'type (-> Matrix (-> Vec Vec))
      'description "Create Jacobi (diagonal) preconditioner")
 (define (make-jacobi-preconditioner a)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [diag-inv (vec-tabulate n i
                      (let ([d (matrix-ref a i i)])
@@ -692,6 +712,7 @@ Properties:
      'type (-> Matrix Boolean)
      'description "Check if matrix is strictly diagonally dominant")
 (define (is-diagonally-dominant? a)
+  (doc 'export #t)
   (let ([n (matrix-rows a)])
        (let loop ([i 0])
             (if (= i n)
@@ -712,6 +733,7 @@ Properties:
      'type (-> Matrix [Nat] (or Num Error))
      'description "Estimate spectral radius using power iteration")
 (define (spectral-radius-estimate a . opts)
+  (doc 'export #t)
   (let* ([max-iter (if (pair? opts) (car opts) 100)]
          [n (matrix-rows a)]
          [v (make-vector n 1.0)]

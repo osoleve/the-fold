@@ -14,25 +14,30 @@
 (doc 'note "Equation represented as (= lhs rhs) or lhs - rhs = 0 form")
 
 (define (make-equation lhs rhs)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Equation))
   (doc 'description "Create equation from left and right hand sides")
   (list '= lhs rhs))
 
 ;;; equation? : Any → Boolean
 (define (equation? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) '=)))
 
 ;;; equation-lhs : Equation → Expr
 (define (equation-lhs eq)
+  (doc 'export #t)
   (cadr eq))
 
 ;;; equation-rhs : Equation → Expr
 (define (equation-rhs eq)
+  (doc 'export #t)
   (caddr eq))
 
 ;;; equation->expr : Equation → Expr
 ;;; Convert equation to "lhs - rhs" form (set equal to zero).
 (define (equation->expr eq)
+  (doc 'export #t)
   (simplify (difference (equation-lhs eq) (equation-rhs eq))))
 
 ;;; ====
@@ -43,10 +48,12 @@
 ;;; Collect terms containing var and terms not containing var.
 ;;; Returns (coefficient-of-var, constant-term) for linear expressions.
 (define (collect-linear-coeffs expr var-sym)
+  (doc 'export #t)
   (let ([simplified (simplify expr)])
     (collect-linear-coeffs-impl simplified var-sym)))
 
 (define (collect-linear-coeffs-impl expr var-sym)
+  (doc 'export #t)
   (cond
     ;; Numeric constant: coefficient=0, constant=n
     [(num? expr)
@@ -112,10 +119,12 @@
 
 ;;; any-contains-var? : (List Expr) × Symbol → Boolean
 (define (any-contains-var? exprs var-sym)
+  (doc 'export #t)
   (exists (lambda (e) (contains-var? e var-sym)) exprs))
 
 ;;; contains-var? : Expr × Symbol → Boolean
 (define (contains-var? expr var-sym)
+  (doc 'export #t)
   (cond
     [(num? expr) #f]
     [(var? expr) (eq? (var-name expr) var-sym)]
@@ -141,6 +150,7 @@
 ;;; Extract coefficients [a0, a1, a2, ...] for polynomial in var.
 ;;; Returns #f if expression is not polynomial in var.
 (define (extract-poly-coefficients expr var-sym)
+  (doc 'export #t)
   (let ([simplified (simplify expr)])
     (if (not (is-polynomial? simplified var-sym))
         #f
@@ -156,6 +166,7 @@
 
 ;;; is-polynomial? : Expr × Symbol → Boolean
 (define (is-polynomial? expr var-sym)
+  (doc 'export #t)
   (cond
     [(num? expr) #t]
     [(var? expr) #t]
@@ -178,6 +189,7 @@
 
 ;;; polynomial-degree : Expr × Symbol → Integer
 (define (polynomial-degree expr var-sym)
+  (doc 'export #t)
   (cond
     [(num? expr) 0]
     [(var? expr) (if (eq? (var-name expr) var-sym) 1 0)]
@@ -199,9 +211,11 @@
 ;;; extract-coefficient-of-degree : Expr × Symbol × Nat → Expr
 ;;; Extract coefficient of x^k in expression.
 (define (extract-coefficient-of-degree expr var-sym k)
+  (doc 'export #t)
   (simplify (extract-coeff-impl (simplify expr) var-sym k)))
 
 (define (extract-coeff-impl expr var-sym k)
+  (doc 'export #t)
   (cond
     ;; Constant: coefficient of x^0 is the constant, else 0
     [(num? expr)
@@ -253,6 +267,7 @@
 
 ;;; extract-product-coeff : (List Expr) × Symbol × Nat → Expr
 (define (extract-product-coeff factors var-sym k)
+  (doc 'export #t)
   (let* ([var-factors (filter (lambda (f) (contains-var? f var-sym)) factors)]
          [const-factors (filter (lambda (f) (not (contains-var? f var-sym))) factors)]
          [const-prod (if (null? const-factors) (num 1) (make-product-from-terms const-factors))])
@@ -279,6 +294,7 @@
 
 ;;; make-sum-from-terms : (List Expr) → Expr
 (define (make-sum-from-terms terms)
+  (doc 'export #t)
   (let ([non-zero (filter (lambda (t) (not (and (num? t) (= (num-val t) 0)))) terms)])
     (cond
       [(null? non-zero) (num 0)]
@@ -287,6 +303,7 @@
 
 ;;; make-product-from-terms : (List Expr) → Expr
 (define (make-product-from-terms factors)
+  (doc 'export #t)
   (cond
     [(null? factors) (num 1)]
     [(= (length factors) 1) (car factors)]
@@ -295,6 +312,7 @@
 (doc 'section 'linear-solving)
 
 (define (solve-linear expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol (Maybe Expr)))
   (doc 'description "Solve linear equation ax + b = 0 for x")
   (doc 'note "Returns x = -b/a, or #f if not solvable")
@@ -312,6 +330,7 @@
 (doc 'section 'quadratic-solving)
 
 (define (solve-quadratic expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol (Maybe (List Expr))))
   (doc 'description "Solve quadratic equation ax² + bx + c = 0 using quadratic formula")
   (doc 'note "Returns list of solutions, may include symbolic sqrt")
@@ -337,6 +356,7 @@
 (doc 'section 'cubic-solving)
 
 (define (solve-cubic expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol (Maybe (List Expr))))
   (doc 'description "Solve cubic equation ax³ + bx² + cx + d = 0 using Cardano's formula")
   (doc 'note "Converts to depressed cubic, returns all 3 roots using cube roots of unity")
@@ -399,6 +419,7 @@
 ;;; Solve polynomial equation = 0 for variable.
 ;;; Dispatches to appropriate formula based on degree.
 (define (solve-polynomial expr var-sym)
+  (doc 'export #t)
   (let ([deg (polynomial-degree expr var-sym)])
     (cond
       [(< deg 0) #f]                          ; Not a polynomial
@@ -427,6 +448,7 @@
 (doc 'section 'main-interface)
 
 (define (diff-to-sum expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Convert difference to sum recursively to enable expansion over differences")
   (cond
@@ -454,6 +476,7 @@
     [else expr]))
 
 (define (solve eq var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Equation Symbol (Maybe (U (List Expr) Expr Symbol))))
   (doc 'description "Solve equation for given variable")
   (doc 'note "Returns list of solutions, single solution, 'infinite, or #f; auto-expands factored forms")
@@ -473,6 +496,7 @@
 ;;; solve-for : Expr × Symbol → Expr | #f
 ;;; Convenience: solve single-variable equation, return first solution.
 (define (solve-for expr var-sym)
+  (doc 'export #t)
   (let ([solutions (solve expr var-sym)])
     (cond
       [(eq? solutions 'infinite) (var var-sym)]  ; Any value works
@@ -483,6 +507,7 @@
 (doc 'section 'linear-systems)
 
 (define (solve-linear-system equations vars)
+  (doc 'export #t)
   (doc 'type '(-> (List Equation) (List Symbol) (Maybe (Alist Symbol Expr))))
   (doc 'description "Solve system of linear equations using symbolic Gaussian elimination")
   (doc 'note "Returns alist mapping variables to solutions")
@@ -502,6 +527,7 @@
 
 ;;; build-coefficient-matrix : (List Expr) × (List Symbol) → (List (List Expr))
 (define (build-coefficient-matrix exprs vars)
+  (doc 'export #t)
   (map (lambda (expr)
          (map (lambda (v)
                 (let-values ([(c k) (collect-linear-coeffs expr v)])
@@ -511,6 +537,7 @@
 
 ;;; augment-with-constants : Matrix × (List Expr) × (List Symbol) → Matrix | #f
 (define (augment-with-constants matrix exprs vars)
+  (doc 'export #t)
   (let ([constants (map (lambda (expr)
                           ;; Constant term is what remains after removing all variables
                           (let ([with-zeros (fold-left
@@ -525,6 +552,7 @@
 ;;; gaussian-eliminate-symbolic : Matrix × Nat → Matrix | #f
 ;;; Perform Gaussian elimination symbolically.
 (define (gaussian-eliminate-symbolic matrix n)
+  (doc 'export #t)
   (let loop ([m matrix] [col 0])
     (if (>= col n)
         m
@@ -537,6 +565,7 @@
 
 ;;; find-nonzero-pivot : Matrix × Nat → Nat | #f
 (define (find-nonzero-pivot matrix col)
+  (doc 'export #t)
   (let loop ([row col] [rows (list-tail matrix col)])
     (cond
       [(null? rows) #f]
@@ -545,11 +574,13 @@
 
 ;;; is-zero-expr? : Expr → Boolean
 (define (is-zero-expr? expr)
+  (doc 'export #t)
   (let ([s (simplify expr)])
     (and (num? s) (= (num-val s) 0))))
 
 ;;; swap-rows : Matrix × Nat × Nat → Matrix
 (define (swap-rows matrix i j)
+  (doc 'export #t)
   (if (= i j)
       matrix
       (let ([row-i (list-ref matrix i)]
@@ -562,6 +593,7 @@
 
 ;;; eliminate-below : Matrix × Nat → Matrix
 (define (eliminate-below matrix pivot-col)
+  (doc 'export #t)
   (let* ([pivot-row (list-ref matrix pivot-col)]
          [pivot-val (list-ref pivot-row pivot-col)])
     (map (lambda (row idx)
@@ -575,6 +607,7 @@
 
 ;;; back-substitute-symbolic : Matrix × (List Symbol) → (Alist Symbol Expr) | #f
 (define (back-substitute-symbolic matrix vars)
+  (doc 'export #t)
   (let ([n (length vars)])
     (let loop ([row (- n 1)] [solutions '()])
       (if (< row 0)
@@ -604,6 +637,7 @@
 ;;; subst : Expr × Symbol × Expr → Expr
 ;;; Substitute value for variable in expression.
 (define (subst expr var-sym val)
+  (doc 'export #t)
   (cond
     [(num? expr) expr]
     [(var? expr) (if (eq? (var-name expr) var-sym) val expr)]

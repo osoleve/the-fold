@@ -19,6 +19,7 @@
 (doc 'note "PhysicsF represents the primitive operations of a physics simulation. Each command is a tagged list containing operation data and a continuation. Commands: (apply-force id force next), (apply-impulse id impulse next), (set-position id pos next), (set-velocity id vel next), (step dt next), (spawn entity k), (destroy id next), (get-world k), (get-entity id k), (detect-collisions k)")
 
 (define (physics-fmap f cmd)
+  (doc 'export #t)
   (doc 'type '(-> (a -> b) PhysicsF a PhysicsF b))
   (doc 'description "Functor instance for physics commands")
   (let ([tag (car cmd)])
@@ -71,36 +72,43 @@
 (doc 'note "These create Free monad values from primitive commands. They provide the monadic interface for building simulations")
 ;;; Apply a force to an entity.
 (define (phys-apply-force id force)
+  (doc 'export #t)
   (free (list 'apply-force id force (pure-free '()))))
 
 ;;; phys-apply-impulse : id -> Vec2 -> Free PhysicsF ()
 ;;; Apply an impulse (instant velocity change) to an entity.
 (define (phys-apply-impulse id impulse)
+  (doc 'export #t)
   (free (list 'apply-impulse id impulse (pure-free '()))))
 
 ;;; phys-set-position : id -> Vec2 -> Free PhysicsF ()
 ;;; Set an entity's position.
 (define (phys-set-position id pos)
+  (doc 'export #t)
   (free (list 'set-position id pos (pure-free '()))))
 
 ;;; phys-set-velocity : id -> Vec2 -> Free PhysicsF ()
 ;;; Set an entity's velocity.
 (define (phys-set-velocity id vel)
+  (doc 'export #t)
   (free (list 'set-velocity id vel (pure-free '()))))
 
 ;;; phys-step : Number -> Free PhysicsF ()
 ;;; Advance the simulation by dt seconds.
 (define (phys-step dt)
+  (doc 'export #t)
   (free (list 'step dt (pure-free '()))))
 
 ;;; phys-spawn : Entity -> Free PhysicsF id
 ;;; Spawn an entity, returning its id.
 (define (phys-spawn entity)
+  (doc 'export #t)
   (free (list 'spawn entity pure-free)))
 
 ;;; phys-destroy : id -> Free PhysicsF ()
 ;;; Remove an entity from the simulation.
 (define (phys-destroy id)
+  (doc 'export #t)
   (free (list 'destroy id (pure-free '()))))
 
 ;;; phys-get-world : Free PhysicsF World
@@ -111,6 +119,7 @@
 ;;; phys-get-entity : id -> Free PhysicsF (Maybe Entity)
 ;;; Get an entity by id.
 (define (phys-get-entity id)
+  (doc 'export #t)
   (free (list 'get-entity id pure-free)))
 
 ;;; phys-detect-collisions : Free PhysicsF (List Collision)
@@ -125,31 +134,37 @@
 ;;; phys-bind : Free PhysicsF a -> (a -> Free PhysicsF b) -> Free PhysicsF b
 ;;; Bind specialized for physics DSL.
 (define (phys-bind m f)
+  (doc 'export #t)
   (free-bind physics-fmap m f))
 
 ;;; phys-then : Free PhysicsF a -> Free PhysicsF b -> Free PhysicsF b
 ;;; Sequence, discarding first result.
 (define (phys-then m1 m2)
+  (doc 'export #t)
   (free-then physics-fmap m1 m2))
 
 ;;; phys-sequence : (List (Free PhysicsF a)) -> Free PhysicsF (List a)
 ;;; Sequence a list of physics computations.
 (define (phys-sequence ms)
+  (doc 'export #t)
   (free-sequence physics-fmap ms))
 
 ;;; phys-for-each : (List a) -> (a -> Free PhysicsF ()) -> Free PhysicsF ()
 ;;; Execute a physics action for each element.
 (define (phys-for-each lst f)
+  (doc 'export #t)
   (free-for-each physics-fmap lst f))
 
 ;;; phys-when : Boolean -> Free PhysicsF () -> Free PhysicsF ()
 ;;; Conditional execution.
 (define (phys-when cond action)
+  (doc 'export #t)
   (free-when physics-fmap cond action))
 
 ;;; phys-steps : Nat -> Number -> Free PhysicsF ()
 ;;; Run n simulation steps of dt seconds each.
 (define (phys-steps n dt)
+  (doc 'export #t)
   (if (<= n 0)
       (pure-free '())
       (phys-then (phys-step dt)
@@ -159,6 +174,7 @@
 (doc 'note "Executes physics commands directly using the physics engine. State is a World from user/physics/world.ss")
 
 (define (run-physics-deterministic program)
+  (doc 'export #t)
   (doc 'type '(-> Free PhysicsF a World (a . World)))
   (doc 'description "Run a physics program deterministically. Requires world.ss to be loaded for world operations")
   (lambda (world)
@@ -225,6 +241,7 @@
 (doc 'section 'logging-interpreter)
 (doc 'note "Records all commands while executing them. Useful for debugging, replay, and visualization")
 (define (make-log-entry tag args)
+  (doc 'export #t)
   (list 'log-entry tag args))
 
 ;;; log-entry-tag : LogEntry -> Symbol
@@ -236,6 +253,7 @@
 ;;; run-physics-logging : Free PhysicsF a -> World -> (a . World . Log)
 ;;; Run a physics program, logging all commands.
 (define (run-physics-logging program)
+  (doc 'export #t)
   (lambda (world)
           (let loop ([prog program] [w world] [log '()])
                (if (pure-free? prog)
@@ -317,6 +335,7 @@
 
 ;;; make-pure-world : Vec2 -> PureWorld
 (define (make-pure-world gravity)
+  (doc 'export #t)
   (list '() gravity '()))
 
 ;;; pure-world-entities : PureWorld -> Alist
@@ -330,31 +349,37 @@
 
 ;;; pure-world-with-entities : PureWorld -> Alist -> PureWorld
 (define (pure-world-with-entities pw entities)
+  (doc 'export #t)
   (list entities (pure-world-gravity pw) (pure-world-forces pw)))
 
 ;;; pure-world-with-forces : PureWorld -> Alist -> PureWorld
 (define (pure-world-with-forces pw forces)
+  (doc 'export #t)
   (list (pure-world-entities pw) (pure-world-gravity pw) forces))
 
 ;;; pure-world-get-entity : PureWorld -> id -> Entity | #f
 (define (pure-world-get-entity pw id)
+  (doc 'export #t)
   (let ([pair (assoc id (pure-world-entities pw))])
        (if pair (cdr pair) #f)))
 
 ;;; pure-world-add-entity : PureWorld -> Entity -> PureWorld
 (define (pure-world-add-entity pw entity)
+  (doc 'export #t)
   (let ([id (entity-id entity)]
         [entities (pure-world-entities pw)])
        (pure-world-with-entities pw (cons (cons id entity) entities))))
 
 ;;; pure-world-remove-entity : PureWorld -> id -> PureWorld
 (define (pure-world-remove-entity pw id)
+  (doc 'export #t)
   (let ([entities (filter (lambda (p) (not (equal? (car p) id)))
                           (pure-world-entities pw))])
        (pure-world-with-entities pw entities)))
 
 ;;; pure-world-update-entity : PureWorld -> id -> (Entity -> Entity) -> PureWorld
 (define (pure-world-update-entity pw id f)
+  (doc 'export #t)
   (let ([entities (map (lambda (p)
                                (if (equal? (car p) id)
                                    (cons id (f (cdr p)))
@@ -365,6 +390,7 @@
 ;;; pure-apply-force : PureWorld -> id -> Vec2 -> PureWorld
 ;;; Accumulate force to be applied during next step.
 (define (pure-apply-force pw id force)
+  (doc 'export #t)
   (let* ([forces (pure-world-forces pw)]
          [existing (assoc id forces)]
          [current-force (if existing (cdr existing) (vec2 0 0))]
@@ -382,6 +408,7 @@
 ;;; Apply impulse (instant velocity change) to entity.
 ;;; Unlike force, impulse is instant so no dt needed: Δv = J/m
 (define (pure-apply-impulse pw id impulse)
+  (doc 'export #t)
   (pure-world-update-entity pw id
                             (lambda (e)
                                     (if (entity-static? e)
@@ -395,6 +422,7 @@
 
 ;;; pure-set-position : PureWorld -> id -> Vec2 -> PureWorld
 (define (pure-set-position pw id pos)
+  (doc 'export #t)
   (pure-world-update-entity pw id
                             (lambda (e)
                                     (let* ([body (entity-body e)]
@@ -403,6 +431,7 @@
 
 ;;; pure-set-velocity : PureWorld -> id -> Vec2 -> PureWorld
 (define (pure-set-velocity pw id vel)
+  (doc 'export #t)
   (pure-world-update-entity pw id
                             (lambda (e)
                                     (let* ([body (entity-body e)]
@@ -413,6 +442,7 @@
 ;;; Simple Euler integration step (no collision detection).
 ;;; Applies accumulated forces, then clears them.
 (define (pure-step pw dt)
+  (doc 'export #t)
   (let* ([gravity (pure-world-gravity pw)]
          [entities (pure-world-entities pw)]
          [forces (pure-world-forces pw)]
@@ -447,6 +477,7 @@
 ;;; run-physics-pure : Free PhysicsF a -> PureWorld -> (a . PureWorld)
 ;;; Run a physics program purely (no mutation).
 (define (run-physics-pure program)
+  (doc 'export #t)
   (lambda (pw)
           (let loop ([prog program] [w pw])
                (if (pure-free? prog)
@@ -531,6 +562,7 @@
 ;;; run-physics-stochastic : Free PhysicsF a -> Number -> World -> PRNG -> (a . World . PRNG)
 ;;; Run with stochastic noise. noise-scale controls magnitude of perturbations.
 (define (run-physics-stochastic program noise-scale)
+  (doc 'export #t)
   (lambda (world prng)
           (let loop ([prog program] [w world] [rng prng])
                (if (pure-free? prog)
@@ -619,6 +651,7 @@
 ;;; run-physics-visualize : Free PhysicsF a -> World -> (a . World . (List WorldSnapshot))
 ;;; Run and collect world snapshots after each step.
 (define (run-physics-visualize program)
+  (doc 'export #t)
   (lambda (world)
           (let loop ([prog program] [w world] [snapshots '()])
                (if (pure-free? prog)
@@ -686,6 +719,7 @@
 ;;; snapshot-world : World -> WorldSnapshot
 ;;; Create a snapshot of entity positions for visualization.
 (define (snapshot-world world)
+  (doc 'export #t)
   (let ([entities (world-entity-list world)])
        (map (lambda (e)
                     (list (entity-id e)
@@ -700,6 +734,7 @@
 ;;; example-falling-ball : Entity -> Free PhysicsF Vec2
 ;;; Spawn a ball, simulate 60 frames, return final position.
 (define (example-falling-ball entity)
+  (doc 'export #t)
   (phys-bind (phys-spawn entity)
              (lambda (id)
                      (phys-bind (phys-steps 60 0.016667)
@@ -711,6 +746,7 @@
 ;;; example-projectile : Vec2 -> Vec2 -> Free PhysicsF (List Vec2)
 ;;; Launch a projectile with initial velocity, collect positions over time.
 (define (example-projectile initial-pos initial-vel)
+  (doc 'export #t)
   (phys-bind (phys-spawn (make-pure-entity 'projectile initial-pos 1.0))
              (lambda (id)
                      (phys-bind (phys-set-velocity id initial-vel)
@@ -728,6 +764,7 @@
 ;;; make-pure-entity : id -> Vec2 -> Number -> Entity
 ;;; Helper to create a simple entity for pure interpreter.
 (define (make-pure-entity id pos mass)
+  (doc 'export #t)
   (let ([body (make-body-2d pos (vec2 0 0) mass)]
         [shape (make-circle pos 1)]
         [material (make-material 0.5 0.3 0.3)])  ; restitution, static-friction, dynamic-friction

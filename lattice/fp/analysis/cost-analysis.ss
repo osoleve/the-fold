@@ -21,32 +21,38 @@ the overhead of spawning/coordinating parallel tasks.")
 (doc 'section 'configuration-parameters)
 
 (define *parallel-overhead* 100)
+(doc *parallel-overhead* 'export #t)
 (doc *parallel-overhead* 'type 'Nat)
 (doc *parallel-overhead* 'description "Estimated cost of spawning a parallel task and synchronizing.
 This includes: thread creation, context switch, result collection.
 Units are abstract work units matching estimate-work output.")
 
 (define *min-parallel-work* 200)
+(doc *min-parallel-work* 'export #t)
 (doc *min-parallel-work* 'type 'Nat)
 (doc *min-parallel-work* 'description "Minimum work threshold for parallelization to be worthwhile.
 Below this, sequential execution is always preferred.")
 
 (define (min-parallel-threshold)
+  (doc 'export #t)
   (doc 'type '(-> Nat))
   (doc 'description "Return the current minimum parallel work threshold.")
   *min-parallel-work*)
 
 (define (set-parallel-threshold! n)
+  (doc 'export #t)
   (doc 'type '(-> Nat Void))
   (doc 'description "Set the minimum parallel work threshold.")
   (set! *min-parallel-work* n))
 
 (define (get-parallel-overhead)
+  (doc 'export #t)
   (doc 'type '(-> Nat))
   (doc 'description "Return the current parallel overhead estimate.")
   *parallel-overhead*)
 
 (define (set-parallel-overhead! n)
+  (doc 'export #t)
   (doc 'type '(-> Nat Void))
   (doc 'description "Set the parallel overhead estimate.")
   (set! *parallel-overhead* n))
@@ -145,6 +151,7 @@ Below this, sequential execution is always preferred.")
 (doc *hof-costs* 'description "Costs for higher-order functions (base overhead, not including body).")
 
 (define (operation-cost op)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Nat))
   (doc 'description "Look up the cost of a primitive or HOF.
 Returns 10 for unknown operations (conservative estimate).")
@@ -177,6 +184,7 @@ Returns 10 for unknown operations (conservative estimate).")
 (doc *form-costs* 'description "Base costs for different expression forms.")
 
 (define (form-cost form)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Nat))
   (doc 'description "Look up the base cost of an expression form.")
   (let ([entry (assq form *form-costs*)])
@@ -185,6 +193,7 @@ Returns 10 for unknown operations (conservative estimate).")
 (doc 'section 'work-estimation-engine)
 
 (define *estimate-work-fuel* 1000)
+(doc *estimate-work-fuel* 'export #t)
 (doc *estimate-work-fuel* 'type 'Nat)
 (doc *estimate-work-fuel* 'description "Default recursion depth for work estimation.
 Can be overridden by passing an optional fuel parameter to estimate-work.")
@@ -200,6 +209,7 @@ Uses fuel to bound recursion depth.
 Optional fuel parameter allows handling larger ASTs (default: 1000).")
 
 (define (estimate-work-with-fuel expr fuel)
+  (doc 'export #t)
   (doc 'type '(-> Expr Nat Nat))
   (doc 'description "Core work estimator with fuel for termination guarantee.")
   (if (<= fuel 0)
@@ -273,6 +283,7 @@ Optional fuel parameter allows handling larger ASTs (default: 1000).")
        [else 1])))
 
 (define (estimate-let-work expr fuel)
+  (doc 'export #t)
   (doc 'type '(-> Expr Nat Nat))
   (doc 'description "Estimate work for let/let*/letrec forms.")
   (let* ([form (car expr)]
@@ -299,6 +310,7 @@ Optional fuel parameter allows handling larger ASTs (default: 1000).")
         (+ (form-cost form) binding-cost body-cost)))
 
 (define (estimate-branch-work branches fuel)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Nat Nat))
   (doc 'description "Estimate work for if branches (conservative: sum both).
 In practice, only one branch executes, but we estimate conservatively.")
@@ -310,6 +322,7 @@ In practice, only one branch executes, but we estimate conservatively.")
              0))))
 
 (define (estimate-cond-work clauses fuel)
+  (doc 'export #t)
   (doc 'type '(-> (List Clause) Nat Nat))
   (doc 'description "Estimate work for cond clauses.")
   (if (null? clauses)
@@ -326,6 +339,7 @@ In practice, only one branch executes, but we estimate conservatively.")
             (+ test-cost body-cost (estimate-cond-work (cdr clauses) fuel)))))
 
 (define (estimate-hof-work hof args fuel)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Expr) Nat Nat))
   (doc 'description "Estimate work for higher-order functions.
 Considers: base cost + list-expr cost + (estimated iterations * body cost)
@@ -365,6 +379,7 @@ Handles both 2-arg HOFs (map, filter) and 3-arg HOFs (fold-left, fold-right).")
         (+ base-cost init-cost list-expr-cost iteration-cost)))
 
 (define (estimate-list-size expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Nat))
   (doc 'description "Heuristically estimate the size of a list expression.
 Returns conservative estimates for unknown cases.")
@@ -406,6 +421,7 @@ Returns conservative estimates for unknown cases.")
 (doc 'section 'parallelization-decision)
 
 (define (parallel-beneficial? e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Bool))
   (doc 'description "Determine if parallelizing e1 and e2 is worthwhile.
 Returns #t if combined work exceeds overhead threshold.")
@@ -423,6 +439,7 @@ Returns #t if combined work exceeds overhead threshold.")
              (> w2 (quotient overhead 2)))))
 
 (define (parallel-beneficial-n? exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Bool))
   (doc 'description "Determine if parallelizing a list of expressions is worthwhile.")
   (let* ([works (map estimate-work exprs)]
@@ -435,6 +452,7 @@ Returns #t if combined work exceeds overhead threshold.")
              (andmap (lambda (w) (> w min-per-task)) works))))
 
 (define (suggested-parallelism exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Nat))
   (doc 'description "Suggest optimal number of parallel tasks for a workload.
 Returns 1 for sequential, or N for N-way parallelism.")
@@ -464,6 +482,7 @@ Returns 1 for sequential, or N for N-way parallelism.")
     (suggested-splits . Nat))")
 
 (define (work-analysis expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr WorkAnalysis))
   (doc 'description "Generate a detailed work analysis report.")
   (let* ([total (estimate-work expr)]
@@ -480,38 +499,46 @@ Returns 1 for sequential, or N for N-way parallelism.")
                                    1)))))
 
 (define (work-analysis? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'work-analysis)))
 
 (define (analysis-total-cost wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis Nat))
   (cdr (assq 'total-cost (cdr wa))))
 
 (define (analysis-complexity-class wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis Symbol))
   (cdr (assq 'complexity-class (cdr wa))))
 
 (define (analysis-hotspots wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis (List Hotspot)))
   (cdr (assq 'hotspots (cdr wa))))
 
 (define (analysis-parallelizable? wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis Bool))
   (cdr (assq 'parallelizable? (cdr wa))))
 
 (define (analysis-suggested-splits wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis Nat))
   (cdr (assq 'suggested-splits (cdr wa))))
 
 (doc 'section 'complexity-classification)
 
 (define (expr-complexity-class expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol))
   (doc 'description "Classify an expression's complexity class based on structure.
 Returns: constant, linear, quadratic, recursive, unknown")
   (classify-complexity expr 100))
 
 (define (classify-complexity expr fuel)
+  (doc 'export #t)
   (doc 'type '(-> Expr Nat Symbol))
   (if (<= fuel 0)
       'unknown
@@ -578,6 +605,7 @@ Returns: constant, linear, quadratic, recursive, unknown")
        [else 'unknown])))
 
 (define (combine-complexity c1 c2)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol Symbol))
   (doc 'description "Combine two complexity classes (takes the higher one).")
   (let ([order '((constant . 0) (linear . 1) (quadratic . 2)
@@ -590,6 +618,7 @@ Returns: constant, linear, quadratic, recursive, unknown")
 (doc 'note "Hotspot structure: (position cost expression)")
 
 (define (find-hotspots expr n)
+  (doc 'export #t)
   (doc 'type '(-> Expr Nat (List Hotspot)))
   (doc 'description "Find the N most expensive subexpressions.")
   (let* ([all-costs (collect-costs expr '() 100)]
@@ -597,6 +626,7 @@ Returns: constant, linear, quadratic, recursive, unknown")
         (take n sorted)))
 
 (define (collect-costs expr pos fuel)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position Nat (List (Position Cost Expr))))
   (doc 'description "Collect costs of all subexpressions with their positions.")
   (if (<= fuel 0)
@@ -618,6 +648,7 @@ Returns: constant, linear, quadratic, recursive, unknown")
                (list (list pos cost expr))))))
 
 (define (sort-by-cost entries)
+  (doc 'export #t)
   (doc 'type '(-> (List (Position Cost Expr)) (List (Position Cost Expr))))
   (doc 'description "Sort cost entries by cost, descending.")
   (let ([sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) entries)])
@@ -626,11 +657,13 @@ Returns: constant, linear, quadratic, recursive, unknown")
 (doc 'section 'utility-functions)
 
 (define (total-work exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Nat))
   (doc 'description "Sum the estimated work of multiple expressions.")
   (fold-left + 0 (map estimate-work exprs)))
 
 (define (work-ratio e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Real))
   (doc 'description "Compute the work ratio between two expressions.
 Returns w1/w2, useful for load balancing.")
@@ -641,6 +674,7 @@ Returns w1/w2, useful for load balancing.")
            (/ w1 w2))))
 
 (define (balanced-split? exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Bool))
   (doc 'description "Check if a list of expressions has balanced work distribution.
 Balanced = max/min ratio < 2.")
@@ -655,6 +689,7 @@ Balanced = max/min ratio < 2.")
 (doc 'section 'display-utilities)
 
 (define (format-work-analysis wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis String))
   (doc 'description "Format a work analysis for display.")
   (format "Work Analysis:\n  Total cost: ~a\n  Complexity: ~a\n  Parallelizable: ~a\n  Suggested splits: ~a"
@@ -664,6 +699,7 @@ Balanced = max/min ratio < 2.")
           (analysis-suggested-splits wa)))
 
 (define (display-work-analysis wa)
+  (doc 'export #t)
   (doc 'type '(-> WorkAnalysis Void))
   (doc 'description "Display a work analysis to current output port.")
   (display (format-work-analysis wa))

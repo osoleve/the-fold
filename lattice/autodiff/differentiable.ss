@@ -197,6 +197,7 @@
 
 ;;; d-pow : Instance × α × Int → α
 (define (d-pow inst x n)
+  (doc 'export #t)
   (let ([d* (get-method inst 'd*)]
         [d/ (get-method inst 'd/)]
         [lift (get-method inst 'lift)])
@@ -214,6 +215,7 @@
 
 ;;; d-chain : Instance × (α → α) × (α → α) → (α → α)
 (define (d-chain inst f g)
+  (doc 'export #t)
   (lambda (x) (f (g x))))
 
 ;;; ====
@@ -222,10 +224,12 @@
 
 ;;; resolve-differentiable : Type → (Result Evidence Error)
 (define (resolve-differentiable type)
+  (doc 'export #t)
   (resolve `(Differentiable ,type) ad-instances))
 
 ;;; get-diff-method : Type × Symbol → (Option Procedure)
 (define (get-diff-method type method-name)
+  (doc 'export #t)
   (let ([result (resolve-differentiable type)])
        (if (eq? (car result) 'ok)
            (get-method (cadr result) method-name)
@@ -246,6 +250,7 @@
 ;;;   (derivative-at (lambda (x) (dual-mul x x)) 3.0)  => 6.0
 ;;;   (derivative-at (lambda (x) (dual-add (dual-sin x) x)) 0.0)  => 2.0
 (define (derivative-at f x)
+  (doc 'export #t)
   (dual-deriv (f (dual-variable x))))
 
 ;;; gradient-at : (Real* → Traced) × (List Real) → (List Real)

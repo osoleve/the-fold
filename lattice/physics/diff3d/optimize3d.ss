@@ -156,6 +156,7 @@ Physics-specific: trajectory optimization, inverse physics, sensitivity analysis
 ;;;   observations: list of (pos0, vel0, pos1, vel1) tuples
 ;;;   dt: timestep between observations
 (define (estimate-gravity-3d observations dt initial-guess max-iters)
+  (doc 'export #t)
   (let* ([loss-fn
           (lambda (g-list)
                   (let ([gx (car g-list)]
@@ -189,6 +190,7 @@ Physics-specific: trajectory optimization, inverse physics, sensitivity analysis
 ;;; estimate-mass-3d : (List (RigidBody3D × RigidBody3D)) × Vec3 × Number × Number × Nat → Number
 ;;; Estimate mass from observed (initial, final) state pairs.
 (define (estimate-mass-3d observations gravity dt initial-guess max-iters)
+  (doc 'export #t)
   (let* ([loss-fn
           (lambda (mass-list)
                   (let ([mass (car mass-list)])
@@ -224,6 +226,7 @@ Physics-specific: trajectory optimization, inverse physics, sensitivity analysis
 ;;; position-sensitivity-3d : RigidBody3D × (TracedBody3D → TracedBody3D) × Nat → (Vec3 × Vec3 × Vec3)
 ;;; How much does initial position affect final position?
 (define (position-sensitivity-3d body step-fn num-steps)
+  (doc 'export #t)
   (let* ([grads-x (gradient
                    (lambda (px py pz)
                            (with-fresh-ad-scope
@@ -299,6 +302,7 @@ Physics-specific: trajectory optimization, inverse physics, sensitivity analysis
 ;;; projectile-optimization-example-3d : Vec3 × Vec3 × Vec3 → Vec3
 ;;; Find initial velocity to hit target from start position under gravity.
 (define (projectile-optimization-example-3d start target gravity)
+  (doc 'export #t)
   (let* ([dt (/ 1 60)]
          [num-steps 100]
          [learning-rate 0.1]
@@ -309,6 +313,7 @@ Physics-specific: trajectory optimization, inverse physics, sensitivity analysis
 ;;; basketball-shot-example : Vec3 × Vec3 × Number → Vec3
 ;;; Find optimal velocity to get ball in hoop.
 (define (basketball-shot-example start-pos hoop-pos hoop-radius)
+  (doc 'export #t)
   (let* ([gravity (vec3 0 -9.8 0)]
          [dt (/ 1 60)]
          [num-steps 60]  ; ~1 second flight
@@ -320,6 +325,7 @@ Physics-specific: trajectory optimization, inverse physics, sensitivity analysis
 ;;; pendulum-optimization-example-3d : Vec3 × Vec3 × Vec3 × Number × Nat → Vec3
 ;;; Optimize pendulum swing to reach target.
 (define (pendulum-optimization-example-3d pivot target initial-bob-pos dt num-steps)
+  (doc 'export #t)
   ;; This would optimize initial conditions to reach target
   ;; For now, just show the API pattern
   (let* ([gravity (vec3 0 -9.8 0)]

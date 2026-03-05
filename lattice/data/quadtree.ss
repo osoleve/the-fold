@@ -25,6 +25,7 @@ better for dynamic insertions and spatial locality queries.")
 
 ;; Bounding box: (center-x center-y half-width half-height)
 (define (make-bounds cx cy hw hh)
+  (doc 'export #t)
   (doc 'type '(-> Num Num Num Num Bounds))
   (doc 'description "Create a bounding box with center (cx,cy) and half-dimensions (hw,hh)")
   (list 'bounds cx cy hw hh))
@@ -38,6 +39,7 @@ better for dynamic insertions and spatial locality queries.")
 (define (bounds-hh b) (car (cddddr b)))
 
 (define (bounds-contains? bounds x y)
+  (doc 'export #t)
   (doc 'type '(-> Bounds Num Num Boolean))
   (doc 'description "Check if point (x,y) is within bounds")
   (and (>= x (- (bounds-cx bounds) (bounds-hw bounds)))
@@ -46,6 +48,7 @@ better for dynamic insertions and spatial locality queries.")
        (<= y (+ (bounds-cy bounds) (bounds-hh bounds)))))
 
 (define (bounds-intersects? b1 b2)
+  (doc 'export #t)
   (doc 'type '(-> Bounds Bounds Boolean))
   (doc 'description "Check if two bounding boxes intersect")
   (not (or (> (- (bounds-cx b1) (bounds-hw b1)) (+ (bounds-cx b2) (bounds-hw b2)))
@@ -57,6 +60,7 @@ better for dynamic insertions and spatial locality queries.")
 (define quadtree-empty 'quadtree-empty)
 
 (define (quadtree-empty? tree)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Boolean))
   (eq? tree 'quadtree-empty))
 
@@ -80,6 +84,7 @@ better for dynamic insertions and spatial locality queries.")
   (and (pair? x) (eq? (car x) 'quadtree-node)))
 
 (define (quadtree-bounds node)
+  (doc 'export #t)
   (cond [(quadtree-leaf? node) (quadtree-leaf-bounds node)]
         [(quadtree-node? node) (cadr node)]
         [else #f]))
@@ -96,17 +101,21 @@ better for dynamic insertions and spatial locality queries.")
 (doc 'section 'construction)
 
 (define *quadtree-capacity* 4)
+(doc *quadtree-capacity* 'export #t)
 (doc *quadtree-capacity* 'description "Maximum points per leaf before splitting")
 
 (define *quadtree-max-depth* 16)
+(doc *quadtree-max-depth* 'export #t)
 (doc *quadtree-max-depth* 'description "Maximum tree depth to prevent infinite recursion on duplicate points")
 
 (define (quadtree-create bounds)
+  (doc 'export #t)
   (doc 'type '(-> Bounds Quadtree))
   (doc 'description "Create an empty quadtree with given bounds")
   (quadtree-leaf bounds '()))
 
 (define (quadtree-build points bounds)
+  (doc 'export #t)
   (doc 'type '(-> (List Point) Bounds Quadtree))
   (doc 'description "Build a quadtree from a list of 2D points (each point is (x y))")
   (fold-left (lambda (tree pt)
@@ -115,6 +124,7 @@ better for dynamic insertions and spatial locality queries.")
              points))
 
 (define (quadtree-build-auto points)
+  (doc 'export #t)
   (doc 'type '(-> (List Point) Quadtree))
   (doc 'description "Build quadtree with auto-computed bounds from points")
   (if (null? points)
@@ -144,6 +154,7 @@ better for dynamic insertions and spatial locality queries.")
 (doc 'section 'insertion)
 
 (define (quadtree-insert tree x y data)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num Any Quadtree))
   (doc 'description "Insert a point at (x,y) with associated data into the quadtree")
   (quadtree-insert-at-depth tree x y data 0))
@@ -223,6 +234,7 @@ correct depth tracking when re-inserting existing points into child nodes.")
 (doc 'section 'range-queries)
 
 (define (quadtree-range tree query-bounds)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Bounds (List Point)))
   (doc 'description "Find all points within the query bounding box")
   (cond
@@ -242,6 +254,7 @@ correct depth tracking when re-inserting existing points into child nodes.")
                  (quadtree-range (quadtree-sw tree) query-bounds)))]))
 
 (define (quadtree-range-rect tree x1 y1 x2 y2)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num Num Num (List Point)))
   (doc 'description "Find all points in rectangle from (x1,y1) to (x2,y2)")
   (let* ([min-x (min x1 x2)]
@@ -255,6 +268,7 @@ correct depth tracking when re-inserting existing points into child nodes.")
     (quadtree-range tree (make-bounds cx cy hw hh))))
 
 (define (quadtree-radius tree cx cy radius)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num Num (List Point)))
   (doc 'description "Find all points within radius of (cx, cy)")
   (let* ([bounds (make-bounds cx cy radius radius)]
@@ -273,6 +287,7 @@ correct depth tracking when re-inserting existing points into child nodes.")
 (doc 'section 'nearest-neighbor)
 
 (define (quadtree-nearest tree qx qy)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num (Maybe Point)))
   (doc 'description "Find the nearest point to (qx, qy). Returns #f if tree is empty.")
   (let ([result (quadtree-nearest-rec tree qx qy +inf.0 #f)])
@@ -315,6 +330,7 @@ correct depth tracking when re-inserting existing points into child nodes.")
               sorted))))]))
 
 (define (bounds-min-dist-sq bounds qx qy)
+  (doc 'export #t)
   (doc 'type '(-> Bounds Num Num Num))
   (doc 'description "Minimum squared distance from point to bounding box")
   (let* ([cx (bounds-cx bounds)]
@@ -342,6 +358,7 @@ correct depth tracking when re-inserting existing points into child nodes.")
   (>= (car p1) (car p2)))
 
 (define (quadtree-knn tree qx qy k-count)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num Nat (List Point)))
   (doc 'description "Find k nearest points to (qx, qy). Returns list sorted by distance (closest first).
 O(k log n) average case. Uses max-heap to track k closest candidates with distance-based pruning.")
@@ -415,6 +432,7 @@ O(k log n) average case. Uses max-heap to track k closest candidates with distan
 (doc 'section 'statistics)
 
 (define (quadtree-size tree)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Nat))
   (doc 'description "Count total points in the quadtree")
   (cond
@@ -427,6 +445,7 @@ O(k log n) average case. Uses max-heap to track k closest candidates with distan
         (quadtree-size (quadtree-sw tree)))]))
 
 (define (quadtree-depth tree)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Nat))
   (doc 'description "Maximum depth of the quadtree")
   (cond
@@ -439,6 +458,7 @@ O(k log n) average case. Uses max-heap to track k closest candidates with distan
                (quadtree-depth (quadtree-sw tree))))]))
 
 (define (quadtree-fold proc init tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Point a) a Quadtree a))
   (doc 'description "Left fold over all points in quadtree. (proc acc point) called for each point.
 Traversal order: SW -> SE -> NW -> NE (bottom-to-top, left-to-right). O(n).
@@ -457,6 +477,7 @@ Signature matches fold-left convention: accumulator first.")
                     (quadtree-ne tree))]))
 
 (define (quadtree->list tree)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree (List Point)))
   (doc 'description "Extract all points from the quadtree. O(n)")
   (reverse (quadtree-fold (lambda (acc pt) (cons pt acc)) '() tree)))
@@ -468,6 +489,7 @@ Signature matches fold-left convention: accumulator first.")
 (doc 'section 'deletion)
 
 (define (quadtree-delete tree x y)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num Quadtree))
   (doc 'description "Delete a point at (x,y) from the quadtree. If multiple points at
 that location, removes the first match. Returns unchanged tree if point not found.
@@ -475,6 +497,7 @@ After deletion, merges sparse children back into parent when appropriate.")
   (quadtree-delete-if tree x y (lambda (pt) #t)))
 
 (define (quadtree-delete-if tree x y pred)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num (-> Point Boolean) Quadtree))
   (doc 'description "Delete a point at (x,y) matching predicate. Predicate receives
 the full point (x y data). Returns unchanged tree if no match found.")
@@ -524,6 +547,7 @@ the full point (x y data). Returns unchanged tree if no match found.")
      (cons (car points) (delete-first-matching (cdr points) x y pred))]))
 
 (define (quadtree-try-merge tree)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Quadtree))
   (doc 'description "If all children are leaves and total points <= capacity, merge into single leaf")
   (if (not (quadtree-node? tree))
@@ -550,6 +574,7 @@ the full point (x y data). Returns unchanged tree if no match found.")
             tree))))
 
 (define (quadtree-member? tree x y)
+  (doc 'export #t)
   (doc 'type '(-> Quadtree Num Num Boolean))
   (doc 'description "Check if a point exists at (x,y) in the quadtree")
   (cond

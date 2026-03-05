@@ -27,12 +27,14 @@
 ;;; Updates both linear and angular velocity.
 ;;; (Uses rigid-body-3d-apply-impulse from rigid-body3d.ss)
 (define (apply-impulse-at-point-3d body impulse world-point)
+  (doc 'export #t)
   (rigid-body-3d-apply-impulse body impulse world-point))
 
 ;;; apply-angular-impulse-3d : RigidBody3D × Vec3 → RigidBody3D
 ;;; Apply a pure angular impulse (no linear component).
 ;;; (Uses rigid-body-3d-apply-torque-impulse from rigid-body3d.ss)
 (define (apply-angular-impulse-3d body angular-impulse)
+  (doc 'export #t)
   (rigid-body-3d-apply-torque-impulse body angular-impulse))
 
 ;;; ====
@@ -43,6 +45,7 @@
 ;;; Get velocity at a world-space point on the body.
 ;;; (Uses rigid-body-3d-velocity-at from rigid-body3d.ss)
 (define (velocity-at-point-3d body world-point)
+  (doc 'export #t)
   (rigid-body-3d-velocity-at body world-point))
 
 ;;; ====
@@ -54,6 +57,7 @@
 ;;; K = 1/m_a + 1/m_b + [r_a×]^T I_a^-1 [r_a×] + [r_b×]^T I_b^-1 [r_b×]
 ;;; Returns the inverse of the effective mass matrix.
 (define (compute-effective-mass-inv-3d body-a body-b r-a r-b)
+  (doc 'export #t)
   (let* ([inv-mass-a (if body-a (rigid-body-3d-inv-mass body-a) 0)]
          [inv-mass-b (if body-b (rigid-body-3d-inv-mass body-b) 0)]
          [I-inv-a (if body-a (rigid-body-3d-world-inv-inertia body-a) (mat3-zero))]
@@ -79,6 +83,7 @@
 ;;; solve-distance-velocity-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 × Number × Number → (RigidBody3D × RigidBody3D | #f)
 ;;; Solve velocity constraint for distance joint.
 (define (solve-distance-velocity-3d body-a body-b pos-a pos-b target-dist dt)
+  (doc 'export #t)
   (let* (;; Constraint axis (normalized direction)
          [delta (vec3-sub pos-b pos-a)]
          [current-dist (vec3-magnitude delta)]
@@ -125,6 +130,7 @@
 ;;; correct-distance-position-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 × Number → (RigidBody3D × RigidBody3D | #f)
 ;;; Apply position correction for distance constraint.
 (define (correct-distance-position-3d body-a body-b pos-a pos-b target-dist)
+  (doc 'export #t)
   (let* (;; Position error
          [delta (vec3-sub pos-b pos-a)]
          [current-dist (vec3-magnitude delta)]
@@ -171,6 +177,7 @@
 ;;; Solve velocity constraint for ball-socket joint.
 ;;; Both anchors must move together (3D point-to-point).
 (define (solve-ball-socket-velocity-3d body-a body-b pos-a pos-b dt)
+  (doc 'export #t)
   (let* (;; Get velocities at anchor points
          [vel-a (velocity-at-point-3d body-a pos-a)]
          [vel-b (if body-b (velocity-at-point-3d body-b pos-b) (vec3-zero))]
@@ -201,6 +208,7 @@
 ;;; correct-ball-socket-position-3d : RigidBody3D × RigidBody3D | #f × Vec3 × Vec3 → (RigidBody3D × RigidBody3D | #f)
 ;;; Apply position correction for ball-socket joint.
 (define (correct-ball-socket-position-3d body-a body-b pos-a pos-b)
+  (doc 'export #t)
   (let* (;; Position error
          [C (vec3-sub pos-b pos-a)]
          [error-mag (vec3-magnitude C)])
@@ -241,6 +249,7 @@
 ;;;                          → (RigidBody3D × RigidBody3D | #f)
 ;;; Solve velocity constraint for spring (soft constraint).
 (define (solve-spring-velocity-3d body-a body-b pos-a pos-b rest-length stiffness damping dt)
+  (doc 'export #t)
   (let* (;; Spring direction
          [delta (vec3-sub pos-b pos-a)]
          [current-dist (vec3-magnitude delta)]
@@ -273,6 +282,7 @@
 
 ;;; Springs don't need position correction (soft constraint)
 (define (correct-spring-position-3d body-a body-b pos-a pos-b rest-length)
+  (doc 'export #t)
   (values body-a body-b))
 
 ;;; ====
@@ -283,6 +293,7 @@
 ;;;                         → (RigidBody3D × RigidBody3D)
 ;;; Solve velocity constraint for hinge joint.
 (define (solve-hinge-velocity-3d body-a body-b pos-a pos-b axis-a axis-b dt)
+  (doc 'export #t)
   ;; First solve the point constraint (like ball-socket)
   (call-with-values
    (lambda () (solve-ball-socket-velocity-3d body-a body-b pos-a pos-b dt))
@@ -317,6 +328,7 @@
 
 ;;; correct-hinge-position-3d : Similar to ball-socket + angular correction
 (define (correct-hinge-position-3d body-a body-b pos-a pos-b axis-a axis-b)
+  (doc 'export #t)
   ;; First correct point constraint
   (call-with-values
    (lambda () (correct-ball-socket-position-3d body-a body-b pos-a pos-b))
@@ -333,6 +345,7 @@
 ;;;                         → (RigidBody3D × RigidBody3D)
 ;;; Solve velocity constraint for fixed joint (no relative motion).
 (define (solve-fixed-velocity-3d body-a body-b pos-a pos-b ref-orient dt)
+  (doc 'export #t)
   ;; First solve the point constraint
   (call-with-values
    (lambda () (solve-ball-socket-velocity-3d body-a body-b pos-a pos-b dt))
@@ -358,6 +371,7 @@
 
 ;;; correct-fixed-position-3d : Correct position and orientation for fixed joint
 (define (correct-fixed-position-3d body-a body-b pos-a pos-b ref-orient)
+  (doc 'export #t)
   ;; First correct point constraint
   (call-with-values
    (lambda () (correct-ball-socket-position-3d body-a body-b pos-a pos-b))
@@ -398,6 +412,7 @@
 ;;; mat3-trace : Mat3 → Number
 ;;; Sum of diagonal elements.
 (define (mat3-trace m)
+  (doc 'export #t)
   (+ (mat3-ref m 0 0)
      (mat3-ref m 1 1)
      (mat3-ref m 2 2)))
@@ -409,6 +424,7 @@
 ;;; make-distance-joint-3d : Any × Any × Any × Vec3 × Vec3 × Number → Constraint3D
 ;;; Create a distance constraint between two entities.
 (define (make-distance-joint-3d id entity-a entity-b local-anchor-a local-anchor-b distance)
+  (doc 'export #t)
   (make-constraint-3d 'distance-3d id entity-a entity-b
                       (make-distance-constraint-data-3d local-anchor-a local-anchor-b distance)
                       solve-distance-velocity-3d
@@ -418,6 +434,7 @@
 ;;; make-ball-socket-joint-3d : Any × Any × Any × Vec3 × Vec3 → Constraint3D
 ;;; Create a ball-socket joint between two entities.
 (define (make-ball-socket-joint-3d id entity-a entity-b local-anchor-a local-anchor-b)
+  (doc 'export #t)
   (make-constraint-3d 'ball-socket-3d id entity-a entity-b
                       (make-ball-socket-constraint-data-3d local-anchor-a local-anchor-b)
                       solve-ball-socket-velocity-3d

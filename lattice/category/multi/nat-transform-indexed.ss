@@ -48,30 +48,36 @@ This enables:
 ;;; The function is CURRIED: component-at(A) returns a function,
 ;;; not component-at(A, x) taking two arguments directly.
 (define (make-nat-indexed name source target component-at)
+  (doc 'export #t)
   (doc 'type '(-> Symbol FunctorGeneral FunctorGeneral
                   (-> Obj (-> Value Value))
                   NatIndexed))
   (list 'nat-indexed name source target component-at))
 
 (define (nat-indexed? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'nat-indexed)
        (= (length x) 5)))
 
 (define (nat-indexed-name η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed Symbol))
   (if (nat-indexed? η) (cadr η) 'unknown))
 
 (define (nat-indexed-source η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed FunctorGeneral))
   (if (nat-indexed? η) (caddr η) #f))
 
 (define (nat-indexed-target η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed FunctorGeneral))
   (if (nat-indexed? η) (cadddr η) #f))
 
 (define (nat-indexed-component-at η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed (-> Obj (-> Value Value))))
   (if (nat-indexed? η) (car (cddddr η)) (lambda (_) identity)))
 
@@ -83,6 +89,7 @@ This enables:
 ;;; Get the component at a specific object.
 ;;; Returns η_A : F(A) → G(A) as a function.
 (define (nat-indexed-at η obj)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed Obj (-> Value Value)))
   (doc 'description "Get the component η_A at object A.
 Returns a function from F(A) to G(A).")
@@ -92,6 +99,7 @@ Returns a function from F(A) to G(A).")
 ;;; Apply the transformation at object A to a value.
 ;;; η_A(x) for x : F(A)
 (define (nat-indexed-apply η obj val)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed Obj Value Value))
   (doc 'description "Apply η_A to a value x : F(A).
 Equivalent to ((nat-indexed-at η obj) val).")
@@ -105,6 +113,7 @@ Equivalent to ((nat-indexed-at η obj) val).")
 ;;; The identity natural transformation id_F : F ⟹ F.
 ;;; (id_F)_A = id_{F(A)} for all A.
 (define (nat-indexed-id F)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral NatIndexed))
   (doc 'description "Identity transformation id_F : F ⟹ F.
 All components are identity functions.")
@@ -130,6 +139,7 @@ This is straightforward: compose the components at each object.")
 ;;; nat-indexed-compose : NatIndexed × NatIndexed → NatIndexed
 ;;; Vertical composition: (ε ∘ η)_A = ε_A ∘ η_A
 (define (nat-indexed-compose ε η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed NatIndexed NatIndexed))
   (doc 'description "Vertical composition ε ∘ η : F ⟹ H.
 Requires target(η) = source(ε).")
@@ -163,6 +173,7 @@ This requires threading the source object through F.")
 ;;; η : F ⟹ G (C → D), ε : H ⟹ K (D → E)
 ;;; Result: H∘F ⟹ K∘G (C → E)
 (define (nat-indexed-horizontal ε η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed NatIndexed NatIndexed))
   (doc 'description "Horizontal composition ε * η.
 (ε * η)_A = K(η_A) ∘ ε_{F(A)}")
@@ -207,6 +218,7 @@ produces (K ▷ η) : K∘F ⟹ K∘G with (K ▷ η)_A = K(η_A)")
 ;;; nat-indexed-whisker-right : NatIndexed × FunctorGeneral → NatIndexed
 ;;; Right whiskering: (η ◁ H)_A = η_{H(A)}
 (define (nat-indexed-whisker-right η H)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed FunctorGeneral NatIndexed))
   (doc 'description "Right whiskering η ◁ H.
 Precomposes H with both functors.")
@@ -226,6 +238,7 @@ Precomposes H with both functors.")
 ;;; nat-indexed-whisker-left : FunctorGeneral × NatIndexed → NatIndexed
 ;;; Left whiskering: (K ▷ η)_A = K(η_A)
 (define (nat-indexed-whisker-left K η)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral NatIndexed NatIndexed))
   (doc 'description "Left whiskering K ▷ η.
 Postcomposes K with both functors.")
@@ -264,6 +277,7 @@ In diagram form:
 ;;; check-naturality-indexed : NatIndexed × Obj × Obj × Mor × Value → Boolean
 ;;; Check naturality for a specific morphism f : A → B at a test value.
 (define (check-naturality-indexed η A B f test-value)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed Obj Obj Mor Value Boolean))
   (doc 'description "Verify G(f) ∘ η_A = η_B ∘ F(f) at test value.")
   (let* ([F (nat-indexed-source η)]
@@ -296,6 +310,7 @@ indexed transforms can be specialized to specific indices.")
 ;;; NOTE: This requires the source/target functors to be lifted
 ;;; via functor->functor-general first.
 (define (nat-transform->nat-indexed η F-gen G-gen)
+  (doc 'export #t)
   (doc 'type '(-> NatTransform FunctorGeneral FunctorGeneral NatIndexed))
   (doc 'description "Convert parametric to indexed transformation.
 The component function ignores the object index.")
@@ -316,6 +331,7 @@ The component function ignores the object index.")
 ;;; Extract a parametric transformation specialized at a specific object.
 ;;; Useful when you need the standard interface at a known index.
 (define (nat-indexed->nat-transform-at η obj)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed Obj NatTransform))
   (doc 'description "Extract parametric transform at specific object.
 Returns a standard nat-transform with component = η_obj.")
@@ -334,6 +350,7 @@ Returns a standard nat-transform with component = η_obj.")
 
 ;;; nat-indexed->string : NatIndexed → String
 (define (nat-indexed->string η)
+  (doc 'export #t)
   (doc 'type '(-> NatIndexed String))
   (if (nat-indexed? η)
       (format "~a : ~a ⟹ ~a (indexed)"

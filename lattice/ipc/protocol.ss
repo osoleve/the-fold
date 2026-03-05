@@ -35,6 +35,7 @@
 (define *ipc-request-counter* 0)
 
 (define (ipc-next-id!)
+  (doc 'export #t)
   (set! *ipc-request-counter* (+ *ipc-request-counter* 1))
   (string-append "req-" (number->string *ipc-request-counter*)))
 
@@ -46,6 +47,7 @@
 ;;; Encode an s-expression into a length-prefixed frame.
 ;;; Returns a bytevector: 4-byte big-endian length + UTF-8 payload.
 (define (ipc-encode-frame sexp)
+  (doc 'export #t)
   (let* ([payload-str (format "~s" sexp)]
          [payload-bv (string->utf8 payload-str)]
          [payload-len (bytevector-length payload-bv)])
@@ -68,6 +70,7 @@
 ;;; Extract the payload length from a frame header (first 4 bytes).
 ;;; The bytevector must be at least 4 bytes long.
 (define (ipc-frame-length bv)
+  (doc 'export #t)
   (when (< (bytevector-length bv) *ipc-header-size*)
     (error 'ipc-frame-length "Bytevector too short for frame header"))
   (bytevector-u32-ref bv 0 (endianness big)))
@@ -76,6 +79,7 @@
 ;;; Decode a complete frame (header + payload) into an s-expression.
 ;;; The bytevector must contain the full frame (header + payload).
 (define (ipc-decode-frame bv)
+  (doc 'export #t)
   (let ([bv-len (bytevector-length bv)])
     (when (< bv-len *ipc-header-size*)
       (error 'ipc-decode-frame "Frame too short for header"))
@@ -98,6 +102,7 @@
 ;;; Decode a payload bytevector (without header) into an s-expression.
 ;;; Used when the reactor has already stripped the length prefix.
 (define (ipc-decode-payload bv)
+  (doc 'export #t)
   (let ([payload-str (utf8->string bv)])
     (read (open-input-string payload-str))))
 
@@ -108,6 +113,7 @@
 ;;; ipc-make-request : String × String → Alist
 ;;; Construct a request message.
 (define (ipc-make-request session expr)
+  (doc 'export #t)
   (let ([id (ipc-next-id!)])
     `((type . request)
       (id . ,id)
@@ -117,6 +123,7 @@
 ;;; ipc-make-request/id : String × String × String → Alist
 ;;; Construct a request message with explicit ID.
 (define (ipc-make-request/id id session expr)
+  (doc 'export #t)
   `((type . request)
     (id . ,id)
     (session . ,session)
@@ -125,6 +132,7 @@
 ;;; ipc-make-result : String × String → Alist
 ;;; Construct a result message.
 (define (ipc-make-result id value)
+  (doc 'export #t)
   `((type . result)
     (id . ,id)
     (value . ,value)))
@@ -132,6 +140,7 @@
 ;;; ipc-make-error : String × Symbol × String → Alist
 ;;; Construct an error message.
 (define (ipc-make-error id code message)
+  (doc 'export #t)
   `((type . error)
     (id . ,id)
     (code . ,code)
@@ -140,6 +149,7 @@
 ;;; ipc-make-stream : String × String × Boolean → Alist
 ;;; Construct a stream chunk message.
 (define (ipc-make-stream id chunk final?)
+  (doc 'export #t)
   `((type . stream)
     (id . ,id)
     (chunk . ,chunk)
@@ -152,6 +162,7 @@
 ;;; ipc-make-command : String × Symbol × Alist → Alist
 ;;; Construct a v2 command request with typed args.
 (define (ipc-make-command session cmd args)
+  (doc 'export #t)
   (let ([id (ipc-next-id!)])
     `((type . request)
       (v . 2)
@@ -163,6 +174,7 @@
 ;;; ipc-make-data-result : String × String × Any → Alist
 ;;; Construct a v2 result with both display value and structured data.
 (define (ipc-make-data-result id value data)
+  (doc 'export #t)
   `((type . result)
     (v . 2)
     (id . ,id)
@@ -176,24 +188,28 @@
 ;;; ipc-message-version : Alist → Nat
 ;;; Extract protocol version. Returns 1 for v1 messages (no v field).
 (define (ipc-message-version msg)
+  (doc 'export #t)
   (let ([pair (assq 'v msg)])
     (if pair (cdr pair) 1)))
 
 ;;; ipc-message-cmd : Alist → Symbol
 ;;; Extract command type. Returns 'eval for v1 compat (expr-only requests).
 (define (ipc-message-cmd msg)
+  (doc 'export #t)
   (let ([pair (assq 'cmd msg)])
     (if pair (cdr pair) 'eval)))
 
 ;;; ipc-message-args : Alist → Alist | #f
 ;;; Extract command args, or #f for v1 messages.
 (define (ipc-message-args msg)
+  (doc 'export #t)
   (let ([pair (assq 'args msg)])
     (if pair (cdr pair) #f)))
 
 ;;; ipc-message-data : Alist → Any | #f
 ;;; Extract structured data from v2 result, or #f for v1 results.
 (define (ipc-message-data msg)
+  (doc 'export #t)
   (let ([pair (assq 'data msg)])
     (if pair (cdr pair) #f)))
 
@@ -221,18 +237,21 @@
 ;;; ipc-message-type : Alist → Symbol
 ;;; Extract the message type.
 (define (ipc-message-type msg)
+  (doc 'export #t)
   (let ([pair (assq 'type msg)])
     (if pair (cdr pair) #f)))
 
 ;;; ipc-message-id : Alist → String | #f
 ;;; Extract the request/response ID.
 (define (ipc-message-id msg)
+  (doc 'export #t)
   (let ([pair (assq 'id msg)])
     (if pair (cdr pair) #f)))
 
 ;;; ipc-message-get : Alist × Symbol → Value | #f
 ;;; Generic accessor for any message field.
 (define (ipc-message-get msg key)
+  (doc 'export #t)
   (let ([pair (assq key msg)])
     (if pair (cdr pair) #f)))
 
@@ -243,6 +262,7 @@
 ;;; ipc-valid-message? : Any → Boolean
 ;;; Check if a value is a structurally valid IPC message.
 (define (ipc-valid-message? msg)
+  (doc 'export #t)
   (and (list? msg)
        (not (null? msg))
        (pair? (car msg))  ; alist check
@@ -252,6 +272,7 @@
 ;;; ipc-request? : Alist → Boolean
 ;;; Accepts both v1 (expr field) and v2 (cmd+args fields) requests.
 (define (ipc-request? msg)
+  (doc 'export #t)
   (and (ipc-valid-message? msg)
        (eq? (ipc-message-type msg) 'request)
        (ipc-message-id msg)
@@ -262,6 +283,7 @@
 
 ;;; ipc-result? : Alist → Boolean
 (define (ipc-result? msg)
+  (doc 'export #t)
   (and (ipc-valid-message? msg)
        (eq? (ipc-message-type msg) 'result)
        (ipc-message-id msg)
@@ -269,6 +291,7 @@
 
 ;;; ipc-error? : Alist → Boolean
 (define (ipc-error? msg)
+  (doc 'export #t)
   (and (ipc-valid-message? msg)
        (eq? (ipc-message-type msg) 'error)
        (ipc-message-id msg)

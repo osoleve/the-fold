@@ -66,6 +66,7 @@ Dependencies (must be loaded by client in correct order):
      'description "Solve Ax = b for square A using LU decomposition"
      'fuel-cost '(cubic n))
 (define (matrix-solve a b)
+  (doc 'export #t)
   (let ([lu (matrix-lu a)])
        (if (and (pair? lu) (eq? (car lu) 'error))
            lu
@@ -75,6 +76,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; Compute the inverse of a square matrix A using LU decomposition.
 (doc matrix-inverse 'fuel-cost '(cubic n))
 (define (matrix-inverse a)
+  (doc 'export #t)
   (let* ([n (matrix-rows a)]
          [lu (matrix-lu a)])
         (if (and (pair? lu) (eq? (car lu) 'error))
@@ -116,6 +118,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; Compute the determinant of a square matrix A using LU decomposition.
 (doc matrix-determinant 'fuel-cost '(cubic n))
 (define (matrix-determinant a)
+  (doc 'export #t)
   (if (not (matrix-square? a))
       `(error not-square ,(matrix-rows a) ,(matrix-cols a))
       (let ([lu (matrix-lu a)])
@@ -137,6 +140,7 @@ Dependencies (must be loaded by client in correct order):
      'type (-> Matrix Vec (or Vec Error))
      'description "Solve the overdetermined system Ax = b in the least-squares sense using QR. Assumes A is m x n with m >= n.")
 (define (matrix-least-squares a b)
+  (doc 'export #t)
   (let ([qr (matrix-qr a)])
        (if (and (pair? qr) (eq? (car qr) 'error))
            qr
@@ -196,6 +200,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; matrix-rank : Matrix → Nat
 ;;; Compute the rank of a matrix (number of linearly independent rows/columns).
 (define (matrix-rank a)
+  (doc 'export #t)
   (let* ([ref (matrix-gauss-elim a)]
          [m (matrix-rows ref)]
          [n (matrix-cols ref)])
@@ -217,6 +222,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; Compute the condition number of a matrix using the Frobenius norm.
 ;;; kappa(A) = ||A||_F * ||A^-1||_F. High values indicate ill-conditioning.
 (define (matrix-condition-number a)
+  (doc 'export #t)
   (let ([inv (matrix-inverse a)])
        (if (and (pair? inv) (eq? (car inv) 'error))
            inv
@@ -239,6 +245,7 @@ Dependencies (must be loaded by client in correct order):
 ;;;
 ;;; Returns (error singular k) if the matrix is singular at step k.
 (define (levinson-durbin r)
+  (doc 'export #t)
   (let* ([n (- (vector-length r) 1)]  ; p = n
          [phi (make-vector n 0.0)]
          [phi-tmp (make-vector n 0.0)]
@@ -290,6 +297,7 @@ Dependencies (must be loaded by client in correct order):
 ;;; Note: For Yule-Walker equations (AR fitting), use levinson-durbin instead
 ;;; as it's optimized for that specific structure.
 (define (levinson-durbin-general r b)
+  (doc 'export #t)
   (let* ([n (vector-length r)]
          [x (make-vector n 0.0)]
          [x-tmp (make-vector n 0.0)]

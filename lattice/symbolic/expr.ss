@@ -13,11 +13,13 @@
 (doc 'section 'expression-constructors)
 
 (define (num n)
+  (doc 'export #t)
   (doc 'type '(-> Number Expr))
   (doc 'description "Create numeric constant expression")
   (list 'num n))
 
 (define (var x)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Expr))
   (doc 'description "Create symbolic variable expression")
   (list 'var x))
@@ -25,6 +27,7 @@
 ;;; make-sum : (List Expr) → Expr
 ;;; Create a sum of expressions.
 (define (make-sum exprs)
+  (doc 'export #t)
   (cond
    [(null? exprs) (num 0)]
    [(= (length exprs) 1) (car exprs)]
@@ -33,6 +36,7 @@
 ;;; make-product : (List Expr) → Expr
 ;;; Create a product of expressions.
 (define (make-product exprs)
+  (doc 'export #t)
   (cond
    [(null? exprs) (num 1)]
    [(= (length exprs) 1) (car exprs)]
@@ -41,31 +45,37 @@
 ;;; make-diff : Expr × Expr → Expr
 ;;; Create a difference.
 (define (make-diff e1 e2)
+  (doc 'export #t)
   (list '- e1 e2))
 
 ;;; make-neg : Expr → Expr
 ;;; Create a negation.
 (define (make-neg e)
+  (doc 'export #t)
   (list '- e))
 
 ;;; make-div : Expr × Expr → Expr
 ;;; Create a division.
 (define (make-div e1 e2)
+  (doc 'export #t)
   (list '/ e1 e2))
 
 ;;; make-pow : Expr × Expr → Expr
 ;;; Create an exponentiation.
 (define (make-pow base exp)
+  (doc 'export #t)
   (list '^ base exp))
 
 ;;; make-app : Symbol × Expr → Expr
 ;;; Create a function application.
 (define (make-app fn arg)
+  (doc 'export #t)
   (list fn arg))
 
 (doc 'section 'smart-constructors)
 
 (define (sum e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Create sum with basic simplifications")
   (cond
@@ -80,6 +90,7 @@
    [else (list '+ e1 e2)]))
 
 (define (product e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Create product with basic simplifications")
   (cond
@@ -96,6 +107,7 @@
    [else (list '* e1 e2)]))
 
 (define (difference e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Create difference with basic simplifications")
   (cond
@@ -112,6 +124,7 @@
    [else (list '- e1 e2)]))
 
 (define (division e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Create quotient with basic simplifications")
   (cond
@@ -131,6 +144,7 @@
    [else (list '/ e1 e2)]))
 
 (define (power base exp)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Create power with basic simplifications")
   (doc 'note "0^0 returns 1 following CAS convention")
@@ -161,37 +175,45 @@
 (doc 'section 'predicates)
 
 (define (num? e)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (doc 'description "Test if expression is numeric constant")
   (and (pair? e) (eq? (car e) 'num)))
 
 ;;; var? : α → Bool
 (define (var? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) 'var)))
 
 ;;; sum? : α → Bool
 (define (sum? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) '+)))
 
 ;;; product? : α → Bool
 (define (product? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) '*)))
 
 ;;; difference? : α → Bool
 (define (difference? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) '-)))
 
 ;;; quotient? : α → Bool
 (define (quotient? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) '/)))
 
 ;;; power? : α → Bool
 (define (power? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) '^)))
 
 ;;; app? : α → Bool
 ;;; Is e a function application?
 (define (app? e)
+  (doc 'export #t)
   (and (pair? e)
        (symbol? (car e))
        (not (memq (car e) '(num var + * - / ^)))))
@@ -202,53 +224,65 @@
 
 ;;; num-val : Expr → Number
 (define (num-val e)
+  (doc 'export #t)
   (cadr e))
 
 ;;; var-name : Expr → Symbol
 (define (var-name e)
+  (doc 'export #t)
   (cadr e))
 
 ;;; sum-terms : Expr → (List Expr)
 (define (sum-terms e)
+  (doc 'export #t)
   (cdr e))
 
 ;;; product-factors : Expr → (List Expr)
 (define (product-factors e)
+  (doc 'export #t)
   (cdr e))
 
 ;;; diff-left : Expr → Expr
 (define (diff-left e)
+  (doc 'export #t)
   (cadr e))
 
 ;;; diff-right : Expr → Expr
 ;;; Returns #f for unary negation.
 (define (diff-right e)
+  (doc 'export #t)
   (if (= (length e) 3)
       (caddr e)
       #f))
 
 ;;; quot-numer : Expr → Expr
 (define (quot-numer e)
+  (doc 'export #t)
   (cadr e))
 
 ;;; quot-denom : Expr → Expr
 (define (quot-denom e)
+  (doc 'export #t)
   (caddr e))
 
 ;;; pow-base : Expr → Expr
 (define (pow-base e)
+  (doc 'export #t)
   (cadr e))
 
 ;;; pow-exp : Expr → Expr
 (define (pow-exp e)
+  (doc 'export #t)
   (caddr e))
 
 ;;; app-fn : Expr → Symbol
 (define (app-fn e)
+  (doc 'export #t)
   (car e))
 
 ;;; app-arg : Expr → Expr
 (define (app-arg e)
+  (doc 'export #t)
   (cadr e))
 
 ;;; ====
@@ -258,6 +292,7 @@
 ;;; list-all-equal? : (List Expr) × (List Expr) → Bool
 ;;; Check if all corresponding elements are equal.
 (define (list-all-equal? l1 l2)
+  (doc 'export #t)
   (cond
    [(and (null? l1) (null? l2)) #t]
    [(or (null? l1) (null? l2)) #f]
@@ -267,6 +302,7 @@
 ;;; expr=? : Expr × Expr → Bool
 ;;; Check structural equality of expressions.
 (define (expr=? e1 e2)
+  (doc 'export #t)
   (cond
    ;; Numbers
    [(and (num? e1) (num? e2))
@@ -305,6 +341,7 @@
 (doc 'note "Patterns: (num _), (var _), (+ p1 p2), (* p1 p2), (? pred), _, literal")
 
 (define (match-expr expr pattern)
+  (doc 'export #t)
   (doc 'type '(-> Expr Pattern (Maybe Bindings)))
   (doc 'description "Try to match expression against pattern, returns alist of bindings or #f")
   (cond
@@ -398,6 +435,7 @@
 ;;; bindings-consistent? : Bindings × Bindings → Bool
 ;;; Check if two binding lists are consistent (no conflicting values for same var).
 (define (bindings-consistent? b1 b2)
+  (doc 'export #t)
   (let loop ([bindings b1])
        (if (null? bindings)
            #t
@@ -414,6 +452,7 @@
 ;;; merge-bindings : Bindings × Bindings → Bindings | #f
 ;;; Merge two binding lists, returning #f if inconsistent.
 (define (merge-bindings b1 b2)
+  (doc 'export #t)
   (if (bindings-consistent? b1 b2)
       (append b1 (filter (lambda (p) (not (assq (car p) b1))) b2))
       #f))
@@ -421,6 +460,7 @@
 ;;; match-list : (List Expr) × (List Pattern) → Bindings | #f
 ;;; Match a list of expressions against patterns.
 (define (match-list exprs patterns)
+  (doc 'export #t)
   (if (null? exprs)
       '()
       (let ([b (match-expr (car exprs) (car patterns))])
@@ -434,6 +474,7 @@
 (doc 'section 'free-variables)
 
 (define (free-vars e)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol)))
   (doc 'description "Get all free variables in expression")
   (cond
@@ -456,6 +497,7 @@
 (doc 'section 'substitution)
 
 (define (subst expr var-sym val)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr Expr))
   (doc 'description "Substitute val for var-sym in expression using smart constructors")
   (cond
@@ -494,6 +536,7 @@
 (doc 'section 'normalization)
 
 (define (normalize-expr e)
+  (doc 'export #t)
   (doc 'type '(-> Any Expr))
   (doc 'description "Convert raw S-expression to tagged Expr form")
   (doc 'note "Allows (+ (* 2 x) -4) instead of (sum (product (num 2) (var 'x)) (num -4))")
@@ -542,6 +585,7 @@
 (doc 'section 'display)
 
 (define (expr->string e)
+  (doc 'export #t)
   (doc 'type '(-> Expr String))
   (doc 'description "Convert expression to readable string")
   (cond

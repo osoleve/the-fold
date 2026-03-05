@@ -16,26 +16,31 @@
 (doc 'section 'classic-combinators)
 
 (define (id x)
+  (doc 'export #t)
   (doc 'type '(-> a a))
   (doc 'description "Identity function (I combinator)")
   (doc 'note "`identity` is also available from prelude.ss")
   x)
 
 (define identity id)
+(doc identity 'export #t)
 (doc identity 'type '(-> a a))
 (doc identity 'description "Alias for id, for consistency with other modules")
 
 (define (const x)
+  (doc 'export #t)
   (doc 'type '(-> a (-> b a)))
   (doc 'description "Constant function (K combinator)")
   (lambda (y) x))
 
 (define (flip f)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b c) (-> b a c)))
   (doc 'description "Swap first two arguments")
   (lambda (x y) (f y x)))
 
 (define (apply-fn f x)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) a b))
   (doc 'description "Apply function to argument")
   (f x))
@@ -43,11 +48,13 @@
 (doc 'section 'function-composition)
 
 (define (compose2 g f)
+  (doc 'export #t)
   (doc 'type '(-> (-> b c) (-> a b) (-> a c)))
   (doc 'description "Compose two functions (g after f)")
   (lambda (x) (g (f x))))
 
 (define (compose . fns)
+  (doc 'export #t)
   (doc 'type '(-> (* (-> b c) (-> a b)) (-> a result)))
   (doc 'description "Compose multiple functions right-to-left")
   (doc 'note "(compose g f) = g ∘ f = λx. g(f(x))")
@@ -56,11 +63,13 @@
       (fold-right compose2 id fns)))
 
 (define (pipe2 f g)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (-> b c) (-> a c)))
   (doc 'description "Compose two functions (f then g) - pipe order")
   (lambda (x) (g (f x))))
 
 (define (pipe . fns)
+  (doc 'export #t)
   (doc 'type '(-> (* (-> a b) (-> b c)) (-> a result)))
   (doc 'description "Compose multiple functions left-to-right (pipeline order)")
   (doc 'note "(pipe f g h) = λx. h(g(f(x)))")
@@ -69,14 +78,17 @@
       (fold-left pipe2 id fns)))
 
 (define >>> pipe)
+(doc >>> 'export #t)
 (doc >>> 'description "Alias for pipe (threading operator)")
 
 (define <<< compose)
+(doc <<< 'export #t)
 (doc <<< 'description "Alias for compose")
 
 (doc 'section 'currying-and-partial-application)
 
 (define (curry2 f)
+  (doc 'export #t)
   (doc 'type '(-> (-> (* a b) c) (-> a (-> b c))))
   (doc 'description "Curry a binary function")
   (lambda (x)
@@ -84,6 +96,7 @@
                   (f x y))))
 
 (define (uncurry2 f)
+  (doc 'export #t)
   (doc 'type '(-> (-> a (-> b c)) (-> (* a b) c)))
   (doc 'description "Uncurry a curried binary function")
   (doc 'note "pairs are (cons a b), so cdr gets second element")
@@ -91,6 +104,7 @@
           ((f (car xy)) (cdr xy))))
 
 (define (curry3 f)
+  (doc 'export #t)
   (doc 'type '(-> (-> (* a b c) d) (-> a (-> b (-> c d)))))
   (doc 'description "Curry a ternary function")
   (lambda (x)
@@ -99,22 +113,26 @@
                           (f x y z)))))
 
 (define (uncurry3 f)
+  (doc 'export #t)
   (doc 'type '(-> (-> a (-> b (-> c d))) (-> (* a b c) d)))
   (doc 'description "Uncurry a curried ternary function")
   (lambda (xyz)
           (((f (car xyz)) (cadr xyz)) (caddr xyz))))
 
 (define (partial f x)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b (* rest) z) a (-> b (* rest) z)))
   (doc 'description "Partially apply first argument")
   (lambda args (apply f (cons x args))))
 
 (define (partial2 f x y)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b c (* rest) z) a b (-> c (* rest) z)))
   (doc 'description "Partially apply first two arguments")
   (lambda args (apply f (cons x (cons y args)))))
 
 (define (rpartial f z)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b (* rest) result) result (-> a b (* rest) result)))
   (doc 'description "Partially apply last argument")
   (lambda args (apply f (append args (list z)))))
@@ -122,12 +140,14 @@
 (doc 'section 'higher-order-utilities)
 
 (define (on f g)
+  (doc 'export #t)
   (doc 'type '(-> (-> b b c) (-> a b) (-> a a c)))
   (doc 'description "Apply transformation before binary operation")
   (doc 'note "(on compare length) compares lists by their lengths")
   (lambda (x y) (f (g x) (g y))))
 
 (define (both f)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (-> (* a a) (* b b))))
   (doc 'description "Apply function to both elements of a pair")
   (doc 'note "pairs are (cons a b), returns (cons (f a) (f b))")
@@ -135,12 +155,14 @@
           (cons (f (car pair)) (f (cdr pair)))))
 
 (define (pair-first f)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (-> (* a c) (* b c))))
   (doc 'description "Apply function to first element of pair")
   (lambda (pair)
           (cons (f (car pair)) (cdr pair))))
 
 (define (pair-second f)
+  (doc 'export #t)
   (doc 'type '(-> (-> b c) (-> (* a b) (* a c))))
   (doc 'description "Apply function to second element of pair")
   (doc 'note "pairs are (cons a b), returns (cons a (f b))")
@@ -149,6 +171,7 @@
 
 
 (define (bimap f g)
+  (doc 'export #t)
   (doc 'type '(-> (-> a c) (-> b d) (-> (* a b) (* c d))))
   (doc 'description "Apply two functions to elements of a pair")
   (doc 'note "pairs are (cons a b), returns (cons (f a) (g b))")
@@ -158,11 +181,13 @@
 (doc 'section 'logical-combinators)
 
 (define (complement pred)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Bool) (-> a Bool)))
   (doc 'description "Negate a predicate")
   (lambda (x) (not (pred x))))
 
 (define (conjoin . preds)
+  (doc 'export #t)
   (doc 'type '(-> (* (-> a Bool)) (-> a Bool)))
   (doc 'description "Combine predicates with AND")
   (lambda (x)
@@ -172,6 +197,7 @@
                         (loop (cdr ps)))))))
 
 (define (disjoin . preds)
+  (doc 'export #t)
   (doc 'type '(-> (* (-> a Bool)) (-> a Bool)))
   (doc 'description "Combine predicates with OR")
   (lambda (x)
@@ -183,24 +209,29 @@
 (doc 'section 'tuple-operations)
 
 (define fst car)
+(doc fst 'export #t)
 (doc fst 'type '(-> (* a b) a))
 (doc fst 'note "pairs are (cons a b)")
 
 (define snd cdr)
+(doc snd 'export #t)
 (doc snd 'type '(-> (* a b) b))
 (doc snd 'note "pairs are (cons a b)")
 
 (define (swap pair)
+  (doc 'export #t)
   (doc 'type '(-> (* a b) (* b a)))
   (doc 'note "pairs are (cons a b)")
   (cons (cdr pair) (car pair)))
 
 (define (dup x)
+  (doc 'export #t)
   (doc 'type '(-> a (* a a)))
   (doc 'note "returns (cons x x)")
   (cons x x))
 
 (define (pair x y)
+  (doc 'export #t)
   (doc 'type '(-> a b (* a b)))
   (doc 'note "returns (cons x y)")
   (cons x y))
@@ -209,25 +240,31 @@
 (doc 'note "Representation: #f for Nothing, (just value) for Just")
 
 (define nothing #f)
+(doc nothing 'export #t)
 (doc nothing 'type 'Maybe-a)
 
 (define (just x)
+  (doc 'export #t)
   (doc 'type '(-> a Maybe-a))
   (list 'just x))
 
 (define (just? m)
+  (doc 'export #t)
   (doc 'type '(-> Maybe-a Boolean))
   (and (pair? m) (eq? (car m) 'just)))
 
 (define nothing? not)
+(doc nothing? 'export #t)
 (doc nothing? 'type '(-> Maybe-a Boolean))
 
 (define (from-just m)
+  (doc 'export #t)
   (doc 'type '(-> Maybe-a a))
   (doc 'description "Extract value (undefined for Nothing)")
   (cadr m))
 
 (define (maybe default f m)
+  (doc 'export #t)
   (doc 'type '(-> b (-> a b) Maybe-a b))
   (doc 'description "Maybe eliminator")
   (if (just? m)
@@ -235,6 +272,7 @@
       default))
 
 (define (maybe-fmap f m)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) Maybe-a Maybe-b))
   (doc 'description "Functor map for Maybe")
   (if (just? m)
@@ -242,6 +280,7 @@
       nothing))
 
 (define (maybe-bind m f)
+  (doc 'export #t)
   (doc 'type '(-> Maybe-a (-> a Maybe-b) Maybe-b))
   (doc 'description "Monadic bind for Maybe")
   (if (just? m)
@@ -250,6 +289,7 @@
 
 
 (define (filter-maybe pred m)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) Maybe-a Maybe-a))
   (doc 'description "Filter a Maybe value")
   (if (and (just? m) (pred (from-just m)))
@@ -257,6 +297,7 @@
       nothing))
 
 (define (cat-maybes ms)
+  (doc 'export #t)
   (doc 'type '(-> (List Maybe-a) (List a)))
   (doc 'description "Extract all Just values from a list")
   (fold-right (lambda (m acc)
@@ -267,6 +308,7 @@
               ms))
 
 (define (sequence-maybe ms)
+  (doc 'export #t)
   (doc 'type '(-> (List Maybe-a) Maybe-(List a)))
   (doc 'description "Collect list of Maybes into Maybe of list")
   (if (null? ms)
@@ -281,30 +323,37 @@
 (doc 'note "Representation: (left value) or (right value)")
 
 (define (left x)
+  (doc 'export #t)
   (doc 'type '(-> a Either-a-b))
   (list 'left x))
 
 (define (right x)
+  (doc 'export #t)
   (doc 'type '(-> b Either-a-b))
   (list 'right x))
 
 (define (left? e)
+  (doc 'export #t)
   (doc 'type '(-> Either-a-b Boolean))
   (and (pair? e) (eq? (car e) 'left)))
 
 (define (right? e)
+  (doc 'export #t)
   (doc 'type '(-> Either-a-b Boolean))
   (and (pair? e) (eq? (car e) 'right)))
 
 (define (from-left e)
+  (doc 'export #t)
   (doc 'type '(-> Either-a-b a))
   (cadr e))
 
 (define (from-right e)
+  (doc 'export #t)
   (doc 'type '(-> Either-a-b b))
   (cadr e))
 
 (define (either f g e)
+  (doc 'export #t)
   (doc 'type '(-> (-> a c) (-> b c) Either-a-b c))
   (doc 'description "Either eliminator")
   (if (left? e)
@@ -312,6 +361,7 @@
       (g (from-right e))))
 
 (define (either-fmap f e)
+  (doc 'export #t)
   (doc 'type '(-> (-> b c) Either-a-b Either-a-c))
   (doc 'description "Functor map for Either (standard: operates on Right)")
   (if (right? e)
@@ -319,6 +369,7 @@
       e))
 
 (define (either-fmap-left f e)
+  (doc 'export #t)
   (doc 'type '(-> (-> a c) Either-a-b Either-c-b))
   (doc 'description "Map over Left side of Either")
   (if (left? e)
@@ -326,6 +377,7 @@
       e))
 
 (define (either-bind e f)
+  (doc 'export #t)
   (doc 'type '(-> Either-a-b (-> b Either-a-c) Either-a-c))
   (doc 'description "Monadic bind for Either (standard: operates on Right)")
   (if (right? e)
@@ -333,9 +385,11 @@
       e))
 
 (define from-either either)
+(doc from-either 'export #t)
 (doc from-either 'description "Alias for either")
 
 (define (rights es)
+  (doc 'export #t)
   (doc 'type '(-> (List Either-a-b) (List b)))
   (doc 'description "Extract all Right values")
   (fold-right (lambda (e acc)
@@ -346,6 +400,7 @@
               es))
 
 (define (lefts es)
+  (doc 'export #t)
   (doc 'type '(-> (List Either-a-b) (List a)))
   (doc 'description "Extract all Left values")
   (fold-right (lambda (e acc)
@@ -356,6 +411,7 @@
               es))
 
 (define (partition-eithers es)
+  (doc 'export #t)
   (doc 'type '(-> (List Either-a-b) (* (List a) (List b))))
   (doc 'description "Partition eithers into lefts and rights")
   (fold-right (lambda (e acc)
@@ -368,17 +424,21 @@
 (doc 'section 'list-utilities)
 
 (define head car)
+(doc head 'export #t)
 (doc head 'type '(-> (List a) a))
 
 (define tail cdr)
+(doc tail 'export #t)
 (doc tail 'type '(-> (List a) (List a)))
 
 (define (cons-if pred x xs)
+  (doc 'export #t)
   (doc 'type '(-> Boolean a (List a) (List a)))
   (doc 'description "Conditionally cons an element")
   (if pred (cons x xs) xs))
 
 (define (intersperse sep xs)
+  (doc 'export #t)
   (doc 'type '(-> a (List a) (List a)))
   (doc 'description "Place element between each pair of elements")
   (if (or (null? xs) (null? (cdr xs)))
@@ -389,11 +449,13 @@
                         (cdr xs)))))
 
 (define (intercalate sep xss)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (List (List a)) (List a)))
   (doc 'description "Insert list between lists and flatten")
   (flatten (intersperse sep xss)))
 
 (define (group-by key xs)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (List a) (List (List a))))
   (doc 'description "Group consecutive elements with same key")
   (if (null? xs)
@@ -411,6 +473,7 @@
 
 
 (define (dedup-consecutive xs)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (List a)))
   (doc 'description "Remove consecutive duplicates (like Unix uniq)")
   (doc 'note "For general duplicate removal, use prelude's unique")
@@ -424,6 +487,7 @@
                    (loop (cdr xs) (car xs) (cons (car xs) result)))))))
 
 (define (dedup-consecutive-by key xs)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (List a) (List a)))
   (doc 'description "Remove consecutive elements with same key")
   (doc 'note "For general key-based deduplication, use prelude's distinct-by")
@@ -440,6 +504,7 @@
 (doc 'section 'iteration-combinators)
 
 (define (iterate-n f x n)
+  (doc 'export #t)
   (doc 'type '(-> (-> α α) α Nat (List α)))
   (doc 'description "Generate list by repeated function application")
   (doc 'returns "First n elements")
@@ -449,6 +514,7 @@
            (loop (+ i 1) (f x) (cons x acc)))))
 
 (define (unfold f seed)
+  (doc 'export #t)
   (doc 'type '(-> (-> β Maybe-(* α β)) β (List α)))
   (doc 'description "Build list from seed using generator")
   (let loop ([s seed] [acc '()])
@@ -460,6 +526,7 @@
                      (loop next (cons val acc)))))))
 
 (define (fix-with-tolerance f x tolerance max-iters)
+  (doc 'export #t)
   (doc 'type '(-> (-> α α) α α Nat α))
   (doc 'description "Find fixed point of function (within tolerance)")
   (let loop ([x x] [i 0])
@@ -472,6 +539,7 @@
 (doc 'section 'memoization)
 
 (define (memoize f)
+  (doc 'export #t)
   (doc 'type '(-> (-> α β) (-> α β)))
   (doc 'description "Memoize a function (using persistent HAMT cache)")
   (let ([cache hamt-empty])
@@ -486,6 +554,7 @@
 (doc 'section 'fixpoint-combinator)
 
 (define (Y f)
+  (doc 'export #t)
   (doc 'type '(-> (-> (-> α β) (-> α β)) (-> α β)))
   (doc 'description "Y combinator (for defining recursive anonymous functions)")
   ((lambda (x) (f (lambda (v) ((x x) v))))

@@ -31,6 +31,7 @@ The result is an undirected adjacency matrix (symmetric).")
 (doc erdos-renyi 'param 'n "Number of nodes")
 (doc erdos-renyi 'param 'p "Edge probability in [0,1]")
 (define (erdos-renyi n p)
+  (doc 'export #t)
   (make-state
    (lambda (gen)
      ;; Phase 1: collect edge set with PRNG threading
@@ -69,6 +70,7 @@ proportional to their current degree. Produces scale-free degree distributions."
 (doc barabasi-albert 'param 'n "Total number of nodes (must be > m)")
 (doc barabasi-albert 'param 'm "Number of edges each new node adds (must be >= 1)")
 (define (barabasi-albert n m)
+  (doc 'export #t)
   (make-state
    (lambda (gen)
      (let* ([init-nodes (+ m 1)]
@@ -139,6 +141,7 @@ for meaningful small-world properties.")
 (doc watts-strogatz 'param 'k "Each node connects to k nearest neighbors (must be even)")
 (doc watts-strogatz 'param 'p "Rewiring probability in [0,1]; 0 = ring lattice, 1 = random")
 (define (watts-strogatz n k p)
+  (doc 'export #t)
   (make-state
    (lambda (gen)
      (let* ([half-k (quotient k 2)]

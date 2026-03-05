@@ -15,6 +15,7 @@
 ;;; html-escape : String -> String
 ;;; Escape HTML special characters: < > & " '
 (define (html-escape str)
+  (doc 'export #t)
   (let ([len (string-length str)])
     (let loop ([i 0] [acc '()])
       (if (>= i len)
@@ -39,6 +40,7 @@
 ;;; html-tag : Symbol × String -> String
 ;;; Wrap content in an HTML tag.
 (define (html-tag tag content)
+  (doc 'export #t)
   (string-append "<" (symbol->string tag) ">"
                  content
                  "</" (symbol->string tag) ">"))
@@ -46,6 +48,7 @@
 ;;; html-tag-nl : Symbol × String -> String
 ;;; Wrap content in an HTML tag with newlines.
 (define (html-tag-nl tag content)
+  (doc 'export #t)
   (string-append "<" (symbol->string tag) ">\n"
                  content
                  "</" (symbol->string tag) ">\n"))
@@ -53,6 +56,7 @@
 ;;; html-tag-attrs : Symbol × (Alist Symbol String) × String -> String
 ;;; Wrap content in an HTML tag with attributes.
 (define (html-tag-attrs tag attrs content)
+  (doc 'export #t)
   (let ([attr-str (if (null? attrs)
                       ""
                       (apply string-append
@@ -70,11 +74,13 @@
 ;;; html-void-tag : Symbol -> String
 ;;; Create a void/self-closing tag.
 (define (html-void-tag tag)
+  (doc 'export #t)
   (string-append "<" (symbol->string tag) ">"))
 
 ;;; html-void-tag-attrs : Symbol × (Alist Symbol String) -> String
 ;;; Create a void tag with attributes.
 (define (html-void-tag-attrs tag attrs)
+  (doc 'export #t)
   (let ([attr-str (if (null? attrs)
                       ""
                       (apply string-append
@@ -94,6 +100,7 @@
 ;;; render-html : AST -> String
 ;;; Render a markdown AST node to HTML.
 (define (render-html node)
+  (doc 'export #t)
   (cond
     ;; Handle raw strings (shouldn't happen in well-formed AST, but be safe)
     [(string? node) (html-escape node)]
@@ -212,6 +219,7 @@
 ;;; render-children : (List AST) × String -> String
 ;;; Render a list of child nodes with separator.
 (define (render-children nodes sep)
+  (doc 'export #t)
   (if (null? nodes)
       ""
       (let loop ([nodes nodes] [acc '()])
@@ -226,6 +234,7 @@
 ;;; render-inlines : (List AST) -> String
 ;;; Render inline elements without separator.
 (define (render-inlines nodes)
+  (doc 'export #t)
   (apply string-append (map render-html nodes)))
 
 ;;; ============================================================
@@ -235,6 +244,7 @@
 ;;; render-page : String × String × String -> String
 ;;; Render a complete HTML page with title, CSS, and body content.
 (define (render-page title css body)
+  (doc 'export #t)
   (string-append
    "<!DOCTYPE html>\n"
    "<html lang=\"en\">\n"

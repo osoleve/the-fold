@@ -77,6 +77,7 @@
 ;;; strip-trailing-hashes : String -> String
 ;;; Remove trailing # characters and spaces from heading.
 (define (strip-trailing-hashes str)
+  (doc 'export #t)
   (let ([len (string-length str)])
     (if (= len 0)
         str
@@ -128,6 +129,7 @@
 ;;; md-code-content-until : String -> Parser String
 ;;; Parse code content until closing fence.
 (define (md-code-content-until fence)
+  (doc 'export #t)
   (make-parser
    (lambda (state)
      (let* ([input (parser-state-input state)]
@@ -261,12 +263,14 @@
 ;;; table-line? : String -> Boolean
 ;;; Check if a line looks like a table row (starts with |).
 (define (table-line? str)
+  (doc 'export #t)
   (and (> (string-length str) 0)
        (char=? (string-ref str 0) #\|)))
 
 ;;; separator-line? : String -> Boolean
 ;;; Check if a line is a table separator (|---|---|).
 (define (separator-line? str)
+  (doc 'export #t)
   (and (table-line? str)
        (let ([len (string-length str)])
          (let loop ([i 1] [has-dash #f])
@@ -281,6 +285,7 @@
 ;;; parse-table-row : String -> (List String)
 ;;; Split a table row into cells.
 (define (parse-table-row str)
+  (doc 'export #t)
   (let* ([trimmed (string-trim str)]
          [len (string-length trimmed)])
     ;; Remove leading and trailing |
@@ -419,11 +424,13 @@
 ;;; parse-markdown : String -> (Either Error AST)
 ;;; Parse a complete markdown document.
 (define (parse-markdown input)
+  (doc 'export #t)
   (parser-parse md-document-parser input))
 
 ;;; parse-markdown-or-error : String -> AST
 ;;; Parse markdown, returning error document on failure.
 (define (parse-markdown-or-error input)
+  (doc 'export #t)
   (let ([result (parse-markdown input)])
     (if (right? result)
         (from-right result)

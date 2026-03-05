@@ -12,16 +12,19 @@
 (doc 'note "Load order matters - effects.ss defines run-state for State effect, prng.ss uses state.ss which defines run-state for State monad")
 
 (define (run-state-monad st initial-state)
+  (doc 'export #t)
   (doc 'type '(-> (State s a) s (Pair a s)))
   (doc 'description "Alias for State monad's run-state - now the current definition from state.ss")
   ((state-fn st) initial-state))
 
 (define (run-state-eff init-state eff)
+  (doc 'export #t)
   (doc 'type '(-> s (Eff State a) (Pair a s)))
   (doc 'description "Preserve effects.ss State effect handler before it gets shadowed - uses run-state-helper")
   (run-state-helper init-state eff))
 
 (define prng-random-float random-float)
+(doc prng-random-float 'export #t)
 (doc prng-random-float 'description "Alias the prng functions for use in the handler")
 
 (define prng-random-int-range random-int-range)
@@ -49,11 +52,13 @@
 (doc random-uniform-eff 'description "Generate a random float in [0, 1)")
 
 (define (random-int-eff lo hi)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (Eff Random Int)))
   (doc 'description "Generate a random integer in [lo, hi] (inclusive)")
   (perform (make-effect 'random-int (cons lo hi))))
 
 (define (random-choice-eff lst)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (Eff Random a)))
   (doc 'description "Pick a random element from a non-empty list")
   (if (null? lst)
@@ -66,11 +71,13 @@
 (doc random-bool-eff 'description "Generate a random boolean")
 
 (define (random-float-eff lo hi)
+  (doc 'export #t)
   (doc 'type '(-> Float Float (Eff Random Float)))
   (doc 'description "Generate a random float in [lo, hi)")
   (perform (make-effect 'random-float (cons lo hi))))
 
 (define (random-sample-dist dist)
+  (doc 'export #t)
   (doc 'type '(-> (State GenState a) (Eff Random a)))
   (doc 'description "Sample from a distribution (State monad computation) - bridges existing distributions to the effect system")
   (perform (make-effect 'random-sample dist)))
@@ -78,6 +85,7 @@
 (doc 'section 'derived-random-operations)
 
 (define (random-bernoulli-eff p)
+  (doc 'export #t)
   (doc 'type '(-> Float (Eff Random Boolean)))
   (doc 'description "Sample from Bernoulli(p) - true with probability p")
   (eff-bind random-uniform-eff
@@ -85,6 +93,7 @@
                     (eff-return (< u p)))))
 
 (define (random-weighted-eff weighted-list)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair a Number)) (Eff Random a)))
   (doc 'description "Pick an element weighted by associated numbers")
   (if (null? weighted-list)
@@ -102,11 +111,13 @@
                                                 (loop (cdr lst) new-acc)))))))))))
 
 (define (random-list-eff n gen)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Eff Random a) (Eff Random (List a))))
   (doc 'description "Generate a list of n random values")
   (eff-replicate n gen))
 
 (define (shuffle-with-swaps lst swaps)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (List (Pair Int Int)) (List a)))
   (doc 'description "Apply Fisher-Yates swaps to a list using vector for O(1) access - takes a list and a list of (i . j) swap pairs")
   (let ([vec (list->vector lst)])
@@ -122,6 +133,7 @@
        (vector->list vec)))
 
 (define (random-shuffle-eff lst)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (Eff Random (List a))))
   (doc 'description "Fisher-Yates shuffle using Random effect - O(N) total complexity")
   (doc 'note "Converts to vector, performs O(1) swaps, then converts back to list")
@@ -143,21 +155,25 @@
 (doc 'section 'random-effect-handler)
 
 (define (run-random seed eff)
+  (doc 'export #t)
   (doc 'type '(-> Integer (Eff Random a) a))
   (doc 'description "Handle Random effect with a PCG generator seeded from given value - returns the final value (discards generator state)")
   (run-random-with-gen (make-pcg seed 1) eff))
 
 (define (run-random-with-state-eff seed eff)
+  (doc 'export #t)
   (doc 'type '(-> Integer (Eff Random a) (Pair a GenState)))
   (doc 'description "Handle Random effect, returning both value and final generator state")
   (run-random-helper (make-pcg seed 1) eff))
 
 (define (run-random-with-gen gen eff)
+  (doc 'export #t)
   (doc 'type '(-> GenState (Eff Random a) a))
   (doc 'description "Handle Random effect with an existing generator")
   (car (run-random-helper gen eff)))
 
 (define (run-random-helper gen eff)
+  (doc 'export #t)
   (doc 'type '(-> GenState (Eff Random a) (Pair a GenState)))
   (doc 'description "Core handler implementation")
   (cond
@@ -234,10 +250,12 @@
                                      (run-random-helper gen (k resp))))]))]))
 
 (define handle-random run-random)
+(doc handle-random 'export #t)
 (doc handle-random 'type '(-> Integer (Eff Random a) a))
 (doc handle-random 'description "Alias for run-random for API consistency")
 
 (define (with-random-eff seed eff)
+  (doc 'export #t)
   (doc 'type '(-> Integer (Eff Random a) (Eff e a)))
   (doc 'description "Run Random effect in a scope, returning only the result")
   (eff-return (run-random seed eff)))
@@ -254,6 +272,7 @@
 (doc 'note "For UUIDs, crypto placeholders, etc")
 
 (define (random-bytes-eff n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Eff Random Bytevector)))
   (doc 'description "Generate a bytevector of n random bytes")
   (perform (make-effect 'random-bytes n)))
@@ -267,14 +286,17 @@
 (doc get-random-state-eff 'description "Get the current generator state (for serialization)")
 
 (define serialize-random-state gen->string)
+(doc serialize-random-state 'export #t)
 (doc serialize-random-state 'type '(-> GenState String))
 (doc serialize-random-state 'description "Convert generator state to a storable string")
 
 (define deserialize-random-state string->gen)
+(doc deserialize-random-state 'export #t)
 (doc deserialize-random-state 'type '(-> String GenState))
 (doc deserialize-random-state 'description "Parse generator state from string")
 
 (define (run-random-resume state-string eff)
+  (doc 'export #t)
   (doc 'type '(-> String (Eff Random a) a))
   (doc 'description "Resume a random computation from serialized state")
   (run-random-with-gen (deserialize-random-state state-string) eff))

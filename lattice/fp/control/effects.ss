@@ -13,6 +13,7 @@
 
 ;;; make-effect-sig : Symbol -> (List Operation) -> EffectSig
 (define (make-effect-sig name operations)
+  (doc 'export #t)
   (doc 'description "Create an effect signature defining a set of operations with their parameter and result types. At runtime this is structured data for introspection and type checking.")
   (doc 'type '(-> Symbol (List Operation) EffectSig))
   (doc 'example "(make-effect-sig 'State (list (make-operation 'get 'Unit 's) (make-operation 'put 's 'Unit)))")
@@ -20,39 +21,48 @@
 
 ;;; effect-sig? : Any -> Boolean
 (define (effect-sig? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'effect-sig)))
 
 ;;; effect-sig-name : EffectSig -> Symbol
 (define (effect-sig-name sig)
+  (doc 'export #t)
   (list-ref sig 1))
 
 ;;; effect-sig-operations : EffectSig -> (List Operation)
 (define (effect-sig-operations sig)
+  (doc 'export #t)
   (list-ref sig 2))
 
 ;;; make-operation : Symbol -> Type -> Type -> Operation
 ;;; Create an operation with parameter and result types.
 (define (make-operation name param-type result-type)
+  (doc 'export #t)
   (list 'operation name param-type result-type))
 
 ;;; operation? : Any -> Boolean
 (define (operation? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'operation)))
 
 ;;; operation-name : Operation -> Symbol
 (define (operation-name op)
+  (doc 'export #t)
   (list-ref op 1))
 
 ;;; operation-param-type : Operation -> Type
 (define (operation-param-type op)
+  (doc 'export #t)
   (list-ref op 2))
 
 ;;; operation-result-type : Operation -> Type
 (define (operation-result-type op)
+  (doc 'export #t)
   (list-ref op 3))
 
 ;;; lookup-operation : EffectSig -> Symbol -> Operation | #f
 (define (lookup-operation sig op-name)
+  (doc 'export #t)
   (let loop ([ops (effect-sig-operations sig)])
        (cond
         [(null? ops) #f]
@@ -122,14 +132,17 @@
 
 ;;; make-effect-row : (List Symbol) -> EffectRow
 (define (make-effect-row effects)
+  (doc 'export #t)
   (list 'row effects))
 
 ;;; effect-row? : Any -> Boolean
 (define (effect-row? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'row)))
 
 ;;; effect-row-effects : EffectRow -> (List Symbol)
 (define (effect-row-effects row)
+  (doc 'export #t)
   (list-ref row 1))
 
 ;;; empty-row : EffectRow
@@ -137,11 +150,13 @@
 
 ;;; row-contains? : EffectRow -> Symbol -> Boolean
 (define (row-contains? row effect)
+  (doc 'export #t)
   (if (memq effect (effect-row-effects row)) #t #f))
 
 ;;; row-add : EffectRow -> Symbol -> EffectRow
 ;;; Add an effect to the row (if not already present)
 (define (row-add row effect)
+  (doc 'export #t)
   (if (row-contains? row effect)
       row
       (make-effect-row (cons effect (effect-row-effects row)))))
@@ -149,12 +164,14 @@
 ;;; row-remove : EffectRow -> Symbol -> EffectRow
 ;;; Remove an effect from the row
 (define (row-remove row effect)
+  (doc 'export #t)
   (make-effect-row (filter (lambda (e) (not (eq? e effect)))
                            (effect-row-effects row))))
 
 ;;; row-union : EffectRow -> EffectRow -> EffectRow
 ;;; Combine two effect rows
 (define (row-union row1 row2)
+  (doc 'export #t)
   (let loop ([effects (effect-row-effects row2)] [result row1])
        (if (null? effects)
            result
@@ -163,6 +180,7 @@
 ;;; row-difference : EffectRow -> EffectRow -> EffectRow
 ;;; Effects in row1 but not in row2
 (define (row-difference row1 row2)
+  (doc 'export #t)
   (make-effect-row
    (filter (lambda (e) (not (row-contains? row2 e)))
            (effect-row-effects row1))))
@@ -170,14 +188,17 @@
 ;;; make-row-var : Symbol -> RowVar
 ;;; Create a row variable for effect polymorphism
 (define (make-row-var name)
+  (doc 'export #t)
   (list 'row-var name))
 
 ;;; row-var? : Any -> Boolean
 (define (row-var? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'row-var)))
 
 ;;; row-var-name : RowVar -> Symbol
 (define (row-var-name rv)
+  (doc 'export #t)
   (list-ref rv 1))
 
 ;;; ====
@@ -192,30 +213,37 @@
 
 ;;; make-eff-pure : a -> Eff e a
 (define (make-eff-pure val)
+  (doc 'export #t)
   (list 'eff-pure val))
 
 ;;; eff-pure? : Eff e a -> Boolean
 (define (eff-pure? eff)
+  (doc 'export #t)
   (and (pair? eff) (eq? (car eff) 'eff-pure)))
 
 ;;; eff-pure-value : Eff e a -> a
 (define (eff-pure-value eff)
+  (doc 'export #t)
   (list-ref eff 1))
 
 ;;; make-eff-op : Effect -> (Response -> Eff e a) -> Eff e a
 (define (make-eff-op effect continuation)
+  (doc 'export #t)
   (list 'eff-op effect continuation))
 
 ;;; eff-op? : Eff e a -> Boolean
 (define (eff-op? eff)
+  (doc 'export #t)
   (and (pair? eff) (eq? (car eff) 'eff-op)))
 
 ;;; eff-op-effect : Eff e a -> Effect
 (define (eff-op-effect eff)
+  (doc 'export #t)
   (list-ref eff 1))
 
 ;;; eff-op-cont : Eff e a -> (Response -> Eff e a)
 (define (eff-op-cont eff)
+  (doc 'export #t)
   (list-ref eff 2))
 
 ;;; eff-return : a -> Eff e a
@@ -242,18 +270,22 @@
 
 ;;; make-eff-queue : Eff e a -> (List (a -> Eff e b)) -> Eff-Queue e b
 (define (make-eff-queue base conts)
+  (doc 'export #t)
   (list 'eff-queue base conts))
 
 ;;; eff-queue? : Any -> Boolean
 (define (eff-queue? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'eff-queue)))
 
 ;;; eff-queue-base : Eff-Queue e a -> Eff e x
 (define (eff-queue-base q)
+  (doc 'export #t)
   (list-ref q 1))
 
 ;;; eff-queue-conts : Eff-Queue e a -> (List (x -> Eff e a))
 (define (eff-queue-conts q)
+  (doc 'export #t)
   (list-ref q 2))
 
 ;;; eff-bind : Eff e a -> (a -> Eff e b) -> Eff e b
@@ -261,6 +293,7 @@
 ;;; Left-associative chains like ((a >>= b) >>= c) >>= d simply append
 ;;; to the continuation queue instead of rebuilding structure.
 (define (eff-bind ma f)
+  (doc 'export #t)
   (cond
    ;; Pure value: apply continuation immediately
    [(eff-pure? ma) (f (eff-pure-value ma))]
@@ -276,6 +309,7 @@
 ;;; Convert queue form back to standard form for interpretation.
 ;;; This is called by handlers when they need to process effects.
 (define (eff-normalize eff)
+  (doc 'export #t)
   (if (eff-queue? eff)
       (eff-apply-queue (eff-queue-base eff) (eff-queue-conts eff))
       eff))
@@ -284,6 +318,7 @@
 ;;; Apply queued continuations to an effect.
 ;;; This is where the actual work happens, but only once at run time.
 (define (eff-apply-queue eff conts)
+  (doc 'export #t)
   (if (null? conts)
       eff
       (eff-apply-queue-step eff conts)))
@@ -291,6 +326,7 @@
 ;;; eff-apply-queue-step : Eff e a -> (List (a -> Eff e b)) -> Eff e b
 ;;; Step through the effect, threading continuations.
 (define (eff-apply-queue-step eff conts)
+  (doc 'export #t)
   (cond
    [(null? conts) eff]
    [(eff-pure? eff)
@@ -309,10 +345,12 @@
 
 ;;; eff-map : (a -> b) -> Eff e a -> Eff e b
 (define (eff-map f ea)
+  (doc 'export #t)
   (eff-bind ea (lambda (a) (eff-return (f a)))))
 
 ;;; eff-ap : Eff e (a -> b) -> Eff e a -> Eff e b
 (define (eff-ap ef ea)
+  (doc 'export #t)
   (eff-bind ef (lambda (f)
                        (eff-bind ea (lambda (a)
                                             (eff-return (f a)))))))
@@ -320,6 +358,7 @@
 ;;; perform : Effect -> Eff e Response
 ;;; Perform an effect operation.
 (define (perform effect)
+  (doc 'export #t)
   (make-eff-op effect eff-return))
 
 ;;; ====
@@ -329,24 +368,29 @@
 ;;; make-effect : Symbol -> Any -> Effect
 ;;; Create an effect with a tag and payload.
 (define (make-effect tag payload)
+  (doc 'export #t)
   (list 'effect tag payload))
 
 ;;; effect? : Any -> Boolean
 (define (effect? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'effect)))
 
 ;;; effect-tag : Effect -> Symbol
 (define (effect-tag eff)
+  (doc 'export #t)
   (list-ref eff 1))
 
 ;;; effect-payload : Effect -> Any
 (define (effect-payload eff)
+  (doc 'export #t)
   (list-ref eff 2))
 
 ;;; effect-label : Effect -> Symbol
 ;;; Get the effect label (category) from the tag
 ;;; Tags are like 'state-get, 'state-put - label is 'State
 (define (effect-label eff)
+  (doc 'export #t)
   (let* ([tag (effect-tag eff)]
          [tag-str (symbol->string tag)]
          [parts (string-split tag-str #\-)])
@@ -359,6 +403,7 @@
 ;;; string-titlecase : String → String
 ;;; Helper: convert first character to uppercase.
 (define (string-titlecase str)
+  (doc 'export #t)
   (if (= (string-length str) 0)
       str
       (string-append
@@ -383,38 +428,46 @@
 
 ;;; make-handler : (a -> b) -> (List (Symbol . Handler)) -> Symbol -> Handler
 (define (make-handler return-case effect-cases semantics)
+  (doc 'export #t)
   (list 'handler return-case effect-cases semantics))
 
 ;;; handler? : Any -> Boolean
 (define (handler? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'handler)))
 
 ;;; handler-return : Handler -> (a -> b)
 (define (handler-return h)
+  (doc 'export #t)
   (list-ref h 1))
 
 ;;; handler-effects : Handler -> (List (Symbol . (payload k -> b)))
 (define (handler-effects h)
+  (doc 'export #t)
   (list-ref h 2))
 
 ;;; handler-semantics : Handler -> Symbol
 ;;; Returns 'deep or 'shallow
 (define (handler-semantics h)
+  (doc 'export #t)
   (list-ref h 3))
 
 ;;; handler-lookup : Handler -> Symbol -> (payload k -> b) | #f
 (define (handler-lookup h tag)
+  (doc 'export #t)
   (let ([entry (assq tag (handler-effects h))])
        (if entry (cdr entry) #f)))
 
 ;;; deep-handler : (a -> b) -> (List (Symbol . Handler)) -> Handler
 ;;; Convenience: create a deep handler
 (define (deep-handler return-case effect-cases)
+  (doc 'export #t)
   (make-handler return-case effect-cases 'deep))
 
 ;;; shallow-handler : (a -> b) -> (List (Symbol . Handler)) -> Handler
 ;;; Convenience: create a shallow handler
 (define (shallow-handler return-case effect-cases)
+  (doc 'export #t)
   (make-handler return-case effect-cases 'shallow))
 
 ;;; ====
@@ -426,6 +479,7 @@
 ;;; Deep semantics: handler applies to entire continuation.
 ;;; Shallow semantics: handler only applies to immediate step.
 (define (handle handler eff)
+  (doc 'export #t)
   (if (eq? (handler-semantics handler) 'deep)
       (handle-deep handler eff)
       (handle-shallow handler eff)))
@@ -434,6 +488,7 @@
 ;;; Deep handler: recursively handles continuation
 ;;; Handles the queue form by normalizing first.
 (define (handle-deep handler eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     ((handler-return handler) (eff-pure-value eff))]
@@ -459,6 +514,7 @@
 ;;; Shallow handler: only handles immediate continuation
 ;;; Handles the queue form by normalizing first.
 (define (handle-shallow handler eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     ((handler-return handler) (eff-pure-value eff))]
@@ -486,6 +542,7 @@
 ;;; compose-handlers : Handler -> Handler -> Handler
 ;;; Compose two handlers: h1 handles first, then h2
 (define (compose-handlers h1 h2)
+  (doc 'export #t)
   (make-handler
    ;; Return case: chain returns
    (lambda (a)
@@ -501,6 +558,7 @@
 ;;; nest-handlers : (List Handler) -> Handler
 ;;; Nest multiple handlers into one
 (define (nest-handlers handlers)
+  (doc 'export #t)
   (if (null? handlers)
       (deep-handler identity '())
       (fold-left compose-handlers (car handlers) (cdr handlers))))
@@ -519,16 +577,19 @@
 
 ;;; state-put : s -> Eff State ()
 (define (state-put s)
+  (doc 'export #t)
   (perform (make-effect 'state-put s)))
 
 ;;; state-modify : (s -> s) -> Eff State ()
 (define (state-modify f)
+  (doc 'export #t)
   (eff-bind state-get
             (lambda (s)
                     (state-put (f s)))))
 
 ;;; state-gets : (s -> a) -> Eff State a
 (define (state-gets f)
+  (doc 'export #t)
   (eff-bind state-get
             (lambda (s)
                     (eff-return (f s)))))
@@ -538,6 +599,7 @@
 ;;; NOTE: This handler is not used by run-state; kept for composability.
 ;;; The handler itself returns a function (s -> (a . s)) that threads state.
 (define (make-state-handler init-state)
+  (doc 'export #t)
   (deep-handler
    (lambda (a) (lambda (s) (cons a s)))  ; Thread the state through
    `((state-get . ,(lambda (payload k)
@@ -548,11 +610,13 @@
 ;;; run-state : s × (Eff State α) → (α . s)
 ;;; Handle state effect with initial state
 (define (run-state init-state eff)
+  (doc 'export #t)
   (run-state-helper init-state eff))
 
 ;;; run-state-helper : s × (Eff State α) → (α . s)
 ;;; Internal helper for state effect handling.
 (define (run-state-helper state eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) state)]
@@ -586,11 +650,13 @@
 ;;; The inner computation runs with the modified environment,
 ;;; then the original environment is restored for subsequent operations.
 (define (reader-local f eff)
+  (doc 'export #t)
   (make-eff-op (make-effect 'reader-local (cons f eff))
                eff-return))
 
 ;;; reader-asks : (r -> a) -> Eff Reader a
 (define (reader-asks f)
+  (doc 'export #t)
   (eff-bind reader-ask
             (lambda (r)
                     (eff-return (f r)))))
@@ -598,6 +664,7 @@
 ;;; run-reader : r -> Eff Reader a -> a
 ;;; Handle reader effect.
 (define (run-reader env eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (eff-pure-value eff)]
@@ -631,26 +698,31 @@
 
 ;;; writer-tell : w -> Eff Writer ()
 (define (writer-tell msg)
+  (doc 'export #t)
   (perform (make-effect 'writer-tell msg)))
 
 ;;; writer-listen : Eff Writer a -> Eff Writer (a . (List w))
 ;;; Listen to the output of a sub-computation
 (define (writer-listen eff)
+  (doc 'export #t)
   (perform (make-effect 'writer-listen eff)))
 
 ;;; writer-pass : Eff Writer (a . (w -> w)) -> Eff Writer a
 ;;; Transform output with a function
 (define (writer-pass eff)
+  (doc 'export #t)
   (perform (make-effect 'writer-pass eff)))
 
 ;;; run-writer : (Eff Writer α) → (α . (List w))
 ;;; Handle writer effect, collecting output.
 (define (run-writer eff)
+  (doc 'export #t)
   (run-writer-helper '() eff))
 
 ;;; run-writer-helper : (List w) × (Eff Writer α) → (α . (List w))
 ;;; Internal helper for writer effect handling.
 (define (run-writer-helper log eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) (reverse log))]
@@ -710,11 +782,13 @@
 
 ;;; eff-throw : e -> Eff Exception a
 (define (eff-throw exn)
+  (doc 'export #t)
   (perform (make-effect 'throw exn)))
 
 ;;; eff-catch : Eff Exception a -> (e -> Eff Exception a) -> Eff Exception a
 ;;; Handle exceptions with a handler.
 (define (eff-catch eff handler)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff) eff]
    [(eff-queue? eff)
@@ -734,6 +808,7 @@
 ;;; run-exception : Eff Exception a -> Either e a
 ;;; Handle exception effect.
 (define (run-exception eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (right (eff-pure-value eff))]
@@ -754,6 +829,7 @@
 ;;; eff-try : Eff Exception a -> Eff e (Either e a)
 ;;; Try/catch that returns Either
 (define (eff-try eff)
+  (doc 'export #t)
   (eff-return (run-exception eff)))
 
 ;;; ====
@@ -762,6 +838,7 @@
 
 ;;; nondet-choose : List a -> Eff NonDet a
 (define (nondet-choose options)
+  (doc 'export #t)
   (perform (make-effect 'nondet-choose options)))
 
 ;;; nondet-fail : Eff NonDet a
@@ -771,12 +848,14 @@
 ;;; nondet-guard : Bool -> Eff NonDet ()
 ;;; Fail if condition is false
 (define (nondet-guard pred)
+  (doc 'export #t)
   (if pred
       (eff-return '())
       nondet-fail))
 
 ;;; nondet-from-maybe : Maybe a -> Eff NonDet a
 (define (nondet-from-maybe m)
+  (doc 'export #t)
   (if (just? m)
       (eff-return (from-just m))
       nondet-fail))
@@ -786,12 +865,14 @@
 ;;; Uses O(N) collection via reverse-accumulate pattern instead of
 ;;; O(N^2) apply-append pattern.
 (define (run-nondet eff)
+  (doc 'export #t)
   (reverse (run-nondet-acc '() eff)))
 
 ;;; run-nondet-acc : (List a) -> Eff NonDet a -> (List a)
 ;;; Accumulator-based helper for run-nondet.
 ;;; Collects results in reverse order (prepends via cons).
 (define (run-nondet-acc acc eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) acc)]
@@ -819,6 +900,7 @@
 ;;; run-nondet-first : Eff NonDet a -> Maybe a
 ;;; Handle non-determinism, returning first result.
 (define (run-nondet-first eff)
+  (doc 'export #t)
   (let ([results (run-nondet eff)])
        (if (null? results)
            nothing
@@ -828,12 +910,14 @@
 ;;; Handle non-determinism with a bound on number of results.
 ;;; Uses O(N) collection via accumulator pattern.
 (define (run-nondet-bounded limit eff)
+  (doc 'export #t)
   (reverse (run-nondet-bounded-acc limit '() eff)))
 
 ;;; run-nondet-bounded-acc : Nat -> (List a) -> Eff NonDet a -> (List a)
 ;;; Accumulator-based helper for run-nondet-bounded.
 ;;; Returns results in reverse order; caller must reverse.
 (define (run-nondet-bounded-acc remaining acc eff)
+  (doc 'export #t)
   (if (<= remaining 0)
       acc
       (cond
@@ -869,6 +953,7 @@
 
 ;;; console-print : String -> Eff Console ()
 (define (console-print msg)
+  (doc 'export #t)
   (perform (make-effect 'console-print msg)))
 
 ;;; console-read : Eff Console String
@@ -877,16 +962,19 @@
 
 ;;; console-print-line : String -> Eff Console ()
 (define (console-print-line msg)
+  (doc 'export #t)
   (console-print (string-append msg "\n")))
 
 ;;; run-console-pure : (List String) × (Eff Console α) → (α . (List String))
 ;;; Pure handler: takes input list, returns output list.
 (define (run-console-pure inputs eff)
+  (doc 'export #t)
   (run-console-helper inputs '() eff))
 
 ;;; run-console-helper : (List String) × (List String) × (Eff Console α) → (α . (List String))
 ;;; Internal helper for console effect handling.
 (define (run-console-helper inputs outputs eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (cons (eff-pure-value eff) (reverse outputs))]
@@ -918,15 +1006,18 @@
 
 ;;; async-fork : Eff e a -> Eff Async (Future a)
 (define (async-fork computation)
+  (doc 'export #t)
   (perform (make-effect 'async-fork computation)))
 
 ;;; async-await : Future a -> Eff Async a
 (define (async-await future)
+  (doc 'export #t)
   (perform (make-effect 'async-await future)))
 
 ;;; async-parallel : (List (Eff e a)) -> Eff Async (List a)
 ;;; Run computations in parallel
 (define (async-parallel comps)
+  (doc 'export #t)
   (eff-bind (eff-sequence (map async-fork comps))
             (lambda (futures)
                     (eff-sequence (map async-await futures)))))
@@ -934,6 +1025,7 @@
 ;;; run-async-sync : Eff Async a -> a
 ;;; Run async effects synchronously (no parallelism).
 (define (run-async-sync eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (eff-pure-value eff)]
@@ -967,6 +1059,7 @@
 ;;; eff-gensym : Symbol → (Symbol . Nat)
 ;;; Generate a unique symbol with a prefix.
 (define (eff-gensym prefix)
+  (doc 'export #t)
   (set! *gensym-counter* (+ *gensym-counter* 1))
   (cons prefix *gensym-counter*))
 
@@ -977,6 +1070,7 @@
 ;;; eff-sequence : List (Eff e a) -> Eff e (List a)
 ;;; Sequence effectful computations.
 (define (eff-sequence effs)
+  (doc 'export #t)
   (if (null? effs)
       (eff-return '())
       (eff-bind (car effs)
@@ -988,11 +1082,13 @@
 ;;; eff-map-m : (a -> Eff e b) -> List a -> Eff e (List b)
 ;;; Map an effectful function over a list.
 (define (eff-map-m f lst)
+  (doc 'export #t)
   (eff-sequence (map f lst)))
 
 ;;; eff-filter-m : (a -> Eff e Bool) -> List a -> Eff e (List a)
 ;;; Filter with effectful predicate
 (define (eff-filter-m pred lst)
+  (doc 'export #t)
   (if (null? lst)
       (eff-return '())
       (eff-bind (pred (car lst))
@@ -1006,6 +1102,7 @@
 ;;; eff-for-each : (a -> Eff e ()) -> List a -> Eff e ()
 ;;; Execute effect for each element.
 (define (eff-for-each f lst)
+  (doc 'export #t)
   (if (null? lst)
       (eff-return '())
       (eff-bind (f (car lst))
@@ -1015,6 +1112,7 @@
 ;;; eff-fold : (b -> a -> Eff e b) -> b -> List a -> Eff e b
 ;;; Fold with effects.
 (define (eff-fold f init lst)
+  (doc 'export #t)
   (if (null? lst)
       (eff-return init)
       (eff-bind (f init (car lst))
@@ -1024,6 +1122,7 @@
 ;;; eff-fold-right : (a -> b -> Eff e b) -> b -> List a -> Eff e b
 ;;; Right fold with effects
 (define (eff-fold-right f init lst)
+  (doc 'export #t)
   (if (null? lst)
       (eff-return init)
       (eff-bind (eff-fold-right f init (cdr lst))
@@ -1032,15 +1131,18 @@
 
 ;;; eff-when : Bool -> Eff e () -> Eff e ()
 (define (eff-when pred action)
+  (doc 'export #t)
   (if pred action (eff-return '())))
 
 ;;; eff-unless : Bool -> Eff e () -> Eff e ()
 (define (eff-unless pred action)
+  (doc 'export #t)
   (eff-when (not pred) action))
 
 ;;; eff-replicate : Nat -> Eff e a -> Eff e (List a)
 ;;; Run effect n times
 (define (eff-replicate n action)
+  (doc 'export #t)
   (if (<= n 0)
       (eff-return '())
       (eff-bind action
@@ -1059,12 +1161,14 @@
 
 ;;; eff-lift2 : (a -> b -> c) -> Eff e a -> Eff e b -> Eff e c
 (define (eff-lift2 f ea eb)
+  (doc 'export #t)
   (eff-bind ea (lambda (a)
                        (eff-bind eb (lambda (b)
                                             (eff-return (f a b)))))))
 
 ;;; eff-lift3 : (a -> b -> c -> d) -> Eff e a -> Eff e b -> Eff e c -> Eff e d
 (define (eff-lift3 f ea eb ec)
+  (doc 'export #t)
   (eff-bind ea (lambda (a)
                        (eff-bind eb (lambda (b)
                                             (eff-bind ec (lambda (c)
@@ -1079,19 +1183,23 @@
 
 ;;; make-effect-constraint : (List Symbol) -> Constraint
 (define (make-effect-constraint effects)
+  (doc 'export #t)
   (list 'effect-constraint effects))
 
 ;;; effect-constraint? : Any -> Boolean
 (define (effect-constraint? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'effect-constraint)))
 
 ;;; effect-constraint-effects : Constraint -> (List Symbol)
 (define (effect-constraint-effects c)
+  (doc 'export #t)
   (list-ref c 1))
 
 ;;; check-effects : (List Symbol) -> Eff e a -> Bool
 ;;; Check if computation only uses allowed effects
 (define (check-effects allowed eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff) #t]
    [(eff-queue? eff)
@@ -1106,6 +1214,7 @@
 ;;; with-effect-check : (List Symbol) -> Eff e a -> Eff e a
 ;;; Wrap computation with effect checking (debug mode)
 (define (with-effect-check allowed eff)
+  (doc 'export #t)
   (if (check-effects allowed eff)
       eff
       (eff-throw (list 'effect-violation
@@ -1122,16 +1231,19 @@
 ;;; resume : (Response -> Eff e a) -> Response -> Eff e a
 ;;; Resume a captured continuation
 (define (resume k response)
+  (doc 'export #t)
   (k response))
 
 ;;; resume-with : (Response -> Eff e a) -> Response -> Handler -> b
 ;;; Resume a continuation under a handler
 (define (resume-with k response handler)
+  (doc 'export #t)
   (handle handler (k response)))
 
 ;;; abort : a -> Eff e a
 ;;; Abort current computation with a value (don't resume)
 (define (abort val)
+  (doc 'export #t)
   (eff-return val))
 
 ;;; ====
@@ -1160,18 +1272,22 @@
 
 ;;; log-info : String -> Eff Writer ()
 (define (log-info msg)
+  (doc 'export #t)
   (writer-tell (list 'info msg)))
 
 ;;; log-warn : String -> Eff Writer ()
 (define (log-warn msg)
+  (doc 'export #t)
   (writer-tell (list 'warn msg)))
 
 ;;; log-error : String -> Eff Writer ()
 (define (log-error msg)
+  (doc 'export #t)
   (writer-tell (list 'error msg)))
 
 ;;; log-debug : String -> Eff Writer ()
 (define (log-debug msg)
+  (doc 'export #t)
   (writer-tell (list 'debug msg)))
 
 ;;; ====
@@ -1181,11 +1297,13 @@
 ;;; run-state-writer : s × (Eff (State + Writer) α) → ((α . s) . (List w))
 ;;; Handle both state and writer effects
 (define (run-state-writer init-state eff)
+  (doc 'export #t)
   (run-writer (run-state-in-writer init-state eff)))
 
 ;;; run-state-in-writer : s × (Eff (State + Writer) α) → (Eff Writer (α . s))
 ;;; Internal helper: handle State effect, passing Writer through.
 (define (run-state-in-writer state eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (eff-return (cons (eff-pure-value eff) state))]
@@ -1209,11 +1327,13 @@
 ;;; run-reader-writer : r × (Eff (Reader + Writer) α) → (α . (List w))
 ;;; Handle both reader and writer effects
 (define (run-reader-writer env eff)
+  (doc 'export #t)
   (run-writer (run-reader-in-writer env eff)))
 
 ;;; run-reader-in-writer : r × (Eff (Reader + Writer) α) → (Eff Writer α)
 ;;; Internal helper: handle Reader effect, passing Writer through.
 (define (run-reader-in-writer env eff)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff)
     (eff-return (eff-pure-value eff))]
@@ -1251,26 +1371,31 @@
 ;;; with-state : s -> Eff State a -> Eff e a
 ;;; Run state effect in a scope, returning only the result
 (define (with-state init eff)
+  (doc 'export #t)
   (eff-return (car (run-state init eff))))
 
 ;;; with-reader : r -> Eff Reader a -> Eff e a
 ;;; Run reader effect in a scope
 (define (with-reader env eff)
+  (doc 'export #t)
   (eff-return (run-reader env eff)))
 
 ;;; with-writer : Eff Writer a -> Eff e (a . (List w))
 ;;; Run writer effect in a scope
 (define (with-writer eff)
+  (doc 'export #t)
   (eff-return (run-writer eff)))
 
 ;;; with-exception : Eff Exception a -> Eff e (Either e a)
 ;;; Run exception effect in a scope
 (define (with-exception eff)
+  (doc 'export #t)
   (eff-return (run-exception eff)))
 
 ;;; with-nondet : Eff NonDet a -> Eff e (List a)
 ;;; Run nondet effect in a scope
 (define (with-nondet eff)
+  (doc 'export #t)
   (eff-return (run-nondet eff)))
 
 ;;; ====
@@ -1280,6 +1405,7 @@
 ;;; local-state : s -> Eff State a -> Eff State a
 ;;; Run with temporary state, restore original after
 (define (local-state temp-state eff)
+  (doc 'export #t)
   (eff-bind state-get
             (lambda (saved)
                     (eff-bind (state-put temp-state)
@@ -1301,6 +1427,7 @@
 ;;; interleave : Eff e a -> Eff e b -> Eff e (Either a b)
 ;;; Interleave two computations (fair scheduling for nondet)
 (define (interleave eff1 eff2)
+  (doc 'export #t)
   (cond
    [(eff-pure? eff1)
     (eff-return (left (eff-pure-value eff1)))]

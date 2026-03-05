@@ -19,6 +19,7 @@
 
 (doc 'section 'link-function-structure)
 (define (make-link-function name g g-inverse g-derivative)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (-> Num Num) (-> Num Num) (-> Num Num) LinkFunction))
   (doc 'description "Create a link function")
   (doc 'param 'name "link name")
@@ -29,6 +30,7 @@
 
 ;;; link-function? : Any → Bool
 (define (link-function? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'link-function)))
 
 ;;; Accessors
@@ -129,6 +131,7 @@
 ;;; probit-quantile : Num → Num
 ;;; Standard normal quantile function (Phi^(-1)).
 (define (probit-quantile p)
+  (doc 'export #t)
   (if (or (<= p 0) (>= p 1))
       (error 'probit-quantile "p must be in (0, 1)" p)
       ;; Use rational approximation (Abramowitz & Stegun)
@@ -148,11 +151,13 @@
 ;;; probit-cdf : Num → Num
 ;;; Standard normal CDF (Phi).
 (define (probit-cdf x)
+  (doc 'export #t)
   (* 0.5 (+ 1 (erf (/ x (sqrt 2))))))
 
 ;;; probit-pdf : Num → Num
 ;;; Standard normal PDF (phi).
 (define (probit-pdf x)
+  (doc 'export #t)
   (/ (exp (* -0.5 x x))
      (sqrt (* 2 (pi-value)))))
 
@@ -252,6 +257,7 @@
 ;;; make-power-link : Num → LinkFunction
 ;;; g(mu) = mu^power for power != 0, log(mu) for power = 0
 (define (make-power-link power)
+  (doc 'export #t)
   (if (= power 0)
       log-link
       (make-link-function
@@ -273,6 +279,7 @@
 ;;; canonical-link : Symbol → LinkFunction
 ;;; Return canonical link for given family.
 (define (canonical-link family-name)
+  (doc 'export #t)
   (case family-name
         [(gaussian) identity-link]
         [(binomial) logit-link]

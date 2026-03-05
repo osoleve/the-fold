@@ -58,6 +58,7 @@ The free monad Free(ΣF) is exactly Eff.")
 ;;; Convert an effect signature to an algebraic signature.
 ;;; Each operation becomes a binary operation (payload × continuation).
 (define (effect-sig-to-signature eff-sig)
+  (doc 'export #t)
   (doc 'type '(-> EffectSig Signature))
   (doc 'description "Convert effect signature to algebraic signature.
 Operations are viewed as binary: (payload, continuation) → term.")
@@ -128,6 +129,7 @@ the free algebra (Eff) to the handler's algebra.")
 ;;; View a handler as an algebra over an effect signature.
 ;;; The carrier type is the handler's result type.
 (define (handler-to-algebra h sig)
+  (doc 'export #t)
   (doc 'type '(-> Handler Signature Algebra))
   (doc 'description "Convert a handler to an algebra.
 The handler's return-case and effect-cases become operation implementations.")
@@ -143,6 +145,7 @@ The handler's return-case and effect-cases become operation implementations.")
 ;;; Convert an algebra back to a handler for effect evaluation.
 ;;; This is the inverse of handler-to-algebra (up to representation).
 (define (algebra-to-handler alg)
+  (doc 'export #t)
   (doc 'type '(-> Algebra Handler))
   (doc 'description "Convert an algebra to a handler.
 The 'pure operation becomes return-case, other operations become effect-cases.
@@ -183,6 +186,7 @@ F₁∘F₂ ⊣ G₂∘G₁ (note the reversal in the right adjoints).")
 ;;; make-effect-adjunction : Signature → Adjunction
 ;;; Build the Free Effect ⊣ Forgetful adjunction for an effect signature.
 (define (make-effect-adjunction sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature Adjunction))
   (doc 'description "Construct Free ⊣ Forgetful for an effect signature.
 This is the categorical foundation underlying algebraic effects.")
@@ -291,6 +295,7 @@ interpret the effect tree using the algebra's operations.")
 ;;; Evaluate an effect using an algebra (explicit counit instantiation).
 ;;; This is the proper way to interpret effects categorically.
 (define (evaluate-counit adj alg eff)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction Algebra (Eff e a) Value))
   (doc 'description "Evaluate an effect in an algebra.
 This is the counit ε_A applied to a specific algebra A.
@@ -300,6 +305,7 @@ Converts the algebra to a handler and runs the effect through it.")
 ;;; evaluate-with-algebra : Algebra × Eff → Value
 ;;; Shorthand when you have an algebra but not the adjunction.
 (define (evaluate-with-algebra alg eff)
+  (doc 'export #t)
   (doc 'type '(-> Algebra (Eff e a) Value))
   (doc 'description "Evaluate an effect directly with an algebra.
 Convenience function that converts algebra to handler and runs.")
@@ -333,6 +339,7 @@ effect handler order affects semantics.")
 ;;; Compose two effect adjunctions.
 ;;; Note: F₂∘F₁ ⊣ G₁∘G₂ (right adjoints reverse)
 (define (compose-effect-adjunctions adj1 adj2)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction Adjunction Adjunction))
   (doc 'description "Compose effect adjunctions for nested handlers.
 If adj1 handles outer effect and adj2 handles inner effect,
@@ -343,6 +350,7 @@ result handles the composition.")
 ;;; Test if two handlers commute on a given computation.
 ;;; Handlers commute iff h₁(h₂(eff)) ≈ h₂(h₁(eff)).
 (define (handlers-commute? h1 h2 eff eq?)
+  (doc 'export #t)
   (doc 'type '(-> Handler Handler (Eff e a) (a × a → Boolean) Boolean))
   (doc 'description "Test if two handlers commute (produce equivalent results).
 Uses provided equality predicate for result comparison.")
@@ -374,6 +382,7 @@ This perspective explains:
 ;;; make-row-functor : EffectRow → Functor
 ;;; View an effect row as a functor (coproduct of effect functors).
 (define (make-row-functor row)
+  (doc 'export #t)
   (doc 'type '(-> EffectRow Functor))
   (doc 'description "Create a functor from an effect row.
 The row (E₁ E₂ ...) becomes the coproduct functor E₁ + E₂ + ...")
@@ -387,6 +396,7 @@ The row (E₁ E₂ ...) becomes the coproduct functor E₁ + E₂ + ...")
 ;;; Row extension as a natural transformation.
 ;;; Adds an effect to a row, viewed as a functor category morphism.
 (define (row-extension-morphism effect-name row)
+  (doc 'export #t)
   (doc 'type '(-> Symbol EffectRow NatTransform))
   (doc 'description "View row extension as a natural transformation.
 This is the inclusion Row → (E + Row) in the functor category.")
@@ -427,6 +437,7 @@ Technical detail:
 ;;; Represent a captured continuation as a Kan extension structure.
 ;;; This is primarily for documentation/verification purposes.
 (define (continuation-as-kan k)
+  (doc 'export #t)
   (doc 'type '(-> (-> Response (Eff e a)) KanExtension))
   (doc 'description "View a captured continuation as a left Kan extension.
 The continuation k : Response → Eff e a is Lan_η(pure) at type Response → a.")
@@ -440,12 +451,14 @@ The continuation k : Response → Eff e a is Lan_η(pure) at type Response → a
 
 ;;; kan-extension? : Any → Boolean
 (define (kan-extension? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'kan-extension)))
 
 ;;; kan-resume : KanExtension × Response → Eff e a
 ;;; Resume a continuation (use the Kan extension).
 (define (kan-resume kan resp)
+  (doc 'export #t)
   (doc 'type '(-> KanExtension Response (Eff e a)))
   (doc 'description "Resume a continuation by applying the Kan extension.")
   (if (kan-extension? kan)
@@ -455,6 +468,7 @@ The continuation k : Response → Eff e a is Lan_η(pure) at type Response → a
 ;;; kan-factor : KanExtension × (a → Eff e b) → (Response → Eff e b)
 ;;; Factor through a continuation (universal property of Kan extension).
 (define (kan-factor kan f)
+  (doc 'export #t)
   (doc 'type '(-> KanExtension (-> a (Eff e b)) (-> Response (Eff e b))))
   (doc 'description "Factor a morphism through the Kan extension.
 This is the universal property: any f : a → Eff e b factors uniquely
@@ -475,6 +489,7 @@ Functions to verify the categorical laws hold for our effect encodings.")
 ;;; verify-effect-unit : Signature × Any → Boolean
 ;;; Verify that eff-return satisfies the unit law: handle h (return x) = return-case h x
 (define (verify-effect-unit handler x)
+  (doc 'export #t)
   (doc 'type '(-> Handler Any Boolean))
   (doc 'description "Verify unit law: handle h (return x) = (handler-return h) x")
   (equal? (handle handler (eff-return x))
@@ -484,6 +499,7 @@ Functions to verify the categorical laws hold for our effect encodings.")
 ;;; Verify naturality: handle h (fmap f m) = fmap f (handle h m)
 ;;; Only holds when f doesn't interact with the effect.
 (define (verify-effect-naturality handler f eff eq?)
+  (doc 'export #t)
   (doc 'type '(-> Handler (-> a b) (Eff e a) (b × b → Boolean) Boolean))
   (doc 'description "Verify naturality of handler w.r.t. pure functions.")
   (eq? (handle handler (eff-map f eff))
@@ -497,6 +513,7 @@ Functions to verify the categorical laws hold for our effect encodings.")
 
 ;;; effect-adjunction->string : Adjunction → String
 (define (effect-adjunction->string adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction String))
   (if (adjunction? adj)
       (format "EffectAdj<~a: Free ⊣ Forget>" (adjunction-name adj))

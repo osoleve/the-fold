@@ -22,11 +22,13 @@
 (doc "  - user-data : Any - arbitrary user data")
 
 (define (make-particle pos vel lifetime max-life size color user-data)
+  (doc 'export #t)
   (doc 'type '(make-particle : Vec2 × Vec2 × Number × Number × Number × Any × Any → Particle))
   (list 'particle pos vel lifetime max-life size color user-data))
 
 (doc "particle? : Any → Boolean")
 (define (particle? p)
+  (doc 'export #t)
   (and (pair? p) (eq? (car p) 'particle)))
 
 (doc "Accessors")
@@ -41,11 +43,13 @@
 (doc "particle-alive? : Particle → Boolean")
 (doc "Check if particle is still alive.")
 (define (particle-alive? p)
+  (doc 'export #t)
   (> (particle-lifetime p) 0))
 
 (doc 'particle-age 'type 'Particle → Real[0,1])
 (doc "Get normalized age (0=just born, 1=about to die).")
 (define (particle-age p)
+  (doc 'export #t)
   (let ([lifetime (particle-lifetime p)]
         [max-life (particle-max-life p)])
        (if (= max-life 0)
@@ -53,6 +57,7 @@
            (- 1.0 (/ lifetime max-life)))))
 
 (define (particle-with-pos p new-pos)
+  (doc 'export #t)
   (doc 'type '(particle-with-pos : Particle × Vec2 → Particle))
   (make-particle new-pos
                  (particle-vel p)
@@ -63,6 +68,7 @@
                  (particle-user-data p)))
 
 (define (particle-with-vel p new-vel)
+  (doc 'export #t)
   (doc 'type '(particle-with-vel : Particle × Vec2 → Particle))
   (make-particle (particle-pos p)
                  new-vel
@@ -73,6 +79,7 @@
                  (particle-user-data p)))
 
 (define (particle-with-state p new-pos new-vel new-lifetime)
+  (doc 'export #t)
   (doc 'type '(particle-with-state : Particle × Vec2 × Vec2 × Number → Particle))
   (make-particle new-pos
                  new-vel
@@ -90,17 +97,20 @@
 (doc 'gravity-field 'type 'Vec2 → ForceField)
 (doc "Constant gravitational acceleration.")
 (define (gravity-field g)
+  (doc 'export #t)
   (lambda (p) g))
 
 (doc 'wind-field 'type 'Vec2 × Number → ForceField)
 (doc "Wind force proportional to strength.")
 (define (wind-field direction strength)
+  (doc 'export #t)
   (let ([force (vec2-scale (vec2-normalize direction) strength)])
        (lambda (p) force)))
 
 (doc 'drag-field 'type 'Number → ForceField)
 (doc "Velocity-proportional drag (slows particles).")
 (define (drag-field coefficient)
+  (doc 'export #t)
   (lambda (p)
           (vec2-scale (particle-vel p) (- coefficient))))
 
@@ -110,6 +120,7 @@
 (doc "  strength: positive = attract, negative = repel")
 (doc "  falloff: 1=linear, 2=inverse-square (realistic)")
 (define (attractor-field center strength falloff)
+  (doc 'export #t)
   (lambda (p)
           (let* ([to-center (vec2-sub center (particle-pos p))]
                  [dist (vec2-magnitude to-center)])
@@ -121,6 +132,7 @@
 (doc 'vortex-field 'type 'Vec2 × Number × Number → ForceField)
 (doc "Swirling vortex around a center point.")
 (define (vortex-field center strength falloff)
+  (doc 'export #t)
   (lambda (p)
           (let* ([to-center (vec2-sub center (particle-pos p))]
                  [dist (vec2-magnitude to-center)])
@@ -134,6 +146,7 @@
 (doc "Pseudo-random noise-based turbulence.")
 (doc "Uses simple hash-based noise for determinism.")
 (define (turbulence-field scale strength seed)
+  (doc 'export #t)
   (lambda (p)
           (let* ([pos (particle-pos p)]
                  [x (vec2-x pos)]
@@ -150,6 +163,7 @@
 (doc 'combine-fields 'type '(List ForceField) → ForceField)
 (doc "Sum multiple force fields.")
 (define (combine-fields fields)
+  (doc 'export #t)
   (lambda (p)
           (fold-left (lambda (total field)
                              (vec2-add total (field p)))
@@ -161,6 +175,7 @@
 (doc 'integrate-particle 'type 'Particle × ForceField × Number → Particle)
 (doc "Update particle using symplectic Euler integration.")
 (define (integrate-particle p field dt)
+  (doc 'export #t)
   (let* ([accel (field p)]
          [new-vel (vec2-add (particle-vel p) (vec2-scale accel dt))]
          [new-pos (vec2-add (particle-pos p) (vec2-scale new-vel dt))]
@@ -174,6 +189,7 @@
 (doc 'update-particles 'type '(List Particle) × ForceField × Number → (List Particle))
 (doc "Update all particles and remove dead ones.")
 (define (update-particles particles field dt)
+  (doc 'export #t)
   (filter particle-alive?
           (map (lambda (p) (integrate-particle p field dt))
                particles)))
@@ -210,6 +226,7 @@
         0))  ; accumulator
 (doc "emitter? : Any → Boolean")
 (define (emitter? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) 'emitter)))
 
 (doc "Emitter accessors")
@@ -228,6 +245,7 @@
 (define (emitter-accumulator e) (list-ref e 13))
 
 (define (emitter-with-pos e new-pos)
+  (doc 'export #t)
   (doc 'type '(emitter-with-pos : Emitter × Vec2 → Emitter))
   (list 'emitter
         new-pos
@@ -245,6 +263,7 @@
         (emitter-accumulator e)))
 
 (define (emitter-with-direction e new-dir)
+  (doc 'export #t)
   (doc 'type '(emitter-with-direction : Emitter × Vec2 → Emitter))
   (list 'emitter
         (emitter-pos e)
@@ -262,6 +281,7 @@
         (emitter-accumulator e)))
 
 (define (emitter-with-accumulator e acc)
+  (doc 'export #t)
   (doc 'type '(emitter-with-accumulator : Emitter × Number → Emitter))
   (list 'emitter
         (emitter-pos e)
@@ -283,6 +303,7 @@
 (doc 'spawn-particle 'type 'Emitter × RNG → (Particle × RNG))
 (doc "Spawn a single particle from the emitter.")
 (define (spawn-particle e rng)
+  (doc 'export #t)
   (let* (;; Random angle within spread
          [r1 (run-state (random-float-range (- (emitter-spread e))
                                             (emitter-spread e))
@@ -324,6 +345,7 @@
 (doc "Emit particles based on rate and dt.")
 (doc "Returns (particles new-emitter new-rng).")
 (define (emitter-emit e dt rng)
+  (doc 'export #t)
   (let* ([to-emit (+ (emitter-accumulator e) (* (emitter-rate e) dt))]
          [count (inexact->exact (floor to-emit))]
          [remainder (- to-emit count)]
@@ -344,11 +366,13 @@
 (doc "  - forces    : ForceField (combined)")
 
 (define (make-particle-system emitters particles forces)
+  (doc 'export #t)
   (doc 'type '(make-particle-system : (List Emitter) × (List Particle) × ForceField → ParticleSystem))
   (list 'particle-system emitters particles forces))
 
 (doc "particle-system? : Any → Boolean")
 (define (particle-system? ps)
+  (doc 'export #t)
   (and (pair? ps) (eq? (car ps) 'particle-system)))
 
 (doc "Accessors")
@@ -359,21 +383,25 @@
 (doc 'particle-system-count 'type 'ParticleSystem → Nat)
 (doc "Count active particles.")
 (define (particle-system-count ps)
+  (doc 'export #t)
   (length (particle-system-particles ps)))
 
 (define (particle-system-add-emitter ps emitter)
+  (doc 'export #t)
   (doc 'type '(particle-system-add-emitter : ParticleSystem × Emitter → ParticleSystem))
   (make-particle-system (cons emitter (particle-system-emitters ps))
                         (particle-system-particles ps)
                         (particle-system-forces ps)))
 
 (define (particle-system-add-force ps field)
+  (doc 'export #t)
   (doc 'type '(particle-system-add-force : ParticleSystem × ForceField → ParticleSystem))
   (make-particle-system (particle-system-emitters ps)
                         (particle-system-particles ps)
                         (combine-fields (list (particle-system-forces ps) field))))
 
 (define (particle-system-add-particles ps new-particles)
+  (doc 'export #t)
   (doc 'type '(particle-system-add-particles : ParticleSystem × (List Particle) → ParticleSystem))
   (make-particle-system (particle-system-emitters ps)
                         (append new-particles (particle-system-particles ps))
@@ -384,6 +412,7 @@
 (doc 'particle-system-step 'type 'ParticleSystem × Number × RNG → (ParticleSystem × RNG))
 (doc "Step the particle system forward by dt.")
 (define (particle-system-step ps dt rng)
+  (doc 'export #t)
   (let* ([forces (particle-system-forces ps)]
          ;; Update existing particles
          [updated-particles (update-particles (particle-system-particles ps) forces dt)]
@@ -414,11 +443,13 @@
 (doc 'make-empty-system 'type '→ ParticleSystem)
 (doc "Create an empty particle system with no forces.")
 (define (make-empty-system)
+  (doc 'export #t)
   (make-particle-system '() '() (lambda (p) (vec2 0 0))))
 
 (doc 'make-simple-emitter 'type 'Vec2 × Number → Emitter)
 (doc "Create a simple upward emitter with defaults.")
 (define (make-simple-emitter pos rate)
+  (doc 'export #t)
   (make-emitter pos
                 rate
                 0.3          ; spread (radians)
@@ -432,6 +463,7 @@
 (doc 'make-explosion-emitter 'type 'Vec2 × Number → Emitter)
 (doc "Create an omnidirectional burst emitter.")
 (define (make-explosion-emitter pos particle-count)
+  (doc 'export #t)
   (make-emitter pos
                 (* particle-count 60)  ; all in one frame (at 60fps)
                 3.14159                ; full spread (pi = half circle each side)
@@ -445,6 +477,7 @@
 (doc 'make-fountain-emitter 'type 'Vec2 → Emitter)
 (doc "Create a fountain-style upward emitter.")
 (define (make-fountain-emitter pos)
+  (doc 'export #t)
   (make-emitter pos
                 50           ; 50 particles/second
                 0.2          ; narrow spread
@@ -458,6 +491,7 @@
 (doc 'make-fire-emitter 'type 'Vec2 → Emitter)
 (doc "Create a fire-style emitter.")
 (define (make-fire-emitter pos)
+  (doc 'export #t)
   (make-emitter pos
                 100          ; dense
                 0.4          ; moderate spread
@@ -474,6 +508,7 @@
 (doc "Create a burst of particles at a position.")
 (doc "spread: angle spread (radians), speed: initial speed, count: particle count")
 (define (burst pos spread speed lifetime count color rng)
+  (doc 'export #t)
   (let loop ([n count] [particles '()] [r rng])
        (if (<= n 0)
            (cons particles r)
@@ -490,6 +525,7 @@
 (doc 'explosion-burst 'type 'Vec2 × Number × RNG → (List Particle) × RNG)
 (doc "Create an explosion burst.")
 (define (explosion-burst pos count rng)
+  (doc 'export #t)
   (let loop ([n count] [particles '()] [r rng])
        (if (<= n 0)
            (cons particles r)
@@ -511,6 +547,7 @@
 (doc 'particles-in-radius 'type '(List Particle) × Vec2 × Number → (List Particle))
 (doc "Find all particles within radius of a point.")
 (define (particles-in-radius particles center radius)
+  (doc 'export #t)
   (let ([r-sq (* radius radius)])
        (filter (lambda (p)
                        (<= (vec2-distance-sq (particle-pos p) center) r-sq))
@@ -519,6 +556,7 @@
 (doc 'particles-by-age 'type '(List Particle) × Number × Number → (List Particle))
 (doc "Find particles with age in [min-age, max-age].")
 (define (particles-by-age particles min-age max-age)
+  (doc 'export #t)
   (filter (lambda (p)
                   (let ([age (particle-age p)])
                        (and (>= age min-age) (<= age max-age))))
@@ -527,6 +565,7 @@
 (doc 'oldest-particles 'type '(List Particle) × Number → (List Particle))
 (doc "Get the n oldest particles.")
 (define (oldest-particles particles n)
+  (doc 'export #t)
   (take n (sort-by (lambda (a b)
                           (> (particle-age a) (particle-age b)))
                   particles)))
@@ -536,6 +575,7 @@
 (doc 'particle-bounce 'type 'Particle × Vec2 × Number → Particle)
 (doc "Bounce particle off a surface with given normal and restitution.")
 (define (particle-bounce p normal restitution)
+  (doc 'export #t)
   (let* ([vel (particle-vel p)]
          [dot (vec2-dot vel normal)]
          [reflected (vec2-sub vel (vec2-scale normal (* 2 dot)))]
@@ -545,6 +585,7 @@
 (doc "particle-in-bounds? : Particle × Vec2 × Vec2 → Boolean")
 (doc "Check if particle is within rectangular bounds.")
 (define (particle-in-bounds? p min-corner max-corner)
+  (doc 'export #t)
   (let ([pos (particle-pos p)])
        (and (>= (vec2-x pos) (vec2-x min-corner))
             (<= (vec2-x pos) (vec2-x max-corner))
@@ -554,6 +595,7 @@
 (doc 'filter-bounds 'type '(List Particle) × Vec2 × Vec2 → (List Particle))
 (doc "Remove particles outside bounds.")
 (define (filter-bounds particles min-corner max-corner)
+  (doc 'export #t)
   (filter (lambda (p) (particle-in-bounds? p min-corner max-corner))
           particles))
 
@@ -562,6 +604,7 @@
 (doc 'particle-system-stats 'type 'ParticleSystem → Alist)
 (doc "Get statistics about the particle system.")
 (define (particle-system-stats ps)
+  (doc 'export #t)
   (let* ([particles (particle-system-particles ps)]
          [count (length particles)]
          [emitter-count (length (particle-system-emitters ps))]

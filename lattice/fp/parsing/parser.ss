@@ -31,31 +31,38 @@
 (doc 'section 'parser-state)
 
 (define (make-pos line col offset)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat Nat Pos))
   (doc 'description "Create parser position with line, column, offset")
   (list 'pos line col offset))
 
 (define (pos? p)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? p) (eq? (car p) 'pos)))
 
 (define (pos-line p)
+  (doc 'export #t)
   (doc 'type '(-> Pos Nat))
   (list-ref p 1))
 
 (define (pos-col p)
+  (doc 'export #t)
   (doc 'type '(-> Pos Nat))
   (list-ref p 2))
 
 (define (pos-offset p)
+  (doc 'export #t)
   (doc 'type '(-> Pos Nat))
   (list-ref p 3))
 
 (define parser-initial-pos (make-pos 1 1 0))
+(doc parser-initial-pos 'export #t)
 (doc parser-initial-pos 'type 'Pos)
 (doc parser-initial-pos 'description "Initial parsing position (line 1, column 1, offset 0)")
 
 (define (advance-pos pos ch)
+  (doc 'export #t)
   (doc 'type '(-> Pos Char Pos))
   (doc 'description "Advance position by one character, handling newlines")
   (if (char=? ch %newline)
@@ -63,29 +70,35 @@
       (make-pos (pos-line pos) (+ (pos-col pos) 1) (+ (pos-offset pos) 1))))
 
 (define (parser-make-state input index pos)
+  (doc 'export #t)
   (doc 'type '(-> String Nat Pos State))
   (doc 'description "Create parser state with full input string, current index, and position. Uses index-based access for O(1) character access instead of O(N) substring copying.")
   (list 'state input index pos))
 
 (define (parser-state? s)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? s) (eq? (car s) 'state)))
 
 (define (parser-state-input s)
+  (doc 'export #t)
   (doc 'type '(-> State String))
   (doc 'description "Returns the full input string (for internal use)")
   (list-ref s 1))
 
 (define (parser-state-index s)
+  (doc 'export #t)
   (doc 'type '(-> State Nat))
   (doc 'description "Returns the current parse position index")
   (list-ref s 2))
 
 (define (parser-state-pos s)
+  (doc 'export #t)
   (doc 'type '(-> State Pos))
   (list-ref s 3))
 
 (define (parser-state-remaining s)
+  (doc 'export #t)
   (doc 'type '(-> State String))
   (doc 'description "Returns the remaining unparsed input (for compatibility/debugging)")
   (doc 'note "This creates a substring copy - use sparingly!")
@@ -94,43 +107,52 @@
        (substring input index (string-length input))))
 
 (define (parser-state-at-end? s)
+  (doc 'export #t)
   (doc 'type '(-> State Boolean))
   (doc 'description "Check if we've reached the end of input")
   (>= (parser-state-index s) (string-length (parser-state-input s))))
 
 (define (parser-state-current-char s)
+  (doc 'export #t)
   (doc 'type '(-> State Char))
   (doc 'description "Get the current character (assumes not at end)")
   (string-ref (parser-state-input s) (parser-state-index s)))
 
 (define (parser-initial-state input)
+  (doc 'export #t)
   (doc 'type '(-> String State))
   (parser-make-state input 0 parser-initial-pos))
 
 (doc 'section 'parse-error)
 
 (define (make-parse-error pos message expected)
+  (doc 'export #t)
   (doc 'type '(-> Pos String (List String) Error))
   (doc 'description "Create a parse error with position, message, and expected items")
   (list 'parse-error pos message expected))
 
 (define (parse-error? e)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? e) (eq? (car e) 'parse-error)))
 
 (define (error-pos e)
+  (doc 'export #t)
   (doc 'type '(-> Error Pos))
   (list-ref e 1))
 
 (define (error-message e)
+  (doc 'export #t)
   (doc 'type '(-> Error String))
   (list-ref e 2))
 
 (define (error-expected e)
+  (doc 'export #t)
   (doc 'type '(-> Error (List String)))
   (list-ref e 3))
 
 (define (merge-errors e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Error Error Error))
   (doc 'description "Merge two errors, keeping the one at furthest position")
   (let ([p1 (pos-offset (error-pos e1))]
@@ -144,6 +166,7 @@
                (append (error-expected e1) (error-expected e2)))])))
 
 (define (format-error err)
+  (doc 'export #t)
   (doc 'type '(-> Error String))
   (doc 'description "Format parse error as human-readable string")
   (let ([pos (error-pos err)]
@@ -158,6 +181,7 @@
             (string-append ", expected: " (format-expected expected))))))
 
 (define (format-expected exps)
+  (doc 'export #t)
   (doc 'type '(-> (List String) String))
   (doc 'description "Format expected items list with 'or' separators")
   (cond
@@ -168,20 +192,24 @@
 (doc 'section 'parser-type)
 
 (define (make-parser run-fn)
+  (doc 'export #t)
   (doc 'type '(-> (-> State (Either Error (Pair α State))) (Parser α)))
   (doc 'description "Create a parser from a state transformer function. Parser type: State → Either Error (Value × State)")
   (list 'parser run-fn))
 
 (define (parser? p)
+  (doc 'export #t)
   (doc 'type '(-> α Boolean))
   (and (pair? p) (eq? (car p) 'parser)))
 
 (define (run-parser parser state)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) State (Either Error (Pair α State))))
   (doc 'description "Run parser on state, returning Either Error (value, new-state)")
   ((cadr parser) state))
 
 (define (parser-parse parser input)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) String (Either Error α)))
   (doc 'description "Run parser on input string, extracting final value")
   (let ([result (run-parser parser (parser-initial-state input))])
@@ -190,6 +218,7 @@
            result)))  ; Return error
 
 (define (parse-all parser input)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) String (Either Error α)))
   (doc 'description "Run parser and require complete input consumption")
   (let ([full-parser (parser-left parser parser-eof)])
@@ -198,6 +227,7 @@
 (doc 'section 'primitive-parsers)
 
 (define (parser-pure x)
+  (doc 'export #t)
   (doc 'type '(-> α (Parser α)))
   (doc 'description "Parser that succeeds with value without consuming input")
   (make-parser
@@ -205,6 +235,7 @@
            (right (cons x state)))))
 
 (define (parser-fail message)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser α)))
   (doc 'description "Parser that always fails with message")
   (make-parser
@@ -241,6 +272,7 @@
 (doc parser-any-char 'description "Parser that consumes any single character. O(1) per character - uses index-based access instead of substring copying.")
 
 (define (parser-satisfy pred description)
+  (doc 'export #t)
   (doc 'type '(-> (-> Char Bool) String (Parser Char)))
   (doc 'description "Parser that consumes char parser-satisfying predicate. O(1) per character - uses index-based access instead of substring copying.")
   (make-parser
@@ -263,18 +295,21 @@
                                (list description)))))))))
 
 (define (parser-char c)
+  (doc 'export #t)
   (doc 'type '(-> Char (Parser Char)))
   (doc 'description "Parser that matches specific character")
   (parser-satisfy (lambda (ch) (char=? ch c))
            (string-append "'" (string c) "'")))
 
 (define (parser-char-ci c)
+  (doc 'export #t)
   (doc 'type '(-> Char (Parser Char)))
   (doc 'description "Case-insensitive character match")
   (parser-satisfy (lambda (ch) (char-ci=? ch c))
            (string-append "'" (string c) "' (case-insensitive)")))
 
 (define (parser-one-of chars)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser Char)))
   (doc 'description "Match any character in string")
   (parser-satisfy (lambda (ch)
@@ -286,6 +321,7 @@
            (string-append "one of '" chars "'")))
 
 (define (parser-none-of chars)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser Char)))
   (doc 'description "Match any character NOT in string")
   (parser-satisfy (lambda (ch)
@@ -299,10 +335,12 @@
 (doc 'section 'character-class-parsers)
 
 (define parser-digit (parser-satisfy char-numeric? "digit"))
+(doc parser-digit 'export #t)
 (doc parser-digit 'type '(Parser Char))
 (doc parser-digit 'description "Parser that matches a digit character")
 
 (define parser-letter (parser-satisfy char-alphabetic? "letter"))
+(doc parser-letter 'export #t)
 (doc parser-letter 'type '(Parser Char))
 (doc parser-letter 'description "Parser that matches an alphabetic character")
 
@@ -313,28 +351,34 @@
 (doc parser-alpha-num 'description "Parser that matches an alphanumeric character")
 
 (define parser-space (parser-satisfy char-whitespace? "whitespace"))
+(doc parser-space 'export #t)
 (doc parser-space 'type '(Parser Char))
 (doc parser-space 'description "Parser that matches a whitespace character")
 
 (define parser-lower (parser-satisfy char-lower-case? "lowercase letter"))
+(doc parser-lower 'export #t)
 (doc parser-lower 'type '(Parser Char))
 (doc parser-lower 'description "Parser that matches a lowercase letter")
 
 (define parser-upper (parser-satisfy char-upper-case? "uppercase letter"))
+(doc parser-upper 'export #t)
 (doc parser-upper 'type '(Parser Char))
 (doc parser-upper 'description "Parser that matches an uppercase letter")
 
 (define newline-char (parser-char %newline))
+(doc newline-char 'export #t)
 (doc newline-char 'type '(Parser Char))
 (doc newline-char 'description "Parser that matches a newline character")
 
 (define tab-char (parser-char %tab))
+(doc tab-char 'export #t)
 (doc tab-char 'type '(Parser Char))
 (doc tab-char 'description "Parser that matches a tab character")
 
 (doc 'section 'parser-strings)
 
 (define (parser-string str)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser String)))
   (doc 'description "Match exact string. O(len) where len is the target string length - no copying of input.")
   (if (string=? str "")
@@ -373,6 +417,7 @@
 (doc 'section 'monad-operations)
 
 (define (parser-bind p f)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (-> α (Parser β)) (Parser β)))
   (doc 'description "Monadic bind (>>=) for parsers")
   (make-parser
@@ -386,11 +431,13 @@
                           (run-parser (f val) new-state)))))))
 
 (define (parser-then p1 p2)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser β)))
   (doc 'description "Sequence, discarding first result (>>)")
   (parser-bind p1 (lambda (_) p2)))
 
 (define (parser-left p1 p2)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser α)))
   (doc 'description "Sequence, discarding second result (<*)")
   (parser-bind p1 (lambda (x)
@@ -398,15 +445,18 @@
                                                   (parser-pure x))))))
 
 (define parser-right parser-then)
+(doc parser-right 'export #t)
 (doc parser-right 'type '(-> (Parser α) (Parser β) (Parser β)))
 (doc parser-right 'description "Sequence, discarding first result (*>). Same as parser-then")
 
 (define (parser-map f p)
+  (doc 'export #t)
   (doc 'type '(-> (-> α β) (Parser α) (Parser β)))
   (doc 'description "Functor map for parsers")
   (parser-bind p (lambda (x) (parser-pure (f x)))))
 
 (define (parser-ap pf pa)
+  (doc 'export #t)
   (doc 'type '(-> (Parser (-> α β)) (Parser α) (Parser β)))
   (doc 'description "Applicative apply for parsers")
   (parser-bind pf (lambda (f)
@@ -416,6 +466,7 @@
 (doc 'section 'alternation)
 
 (define (parser-or p1 p2)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α) (Parser α)))
   (doc 'description "Try first parser, if it fails without consuming input, try second (<|>)")
   (make-parser
@@ -437,6 +488,7 @@
                                       (left (merge-errors err1 (from-left result2))))))))))))
 
 (define (parser-choice parsers)
+  (doc 'export #t)
   (doc 'type '(-> (List (Parser α)) (Parser α)))
   (doc 'description "Try parsers in order (left to right)")
   (if (null? parsers)
@@ -444,6 +496,7 @@
       (fold-left parser-or (car parsers) (cdr parsers))))
 
 (define (parser-try p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Try parser, on failure pretend no input was consumed")
   (make-parser
@@ -458,11 +511,13 @@
                            (error-expected (from-left result)))))))))
 
 (define (parser-optional p default)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) α (Parser α)))
   (doc 'description "Try parser, return default on failure")
   (parser-or p (parser-pure default)))
 
 (define (parser-option-maybe p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (Maybe α))))
   (doc 'description "Try parser, return Just on success, Nothing on failure")
   (parser-or (parser-map just p)
@@ -471,6 +526,7 @@
 (doc 'section 'repetition)
 
 (define (parser-many p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (List α))))
   (doc 'description "Zero or more occurrences. Detects and breaks infinite loops when parser succeeds without consuming input.")
   (make-parser
@@ -494,6 +550,7 @@
                          (right (cons (reverse acc) current-state))))))))
 
 (define (parser-some p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (List α))))
   (doc 'description "One or more occurrences. Detects and breaks infinite loops when parser succeeds without consuming input.")
   (make-parser
@@ -515,6 +572,7 @@
                                    rest-result))))))))
 
 (define (parser-count n p)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Parser α) (Parser (List α))))
   (doc 'description "Exactly n occurrences")
   (if (= n 0)
@@ -525,16 +583,19 @@
                                                   (parser-pure (cons x xs))))))))
 
 (define (parser-between open close p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser γ) (Parser γ)))
   (doc 'description "Parse between delimiters")
   (parser-then open (parser-left p close)))
 
 (define (parser-sep-by p sep)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
   (doc 'description "Zero or more, separated by separator")
   (parser-or (parser-sep-by1 p sep) (parser-pure '())))
 
 (define (parser-sep-by1 p sep)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
   (doc 'description "One or more, separated by separator")
   (parser-bind p (lambda (x)
@@ -543,16 +604,19 @@
                                               (parser-pure (cons x xs)))))))
 
 (define (parser-end-by p sep)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
   (doc 'description "Zero or more, each followed by separator")
   (parser-many (parser-left p sep)))
 
 (define (parser-end-by1 p sep)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
   (doc 'description "One or more, each followed by separator")
   (parser-some (parser-left p sep)))
 
 (define (parser-many-till p end)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser β) (Parser (List α))))
   (doc 'description "Parse until end parser succeeds. Detects and breaks infinite loops when body parser succeeds without consuming input.")
   (make-parser
@@ -587,6 +651,7 @@
 (doc 'section 'lookahead)
 
 (define (parser-look-ahead p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Try parser without consuming input on success")
   (make-parser
@@ -598,6 +663,7 @@
                     result)))))
 
 (define (parser-not-followed-by p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser Unit)))
   (doc 'description "Succeed only if parser fails")
   (make-parser
@@ -613,6 +679,7 @@
 (doc 'section 'error-handling)
 
 (define (parser-label p description)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) String (Parser α)))
   (doc 'description "Replace expected in error messages")
   (make-parser
@@ -630,49 +697,59 @@
 (doc 'section 'convenience-combinators)
 
 (define parser-spaces (parser-map list->string (parser-many parser-space)))
+(doc parser-spaces 'export #t)
 (doc parser-spaces 'type '(Parser String))
 (doc parser-spaces 'description "Zero or more whitespace characters")
 
 (define parser-spaces1 (parser-map list->string (parser-some parser-space)))
+(doc parser-spaces1 'export #t)
 (doc parser-spaces1 'type '(Parser String))
 (doc parser-spaces1 'description "One or more whitespace characters")
 
 (define (parser-lexeme p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Parse and consume trailing whitespace")
   (parser-left p parser-spaces))
 
 (define (parser-symbol str)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser String)))
   (doc 'description "Parse string as lexeme")
   (parser-lexeme (parser-string str)))
 
 (define (parser-parens p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Parse between parentheses")
   (parser-between (parser-symbol "(") (parser-symbol ")") p))
 
 (define (parser-braces p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Parse between braces")
   (parser-between (parser-symbol "{") (parser-symbol "}") p))
 
 (define (parser-brackets p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Parse between brackets")
   (parser-between (parser-symbol "[") (parser-symbol "]") p))
 
 (define (parser-angles p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser α)))
   (doc 'description "Parse between angle brackets")
   (parser-between (parser-symbol "<") (parser-symbol ">") p))
 
 (define (comma-sep p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (List α))))
   (doc 'description "Comma-separated values")
   (parser-sep-by p (parser-symbol ",")))
 
 (define (semi-sep p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (List α))))
   (doc 'description "Semicolon-separated values")
   (parser-sep-by p (parser-symbol ";")))
@@ -730,6 +807,7 @@
 (doc parser-identifier 'description "Parse identifier (letter followed by alphanumerics)")
 
 (define (parser-keyword kw)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser String)))
   (doc 'description "Parse keyword (identifier matching specific string)")
   (parser-try (parser-bind parser-identifier
@@ -754,11 +832,13 @@
 (doc chainl1 'description "Parse left-associative binary operations. Parses: p (op p)*, Associates: ((a op b) op c)")
 
 (define (chainl p op default)
+  (doc 'export #t)
   (parser-or (chainl1 p op) (parser-pure default)))
 (doc chainl 'type '(-> (Parser α) (Parser (-> α α α)) α (Parser α)))
 (doc chainl 'description "Like chainl1, but returns default if no matches")
 
 (define (chainr1 p op)
+  (doc 'export #t)
   (parser-bind p
                (lambda (x)
                        (parser-or
@@ -772,17 +852,20 @@
 (doc chainr1 'description "Parse right-associative binary operations. Parses: p (op p)*, Associates: (a op (b op c))")
 
 (define (chainr p op default)
+  (doc 'export #t)
   (parser-or (chainr1 p op) (parser-pure default)))
 (doc chainr 'type '(-> (Parser α) (Parser (-> α α α)) α (Parser α)))
 (doc chainr 'description "Like chainr1, but returns default if no matches")
 
 (define (skip-many p)
+  (doc 'export #t)
   (parser-or (parser-bind p (lambda (_) (skip-many p)))
              (parser-pure '())))
 (doc skip-many 'type '(-> (Parser α) (Parser Unit)))
 (doc skip-many 'description "Apply parser zero or more times, discarding results")
 
 (define (skip-some p)
+  (doc 'export #t)
   (parser-bind p (lambda (_) (skip-many p))))
 (doc skip-some 'type '(-> (Parser α) (Parser Unit)))
 (doc skip-some 'description "Apply parser one or more times, discarding results")
@@ -790,11 +873,13 @@
 ;;; sep-end-by : (Parser α) × (Parser β) → (Parser (List α))
 ;;; Zero or more, separated and optionally ended by separator.
 (define (sep-end-by p sep)
+  (doc 'export #t)
   (parser-or (sep-end-by1 p sep) (parser-pure '())))
 
 ;;; sep-end-by1 : (Parser α) × (Parser β) → (Parser (List α))
 ;;; One or more, separated and optionally ended by separator.
 (define (sep-end-by1 p sep)
+  (doc 'export #t)
   (parser-bind p
                (lambda (x)
                        (parser-or
@@ -817,11 +902,13 @@
 ;;; fold-p : (β × α → β) × β × (Parser α) → (Parser β)
 ;;; Left fold over parsed values.
 (define (fold-p f init p)
+  (doc 'export #t)
   (many-accum (lambda (x acc) (f acc x)) init p))
 
 ;;; scan-p : (β × α → β) × β × (Parser α) → (Parser (List β))
 ;;; Like fold-p but collects intermediate results.
 (define (scan-p f init p)
+  (doc 'export #t)
   (parser-map reverse
               (many-accum (lambda (x acc)
                                   (let ([new-val (f (car acc) x)])
@@ -831,6 +918,7 @@
 ;;; until : (Parser α) × (Parser β) → (Parser (List β))
 ;;; Parse until end succeeds, returning parsed values (not including end).
 (define (until end p)
+  (doc 'export #t)
   (parser-many-till p end))
 
 ;;; exactly : Nat × (Parser α) → (Parser (List α))
@@ -840,6 +928,7 @@
 ;;; at-most : Nat × (Parser α) → (Parser (List α))
 ;;; Parse at most n occurrences.
 (define (at-most n p)
+  (doc 'export #t)
   (if (<= n 0)
       (parser-pure '())
       (parser-or
@@ -853,6 +942,7 @@
 ;;; at-least : Nat × (Parser α) → (Parser (List α))
 ;;; Parse at least n occurrences.
 (define (at-least n p)
+  (doc 'export #t)
   (parser-bind (parser-count n p)
                (lambda (xs)
                        (parser-bind (parser-many p)
@@ -862,6 +952,7 @@
 ;;; range-of : Nat × Nat × (Parser α) → (Parser (List α))
 ;;; Parse parser-between min and max occurrences.
 (define (range-of min max p)
+  (doc 'export #t)
   (parser-bind (parser-count min p)
                (lambda (xs)
                        (parser-bind (at-most (- max min) p)
@@ -886,6 +977,7 @@
 (doc get-input 'note "This creates a substring copy - use sparingly in performance-critical code")
 
 (define (with-pos p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (Pair α Pos))))
   (doc 'description "Attach starting position to result")
   (parser-bind get-pos
@@ -895,6 +987,7 @@
                                             (parser-pure (cons val pos)))))))
 
 (define (parser-with-span p)
+  (doc 'export #t)
   (doc 'type '(-> (Parser α) (Parser (List α))))
   (doc 'description "Attach start and end positions to result (as list: value, start-pos, end-pos)")
   (parser-bind get-pos
@@ -908,6 +1001,7 @@
 (doc 'section 'debugging-utilities)
 
 (define (trace-parser label p)
+  (doc 'export #t)
   (doc 'type '(-> String (Parser α) (Parser α)))
   (doc 'description "Print debug info when parser is invoked")
   (make-parser
@@ -952,6 +1046,7 @@
 (doc get-line 'description "Get the current line number (1-based)")
 
 (define (at-column n p)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Parser α) (Parser α)))
   (doc 'description "Run parser only if at exactly column n")
   (parser-bind get-column
@@ -967,6 +1062,7 @@
 ;;; column-gt : Nat × (Parser α) → (Parser α)
 ;;; Run parser only if current column > reference.
 (define (column-gt ref p)
+  (doc 'export #t)
   (parser-bind get-column
                (lambda (col)
                        (if (> col ref)
@@ -980,6 +1076,7 @@
 ;;; column-ge : Nat × (Parser α) → (Parser α)
 ;;; Run parser only if current column >= reference.
 (define (column-ge ref p)
+  (doc 'export #t)
   (parser-bind get-column
                (lambda (col)
                        (if (>= col ref)
@@ -993,11 +1090,13 @@
 ;;; column-eq : Nat × (Parser α) → (Parser α)
 ;;; Run parser only if current column = reference.
 (define (column-eq ref p)
+  (doc 'export #t)
   (at-column ref p))
 
 ;;; same-line : (Parser α) → (Parser α)
 ;;; Run parser, failing if it crosses a newline.
 (define (same-line p)
+  (doc 'export #t)
   (make-parser
    (lambda (state)
            (let* ([start-line (pos-line (parser-state-pos state))]
@@ -1048,16 +1147,19 @@
 ;;; Run parser at current position; the parsed content must start at
 ;;; a column greater than 0 (i.e., be indented from column 1).
 (define (parser-indented p)
+  (doc 'export #t)
   (column-gt 1 p))
 
 ;;; indented-from : Nat × (Parser α) → (Parser α)
 ;;; Run parser requiring column > ref.
 (define (indented-from ref p)
+  (doc 'export #t)
   (column-gt ref p))
 
 ;;; aligned : Nat × (Parser α) → (Parser α)
 ;;; Run parser requiring column = ref.
 (define (aligned ref p)
+  (doc 'export #t)
   (at-column ref p))
 
 ;;; indented-block : (Parser α) → (Parser (List α))
@@ -1065,6 +1167,7 @@
 ;;; The first item establishes the reference column. Subsequent items must be
 ;;; at the same column or greater (for continuation lines).
 (define (indented-block item-parser)
+  (doc 'export #t)
   (parser-bind get-column
                (lambda (ref-col)
                        (parser-bind item-parser
@@ -1082,6 +1185,7 @@
 ;;; Parse a block where items must be at exactly the same column.
 ;;; More strict than indented-block.
 (define (indented-block-strict item-parser)
+  (doc 'export #t)
   (parser-bind get-column
                (lambda (ref-col)
                        (parser-bind item-parser
@@ -1098,6 +1202,7 @@
 ;;; next-line : (Parser α) → (Parser α)
 ;;; Expect newline, skip blank lines, then parse at next non-blank line.
 (define (next-line p)
+  (doc 'export #t)
   (parser-then newline-parser
                (parser-then skip-blank-lines
                             (parser-then indent-spaces p))))
@@ -1106,17 +1211,20 @@
 ;;; Run parser, but fail if it ever reaches a column <= ref (offside rule).
 ;;; This is a simplified version - just checks starting column.
 (define (offside ref p)
+  (doc 'export #t)
   (column-gt ref p))
 
 (doc 'section 'packrat-parsing)
 
 (define *default-memo-table-limit* 50000)
+(doc *default-memo-table-limit* 'export #t)
 (doc *default-memo-table-limit* 'type 'Nat)
 (doc *default-memo-table-limit* 'description "Default maximum entries in memo table (prevents DoS via memory exhaustion)")
 
 ;;; make-memo-entry : α × Nat → (Pair α Nat)
 ;;; Create a memo table entry with result and access timestamp.
 (define (make-memo-entry result timestamp)
+  (doc 'export #t)
   (cons result timestamp))
 
 ;;; memo-entry-result : (α × Nat) → α
@@ -1129,12 +1237,14 @@
 ;;; Create a new bounded memoization table with default limit.
 ;;; This is the safe default that prevents memory exhaustion attacks.
 (define (make-memo-table)
+  (doc 'export #t)
   (make-bounded-memo-table *default-memo-table-limit*))
 
 ;;; make-bounded-memo-table : Nat → MemoTable
 ;;; Create a memoization table with specified maximum entry limit.
 ;;; When the limit is exceeded, oldest entries (by access time) are evicted.
 (define (make-bounded-memo-table limit)
+  (doc 'export #t)
   (list 'bounded-memo-table
         (make-hashtable equal-hash equal?)  ; cache: key -> (result . timestamp)
         (box 0)                              ; counter: access timestamp
@@ -1145,37 +1255,45 @@
 ;;; WARNING: Only use this for trusted inputs or when you have other
 ;;; safeguards against memory exhaustion attacks.
 (define (make-unbounded-memo-table)
+  (doc 'export #t)
   (list 'unbounded-memo-table
         (make-hashtable equal-hash equal?)))
 
 ;;; bounded-memo-table? : MemoTable → Boolean
 (define (bounded-memo-table? table)
+  (doc 'export #t)
   (and (pair? table) (eq? (car table) 'bounded-memo-table)))
 
 ;;; unbounded-memo-table? : MemoTable → Boolean
 (define (unbounded-memo-table? table)
+  (doc 'export #t)
   (and (pair? table) (eq? (car table) 'unbounded-memo-table)))
 
 ;;; memo-table-cache : MemoTable → Hashtable
 (define (memo-table-cache table)
+  (doc 'export #t)
   (cadr table))
 
 ;;; memo-table-counter : MemoTable → (Box Nat)
 (define (memo-table-counter table)
+  (doc 'export #t)
   (caddr table))
 
 ;;; memo-table-limit : MemoTable → (Box Nat)
 (define (memo-table-limit table)
+  (doc 'export #t)
   (cadddr table))
 
 ;;; memo-key : Symbol × Nat → (Symbol × Nat)
 ;;; Create a memoization key from rule name and position.
 (define (memo-key name offset)
+  (doc 'export #t)
   (cons name offset))
 
 ;;; next-timestamp! : MemoTable → Nat
 ;;; Get and increment the access timestamp.
 (define (next-timestamp! table)
+  (doc 'export #t)
   (let* ([counter (memo-table-counter table)]
          [ts (unbox counter)])
         (set-box! counter (+ ts 1))
@@ -1186,6 +1304,7 @@
 ;;; Uses O(k) random eviction instead of O(N log N) LRU sort.
 ;;; Removes approximately 10% of entries to amortize eviction cost.
 (define (evict-random! table count-to-evict)
+  (doc 'export #t)
   (let* ([cache (memo-table-cache table)]
          [keys (hashtable-keys cache)]
          [n (vector-length keys)]
@@ -1204,6 +1323,7 @@
 ;;; memo-lookup : MemoTable × Symbol × Nat → (Option α)
 ;;; Look up a cached result. Updates access time for bounded tables.
 (define (memo-lookup table name offset)
+  (doc 'export #t)
   (let* ([cache (memo-table-cache table)]
          [key (memo-key name offset)]
          [entry (hashtable-ref cache key 'not-found)])
@@ -1221,6 +1341,7 @@
 ;;; memo-store! : MemoTable × Symbol × Nat × α → Unit
 ;;; Store a result in the cache. For bounded tables, evicts old entries if needed.
 (define (memo-store! table name offset result)
+  (doc 'export #t)
   (if (bounded-memo-table? table)
       (let* ([cache (memo-table-cache table)]
              [limit (unbox (memo-table-limit table))]
@@ -1240,6 +1361,7 @@
 ;;; Create a memoizing parser. The memo table is passed at parse time.
 ;;; This allows the same parser definition to be reused with different tables.
 (define (memo name parser)
+  (doc 'export #t)
   (lambda (table)
           (make-parser
            (lambda (state)
@@ -1256,11 +1378,13 @@
 ;;; memo-ref : (MemoTable → (Parser α)) × MemoTable → (Parser α)
 ;;; Resolve a memoized parser with its table.
 (define (memo-ref memo-parser table)
+  (doc 'export #t)
   (memo-parser table))
 
 ;;; parse-with-memo : (MemoTable → (Parser α)) × String × MemoTable → (Either Error α)
 ;;; Parse using memoization.
 (define (parse-with-memo memo-parser input table)
+  (doc 'export #t)
   (let* ([parser (memo-ref memo-parser table)]
          [result (run-parser parser (parser-initial-state input))])
         (if (right? result)
@@ -1270,6 +1394,7 @@
 ;;; parse-packrat : (MemoTable → (Parser α)) × String → (Either Error α)
 ;;; Parse with a fresh memo table (convenience function).
 (define (parse-packrat memo-parser input)
+  (doc 'export #t)
   (parse-with-memo memo-parser input (make-memo-table)))
 
 ;;; ====
@@ -1281,6 +1406,7 @@
 ;;; memo-bind : (MemoTable → (Parser α)) × (α → (MemoTable → (Parser β))) → (MemoTable → (Parser β))
 ;;; Monadic bind for memoized parsers.
 (define (memo-bind mp f)
+  (doc 'export #t)
   (lambda (table)
           (parser-bind (memo-ref mp table)
                        (lambda (x) (memo-ref (f x) table)))))
@@ -1288,41 +1414,48 @@
 ;;; memo-then : (MemoTable → (Parser α)) × (MemoTable → (Parser β)) → (MemoTable → (Parser β))
 ;;; Sequence memoized parsers, discarding first result.
 (define (memo-then mp1 mp2)
+  (doc 'export #t)
   (lambda (table)
           (parser-then (memo-ref mp1 table) (memo-ref mp2 table))))
 
 ;;; memo-or : (MemoTable → (Parser α)) × (MemoTable → (Parser α)) → (MemoTable → (Parser α))
 ;;; Try memoized parsers in order.
 (define (memo-or mp1 mp2)
+  (doc 'export #t)
   (lambda (table)
           (parser-or (memo-ref mp1 table) (memo-ref mp2 table))))
 
 ;;; memo-pure : α → (MemoTable → (Parser α))
 ;;; Lift a value into the memoized parser context.
 (define (memo-pure x)
+  (doc 'export #t)
   (lambda (table) (parser-pure x)))
 
 ;;; memo-map : (α → β) × (MemoTable → (Parser α)) → (MemoTable → (Parser β))
 ;;; Map over a memoized parser.
 (define (memo-map f mp)
+  (doc 'export #t)
   (lambda (table)
           (parser-map f (memo-ref mp table))))
 
 ;;; memo-many : (MemoTable → (Parser α)) → (MemoTable → (Parser (List α)))
 ;;; Zero or more of a memoized parser.
 (define (memo-many mp)
+  (doc 'export #t)
   (lambda (table)
           (parser-many (memo-ref mp table))))
 
 ;;; memo-some : (MemoTable → (Parser α)) → (MemoTable → (Parser (List α)))
 ;;; One or more of a memoized parser.
 (define (memo-some mp)
+  (doc 'export #t)
   (lambda (table)
           (parser-some (memo-ref mp table))))
 
 ;;; lift-parser : (Parser α) → (MemoTable → (Parser α))
 ;;; Lift a regular parser to work with memo combinators.
 (define (lift-parser p)
+  (doc 'export #t)
   (lambda (table) p))
 
 ;;; ====
@@ -1334,6 +1467,7 @@
 ;;; Returns (current-entries . max-limit) for bounded tables,
 ;;; or (current-entries . #f) for unbounded tables.
 (define (memo-stats table)
+  (doc 'export #t)
   (let ([cache (memo-table-cache table)])
        (if (bounded-memo-table? table)
            (cons (hashtable-size cache)
@@ -1343,12 +1477,14 @@
 ;;; memo-table-size : MemoTable → Nat
 ;;; Get the current number of entries in the memo table.
 (define (memo-table-size table)
+  (doc 'export #t)
   (hashtable-size (memo-table-cache table)))
 
 ;;; memo-table-set-limit! : MemoTable × Nat → Unit
 ;;; Change the limit of a bounded memo table.
 ;;; If new limit is smaller than current size, eviction happens on next store.
 (define (memo-table-set-limit! table new-limit)
+  (doc 'export #t)
   (if (bounded-memo-table? table)
       (set-box! (memo-table-limit table) new-limit)
       (error 'memo-table-set-limit! "cannot set limit on unbounded table")))

@@ -27,6 +27,7 @@
 (doc 'section 'weight-extraction)
 
 (define (adjacency-unique-weights m)
+  (doc 'export #t)
   (doc 'type '(-> Matrix (List Number)))
   (doc 'description "Extract sorted unique positive edge weights from an adjacency matrix.
   Treats the matrix as undirected (only considers upper triangle i < j).")
@@ -73,6 +74,7 @@
   For graphs where all vertices should be present from the start,
   pre-add vertex simplices at time 0.")
 (define (graph-weight-filtration m)
+  (doc 'export #t)
   (let* ([n (matrix-rows m)]
          ;; Collect edge simplices with weights
          [edge-pairs
@@ -124,6 +126,7 @@
   "The birth time of a k-simplex is the maximum weight among its
   (k+1 choose 2) edges. Complexity is exponential in max-dim.")
 (define (graph-rips-filtration m max-dim)
+  (doc 'export #t)
   (let* ([n (matrix-rows m)]
          ;; Add vertices at time 0 (all vertices present from the start in Rips)
          [vertex-pairs
@@ -139,6 +142,7 @@
     (make-filtration all-pairs)))
 
 (define (rips-k-simplices-from-graph m n k)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Integer Integer (List (Pair Simplex Number))))
   (doc 'description "Find all k-simplices in the Rips complex of a graph.
   A k-simplex has k+1 vertices; its birth time is the max pairwise edge weight.")
@@ -201,6 +205,7 @@
   tracking how H_0 (components) and H_1 (cycles) evolve with edge weight threshold.
   max-dim controls the maximum homological dimension (typically 1 or 2).")
 (define (graph-persistent-homology m max-dim)
+  (doc 'export #t)
   (let* ([filtration (graph-rips-filtration m max-dim)]
          [result (persistence-reduce filtration)]
          [diagram (make-persistence-diagram result)])
@@ -213,6 +218,7 @@
   Faster than Rips but only captures H_0 (component merging). H_1 requires triangles
   to kill cycles, which weight filtration alone does not produce.")
 (define (graph-weight-persistent-homology m)
+  (doc 'export #t)
   (let* ([filtration (graph-weight-filtration m)]
          [result (persistence-reduce filtration)]
          [diagram (make-persistence-diagram result)])
@@ -231,6 +237,7 @@
   Given a persistence diagram, a homological dimension, and a list of threshold values,
   returns ((t0 . b0) (t1 . b1) ...) where bi is the Betti number at threshold ti.")
 (define (graph-betti-curve diagram dim thresholds)
+  (doc 'export #t)
   (map (lambda (t)
          (cons t (diagram-betti diagram dim t)))
        thresholds))
@@ -241,6 +248,7 @@
   "Compute Betti curve at the natural thresholds (unique edge weights) of a weighted graph.
   Uses Rips filtration with max-dim = dim + 1 to capture features up to dimension dim.")
 (define (graph-betti-curve-auto m dim)
+  (doc 'export #t)
   (let* ([thresholds (adjacency-unique-weights m)]
          ;; Add epsilon-before and epsilon-after each threshold
          [sample-points (betti-sample-points thresholds)]
@@ -277,6 +285,7 @@
   "Extract (birth, death) pairs for a specific homological dimension from a persistence diagram.
   Wraps diagram-points-dim for graph-oriented usage.")
 (define (graph-persistence-pairs diagram dim)
+  (doc 'export #t)
   (diagram-points-dim diagram dim))
 
 (doc graph-persistence-pairs-finite 'export #t)
@@ -285,6 +294,7 @@
   "Extract only finite (birth, death) pairs for a specific dimension.
   Excludes essential features (those with death = +inf).")
 (define (graph-persistence-pairs-finite diagram dim)
+  (doc 'export #t)
   (filter (lambda (pt) (not (infinite? (cadr pt))))
           (diagram-points-dim diagram dim)))
 
@@ -294,6 +304,7 @@
   "Extract only essential (birth, death = +inf) pairs for a specific dimension.
   These represent topological features that persist indefinitely.")
 (define (graph-persistence-pairs-essential diagram dim)
+  (doc 'export #t)
   (filter (lambda (pt) (infinite? (cadr pt)))
           (diagram-points-dim diagram dim)))
 
@@ -303,6 +314,7 @@
   "Compute the maximum finite persistence (death - birth) in a given dimension.
   Returns 0 if there are no finite persistence pairs.")
 (define (graph-max-persistence diagram dim)
+  (doc 'export #t)
   (let ([finite (graph-persistence-pairs-finite diagram dim)])
     (if (null? finite)
         0

@@ -14,6 +14,7 @@
 (require 'control/stability)
 
 (define (pid-tf Kp Ki Kd)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number → TF")
   (doc 'description "Create PID controller as transfer function. C(s) = Kp + Ki/s + Kd*s = (Kd*s^2 + Kp*s + Ki) / s")
   (doc 'param "Kp — proportional gain")
@@ -29,6 +30,7 @@
       (tf-from-lists (list Kd Kp Ki) '(1 0))))
 
 (define (pid-design-zn-open-loop K L T)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number → (Kp Ki Kd)")
   (doc 'description "Ziegler-Nichols open-loop tuning from step response")
   (doc 'param "K — process gain (steady-state gain)")
@@ -42,6 +44,7 @@
         (list Kp Ki Kd)))
 
 (define (pid-design-zn-closed-loop Ku Tu)
+  (doc 'export #t)
   (doc 'type "Number × Number → (Kp Ki Kd)")
   (doc 'description "Ziegler-Nichols closed-loop (ultimate gain) tuning")
   (doc 'param "Ku — ultimate gain (at oscillation)")
@@ -54,6 +57,7 @@
         (list Kp Ki Kd)))
 
 (define (pid-design-imc plant lambda)
+  (doc 'export #t)
   (doc 'type "TF × Number → (Kp Ki Kd)")
   (doc 'description "Internal Model Control (IMC) based PID tuning. Works for first-order plus dead time (FOPDT) models")
   (doc 'param "plant — first-order plant transfer function K/(Ts+1)")
@@ -73,6 +77,7 @@
                   (list Kp Ki Kd)))))
 
 (define (pid-design-lambda K tau theta lambda)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number × Number → (Kp Ki Kd)")
   (doc 'description "Lambda tuning method (IMC variant)")
   (doc 'param "K — process gain")
@@ -85,6 +90,7 @@
         (list Kp Ki 0)))
 
 (define (pole-placement-ackermann sys desired-poles)
+  (doc 'export #t)
   (doc 'type "SS × (List Complex) → Matrix | Error")
   (doc 'description "Compute state feedback gain K using Ackermann's formula. State feedback: u = -K*x where K is the feedback gain matrix. Closed-loop system: x' = (A - B*K)*x. Places closed-loop poles at specified locations. SISO only - for MIMO systems, use pole-placement instead.")
   (doc 'note "Formula: K = [0 0 ... 0 1] * inv(C_n) * p(A) where C_n is controllability matrix and p(s) = desired char poly")
@@ -111,6 +117,7 @@
                            K))))))
 
 (define (make-row-vector n idx)
+  (doc 'export #t)
   (doc 'type "Nat × Nat → Matrix")
   (doc 'description "Create row vector with 1 at position idx, 0 elsewhere")
   (let ([result (make-matrix 1 n 0)])
@@ -118,6 +125,7 @@
        result))
 
 (define (poly-eval-matrix poly A)
+  (doc 'export #t)
   (doc 'type "Poly × Matrix → Matrix")
   (doc 'description "Evaluate polynomial at matrix argument. p(A) = a_n*A^n + ... + a_1*A + a_0*I")
   (let* ([coeffs (poly-coeffs poly)]
@@ -135,6 +143,7 @@
                                        (matrix-scale (vector-ref coeffs (+ i 1)) I))))))))
 
 (define (pole-placement-bass-gura sys desired-poles)
+  (doc 'export #t)
   (doc 'type "SS × (List Complex) → Matrix | Error")
   (doc 'description "Compute state feedback gain using Bass-Gura formula. More numerically stable than Ackermann for higher-order systems. SISO only - use pole-placement for MIMO")
   (let* ([A (ss-A sys)]
@@ -166,6 +175,7 @@
 ;;; ====
 
 (define (pole-placement sys desired-poles)
+  (doc 'export #t)
   (doc 'type "SS × (List Complex) → Matrix | Error")
   (doc 'description "General pole placement for both SISO and MIMO systems.
 For SISO: delegates to Ackermann's formula.
@@ -191,6 +201,7 @@ Supports complex conjugate pole pairs.")
        (pole-placement-mimo sys desired-poles)])))
 
 (define (pole-placement-mimo sys desired-poles)
+  (doc 'export #t)
   (doc 'type "SS × (List Complex) → Matrix | Error")
   (doc 'description "MIMO pole placement via eigenvector assignment.
 Algorithm:
@@ -212,6 +223,7 @@ Supports complex poles - the underlying matrix operations handle complex arithme
           (eigenvector-assignment A B desired-poles n m)))))
 
 (define (extract-pole-value lambda-i)
+  (doc 'export #t)
   (doc 'type "Complex | Number → Number | Error")
   (doc 'description "Extract numeric value from pole specification.
 For custom complex type: extracts real part (errors if imaginary part non-zero).
@@ -230,6 +242,7 @@ For native numbers: returns as-is.")
     [else '(error invalid-pole-type)]))
 
 (define (compute-eigenvector-pair A B lambda-i i m n)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Complex × Nat × Nat × Nat → (Vector . Vector) | 'singular | Error")
   (doc 'description "Compute eigenvector v and input direction u for a single pole.
 Returns (v . u) pair, 'singular if (λI - A) not invertible, or error for complex poles.")
@@ -250,12 +263,14 @@ Returns (v . u) pair, 'singular if (λI - A) not invertible, or error for comple
                 (cons v-vec u-vec)))))))
 
 (define (store-eigenpair! V U i pair)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Nat × (Vector . Vector) → Void")
   (doc 'description "Store eigenvector/input pair into matrices V and U at column i")
   (matrix-set-col-from-vec! V i (car pair))
   (matrix-set-col-from-vec! U i (cdr pair)))
 
 (define (eigenvector-assignment A B desired-poles n m)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × List × Nat × Nat → Matrix | Error")
   (doc 'description "Core eigenvector assignment algorithm for MIMO pole placement.
 Handles open-loop eigenvalue collisions via perturbation.
@@ -296,6 +311,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                (loop (+ i 1))]))))))
 
 (define (matrix-col-vec M j)
+  (doc 'export #t)
   (doc 'type "Matrix × Nat → Vector")
   (doc 'description "Extract column j of matrix M as a vector")
   (let* ([n (matrix-rows M)]
@@ -305,6 +321,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
       (vector-set! v i (matrix-ref M i j)))))
 
 (define (matrix-set-col-from-vec! M j v)
+  (doc 'export #t)
   (doc 'type "Matrix × Nat × Vector → Void")
   (doc 'description "Set column j of matrix M from vector v (mutating)")
   (let ([n (vector-length v)])
@@ -313,6 +330,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
       (matrix-set! M i j (vector-ref v i)))))
 
 (define (characteristic-polynomial A)
+  (doc 'export #t)
   (doc 'type "Matrix → Poly")
   (doc 'description "Compute characteristic polynomial det(sI - A). Uses Faddeev-LeVerrier method")
   (let* ([n (matrix-rows A)]
@@ -332,6 +350,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                        (loop (+ k 1) M-new))))))
 
 (define (matrix-trace M)
+  (doc 'export #t)
   (doc 'type "Matrix → Number")
   (let ([n (min (matrix-rows M) (matrix-cols M))])
        (let loop ([i 0] [sum 0])
@@ -340,6 +359,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                 (loop (+ i 1) (+ sum (matrix-ref M i i)))))))
 
 (define (poly-coeffs-vector poly n)
+  (doc 'export #t)
   (doc 'type "Poly × Nat → Vector")
   (doc 'description "Extract coefficient vector of length n (padded with zeros)")
   (let* ([coeffs (poly-coeffs poly)]
@@ -355,6 +375,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
         result))
 
 (define (vector-sub v1 v2)
+  (doc 'export #t)
   (doc 'type "Vector × Vector → Vector")
   (let* ([n (vector-length v1)]
          [result (make-vector n 0)])
@@ -363,6 +384,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
             (vector-set! result i (- (vector-ref v1 i) (vector-ref v2 i))))))
 
 (define (vector->row-matrix v)
+  (doc 'export #t)
   (doc 'type "Vector → Matrix")
   (let* ([n (vector-length v)]
          [result (make-matrix 1 n 0)])
@@ -371,6 +393,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
             (matrix-set! result 0 i (vector-ref v i)))))
 
 (define (bass-gura-W alpha n)
+  (doc 'export #t)
   (doc 'type "Vector × Nat → Matrix")
   (doc 'description "Build the W transformation matrix for Bass-Gura")
   (let ([W (make-matrix n n 0)])
@@ -383,6 +406,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                (matrix-set! W i j (vector-ref alpha (- j i)))))))
 
 (define (observer-design-ackermann sys desired-poles)
+  (doc 'export #t)
   (doc 'type "SS × (List Complex) → Matrix | Error")
   (doc 'description "Design observer gain L using Ackermann's formula on dual system. Observer (state estimator): x_hat' = A*x_hat + B*u + L*(y - C*x_hat) = (A - L*C)*x_hat + B*u + L*y. Goal: place eigenvalues of (A-LC) for fast estimation. By duality: observer gain L is computed like feedback gain K for the dual system (A', C', B')")
   (doc 'param "desired-poles — for the observer (typically 2-10x faster than controller)")
@@ -410,11 +434,13 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                       (matrix-transpose Kt-result))))))
 
 (define (observer-design-place sys desired-poles)
+  (doc 'export #t)
   (doc 'type "SS × (List Complex) → Matrix | Error")
   (doc 'description "Design observer gain by direct pole placement")
   (observer-design-ackermann sys desired-poles))
 
 (define (lqr sys Q R)
+  (doc 'export #t)
   (doc 'type "SS × Matrix × Matrix → (K P eigenvalues) | Error")
   (doc 'description "Compute LQR controller gain. LQR minimizes: J = integral(x'Qx + u'Ru) dt. Solution: u = -K*x where K = R^{-1}*B'*P. P satisfies the continuous algebraic Riccati equation (CARE): A'P + PA - PBR^{-1}B'P + Q = 0")
   (doc 'param "sys — state space system")
@@ -440,6 +466,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                   (list K P cl-eigs)))))
 
 (define (solve-care A B Q R max-iter)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Matrix × Matrix × Nat → Matrix | Error")
   (doc 'description "Solve continuous algebraic Riccati equation using Newton iteration. A'P + PA - PBR^{-1}B'P + Q = 0. Uses direct Lyapunov solver for small systems (n < 15), iterative for larger")
   (let* ([n (matrix-rows A)]
@@ -475,6 +502,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                  (loop P-new (+ iter 1)))))))))
 
 (define (kronecker-product A B)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix → Matrix")
   (doc 'description "Compute Kronecker product A ⊗ B. Direct Lyapunov equation solver: Solves A'X + XA = -Q using vectorization (I ⊗ A' + A' ⊗ I) vec(X) = -vec(Q). This is O(n^6) but numerically stable, suitable for n < 20")
   (let* ([pa (matrix-rows A)]
@@ -497,6 +525,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                           (* a-ij (matrix-ref B k l))))))))))
 
 (define (matrix-vec M)
+  (doc 'export #t)
   (doc 'type "Matrix → Vector")
   (doc 'description "Vectorize matrix column-major: vec([a1 a2 ... an]) = [a1; a2; ...; an]")
   (let* ([rows (matrix-rows M)]
@@ -510,6 +539,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                              (matrix-ref M i j))))))
 
 (define (matrix-unvec v m n)
+  (doc 'export #t)
   (doc 'type "Vector × Nat × Nat → Matrix")
   (doc 'description "Inverse of vec: reshape vector to m×n matrix (column-major)")
   (let ([result (make-matrix m n 0)])
@@ -521,6 +551,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                             (vector-ref v (+ (* j m) i)))))))
 
 (define (lyapunov-solve A Q)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix → Matrix")
   (doc 'description "Solve continuous Lyapunov equation: A'X + XA = -Q. Uses direct vectorization method for stability")
   (let* ([n (matrix-rows A)]
@@ -555,6 +586,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                             (matrix-unvec x-vec n n)))))))
 
 (define (matrix-solve-lu A B)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix → Matrix | Error")
   (doc 'description "Solve A*X = B using LU decomposition")
   (guard (e [else `(error lu-solve-failed)])
@@ -570,6 +602,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                         X)))))
 
 (define (forward-sub L B)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix → Matrix")
   (doc 'description "Solve L*Y = B for lower triangular L")
   (let* ([n (matrix-rows L)]
@@ -591,6 +624,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                       (matrix-set! Y i j val))))))
 
 (define (back-sub U Y)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix → Matrix")
   (doc 'description "Solve U*X = Y for upper triangular U")
   (let* ([n (matrix-rows U)]
@@ -612,6 +646,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                       (matrix-set! X i j val))))))
 
 (define (lyapunov-solve-iterative A Q max-iter)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Nat → Matrix")
   (doc 'description "Fallback iterative Lyapunov solver: A'X + XA = -Q. Uses Smith iteration for improved convergence")
   (let* ([n (matrix-rows A)]
@@ -633,6 +668,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                  (loop X-new (+ iter 1)))))))))
 
 (define (matrix-frobenius-norm-local M)
+  (doc 'export #t)
   (doc 'type "Matrix → Number")
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)])
@@ -647,6 +683,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                                     (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
 (define (dlqr sys Q R)
+  (doc 'export #t)
   (doc 'type "SS × Matrix × Matrix → (K P eigenvalues) | Error")
   (doc 'description "Compute discrete LQR controller gain. Discrete LQR minimizes: J = sum(x'Qx + u'Ru). Solution: u[k] = -K*x[k] where K = (R + B'PB)^{-1}*B'PA. P satisfies discrete algebraic Riccati equation (DARE): P = A'PA - A'PB(R + B'PB)^{-1}B'PA + Q")
   (let* ([A (ss-A sys)]
@@ -670,6 +707,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                   (list K P cl-eigs)))))
 
 (define (solve-dare A B Q R max-iter)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Matrix × Matrix × Nat → Matrix | Error")
   (doc 'description "Solve discrete algebraic Riccati equation using iteration")
   (let* ([At (matrix-transpose A)]
@@ -691,6 +729,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                            (loop P-new (+ iter 1))))))))
 
 (define (lqg sys Q R Qn Rn)
+  (doc 'export #t)
   (doc 'type "SS × Matrix × Matrix × Matrix × Matrix → (K L) | Error")
   (doc 'description "Design LQG controller with optimal state estimation. LQG combines LQR state feedback with matrix Kalman filter state estimation. This is the full MATRIX Kalman filter for state-space control systems. (For scalar Kalman filtering, see kalman.ss). Controller: u = -K*x_hat. Estimator: x_hat' = A*x_hat + B*u + L*(y - C*x_hat). Design: 1. Design LQR gain K using Q, R. 2. Design Kalman filter gain L using Qn (process noise), Rn (measurement noise)")
   (doc 'param "sys — state space system")
@@ -718,6 +757,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                                  (list K L))))))))
 
 (define (hinf-norm tf)
+  (doc 'export #t)
   (doc 'type "TF → Number | Error")
   (doc 'description "Compute H-infinity norm of a transfer function. H-infinity control minimizes the H-infinity norm of a closed-loop transfer function, providing robust performance guarantees. The H-infinity norm is: ||G||_inf = sup_w |G(jw)|. Uses bisection on frequency response")
   (let* ([w-test (logspace -4 4 1000)]
@@ -726,6 +766,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
         max-mag))
 
 (define (vector-max v)
+  (doc 'export #t)
   (doc 'type "Vector → Number")
   (let ([n (vector-length v)])
        (let loop ([i 1] [max-val (vector-ref v 0)])
@@ -735,11 +776,13 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                      (loop (+ i 1) (if (> val max-val) val max-val)))))))
 
 (define (hinf-bounded? tf gamma)
+  (doc 'export #t)
   (doc 'type "TF × Number → Boolean")
   (doc 'description "Check if H-infinity norm is bounded by gamma")
   (< (hinf-norm tf) gamma))
 
 (define (closed-loop-tf plant controller)
+  (doc 'export #t)
   (doc 'type "TF × TF → TF")
   (doc 'description "Compute closed-loop transfer function for unity negative feedback. T(s) = G(s)C(s) / (1 + G(s)C(s))")
   (let* ([GC (tf-series plant controller)]
@@ -750,6 +793,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
         (make-tf num-GC new-den)))
 
 (define (sensitivity-tf plant controller)
+  (doc 'export #t)
   (doc 'type "TF × TF → TF")
   (doc 'description "Compute sensitivity transfer function S(s) = 1/(1 + G(s)C(s))")
   (let* ([GC (tf-series plant controller)]
@@ -760,12 +804,14 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
         (make-tf den-GC new-den)))
 
 (define (complementary-sensitivity-tf plant controller)
+  (doc 'export #t)
   (doc 'type "TF × TF → TF")
   (doc 'description "Compute complementary sensitivity T(s) = G(s)C(s)/(1 + G(s)C(s))")
   (doc 'note "S + T = 1")
   (closed-loop-tf plant controller))
 
 (define (lead-compensator Kc zero pole)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number → TF")
   (doc 'description "Create a lead compensator: C(s) = Kc * (s + z)/(s + p) where z < p. Lead compensators add phase lead at crossover frequency")
   (doc 'param "Kc — gain")
@@ -778,6 +824,7 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                  (list 1 pole)))
 
 (define (lag-compensator Kc zero pole)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number → TF")
   (doc 'description "Create a lag compensator: C(s) = Kc * (s + z)/(s + p) where z > p. Lag compensators increase low-frequency gain")
   (doc 'param "Kc — gain")
@@ -788,12 +835,14 @@ Note: Complex poles with non-zero imaginary parts not yet supported.")
                  (list 1 pole)))
 
 (define (lead-lag-compensator Kc z-lead p-lead z-lag p-lag)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number × Number × Number → TF")
   (doc 'description "Create lead-lag compensator (product of lead and lag sections)")
   (tf-series (lead-compensator 1 z-lead p-lead)
              (lag-compensator Kc z-lag p-lag)))
 
 (define (controller-info)
+  (doc 'export #t)
   (doc 'type "→ String")
   (doc 'description "Controller Design Module information")
   "Controller Design Module: PID design, pole placement, LQR/LQG, observer design")

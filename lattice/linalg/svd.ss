@@ -41,6 +41,7 @@
 ;;;
 ;;; Falls back to *svd-tolerance* if sigma_max is 0 (zero matrix).
 (define (svd-relative-tolerance singular-values m n)
+  (doc 'export #t)
   (let* ([k (vector-length singular-values)]
          [sigma-max (if (= k 0) 0
                         (let loop ([i 0] [mx 0])
@@ -78,6 +79,7 @@
 ;;;
 ;;; For m < n, we use AA^T instead for efficiency.
 (define (svd a . opts)
+  (doc 'export #t)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)]
          [max-iter (if (and (pair? opts) (integer? (car opts)))
@@ -99,6 +101,7 @@
 ;;; svd-via-ata : Matrix × Nat × Nat × Nat × Num → (U Σ V) | Error
 ;;; Compute SVD using A^T A (when n ≤ m)
 (define (svd-via-ata a m n max-iter tol)
+  (doc 'export #t)
   (let* ([at (matrix-transpose a)]
          [ata (matrix-mul at a)]  ; n×n symmetric
          ;; Get eigendecomposition of A^T A
@@ -127,6 +130,7 @@
 ;;; svd-via-aat : Matrix × Nat × Nat × Nat × Num → (U Σ V) | Error
 ;;; Compute SVD using AA^T (when m < n)
 (define (svd-via-aat a m n max-iter tol)
+  (doc 'export #t)
   (let* ([at (matrix-transpose a)]
          [aat (matrix-mul a at)]  ; m×m symmetric
          ;; Get eigendecomposition of AA^T
@@ -159,6 +163,7 @@
 ;;; Guards against: negative eigenvalues (numeric noise), infinities
 ;;; (overflow in A^T A), and NaN.
 (define (eigenvalues->singular-values eigenvalues tol)
+  (doc 'export #t)
   (let* ([n (vector-length eigenvalues)]
          [result (make-vector n 0)])
         (do ([i 0 (+ i 1)])
@@ -180,6 +185,7 @@
 ;;; This function computes a relative threshold from the largest singular
 ;;; value and zeros out anything below it.
 (define (clamp-noise-singular-values sv m n)
+  (doc 'export #t)
   (let* ([k (vector-length sv)]
          [rel-tol (svd-relative-tolerance sv m n)]
          [result (make-vector k 0)])
@@ -194,6 +200,7 @@
 ;;; build-sigma-matrix : Nat × Nat × Vec → Matrix
 ;;; Build the m×n diagonal matrix with singular values.
 (define (build-sigma-matrix m n singular-values)
+  (doc 'export #t)
   (let ([sigma (make-matrix m n 0)]
         [k (min m n (vector-length singular-values))])
        (do ([i 0 (+ i 1)])
@@ -204,6 +211,7 @@
 ;;; Compute U matrix where u_i = (1/σ_i) × A × v_i for σ_i > tol.
 ;;; For zero singular values, use Gram-Schmidt to find orthogonal basis.
 (define (compute-u-from-av a v singular-values m n tol)
+  (doc 'export #t)
   (let ([u (make-matrix m m 0)]
         [rank (count-nonzero-singular-values singular-values tol)])
        ;; First, compute columns for non-zero singular values
@@ -226,6 +234,7 @@
 ;;; compute-v-from-atu : Matrix × Matrix × Vec × Nat × Nat × Num → Matrix
 ;;; Compute V matrix where v_i = (1/σ_i) × A^T × u_i for σ_i > tol.
 (define (compute-v-from-atu at u singular-values m n tol)
+  (doc 'export #t)
   (let ([v (make-matrix n n 0)]
         [rank (count-nonzero-singular-values singular-values tol)])
        ;; First, compute columns for non-zero singular values
@@ -249,6 +258,7 @@
 ;;; Complete an orthogonal matrix by adding orthonormal columns.
 ;;; M has 'filled' orthonormal columns, need to add columns filled..n-1.
 (define (complete-orthogonal-basis! mat filled n)
+  (doc 'export #t)
   (let loop ([col filled])
        (when (< col n)
              ;; Find a vector orthogonal to existing columns
@@ -262,6 +272,7 @@
 ;;; find-orthogonal-vector : Matrix × Nat × Nat → Vec | #f
 ;;; Find a unit vector orthogonal to columns 0..col-1 of matrix.
 (define (find-orthogonal-vector mat col n)
+  (doc 'export #t)
   (let try-basis ([k 0])
        (if (= k n)
            #f  ; Failed
@@ -281,6 +292,7 @@
 
 ;;; count-nonzero-singular-values : Vec × Num → Nat
 (define (count-nonzero-singular-values singular-values tol)
+  (doc 'export #t)
   (let ([n (vector-length singular-values)])
        (let loop ([i 0] [count 0])
             (if (= i n)
@@ -292,6 +304,7 @@
 ;;; sort-singular-data : Vec × Matrix × Nat → (Vec . Matrix)
 ;;; Sort eigenvalues in descending order, reorder matrix columns accordingly.
 (define (sort-singular-data eigenvalues mat n)
+  (doc 'export #t)
   (let* ([indices (make-vector n 0)]
          [_ (do ([i 0 (+ i 1)]) ((= i n)) (vector-set! indices i i))]
          ;; Bubble sort indices by eigenvalue (descending)
@@ -330,6 +343,7 @@
 ;;;
 ;;; More memory-efficient for rectangular matrices.
 (define (svd-thin a . opts)
+  (doc 'export #t)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)]
          [max-iter (if (and (pair? opts) (integer? (car opts)))
@@ -362,6 +376,7 @@
 ;;; matrix-slice-cols : Matrix × Nat × Nat → Matrix
 ;;; Extract columns start to end-1.
 (define (matrix-slice-cols mat start end)
+  (doc 'export #t)
   (let* ([rows (matrix-rows mat)]
          [cols (- end start)]
          [result (make-matrix rows cols 0)])
@@ -374,6 +389,7 @@
 ;;; matrix-slice : Matrix × Nat × Nat × Nat × Nat → Matrix
 ;;; Extract submatrix [row-start:row-end, col-start:col-end].
 (define (matrix-slice mat row-start row-end col-start col-end)
+  (doc 'export #t)
   (let* ([rows (- row-end row-start)]
          [cols (- col-end col-start)]
          [result (make-matrix rows cols 0)])
@@ -401,6 +417,7 @@
 ;;;   - (AA^+)^T = AA^+
 ;;;   - (A^+A)^T = A^+A
 (define (pseudoinverse a . opts)
+  (doc 'export #t)
   (let* ([tol (if (pair? opts) (car opts) *svd-tolerance*)]
          [svd-result (svd a *svd-max-iterations* tol)])
         (if (and (pair? svd-result) (eq? (car svd-result) 'error))
@@ -428,6 +445,7 @@
 ;;; build-sigma-pseudoinverse : Matrix × Nat × Nat × Num → Matrix
 ;;; Build n×m matrix with 1/σ_i on diagonal where σ_i > tol.
 (define (build-sigma-pseudoinverse sigma m n tol)
+  (doc 'export #t)
   (let* ([sigma-pinv (make-matrix n m 0)]
          [k (min m n)])
         (do ([i 0 (+ i 1)])
@@ -448,6 +466,7 @@
 ;;;
 ;;; This is the optimal approximation in both Frobenius and spectral norms.
 (define (low-rank-approx a k . opts)
+  (doc 'export #t)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)]
          [max-k (min m n)])
@@ -480,6 +499,7 @@
 ;;;
 ;;; Compute the numerical rank of a matrix (number of singular values > tol).
 (define (matrix-rank a . opts)
+  (doc 'export #t)
   (let* ([tol (if (pair? opts) (car opts) *svd-tolerance*)]
          [svd-result (svd a *svd-max-iterations* tol)])
         (if (and (pair? svd-result) (eq? (car svd-result) 'error))
@@ -512,6 +532,7 @@
 ;;; sensitive to perturbation. Returns +inf.0 if σ_min < tolerance (i.e.,
 ;;; the matrix is rank-deficient).
 (define (matrix-condition-number a . opts)
+  (doc 'export #t)
   (let* ([tol (if (pair? opts) (car opts) *svd-tolerance*)]
          [sv (singular-values a tol)])
     (if (and (pair? sv) (eq? (car sv) 'error))
@@ -535,6 +556,7 @@
 ;;;
 ;;; Compute just the singular values (more efficient if U, V not needed).
 (define (singular-values a . opts)
+  (doc 'export #t)
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)]
          [tol (if (pair? opts) (car opts) *svd-tolerance*)]
@@ -555,6 +577,7 @@
 
 ;;; sort-vector-descending : Vec → Vec
 (define (sort-vector-descending v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [result (make-vector n 0)]
          [_ (do ([i 0 (+ i 1)]) ((= i n)) (vector-set! result i (vector-ref v i)))])
@@ -576,6 +599,7 @@
 ;;;
 ;;; Verify that A ≈ U × Σ × V^T.
 (define (verify-svd a u sigma v . opts)
+  (doc 'export #t)
   (let* ([tol (if (pair? opts) (car opts) (* 100 *svd-tolerance*))]
          [vt (matrix-transpose v)]
          [u-sigma (matrix-mul u sigma)]
@@ -587,6 +611,7 @@
 ;;; matrix-frobenius-norm : Matrix → Num
 ;;; Compute Frobenius norm ||A||_F = sqrt(sum of squares).
 (define (matrix-frobenius-norm m)
+  (doc 'export #t)
   (let* ([data (matrix-data m)]
          [n (vector-length data)])
         (sqrt (let loop ([i 0] [sum 0])
@@ -602,6 +627,7 @@
 ;;; matrix-col : Matrix × Nat → Vec
 ;;; Extract column j as a vector.
 (define (matrix-col m j)
+  (doc 'export #t)
   (let* ([rows (matrix-rows m)]
          [result (make-vector rows 0)])
         (do ([i 0 (+ i 1)])

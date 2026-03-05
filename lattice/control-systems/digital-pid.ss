@@ -41,10 +41,12 @@
 ;;;   Kd = derivative gain (units: seconds)
 ;;;   Ts = sample time (seconds)
 (define (make-digital-pid Kp Ki Kd Ts)
+  (doc 'export #t)
   (list 'digital-pid Kp Ki Kd Ts))
 
 ;;; digital-pid? : Any → Boolean
 (define (digital-pid? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'digital-pid)
        (= (length x) 5)))
@@ -65,10 +67,12 @@
 ;;; make-pid-state : → PIDState
 ;;; Create initial PID state.
 (define (make-pid-state)
+  (doc 'export #t)
   (list 'pid-state 0 0 0))
 
 ;;; pid-state? : Any → Boolean
 (define (pid-state? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'pid-state)
        (= (length x) 4)))
@@ -92,6 +96,7 @@
 ;;;   D = Kd / Ts * (e - e_prev)
 ;;;   u = P + I + D
 (define (pid-step pid state error)
+  (doc 'export #t)
   (let* ([Kp (pid-Kp pid)]
          [Ki (pid-Ki pid)]
          [Kd (pid-Kd pid)]
@@ -122,6 +127,7 @@
 ;;; - If output would exceed limits, clamp it
 ;;; - Adjust integral term to match clamped output
 (define (pid-step-antiwindup pid state error out-min out-max)
+  (doc 'export #t)
   (let* ([Kp (pid-Kp pid)]
          [Ki (pid-Ki pid)]
          [Kd (pid-Kd pid)]
@@ -151,6 +157,7 @@
 
 ;;; clamp : Number × Number × Number → Number
 (define (clamp x min-val max-val)
+  (doc 'export #t)
   (cond
    [(< x min-val) min-val]
    [(> x max-val) max-val]
@@ -169,10 +176,12 @@
 ;;; State for PID with derivative filter.
 ;;; Structure: (filtered-pid-state integral prev-error prev-derivative)
 (define (make-filtered-pid-state)
+  (doc 'export #t)
   (list 'filtered-pid-state 0 0 0))
 
 ;;; filtered-pid-state? : Any → Boolean
 (define (filtered-pid-state? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'filtered-pid-state)
        (= (length x) 4)))
@@ -185,6 +194,7 @@
 ;;; PID step with filtered derivative.
 ;;; N is the filter coefficient (larger = less filtering).
 (define (pid-step-filtered pid state error N)
+  (doc 'export #t)
   (let* ([Kp (pid-Kp pid)]
          [Ki (pid-Ki pid)]
          [Kd (pid-Kd pid)]
@@ -216,12 +226,14 @@
 ;;; pid-reset : PIDState → PIDState
 ;;; Reset PID state (bumpless transfer).
 (define (pid-reset state)
+  (doc 'export #t)
   (make-pid-state))
 
 ;;; pid-reset-to : Number × Number → PIDState
 ;;; Reset PID state with specified integral value and previous error.
 ;;; Useful for bumpless transfer when switching modes.
 (define (pid-reset-to integral prev-error)
+  (doc 'export #t)
   (list 'pid-state integral prev-error 0))
 
 ;;; ====
@@ -243,6 +255,7 @@
 ;;;
 ;;; Where Ti = Kp/Ki (integral time) and Td = Kd/Kp (derivative time)
 (define (ziegler-nichols-tune Ku Tu type Ts)
+  (doc 'export #t)
   (case type
         [(P)
          (let ([Kp (* 0.5 Ku)])
@@ -273,6 +286,7 @@
 ;;;   Kp = Ku/3.2
 ;;;   Ti = 2.2*Tu
 (define (tyreus-luyben-tune Ku Tu Ts)
+  (doc 'export #t)
   (let* ([Kp (/ Ku 3.2)]
          [Ti (* 2.2 Tu)]
          [Ki (/ Kp Ti)])
@@ -290,6 +304,7 @@
 ;;;   Kp = (1/K) * (tau/theta) * (0.9 + theta/(12*tau))
 ;;;   Ti = theta * (30 + 3*theta/tau) / (9 + 20*theta/tau)
 (define (cohen-coon-tune K tau theta Ts)
+  (doc 'export #t)
   (let* ([ratio (/ theta tau)]
          [Kp (* (/ 1 K) (/ tau theta) (+ 0.9 (/ theta (* 12 tau))))]
          [Ti (* theta (/ (+ 30 (* 3 ratio)) (+ 9 (* 20 ratio))))]
@@ -305,6 +320,7 @@
 ;;; Takes a setpoint and list of process values (measurements).
 ;;; Returns (outputs . errors).
 (define (pid-simulate pid state setpoint measurements)
+  (doc 'export #t)
   (let loop ([state state]
              [ms measurements]
              [outputs '()]
@@ -324,6 +340,7 @@
 ;;; pid-simulate-antiwindup : PID × PIDState × Number × (List Number) × Number × Number → (List Number × List Number)
 ;;; Simulate PID with anti-windup.
 (define (pid-simulate-antiwindup pid state setpoint measurements out-min out-max)
+  (doc 'export #t)
   (let loop ([state state]
              [ms measurements]
              [outputs '()]
@@ -356,10 +373,12 @@
 ;;; make-velocity-pid-state : → VelocityPIDState
 ;;; State for velocity form: (velocity-pid-state prev-error prev-prev-error prev-output)
 (define (make-velocity-pid-state)
+  (doc 'export #t)
   (list 'velocity-pid-state 0 0 0))
 
 ;;; velocity-pid-state? : Any → Boolean
 (define (velocity-pid-state? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'velocity-pid-state)
        (= (length x) 4)))
@@ -371,6 +390,7 @@
 ;;; pid-step-velocity : PID × VelocityPIDState × Number → (Number . VelocityPIDState)
 ;;; Velocity form PID step.
 (define (pid-step-velocity pid state error)
+  (doc 'export #t)
   (let* ([Kp (pid-Kp pid)]
          [Ki (pid-Ki pid)]
          [Kd (pid-Kd pid)]
@@ -395,6 +415,7 @@
 
 ;;; pid->string : PID → String
 (define (pid->string pid)
+  (doc 'export #t)
   (let ([Kp (pid-Kp pid)]
         [Ki (pid-Ki pid)]
         [Kd (pid-Kd pid)]

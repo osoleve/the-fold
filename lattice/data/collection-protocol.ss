@@ -72,6 +72,7 @@ Example:
 (doc 'section 'generic-operations)
 
 (define (coll-count coll pred)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element Boolean) Nat))
   (doc 'description "Count elements satisfying predicate")
   (coll-fold coll
@@ -80,6 +81,7 @@ Example:
              0))
 
 (define (coll-any? coll pred)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
   (doc 'description "Check if any element satisfies predicate. Skips pred after first match via or short-circuit.")
   (doc 'note "Predicate calls are O(k) but fold still traverses O(n) elements.
@@ -91,6 +93,7 @@ True early termination requires a coll-fold-while protocol (future work).")
       #t #f))
 
 (define (coll-all? coll pred)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element Boolean) Boolean))
   (doc 'description "Check if all elements satisfy predicate. Skips pred after first mismatch via and short-circuit.")
   (doc 'note "Predicate calls are O(k) but fold still traverses O(n) elements.
@@ -102,6 +105,7 @@ True early termination requires a coll-fold-while protocol (future work).")
       #t #f))
 
 (define (coll-filter-list coll pred)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element Boolean) (List Element)))
   (doc 'description "Return list of elements satisfying predicate")
   (reverse
@@ -111,6 +115,7 @@ True early termination requires a coll-fold-while protocol (future work).")
               '())))
 
 (define (coll-map-list coll fn)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element a) (List a)))
   (doc 'description "Map function over elements, returning a list")
   (reverse
@@ -120,6 +125,7 @@ True early termination requires a coll-fold-while protocol (future work).")
               '())))
 
 (define (coll-find coll pred)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element Boolean) (Maybe Element)))
   (doc 'description "Find first element satisfying predicate, or #f. Skips pred after match found.")
   (doc 'note "Predicate calls are O(k) but fold still traverses O(n) elements.
@@ -131,6 +137,7 @@ True early termination requires a coll-fold-while protocol (future work).")
              #f))
 
 (define (coll-partition coll pred)
+  (doc 'export #t)
   (doc 'type '(-> Collection (-> Element Boolean) (Values (List Element) (List Element))))
   (doc 'description "Partition into (satisfying, not-satisfying) lists")
   (let ([result (coll-fold coll
@@ -142,11 +149,13 @@ True early termination requires a coll-fold-while protocol (future work).")
     (values (reverse (car result)) (reverse (cdr result)))))
 
 (define (coll-sum coll)
+  (doc 'export #t)
   (doc 'type '(-> Collection Num))
   (doc 'description "Sum numeric elements")
   (coll-fold coll (lambda (acc elem) (+ acc elem)) 0))
 
 (define (coll-product coll)
+  (doc 'export #t)
   (doc 'type '(-> Collection Num))
   (doc 'description "Product of numeric elements")
   (coll-fold coll (lambda (acc elem) (* acc elem)) 1))
@@ -231,6 +240,7 @@ True early termination requires a coll-fold-while protocol (future work).")
 (doc 'section 'introspection)
 
 (define (coll-protocols type-tag)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Symbol)))
   (doc 'description "List protocols implemented by a type")
   (filter (lambda (proto)

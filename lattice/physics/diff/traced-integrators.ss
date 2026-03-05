@@ -30,6 +30,7 @@ optimization and inverse problems.")
 ;;;   torque-over-I: angular acceleration (torque / inertia)
 ;;;   dt: time step (constant, not traced)
 (define (traced-euler-step body accel torque-over-I dt)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body  ; Static bodies don't move
       (let* (;; Update velocities first (symplectic)
@@ -47,6 +48,7 @@ optimization and inverse problems.")
 ;;; traced-euler-step-with-force : TracedBody × TracedVec2 × TracedValue × Number → TracedBody
 ;;; Euler step taking force and torque directly (computes acceleration internally).
 (define (traced-euler-step-with-force body force torque dt)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (let* ([accel (traced-vec2-scale force (traced-body-inv-mass body))]
@@ -63,6 +65,7 @@ optimization and inverse problems.")
 ;;;   v_{n+1} = v_n + a_n * dt
 ;;; Less stable than symplectic but sometimes useful.
 (define (traced-euler-step-explicit body accel torque-over-I dt)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (let* (;; Update positions using old velocities
@@ -93,6 +96,7 @@ optimization and inverse problems.")
 ;;;   compute-accel: function returning (values linear-accel angular-accel) given body state
 ;;;   dt: time step
 (define (traced-verlet-step body compute-accel dt)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (call-with-values
@@ -135,6 +139,7 @@ optimization and inverse problems.")
 ;;; Semi-implicit Euler with optional velocity damping.
 ;;;   damping: velocity multiplier per step (0.99 typical)
 (define (traced-semi-implicit-step body accel torque-over-I dt damping)
+  (doc 'export #t)
   (if (traced-body-static? body)
       body
       (let* (;; Update and damp velocities
@@ -159,11 +164,13 @@ optimization and inverse problems.")
 ;;; Standard gravity acceleration (constant, independent of mass).
 ;;; gravity is typically (vec2 0 9.8) or (vec2 0 -9.8) depending on coordinate system.
 (define (traced-gravity-accel gravity)
+  (doc 'export #t)
   gravity)  ; Gravity is acceleration, not force
 
 ;;; traced-gravity-step : TracedBody × TracedVec2 × Number → TracedBody
 ;;; Apply gravity and integrate for one step.
 (define (traced-gravity-step body gravity dt)
+  (doc 'export #t)
   (traced-euler-step body gravity 0 dt))
 
 ;;; ====
@@ -174,6 +181,7 @@ optimization and inverse problems.")
 ;;; Integrate for n steps using symplectic Euler.
 ;;;   compute-accel: returns (values linear-accel angular-accel) for body state
 (define (traced-integrate-n-steps body compute-accel dt n)
+  (doc 'export #t)
   (if (= n 0)
       body
       (call-with-values
@@ -185,6 +193,7 @@ optimization and inverse problems.")
 ;;; traced-integrate-until : TracedBody × (TracedBody → TracedVec2 × TracedValue) × Number × Number → TracedBody
 ;;; Integrate for total time t using fixed timestep dt.
 (define (traced-integrate-until body compute-accel dt total-time)
+  (doc 'export #t)
   (let ([n (exact (floor (/ total-time dt)))])
        (traced-integrate-n-steps body compute-accel dt n)))
 
@@ -197,6 +206,7 @@ optimization and inverse problems.")
 ;;; traced-point-step : TracedVec2 × TracedVec2 × TracedVec2 × Number → (TracedVec2 × TracedVec2)
 ;;; Integrate a point mass: returns (new-pos, new-vel).
 (define (traced-point-step pos vel accel dt)
+  (doc 'export #t)
   (let* ([new-vel (traced-vec2-add vel (traced-vec2-scale accel dt))]
          [new-pos (traced-vec2-add pos (traced-vec2-scale new-vel dt))])
         (values new-pos new-vel)))
@@ -204,6 +214,7 @@ optimization and inverse problems.")
 ;;; traced-projectile-step : TracedVec2 × TracedVec2 × TracedVec2 × Number → (TracedVec2 × TracedVec2)
 ;;; Integrate projectile motion under constant gravity.
 (define (traced-projectile-step pos vel gravity dt)
+  (doc 'export #t)
   (traced-point-step pos vel gravity dt))
 
 ;;; ====
@@ -217,6 +228,7 @@ optimization and inverse problems.")
 ;;; Compute total energy: kinetic + potential.
 ;;;   potential-fn: function computing potential energy from body state
 (define (traced-total-energy body potential-fn)
+  (doc 'export #t)
   (traced-add (traced-body-kinetic-energy body)
               (potential-fn body)))
 
@@ -224,6 +236,7 @@ optimization and inverse problems.")
 ;;; Gravitational potential energy: mgh (in direction of gravity).
 ;;;   ref-height: reference height where PE = 0
 (define (traced-gravitational-potential body gravity ref-height)
+  (doc 'export #t)
   (let* ([m (traced-body-mass body)]
          [h (traced-sub (traced-vec2-y (traced-body-pos body)) ref-height)]
          ;; PE = mgh, where g is magnitude of gravity in -y direction

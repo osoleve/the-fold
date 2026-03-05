@@ -85,6 +85,7 @@ A signature describes an algebraic theory:
   - laws: list of rewrite rules for normalization")
 
 (define (make-signature name ops laws)
+  (doc 'export #t)
   (doc 'type '(-> Symbol OpList RuleList Signature))
   (doc 'description "Create a signature for an algebraic theory
 ops: list of (op-name . arity) pairs
@@ -92,6 +93,7 @@ laws: list of rewrite rules for term normalization")
   (list 'signature name ops laws))
 
 (define (signature? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a signature")
   (and (pair? x)
@@ -99,27 +101,32 @@ laws: list of rewrite rules for term normalization")
        (= (length x) 4)))
 
 (define (signature-name sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature Symbol))
   (doc 'description "Get the name of a signature")
   (if (signature? sig) (cadr sig) 'unknown))
 
 (define (signature-operations sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature OpList))
   (doc 'description "Get the operations list from a signature")
   (if (signature? sig) (caddr sig) '()))
 
 (define (signature-laws sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature RuleList))
   (doc 'description "Get the rewrite laws from a signature")
   (if (signature? sig) (cadddr sig) '()))
 
 (define (signature-op-arity sig op-name)
+  (doc 'export #t)
   (doc 'type '(-> Signature Symbol (Maybe Nat)))
   (doc 'description "Get the arity of an operation in the signature")
   (let ([entry (assq op-name (signature-operations sig))])
     (and entry (cdr entry))))
 
 (define (signature-has-op? sig op-name)
+  (doc 'export #t)
   (doc 'type '(-> Signature Symbol Boolean))
   (doc 'description "Test if signature has an operation")
   (and (assq op-name (signature-operations sig)) #t))
@@ -131,6 +138,7 @@ An Algebra bundles a signature with a concrete implementation.
 The ops alist maps operation names to procedures.")
 
 (define (make-algebra sig carrier ops)
+  (doc 'export #t)
   (doc 'type '(-> Signature Symbol OpImplList Algebra))
   (doc 'description "Create an algebra over a signature
 carrier: a symbol identifying the carrier type
@@ -138,6 +146,7 @@ ops: alist of (op-name . procedure)")
   (list 'algebra sig carrier ops))
 
 (define (algebra? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is an algebra")
   (and (pair? x)
@@ -145,27 +154,32 @@ ops: alist of (op-name . procedure)")
        (= (length x) 4)))
 
 (define (algebra-signature alg)
+  (doc 'export #t)
   (doc 'type '(-> Algebra Signature))
   (doc 'description "Get the signature from an algebra")
   (if (algebra? alg) (cadr alg) #f))
 
 (define (algebra-carrier alg)
+  (doc 'export #t)
   (doc 'type '(-> Algebra Symbol))
   (doc 'description "Get the carrier type symbol from an algebra")
   (if (algebra? alg) (caddr alg) 'unknown))
 
 (define (algebra-ops alg)
+  (doc 'export #t)
   (doc 'type '(-> Algebra OpImplList))
   (doc 'description "Get the operations implementation list")
   (if (algebra? alg) (cadddr alg) '()))
 
 (define (algebra-op alg op-name)
+  (doc 'export #t)
   (doc 'type '(-> Algebra Symbol (Maybe Procedure)))
   (doc 'description "Get the implementation of an operation")
   (let ([entry (assq op-name (algebra-ops alg))])
     (and entry (cdr entry))))
 
 (define (validate-algebra alg)
+  (doc 'export #t)
   (doc 'type '(-> Algebra (Result Algebra String)))
   (doc 'description "Validate that an algebra correctly implements its signature
 Checks:
@@ -197,12 +211,14 @@ Checks:
                           (list 'ok alg))))))))))
 
 (define (algebra-valid? alg)
+  (doc 'export #t)
   (doc 'type '(-> Algebra Boolean))
   (doc 'description "Quick predicate for algebra validity")
   (let ([result (validate-algebra alg)])
     (and (pair? result) (eq? (car result) 'ok))))
 
 (define (make-validated-algebra sig carrier ops)
+  (doc 'export #t)
   (doc 'type '(-> Signature Symbol OpImplList Algebra))
   (doc 'description "Like make-algebra but validates and raises error on failure")
   (let* ([alg (make-algebra sig carrier ops)]
@@ -219,30 +235,36 @@ An algebra homomorphism h : A → B is a function that preserves structure:
   For 0-ary operations (constants):  h(e_A) = e_B")
 
 (define (make-algebra-hom source target f)
+  (doc 'export #t)
   (doc 'type '(-> Algebra Algebra (-> Any Any) AlgebraHom))
   (doc 'description "Create an algebra homomorphism from source to target.
 The function f should preserve the algebraic structure.")
   (list 'algebra-hom source target f))
 
 (define (algebra-hom? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'algebra-hom)
        (= (length x) 4)))
 
 (define (algebra-hom-source h)
+  (doc 'export #t)
   (doc 'type '(-> AlgebraHom Algebra))
   (if (algebra-hom? h) (cadr h) #f))
 
 (define (algebra-hom-target h)
+  (doc 'export #t)
   (doc 'type '(-> AlgebraHom Algebra))
   (if (algebra-hom? h) (caddr h) #f))
 
 (define (algebra-hom-function h)
+  (doc 'export #t)
   (doc 'type '(-> AlgebraHom (-> Any Any)))
   (if (algebra-hom? h) (cadddr h) #f))
 
 (define (algebra-hom-apply h x)
+  (doc 'export #t)
   (doc 'type '(-> AlgebraHom Any Any))
   (doc 'description "Apply a homomorphism to a value")
   ((algebra-hom-function h) x))
@@ -252,6 +274,7 @@ The function f should preserve the algebraic structure.")
 ;;; test-values: alist of (arity . values-list) for generating test cases
 ;;; Returns #t if all tests pass.
 (define (verify-homomorphism hom test-values)
+  (doc 'export #t)
   (let* ([source (algebra-hom-source hom)]
          [target (algebra-hom-target hom)]
          [f (algebra-hom-function hom)]
@@ -291,6 +314,7 @@ The function f should preserve the algebraic structure.")
 ;;; Compose two homomorphisms: (g ∘ h)(x) = g(h(x))
 ;;; Precondition: target of h = source of g (structurally equal)
 (define (compose-algebra-hom g h)
+  (doc 'export #t)
   (let ([h-target (algebra-hom-target h)]
         [g-source (algebra-hom-source g)])
     ;; Use equal? for structural equality, not eq? for pointer equality.
@@ -306,6 +330,7 @@ The function f should preserve the algebraic structure.")
 ;;; identity-algebra-hom : Algebra → AlgebraHom
 ;;; The identity homomorphism on an algebra.
 (define (identity-algebra-hom alg)
+  (doc 'export #t)
   (make-algebra-hom alg alg (lambda (x) x)))
 
 (doc 'section 'term-representation)
@@ -317,17 +342,20 @@ Terms in the free algebra are built from:
   - Constants: just the op-name for 0-arity operations")
 
 (define (make-gen x)
+  (doc 'export #t)
   (doc 'type '(-> Any Generator))
   (doc 'description "Create a generator (embedding of a carrier element into the free algebra)")
   (list 'gen x))
 
 (define (gen? t)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? t)
        (eq? (car t) 'gen)
        (= (length t) 2)))
 
 (define (gen-value g)
+  (doc 'export #t)
   (doc 'type '(-> Generator Any))
   (if (gen? g) (cadr g) g))
 
@@ -335,6 +363,7 @@ Terms in the free algebra are built from:
 ;;; Check if a term is an operation application.
 ;;; Either a symbol (0-arity) or a list starting with an op-name.
 (define (term-op? sig t)
+  (doc 'export #t)
   (cond
     ;; Symbol: 0-arity constant
     [(symbol? t)
@@ -348,6 +377,7 @@ Terms in the free algebra are built from:
 ;;; term? : Signature × Any → Boolean
 ;;; Check if something is a valid term in the free algebra.
 (define (term? sig t)
+  (doc 'export #t)
   (or (gen? t)
       (term-op? sig t)))
 
@@ -358,6 +388,7 @@ Terms in the free algebra are built from:
 ;;; free-fmap : Signature × (a → b) × Term → Term
 ;;; Apply a function to all generators in a term (functorial action).
 (define (free-fmap sig f term)
+  (doc 'export #t)
   (cond
     ;; Generator: apply f to the value
     [(gen? term)
@@ -376,6 +407,7 @@ Terms in the free algebra are built from:
 ;;; Normalize a term using the signature's laws.
 ;;; Applies rewrite rules exhaustively in bottomup fashion.
 (define (normalize-term sig term)
+  (doc 'export #t)
   (let ([laws (signature-laws sig)])
     (if (null? laws)
         term  ; No laws: term is already normalized
@@ -387,6 +419,7 @@ Terms in the free algebra are built from:
 ;;; Generators evaluate to their embedded values.
 ;;; Operations look up implementations in the algebra.
 (define (eval-term alg term)
+  (doc 'export #t)
   (let ([sig (algebra-signature alg)]
         [ops (algebra-ops alg)])
     (cond
@@ -413,6 +446,7 @@ Terms in the free algebra are built from:
 (doc 'section 'free-forgetful-functors)
 
 (define (make-free-functor sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature Functor))
   (doc 'description "The Free functor: Set → Alg(Σ)
 F(X) = term algebra over X (as generators)
@@ -427,6 +461,7 @@ first-class algebra-hom objects instead.")
      (free-fmap sig f term))))
 
 (define (make-free-algebra sig generators)
+  (doc 'export #t)
   (doc 'type '(-> Signature (List Any) Algebra))
   (doc 'description "Create the free algebra over a set of generators.
 The carrier includes the generators to distinguish Free(A) from Free(B).
@@ -445,6 +480,7 @@ Operations build term ASTs. This is an explicit algebra object for cat-Alg.")
     (list 'algebra sig carrier op-impls)))
 
 (define (free-morphism sig source-gens target-gens f)
+  (doc 'export #t)
   (doc 'type '(-> Signature (List Any) (List Any) (-> Any Any) AlgebraHom))
   (doc 'description "Construct Free(f) as a first-class algebra homomorphism.
 Given f : A → B (a function on generator sets), returns the algebra-hom
@@ -460,6 +496,7 @@ For simple term transformation, use (functor-fmap (make-free-functor sig)) inste
      (lambda (term) (free-fmap sig f term)))))
 
 (define (make-forgetful-functor sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature Functor))
   (doc 'description "The Forgetful functor: Alg(Σ) → Set
 
@@ -485,6 +522,7 @@ The apparent simplicity reflects that Set is the base category.")
 ;;; forget-carrier : Algebra → Symbol
 ;;; Extract the carrier type from an algebra (forgetful functor on objects).
 (define (forget-carrier alg)
+  (doc 'export #t)
   (algebra-carrier alg))
 
 ;;; ====
@@ -495,6 +533,7 @@ The apparent simplicity reflects that Set is the base category.")
 ;;; Unit η : Id → G∘F
 ;;; η_X(x) = (gen x) — embed element as generator in free algebra
 (define (make-free-unit sig)
+  (doc 'export #t)
   (make-nat-transform
    (string->symbol (format "eta-~a" (signature-name sig)))
    functor-id
@@ -543,6 +582,7 @@ The apparent simplicity reflects that Set is the base category.")
 ;;; η = unit (embed as generator)
 ;;; ε = counit (evaluate terms)
 (define (make-free-adjunction sig)
+  (doc 'export #t)
   (make-adjunction
    (string->symbol (format "free-~a" (signature-name sig)))
    (make-free-functor sig)
@@ -557,12 +597,14 @@ The apparent simplicity reflects that Set is the base category.")
 ;;; eval-in-algebra : Algebra × Term → Value
 ;;; Evaluate a (possibly normalized) term in an algebra.
 (define (eval-in-algebra alg term)
+  (doc 'export #t)
   (let ([sig (algebra-signature alg)])
     (eval-term alg (normalize-term sig term))))
 
 ;;; make-algebra-evaluator : Algebra → (Term → Value)
 ;;; Create a term evaluator for a specific algebra.
 (define (make-algebra-evaluator alg)
+  (doc 'export #t)
   (lambda (term)
     (eval-in-algebra alg term)))
 
@@ -707,6 +749,7 @@ Commutativity omitted for confluence")
 
 ;;; signature->string : Signature → String
 (define (signature->string sig)
+  (doc 'export #t)
   (if (signature? sig)
       (format "Signature<~a: ~a ops, ~a laws>"
               (signature-name sig)
@@ -716,6 +759,7 @@ Commutativity omitted for confluence")
 
 ;;; algebra->string : Algebra → String
 (define (algebra->string alg)
+  (doc 'export #t)
   (if (algebra? alg)
       (format "Algebra<~a over ~a>"
               (signature-name (algebra-signature alg))
@@ -724,6 +768,7 @@ Commutativity omitted for confluence")
 
 ;;; term->string : Signature × Term → String
 (define (term->string sig term)
+  (doc 'export #t)
   (cond
     [(gen? term)
      (format "(gen ~a)" (gen-value term))]

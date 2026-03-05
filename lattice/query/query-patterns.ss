@@ -11,6 +11,7 @@
 (doc 'section 'variable-recognition)
 
 (define (variable? x)
+  (doc 'export #t)
   (doc 'type '(-> α Boolean))
   (doc 'description "Check if a symbol represents a variable (starts with ?)")
   (and (symbol? x)
@@ -21,6 +22,7 @@
 ;;; variable-name : Symbol → String
 ;;; Extract the name of a variable (without the ?).
 (define (variable-name var)
+  (doc 'export #t)
   (let ([str (symbol->string var)])
        (substring str 1 (string-length str))))
 
@@ -38,22 +40,26 @@
 ;;; extend-env : Env × Symbol × α → Env
 ;;; Add a new binding to the environment.
 (define (extend-env env var value)
+  (doc 'export #t)
   (cons (cons var value) env))
 
 ;;; lookup-env : Env × Symbol → (Option α)
 ;;; Look up a variable's value in the environment.
 (define (lookup-env env var)
+  (doc 'export #t)
   (let ([binding (assq var env)])
        (if binding (cdr binding) #f)))
 
 ;;; env-bound? : Env × Symbol → Boolean
 ;;; Check if a variable is bound in the environment.
 (define (env-bound? env var)
+  (doc 'export #t)
   (if (assq var env) #t #f))
 
 ;;; merge-envs : Env × Env → (Option Env)
 ;;; Merge two environments, return #f if incompatible.
 (define (merge-envs env1 env2)
+  (doc 'export #t)
   (let loop ([pairs env2]
              [result env1])
        (if (null? pairs)
@@ -86,6 +92,7 @@
 ;;;   (?entity attribute-name constant) - Match attribute with constant value
 ;;;   (constant attribute-name ?value)  - Match attribute of specific entity
 (define (match-pattern fs pattern env)
+  (doc 'export #t)
   (cond
    ;; Binary relation pattern: (?x relation-type ?y)
    [(and (list? pattern) (= (length pattern) 3))
@@ -98,6 +105,7 @@
 ;;; match-binary-relation : FSCap × Pattern × Env → (List Env)
 ;;; Match a binary relation pattern (?subject rel-type ?object).
 (define (match-binary-relation fs pattern env)
+  (doc 'export #t)
   (let ([subject-var (car pattern)]
         [relation-type (cadr pattern)]
         [object-var (caddr pattern)])
@@ -134,6 +142,7 @@
 ;;; Try to bind subject and object variables to hashes.
 ;;; Returns extended environment or #f if binding conflicts.
 (define (try-bind-relation env subject-var subject-hash object-var object-hash)
+  (doc 'export #t)
   (let ([env1 (try-bind-var env subject-var subject-hash)])
        (if env1
            (try-bind-var env1 object-var object-hash)
@@ -144,6 +153,7 @@
 ;;; If variable, check for conflicts and extend.
 ;;; If constant (hash), check for equality.
 (define (try-bind-var env var value)
+  (doc 'export #t)
   (cond
    ;; Variable - check if already bound
    [(variable? var)
@@ -180,6 +190,7 @@
 ;;;     - ?concept has year ?y
 ;;;     - Same ?concept binding in both patterns
 (define (join-patterns fs patterns)
+  (doc 'export #t)
   (if (null? patterns)
       (list empty-env)
       (join-pattern-list fs patterns (list empty-env))))
@@ -187,6 +198,7 @@
 ;;; join-pattern-list : FSCap × (List Pattern) × (List Env) → (List Env)
 ;;; Recursively join patterns, accumulating environments.
 (define (join-pattern-list fs patterns envs)
+  (doc 'export #t)
   (if (null? patterns)
       envs
       (let ([pattern (car patterns)]
@@ -213,6 +225,7 @@
 ;;; Non-UTF-8 data or unparseable content returns #f (comparison fails).
 ;;; This is intentional - query constraints should fail safely on bad data.
 (define (extract-numeric-value val)
+  (doc 'export #t)
   (cond
    [(number? val) val]
    [(bytevector? val)
@@ -236,6 +249,7 @@
 ;;;   (= ?var constant)
 ;;;   (string=? ?var constant)
 (define (eval-constraint constraint env)
+  (doc 'export #t)
   (if (not (list? constraint))
       #t
       (let ([op (car constraint)]
@@ -314,6 +328,7 @@
 ;;;   (project-vars envs '(?person ?concept))
 ;;;   -> (((person . hash1) (concept . hash2)) ...)
 (define (project-vars envs vars)
+  (doc 'export #t)
   (map (lambda (env)
                (map (lambda (var)
                             (cons (string->symbol (variable-name var))
@@ -328,6 +343,7 @@
 ;;; find-pattern : FSCap × Pattern → (List Bytevector)
 ;;; Find all blocks matching a single pattern, return bound values.
 (define (find-pattern fs pattern)
+  (doc 'export #t)
   (let ([envs (match-pattern fs pattern empty-env)])
        (map (lambda (env)
                     (map cdr env))
@@ -336,6 +352,7 @@
 ;;; count-pattern : FSCap × (List Pattern) → Nat
 ;;; Count results matching pattern query.
 (define (count-pattern fs patterns)
+  (doc 'export #t)
   (length (pattern-query fs patterns)))
 
 ;;; ====
@@ -346,6 +363,7 @@
 ;;; Helper for string containment check.
 ;;; Optimized: char-by-char comparison avoids O(N*M) substring allocations.
 (define (query-string-contains? haystack needle)
+  (doc 'export #t)
   (let ([h-len (string-length haystack)]
         [n-len (string-length needle)])
        (cond

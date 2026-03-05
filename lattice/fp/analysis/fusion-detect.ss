@@ -32,6 +32,7 @@ Analyzes S-expressions to detect fusion opportunities:
     (confidence . Symbol))    ; safe or check-effects")
 
 (define (make-fusion-opportunity type location before after savings confidence)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Position Expr Expr Nat Symbol FusionOpportunity))
   (doc 'description "Create a new fusion opportunity record.")
   `(fusion-opportunity
@@ -43,6 +44,7 @@ Analyzes S-expressions to detect fusion opportunities:
     (confidence . ,confidence)))
 
 (define (fusion-opportunity? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if x is a FusionOpportunity.")
   (and (pair? x)
@@ -52,26 +54,32 @@ Analyzes S-expressions to detect fusion opportunities:
        #t))
 
 (define (fusion-type opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity Symbol))
   (cdr (assq 'type (cdr opp))))
 
 (define (fusion-location opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity Position))
   (cdr (assq 'location (cdr opp))))
 
 (define (fusion-before opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity Expr))
   (cdr (assq 'before (cdr opp))))
 
 (define (fusion-after opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity Expr))
   (cdr (assq 'after (cdr opp))))
 
 (define (fusion-savings opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity Nat))
   (cdr (assq 'savings (cdr opp))))
 
 (define (fusion-confidence opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity Symbol))
   (cdr (assq 'confidence (cdr opp))))
 
@@ -82,6 +90,7 @@ Analyzes S-expressions to detect fusion opportunities:
   (1 0) means second element's first sub-element")
 
 (define (expr-at-position expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position Expr))
   (doc 'description "Extract subexpression at given position.")
   (if (null? pos)
@@ -108,12 +117,14 @@ Analyzes S-expressions to detect fusion opportunities:
 (doc *pure-primitives* 'description "Known pure primitives (for confidence estimation)")
 
 (define (known-pure? sym)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Boolean))
   (doc 'description "Check if a function symbol is known to be pure.")
   (or (memq sym *pure-hof*)
       (memq sym *pure-primitives*)))
 
 (define (estimate-purity expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol))
   (doc 'description "Estimate if an expression is pure: safe, likely-pure, or check-effects
 This is called on the function argument of map/filter/fold patterns.
@@ -141,6 +152,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
    [else 'safe]))
 
 (define (combine-confidence c1 c2)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol Symbol))
   (doc 'description "Combine two confidence levels (pessimistic).")
   (cond
@@ -152,6 +164,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
 (doc 'note "Each matcher returns #f or (bindings . confidence)")
 
 (define (match-map-map expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (U False (Pair Bindings Confidence))))
   (doc 'description "Pattern: (map f (map g xs))")
   (and (pair? expr)
@@ -169,6 +182,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
                                                 (estimate-purity g))))))))
 
 (define (match-filter-map expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (U False (Pair Bindings Confidence))))
   (doc 'description "Pattern: (map f (filter p xs))")
   (and (pair? expr)
@@ -186,6 +200,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
                                                 (estimate-purity p))))))))
 
 (define (match-map-filter expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (U False (Pair Bindings Confidence))))
   (doc 'description "Pattern: (filter p (map f xs))")
   (and (pair? expr)
@@ -203,6 +218,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
                                                 (estimate-purity p))))))))
 
 (define (match-fold-map expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (U False (Pair Bindings Confidence))))
   (doc 'description "Pattern: (foldl f z (map g xs)) or (fold-left f z (map g xs))")
   (and (pair? expr)
@@ -222,6 +238,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
                                                 (estimate-purity g))))))))
 
 (define (match-concat-map expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (U False (Pair Bindings Confidence))))
   (doc 'description "Pattern: (flatten (map f xs)) or (apply append (map f xs))")
   (cond
@@ -255,6 +272,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
    [else #f]))
 
 (define (match-stream-map-map expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (U False (Pair Bindings Confidence))))
   (doc 'description "Pattern: (stream-map f (stream-map g s))")
   (and (pair? expr)
@@ -274,6 +292,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
 (doc 'section 'rewrite-templates)
 
 (define (build-map-map-fused bindings)
+  (doc 'export #t)
   (doc 'type '(-> Bindings Expr))
   (doc 'description "(map f (map g xs)) -> (map (compose f g) xs)")
   (let ([f (cdr (assq 'f bindings))]
@@ -282,6 +301,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
        `(map (compose ,f ,g) ,xs)))
 
 (define (build-filter-map-fused bindings)
+  (doc 'export #t)
   (doc 'type '(-> Bindings Expr))
   (doc 'description "(map f (filter p xs)) -> (filter-map p f xs)")
   (let ([f (cdr (assq 'f bindings))]
@@ -290,6 +310,7 @@ For (map f (map g xs)), we call (estimate-purity f) and (estimate-purity g).")
        `(filter-map ,p ,f ,xs)))
 
 (define (build-map-filter-fused bindings)
+  (doc 'export #t)
   (doc 'type '(-> Bindings Expr))
   (doc 'description "(filter p (map f xs)) -> (filter-map (compose p f) f xs)
 Note: Requires mapping first, then filtering - slightly different semantics")
@@ -299,6 +320,7 @@ Note: Requires mapping first, then filtering - slightly different semantics")
        `(filter-map (compose ,p ,f) ,f ,xs)))
 
 (define (build-fold-map-fused bindings)
+  (doc 'export #t)
   (doc 'type '(-> Bindings Expr))
   (doc 'description "(foldl f z (map g xs)) -> (foldl (lambda (a x) (f a (g x))) z xs)")
   (let ([fold-op (cdr (assq 'fold-op bindings))]
@@ -313,6 +335,7 @@ Note: Requires mapping first, then filtering - slightly different semantics")
            `(,fold-op (lambda (x acc) (,f (,g x) acc)) ,z ,xs))))
 
 (define (build-concat-map-fused bindings)
+  (doc 'export #t)
   (doc 'type '(-> Bindings Expr))
   (doc 'description "(flatten (map f xs)) -> (flatMap f xs)")
   (let ([f (cdr (assq 'f bindings))]
@@ -320,6 +343,7 @@ Note: Requires mapping first, then filtering - slightly different semantics")
        `(flatMap ,f ,xs)))
 
 (define (build-stream-map-map-fused bindings)
+  (doc 'export #t)
   (doc 'type '(-> Bindings Expr))
   (doc 'description "(stream-map f (stream-map g s)) -> (stream-map (compose f g) s)")
   (let ([f (cdr (assq 'f bindings))]
@@ -342,6 +366,7 @@ savings: estimated % reduction in list traversals")
 (doc 'section 'core-detection-logic)
 
 (define (try-all-rules expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position (List FusionOpportunity)))
   (doc 'description "Try all fusion rules on an expression at given position.")
   (let loop ([rules *fusion-rules*] [opps '()])
@@ -363,6 +388,7 @@ savings: estimated % reduction in list traversals")
                      (loop (cdr rules) opps))))))
 
 (define (fusion-detect-at-depth expr pos fuel)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position Nat (List FusionOpportunity)))
   (doc 'description "Recursively detect fusion opportunities with depth limit.
 Traverses ALL elements of lists (including index 0) to find patterns
@@ -387,6 +413,7 @@ Note: Prefixed to avoid collision with parallel-detect.ss")
             (append here children))))
 
 (define *fusion-detect-fuel* 100)
+(doc *fusion-detect-fuel* 'export #t)
 (doc *fusion-detect-fuel* 'type 'Nat)
 (doc *fusion-detect-fuel* 'description "Default recursion depth for fusion detection.
 Can be overridden by passing an optional fuel parameter to detect-fusion-static.")
@@ -402,16 +429,19 @@ Optional fuel parameter allows handling larger ASTs (default: 100).")
 (doc 'section 'convenience-functions)
 
 (define (count-opportunities opps)
+  (doc 'export #t)
   (doc 'type '(-> (List FusionOpportunity) Nat))
   (doc 'description "Count total opportunities.")
   (length opps))
 
 (define (total-savings opps)
+  (doc 'export #t)
   (doc 'type '(-> (List FusionOpportunity) Nat))
   (doc 'description "Sum up potential savings (capped at 100).")
   (min 100 (fold-left (lambda (acc opp) (+ acc (fusion-savings opp))) 0 opps)))
 
 (define (opportunities-by-type opps)
+  (doc 'export #t)
   (doc 'type '(-> (List FusionOpportunity) ((Symbol . (List FusionOpportunity)) ...)))
   (doc 'description "Group opportunities by fusion type.")
   (let ([types '(map-map-fuse filter-map-fuse map-filter-fuse
@@ -421,6 +451,7 @@ Optional fuel parameter allows handling larger ASTs (default: 100).")
             types)))
 
 (define (safe-opportunities opps)
+  (doc 'export #t)
   (doc 'type '(-> (List FusionOpportunity) (List FusionOpportunity)))
   (doc 'description "Filter to only safe (known-pure) opportunities.")
   (filter (lambda (o) (eq? (fusion-confidence o) 'safe)) opps))
@@ -428,6 +459,7 @@ Optional fuel parameter allows handling larger ASTs (default: 100).")
 (doc 'section 'display-utilities)
 
 (define (format-opportunity opp)
+  (doc 'export #t)
   (doc 'type '(-> FusionOpportunity String))
   (doc 'description "Format an opportunity for display.")
   (format "[~a] at ~a\n  Before: ~a\n  After:  ~a\n  Savings: ~a%  Confidence: ~a"
@@ -439,6 +471,7 @@ Optional fuel parameter allows handling larger ASTs (default: 100).")
           (fusion-confidence opp)))
 
 (define (display-opportunities opps)
+  (doc 'export #t)
   (doc 'type '(-> (List FusionOpportunity) Void))
   (doc 'description "Display all opportunities to current output port.")
   (if (null? opps)
@@ -454,6 +487,7 @@ Optional fuel parameter allows handling larger ASTs (default: 100).")
 (doc 'section 'summary-report)
 
 (define (fusion-summary opps)
+  (doc 'export #t)
   (doc 'type '(-> (List FusionOpportunity) Summary))
   (doc 'description "Generate a summary report of opportunities.")
   (let* ([by-type (opportunities-by-type opps)]

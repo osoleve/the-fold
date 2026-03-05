@@ -25,9 +25,11 @@
 
 ;;; Thunk to defer parsing
 (define (sql-expr-thunk state)
+  (doc 'export #t)
   (run-parser sql-expr state))
 
 (define (sql-select-thunk state)
+  (doc 'export #t)
   (run-parser sql-select-stmt state))
 
 ;;; Lazy expression parser
@@ -728,4 +730,5 @@
 
 ;;; parse-sql-stmt : String → Either Error AST
 (define (parse-sql-stmt input)
+  (doc 'export #t)
   (parse-all sql-statement input))

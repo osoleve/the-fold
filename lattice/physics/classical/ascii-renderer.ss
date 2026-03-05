@@ -20,9 +20,11 @@
 (doc "  origin-x: screen X offset for physics origin")
 (doc "  origin-y: screen Y offset for physics origin")
 (define (make-render-config width height scale origin-x origin-y)
+  (doc 'export #t)
   (list 'render-config width height scale origin-x origin-y))
 
 (define (render-config? c)
+  (doc 'export #t)
   (and (pair? c) (eq? (car c) 'render-config)))
 
 (define (config-width c) (list-ref c 1))
@@ -33,6 +35,7 @@
 
 (doc "Default config: 80x40, scale 3, centered")
 (define (default-render-config)
+  (doc 'export #t)
   (make-render-config 80 40 3.0 40 10))
 
 (doc 'section 'debug)
@@ -44,9 +47,11 @@
 (doc "  show-constraints: draw constraint anchors and connections")
 (doc "  show-aabb: draw bounding boxes")
 (define (make-debug-options show-velocity show-contacts show-constraints show-aabb)
+  (doc 'export #t)
   (list 'debug-options show-velocity show-contacts show-constraints show-aabb))
 
 (define (debug-options? d)
+  (doc 'export #t)
   (and (pair? d) (eq? (car d) 'debug-options)))
 
 (define (debug-show-velocity d) (list-ref d 1))
@@ -56,10 +61,12 @@
 
 (doc "Default: all off")
 (define (default-debug-options)
+  (doc 'export #t)
   (make-debug-options #f #f #f #f))
 
 (doc "Full debug: all on")
 (define (full-debug-options)
+  (doc 'export #t)
   (make-debug-options #t #t #t #t))
 
 (doc 'section 'render)
@@ -67,9 +74,11 @@
 (doc 'make-render-style 'type 'Char x Char x Char x Char x Char x Char x Char -> RenderStyle)
 (doc "Character palette for visual elements")
 (define (make-render-style fill-char static-char box-h box-v corner velocity-char contact-char)
+  (doc 'export #t)
   (list 'render-style fill-char static-char box-h box-v corner velocity-char contact-char))
 
 (define (render-style? s)
+  (doc 'export #t)
   (and (pair? s) (eq? (car s) 'render-style)))
 
 (define (style-fill-char s) (list-ref s 1))
@@ -82,19 +91,23 @@
 
 (doc "Default style")
 (define (default-render-style)
+  (doc 'export #t)
   (make-render-style #\O #\# #\- #\| #\+ #\> #\*))
 
 (doc "Minimal style (lighter)")
 (define (minimal-render-style)
+  (doc 'export #t)
   (make-render-style #\o #\. #\- #\| #\+ #\> #\x))
 
 (doc "Bold style (heavier)")
 (define (bold-render-style)
+  (doc 'export #t)
   (make-render-style #\@ #\# #\= #\| #\# #\> #\*))
 
 (doc 'section 'world)
 
 (define (make-world-renderer config debug-opts style)
+  (doc 'export #t)
   (list 'world-renderer config debug-opts style))
 
 (define (renderer-config r) (list-ref r 1))
@@ -103,6 +116,7 @@
 
 (doc "Default renderer")
 (define (default-world-renderer)
+  (doc 'export #t)
   (make-world-renderer (default-render-config)
                        (default-debug-options)
                        (default-render-style)))
@@ -113,6 +127,7 @@
 (doc "Convert physics coordinates to screen coordinates.")
 (doc "Physics Y increases upward, screen Y increases downward.")
 (define (world->screen pos config)
+  (doc 'export #t)
   (let ([x (vec2-x pos)]
         [y (vec2-y pos)]
         [scale (config-scale config)]
@@ -124,6 +139,7 @@
 (doc "screen->world : Int x Int x RenderConfig -> Vec2")
 (doc "Convert screen coordinates to physics coordinates.")
 (define (screen->world sx sy config)
+  (doc 'export #t)
   (let ([scale (config-scale config)]
         [ox (config-origin-x config)]
         [oy (config-origin-y config)])
@@ -135,6 +151,7 @@
 (doc "safe-frame-set! : Frame x Int x Int x Char x RenderConfig -> Void")
 (doc "Set character with bounds checking.")
 (define (safe-frame-set! frame x y char config)
+  (doc 'export #t)
   (when (and (>= x 0) (< x (config-width config))
              (>= y 0) (< y (config-height config)))
         (frame-set! frame x y char)))
@@ -144,6 +161,7 @@
 (doc "draw-line! : Frame x Int x Int x Int x Int x Char x RenderConfig -> Void")
 (doc "Draw a line using Bresenham's algorithm.")
 (define (draw-line! frame x0 y0 x1 y1 char config)
+  (doc 'export #t)
   (let* ([dx (abs (- x1 x0))]
          [dy (abs (- y1 y0))]
          [sx (if (< x0 x1) 1 -1)]
@@ -165,6 +183,7 @@
 (doc "draw-filled-circle! : Frame x Int x Int x Int x Char x RenderConfig -> Void")
 (doc "Draw a filled circle using scanline fill.")
 (define (draw-filled-circle! frame cx cy radius char config)
+  (doc 'export #t)
   (let ([w (config-width config)]
         [h (config-height config)])
        ;; For each row in the circle's bounding box
@@ -186,6 +205,7 @@
 (doc 'polygon-scanline-intersections 'type '(List (Int . Int)) x Int -> (List Int))
 (doc "Find x intersections of horizontal scanline y with polygon edges.")
 (define (polygon-scanline-intersections verts y)
+  (doc 'export #t)
   (let ([n (length verts)])
        (let loop ([i 0] [intersections '()])
             (if (>= i n)
@@ -207,6 +227,7 @@
 (doc "fill-between-pairs! : Frame x (List Int) x Int x Char x RenderConfig -> Void")
 (doc "Fill horizontal spans between sorted x pairs.")
 (define (fill-between-pairs! frame xs y char config)
+  (doc 'export #t)
   (let ([w (config-width config)])
        (let loop ([remaining xs])
             (when (and (pair? remaining) (pair? (cdr remaining)))
@@ -220,6 +241,7 @@
 (doc "draw-filled-polygon! : Frame x (List Vec2) x Char x RenderConfig -> Void")
 (doc "Scanline fill for convex polygon.")
 (define (draw-filled-polygon! frame vertices char config)
+  (doc 'export #t)
   (when (pair? vertices)
         (let* ([screen-verts (map (lambda (v) (world->screen v config)) vertices)]
                [h (config-height config)]
@@ -237,6 +259,7 @@
 (doc "draw-filled-aabb! : Frame x AABB x Char x RenderConfig -> Void")
 (doc "Fill an axis-aligned bounding box.")
 (define (draw-filled-aabb! frame aabb char config)
+  (doc 'export #t)
   (let* ([min-screen (world->screen (aabb-min aabb) config)]
          [max-screen (world->screen (aabb-max aabb) config)]
          [x1 (min (car min-screen) (car max-screen))]
@@ -254,6 +277,7 @@
 (doc "draw-aabb-outline! : Frame x AABB x RenderStyle x RenderConfig -> Void")
 (doc "Draw just the outline of an AABB.")
 (define (draw-aabb-outline! frame aabb style config)
+  (doc 'export #t)
   (let* ([min-screen (world->screen (aabb-min aabb) config)]
          [max-screen (world->screen (aabb-max aabb) config)]
          [x1 (min (car min-screen) (car max-screen))]
@@ -282,11 +306,13 @@
 (doc 'fmod 'type 'Number x Number -> Number)
 (doc "Floating-point modulo.")
 (define (fmod x y)
+  (doc 'export #t)
   (- x (* (floor (/ x y)) y)))
 
 (doc "angle->arrow-char : Number -> Char")
 (doc "Map angle (radians) to arrow character.")
 (define (angle->arrow-char angle)
+  (doc 'export #t)
   (let* ([pi 3.141592653589793]
          [two-pi (* 2 pi)]
          [normalized (fmod (+ angle two-pi) two-pi)]
@@ -305,6 +331,7 @@
 (doc "draw-velocity-vector! : Frame x Entity x Number x RenderConfig -> Void")
 (doc "Draw velocity arrow from entity center.")
 (define (draw-velocity-vector! frame entity vel-scale config)
+  (doc 'export #t)
   (let* ([body (entity-body entity)]
          [pos (if (rigid-body? body) (rigid-body-pos body) (body-pos body))]
          [vel (if (rigid-body? body) (rigid-body-vel body) (body-vel body))]
@@ -326,6 +353,7 @@
 (doc "draw-contact! : Frame x Vec2 x Vec2 x RenderConfig -> Void")
 (doc "Draw contact point with normal direction indicator.")
 (define (draw-contact! frame point normal config)
+  (doc 'export #t)
   (let* ([screen-pt (world->screen point config)]
          [end-pos (vec2-add point (vec2-scale normal 0.5))]
          [screen-end (world->screen end-pos config)])
@@ -340,6 +368,7 @@
 (doc "draw-constraint! : Frame x World x Constraint x RenderConfig -> Void")
 (doc "Draw constraint connection between anchor points.")
 (define (draw-constraint! frame world constraint config)
+  (doc 'export #t)
   (let* ([pos-a (constraint-anchor-world-a world constraint)]
          [pos-b (constraint-anchor-world-b world constraint)]
          [screen-a (world->screen pos-a config)]
@@ -363,6 +392,7 @@
 (doc 'get-entity-shape-world 'type 'Entity -> Shape)
 (doc "Get entity's shape in world coordinates.")
 (define (get-entity-shape-world entity)
+  (doc 'export #t)
   (let* ([shape (entity-shape entity)]
          [body (entity-body entity)]
          [pos (if (rigid-body? body) (rigid-body-pos body) (body-pos body))])
@@ -385,6 +415,7 @@
 (doc "render-entity-shape! : Frame x Entity x Char x RenderConfig -> Void")
 (doc "Render an entity's shape with given character.")
 (define (render-entity-shape! frame entity char config)
+  (doc 'export #t)
   (let ([shape (get-entity-shape-world entity)])
        (cond
         [(circle? shape)
@@ -405,6 +436,7 @@
 (doc "Render entire world with optional debug overlays.")
 (doc "entity-char-fn: function mapping entity to display character")
 (define (render-world! frame world renderer entity-char-fn)
+  (doc 'export #t)
   (let ([config (renderer-config renderer)]
         [debug (renderer-debug renderer)]
         [style (renderer-style renderer)])
@@ -449,6 +481,7 @@
 (doc 'record-physics-video 'type 'World x WorldRenderer x Int x Int x Number x (Entity -> Char) -> Video)
 (doc "Record physics simulation as video.")
 (define (record-physics-video world renderer num-frames steps-per-frame dt entity-char-fn)
+  (doc 'export #t)
   (let* ([config (renderer-config renderer)]
          [video (make-video)]
          [frame (make-frame (config-width config) (config-height config) #\space)])
@@ -469,12 +502,14 @@
 (doc "render-world-simple! : Frame x World x RenderConfig -> Void")
 (doc "Simple render without debug overlays.")
 (define (render-world-simple! frame world config)
+  (doc 'export #t)
   (let ([renderer (make-world-renderer config (default-debug-options) (default-render-style))])
        (render-world! frame world renderer #f)))
 
 (doc 'quick-render 'type 'World x Int x Int -> String)
 (doc "Quick single-frame render to string.")
 (define (quick-render world width height)
+  (doc 'export #t)
   (let* ([config (make-render-config width height 3.0 (/ width 2) (/ height 4))]
          [frame (make-frame width height #\space)])
         (render-world-simple! frame world config)

@@ -23,10 +23,12 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
 (doc 'section 'core-representation)
 
 (define kdtree-empty 'kdtree-empty)
+(doc kdtree-empty 'export #t)
 (doc kdtree-empty 'type 'KDTree)
 (doc kdtree-empty 'description "The empty k-d tree")
 
 (define (kdtree-empty? tree)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Boolean))
   (doc 'description "Check if tree is empty")
   (eq? tree 'kdtree-empty))
@@ -37,22 +39,27 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
   (list 'kdtree-node point left right depth))
 
 (define (kdtree-node? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'kdtree-node)))
 
 (define (kdtree-point node)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point))
   (cadr node))
 
 (define (kdtree-left node)
+  (doc 'export #t)
   (doc 'type '(-> KDTree KDTree))
   (caddr node))
 
 (define (kdtree-right node)
+  (doc 'export #t)
   (doc 'type '(-> KDTree KDTree))
   (cadddr node))
 
 (define (kdtree-depth node)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Nat))
   (car (cddddr node)))
 
@@ -63,16 +70,19 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
 (doc 'section 'point-utilities)
 
 (define (point-dimension pt)
+  (doc 'export #t)
   (doc 'type '(-> Point Nat))
   (doc 'description "Get dimensionality of a point")
   (length pt))
 
 (define (point-coord pt axis)
+  (doc 'export #t)
   (doc 'type '(-> Point Nat Num))
   (doc 'description "Get coordinate along axis (0-indexed)")
   (list-ref pt axis))
 
 (define (point-distance-sq p1 p2)
+  (doc 'export #t)
   (doc 'type '(-> Point Point Num))
   (doc 'description "Squared Euclidean distance between points")
   ;; Tail-recursive to avoid allocation in hot path
@@ -83,6 +93,7 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
           (loop (cdr a) (cdr b) (+ sum (* d d)))))))
 
 (define (point-distance p1 p2)
+  (doc 'export #t)
   (doc 'type '(-> Point Point Num))
   (doc 'description "Euclidean distance between points")
   (sqrt (point-distance-sq p1 p2)))
@@ -94,6 +105,7 @@ in O(√n + k) where k is result size. Points are represented as vectors (lists 
 (doc 'section 'construction)
 
 (define (kdtree-build points)
+  (doc 'export #t)
   (doc 'type '(-> (List Point) KDTree))
   (doc 'description "Build k-d tree from list of points. O(n log² n) using sorting-based median.
 Points must all have the same dimensionality. Note: True O(n log n) would require
@@ -138,6 +150,7 @@ linear-time median selection (median-of-medians); this implementation uses sorti
 (doc 'section 'nearest-neighbor)
 
 (define (kdtree-nearest tree query)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point (Maybe Point)))
   (doc 'description "Find nearest point to query. Returns #f for empty tree.
 O(log n) average case, O(n) worst case for degenerate trees.")
@@ -186,6 +199,7 @@ O(log n) average case, O(n) worst case for degenerate trees.")
   (>= (car p1) (car p2)))
 
 (define (kdtree-knn tree query k-count)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point Nat (List Point)))
   (doc 'description "Find k nearest points to query. Returns list sorted by distance (closest first).
 O(k log n) average case.")
@@ -252,6 +266,7 @@ O(k log n) average case.")
 (doc 'section 'range-queries)
 
 (define (kdtree-range tree min-point max-point)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point Point (List Point)))
   (doc 'description "Find all points within axis-aligned bounding box [min, max].
 O(√n + k) where k is number of results.")
@@ -284,6 +299,7 @@ O(√n + k) where k is number of results.")
              '())))))
 
 (define (point-in-box? point min-pt max-pt)
+  (doc 'export #t)
   (doc 'type '(-> Point Point Point Boolean))
   (doc 'description "Check if point is within axis-aligned bounding box [min, max] (inclusive)")
   (let loop ([pt point] [lo min-pt] [hi max-pt])
@@ -293,6 +309,7 @@ O(√n + k) where k is number of results.")
       [else (loop (cdr pt) (cdr lo) (cdr hi))])))
 
 (define (kdtree-radius tree center radius)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point Num (List Point)))
   (doc 'description "Find all points within radius of center point.
 Uses range query for initial filtering, then distance check.")
@@ -316,6 +333,7 @@ Uses range query for initial filtering, then distance check.")
 (doc 'section 'statistics)
 
 (define (kdtree-size tree)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Nat))
   (doc 'description "Count number of points in tree. O(n)")
   (if (kdtree-empty? tree)
@@ -324,6 +342,7 @@ Uses range query for initial filtering, then distance check.")
            (kdtree-size (kdtree-right tree)))))
 
 (define (kdtree-height tree)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Nat))
   (doc 'description "Get height of tree. O(n)")
   (if (kdtree-empty? tree)
@@ -332,6 +351,7 @@ Uses range query for initial filtering, then distance check.")
                 (kdtree-height (kdtree-right tree))))))
 
 (define (kdtree-balanced? tree)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Boolean))
   (doc 'description "Check if tree is approximately balanced (height ~ log n)")
   (if (kdtree-empty? tree)
@@ -342,6 +362,7 @@ Uses range query for initial filtering, then distance check.")
              (<= h (* 2 (+ 1 (floor (log n 2)))))))))
 
 (define (kdtree-fold proc init tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Point a) a KDTree a))
   (doc 'description "Left fold over all points in tree. (proc acc point) called for each point.
 In-order traversal (left subtree, node, right subtree). O(n).
@@ -354,6 +375,7 @@ Signature matches fold-left convention: accumulator first.")
                    (kdtree-right tree))))
 
 (define (kdtree->list tree)
+  (doc 'export #t)
   (doc 'type '(-> KDTree (List Point)))
   (doc 'description "Extract all points from tree (in-order traversal). O(n)")
   (reverse (kdtree-fold (lambda (acc pt) (cons pt acc)) '() tree)))
@@ -365,6 +387,7 @@ Signature matches fold-left convention: accumulator first.")
 (doc 'section 'insertion)
 
 (define (kdtree-insert tree point k)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point Nat KDTree))
   (doc 'description "Insert a point into existing tree. O(log n) average.
 Note: Repeated insertions can unbalance tree. For bulk construction, use kdtree-build.
@@ -389,11 +412,13 @@ Parameter k is dimensionality.")
                         depth)))))
 
 (define (kdtree-insert-2d tree point)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point KDTree))
   (doc 'description "Convenience: insert into 2D tree")
   (kdtree-insert tree point 2))
 
 (define (kdtree-insert-3d tree point)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point KDTree))
   (doc 'description "Convenience: insert into 3D tree")
   (kdtree-insert tree point 3))
@@ -405,6 +430,7 @@ Parameter k is dimensionality.")
 (doc 'section 'deletion)
 
 (define (kdtree-delete tree point k)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point Nat KDTree))
   (doc 'description "Delete a point from the k-d tree. O(log n) average.
 Unlike BSTs, k-d tree deletion requires finding replacement from subtree
@@ -413,11 +439,13 @@ Returns unchanged tree if point not found.")
   (kdtree-delete-rec tree point k 0))
 
 (define (kdtree-delete-2d tree point)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point KDTree))
   (doc 'description "Convenience: delete from 2D tree")
   (kdtree-delete tree point 2))
 
 (define (kdtree-delete-3d tree point)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point KDTree))
   (doc 'description "Convenience: delete from 3D tree")
   (kdtree-delete tree point 3))
@@ -488,6 +516,7 @@ Returns unchanged tree if point not found.")
                       depth))])))
 
 (define (kdtree-find-min tree axis k depth)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Nat Nat Nat Point))
   (doc 'description "Find the point with minimum value on given axis in tree.
 This is non-trivial because the tree is only partitioned on one axis per level,
@@ -532,6 +561,7 @@ so minimum on a different axis could be anywhere.")
   (equal? p1 p2))
 
 (define (kdtree-member? tree point k)
+  (doc 'export #t)
   (doc 'type '(-> KDTree Point Nat Boolean))
   (doc 'description "Check if point exists in the k-d tree")
   (kdtree-member-rec tree point k 0))

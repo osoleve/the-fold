@@ -28,6 +28,7 @@ Rule Structure:
 (doc 'section 'helper-option-extraction)
 
 (define (get-opt opts key default)
+  (doc 'export #t)
   (doc 'type '(-> List Symbol Any Any))
   (doc 'description "Extract an option from a plist-style options list.")
   (let loop ([opts opts])
@@ -40,6 +41,7 @@ Rule Structure:
 (doc 'section 'rule-construction)
 
 (define (make-rule name lhs rhs . opts)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Pattern Template Options Rule))
   (doc 'description "Create a rewrite rule.
 Options:
@@ -56,6 +58,7 @@ Options:
 (doc 'section 'rule-predicates)
 
 (define (rule? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if x is a valid rule structure.")
   (and (pair? x)
@@ -66,28 +69,34 @@ Options:
 (doc 'section 'rule-accessors)
 
 (define (rule-name r)
+  (doc 'export #t)
   (doc 'type '(-> Rule Symbol))
   (cdr (assq 'name r)))
 
 (define (rule-lhs r)
+  (doc 'export #t)
   (doc 'type '(-> Rule Pattern))
   (cdr (assq 'lhs r)))
 
 (define (rule-rhs r)
+  (doc 'export #t)
   (doc 'type '(-> Rule Template))
   (cdr (assq 'rhs r)))
 
 (define (rule-category r)
+  (doc 'export #t)
   (doc 'type '(-> Rule Symbol))
   (let ([cat (assq 'category r)])
        (if cat (cdr cat) 'custom)))
 
 (define (rule-direction r)
+  (doc 'export #t)
   (doc 'type '(-> Rule Symbol))
   (let ([dir (assq 'direction r)])
        (if dir (cdr dir) 'forward)))
 
 (define (rule-conditions r)
+  (doc 'export #t)
   (doc 'type '(-> Rule List))
   (let ([cond (assq 'conditions r)])
        (if cond (cdr cond) '())))
@@ -95,6 +104,7 @@ Options:
 (doc 'section 'metavariable-detection)
 
 (define (metavar? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if pattern element is a metavariable.
 Metavariables are lists starting with a ?-prefixed symbol.")
@@ -105,6 +115,7 @@ Metavariables are lists starting with a ?-prefixed symbol.")
                  (char=? (string-ref s 0) #\?)))))
 
 (define (metavar-name mv)
+  (doc 'export #t)
   (doc 'type '(-> Pattern Symbol))
   (doc 'description "Extract the variable name from a metavariable.
 (?x) → x, (?foo constraint) → foo")
@@ -113,6 +124,7 @@ Metavariables are lists starting with a ?-prefixed symbol.")
         (string->symbol (substring s 1 (string-length s)))))
 
 (define (metavar-constraint mv)
+  (doc 'export #t)
   (doc 'type '(-> Pattern (Union Symbol Boolean)))
   (doc 'description "Extract the constraint from a metavariable, if any.
 (?x) → #f, (?x number) → number")
@@ -123,6 +135,7 @@ Metavariables are lists starting with a ?-prefixed symbol.")
 (doc 'section 'pattern-utilities)
 
 (define (pattern-vars pattern)
+  (doc 'export #t)
   (doc 'type '(-> Pattern (List Symbol)))
   (doc 'description "Collect all metavariable names from a pattern.")
   (cond
@@ -134,6 +147,7 @@ Metavariables are lists starting with a ?-prefixed symbol.")
    [else '()]))
 
 (define (pattern-vars-unique pattern)
+  (doc 'export #t)
   (doc 'type '(-> Pattern (List Symbol)))
   (doc 'description "Collect unique metavariable names from a pattern.")
   (let ([vars (pattern-vars pattern)])
@@ -146,6 +160,7 @@ Metavariables are lists starting with a ?-prefixed symbol.")
 (doc 'section 'rule-display)
 
 (define (rule->string r)
+  (doc 'export #t)
   (doc 'type '(-> Rule String))
   (doc 'description "Format a rule for display.")
   (format "~a: ~a → ~a [~a]"
@@ -157,6 +172,7 @@ Metavariables are lists starting with a ?-prefixed symbol.")
 (doc 'section 'rule-validation)
 
 (define (valid-rule? r)
+  (doc 'export #t)
   (doc 'type '(-> Rule Boolean))
   (doc 'description "Check if a rule is well-formed:
 - All RHS variables must appear in LHS")

@@ -16,10 +16,12 @@
 (doc 'make-aabb 'type 'Vec2 × Vec2 → AABB)
 (doc "Create an AABB from min and max corners.")
 (define (make-aabb min-corner max-corner)
+  (doc 'export #t)
   (list 'aabb min-corner max-corner))
 
 (doc "aabb? : Any → Boolean")
 (define (aabb? s)
+  (doc 'export #t)
   (and (pair? s) (eq? (car s) 'aabb)))
 
 (define (aabb-min a) (list-ref a 1))
@@ -29,30 +31,36 @@
   (doc 'type '(aabb-max : AABB → Vec2))
 
 (define (aabb-center a)
+  (doc 'export #t)
   (doc 'type '(aabb-center : AABB → Vec2))
   (vec2-scale (vec2-add (aabb-min a) (aabb-max a)) 0.5))
 
 (define (aabb-half-extents a)
+  (doc 'export #t)
   (doc 'type '(aabb-half-extents : AABB → Vec2))
   (vec2-scale (vec2-sub (aabb-max a) (aabb-min a)) 0.5))
 
 (define (aabb-width a)
+  (doc 'export #t)
   (doc 'type '(aabb-width : AABB → Number))
   (- (vec2-x (aabb-max a)) (vec2-x (aabb-min a))))
 
 (define (aabb-height a)
+  (doc 'export #t)
   (doc 'type '(aabb-height : AABB → Number))
   (- (vec2-y (aabb-max a)) (vec2-y (aabb-min a))))
 
 (doc 'make-aabb-center 'type 'Vec2 × Vec2 → AABB)
 (doc "Create AABB from center and half-extents.")
 (define (make-aabb-center center half-extents)
+  (doc 'export #t)
   (make-aabb (vec2-sub center half-extents)
              (vec2-add center half-extents)))
 
 (doc 'make-aabb-from-points 'type '(List Vec2) → AABB)
 (doc "Create AABB enclosing all points.")
 (define (make-aabb-from-points points)
+  (doc 'export #t)
   (if (null? points)
       (make-aabb (vec2 0 0) (vec2 0 0))
       (let loop ([pts (cdr points)]
@@ -69,10 +77,12 @@
 (doc 'make-circle 'type 'Vec2 × Number → Circle)
 (doc "Create a circle from center and radius.")
 (define (make-circle center radius)
+  (doc 'export #t)
   (list 'circle center radius))
 
 (doc "circle? : Any → Boolean")
 (define (circle? s)
+  (doc 'export #t)
   (and (pair? s) (eq? (car s) 'circle)))
 
 (define (circle-center c) (list-ref c 1))
@@ -84,6 +94,7 @@
 (doc 'circle-aabb 'type 'Circle → AABB)
 (doc "Get bounding box for circle.")
 (define (circle-aabb c)
+  (doc 'export #t)
   (let ([center (circle-center c)]
         [r (circle-radius c)])
        (make-aabb (vec2-sub center (vec2 r r))
@@ -94,22 +105,26 @@
 (doc 'make-polygon 'type '(List Vec2) → Polygon)
 (doc "Create a convex polygon from vertices (counter-clockwise).")
 (define (make-polygon vertices)
+  (doc 'export #t)
   (list 'polygon vertices))
 
 (doc "polygon? : Any → Boolean")
 (define (polygon? s)
+  (doc 'export #t)
   (and (pair? s) (eq? (car s) 'polygon)))
 
 (define (polygon-vertices p) (list-ref p 1))
   (doc 'type '(polygon-vertices : Polygon → (List Vec2)))
 
 (define (polygon-vertex-count p)
+  (doc 'export #t)
   (doc 'type '(polygon-vertex-count : Polygon → Nat))
   (length (polygon-vertices p)))
 
 (doc 'polygon-vertex 'type 'Polygon × Nat → Vec2)
 (doc "Get vertex at index (wraps around).")
 (define (polygon-vertex p i)
+  (doc 'export #t)
   (let* ([verts (polygon-vertices p)]
          [n (length verts)])
         (list-ref verts (modulo i n))))
@@ -117,11 +132,13 @@
 (doc 'polygon-edge 'type 'Polygon × Nat → (Vec2 × Vec2))
 (doc "Get edge at index (as pair of vertices).")
 (define (polygon-edge p i)
+  (doc 'export #t)
   (list (polygon-vertex p i) (polygon-vertex p (+ i 1))))
 
 (doc 'polygon-edges 'type 'Polygon → (List (Vec2 × Vec2)))
 (doc "Get all edges as pairs of vertices.")
 (define (polygon-edges p)
+  (doc 'export #t)
   (let ([n (polygon-vertex-count p)])
        (let loop ([i 0] [edges '()])
             (if (>= i n)
@@ -131,6 +148,7 @@
 (doc 'polygon-edge-normal 'type 'Polygon × Nat → Vec2)
 (doc "Get outward-facing normal of edge at index.")
 (define (polygon-edge-normal p i)
+  (doc 'export #t)
   (let* ([edge (polygon-edge p i)]
          [v1 (car edge)]
          [v2 (cadr edge)]
@@ -141,6 +159,7 @@
 (doc 'polygon-normals 'type 'Polygon → (List Vec2))
 (doc "Get all edge normals.")
 (define (polygon-normals p)
+  (doc 'export #t)
   (let ([n (polygon-vertex-count p)])
        (let loop ([i 0] [normals '()])
             (if (>= i n)
@@ -150,11 +169,13 @@
 (doc 'polygon-aabb 'type 'Polygon → AABB)
 (doc "Get bounding box for polygon.")
 (define (polygon-aabb p)
+  (doc 'export #t)
   (make-aabb-from-points (polygon-vertices p)))
 
 (doc 'polygon-center 'type 'Polygon → Vec2)
 (doc "Get centroid of polygon.")
 (define (polygon-center p)
+  (doc 'export #t)
   (let* ([verts (polygon-vertices p)]
          [n (length verts)]
          [sum (fold-left vec2-add (vec2 0 0) verts)])
@@ -165,6 +186,7 @@
 (doc 'make-box 'type 'Vec2 × Vec2 → Polygon)
 (doc "Create a box from center and half-extents.")
 (define (make-box center half-extents)
+  (doc 'export #t)
   (let ([hx (vec2-x half-extents)]
         [hy (vec2-y half-extents)]
         [cx (vec2-x center)]
@@ -178,6 +200,7 @@
 (doc 'make-regular-polygon 'type 'Vec2 × Number × Nat → Polygon)
 (doc "Create regular polygon with n sides at center with radius.")
 (define (make-regular-polygon center radius n)
+  (doc 'export #t)
   (let* ([angle-step (/ (* 2 3.141592653589793) n)]
          [verts (let loop ([i 0] [vs '()])
                      (if (>= i n)
@@ -194,6 +217,7 @@
 
 (doc "point-in-aabb? : Vec2 × AABB → Boolean")
 (define (point-in-aabb? point aabb)
+  (doc 'export #t)
   (let ([px (vec2-x point)]
         [py (vec2-y point)]
         [min-x (vec2-x (aabb-min aabb))]
@@ -205,6 +229,7 @@
 
 (doc "point-in-circle? : Vec2 × Circle → Boolean")
 (define (point-in-circle? point circle)
+  (doc 'export #t)
   (let ([d-sq (vec2-distance-sq point (circle-center circle))]
         [r (circle-radius circle)])
        (<= d-sq (* r r))))
@@ -212,6 +237,7 @@
 (doc "point-in-polygon? : Vec2 × Polygon → Boolean")
 (doc "Test using ray casting (works for any simple polygon).")
 (define (point-in-polygon? point polygon)
+  (doc 'export #t)
   (let* ([verts (polygon-vertices polygon)]
          [n (length verts)]
          [px (vec2-x point)]
@@ -237,6 +263,7 @@
 (doc "aabb-aabb? : AABB × AABB → Boolean")
 (doc "Test if two AABBs overlap.")
 (define (aabb-aabb? a b)
+  (doc 'export #t)
   (let ([a-min (aabb-min a)]
         [a-max (aabb-max a)]
         [b-min (aabb-min b)]
@@ -250,6 +277,7 @@
 (doc "Generate collision manifold for two AABBs.")
 (doc "Returns (normal penetration contact) or #f if no collision.")
 (define (aabb-aabb-manifold a b)
+  (doc 'export #t)
   (if (not (aabb-aabb? a b))
       #f
       (let* ([a-center (aabb-center a)]
@@ -284,6 +312,7 @@
 (doc "circle-circle? : Circle × Circle → Boolean")
 (doc "Test if two circles overlap.")
 (define (circle-circle? a b)
+  (doc 'export #t)
   (let ([dist-sq (vec2-distance-sq (circle-center a) (circle-center b))]
         [r-sum (+ (circle-radius a) (circle-radius b))])
        (<= dist-sq (* r-sum r-sum))))
@@ -292,6 +321,7 @@
 (doc "Generate collision manifold for two circles.")
 (doc "Returns (normal penetration contact) or #f if no collision.")
 (define (circle-circle-manifold a b)
+  (doc 'export #t)
   (let* ([center-a (circle-center a)]
          [center-b (circle-center b)]
          [radius-a (circle-radius a)]
@@ -315,6 +345,7 @@
 (doc "circle-aabb? : Circle × AABB → Boolean")
 (doc "Test if circle and AABB overlap.")
 (define (circle-aabb? circle aabb)
+  (doc 'export #t)
   (let* ([center (circle-center circle)]
          [r (circle-radius circle)]
          [min-p (aabb-min aabb)]
@@ -329,6 +360,7 @@
 (doc 'circle-aabb-manifold 'type 'Circle × AABB → Manifold or #f)
 (doc "Generate collision manifold for circle vs AABB.")
 (define (circle-aabb-manifold circle aabb)
+  (doc 'export #t)
   (let* ([center (circle-center circle)]
          [r (circle-radius circle)]
          [min-p (aabb-min aabb)]
@@ -366,6 +398,7 @@
 (doc "circle-polygon? : Circle × Polygon → Boolean")
 (doc "Test if circle and polygon overlap.")
 (define (circle-polygon? circle polygon)
+  (doc 'export #t)
   ;; Check if center is inside polygon
   (if (point-in-polygon? (circle-center circle) polygon)
       #t
@@ -388,6 +421,7 @@
 (doc 'closest-point-on-segment 'type 'Vec2 × Vec2 × Vec2 → Vec2)
 (doc "Find closest point on line segment to a point.")
 (define (closest-point-on-segment point v1 v2)
+  (doc 'export #t)
   (let* ([edge (vec2-sub v2 v1)]
          [edge-len-sq (vec2-magnitude-sq edge)])
         (if (< edge-len-sq 0.0001)
@@ -399,6 +433,7 @@
 (doc 'circle-polygon-manifold 'type 'Circle × Polygon → Manifold or #f)
 (doc "Generate collision manifold for circle vs polygon.")
 (define (circle-polygon-manifold circle polygon)
+  (doc 'export #t)
   (let ([center (circle-center circle)]
         [r (circle-radius circle)])
        (if (point-in-polygon? center polygon)
@@ -447,6 +482,7 @@
 (doc 'project-polygon 'type 'Polygon × Vec2 → (Min × Max))
 (doc "Project polygon onto axis, return min and max.")
 (define (project-polygon polygon axis)
+  (doc 'export #t)
   (let* ([verts (polygon-vertices polygon)]
          [first-dot (vec2-dot (car verts) axis)])
         (let loop ([vs (cdr verts)] [pmin first-dot] [pmax first-dot])
@@ -458,6 +494,7 @@
 (doc 'project-circle 'type 'Circle × Vec2 → (Min × Max))
 (doc "Project circle onto axis.")
 (define (project-circle circle axis)
+  (doc 'export #t)
   (let* ([center (circle-center circle)]
          [r (circle-radius circle)]
          [center-proj (vec2-dot center axis)])
@@ -466,6 +503,7 @@
 (doc 'intervals-overlap 'type '(Min × Max) × (Min × Max) → Number or #f)
 (doc "Check if intervals overlap, return overlap amount or #f.")
 (define (intervals-overlap a b)
+  (doc 'export #t)
   (let ([a-min (car a)]
         [a-max (cadr a)]
         [b-min (car b)]
@@ -477,6 +515,7 @@
 (doc "polygon-polygon? : Polygon × Polygon → Boolean")
 (doc "Test if two polygons overlap using SAT.")
 (define (polygon-polygon? a b)
+  (doc 'export #t)
   (let* ([normals-a (polygon-normals a)]
          [normals-b (polygon-normals b)]
          [all-normals (append normals-a normals-b)])
@@ -494,6 +533,7 @@
 (doc 'polygon-polygon-manifold 'type 'Polygon × Polygon → Manifold or #f)
 (doc "Generate collision manifold using SAT.")
 (define (polygon-polygon-manifold a b)
+  (doc 'export #t)
   (let* ([normals-a (polygon-normals a)]
          [normals-b (polygon-normals b)]
          [all-normals (append normals-a normals-b)])
@@ -536,6 +576,7 @@
 (doc 'section 'generic)
 
 (define (shape-type s)
+  (doc 'export #t)
   (doc 'type '(shape-type : Shape → Symbol))
   (cond [(aabb? s) 'aabb]
         [(circle? s) 'circle]
@@ -545,6 +586,7 @@
 (doc 'shape-aabb 'type 'Shape → AABB)
 (doc "Get bounding box for any shape.")
 (define (shape-aabb s)
+  (doc 'export #t)
   (cond [(aabb? s) s]
         [(circle? s) (circle-aabb s)]
         [(polygon? s) (polygon-aabb s)]
@@ -553,6 +595,7 @@
 (doc "shapes-collide? : Shape × Shape → Boolean")
 (doc "Test if two shapes overlap.")
 (define (shapes-collide? a b)
+  (doc 'export #t)
   (let ([type-a (shape-type a)]
         [type-b (shape-type b)])
        (cond
@@ -586,6 +629,7 @@
 (doc 'aabb-to-polygon 'type 'AABB → Polygon)
 (doc "Convert AABB to polygon for SAT tests.")
 (define (aabb-to-polygon aabb)
+  (doc 'export #t)
   (let ([min-p (aabb-min aabb)]
         [max-p (aabb-max aabb)])
        (make-polygon
@@ -597,6 +641,7 @@
 (doc 'shapes-manifold 'type 'Shape × Shape → Manifold or #f)
 (doc "Get collision manifold for two shapes.")
 (define (shapes-manifold a b)
+  (doc 'export #t)
   (let ([type-a (shape-type a)]
         [type-b (shape-type b)])
        (cond
@@ -635,10 +680,12 @@
 (doc "Create a spatial hash grid with given cell size.")
 (doc "Internal table stored in a mutable vector slot holding a HAMT.")
 (define (make-spatial-hash cell-size)
+  (doc 'export #t)
   (list 'spatial-hash cell-size (vector hamt-empty)))
 
 (doc "spatial-hash? : Any → Boolean")
 (define (spatial-hash? s)
+  (doc 'export #t)
   (and (pair? s) (eq? (car s) 'spatial-hash)))
 
 (define (spatial-hash-cell-size s) (list-ref s 1))
@@ -648,18 +695,21 @@
   (doc 'type '(spatial-hash-table : SpatialHash → HAMT))
 
 (define (spatial-hash-table-set! s new-table)
+  (doc 'export #t)
   (doc 'type '(spatial-hash-table-set! : SpatialHash → HAMT → Void))
   (vector-set! (list-ref s 2) 0 new-table))
 
 (doc 'point-to-cell 'type 'Vec2 × Number → (Int × Int))
 (doc "Convert point to cell coordinates.")
 (define (point-to-cell point cell-size)
+  (doc 'export #t)
   (list (floor (/ (vec2-x point) cell-size))
         (floor (/ (vec2-y point) cell-size))))
 
 (doc 'aabb-to-cells 'type 'AABB × Number → (List (Int × Int)))
 (doc "Get all cells an AABB touches.")
 (define (aabb-to-cells aabb cell-size)
+  (doc 'export #t)
   (let* ([min-cell (point-to-cell (aabb-min aabb) cell-size)]
          [max-cell (point-to-cell (aabb-max aabb) cell-size)]
          [min-x (car min-cell)]
@@ -678,6 +728,7 @@
 (doc "spatial-hash-insert! : SpatialHash × Any × AABB → Void")
 (doc "Insert an object with its AABB into the spatial hash.")
 (define (spatial-hash-insert! hash obj aabb)
+  (doc 'export #t)
   (let ([cells (aabb-to-cells aabb (spatial-hash-cell-size hash))])
     (spatial-hash-table-set!
      hash
@@ -690,11 +741,13 @@
 (doc "spatial-hash-clear! : SpatialHash → Void")
 (doc "Clear all entries from spatial hash.")
 (define (spatial-hash-clear! hash)
+  (doc 'export #t)
   (spatial-hash-table-set! hash hamt-empty))
 
 (doc 'spatial-hash-query 'type 'SpatialHash × AABB → (List Any))
 (doc "Get all objects that might overlap with given AABB.")
 (define (spatial-hash-query hash aabb)
+  (doc 'export #t)
   (let* ([cell-size (spatial-hash-cell-size hash)]
          [table (spatial-hash-table hash)]
          [cells (aabb-to-cells aabb cell-size)]
@@ -716,6 +769,7 @@
 (doc "Find potential collision pairs using spatial hash.")
 (doc "Each item is (object . shape).")
 (define (find-collision-pairs items hash)
+  (doc 'export #t)
   ;; Clear and rebuild hash
   (spatial-hash-clear! hash)
   (for-each
@@ -750,6 +804,7 @@
 (doc 'narrow-phase 'type '(Object × Object) × (Object → Shape) → Manifold or #f)
 (doc "Perform narrow phase collision detection on a pair.")
 (define (narrow-phase pair get-shape)
+  (doc 'export #t)
   (let ([shape-a (get-shape (car pair))]
         [shape-b (get-shape (cdr pair))])
        (shapes-manifold shape-a shape-b)))

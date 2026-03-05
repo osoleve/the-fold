@@ -29,6 +29,7 @@ Analyzes S-expressions to detect parallelization opportunities:
     (dependencies . Graph))      ; Dependency info showing why branches are independent")
 
 (define (make-parallel-opportunity type branches location estimated-speedup dependencies)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Expr) Position Rational Graph ParallelOpportunity))
   (doc 'description "Create a new parallel opportunity record.")
   `(parallel-opportunity
@@ -39,6 +40,7 @@ Analyzes S-expressions to detect parallelization opportunities:
     (dependencies . ,dependencies)))
 
 (define (parallel-opportunity? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Check if x is a ParallelOpportunity.")
   (and (pair? x)
@@ -49,22 +51,27 @@ Analyzes S-expressions to detect parallelization opportunities:
        #t))
 
 (define (par-type opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity Symbol))
   (cdr (assq 'type (cdr opp))))
 
 (define (par-branches opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity (List Expr)))
   (cdr (assq 'branches (cdr opp))))
 
 (define (par-location opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity Position))
   (cdr (assq 'location (cdr opp))))
 
 (define (par-estimated-speedup opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity Rational))
   (cdr (assq 'estimated-speedup (cdr opp))))
 
 (define (par-dependencies opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity DependencyGraph))
   (cdr (assq 'dependencies (cdr opp))))
 
@@ -74,18 +81,22 @@ Structure: ((name . (List DependsOn)) ...)
 Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends on a and b")
 
 (define (make-dep-graph entries)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol (List Symbol))) DependencyGraph))
   `(dep-graph . ,entries))
 
 (define (dep-graph? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'dep-graph)))
 
 (define (dep-graph-entries g)
+  (doc 'export #t)
   (doc 'type '(-> DependencyGraph (List (Pair Symbol (List Symbol)))))
   (cdr g))
 
 (define (dep-graph-lookup g sym)
+  (doc 'export #t)
   (doc 'type '(-> DependencyGraph Symbol (List Symbol)))
   (let ([entry (assq sym (dep-graph-entries g))])
        (if entry (cdr entry) '())))
@@ -94,11 +105,13 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
 (doc 'note "Binders recognized: fn, lambda, let, let*, letrec, fix")
 
 (define (free-vars expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol)))
   (doc 'description "Collect free variables in an expression.")
   (free-vars-env expr '()))
 
 (define (free-vars-env expr bound)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol) (List Symbol)))
   (doc 'description "Collect free variables with bound variable tracking.")
   (cond
@@ -180,6 +193,7 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
     (append-map (lambda (e) (free-vars-env e bound)) expr)]))
 
 (define (unique-symbols lst)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List Symbol)))
   (doc 'description "Remove duplicate symbols, preserving order.")
   (let loop ([items lst] [seen '()] [acc '()])
@@ -194,11 +208,13 @@ Example: ((a) (b . (x)) (c . (a b)))  ; a has no deps, b depends on x, c depends
 2. Neither writes to shared mutable state (assumed pure in Core)")
 
 (define (sets-disjoint? xs ys)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol) (List Symbol) Boolean))
   (doc 'description "Check if two symbol lists have no common elements.")
   (not (ormap (lambda (x) (memq x ys)) xs)))
 
 (define (bindings-independent? bindings)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol Expr)) (List (List Nat))))
   (doc 'description "Given let bindings ((var val) ...), return groups of independent binding indices.
 Each group can be evaluated in parallel.")
@@ -219,6 +235,7 @@ Each group can be evaluated in parallel.")
         (find-independent-groups n deps)))
 
 (define (find-independent-groups n deps)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List (List Nat)) (List (List Nat))))
   (doc 'description "Find groups of mutually independent indices.")
   ;; deps[i] = list of indices that i depends on
@@ -246,6 +263,7 @@ Each group can be evaluated in parallel.")
 (doc 'section 'pattern-detectors)
 
 (define (detect-independent-let expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position (List ParallelOpportunity)))
   (doc 'description "Detect let forms with independent bindings that can run in parallel.")
   (if (and (pair? expr)
@@ -277,6 +295,7 @@ Each group can be evaluated in parallel.")
       '()))
 
 (define (detect-independent-maps expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position (List ParallelOpportunity)))
   (doc 'description "Detect multiple map calls on different data that could run in parallel.")
   (if (and (pair? expr)
@@ -305,6 +324,7 @@ Each group can be evaluated in parallel.")
       '()))
 
 (define (filter-indexed pred lst)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Nat Boolean) (List α) (List (Pair α Nat))))
   (doc 'description "Filter keeping track of original indices.")
   (let loop ([items lst] [i 0] [acc '()])
@@ -315,6 +335,7 @@ Each group can be evaluated in parallel.")
                (loop (cdr items) (+ i 1) acc)))))
 
 (define (find-independent-pairs fvs-list)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Symbol)) (List (Pair Nat Nat))))
   (doc 'description "Find pairs of indices whose free variable sets are disjoint.")
   (let ([n (length fvs-list)])
@@ -329,6 +350,7 @@ Each group can be evaluated in parallel.")
                              (inner (+ j 1) pairs))))))))
 
 (define (detect-par-eligible expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position (List ParallelOpportunity)))
   (doc 'description "Detect expressions that could benefit from (par a b) wrapping.
 Specifically: function calls with independent argument computations.")
@@ -351,6 +373,7 @@ Specifically: function calls with independent argument computations.")
       '()))
 
 (define (detect-fanout expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position (List ParallelOpportunity)))
   (doc 'description "Detect patterns where one input feeds multiple independent computations.
 Pattern: (let ([x input]) (list (f x) (g x) (h x)))")
@@ -394,6 +417,7 @@ Pattern: (let ([x input]) (list (f x) (g x) (h x)))")
 (doc 'section 'speedup-estimation)
 
 (define (estimate-speedup branch-count exprs)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Expr) Rational))
   (doc 'description "Estimate potential speedup based on branch count and work estimates.
 Returns a factor (e.g., 2.0 means ~2x faster).")
@@ -409,6 +433,7 @@ Returns a factor (e.g., 2.0 means ~2x faster).")
                    (/ parallel-fraction base-speedup))))))
 
 (define (estimate-work expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Nat))
   (doc 'description "Rough estimate of computational work in an expression.
 Simple heuristic: count operations.")
@@ -423,6 +448,7 @@ Simple heuristic: count operations.")
 (doc 'section 'core-detection-logic)
 
 (define (try-all-detectors expr pos)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position (List ParallelOpportunity)))
   (doc 'description "Run all parallel pattern detectors on an expression.")
   (append
@@ -432,6 +458,7 @@ Simple heuristic: count operations.")
    (detect-fanout expr pos)))
 
 (define (detect-at-depth expr pos fuel)
+  (doc 'export #t)
   (doc 'type '(-> Expr Position Nat (List ParallelOpportunity)))
   (doc 'description "Recursively detect parallelization opportunities with depth limit.")
   (if (<= fuel 0)
@@ -451,6 +478,7 @@ Simple heuristic: count operations.")
             (append here children))))
 
 (define *detect-fuel* 100)
+(doc *detect-fuel* 'export #t)
 (doc *detect-fuel* 'type 'Nat)
 (doc *detect-fuel* 'description "Default recursion depth for detection.
 Can be overridden by passing an optional fuel parameter to detect-parallel-regions.")
@@ -466,10 +494,12 @@ Optional fuel parameter allows handling larger ASTs (default: 100).")
 (doc 'section 'convenience-functions)
 
 (define (count-parallel-opportunities opps)
+  (doc 'export #t)
   (doc 'type '(-> (List ParallelOpportunity) Nat))
   (length opps))
 
 (define (total-estimated-speedup opps)
+  (doc 'export #t)
   (doc 'type '(-> (List ParallelOpportunity) Rational))
   (doc 'description "Estimate combined speedup if all opportunities are exploited.
 Note: This is optimistic - actual speedup depends on execution patterns.")
@@ -478,6 +508,7 @@ Note: This is optimistic - actual speedup depends on execution patterns.")
       (apply max (map par-estimated-speedup opps))))
 
 (define (opportunities-by-pattern opps)
+  (doc 'export #t)
   (doc 'type '(-> (List ParallelOpportunity) ((Symbol . (List ParallelOpportunity)) ...)))
   (doc 'description "Group opportunities by pattern type.")
   (let ([types '(independent-let independent-map par-eligible fanout)])
@@ -486,6 +517,7 @@ Note: This is optimistic - actual speedup depends on execution patterns.")
             types)))
 
 (define (high-value-opportunities opps)
+  (doc 'export #t)
   (doc 'type '(-> (List ParallelOpportunity) (List ParallelOpportunity)))
   (doc 'description "Filter to opportunities with speedup >= 1.5x.")
   (filter (lambda (o) (>= (par-estimated-speedup o) 1.5)) opps))
@@ -493,6 +525,7 @@ Note: This is optimistic - actual speedup depends on execution patterns.")
 (doc 'section 'display-utilities)
 
 (define (format-parallel-opportunity opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity String))
   (format "[~a] at ~a\n  Branches: ~a\n  Estimated speedup: ~ax"
           (par-type opp)
@@ -501,6 +534,7 @@ Note: This is optimistic - actual speedup depends on execution patterns.")
           (par-estimated-speedup opp)))
 
 (define (display-parallel-opportunities opps)
+  (doc 'export #t)
   (doc 'type '(-> (List ParallelOpportunity) Void))
   (if (null? opps)
       (display "No parallelization opportunities detected.\n")
@@ -515,6 +549,7 @@ Note: This is optimistic - actual speedup depends on execution patterns.")
 (doc 'section 'summary-report)
 
 (define (parallel-summary opps)
+  (doc 'export #t)
   (doc 'type '(-> (List ParallelOpportunity) Summary))
   (doc 'description "Generate a summary report of parallelization opportunities.")
   (let* ([by-pattern (opportunities-by-pattern opps)]
@@ -531,6 +566,7 @@ Note: This is optimistic - actual speedup depends on execution patterns.")
 (doc 'section 'transformation-suggestions)
 
 (define (suggest-par-transform opp)
+  (doc 'export #t)
   (doc 'type '(-> ParallelOpportunity Expr))
   (doc 'description "Suggest a transformation using par forms.")
   (case (par-type opp)

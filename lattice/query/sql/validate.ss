@@ -21,6 +21,7 @@
 
 ;;; Applicative combinators — accumulate ALL errors
 (define (validation-ap2 f va vb)
+  (doc 'export #t)
   (cond
    [(and (validation-success? va) (validation-success? vb))
     (validation-success ((f (from-success va)) (from-success vb)))]
@@ -30,14 +31,17 @@
    [else (validation-failure (list (from-failure vb)))]))
 
 (define (validation-ap3 f va vb vc)
+  (doc 'export #t)
   (validation-ap2 (lambda (ab) (lambda (c) (ab c)))
                   (validation-ap2 f va vb) vc))
 
 (define (validation-ap4 f va vb vc vd)
+  (doc 'export #t)
   (validation-ap2 (lambda (abc) (lambda (d) (abc d)))
                   (validation-ap3 f va vb vc) vd))
 
 (define (validation-sequence vs)
+  (doc 'export #t)
   (if (null? vs)
       (validation-success '())
       (validation-ap2 (lambda (x) (lambda (xs) (cons x xs)))
@@ -50,9 +54,11 @@
 
 ;;; sql-error : Symbol × Span × String → Error
 (define (sql-error code span message)
+  (doc 'export #t)
   (list 'sql-error code span message))
 
 (define (sql-error? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'sql-error)))
 
 (define (sql-error-code e) (list-ref e 1))
@@ -61,6 +67,7 @@
 
 ;;; format-sql-error : Error → String
 (define (format-sql-error e)
+  (doc 'export #t)
   (if (sql-error? e)
       (let ([span (sql-error-span e)]
             [msg (sql-error-message e)])
@@ -82,9 +89,11 @@
 ;;; tables: list of table names in scope
 ;;; columns: alist mapping table names to column lists
 (define (make-context tables columns)
+  (doc 'export #t)
   (list 'context tables columns))
 
 (define (context? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'context)))
 
 (define (context-tables ctx) (list-ref ctx 1))
@@ -95,16 +104,19 @@
 
 ;;; context-add-table : Context × String × (List String) → Context
 (define (context-add-table ctx table-name columns)
+  (doc 'export #t)
   (make-context
    (cons table-name (context-tables ctx))
    (cons (cons table-name columns) (context-columns ctx))))
 
 ;;; context-has-table? : Context × String → Boolean
 (define (context-has-table? ctx table-name)
+  (doc 'export #t)
   (member table-name (context-tables ctx)))
 
 ;;; context-get-columns : Context × String → (List String)
 (define (context-get-columns ctx table-name)
+  (doc 'export #t)
   (let ([pair (assoc table-name (context-columns ctx))])
        (if pair (cdr pair) '())))
 
@@ -114,6 +126,7 @@
 
 ;;; validate-statement : AST → Validation (List Error) AST
 (define (validate-statement ast)
+  (doc 'export #t)
   (cond
    [(select? ast) (validate-select ast)]
    [(insert? ast) (validate-insert ast)]
@@ -128,6 +141,7 @@
 
 ;;; validate-select : AST → Validation (List Error) AST
 (define (validate-select ast)
+  (doc 'export #t)
   (let* ([columns (select-columns ast)]
          [from (select-from ast)]
          [where (select-where ast)]
@@ -157,6 +171,7 @@
 
 ;;; validate-select-item : AST → Validation (List Error) AST
 (define (validate-select-item item)
+  (doc 'export #t)
   (cond
    [(star? item) (validation-success item)]
    [(alias? item)
@@ -172,6 +187,7 @@
 
 ;;; validate-insert : AST → Validation (List Error) AST
 (define (validate-insert ast)
+  (doc 'export #t)
   (let* ([table (insert-table ast)]
          [columns (insert-columns ast)]
          [values (insert-values ast)])
@@ -186,6 +202,7 @@
 
 ;;; validate-insert-values : AST × (List String) → Validation (List Error) AST
 (define (validate-insert-values values columns)
+  (doc 'export #t)
   (cond
    [(values-clause? values)
     (let ([rows (values-clause-rows values)])
@@ -206,6 +223,7 @@
 
 ;;; validate-value-expr : AST → Validation (List Error) AST
 (define (validate-value-expr expr)
+  (doc 'export #t)
   (if (default-value? expr)
       (validation-success expr)
       (validate-expression expr)))
@@ -216,6 +234,7 @@
 
 ;;; validate-update : AST → Validation (List Error) AST
 (define (validate-update ast)
+  (doc 'export #t)
   (let* ([table (update-table ast)]
          [set-clauses (update-set-clauses ast)]
          [where (update-where ast)])
@@ -233,6 +252,7 @@
 
 ;;; validate-set-clause : AST → Validation (List Error) AST
 (define (validate-set-clause clause)
+  (doc 'export #t)
   (validation-ap2
    (lambda (col) (lambda (val) clause))
    (validate-identifier (set-clause-column clause))
@@ -244,6 +264,7 @@
 
 ;;; validate-delete : AST → Validation (List Error) AST
 (define (validate-delete ast)
+  (doc 'export #t)
   (let* ([table (delete-table ast)]
          [where (delete-where ast)])
         (validation-ap2
@@ -259,6 +280,7 @@
 
 ;;; validate-expression : AST → Validation (List Error) AST
 (define (validate-expression expr)
+  (doc 'export #t)
   (cond
    [(literal? expr) (validation-success expr)]
    [(column-ref? expr) (validate-column-ref expr)]
@@ -277,6 +299,7 @@
 
 ;;; validate-column-ref : AST → Validation (List Error) AST
 (define (validate-column-ref ref)
+  (doc 'export #t)
   (let ([table (column-ref-table ref)]
         [column (column-ref-name ref)])
        (if table
@@ -288,6 +311,7 @@
 
 ;;; validate-binary-op : AST → Validation (List Error) AST
 (define (validate-binary-op expr)
+  (doc 'export #t)
   (let ([op (binary-op-op expr)]
         [left (binary-op-left expr)]
         [right (binary-op-right expr)])
@@ -299,6 +323,7 @@
 
 ;;; validate-unary-op : AST → Validation (List Error) AST
 (define (validate-unary-op expr)
+  (doc 'export #t)
   (let ([op (unary-op-op expr)]
         [operand (unary-op-operand expr)])
        (validation-ap2
@@ -308,6 +333,7 @@
 
 ;;; validate-function-call : AST → Validation (List Error) AST
 (define (validate-function-call expr)
+  (doc 'export #t)
   (let ([name (function-call-name expr)]
         [args (function-call-args expr)])
        (validation-ap2
@@ -319,6 +345,7 @@
 
 ;;; validate-case-expr : AST → Validation (List Error) AST
 (define (validate-case-expr expr)
+  (doc 'export #t)
   (let ([operand (case-expr-operand expr)]
         [when-clauses (case-expr-when-clauses expr)]
         [else-clause (case-expr-else expr)])
@@ -333,6 +360,7 @@
 
 ;;; validate-when-clause : AST → Validation (List Error) AST
 (define (validate-when-clause clause)
+  (doc 'export #t)
   (validation-ap2
    (lambda (c) (lambda (r) clause))
    (validate-expression (when-condition clause))
@@ -340,6 +368,7 @@
 
 ;;; validate-in-expr : AST → Validation (List Error) AST
 (define (validate-in-expr expr)
+  (doc 'export #t)
   (let ([left (in-expr-expr expr)]
         [values (in-expr-values expr)])
        (validation-ap2
@@ -352,6 +381,7 @@
 
 ;;; validate-between-expr : AST → Validation (List Error) AST
 (define (validate-between-expr expr)
+  (doc 'export #t)
   (validation-ap3
    (lambda (e) (lambda (l) (lambda (h) expr)))
    (validate-expression (between-expr-expr expr))
@@ -360,6 +390,7 @@
 
 ;;; validate-like-expr : AST → Validation (List Error) AST
 (define (validate-like-expr expr)
+  (doc 'export #t)
   (validation-ap2
    (lambda (e) (lambda (p) expr))
    (validate-expression (like-expr-expr expr))
@@ -367,14 +398,17 @@
 
 ;;; validate-is-null-expr : AST → Validation (List Error) AST
 (define (validate-is-null-expr expr)
+  (doc 'export #t)
   (validate-expression (is-null-expr-expr expr)))
 
 ;;; validate-subquery : AST → Validation (List Error) AST
 (define (validate-subquery expr)
+  (doc 'export #t)
   (validate-select (subquery-select expr)))
 
 ;;; validate-exists-expr : AST → Validation (List Error) AST
 (define (validate-exists-expr expr)
+  (doc 'export #t)
   (validate-subquery (exists-expr-subquery expr)))
 
 ;;; ====
@@ -383,6 +417,7 @@
 
 ;;; validate-identifier : String → Validation (List Error) String
 (define (validate-identifier name)
+  (doc 'export #t)
   (if (and (string? name) (> (string-length name) 0))
       (validation-success name)
       (validation-failure (sql-error 'invalid-identifier no-span
@@ -390,6 +425,7 @@
 
 ;;; validate-operator : Symbol → Validation (List Error) Symbol
 (define (validate-operator op)
+  (doc 'export #t)
   (let ([valid-ops '(+ - * / % || = <> < > <= >= and or not)])
        (if (memq op valid-ops)
            (validation-success op)
@@ -406,6 +442,7 @@
 
 ;;; aggregate-function? : String → Boolean
 (define (aggregate-function? name)
+  (doc 'export #t)
   (any? (lambda (f) (string-ci-equal? name f)) sql-aggregate-functions))
 
 ;;; string-ci-equal? defined in lexer.ss
@@ -413,6 +450,7 @@
 ;;; collect-aggregates : AST → (List AST)
 ;;; Collect all aggregate function calls in an expression
 (define (collect-aggregates expr)
+  (doc 'export #t)
   (collect-nodes (lambda (n)
                          (and (function-call? n)
                               (aggregate-function? (function-call-name n))))
@@ -420,6 +458,7 @@
 
 ;;; has-aggregates? : AST → Boolean
 (define (has-aggregates? expr)
+  (doc 'export #t)
   (not (null? (collect-aggregates expr))))
 
 ;;; ====
@@ -429,6 +468,7 @@
 ;;; validate-with-schema : AST × Schema → Validation (List Error) AST
 ;;; Schema is an alist: ((table-name . (col1 col2 ...)) ...)
 (define (validate-with-schema ast schema)
+  (doc 'export #t)
   (let ([ctx (fold-left
               (lambda (ctx entry)
                       (context-add-table ctx (car entry) (cdr entry)))
@@ -437,6 +477,7 @@
 
 ;;; validate-statement-with-context : AST × Context → Validation (List Error) AST
 (define (validate-statement-with-context ast ctx)
+  (doc 'export #t)
   ;; For now, just run basic validation
   ;; Schema-aware validation would check column references
   (validate-statement ast))

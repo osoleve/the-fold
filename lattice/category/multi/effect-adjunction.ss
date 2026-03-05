@@ -56,6 +56,7 @@ algebra A has access to A for evaluation.")
 ;;; make-free-forgetful-adjunction-gen : Signature → AdjunctionInter
 ;;; Construct the Free ⊣ Forgetful adjunction with correct counit.
 (define (make-free-forgetful-adjunction-gen sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature AdjunctionInter))
   (doc 'description "Create Free ⊣ Forgetful with indexed counit.
 The counit ε_A evaluates terms using algebra A's operations.")
@@ -139,6 +140,7 @@ Using the indexed counit makes this connection explicit and verifiable.")
 ;;; handle-via-counit : AdjunctionInter × Algebra × Term → Value
 ;;; Handle an effect by applying the counit at a specific algebra.
 (define (handle-via-counit adj alg term)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Algebra Term Value))
   (doc 'description "Handle effectful term using algebra.
 This is counit application: ε_A(term) = eval-term A term.
@@ -148,6 +150,7 @@ Equivalent to (handle (algebra-to-handler alg) (term->eff term)).")
 ;;; run-with-algebra : Signature × Algebra × Term → Value
 ;;; Convenience function: build adjunction and apply counit.
 (define (run-with-algebra sig alg term)
+  (doc 'export #t)
   (doc 'type '(-> Signature Algebra Term Value))
   (doc 'description "Run a term through an algebra using Free ⊣ Forgetful.")
   (let ([adj (make-free-forgetful-adjunction-gen sig)])
@@ -173,6 +176,7 @@ how you handle generators, and the counit gives evaluation.")
 ;;; fold-free : Signature × Algebra × (a → |A|) × Term[a] → |A|
 ;;; Fold a free term into an algebra using a generator handler.
 (define (fold-free sig alg f term)
+  (doc 'export #t)
   (doc 'type '(-> Signature Algebra (-> a |A|) Term |A|))
   (doc 'description "Fold a term by:
 1. Map generators via f
@@ -209,6 +213,7 @@ RIGHT TRIANGLE: U(ε_A) ∘ η_{U(A)} = id_{U(A)}
 ;;; verify-effect-triangle-left : Signature × Term → Boolean
 ;;; Verify left triangle for Free ⊣ Forgetful.
 (define (verify-effect-triangle-left sig term)
+  (doc 'export #t)
   (doc 'type '(-> Signature Term Boolean))
   (doc 'description "Verify ε_{Free(X)} ∘ Free(η_X) = id at term.")
   (let* ([adj (make-free-forgetful-adjunction-gen sig)]
@@ -222,6 +227,7 @@ RIGHT TRIANGLE: U(ε_A) ∘ η_{U(A)} = id_{U(A)}
 ;;; verify-effect-triangle-right : Signature × Algebra × Value [× (a → a → Bool)] → Boolean
 ;;; Verify right triangle for Free ⊣ Forgetful.
 (define (verify-effect-triangle-right sig alg val . opts)
+  (doc 'export #t)
   (doc 'type '(-> Signature Algebra Value [(-> a a Boolean)] Boolean))
   (doc 'description "Verify U(ε_A) ∘ η_{U(A)} = id at value in |A|.
 Optional equality predicate for algebras with opaque carriers (e.g., functions).")
@@ -253,6 +259,7 @@ doesn't commute in general.")
 ;;; compose-handlers-via-adjunction : AdjunctionInter × AdjunctionInter → AdjunctionInter
 ;;; Compose effect adjunctions for nested handlers.
 (define (compose-handlers-via-adjunction outer-adj inner-adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter AdjunctionInter AdjunctionInter))
   (doc 'description "Compose adjunctions for nested effect handling.
 outer-adj handles the outer effect (applied last).
@@ -265,6 +272,7 @@ inner-adj handles the inner effect (applied first).")
 
 ;;; effect-adjunction->string : AdjunctionInter → String
 (define (effect-adjunction->string adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter String))
   (if (adjunction-inter? adj)
       (format "EffAdj<~a>: Free ⊣ U (indexed counit)"

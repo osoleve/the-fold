@@ -29,6 +29,7 @@
 (doc 'type '(-> Action (Maybe String) String Rlm2ParseResult))
 (doc 'description "Parse result: action + optional thought + raw text + optional failure info + optional alias info")
 (define (make-rlm2-parse-result action thought raw . rest)
+  (doc 'export #t)
   (let ([candidate (if (pair? rest) (car rest) #f)]
         [failure-reason (if (and (pair? rest) (pair? (cdr rest))) (cadr rest) #f)]
         [alias-info (if (and (pair? rest) (pair? (cdr rest)) (pair? (cddr rest)))
@@ -36,6 +37,7 @@
     (list 'rlm2-parse-result action thought raw candidate failure-reason alias-info)))
 
 (define (rlm2-parse-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-parse-result)))
 
 (define (rlm2-parse-result-action r)         (list-ref r 1))
@@ -48,6 +50,7 @@
 (doc 'type '(-> Rlm2ParseResult (Pair Symbol Symbol) Rlm2ParseResult))
 (doc 'description "Return a new parse result with alias-info set")
 (define (rlm2-parse-result-with-alias r alias-info)
+  (doc 'export #t)
   (list 'rlm2-parse-result
         (rlm2-parse-result-action r)
         (rlm2-parse-result-thought r)
@@ -59,6 +62,7 @@
 (doc 'type '(-> (Pair Symbol Symbol) String))
 (doc 'description "Format a correction note for when an alias was used, to help the model learn canonical names")
 (define (rlm2-alias-correction-note alias-info)
+  (doc 'export #t)
   (format "[alias] '~a' resolved to '~a'. Use (~a ...) directly."
           (car alias-info) (cdr alias-info) (cdr alias-info)))
 
@@ -72,6 +76,7 @@
 ;;;   2. Unquoted bare text: (think G8: analysis of feedback...
 ;;; Returns a (think content) action or #f.
 (define (rlm2-try-partial-think text)
+  (doc 'export #t)
   (let ([len (string-length text)])
     (and (> len 8)
          (char=? (string-ref text 0) #\()
@@ -108,6 +113,7 @@
               (list 'think (substring text i len))])))))
 
 (define (rlm2-unwrap-nested-think result)
+  (doc 'export #t)
   ;; Safety net: if parsed action is (think "(think \"...\")"), unwrap one level.
   ;; Primary defense is rlm2-try-partial-think; this catches the remaining case
   ;; where read succeeded but the model intentionally double-wrapped.
@@ -139,6 +145,7 @@
 (doc 'type '(-> String Rlm2ParseResult))
 (doc 'description "Parse model text output into a validated action. Always succeeds — worst case wraps as (think ...).")
 (define (rlm2-parse-response text)
+  (doc 'export #t)
   (let ([trimmed (rlm2-parse-trim text)])
     (cond
       ;; Empty output -> think
@@ -152,6 +159,7 @@
 
 ;;; Inner dispatch: direct read → partial begin → partial think → fuzzy
 (define (rlm2-parse-response-inner trimmed text)
+  (doc 'export #t)
   (let ([direct (rlm2-try-read-action trimmed)])
     (if (rlm2-try-ok? direct)
         ;; Direct read succeeded — pass through alias info if present
@@ -177,6 +185,7 @@
 
 ;;; Fuzzy extraction: find balanced parens in text, try to read+validate
 (define (rlm2-parse-fuzzy trimmed text direct)
+  (doc 'export #t)
   (let ([balanced (rlm2-extract-balanced trimmed)])
     (if (not balanced)
         ;; No balanced parens — use direct failure info
@@ -249,6 +258,7 @@ Targets must be members of *rlm2-action-types* in rlm2.ss.")
 (doc 'type '(-> Symbol (Maybe Symbol)))
 (doc 'description "Look up the canonical action name for an alias. Returns #f if not an alias.")
 (define (rlm2-alias-lookup sym)
+  (doc 'export #t)
   (let ([entry (assq sym *rlm2-action-aliases*)])
     (and entry (cdr entry))))
 
@@ -256,6 +266,7 @@ Targets must be members of *rlm2-action-types* in rlm2.ss.")
 (doc 'description "Resolve aliases in an action expression. Returns (values resolved-expr alias-info).
 alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 (define (rlm2-resolve-alias expr)
+  (doc 'export #t)
   (if (not (and (pair? expr) (symbol? (car expr))))
       (values expr #f)
       (let* ([head (car expr)]
@@ -281,6 +292,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 (define (rlm2-try-ok? r) (eq? (car r) 'parse-ok))
 (define (rlm2-try-action r) (cadr r))
 (define (rlm2-try-alias-info r)
+  (doc 'export #t)
   (and (rlm2-try-ok? r) (> (length r) 2) (caddr r)))
 (define (rlm2-try-candidate r) (cadr r))
 (define (rlm2-try-reason r) (caddr r))
@@ -288,6 +300,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 ;;; Validate an expression, trying alias resolution on failure.
 ;;; Returns a try-result: (parse-ok action alias-info) or (parse-fail candidate reason).
 (define (rlm2-validate-or-alias expr)
+  (doc 'export #t)
   (let ([validation (rlm2-validate-action expr)])
     (if (rlm2-validation-ok? validation)
         (list 'parse-ok (rlm2-validation-value validation) #f)
@@ -301,6 +314,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
               (list 'parse-fail expr (rlm2-validation-error validation)))))))
 
 (define (rlm2-try-read-action str)
+  (doc 'export #t)
   (guard (exn [#t
                (list 'parse-fail #f
                      (format "read-error: ~a"
@@ -324,6 +338,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 
 ;;; Also resolve aliases inside begin blocks (recursive)
 (define (rlm2-resolve-alias-recursive expr)
+  (doc 'export #t)
   (if (not (and (pair? expr) (symbol? (car expr))))
       (values expr #f)
       (if (eq? (car expr) 'begin)
@@ -345,6 +360,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 
 ;;; Read remaining content from a port, trimmed.
 (define (rlm2-port-rest-trimmed port)
+  (doc 'export #t)
   (let loop ([chars '()])
     (let ([c (read-char port)])
       (if (eof-object? c)
@@ -355,6 +371,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 ;;; block comments #|...|#, datum comments #;) and whitespace.
 ;;; Used to tolerate trailing explanations from models.
 (define (rlm2-only-comments? str)
+  (doc 'export #t)
   (let ([len (string-length str)])
     (let loop ([i 0])
       (cond
@@ -408,6 +425,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 ;;; them one at a time and reconstructs a valid begin.
 ;;; Returns a validated action or #f.
 (define (rlm2-try-partial-begin text)
+  (doc 'export #t)
   (let ([len (string-length text)])
     ;; Must start with (begin followed by whitespace
     (and (> len 6)
@@ -433,6 +451,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 ;;; Given collected sub-expressions (in reverse order), build and validate
 ;;; a begin action. Returns validated action or #f.
 (define (rlm2-partial-begin-result exprs)
+  (doc 'export #t)
   (let ([exprs (reverse exprs)])
     (cond
       [(null? exprs) #f]
@@ -451,6 +470,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 ;;; Extract the first balanced parenthesized expression from text.
 ;;; Returns the substring or #f.
 (define (rlm2-extract-balanced text)
+  (doc 'export #t)
   (let ([len (string-length text)])
     (let find-open ([i 0])
       (cond
@@ -481,6 +501,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 
 ;;; Get text before the first open paren (for capturing pre-action thought)
 (define (rlm2-text-before-paren text)
+  (doc 'export #t)
   (let ([len (string-length text)])
     (let loop ([i 0])
       (cond
@@ -530,6 +551,7 @@ alias-info is (alias . canonical) if rewriting occurred, #f otherwise.")
 
 ;;; Trim whitespace from both ends (pure, no dependency on v1 string utils)
 (define (rlm2-parse-trim s)
+  (doc 'export #t)
   (let ([len (string-length s)])
     (let ([start (let loop ([i 0])
                    (cond

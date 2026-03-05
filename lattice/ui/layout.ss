@@ -38,10 +38,12 @@
 ;;; Point: (x . y) coordinate pair
 ;;; Origin is top-left (0, 0)
 (define (point x y)
+  (doc 'export #t)
   (cons x y))
 
 (define (point-x p) (car p))
 (define (point-y p) (cdr p))
+  (doc 'export #t)
 
 ;;; Rect: Rectangle defined by origin point, width, and height
 (define-record-type rect%
@@ -63,6 +65,7 @@
 ;;; make-canvas : Nat × Nat → Canvas
 ;;; Create a canvas filled with spaces.
 (define (make-canvas width height)
+  (doc 'export #t)
   (let ([size (* width height)]
         [cells (make-vector (* width height) #\space)])
        (make-canvas% width height cells)))
@@ -77,6 +80,7 @@
 ;;; canvas-ref : Canvas × Nat × Nat → Char
 ;;; Get character at (x, y). Returns #\space if out of bounds.
 (define (canvas-ref c x y)
+  (doc 'export #t)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
        (if (or (< x 0) (< y 0) (>= x w) (>= y h))
@@ -89,6 +93,7 @@
 ;;; NOTE: This is O(N) per call due to vector-copy. For bulk updates,
 ;;; use canvas-set! with a copy, or canvas-set-many for batching.
 (define (canvas-set c x y ch)
+  (doc 'export #t)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
        (if (or (< x 0) (< y 0) (>= x w) (>= y h))
@@ -103,6 +108,7 @@
 ;;; PERFORMANCE: Use this instead of repeated canvas-set calls.
 ;;; Each update is (x y char) triple. Out-of-bounds updates are ignored.
 (define (canvas-set-many c updates)
+  (doc 'export #t)
   (if (null? updates)
       c
       (let* ([w (canvas-width c)]
@@ -123,6 +129,7 @@
 ;;; Set character at (x, y). Mutates canvas in-place (imperative).
 ;;; Out-of-bounds coordinates are ignored (no-op).
 (define (canvas-set! c x y ch)
+  (doc 'export #t)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
        (unless (or (< x 0) (< y 0) (>= x w) (>= y h))
@@ -137,12 +144,14 @@
 ;;; draw-char : Canvas × Point × Char → Canvas
 ;;; Place a single character at the given point.
 (define (draw-char c pt ch)
+  (doc 'export #t)
   (canvas-set c (point-x pt) (point-y pt) ch))
 
 ;;; draw-string : Canvas × Point × String → Canvas
 ;;; Draw string horizontally starting at point, left-to-right.
 ;;; Clips at canvas boundary (no wrapping).
 (define (draw-string c pt str)
+  (doc 'export #t)
   (let ([x (point-x pt)]
         [y (point-y pt)]
         [w (canvas-width c)]
@@ -156,6 +165,7 @@
 ;;; draw-string-v : Canvas × Point × String → Canvas
 ;;; Draw string vertically, top-to-bottom.
 (define (draw-string-v c pt str)
+  (doc 'export #t)
   (let ([x (point-x pt)]
         [y (point-y pt)]
         [h (canvas-height c)]
@@ -169,6 +179,7 @@
 ;;; draw-rect : Canvas × Rect × Char → Canvas
 ;;; Draw rectangle outline using the given character.
 (define (draw-rect c r ch)
+  (doc 'export #t)
   (let* ([ox (point-x (rect-origin r))]
          [oy (point-y (rect-origin r))]
          [w (rect-width r)]
@@ -203,6 +214,7 @@
 ;;; fill-rect : Canvas × Rect × Char → Canvas
 ;;; Fill rectangle interior with the given character.
 (define (fill-rect c r ch)
+  (doc 'export #t)
   (let ([ox (point-x (rect-origin r))]
         [oy (point-y (rect-origin r))]
         [w (rect-width r)]
@@ -228,6 +240,7 @@
 ;;; Note: For transparency-aware compositing, see composite-with-transparency
 ;;; or use the layering system in boundary/ui/layers.ss
 (define (composite dest src pt)
+  (doc 'export #t)
   (let ([ox (point-x pt)]
         [oy (point-y pt)]
         [sw (canvas-width src)]
@@ -252,6 +265,7 @@
 ;;;   pt              — Position to place source
 ;;;   transparent-char — Character value to treat as transparent
 (define (composite-with-transparency dest src pt transparent-char)
+  (doc 'export #t)
   (let ([ox (point-x pt)]
         [oy (point-y pt)]
         [sw (canvas-width src)]
@@ -273,6 +287,7 @@
 ;;; blit : Canvas × Canvas × Rect × Point → Canvas
 ;;; Copy region from source to dest at point.
 (define (blit dest src region pt)
+  (doc 'export #t)
   (let ([rx (point-x (rect-origin region))]
         [ry (point-y (rect-origin region))]
         [rw (rect-width region)]
@@ -297,6 +312,7 @@
 ;;; Convert canvas to multi-line string.
 ;;; Rows separated by newline.
 (define (canvas->string c)
+  (doc 'export #t)
   (let ([w (canvas-width c)]
         [h (canvas-height c)])
        (let loop ([y 0] [lines '()])
@@ -327,6 +343,7 @@
 ;;; If string is already longer, return as-is.
 ;;; (Convenience wrapper around string-pad-right)
 (define (string-pad str target-len pad-char)
+  (doc 'export #t)
   (string-pad-right str target-len pad-char))
 
 ;;; ====
@@ -352,6 +369,7 @@
 
 ;;; get-box-style : Symbol → Alist | #f
 (define (get-box-style style)
+  (doc 'export #t)
   (case style
         [(ascii) box-style-ascii]
         [(light) box-style-light]
@@ -362,6 +380,7 @@
 ;;; draw-box : Canvas × Rect × Symbol → Canvas
 ;;; Draw rectangle using Unicode box-drawing characters.
 (define (draw-box c r style-name)
+  (doc 'export #t)
   (let ([style (get-box-style style-name)])
        (if (not style)
            (draw-rect c r #\#)  ; Fallback
@@ -410,6 +429,7 @@
 ;;; split-words : String → (List String)
 ;;; Split string into words (by spaces).
 (define (split-words str)
+  (doc 'export #t)
   (let loop ([chars (string->list str)]
              [current '()]
              [words '()])
@@ -432,6 +452,7 @@
 ;;; Break text at word boundaries to fit within given width.
 ;;; Words longer than width are not broken (placed on own line).
 (define (wrap-text text width)
+  (doc 'export #t)
   (if (<= width 0)
       '()
       (let ([words (split-words text)])
@@ -470,6 +491,7 @@
 ;;; align-left : String × Nat → String
 ;;; Left-align string, pad with spaces to reach width.
 (define (align-left str width)
+  (doc 'export #t)
   (let ([len (string-length str)])
        (if (>= len width)
            (substring str 0 width)  ; Truncate if too long
@@ -478,6 +500,7 @@
 ;;; align-right : String × Nat → String
 ;;; Right-align string, pad with spaces on left.
 (define (align-right str width)
+  (doc 'export #t)
   (let ([len (string-length str)])
        (if (>= len width)
            (substring str 0 width)
@@ -486,6 +509,7 @@
 ;;; align-center : String × Nat → String
 ;;; Center string, pad with spaces on both sides.
 (define (align-center str width)
+  (doc 'export #t)
   (let* ([len (string-length str)]
          [total-pad (- width len)])
         (if (<= total-pad 0)
@@ -501,6 +525,7 @@
 ;;; draw-lines : Canvas × Point × (List String) → Canvas
 ;;; Draw multiple lines vertically, one per row starting at point.
 (define (draw-lines c pt lines)
+  (doc 'export #t)
   (let ([x (point-x pt)]
         [y (point-y pt)])
        (let loop ([lines lines] [row 0] [canvas c])
@@ -514,6 +539,7 @@
 ;;; Draw wrapped and aligned text within a rectangle.
 ;;; Alignment can be: 'left, 'right, 'center
 (define (draw-text-block c rect text alignment)
+  (doc 'export #t)
   (let* ([ox (point-x (rect-origin rect))]
          [oy (point-y (rect-origin rect))]
          [w (rect-width rect)]
@@ -536,4 +562,5 @@
 ;;; draw-text-wrapped : Canvas × Point × String × Nat → Canvas
 ;;; Simple wrapped text drawing without alignment (left-aligned).
 (define (draw-text-wrapped c pt text width)
+  (doc 'export #t)
   (draw-lines c pt (wrap-text text width)))

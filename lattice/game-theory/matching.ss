@@ -27,6 +27,7 @@
    r-prefs))    ; Hashtable: receiver-id -> preference list over proposers
 
 (define (make-matching-market proposers receivers p-pref-list r-pref-list)
+  (doc 'export #t)
   (doc 'type '(-> (List Id) (List Id) (List (Id . List)) (List (Id . List)) Market))
   (doc 'description "Create a matching market from proposers, receivers, and their preferences")
   (doc 'note "Example: (make-matching-market (m1 m2 m3) (w1 w2 w3) ((m1 w1 w2 w3) (m2 w2 w1 w3) (m3 w1 w3 w2)) ((w1 m2 m1 m3) (w2 m1 m2 m3) (w3 m1 m3 m2)))")
@@ -42,6 +43,7 @@
 ;;; Build preference hashtable from alist.
 ;;; Input: ((id pref1 pref2 ...) ...)
 (define (make-pref-table pref-list)
+  (doc 'export #t)
   (let ((table '()))
     (for-each
      (lambda (entry)
@@ -54,35 +56,43 @@
 ;;; pref-lookup : Hashtable × Id → List
 ;;; Get preferences for an agent.
 (define (pref-lookup table id)
+  (doc 'export #t)
   (let ((entry (assoc id table)))
     (if entry (cdr entry) '())))
 
 ;;; matching-market? : Any → Boolean
 (define (matching-market? x)
+  (doc 'export #t)
   (matching-market%? x))
 
 ;;; market-proposers : Market → Vector
 (define (market-proposers m)
+  (doc 'export #t)
   (matching-market%-proposers m))
 
 ;;; market-receivers : Market → Vector
 (define (market-receivers m)
+  (doc 'export #t)
   (matching-market%-receivers m))
 
 ;;; market-proposer-prefs : Market × Id → List
 (define (market-proposer-prefs m id)
+  (doc 'export #t)
   (pref-lookup (matching-market%-p-prefs m) id))
 
 ;;; market-receiver-prefs : Market × Id → List
 (define (market-receiver-prefs m id)
+  (doc 'export #t)
   (pref-lookup (matching-market%-r-prefs m) id))
 
 ;;; market-num-proposers : Market → Nat
 (define (market-num-proposers m)
+  (doc 'export #t)
   (vector-length (market-proposers m)))
 
 ;;; market-num-receivers : Market → Nat
 (define (market-num-receivers m)
+  (doc 'export #t)
   (vector-length (market-receivers m)))
 
 (doc 'section 'gale-shapley)
@@ -91,6 +101,7 @@
 (doc 'note "Properties: always produces a stable matching, proposer-optimal (no proposer can do better in any stable matching), individual rationality (no agent matched to unacceptable partner), complexity O(n²) proposals, O(n³) with current linear ID lookups (future: O(n²) with pre-computed ID->index hashtables)")
 
 (define (stable-match market fuel)
+  (doc 'export #t)
   (doc 'type '(-> Market Nat (List (Id . Id))))
   (doc 'description "Compute proposer-optimal stable matching via deferred acceptance. Returns list of (proposer . receiver) pairs. fuel bounds iterations (set to n² for guaranteed completion)")
   (let* ((proposers (market-proposers market))
@@ -171,6 +182,7 @@
 ;;; Pre-compute ranking tables for O(1) preference comparison.
 ;;; recv-ranks[i] maps proposer-id -> rank (lower = more preferred)
 (define (build-receiver-ranks market)
+  (doc 'export #t)
   (let* ((receivers (market-receivers market))
          (n (vector-length receivers))
          (ranks (make-vector n '())))
@@ -184,6 +196,7 @@
 ;;; build-rank-table : List → Hashtable
 ;;; Build rank lookup: id -> position (0 = most preferred)
 (define (build-rank-table prefs)
+  (doc 'export #t)
   (let loop ((prefs prefs) (rank 0) (table '()))
     (if (null? prefs)
         table
@@ -193,6 +206,7 @@
 ;;; receiver-prefers? : Hashtable × Id × Id → Boolean
 ;;; Does receiver prefer p1 over p2?
 (define (receiver-prefers? ranks p1-id p2-id)
+  (doc 'export #t)
   (let ((r1 (assoc p1-id ranks))
         (r2 (assoc p2-id ranks)))
     (cond
@@ -202,6 +216,7 @@
 
 ;;; find-receiver-idx : Vector × Id → Nat | #f
 (define (find-receiver-idx receivers r-id)
+  (doc 'export #t)
   (let ((n (vector-length receivers)))
     (let loop ((i 0))
       (cond
@@ -211,6 +226,7 @@
 
 ;;; find-proposer-idx : Vector × Id → Nat | #f
 (define (find-proposer-idx proposers p-id)
+  (doc 'export #t)
   (let ((n (vector-length proposers)))
     (let loop ((i 0))
       (cond
@@ -221,6 +237,7 @@
 ;;; extract-matching : Vector × Vector → (List (Id . Id))
 ;;; Extract matching as list of pairs from match vectors.
 (define (extract-matching proposers prop-match)
+  (doc 'export #t)
   (let ((n (vector-length proposers)))
     (let loop ((i 0) (result '()))
       (if (= i n)
@@ -235,6 +252,7 @@
 (doc 'section 'stability-verification)
 
 (define (matching-stable? market matching)
+  (doc 'export #t)
   (doc 'type '(-> Market (List (Id . Id)) Boolean))
   (doc 'description "Verify that a matching is stable (no blocking pairs). A blocking pair (p, r) exists if: p prefers r to current match (or p is unmatched), r prefers p to current match (or r is unmatched)")
   (let* ((proposers (market-proposers market))
@@ -247,16 +265,19 @@
 ;;; build-match-table-p : (List (Id . Id)) → Hashtable
 ;;; Build proposer -> receiver lookup.
 (define (build-match-table-p matching)
+  (doc 'export #t)
   (map (lambda (pair) (cons (car pair) (cdr pair))) matching))
 
 ;;; build-match-table-r : (List (Id . Id)) → Hashtable
 ;;; Build receiver -> proposer lookup.
 (define (build-match-table-r matching)
+  (doc 'export #t)
   (map (lambda (pair) (cons (cdr pair) (car pair))) matching))
 
 ;;; find-blocking-pair : Market × ... → (Pair Id Id) | #f
 ;;; Find a blocking pair if one exists.
 (define (find-blocking-pair market proposers receivers prop-to-recv recv-to-prop)
+  (doc 'export #t)
   (let ((n-prop (vector-length proposers)))
     (let p-loop ((i 0))
       (if (= i n-prop)
@@ -282,6 +303,7 @@
 ;;; prefers-to? : List × Id × Id → Boolean
 ;;; Does agent prefer id1 to id2? (id2 may be #f for unmatched)
 (define (prefers-to? prefs id1 id2)
+  (doc 'export #t)
   (if (not id2)
       (member id1 prefs)  ; anything beats unmatched
       (let loop ((prefs prefs))
@@ -295,6 +317,7 @@
 (doc 'note "An assignment game is a cooperative game derived from a bipartite matching market with transferable utility. Each (proposer, receiver) pair has a value v(p, r) representing the worth of matching them. The characteristic function is: v(S) = max weight matching in the induced bipartite graph on S. Key results: the core is always non-empty, Core = set of competitive equilibria, Shapley value gives a fair division")
 
 (define (make-assignment-game n m valuation)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat (Nat Nat -> Real) CoopGame))
   (doc 'description "Create assignment game from bipartite valuations. n = number of proposers (players 0 to n-1), m = number of receivers (players n to n+m-1), valuation(i, j) = value of matching proposer i with receiver j-n")
   (let ((total-players (+ n m)))
@@ -306,6 +329,7 @@
 ;;; assignment-game-value : Nat × Nat × Fn × Coalition → Real
 ;;; Compute v(S) as the max weight matching in S.
 (define (assignment-game-value n m valuation S)
+  (doc 'export #t)
   (let* ((props-in-S (filter (lambda (i) (coalition-member? i S)) (iota n)))
          (recvs-in-S (filter (lambda (j) (coalition-member? j S))
                               (map (lambda (k) (+ n k)) (iota m))))
@@ -320,6 +344,7 @@
 ;;; Compute optimal assignment value for a subset of players.
 ;;; Uses LP: maximize sum v(i,j)*x(i,j) s.t. matching constraints.
 (define (optimal-assignment-subset props recvs n valuation)
+  (doc 'export #t)
   (let* ((num-props (length props))
          (num-recvs (length recvs))
          (prop-vec (list->vector props))
@@ -367,6 +392,7 @@
 (doc 'note "Finds the assignment that maximizes total value. Uses LP formulation which guarantees integral solution for bipartite matching (totally unimodular constraint matrix)")
 
 (define (optimal-assignment n m valuation)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat (Nat Nat -> Real) (List (Nat . Nat) . Real)))
   (doc 'description "Compute optimal assignment and its total value. Returns ((matches ...) . total-value) where matches are (prop . recv) pairs")
   (let* ((num-vars (* n m))
@@ -410,6 +436,7 @@
 ;;; extract-assignment-matches : Vec × Nat × Nat → (List (Nat . Nat))
 ;;; Extract matching pairs from LP solution.
 (define (extract-assignment-matches x n m)
+  (doc 'export #t)
   (let loop ((i 0) (j 0) (result '()))
     (cond
       ((= i n) (reverse result))
@@ -429,12 +456,14 @@
 ;;; Create a simple medical residency matching market.
 ;;; Students = proposers, Hospitals = receivers (NRMP convention).
 (define (make-medical-residency-market students hospitals student-prefs hospital-prefs)
+  (doc 'export #t)
   (make-matching-market students hospitals student-prefs hospital-prefs))
 
 ;;; make-school-choice-market : (List Id) × (List Id) → Market
 ;;; Create a school choice market.
 ;;; Students = proposers, Schools = receivers.
 (define (make-school-choice-market students schools student-prefs school-prefs)
+  (doc 'export #t)
   (make-matching-market students schools student-prefs school-prefs))
 
 ;;; ============================================================================
@@ -445,6 +474,7 @@
 ;;; Generate random preferences for one side.
 ;;; shuffle is a function that shuffles a list (can use Fisher-Yates).
 (define (make-random-preferences agents targets shuffle)
+  (doc 'export #t)
   (map (lambda (agent)
          (cons agent (shuffle targets)))
        agents))
@@ -452,6 +482,7 @@
 ;;; preference-rank : List × Id → Nat | #f
 ;;; Get rank of an item in preference list (0 = most preferred).
 (define (preference-rank prefs item)
+  (doc 'export #t)
   (let loop ((prefs prefs) (rank 0))
     (cond
       ((null? prefs) #f)
@@ -469,6 +500,7 @@
 ;;; Compute receiver-optimal stable matching.
 ;;; Swaps the roles of proposers and receivers.
 (define (stable-match-receiver-optimal market fuel)
+  (doc 'export #t)
   ;; Create reversed market
   (let ((reversed-market (make-matching-market%
                           (market-receivers market)
@@ -492,6 +524,7 @@
 ;;; same-matched-agents? : (List (Id . Id)) × (List (Id . Id)) → Boolean
 ;;; Check if two matchings have the same set of matched agents.
 (define (same-matched-agents? matching1 matching2)
+  (doc 'export #t)
   (let ((props1 (sort-by symbol<? (map car matching1)))
         (props2 (sort-by symbol<? (map car matching2)))
         (recvs1 (sort-by symbol<? (map cdr matching1)))
@@ -502,6 +535,7 @@
 ;;; symbol<? : Symbol × Symbol → Boolean
 ;;; Lexicographic comparison for symbols.
 (define (symbol<? a b)
+  (doc 'export #t)
   (string<? (symbol->string a) (symbol->string b)))
 
 (doc 'section 'ilp-matching)
@@ -521,6 +555,7 @@
 ;;;   (weighted-matching-ilp 2 2 (lambda (i j) (vector-ref '#(#(3 1) #(2 4)) i j)))
 ;;;   => (((0 . 0) (1 . 1)) . 7)
 (define (weighted-matching-ilp n m weight)
+  (doc 'export #t)
   (let* (;; Number of decision variables: n*m binary variables x[i,j]
          [num-vars (* n m)]
          ;; Number of constraints: n row constraints + m col constraints
@@ -577,6 +612,7 @@
 ;;; extract-ilp-matches : Vec × Nat × Nat → (List (Nat . Nat))
 ;;; Extract matching pairs from ILP solution vector.
 (define (extract-ilp-matches x n m)
+  (doc 'export #t)
   (let loop ([i 0] [j 0] [result '()])
     (cond
       [(= i n) (reverse result)]
@@ -617,6 +653,7 @@
 ;;;   (bottleneck-matching-ilp 2 2 (lambda (i j) (vector-ref '#(#(5 3) #(4 2)) i j)))
 ;;;   => (((0 . 1) (1 . 1)) . 3) or similar optimal matching
 (define (bottleneck-matching-ilp n m weight)
+  (doc 'export #t)
   (let* (;; Collect all distinct edge weights
          [all-weights (collect-edge-weights n m weight)]
          ;; Sort weights to enable binary search
@@ -637,6 +674,7 @@
 ;;; collect-edge-weights : Nat × Nat × (Nat × Nat → Real) → List
 ;;; Collect all edge weights into a list.
 (define (collect-edge-weights n m weight)
+  (doc 'export #t)
   (let loop ([i 0] [j 0] [result '()])
     (cond
       [(= i n) result]
@@ -648,11 +686,13 @@
 ;;; sort-numbers : List → List
 ;;; Sort a list of numbers in ascending order.
 (define (sort-numbers lst)
+  (doc 'export #t)
   (sort-by < lst))
 
 ;;; remove-duplicates-numbers : List → List
 ;;; Remove duplicate numbers from sorted list.
 (define (remove-duplicates-numbers sorted-lst)
+  (doc 'export #t)
   (if (or (null? sorted-lst) (null? (cdr sorted-lst)))
       sorted-lst
       (let loop ([lst (cdr sorted-lst)] [prev (car sorted-lst)] [result (list (car sorted-lst))])
@@ -666,6 +706,7 @@
 ;;; binary-search-bottleneck : Nat × Nat × Fn × List × Nat → (List . Real) | #f
 ;;; Binary search for minimum threshold that admits required matching size.
 (define (binary-search-bottleneck n m weight sorted-weights required-size)
+  (doc 'export #t)
   (let* ([unique-weights (remove-duplicates-numbers sorted-weights)]
          [num-thresholds (length unique-weights)]
          [weight-vec (list->vector unique-weights)])
@@ -688,6 +729,7 @@
 ;;; Check if a matching of required size exists using only edges ≤ threshold.
 ;;; Returns (matches . threshold) if feasible, #f otherwise.
 (define (check-bottleneck-feasibility n m weight threshold required-size)
+  (doc 'export #t)
   (let* (;; Create filtered weight function (edges above threshold become 0)
          ;; Actually for feasibility, we want to maximize # of matches
          ;; using only edges <= threshold

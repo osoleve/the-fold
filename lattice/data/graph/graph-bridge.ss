@@ -42,6 +42,7 @@
 (doc graph? 'type '(-> Any Boolean))
 (doc graph? 'description "Predicate for Graph records")
 (define (graph? g)
+  (doc 'export #t)
   (and (pair? g)
        (eq? (car g) 'graph)
        (= (length g) 5)
@@ -61,6 +62,7 @@
 
 (doc graph-weighted? 'type '(-> Graph Boolean))
 (define (graph-weighted? g) (car (cddddr g)))
+  (doc 'export #t)
 
 ;;; ====
 ;;; Graph Construction
@@ -72,6 +74,7 @@
   directed? defaults to #t.
   weighted? is inferred from edge arity if not supplied.")
 (define (make-graph edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (pair? opts) (car opts))
                 (car opts)
                 (infer-node-count edges))]
@@ -88,6 +91,7 @@
 (doc make-graph-undirected 'type '(-> (List Edge) [Nat] Graph))
 (doc make-graph-undirected 'description "Convenience: construct an undirected Graph")
 (define (make-graph-undirected edges . opts)
+  (doc 'export #t)
   (let ([n (if (pair? opts) (car opts) (infer-node-count edges))])
     (make-graph edges n #f)))
 
@@ -101,6 +105,7 @@
   For weighted graphs, matrix entries are the edge weights.
   For unweighted graphs, matrix entries are 1.")
 (define (graph->adjacency-matrix g)
+  (doc 'export #t)
   (let ([edges (graph-edges g)]
         [n (graph-node-count g)]
         [undirected (not (graph-directed? g))])
@@ -110,6 +115,7 @@
 (doc graph->sparse-adjacency 'description "Convert Graph to sparse CSR adjacency matrix.
   Preferred for large, sparse graphs.")
 (define (graph->sparse-adjacency g)
+  (doc 'export #t)
   (let ([edges (graph-edges g)]
         [n (graph-node-count g)]
         [undirected (not (graph-directed? g))])
@@ -119,6 +125,7 @@
 (doc graph->degree-matrix 'description "Convert Graph to diagonal degree matrix.
   mode: 'out (default), 'in, or 'total.")
 (define (graph->degree-matrix g . mode-opt)
+  (doc 'export #t)
   (let ([adj (graph->adjacency-matrix g)]
         [mode (if (pair? mode-opt) (car mode-opt) 'out)])
     (degree-matrix adj mode)))
@@ -128,6 +135,7 @@
   Composes graph->adjacency-matrix with laplacian.
   For undirected graphs, L is symmetric positive semi-definite.")
 (define (graph->laplacian-matrix g)
+  (doc 'export #t)
   (laplacian (graph->adjacency-matrix g)))
 
 (doc graph->laplacian-normalized 'type '(-> Graph Matrix))
@@ -135,6 +143,7 @@
   L_sym = I - D^(-1/2) A D^(-1/2).
   Eigenvalues in [0, 2] for undirected graphs.")
 (define (graph->laplacian-normalized g)
+  (doc 'export #t)
   (laplacian-normalized (graph->adjacency-matrix g)))
 
 (doc graph->laplacian-random-walk 'type '(-> Graph Matrix))
@@ -142,6 +151,7 @@
   L_rw = I - D^(-1) A.
   Related to Markov chain transition probabilities.")
 (define (graph->laplacian-random-walk g)
+  (doc 'export #t)
   (laplacian-random-walk (graph->adjacency-matrix g)))
 
 ;;; ====
@@ -154,6 +164,7 @@
   If directed? is #f, only upper-triangle edges are extracted
   (avoids duplicating symmetric edges).")
 (define (adjacency-matrix->graph m . opts)
+  (doc 'export #t)
   (let* ([directed (if (pair? opts) (car opts) #t)]
          [rest1 (if (pair? opts) (cdr opts) '())]
          ;; Determine if weighted: check if any entry is not 0 or 1
@@ -168,6 +179,7 @@
 (doc sparse-adjacency->graph 'type '(-> SparseCSR [Boolean] [Boolean] Graph))
 (doc sparse-adjacency->graph 'description "Reconstruct a Graph from a sparse CSR adjacency matrix.")
 (define (sparse-adjacency->graph m . opts)
+  (doc 'export #t)
   (let* ([directed (if (pair? opts) (car opts) #t)]
          [rest1 (if (pair? opts) (cdr opts) '())]
          [weighted-edges (sparse-adjacency->edges m #t)]
@@ -256,12 +268,14 @@
 (doc graph-edge-count 'description "Number of edges in the graph.
   For undirected graphs, each edge is counted once.")
 (define (graph-edge-count g)
+  (doc 'export #t)
   (length (graph-edges g)))
 
 (doc graph-density 'type '(-> Graph Num))
 (doc graph-density 'description "Edge density: edges / possible_edges.
   For directed: e / (n*(n-1)).  For undirected: e / (n*(n-1)/2).")
 (define (graph-density g)
+  (doc 'export #t)
   (let ([n (graph-node-count g)]
         [e (graph-edge-count g)])
     (if (<= n 1)
@@ -274,6 +288,7 @@
 (doc graph-neighbors 'type '(-> Graph Nat (List Nat)))
 (doc graph-neighbors 'description "Get neighbors of node i from the Graph's adjacency matrix")
 (define (graph-neighbors g i)
+  (doc 'export #t)
   (adjacency-neighbors (graph->adjacency-matrix g) i))
 
 ;;; ====
@@ -285,6 +300,7 @@
   weight presence, and edge set (order-independent).
   Compares via adjacency matrices to normalize edge ordering.")
 (define (graph-equal? g1 g2)
+  (doc 'export #t)
   (and (= (graph-node-count g1) (graph-node-count g2))
        (eq? (graph-directed? g1) (graph-directed? g2))
        (eq? (graph-weighted? g1) (graph-weighted? g2))
@@ -299,15 +315,18 @@
 (doc graph->algebraic-connectivity 'description "Compute algebraic connectivity (Fiedler value) directly from Graph.
   lambda_2 = 0 iff the graph is disconnected.")
 (define (graph->algebraic-connectivity g)
+  (doc 'export #t)
   (algebraic-connectivity (graph->adjacency-matrix g)))
 
 (doc graph->fiedler-vector 'type '(-> Graph Vec))
 (doc graph->fiedler-vector 'description "Compute the Fiedler vector directly from Graph.
   Useful for graph partitioning and spectral layout.")
 (define (graph->fiedler-vector g)
+  (doc 'export #t)
   (fiedler-vector (graph->adjacency-matrix g)))
 
 (doc graph->spectral-partition 'type '(-> Graph (Pair (List Nat) (List Nat))))
 (doc graph->spectral-partition 'description "Partition graph into two groups using spectral bisection.")
 (define (graph->spectral-partition g)
+  (doc 'export #t)
   (spectral-partition (graph->adjacency-matrix g)))

@@ -13,20 +13,24 @@
 (doc 'section 'core-type)
 
 (define stream-nil '(stream-nil))
+(doc stream-nil 'export #t)
 (doc stream-nil 'type '(Stream a))
 (doc stream-nil 'description "The empty stream")
 
 (define (stream-nil? s)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if stream is empty")
   (and (pair? s) (eq? (car s) 'stream-nil)))
 
 (define (stream-cons head tail-thunk)
+  (doc 'export #t)
   (doc 'type '(-> a (-> (Stream a)) (Stream a)))
   (doc 'description "Construct a stream with a head and lazy tail thunk")
   (list 'stream-cons head tail-thunk))
 
 (define (stream-cons? s)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if stream has at least one element")
   (and (pair? s)
@@ -34,6 +38,7 @@
            (eq? (car s) 'memo-stream-cons))))
 
 (define (stream-head s)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) a))
   (doc 'description "Get the first element; error on empty stream")
   (if (stream-cons? s)
@@ -41,6 +46,7 @@
       (error 'stream-head "empty stream")))
 
 (define (stream-tail s)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream a)))
   (doc 'description "Force and return the tail; error on empty stream")
   (if (stream-cons? s)
@@ -50,6 +56,7 @@
 (doc 'section 'constructors)
 
 (define (list->stream lst)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (Stream a)))
   (doc 'description "Convert a list to a stream")
   (if (null? lst)
@@ -57,6 +64,7 @@
       (stream-cons (car lst) (lambda () (list->stream (cdr lst))))))
 
 (define (stream->list n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (List a)))
   (doc 'description "Take n elements from stream and convert to list")
   (if (or (<= n 0) (stream-nil? s))
@@ -65,16 +73,19 @@
             (stream->list (- n 1) (stream-tail s)))))
 
 (define (stream-iterate f x)
+  (doc 'export #t)
   (doc 'type '(-> (-> a a) a (Stream a)))
   (doc 'description "Infinite stream: x, f(x), f(f(x)), ...")
   (stream-cons x (lambda () (stream-iterate f (f x)))))
 
 (define (stream-repeat x)
+  (doc 'export #t)
   (doc 'type '(-> a (Stream a)))
   (doc 'description "Infinite stream of a single repeated value")
   (stream-cons x (lambda () (stream-repeat x))))
 
 (define (stream-cycle lst)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (Stream a)))
   (doc 'description "Infinite stream cycling through a list; empty list gives empty stream")
   (if (null? lst)
@@ -82,6 +93,7 @@
       (stream-cycle-helper lst lst)))
 
 (define (stream-cycle-helper original current)
+  (doc 'export #t)
   (doc 'type '(-> (List a) (List a) (Stream a)))
   (doc 'description "Internal helper for stream-cycle")
   (if (null? current)
@@ -90,11 +102,13 @@
                    (lambda () (stream-cycle-helper original (cdr current))))))
 
 (define (stream-from n)
+  (doc 'export #t)
   (doc 'type '(-> Int (Stream Int)))
   (doc 'description "Infinite stream of integers starting from n")
   (stream-iterate (lambda (x) (+ x 1)) n))
 
 (define (stream-range start end)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (Stream Int)))
   (doc 'description "Stream of integers from start (inclusive) to end (exclusive)")
   (if (>= start end)
@@ -102,10 +116,12 @@
       (stream-cons start (lambda () (stream-range (+ start 1) end)))))
 
 (define naturals (stream-from 0))
+(doc naturals 'export #t)
 (doc naturals 'type '(Stream Int))
 (doc naturals 'description "The natural numbers: 0, 1, 2, 3, ...")
 
 (define (stream-unfold step seed)
+  (doc 'export #t)
   (doc 'type '(-> (-> s (Maybe (Pair a s))) s (Stream a)))
   (doc 'description "Build stream from seed; step returns nothing to end, (just (value . next-seed)) to continue")
   (let ([result (step seed)])
@@ -118,6 +134,7 @@
 (doc 'section 'transformers)
 
 (define (stream-map f s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (Stream a) (Stream b)))
   (doc 'description "Map a function over a stream")
   (if (stream-nil? s)
@@ -126,6 +143,7 @@
                    (lambda () (stream-map f (stream-tail s))))))
 
 (define (stream-filter pred s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) (Stream a) (Stream a)))
   (doc 'description "Filter a stream by a predicate")
   (cond
@@ -136,6 +154,7 @@
    [else (stream-filter pred (stream-tail s))]))
 
 (define (stream-take n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Stream a)))
   (doc 'description "Take the first n elements as a stream")
   (if (or (<= n 0) (stream-nil? s))
@@ -144,6 +163,7 @@
                    (lambda () (stream-take (- n 1) (stream-tail s))))))
 
 (define (stream-drop n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Stream a)))
   (doc 'description "Drop the first n elements")
   (if (or (<= n 0) (stream-nil? s))
@@ -151,6 +171,7 @@
       (stream-drop (- n 1) (stream-tail s))))
 
 (define (stream-take-while pred s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) (Stream a) (Stream a)))
   (doc 'description "Take elements while predicate holds")
   (if (stream-nil? s)
@@ -161,6 +182,7 @@
                stream-nil))))
 
 (define (stream-drop-while pred s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) (Stream a) (Stream a)))
   (doc 'description "Drop elements while predicate holds")
   (cond
@@ -169,11 +191,13 @@
    [else s]))
 
 (define (stream-nth n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) a))
   (doc 'description "Get the nth element (0-indexed)")
   (stream-head (stream-drop n s)))
 
 (define (stream-scan f init s)
+  (doc 'export #t)
   (doc 'type '(-> (-> b a b) b (Stream a) (Stream b)))
   (doc 'description "Running fold over a stream; produces stream of intermediate results")
   (stream-cons init
@@ -183,6 +207,7 @@
                            (stream-scan f (f init (stream-head s)) (stream-tail s))))))
 
 (define (stream-concat s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream a) (Stream a)))
   (doc 'description "Concatenate two streams; second accessed only when first ends")
   (if (stream-nil? s1)
@@ -191,6 +216,7 @@
                    (lambda () (stream-concat (stream-tail s1) s2)))))
 
 (define (stream-flatten ss)
+  (doc 'export #t)
   (doc 'type '(-> (Stream (Stream a)) (Stream a)))
   (doc 'description "Flatten a stream of streams")
   (if (stream-nil? ss)
@@ -205,6 +231,7 @@
                                                   (lambda () (stream-tail ss))))))))))
 
 (define (stream-flatmap f s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a (Stream b)) (Stream a) (Stream b)))
   (doc 'description "Map and flatten (monadic bind via concatenation)")
   (stream-flatten (stream-map f s)))
@@ -212,6 +239,7 @@
 (doc 'section 'combinators)
 
 (define (stream-zip s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream b) (Stream (Pair a b))))
   (doc 'description "Zip two streams into a stream of pairs")
   (if (or (stream-nil? s1) (stream-nil? s2))
@@ -220,6 +248,7 @@
                    (lambda () (stream-zip (stream-tail s1) (stream-tail s2))))))
 
 (define (stream-zip-with f s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b c) (Stream a) (Stream b) (Stream c)))
   (doc 'description "Zip with a combining function")
   (if (or (stream-nil? s1) (stream-nil? s2))
@@ -228,6 +257,7 @@
                    (lambda () (stream-zip-with f (stream-tail s1) (stream-tail s2))))))
 
 (define (stream-interleave s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream a) (Stream a)))
   (doc 'description "Interleave two streams: a1, b1, a2, b2, ...")
   (if (stream-nil? s1)
@@ -236,6 +266,7 @@
                    (lambda () (stream-interleave s2 (stream-tail s1))))))
 
 (define (stream-merge pred s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> (-> a a Boolean) (Stream a) (Stream a) (Stream a)))
   (doc 'description "Merge two sorted streams maintaining order by predicate")
   (cond
@@ -251,6 +282,7 @@
 (doc 'section 'folds)
 
 (define (stream-fold f init n s)
+  (doc 'export #t)
   (doc 'type '(-> (-> b a b) b Nat (Stream a) b))
   (doc 'description "Left fold over first n elements of stream")
   (if (or (<= n 0) (stream-nil? s))
@@ -258,6 +290,7 @@
       (stream-fold f (f init (stream-head s)) (- n 1) (stream-tail s))))
 
 (define (stream-any pred n s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) Nat (Stream a) Boolean))
   (doc 'description "Check if any of first n elements satisfies predicate")
   (cond
@@ -267,6 +300,7 @@
    [else (stream-any pred (- n 1) (stream-tail s))]))
 
 (define (stream-all pred n s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) Nat (Stream a) Boolean))
   (doc 'description "Check if all of first n elements satisfy predicate")
   (cond
@@ -276,6 +310,7 @@
    [else (stream-all pred (- n 1) (stream-tail s))]))
 
 (define (stream-find pred n s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) Nat (Stream a) (Maybe a)))
   (doc 'description "Find first element matching predicate within n elements")
   (cond
@@ -288,6 +323,7 @@
 ;;; Memoized streams cache computed values to avoid recomputation.
 
 (define (memo-stream-cons head tail-thunk)
+  (doc 'export #t)
   (doc 'type '(-> a (-> (Stream a)) (Stream a)))
   (doc 'description "Create a memoized stream cons cell; tail is computed at most once")
   (let ([cached #f]
@@ -303,17 +339,20 @@
                           cached))))))
 
 (define (memo-stream? s)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a memoized stream cons cell")
   (and (pair? s) (eq? (car s) 'memo-stream-cons)))
 
 (define (stream-force n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Stream a)))
   (doc 'description "Force computation to depth n, returning the original stream")
   (stream-force-helper n s)
   s)
 
 (define (stream-force-helper n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) Void))
   (doc 'description "Internal: eagerly force stream to depth n")
   (if (or (<= n 0) (stream-nil? s))
@@ -344,6 +383,7 @@
 (doc primes 'description "Prime numbers via sieve of Eratosthenes")
 
 (define (powers-of n)
+  (doc 'export #t)
   (doc 'type '(-> Int (Stream Int)))
   (doc 'description "Powers of n: 1, n, n^2, n^3, ...")
   (stream-iterate (lambda (x) (* x n)) 1))
@@ -361,6 +401,7 @@
 (doc 'section 'generator-pattern)
 
 (define (make-generator gen)
+  (doc 'export #t)
   (doc 'type '(-> (-> (Maybe a)) (Stream a)))
   (doc 'description "Create stream from a generator; generator returns nothing when exhausted")
   (let ([result (gen)])
@@ -370,6 +411,7 @@
                         (lambda () (make-generator gen))))))
 
 (define (counter-generator start end)
+  (doc 'export #t)
   (doc 'type '(-> Int Int (-> (Maybe Int))))
   (doc 'description "Create a stateful generator counting from start up to (not including) end")
   (let ([current start])
@@ -381,6 +423,7 @@
                         (just val))))))
 
 (define (random-stream seed mult mod)
+  (doc 'export #t)
   (doc 'type '(-> Int Int Int (Stream Int)))
   (doc 'description "Pseudo-random stream via linear congruential generator")
   (stream-iterate (lambda (x) (modulo (* x mult) mod)) seed))
@@ -388,12 +431,14 @@
 (doc 'section 'utilities)
 
 (define (stream-partition pred s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Boolean) (Stream a) (Pair (Stream a) (Stream a))))
   (doc 'description "Split stream into passing and failing sub-streams")
   (cons (stream-filter pred s)
         (stream-filter (lambda (x) (not (pred x))) s)))
 
 (define (stream-group n s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Stream (List a))))
   (doc 'description "Group elements into chunks of size n")
   (if (stream-nil? s)
@@ -402,6 +447,7 @@
                    (lambda () (stream-group n (stream-drop n s))))))
 
 (define (stream-distinct s)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream a)))
   (doc 'description "Remove consecutive duplicates")
   (if (stream-nil? s)
@@ -409,6 +455,7 @@
       (stream-distinct-helper (stream-head s) (stream-tail s))))
 
 (define (stream-distinct-helper prev s)
+  (doc 'export #t)
   (doc 'type '(-> a (Stream a) (Stream a)))
   (doc 'description "Internal helper for stream-distinct")
   (if (stream-nil? s)
@@ -419,6 +466,7 @@
                (stream-cons prev (lambda () (stream-distinct-helper h (stream-tail s))))))))
 
 (define (stream-enumerate s)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream (Pair Int a))))
   (doc 'description "Pair each element with its 0-based index")
   (stream-zip naturals s))
@@ -427,11 +475,13 @@
 ;;; Explicit delay/force with memoization for lazy evaluation.
 
 (define (delay thunk)
+  (doc 'export #t)
   (doc 'type '(-> (-> a) (Delayed a)))
   (doc 'description "Create a delayed computation; memoized on first force")
   (list 'delayed thunk #f #f))
 
 (define (force delayed)
+  (doc 'export #t)
   (doc 'type '(-> (Delayed a) a))
   (doc 'description "Force evaluation of a delayed computation; caches result")
   (if (and (pair? delayed) (eq? (car delayed) 'delayed))
@@ -444,6 +494,7 @@
       (error 'force "not a delayed value")))
 
 (define (delayed? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a delayed computation")
   (and (pair? x) (eq? (car x) 'delayed)))
@@ -471,6 +522,7 @@
   (list 'functor stream-map))
 
 (define (functor-fmap functor)
+  (doc 'export #t)
   (doc 'type '(-> (FunctorDict f) (-> a b) (f a) (f b)))
   (doc 'description "Extract fmap from a Functor dictionary")
   (cadr functor))
@@ -496,6 +548,7 @@
 (define stream-pure stream-repeat)
 
 (define (stream-ap fs xs)
+  (doc 'export #t)
   (doc 'type '(-> (Stream (-> a b)) (Stream a) (Stream b)))
   (doc 'description "Apply a stream of functions pointwise to a stream of values (ZipList <*>)")
   (stream-zip-with (lambda (f x) (f x)) fs xs))
@@ -509,21 +562,25 @@
         stream-ap))        ; <*>
 
 (define (applicative-pure app)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (-> a (f a))))
   (doc 'description "Extract pure function from Applicative dictionary")
   (caddr app))
 
 (define (applicative-ap app)
+  (doc 'export #t)
   (doc 'type '(-> (ApplicativeDict f) (-> (f (-> a b)) (f a) (f b))))
   (doc 'description "Extract ap function from Applicative dictionary")
   (cadddr app))
 
 (define (stream-lift2 f xs ys)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b c) (Stream a) (Stream b) (Stream c)))
   (doc 'description "Lift a binary function to operate on two streams pointwise")
   (stream-ap (stream-map (lambda (x) (lambda (y) (f x y))) xs) ys))
 
 (define (stream-lift3 f xs ys zs)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b c d) (Stream a) (Stream b) (Stream c) (Stream d)))
   (doc 'description "Lift a ternary function to operate on three streams pointwise")
   (stream-ap
@@ -549,11 +606,13 @@
 (define stream-return stream-repeat)
 
 (define (stream-bind s f)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (-> a (Stream b)) (Stream b)))
   (doc 'description "Monadic bind via diagonal extraction; takes nth element from nth sub-stream")
   (stream-diagonal (stream-map f s)))
 
 (define (stream-diagonal ss)
+  (doc 'export #t)
   (doc 'type '(-> (Stream (Stream a)) (Stream a)))
   (doc 'description "Extract diagonal from stream of streams: 1st of 1st, 2nd of 2nd, etc.")
   (if (stream-nil? ss)
@@ -579,16 +638,19 @@
         stream-bind))       ; >>=
 
 (define (monad-return monad)
+  (doc 'export #t)
   (doc 'type '(-> (MonadDict m) (-> a (m a))))
   (doc 'description "Extract return function from Monad dictionary")
   (caddr monad))
 
 (define (monad-bind monad)
+  (doc 'export #t)
   (doc 'type '(-> (MonadDict m) (-> (m a) (-> a (m b)) (m b))))
   (doc 'description "Extract bind function from Monad dictionary")
   (cadddr monad))
 
 (define (stream-then s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream b) (Stream b)))
   (doc 'description "Sequence two streams, discarding first's values (monadic >>)")
   (stream-bind s1 (lambda (_) s2)))
@@ -611,6 +673,7 @@
 ;;; but rather "what do we observe when we examine it?"
 
 (define (coalgebra-step step seed)
+  (doc 'export #t)
   (doc 'type '(-> (-> s (Pair a s)) s (Stream a)))
   (doc 'description "Build a stream from a coalgebra; step returns (value . next-state) pairs")
   (let ([pair (step seed)])
@@ -622,11 +685,13 @@
 (define anamorphism stream-unfold)
 
 (define (coiterate f seed)
+  (doc 'export #t)
   (doc 'type '(-> (-> s s) s (Stream s)))
   (doc 'description "Coinductive iterate: produce stream of states by repeated application")
   (stream-cons seed (lambda () (coiterate f (f seed)))))
 
 (define (bisimulation-equal? n s1 s2)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Stream a) Boolean))
   (doc 'description "Bounded bisimulation equality; checks streams agree up to depth n")
   (cond
@@ -665,6 +730,7 @@
 ;;; to guarantee termination. These complement stream-fold.
 
 (define (stream-for-each/fuel f fuel s)
+  (doc 'export #t)
   (doc 'type '(-> (-> a Void) Nat (Stream a) Void))
   (doc 'description "Apply effectful operation to each element up to fuel limit")
   (when (and (> fuel 0) (not (stream-nil? s)))
@@ -672,6 +738,7 @@
         (stream-for-each/fuel f (- fuel 1) (stream-tail s))))
 
 (define (stream-length/fuel fuel s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) Nat))
   (doc 'description "Count stream elements up to fuel limit; returns fuel if stream is longer")
   (let loop ([n 0] [fuel fuel] [s s])
@@ -681,11 +748,13 @@
         [else (loop (+ n 1) (- fuel 1) (stream-tail s))])))
 
 (define (stream-reverse/fuel fuel s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Stream a)))
   (doc 'description "Reverse the first fuel elements of a stream")
   (list->stream (reverse (stream->list fuel s))))
 
 (define (stream-last/fuel fuel s)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Stream a) (Maybe a)))
   (doc 'description "Get the last element within fuel elements; returns nothing if empty")
   (let loop ([last nothing] [fuel fuel] [s s])
@@ -701,6 +770,7 @@
 ;;; style patterns for streams.
 
 (define (stream-guard condition)
+  (doc 'export #t)
   (doc 'type '(-> Boolean (Stream Unit)))
   (doc 'description "Filter guard for stream comprehensions; singleton if true, empty if false")
   (if condition
@@ -708,6 +778,7 @@
       stream-nil))
 
 (define (stream-cartesian xs ys)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (Stream b) (Stream (Pair a b))))
   (doc 'description "Fair Cartesian product via Cantor diagonal; every pair (i,j) eventually appears")
   ;; Convert to vectors for O(1) indexed access (memoizes as we go)
@@ -769,6 +840,7 @@
             (diagonal-stream 0))))
 
 (define (stream-append s1 thunk)
+  (doc 'export #t)
   (doc 'type '(-> (Stream a) (-> (Stream a)) (Stream a)))
   (doc 'description "Append a stream with a lazily-evaluated second stream")
   (if (stream-nil? s1)

@@ -16,6 +16,7 @@
 ;;; filter-map provided by prelude
 
 (define (get-numeric e)
+  (doc 'export #t)
   (doc 'type '(-> Expr (Maybe Number)))
   (doc 'description "Extract numeric value from expression, returns #f if not numeric")
   (if (num? e) (num-val e) #f))
@@ -23,6 +24,7 @@
 (doc 'section 'main-simplification)
 
 (define (simplify expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Simplify expression using algebraic rules, applying repeatedly until fixed point")
   (let ([simplified (simplify-once expr)])
@@ -31,6 +33,7 @@
            (simplify simplified))))
 
 (define (simplify-once expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Single pass of simplification")
   (cond
@@ -68,6 +71,7 @@
 (doc 'section 'sum-simplification)
 
 (define (simplify-sum terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Simplify sum by collecting numeric terms and like terms")
   (let* ([flat-terms (flatten-sums terms)]
@@ -85,6 +89,7 @@
          [else (make-sum-from-list (cons (num numeric-sum) collected))])))
 
 (define (flatten-sums terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Flatten nested sums: (+ a (+ b c)) → (a b c)")
   (append-map (lambda (e)
@@ -94,6 +99,7 @@
               terms))
 
 (define (collect-like-terms terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Collect like terms: x + x → 2*x")
   (let ([table (fold-left
@@ -116,6 +122,7 @@
               sorted-keys))))
 
 (define (extract-coefficient term)
+  (doc 'export #t)
   (doc 'type '(-> Expr (Values Number Expr)))
   (doc 'description "Extract numeric coefficient from term")
   (doc 'note "x → (1, x), 2*x → (2, x), -x → (-1, x)")
@@ -135,6 +142,7 @@
    [else (values 1 term)]))
 
 (define (make-sum-from-list terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Construct sum from list of terms")
   (cond
@@ -145,6 +153,7 @@
 (doc 'section 'product-simplification)
 
 (define (simplify-product factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Simplify product by collecting numeric factors and combining powers")
   (let* ([flat-factors (flatten-products factors)]
@@ -164,6 +173,7 @@
          [else (make-product-from-list (cons (num numeric-prod) collected))])))
 
 (define (flatten-products factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Flatten nested products")
   (append-map (lambda (e)
@@ -173,6 +183,7 @@
               factors))
 
 (define (collect-like-bases factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Collect terms with same base: x * x → x^2")
   (let ([table (fold-left
@@ -195,6 +206,7 @@
               sorted-keys))))
 
 (define (extract-base-exponent expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (Values Expr Expr)))
   (doc 'description "Extract base and exponent: x^2 → (x, 2), x → (x, 1)")
   (if (power? expr)
@@ -202,6 +214,7 @@
       (values expr (num 1))))
 
 (define (make-product-from-list factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Construct product from list of factors")
   (cond
@@ -212,6 +225,7 @@
 (doc 'section 'difference-and-negation)
 
 (define (simplify-diff left right)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Simplify difference expression")
   (cond
@@ -230,6 +244,7 @@
    [else (difference left right)]))
 
 (define (simplify-neg e)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Simplify negation expression")
   (cond
@@ -253,6 +268,7 @@
 (doc 'section 'quotient-simplification)
 
 (define (simplify-quot numer denom)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Simplify quotient expression")
   (cond
@@ -300,6 +316,7 @@
    [else (division numer denom)]))
 
 (define (cancel-common-factors numer-factors denom-factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Expr) (Maybe (Pair (List Expr) (List Expr)))))
   (doc 'description "Try to cancel common factors between numerator and denominator")
   (let loop ([numer numer-factors]
@@ -316,6 +333,7 @@
                     (loop (cdr numer) denom (cons (car numer) numer-acc)))))))
 
 (define (find-and-remove expr lst)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Expr) (Maybe (List Expr))))
   (doc 'description "Find expr in list and return list with it removed")
   (let loop ([rest lst] [acc '()])
@@ -328,6 +346,7 @@
 (doc 'section 'power-simplification)
 
 (define (simplify-pow base exp)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Simplify power expression")
   (cond
@@ -360,6 +379,7 @@
 (doc 'section 'function-application-simplification)
 
 (define (simplify-app fn arg)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Expr Expr))
   (doc 'description "Simplify function application with known identities")
   (cond
@@ -425,6 +445,7 @@
 (doc 'section 'product-expansion)
 
 (define (expand expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Fully expand products and powers")
   (doc 'note "(a + b) * (c + d) → a*c + a*d + b*c + b*d")
@@ -434,6 +455,7 @@
            (expand expanded))))
 
 (define (expand-once expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Single pass of expansion")
   (cond
@@ -474,6 +496,7 @@
    [else expr]))
 
 (define (expand-product factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Expand product by distributing over sums")
   (cond
@@ -498,6 +521,7 @@
           [else (product first rest-expanded)]))]))
 
 (define (expand-power-of-sum base n)
+  (doc 'export #t)
   (doc 'type '(-> Expr Integer Expr))
   (doc 'description "Expand (a+b+...)^n using repeated multiplication")
   (if (<= n 1)
@@ -510,6 +534,7 @@
 (doc 'section 'factoring)
 
 (define (factor expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Try to factor expression")
   (doc 'note "Supports: extract common factors, difference of squares, perfect square trinomials")
@@ -534,6 +559,7 @@
    [else expr]))
 
 (define (factor-sum terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (Maybe Expr)))
   (doc 'description "Try to factor sum by extracting common factors")
   (let ([common (find-common-factor terms)])
@@ -543,6 +569,7 @@
            #f)))
 
 (define (find-common-factor terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (Maybe Expr)))
   (doc 'description "Find factor common to all terms")
   (if (null? terms)
@@ -557,6 +584,7 @@
                 (car common-factors)))))
 
 (define (get-factors expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Expr)))
   (doc 'description "Get factors of expression")
   (cond
@@ -565,6 +593,7 @@
    [else (list expr)]))
 
 (define (divides? factor term)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Bool))
   (doc 'description "Check if factor divides term (loosely)")
   (cond
@@ -576,6 +605,7 @@
    [else #f]))
 
 (define (divide-out term factor)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Expr))
   (doc 'description "Divide factor out of term")
   (cond
@@ -592,6 +622,7 @@
 (doc 'section 'trigonometric-identities)
 
 (define (simplify-trig expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Apply trigonometric identities")
   (let ([simplified (simplify-trig-once expr)])
@@ -600,6 +631,7 @@
            (simplify-trig simplified))))
 
 (define (simplify-trig-once expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Single pass of trigonometric simplification")
   (cond
@@ -653,6 +685,7 @@
    [else expr]))
 
 (define (simplify-pythagorean-identity terms)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Apply Pythagorean identity: sin^2(x) + cos^2(x) = 1")
   (let loop ([remaining terms]
@@ -670,6 +703,7 @@
                     (loop (cdr remaining) (cons (car remaining) checked)))))))
 
 (define (find-sin-squared expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (Maybe Expr)))
   (doc 'description "Check if expression is sin^2(x), return x if so")
   (if (and (power? expr)
@@ -681,6 +715,7 @@
       #f))
 
 (define (find-matching-cos-squared sin-sq-term terms)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Expr) (Maybe Expr)))
   (doc 'description "Find cos^2(x) in terms matching sin^2(x)")
   (let ([arg (find-sin-squared sin-sq-term)])
@@ -696,6 +731,7 @@
            #f)))
 
 (define (simplify-double-angle-product factors)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Apply double angle identity: 2*sin(x)*cos(x) = sin(2x)")
   ;; Look for pattern: 2 * sin(x) * cos(x)
@@ -718,6 +754,7 @@
            (make-product-from-list factors))))
 
 (define (remove-first elem lst)
+  (doc 'export #t)
   (doc 'type '(-> α (List α) (List α)))
   (doc 'description "Remove first occurrence of element from list")
   (cond
@@ -728,6 +765,7 @@
 (doc 'section 'canonical-form)
 
 (define (to-canonical expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Convert to canonical form: sorted by complexity, numeric constants first")
   (cond
@@ -762,11 +800,13 @@
    [else expr]))
 
 (define (sort-by-complexity exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Expr)))
   (doc 'description "Sort terms/factors by complexity (simplest first)")
   (sort-by (lambda (a b) (< (expr-complexity a) (expr-complexity b))) exprs))
 
 (define (expr-complexity expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Number))
   (doc 'description "Measure complexity of expression")
   (cond
@@ -787,6 +827,7 @@
 (doc 'section 'full-pipeline)
 
 (define (full-simplify expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr))
   (doc 'description "Apply comprehensive simplification pipeline")
   (-> expr

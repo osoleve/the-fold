@@ -26,6 +26,7 @@ clear error messages, and integration with the Differentiable type class.")
 (doc 'section 'dimension-checked-gradient)
 
 (define (dim-gradient expected-dim values)
+  (doc 'export #t)
   (doc 'type '(-> Nat (List Number) DimGradient))
   (doc 'description "Package a gradient with its expected dimension")
   (let ([actual-dim (length values)])
@@ -37,22 +38,26 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; dim-gradient? : α → Boolean
 (define (dim-gradient? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'dim-gradient)))
 
 ;;; dim-gradient-dim : DimGradient → Nat
 (define (dim-gradient-dim g)
+  (doc 'export #t)
   (if (dim-gradient? g)
       (cadr g)
       0))
 
 ;;; dim-gradient-values : DimGradient → (List Number)
 (define (dim-gradient-values g)
+  (doc 'export #t)
   (if (dim-gradient? g)
       (caddr g)
       '()))
 
 ;;; dim-gradient-ref : DimGradient × Nat → (Result Number Error)
 (define (dim-gradient-ref g i)
+  (doc 'export #t)
   (if (not (dim-gradient? g))
       (list 'error 'not-a-gradient g)
       (let ([values (dim-gradient-values g)]
@@ -65,6 +70,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; dim-gradient-ok? : α → Boolean
 (define (dim-gradient-ok? x)
+  (doc 'export #t)
   (and (dim-gradient? x)
        (not (and (pair? x) (eq? (car x) 'error)))))
 
@@ -89,22 +95,27 @@ clear error messages, and integration with the Differentiable type class.")
 ;;;   - f-traced : (Traced ... -> Traced) (the traced function)
 ;;; make-gradient-spec : Nat × Nat × (Traced ... → Traced) → GradientSpec
 (define (make-gradient-spec input-dim output-dim f-traced)
+  (doc 'export #t)
   (list 'gradient-spec input-dim output-dim f-traced))
 
 ;;; gradient-spec? : α → Boolean
 (define (gradient-spec? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'gradient-spec)))
 
 ;;; gradient-spec-input-dim : GradientSpec → Nat
 (define (gradient-spec-input-dim spec)
+  (doc 'export #t)
   (cadr spec))
 
 ;;; gradient-spec-output-dim : GradientSpec → Nat
 (define (gradient-spec-output-dim spec)
+  (doc 'export #t)
   (caddr spec))
 
 ;;; gradient-spec-fn : GradientSpec → (Traced ... → Traced)
 (define (gradient-spec-fn spec)
+  (doc 'export #t)
   (cadddr spec))
 
 ;;; ====
@@ -115,6 +126,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; safe-gradient : GradientSpec × (List Number) → (Result DimGradient Error)
 (define (safe-gradient spec args)
+  (doc 'export #t)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-gradient-spec spec)
       (let ([expected-input-dim (gradient-spec-input-dim spec)]
@@ -139,6 +151,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; safe-gradient-at : GradientSpec × Number ... → (Result DimGradient Error)
 (define (safe-gradient-at spec . args)
+  (doc 'export #t)
   (safe-gradient spec args))
 
 ;;; ====
@@ -149,26 +162,32 @@ clear error messages, and integration with the Differentiable type class.")
 ;;; A Jacobian matrix with explicit dimensions.
 ;;; dim-jacobian : Nat × Nat × Matrix → DimJacobian
 (define (dim-jacobian rows cols matrix)
+  (doc 'export #t)
   (list 'dim-jacobian rows cols matrix))
 
 ;;; dim-jacobian? : α → Boolean
 (define (dim-jacobian? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'dim-jacobian)))
 
 ;;; dim-jacobian-rows : DimJacobian → Nat
 (define (dim-jacobian-rows j)
+  (doc 'export #t)
   (if (dim-jacobian? j) (cadr j) 0))
 
 ;;; dim-jacobian-cols : DimJacobian → Nat
 (define (dim-jacobian-cols j)
+  (doc 'export #t)
   (if (dim-jacobian? j) (caddr j) 0))
 
 ;;; dim-jacobian-matrix : DimJacobian → (Option Matrix)
 (define (dim-jacobian-matrix j)
+  (doc 'export #t)
   (if (dim-jacobian? j) (cadddr j) #f))
 
 ;;; safe-jacobian : GradientSpec × (List Number) → (Result DimJacobian Error)
 (define (safe-jacobian spec args)
+  (doc 'export #t)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-gradient-spec spec)
       (let ([expected-input-dim (gradient-spec-input-dim spec)]
@@ -199,22 +218,27 @@ clear error messages, and integration with the Differentiable type class.")
 ;;; A Hessian matrix (always square) with explicit dimension.
 ;;; dim-hessian : Nat × Matrix → DimHessian
 (define (dim-hessian n matrix)
+  (doc 'export #t)
   (list 'dim-hessian n matrix))
 
 ;;; dim-hessian? : α → Boolean
 (define (dim-hessian? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'dim-hessian)))
 
 ;;; dim-hessian-dim : DimHessian → Nat
 (define (dim-hessian-dim h)
+  (doc 'export #t)
   (if (dim-hessian? h) (cadr h) 0))
 
 ;;; dim-hessian-matrix : DimHessian → (Option Matrix)
 (define (dim-hessian-matrix h)
+  (doc 'export #t)
   (if (dim-hessian? h) (caddr h) #f))
 
 ;;; safe-hessian : GradientSpec × (List Number) → (Result DimHessian Error)
 (define (safe-hessian spec args)
+  (doc 'export #t)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-gradient-spec spec)
       (let ([expected-input-dim (gradient-spec-input-dim spec)]
@@ -251,10 +275,12 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; scalar-fn : Nat × (Traced ... → Traced) → GradientSpec
 (define (scalar-fn n f)
+  (doc 'export #t)
   (make-gradient-spec n 1 f))
 
 ;;; vector-fn : Nat × Nat × ((List Traced) → (List Traced)) → GradientSpec
 (define (vector-fn n m f)
+  (doc 'export #t)
   (make-gradient-spec n m f))
 
 ;;; ====
@@ -266,26 +292,32 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; t-gradient : Nat → Type
 (define (t-gradient n)
+  (doc 'export #t)
   `(Vec ,n Number))
 
 ;;; t-gradient-fn : Nat → Type
 (define (t-gradient-fn n)
+  (doc 'export #t)
   `(-> (Vec ,n Number) (Vec ,n Number)))
 
 ;;; t-jacobian : Nat × Nat → Type
 (define (t-jacobian m n)
+  (doc 'export #t)
   `(Matrix ,m ,n Number))
 
 ;;; t-jacobian-fn : Nat × Nat → Type
 (define (t-jacobian-fn m n)
+  (doc 'export #t)
   `(-> (Vec ,n Number) (Matrix ,m ,n Number)))
 
 ;;; t-hessian : Nat → Type
 (define (t-hessian n)
+  (doc 'export #t)
   `(Matrix ,n ,n Number))
 
 ;;; t-hessian-fn : Nat → Type
 (define (t-hessian-fn n)
+  (doc 'export #t)
   `(-> (Vec ,n Number) (Matrix ,n ,n Number)))
 
 ;;; ====
@@ -296,6 +328,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; infer-gradient-dim : ((List Traced) → Traced) × Nat → (Result Nat Error)
 (define (infer-gradient-dim f expected-input-dim)
+  (doc 'export #t)
   ;; Create test inputs
   (let* ([test-args (map (lambda (i) (+ i 1.0)) (iota expected-input-dim))]
          [test-gradient (gradient f test-args)])
@@ -305,6 +338,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; validate-gradient-spec : GradientSpec × (List Number) → Boolean
 (define (validate-gradient-spec spec test-args)
+  (doc 'export #t)
   (if (not (gradient-spec? spec))
       (list 'error 'invalid-spec)
       (let ([result (safe-gradient spec test-args)])
@@ -316,6 +350,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; format-gradient-error : Error → String
 (define (format-gradient-error err)
+  (doc 'export #t)
   (if (and (pair? err) (eq? (car err) 'error))
       (let ([kind (cadr err)])
            (case kind
@@ -377,6 +412,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; compose-gradient-fns : GradientSpec × GradientSpec → (Result GradientSpec Error)
 (define (compose-gradient-fns f-spec g-spec)
+  (doc 'export #t)
   (if (not (and (gradient-spec? f-spec) (gradient-spec? g-spec)))
       (list 'error 'invalid-specs)
       (let ([f-input (gradient-spec-input-dim f-spec)]
@@ -406,6 +442,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; dim-gradient-add : DimGradient × DimGradient → (Result DimGradient Error)
 (define (dim-gradient-add g1 g2)
+  (doc 'export #t)
   (if (not (and (dim-gradient? g1) (dim-gradient? g2)))
       (list 'error 'invalid-gradients)
       (let ([d1 (dim-gradient-dim g1)]
@@ -419,6 +456,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; dim-gradient-scale : Number × DimGradient → DimGradient
 (define (dim-gradient-scale c g)
+  (doc 'export #t)
   (if (not (dim-gradient? g))
       (list 'error 'invalid-gradient g)
       (dim-gradient (dim-gradient-dim g)
@@ -426,6 +464,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; dim-gradient-dot : DimGradient × DimGradient → (Result Number Error)
 (define (dim-gradient-dot g1 g2)
+  (doc 'export #t)
   (if (not (and (dim-gradient? g1) (dim-gradient? g2)))
       (list 'error 'invalid-gradients)
       (let ([d1 (dim-gradient-dim g1)]
@@ -438,6 +477,7 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; dim-gradient-norm : DimGradient → (Result Number Error)
 (define (dim-gradient-norm g)
+  (doc 'export #t)
   (if (not (dim-gradient? g))
       (list 'error 'invalid-gradient g)
       (let ([dot-result (dim-gradient-dot g g)])
@@ -451,12 +491,14 @@ clear error messages, and integration with the Differentiable type class.")
 
 ;;; matrix-rows : Matrix → Nat
 (define (matrix-rows m)
+  (doc 'export #t)
   (if (and (pair? m) (eq? (car m) 'matrix))
       (cadr m)
       0))
 
 ;;; matrix-cols : Matrix → Nat
 (define (matrix-cols m)
+  (doc 'export #t)
   (if (and (pair? m) (eq? (car m) 'matrix))
       (caddr m)
       0))

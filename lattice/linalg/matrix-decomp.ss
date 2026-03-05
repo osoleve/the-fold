@@ -48,6 +48,7 @@
 (doc 'section 'lu-decomposition)
 
 (define (matrix-lu a)
+  (doc 'export #t)
   (doc 'description "LU decomposition with partial pivoting. Returns (L U P) where A = PLU, or error if matrix is singular.")
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
@@ -115,6 +116,7 @@
                                              (find-pivot (+ i 1) max-row max-val)))))))))))
 
 (define (matrix-lu-solve lu-result b)
+  (doc 'export #t)
   (doc 'description "Solve Ax = b given LU decomposition with permutation. Algorithm: 1) Apply P to b, 2) Forward substitute Ly = Pb, 3) Back substitute Ux = y")
   (let* ([l (car lu-result)]
          [u (cadr lu-result)]
@@ -185,6 +187,7 @@
                                 (* proj (matrix-ref q row j))))))))
 
 (define (matrix-qr a)
+  (doc 'export #t)
   (doc 'description "QR decomposition using Modified Gram-Schmidt algorithm. Handles singular/rank-deficient matrices gracefully by finding orthogonal basis vectors when linear dependence is detected. This allows eigenvalue algorithms to converge to 0 eigenvalues for singular matrices like graph Laplacians.")
   (let* ([m (matrix-rows a)]
          [n (matrix-cols a)])
@@ -225,6 +228,7 @@
 (doc 'section 'cholesky-decomposition)
 
 (define (matrix-cholesky a)
+  (doc 'export #t)
   (doc 'description "Cholesky decomposition. Returns (list L) where A = L x L^T for positive-definite A.")
   (let ([n (matrix-rows a)])
        (if (not (= n (matrix-cols a)))
@@ -272,6 +276,7 @@
                                     s))))))))
 
 (define (matrix-det a)
+  (doc 'export #t)
   (doc 'description "Compute the determinant of a square matrix using LU decomposition. det(A) = det(L) × det(U) × sign(P) = 1 × (product of U diagonal) × sign(P). Complexity: O(n³) via LU decomposition.")
   (let ([result (matrix-lu a)])
        (if (and (pair? result) (eq? (car result) 'error))

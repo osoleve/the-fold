@@ -38,6 +38,7 @@
 (doc spectral-bipartition 'note "For disconnected graphs, assigns labels based on connected components (first component -> 0, rest -> 1).
   For connected graphs, uses sign of Fiedler vector components: non-negative -> 0, negative -> 1.")
 (define (spectral-bipartition adj)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [comp-labels (connected-components adj)]
          [num-comp (num-communities comp-labels)])
@@ -119,6 +120,7 @@
               (loop (cdr parts) best best-size))))))
 
 (define (spectral-communities adj k)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [comp-labels (connected-components adj)]
          [num-comp (num-communities comp-labels)])
@@ -163,6 +165,7 @@
 (doc spectral-modularity 'returns "Modularity score Q in [-0.5, 1], or error pair on failure")
 (doc spectral-modularity 'note "Combines spectral-communities with modularity from graph-community")
 (define (spectral-modularity adj k)
+  (doc 'export #t)
   (let ([labels (spectral-communities adj k)])
     (if (and (pair? labels) (eq? (car labels) 'error))
         labels
@@ -179,6 +182,7 @@
 (doc partition-conductance 'returns "List of conductance values, one per community (lower = better)")
 (doc partition-conductance 'note "Uses graph-laplacian's conductance function for each community's node set")
 (define (partition-conductance adj labels)
+  (doc 'export #t)
   (let ([partition (communities->partition labels)])
     (map (lambda (nodes) (conductance adj nodes)) partition)))
 
@@ -192,6 +196,7 @@
 (doc partition-normalized-cut 'param 'labels "Community label vector")
 (doc partition-normalized-cut 'returns "List of normalized cut values, one per community (lower = better)")
 (define (partition-normalized-cut adj labels)
+  (doc 'export #t)
   (let ([partition (communities->partition labels)])
     (map (lambda (nodes) (normalized-cut adj nodes)) partition)))
 
@@ -205,6 +210,7 @@
 (doc compare-partitions 'param 'k "Number of communities for spectral method")
 (doc compare-partitions 'returns "Association list with modularity and community counts for both methods, or error pair")
 (define (compare-partitions adj k)
+  (doc 'export #t)
   (let ([spectral-labels (spectral-communities adj k)])
     (if (and (pair? spectral-labels) (eq? (car spectral-labels) 'error))
         spectral-labels
@@ -232,6 +238,7 @@
 (doc spectral-quality 'param 'k "Number of communities")
 (doc spectral-quality 'returns "Association list with modularity, conductances, algebraic connectivity, and partition sizes")
 (define (spectral-quality adj k)
+  (doc 'export #t)
   (let ([labels (spectral-communities adj k)])
     (if (and (pair? labels) (eq? (car labels) 'error))
         labels

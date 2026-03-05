@@ -27,6 +27,7 @@
 ;;; traced-rollout-with-gravity-3d : TracedBody3D × TracedVec3 × Number × Nat → TracedBody3D
 ;;; Simple rollout with constant gravity.
 (define (traced-rollout-with-gravity-3d initial-body gravity dt n)
+  (doc 'export #t)
   (traced-rollout-3d initial-body
                      (lambda (body)
                              (traced-gravity-step-3d body gravity dt))
@@ -36,6 +37,7 @@
 ;;; Rollout with general force field.
 ;;; force-fn returns (values linear-accel angular-accel) for body state.
 (define (traced-rollout-with-force-3d initial-body force-fn dt n)
+  (doc 'export #t)
   (traced-rollout-3d initial-body
                      (lambda (body)
                              (call-with-values
@@ -96,6 +98,7 @@
 ;;; Compute gradient of loss w.r.t. initial state using checkpointing.
 ;;; Returns gradients for (pos, vel, orientation, angular-vel).
 (define (checkpointed-gradient-3d initial-body step-fn loss-fn num-steps)
+  (doc 'export #t)
   (let* ([ckpt-freq (checkpoint-interval-3d num-steps)]
          ;; First, do a forward pass to store checkpoints
          [checkpoints (rollout-checkpoints-3d initial-body step-fn num-steps ckpt-freq)]
@@ -158,12 +161,14 @@
 ;;; target-position-loss-3d : Vec3 → (RigidBody3D → Number)
 ;;; Loss for reaching a target position.
 (define (target-position-loss-3d target)
+  (doc 'export #t)
   (lambda (body)
           (vec3-distance-sq (rigid-body-3d-pos body) target)))
 
 ;;; target-orientation-loss-3d : Quat → (RigidBody3D → Number)
 ;;; Loss for reaching a target orientation.
 (define (target-orientation-loss-3d target)
+  (doc 'export #t)
   (lambda (body)
           ;; Angular distance: 1 - |q1 · q2|^2
           (let* ([q (rigid-body-3d-orientation body)]
@@ -186,6 +191,7 @@
 ;;; trajectory-loss-3d : (List Vec3) → ((List RigidBody3D) → Number)
 ;;; Loss for following a trajectory of positions.
 (define (trajectory-loss-3d target-positions)
+  (doc 'export #t)
   (lambda (trajectory)
           (let loop ([bodies trajectory]
                      [targets target-positions]
@@ -200,6 +206,7 @@
 ;;; energy-minimization-loss-3d : RigidBody3D → Number
 ;;; Loss for minimizing kinetic energy.
 (define (energy-minimization-loss-3d body)
+  (doc 'export #t)
   (let* ([mass (rigid-body-3d-mass body)]
          [vel (rigid-body-3d-vel body)]
          [omega (rigid-body-3d-angular-vel body)]
@@ -219,6 +226,7 @@
 ;;; Loss function for 3D projectile hitting target.
 ;;; Takes initial velocity as input (for optimization).
 (define (projectile-hit-loss-3d start-pos target gravity dt num-steps)
+  (doc 'export #t)
   (lambda (initial-vel)
           (with-fresh-ad-scope
            (lambda ()
@@ -242,6 +250,7 @@
 ;;; traced-point-step-3d : TracedVec3 × TracedVec3 × TracedVec3 × Number → (TracedVec3 × TracedVec3)
 ;;; Single step for point mass (position + velocity).
 (define (traced-point-step-3d pos vel gravity dt)
+  (doc 'export #t)
   (let* ([new-vel (traced-vec3-add vel (traced-vec3-scale gravity dt))]
          [new-pos (traced-vec3-add pos (traced-vec3-scale new-vel dt))])
         (values new-pos new-vel)))
@@ -262,6 +271,7 @@
 ;;; traced-collision-rollout-3d : TracedBody3D × Number × SoftMaterial3D × Number × Nat → TracedBody3D
 ;;; Rollout with ground collision.
 (define (traced-collision-rollout-3d initial-body radius material ground-y n)
+  (doc 'export #t)
   (let ([gravity (lift-vec3-const (vec3 0 -9.8 0))]
         [dt (/ 1 60)])
        (traced-rollout-3d
@@ -277,6 +287,7 @@
 ;;; traced-constraint-rollout-3d : (Vector TracedBody3D) × (List Constraint3D) × Vec3 × Number × Nat × Nat → (Vector TracedBody3D)
 ;;; Rollout multiple bodies with constraints.
 (define (traced-constraint-rollout-3d initial-bodies constraints gravity dt iterations n)
+  (doc 'export #t)
   (let loop ([bodies initial-bodies] [i 0])
        (if (>= i n)
            bodies
@@ -308,6 +319,7 @@
 ;;; traced-pendulum-rollout-3d : TracedBody3D × Constraint3D × Vec3 × Number × Nat × Nat → TracedBody3D
 ;;; Roll out single pendulum system.
 (define (traced-pendulum-rollout-3d bob constraint gravity dt iterations n)
+  (doc 'export #t)
   (let ([bodies (vector bob)]
         [constraints (list constraint)])
        (let ([final-bodies (traced-constraint-rollout-3d bodies constraints gravity dt iterations n)])
@@ -316,6 +328,7 @@
 ;;; traced-chain-rollout-3d : (Vector TracedBody3D) × (List Constraint3D) × Vec3 × Number × Nat × Nat → (Vector TracedBody3D)
 ;;; Roll out chain/rope system.
 (define (traced-chain-rollout-3d bodies constraints gravity dt iterations n)
+  (doc 'export #t)
   (traced-constraint-rollout-3d bodies constraints gravity dt iterations n))
 
 ;;; ====
@@ -325,6 +338,7 @@
 ;;; pendulum-gradient-3d : TracedBody3D × Constraint3D × (RigidBody3D → Number) × Number × Nat × Nat → (Vec3 × Vec3)
 ;;; Compute gradient of loss w.r.t. initial position and velocity.
 (define (pendulum-gradient-3d bob constraint loss-fn dt iterations num-steps)
+  (doc 'export #t)
   (let* ([mass (traced-body-3d-mass bob)]
          [inertia (traced-body-3d-inertia bob)]
          [gravity (vec3 0 -9.8 0)])

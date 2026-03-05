@@ -46,34 +46,41 @@ This is essential for Free ⊣ Forgetful where:
 ;;;   unit: η : Id_C ⟹ R∘L (indexed by C objects)
 ;;;   counit: ε : L∘R ⟹ Id_D (indexed by D objects)
 (define (make-adjunction-inter name left right unit counit)
+  (doc 'export #t)
   (doc 'type '(-> Symbol FunctorGeneral FunctorGeneral
                   NatIndexed NatIndexed
                   AdjunctionInter))
   (list 'adjunction-inter name left right unit counit))
 
 (define (adjunction-inter? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'adjunction-inter)
        (= (length x) 6)))
 
 (define (adjunction-inter-name adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Symbol))
   (if (adjunction-inter? adj) (cadr adj) 'unknown))
 
 (define (adjunction-inter-left adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter FunctorGeneral))
   (if (adjunction-inter? adj) (caddr adj) #f))
 
 (define (adjunction-inter-right adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter FunctorGeneral))
   (if (adjunction-inter? adj) (cadddr adj) #f))
 
 (define (adjunction-inter-unit adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter NatIndexed))
   (if (adjunction-inter? adj) (car (cddddr adj)) #f))
 
 (define (adjunction-inter-counit adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter NatIndexed))
   (if (adjunction-inter? adj) (cadr (cddddr adj)) #f))
 
@@ -95,6 +102,7 @@ structure using a concrete algebra.")
 ;;; counit-at : AdjunctionInter × Obj_D → (L(R(A)) → A)
 ;;; Get the counit component at a specific object.
 (define (counit-at adj obj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj (-> Value Value)))
   (doc 'description "Get counit component ε_A at object A.
 Returns a function from L(R(A)) to A.")
@@ -103,6 +111,7 @@ Returns a function from L(R(A)) to A.")
 ;;; apply-counit : AdjunctionInter × Obj_D × Value → Value
 ;;; Apply the counit at object A to a value.
 (define (apply-counit adj obj val)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Value Value))
   (doc 'description "Apply ε_A to a value in L(R(A)).")
   (nat-indexed-apply (adjunction-inter-counit adj) obj val))
@@ -110,6 +119,7 @@ Returns a function from L(R(A)) to A.")
 ;;; unit-at : AdjunctionInter × Obj_C → (A → R(L(A)))
 ;;; Get the unit component at a specific object.
 (define (unit-at adj obj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj (-> Value Value)))
   (doc 'description "Get unit component η_A at object A.
 Returns a function from A to R(L(A)).")
@@ -118,6 +128,7 @@ Returns a function from A to R(L(A)).")
 ;;; apply-unit : AdjunctionInter × Obj_C × Value → Value
 ;;; Apply the unit at object A to a value.
 (define (apply-unit adj obj val)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Value Value))
   (doc 'description "Apply η_A to a value in A.")
   (nat-indexed-apply (adjunction-inter-unit adj) obj val))
@@ -150,6 +161,7 @@ In components at B:
 ;;; verify-triangle-left-inter : AdjunctionInter × Obj_C × Value [× (a → a → Bool)] → Boolean
 ;;; Verify left triangle: ε_{L(A)} ∘ L(η_A) = id_{L(A)}
 (define (verify-triangle-left-inter adj A test-value . opts)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Value [(-> a a Boolean)] Boolean))
   (doc 'description "Verify left triangle identity at object A.
 Tests that ε_{L(A)}(L(η_A)(x)) = x for test value x : L(A).
@@ -173,6 +185,7 @@ Optional equality predicate for opaque carriers.")
 ;;; verify-triangle-right-inter : AdjunctionInter × Obj_D × Value [× (a → a → Bool)] → Boolean
 ;;; Verify right triangle: R(ε_B) ∘ η_{R(B)} = id_{R(B)}
 (define (verify-triangle-right-inter adj B test-value . opts)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Value [(-> a a Boolean)] Boolean))
   (doc 'description "Verify right triangle identity at object B.
 Tests that R(ε_B)(η_{R(B)}(y)) = y for test value y : R(B).
@@ -196,6 +209,7 @@ Optional equality predicate for opaque carriers.")
 ;;; verify-adjunction-inter : AdjunctionInter × Obj_C × Obj_D × Value × Value [× (a → a → Bool)] → Boolean
 ;;; Verify both triangle identities.
 (define (verify-adjunction-inter adj A B val-left val-right . opts)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Obj Value Value [(-> a a Boolean)] Boolean))
   (doc 'description "Verify both triangle identities.
 Optional equality predicate for opaque carriers.")
@@ -223,6 +237,7 @@ These are mutually inverse.")
 ;;; Transpose a morphism from D to C.
 ;;; f : L(A) → B  ↦  R(f) ∘ η_A : A → R(B)
 (define (transpose-left-inter adj A B f)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Obj (-> LA B) (-> A RB)))
   (doc 'description "Transpose f : L(A) → B to R(f) ∘ η_A : A → R(B).")
   (let* ([R (adjunction-inter-right adj)]
@@ -238,6 +253,7 @@ These are mutually inverse.")
 ;;; Transpose a morphism from C to D.
 ;;; g : A → R(B)  ↦  ε_B ∘ L(g) : L(A) → B
 (define (transpose-right-inter adj A B g)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter Obj Obj (-> A RB) (-> LA B)))
   (doc 'description "Transpose g : A → R(B) to ε_B ∘ L(g) : L(A) → B.")
   (let* ([L (adjunction-inter-left adj)]
@@ -273,6 +289,7 @@ Counit: ε' = ε₂ ∘ (F₂ ▷ ε₁ ◁ G₂)
 ;;; adj2: F₂ ⊣ G₂ : D ⇆ E
 ;;; Result: F₂∘F₁ ⊣ G₁∘G₂ : C ⇆ E
 (define (adjunction-compose-inter adj2 adj1)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter AdjunctionInter AdjunctionInter))
   (doc 'description "Compose adjunctions F₂∘F₁ ⊣ G₁∘G₂.
 Note: right adjoints compose in reverse order.")
@@ -324,6 +341,7 @@ and inter-category adjunctions (with indexed transforms).")
 ;;; Lift a standard adjunction to an inter-category adjunction.
 ;;; The indexed components ignore their object index.
 (define (adjunction->adjunction-inter adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction AdjunctionInter))
   (doc 'description "Convert standard adjunction to inter-category.
 Unit/counit get trivial indexing (ignore object index).")
@@ -354,6 +372,7 @@ Unit/counit get trivial indexing (ignore object index).")
 
 ;;; adjunction-inter->string : AdjunctionInter → String
 (define (adjunction-inter->string adj)
+  (doc 'export #t)
   (doc 'type '(-> AdjunctionInter String))
   (if (adjunction-inter? adj)
       (format "~a : ~a ⊣ ~a (indexed)"

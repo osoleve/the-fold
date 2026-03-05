@@ -22,6 +22,7 @@
 
 ;;; matrix? : Any → Boolean
 (define (matrix? m)
+  (doc 'export #t)
   (and (pair? m)
        (eq? (car m) 'matrix)
        (= (length m) 4)
@@ -31,18 +32,22 @@
 
 ;;; matrix-rows : Matrix → Nat
 (define (matrix-rows m)
+  (doc 'export #t)
   (cadr m))
 
 ;;; matrix-cols : Matrix → Nat
 (define (matrix-cols m)
+  (doc 'export #t)
   (caddr m))
 
 ;;; matrix-data : Matrix → Vec
 (define (matrix-data m)
+  (doc 'export #t)
   (cadddr m))
 
 ;;; matrix-shape : Matrix → (Nat × Nat)
 (define (matrix-shape m)
+  (doc 'export #t)
   (cons (matrix-rows m) (matrix-cols m)))
 
 ;;; ====
@@ -52,12 +57,14 @@
 ;;; make-matrix : Nat × Nat × a → Matrix a
 ;;; Create an m×n matrix with all elements set to init.
 (define (make-matrix rows cols init)
+  (doc 'export #t)
   (list 'matrix rows cols (make-vector (* rows cols) init)))
 
 ;;; matrix-from-lists : (List (List a)) → Matrix a | Error
 ;;; Create matrix from list of row lists.
 ;;; All rows must have the same length (rectangular input).
 (define (matrix-from-lists rows)
+  (doc 'export #t)
   (if (null? rows)
       (list 'matrix 0 0 (vector))
       (let* ([m (length rows)]
@@ -86,6 +93,7 @@
 ;;; matrix-from-vec : Nat × Nat × Vec a → Matrix a
 ;;; Create matrix from flat vector (row-major order).
 (define (matrix-from-vec rows cols data)
+  (doc 'export #t)
   (if (= (vector-length data) (* rows cols))
       (list 'matrix rows cols (vec-copy data))
       `(error dimension-mismatch ,(vector-length data) ,(* rows cols))))
@@ -97,6 +105,7 @@
 ;;; matrix-ref : Matrix a × Nat × Nat → a | Error
 ;;; Get element at position (i, j).
 (define (matrix-ref m i j)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [data (matrix-data m)])
@@ -107,6 +116,7 @@
 ;;; matrix-row : Matrix a × Nat → Vec a | Error
 ;;; Extract row i as a vector.
 (define (matrix-row m i)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [data (matrix-data m)])
@@ -118,6 +128,7 @@
 ;;; matrix-col : Matrix a × Nat → Vec a | Error
 ;;; Extract column j as a vector.
 (define (matrix-col m j)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [data (matrix-data m)])
@@ -128,6 +139,7 @@
 ;;; matrix-diagonal : Matrix a → Vec a
 ;;; Extract main diagonal as a vector.
 (define (matrix-diagonal m)
+  (doc 'export #t)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [n (min rows cols)]
@@ -142,6 +154,7 @@
 ;;; Transpose a matrix (swap rows and columns).
 (doc matrix-transpose 'fuel-cost '(quadratic n))
 (define (matrix-transpose m)
+  (doc 'export #t)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [data (matrix-data m)]
@@ -158,6 +171,7 @@
 ;;; Apply function to each element.
 (doc matrix-map 'fuel-cost '(quadratic n))
 (define (matrix-map f m)
+  (doc 'export #t)
   (let* ([rows (matrix-rows m)]
          [cols (matrix-cols m)]
          [data (matrix-data m)]
@@ -168,6 +182,7 @@
 ;;; matrix-map2 : (a × b → c) × Matrix a × Matrix b → Matrix c | Error
 ;;; Apply function to corresponding elements.
 (define (matrix-map2 f m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
        (if (not (and (= r1 r2) (= c1 c2)))
@@ -183,6 +198,7 @@
 ;;; matrix-fold : (b × a → b) × b × Matrix a → b
 ;;; Fold over all elements (row-major order).
 (define (matrix-fold f init m)
+  (doc 'export #t)
   (vec-fold f init (matrix-data m)))
 
 ;;; ====
@@ -193,26 +209,31 @@
 ;;; Element-wise addition.
 (doc matrix-add 'fuel-cost '(quadratic n))
 (define (matrix-add m1 m2)
+  (doc 'export #t)
   (matrix-map2 + m1 m2))
 
 ;;; matrix-sub : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise subtraction.
 (define (matrix-sub m1 m2)
+  (doc 'export #t)
   (matrix-map2 - m1 m2))
 
 ;;; matrix-hadamard : Matrix Num × Matrix Num → Matrix Num | Error
 ;;; Element-wise multiplication (Hadamard product).
 (define (matrix-hadamard m1 m2)
+  (doc 'export #t)
   (matrix-map2 * m1 m2))
 
 ;;; matrix-scale : Num × Matrix Num → Matrix Num
 ;;; Scalar multiplication.
 (define (matrix-scale k m)
+  (doc 'export #t)
   (matrix-map (lambda (x) (* k x)) m))
 
 ;;; matrix-negate : Matrix Num → Matrix Num
 ;;; Negate all elements.
 (define (matrix-negate m)
+  (doc 'export #t)
   (matrix-map - m))
 
 ;;; ====
@@ -225,6 +246,7 @@
 ;;; Inner j loop now accesses M2 and C sequentially (row-major)
 (doc matrix-mul 'fuel-cost '(cubic n))
 (define (matrix-mul m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
        (if (not (= c1 r2))
@@ -252,6 +274,7 @@
 ;;; matrix-vec-mul : Matrix Num × Vec Num → Vec Num | Error
 ;;; Matrix-vector multiplication: A(m×n) * v(n) = result(m)
 (define (matrix-vec-mul m v)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [n (vector-length v)])
@@ -270,6 +293,7 @@
 ;;; vec-matrix-mul : Vec Num × Matrix Num → Vec Num | Error
 ;;; Vector-matrix multiplication: v(m) * A(m×n) = result(n)
 (define (vec-matrix-mul v m)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [n (vector-length v)])
@@ -292,6 +316,7 @@
 ;;; matrix-equal? : Matrix a × Matrix a → Boolean
 ;;; Exact equality.
 (define (matrix-equal? m1 m2)
+  (doc 'export #t)
   (and (= (matrix-rows m1) (matrix-rows m2))
        (= (matrix-cols m1) (matrix-cols m2))
        (vec-equal? (matrix-data m1) (matrix-data m2))))
@@ -299,6 +324,7 @@
 ;;; matrix-approx-equal? : Matrix Num × Matrix Num × [Num] → Boolean
 ;;; Approximate equality within tolerance.
 (define (matrix-approx-equal? m1 m2 . epsilon-arg)
+  (doc 'export #t)
   (let ([epsilon (if (null? epsilon-arg) 1e-10 (car epsilon-arg))])
        (and (= (matrix-rows m1) (matrix-rows m2))
             (= (matrix-cols m1) (matrix-cols m2))
@@ -310,11 +336,13 @@
 
 ;;; matrix-square? : Matrix → Boolean
 (define (matrix-square? m)
+  (doc 'export #t)
   (= (matrix-rows m) (matrix-cols m)))
 
 ;;; matrix-symmetric? : Matrix [Num] → Boolean
 ;;; Check if matrix equals its transpose (with tolerance).
 (define (matrix-symmetric? m . tol-arg)
+  (doc 'export #t)
   (let ([tol (if (null? tol-arg) 1e-10 (car tol-arg))])
        (and (matrix-square? m)
             (matrix-approx-equal? m (matrix-transpose m) tol))))
@@ -322,11 +350,13 @@
 ;;; matrix-trace : Matrix Num → Num
 ;;; Sum of diagonal elements.
 (define (matrix-trace m)
+  (doc 'export #t)
   (vec-sum (matrix-diagonal m)))
 
 ;;; frobenius-norm : Matrix Num → Num
 ;;; Frobenius norm (sqrt of sum of squares).
 (define (frobenius-norm m)
+  (doc 'export #t)
   (sqrt (vec-fold (lambda (acc x) (+ acc (* x x))) 0 (matrix-data m))))
 
 ;;; ====
@@ -336,16 +366,19 @@
 ;;; zeros : Nat × Nat → Matrix Num
 ;;; Matrix of all zeros.
 (define (zeros rows cols)
+  (doc 'export #t)
   (make-matrix rows cols 0))
 
 ;;; ones : Nat × Nat → Matrix Num
 ;;; Matrix of all ones.
 (define (ones rows cols)
+  (doc 'export #t)
   (make-matrix rows cols 1))
 
 ;;; matrix-identity : Nat → Matrix Num
 ;;; n×n identity matrix.
 (define (matrix-identity n)
+  (doc 'export #t)
   (let ([data (make-vector (* n n) 0)])
        (do ([i 0 (+ i 1)])
            ((= i n) (list 'matrix n n data))
@@ -354,6 +387,7 @@
 ;;; diagonal : Vec Num → Matrix Num
 ;;; Create diagonal matrix from vector.
 (define (diagonal v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [data (make-vector (* n n) 0)])
         (do ([i 0 (+ i 1)])
@@ -367,6 +401,7 @@
 ;;; matrix-submatrix : Matrix × Nat × Nat × Nat × Nat → Matrix | Error
 ;;; Extract submatrix from (r1,c1) to (r2,c2) exclusive.
 (define (matrix-submatrix m r1 c1 r2 c2)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [data (matrix-data m)])
@@ -392,6 +427,7 @@
 ;;; matrix-hstack : Matrix × Matrix → Matrix | Error
 ;;; Horizontal concatenation (side by side).
 (define (matrix-hstack m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
        (if (not (= r1 r2))
@@ -416,6 +452,7 @@
 ;;; matrix-vstack : Matrix × Matrix → Matrix | Error
 ;;; Vertical concatenation (one on top of another).
 (define (matrix-vstack m1 m2)
+  (doc 'export #t)
   (let ([r1 (matrix-rows m1)] [c1 (matrix-cols m1)]
         [r2 (matrix-rows m2)] [c2 (matrix-cols m2)])
        (if (not (= c1 c2))
@@ -440,6 +477,7 @@
 ;;; matrix->lists : Matrix → (List (List a))
 ;;; Convert matrix to list of row lists.
 (define (matrix->lists m)
+  (doc 'export #t)
   (let ([rows (matrix-rows m)]
         [cols (matrix-cols m)]
         [data (matrix-data m)])
@@ -453,6 +491,7 @@
 ;;; matrix-copy : Matrix → Matrix
 ;;; Create a copy of a matrix.
 (define (matrix-copy m)
+  (doc 'export #t)
   (list 'matrix
         (matrix-rows m)
         (matrix-cols m)

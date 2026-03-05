@@ -18,22 +18,26 @@
           valuations)) ; vector of valuation functions (density)
 
 (define (make-cake n)
+  (doc 'export #t)
   (doc 'type '(-> Nat Cake))
   (doc 'description "Create a cake to be divided among n players. Initially no valuations assigned")
   (make-cake% n (make-vector n #f)))
 
 ;;; cake? : Any → Boolean
 (define (cake? x)
+  (doc 'export #t)
   (cake%? x))
 
 ;;; cake-players : Cake → Nat
 (define (cake-players c)
+  (doc 'export #t)
   (cake%-n c))
 
 ;;; cake-set-valuation! : Cake × Nat × (Real → Real) → Void
 ;;; Set player i's valuation density function.
 ;;; Density f(x) ≥ 0 represents value per unit at point x.
 (define (cake-set-valuation! c i density-fn)
+  (doc 'export #t)
   (vector-set! (cake%-valuations c) i density-fn))
 
 ;;; cake-valuation : Cake × Nat × Real × Real → Real
@@ -41,6 +45,7 @@
 ;;; Uses trapezoidal rule with 100 steps for integration.
 ;;; Handles edge cases: if a >= b, returns 0; clamps to [0, 1].
 (define (cake-valuation c i a b)
+  (doc 'export #t)
   (let* ([a (max 0 (min 1 a))]  ; clamp to [0, 1]
          [b (max 0 (min 1 b))])
     (if (>= a b)
@@ -53,6 +58,7 @@
 ;;; integrate-density : (Real → Real) × Real × Real × Nat → Real
 ;;; Trapezoidal integration of density from a to b with n steps.
 (define (integrate-density f a b n)
+  (doc 'export #t)
   (let* ([h (/ (- b a) n)]
          [sum (+ (/ (f a) 2) (/ (f b) 2))])
     (let loop ([i 1] [sum sum])
@@ -63,6 +69,7 @@
 ;;; cake-total-value : Cake × Nat → Real
 ;;; Player i's value for entire cake [0, 1].
 (define (cake-total-value c i)
+  (doc 'export #t)
   (cake-valuation c i 0 1))
 
 ;;; ============================================================================
@@ -75,6 +82,7 @@
 ;;; make-piece : (List (Pair Real Real)) → Piece
 ;;; Create a piece from a list of intervals.
 (define (make-piece intervals)
+  (doc 'export #t)
   intervals)
 
 ;;; piece-empty : Piece
@@ -83,11 +91,13 @@
 ;;; piece-singleton : Real × Real → Piece
 ;;; Single interval piece.
 (define (piece-singleton a b)
+  (doc 'export #t)
   (list (cons a b)))
 
 ;;; piece-value : Cake × Nat × Piece → Real
 ;;; Player i's value for a piece.
 (define (piece-value c i piece)
+  (doc 'export #t)
   (fold-left + 0
              (map (lambda (interval)
                     (cake-valuation c i (car interval) (cdr interval)))
@@ -96,6 +106,7 @@
 ;;; piece-length : Piece → Real
 ;;; Total length of all intervals in piece.
 (define (piece-length piece)
+  (doc 'export #t)
   (fold-left + 0
              (map (lambda (interval)
                     (- (cdr interval) (car interval)))
@@ -105,6 +116,7 @@
 ;;; Merge two pieces (union of intervals).
 ;;; Does not check for overlap - caller ensures disjointness.
 (define (piece-merge p1 p2)
+  (doc 'export #t)
   (append p1 p2))
 
 ;;; ============================================================================
@@ -116,20 +128,24 @@
 ;;; make-division : Nat → Division
 ;;; Create empty division for n players.
 (define (make-division n)
+  (doc 'export #t)
   (make-vector n piece-empty))
 
 ;;; division-assign! : Division × Nat × Piece → Void
 ;;; Assign piece to player i.
 (define (division-assign! div i piece)
+  (doc 'export #t)
   (vector-set! div i piece))
 
 ;;; division-piece : Division × Nat → Piece
 ;;; Get player i's piece.
 (define (division-piece div i)
+  (doc 'export #t)
   (vector-ref div i))
 
 ;;; division->list : Division → (List Piece)
 (define (division->list div)
+  (doc 'export #t)
   (vector->list div))
 
 ;;; ============================================================================
@@ -139,6 +155,7 @@
 ;;; proportional? : Cake × Division → Boolean
 ;;; Is division proportional? Each player gets >= 1/n of their total value.
 (define (proportional? c div)
+  (doc 'export #t)
   (let* ([n (cake-players c)]
          [threshold (/ 1 n)])
     (let loop ([i 0])
@@ -153,6 +170,7 @@
 ;;; envy-free? : Cake × Division → Boolean
 ;;; Is division envy-free? No player prefers another's piece.
 (define (envy-free? c div)
+  (doc 'export #t)
   (let ([n (cake-players c)])
     (let outer ([i 0])
       (if (>= i n)
@@ -171,6 +189,7 @@
 ;;; Is division equitable (within tolerance)?
 ;;; All players receive approximately same share of their value.
 (define (equitable? c div tolerance)
+  (doc 'export #t)
   (let* ([n (cake-players c)]
          [shares (let loop ([i 0] [acc '()])
                    (if (>= i n)
@@ -190,6 +209,7 @@
 ;;; Note: This is expensive to check - we use a simple heuristic.
 ;;; For cake cutting, a division is Pareto optimal iff no interval is wasted.
 (define (pareto-optimal? c div)
+  (doc 'export #t)
   ;; Simple check: all of [0,1] is allocated
   (let* ([intervals (flatten (division->list div))]
          [total-length (fold-left + 0 (map (lambda (i) (- (cdr i) (car i))) intervals))])
@@ -201,6 +221,7 @@
 ;;; Find point x where player i values [0,x] at target value.
 ;;; Uses binary search.
 (define (find-cut-point c i target fuel)
+  (doc 'export #t)
   (doc 'type '(-> Cake Nat Real Real))
   (let* ([total (cake-total-value c i)])
     (if (<= target 0)
@@ -211,6 +232,7 @@
 
 ;;; binary-search-cut : Cake × Nat × Real × Real × Real × Nat → Real
 (define (binary-search-cut c i target lo hi fuel)
+  (doc 'export #t)
   (if (<= fuel 0)
       (/ (+ lo hi) 2)
       (let* ([mid (/ (+ lo hi) 2)]
@@ -224,6 +246,7 @@
 ;;; Perform cut-and-choose protocol.
 ;;; fuel bounds binary search iterations.
 (define (cut-and-choose c fuel)
+  (doc 'export #t)
   (if (not (= 2 (cake-players c)))
       (error 'cut-and-choose "requires exactly 2 players")
       (let* ([cutter 0]
@@ -255,6 +278,7 @@
 ;;; Perform Dubins-Spanier moving knife protocol.
 ;;; fuel bounds search iterations.
 (define (dubins-spanier c fuel)
+  (doc 'export #t)
   (doc 'type '(-> Cake Nat Division))
   (let* ([n (cake-players c)]
          [div (make-division n)])
@@ -264,6 +288,7 @@
 ;;; dubins-spanier-recurse : Cake × Division × (List Nat) × Real × Real × Nat × Nat → Void
 ;;; Recursively divide [start, end] among remaining players.
 (define (dubins-spanier-recurse c div remaining start end n fuel)
+  (doc 'export #t)
   (cond
     [(<= fuel 0) (void)]
     [(null? remaining) (void)]
@@ -296,6 +321,7 @@
 ;;; find-cut-point-from : Cake × Nat × Real × Real × Nat → Real
 ;;; Find point x >= start where player i values [start, x] at target.
 (define (find-cut-point-from c i start target fuel)
+  (doc 'export #t)
   (if (<= target 0)
       start
       (let ([total (cake-valuation c i start 1)])
@@ -305,6 +331,7 @@
 
 ;;; binary-search-cut-from : Cake × Nat × Real × Real × Real × Real × Nat → Real
 (define (binary-search-cut-from c i start target lo hi fuel)
+  (doc 'export #t)
   (if (<= fuel 0)
       (/ (+ lo hi) 2)
       (let* ([mid (/ (+ lo hi) 2)]
@@ -316,6 +343,7 @@
 
 ;;; list-index : (a → Boolean) × (List a) → Nat | #f
 (define (list-index pred lst)
+  (doc 'export #t)
   (let loop ([lst lst] [i 0])
     (cond
       [(null? lst) #f]
@@ -324,6 +352,7 @@
 
 ;;; remove : a × (List a) → (List a)
 (define (remove x lst)
+  (doc 'export #t)
   (filter (lambda (y) (not (equal? x y))) lst))
 
 (doc 'section 'selfridge-conway)
@@ -333,6 +362,7 @@
 ;;; 3-player division using simplified Selfridge-Conway protocol.
 ;;; Guarantees proportionality; envy-freeness is approximate.
 (define (selfridge-conway c fuel)
+  (doc 'export #t)
   (doc 'type '(-> Cake Nat Division))
   (if (not (= 3 (cake-players c)))
       (error 'selfridge-conway "requires exactly 3 players")
@@ -361,6 +391,7 @@
 ;;; selfridge-conway-no-trim : Cake × Division × Vec × Vec × Nat → Division
 ;;; When player B sees no single largest piece.
 (define (selfridge-conway-no-trim c div pieces vals-1 fuel)
+  (doc 'export #t)
   ;; Player C (2) picks first
   (let* ([vals-2 (vector (cake-valuation c 2 (car (vector-ref pieces 0)) (cdr (vector-ref pieces 0)))
                          (cake-valuation c 2 (car (vector-ref pieces 1)) (cdr (vector-ref pieces 1)))
@@ -386,6 +417,7 @@
 ;;; selfridge-conway-with-trim : Cake × Division × Vec × Vec × Nat × Nat → Division
 ;;; When player B trims the largest piece.
 (define (selfridge-conway-with-trim c div pieces vals-1 trim-idx fuel)
+  (doc 'export #t)
   ;; Player B trims piece trim-idx to tie with second-largest
   (let* ([sorted-vals (sort-by > (vector->list vals-1))]
          [second-max (cadr sorted-vals)]
@@ -440,11 +472,13 @@
 ;;; find-value-endpoint : Cake × Nat × Real × Real × Nat → Real
 ;;; Find endpoint x such that player i values [start, x] at target.
 (define (find-value-endpoint c i start target fuel)
+  (doc 'export #t)
   (binary-search-cut-from c i start target start 1 fuel))
 
 ;;; argmax : (List Real) → Nat
 ;;; Return index of maximum element.
 (define (argmax lst)
+  (doc 'export #t)
   (let loop ([lst (cdr lst)] [i 1] [max-val (car lst)] [max-idx 0])
     (cond
       [(null? lst) max-idx]
@@ -461,6 +495,7 @@
 ;;; make-adjusted-winner-problem : (List Symbol) × (List Real) × (List Real) → AWP
 ;;; Create problem from goods and point allocations.
 (define (make-adjusted-winner-problem goods points-1 points-2)
+  (doc 'export #t)
   (let ([n (length goods)])
     (if (not (= n (length points-1)))
         (error 'make-adjusted-winner-problem "points-1 length mismatch")
@@ -474,6 +509,7 @@
 ;;; Compute adjusted winner allocation.
 ;;; Returns vector of (good-name . fraction) for each player.
 (define (adjusted-winner prob)
+  (doc 'export #t)
   (let* ([goods (adjusted-winner-problem%-goods prob)]
          [points (adjusted-winner-problem%-points prob)]
          [n (vector-length goods)]
@@ -512,6 +548,7 @@
 ;;; equalize-allocations : Vec × Vec × Vec × List × List × Real × Real → (Vector List)
 ;;; Transfer goods from advantaged player to equalize scores.
 (define (equalize-allocations goods points-1 points-2 alloc-1 alloc-2 score-1 score-2)
+  (doc 'export #t)
   (cond
     [(< (abs (- score-1 score-2)) 0.001)
      ;; Already equal
@@ -529,6 +566,7 @@
 ;;; transfer-to-equalize : ... → (Vector List)
 ;;; Transfer goods from advantaged (source) to disadvantaged (dest) player.
 (define (transfer-to-equalize goods points-src points-dest alloc-src alloc-dest score-src score-dest src-id dest-id)
+  (doc 'export #t)
   ;; Sort source's goods by their ratio: dest-value / src-value (ascending)
   ;; Transfer goods with lowest ratio first (least valuable to source per value to dest)
   (let* ([src-goods (filter (lambda (x) (> (cdr x) 0)) alloc-src)]
@@ -545,6 +583,7 @@
 
 ;;; transfer-loop : ... → (Vector List)
 (define (transfer-loop goods points-src points-dest alloc-src alloc-dest score-src score-dest remaining)
+  (doc 'export #t)
   (if (or (null? remaining)
           (<= score-src score-dest))
       ;; Done
@@ -582,6 +621,7 @@
 
 ;;; update-fraction : (List (Pair Nat Real)) × Nat × Real → List
 (define (update-fraction alloc i new-frac)
+  (doc 'export #t)
   (map (lambda (x)
          (if (= (car x) i)
              (cons i new-frac)
@@ -590,10 +630,12 @@
 
 ;;; remove-good : (List (Pair Nat Real)) × Nat → List
 (define (remove-good alloc i)
+  (doc 'export #t)
   (filter (lambda (x) (not (= (car x) i))) alloc))
 
 ;;; format-allocation : Vec × (List (Pair Nat Real)) → (List (Pair Symbol Real))
 (define (format-allocation goods alloc)
+  (doc 'export #t)
   (filter (lambda (x) (> (cdr x) 0))
           (map (lambda (x)
                  (cons (vector-ref goods (car x)) (cdr x)))
@@ -606,26 +648,31 @@
   (fields goods valuations))
 
 (define (make-discrete-problem goods valuations)
+  (doc 'export #t)
   (make-discrete-problem% (list->vector goods)
                           (list->vector (map list->vector valuations))))
 
 ;;; discrete-problem-players : DP → Nat
 (define (discrete-problem-players dp)
+  (doc 'export #t)
   (vector-length (discrete-problem%-valuations dp)))
 
 ;;; discrete-problem-goods : DP → Nat
 (define (discrete-problem-goods-count dp)
+  (doc 'export #t)
   (vector-length (discrete-problem%-goods dp)))
 
 ;;; discrete-problem-valuation : DP × Nat × Nat → Real
 ;;; Player i's valuation of good j.
 (define (discrete-problem-valuation dp i j)
+  (doc 'export #t)
   (vector-ref (vector-ref (discrete-problem%-valuations dp) i) j))
 
 ;;; round-robin : DiscreteProblem → (Vector (List Symbol))
 ;;; Simple round-robin allocation: players take turns picking best available good.
 ;;; Order: 0, 1, ..., n-1, 0, 1, ...
 (define (round-robin dp)
+  (doc 'export #t)
   (let* ([n (discrete-problem-players dp)]
          [m (discrete-problem-goods-count dp)]
          [goods (discrete-problem%-goods dp)]
@@ -651,6 +698,7 @@
 ;;; discrete-allocation-value : DP × Nat × (List Symbol) → Real
 ;;; Total value player i assigns to a bundle of goods.
 (define (discrete-allocation-value dp player bundle)
+  (doc 'export #t)
   (let ([goods (discrete-problem%-goods dp)]
         [vals (vector-ref (discrete-problem%-valuations dp) player)])
     (fold-left + 0
@@ -666,6 +714,7 @@
 ;;; envy-free-up-to-one? : DP × (Vector (List Symbol)) → Boolean
 ;;; Check if allocation is EF1.
 (define (envy-free-up-to-one? dp allocs)
+  (doc 'export #t)
   (let ([n (discrete-problem-players dp)])
     (let outer ([i 0])
       (if (>= i n)
@@ -709,6 +758,7 @@
 ;;; Returns a lower bound on the true MMS (greedy may not find optimal partition).
 ;;; fuel parameter is reserved for future exact search; currently unused.
 (define (maximin-share dp i fuel)
+  (doc 'export #t)
   (let* ([n (discrete-problem-players dp)]
          [m (discrete-problem-goods-count dp)]
          [goods-list (iota m)])
@@ -721,6 +771,7 @@
 ;;; Sorts goods by value (descending) and assigns each to the bundle
 ;;; with lowest current value (greedy load balancing).
 (define (maximin-search-greedy dp player num-bundles goods)
+  (doc 'export #t)
   (if (null? goods)
       0
       ;; Greedy: create balanced bundles based on player's valuation
@@ -743,6 +794,7 @@
 
 ;;; argmin : (List Real) → Nat
 (define (argmin lst)
+  (doc 'export #t)
   (let loop ([lst (cdr lst)] [i 1] [min-val (car lst)] [min-idx 0])
     (cond
       [(null? lst) min-idx]
@@ -756,6 +808,7 @@
 ;;; uniform-cake : Nat → Cake
 ;;; Create cake with n players, all with uniform valuation.
 (define (uniform-cake n)
+  (doc 'export #t)
   (let ([c (make-cake n)])
     (let loop ([i 0])
       (when (< i n)
@@ -767,6 +820,7 @@
 ;;; Example: 2-player cake where player 0 values left half more,
 ;;; player 1 values right half more.
 (define (simple-cake-2)
+  (doc 'export #t)
   (let ([c (make-cake 2)])
     ;; Player 0: density 2 on [0, 0.5], 0 on [0.5, 1]
     (cake-set-valuation! c 0 (lambda (x) (if (< x 0.5) 2 0)))
@@ -777,6 +831,7 @@
 ;;; opposing-valuations-cake : → Cake
 ;;; 3-player cake with opposing preferences.
 (define (opposing-valuations-cake)
+  (doc 'export #t)
   (let ([c (make-cake 3)])
     ;; Player 0: prefers left
     (cake-set-valuation! c 0 (lambda (x) (- 2 (* 2 x))))

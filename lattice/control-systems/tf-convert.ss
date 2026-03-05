@@ -42,6 +42,7 @@
 ;;; The denominator is the characteristic polynomial: det(sI - A)
 ;;; The numerator comes from the adjugate computation.
 (define (ss->tf sys . opts)
+  (doc 'export #t)
   (let* ([input-idx (if (and (pair? opts) (car opts)) (car opts) 0)]
          [output-idx (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) 0)]
          [A (ss-A sys)]
@@ -60,6 +61,7 @@
 ;;; Use Faddeev-LeVerrier algorithm to compute the transfer function.
 ;;; This computes the characteristic polynomial and adjugate simultaneously.
 (define (ss->tf-leverrier A B C D input-idx output-idx n)
+  (doc 'export #t)
   (let* ([b-col (matrix-column B input-idx)]
          [c-row (matrix-row C output-idx)]
          [d-val (matrix-ref D output-idx input-idx)]
@@ -82,6 +84,7 @@
 ;;;   coeffs = vector of char poly coefficients [1, p_1, p_2, ..., p_n]
 ;;;   matrices = list of adjugate coefficient matrices [M_0, M_1, ..., M_{n-1}]
 (define (faddeev-leverrier A n)
+  (doc 'export #t)
   (let ([coeffs (make-vector (+ n 1) 0)]
         [matrices '()])
        ;; Initialize
@@ -105,6 +108,7 @@
 ;;; Compute the numerator polynomial coefficients.
 ;;; num(s) = C * (M_0*s^{n-1} + ... + M_{n-1}) * B + D * (s^n + p_1*s^{n-1} + ...)
 (define (compute-tf-numerator c-row adj-matrices b-col d-val char-coeffs n)
+  (doc 'export #t)
   (let* ([num-len (+ n 1)]
          [result (make-vector num-len 0)])
         ;; D contributes: D * char_poly
@@ -143,6 +147,7 @@
 ;;;
 ;;;   D = | b_n | (zero if strictly proper, i.e., m < n)
 (define (tf->ss tf)
+  (doc 'export #t)
   (let* ([num (tf-num tf)]
          [den (tf-den tf)]
          [n (poly-degree den)]
@@ -162,6 +167,7 @@
 ;;; tf->ss-controllable : Poly × Poly × Nat × Nat → SS
 ;;; Build controllable canonical form.
 (define (tf->ss-controllable num den n m)
+  (doc 'export #t)
   (let* ([den-coeffs (poly-coeffs den)]  ; Normalized (monic)
          [num-coeffs (poly-coeffs num)]
          ;; Pad numerator if degree < n
@@ -197,6 +203,7 @@
 ;;; pad-poly-coeffs : Vec × Nat → Vec
 ;;; Pad polynomial coefficients to length n (prepending zeros).
 (define (pad-poly-coeffs coeffs n)
+  (doc 'export #t)
   (let ([len (vector-length coeffs)])
        (if (>= len n)
            coeffs
@@ -213,6 +220,7 @@
 ;;; matrix-column : Matrix × Nat → Vec
 ;;; Extract column j as a vector.
 (define (matrix-column M j)
+  (doc 'export #t)
   (let* ([rows (matrix-rows M)]
          [result (make-vector rows)])
         (do ([i 0 (+ i 1)])
@@ -222,6 +230,7 @@
 ;;; matrix-row : Matrix × Nat → Vec
 ;;; Extract row i as a vector.
 (define (matrix-row M i)
+  (doc 'export #t)
   (let* ([cols (matrix-cols M)]
          [result (make-vector cols)])
         (do ([j 0 (+ j 1)])
@@ -231,6 +240,7 @@
 ;;; matrix-vec-mul : Matrix × Vec → Vec
 ;;; Multiply matrix by column vector.
 (define (matrix-vec-mul M v)
+  (doc 'export #t)
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)]
          [result (make-vector rows 0)])
@@ -244,6 +254,7 @@
 ;;; dot-product-cv : Vec × Vec → Number
 ;;; Dot product of two vectors (c-row . b-col).
 (define (dot-product-cv v1 v2)
+  (doc 'export #t)
   (let ([n (vector-length v1)])
        (let loop ([i 0] [sum 0])
             (if (= i n)
@@ -253,6 +264,7 @@
 ;;; matrix-trace : Matrix → Number
 ;;; Sum of diagonal elements.
 (define (matrix-trace M)
+  (doc 'export #t)
   (let ([n (min (matrix-rows M) (matrix-cols M))])
        (let loop ([i 0] [sum 0])
             (if (= i n)

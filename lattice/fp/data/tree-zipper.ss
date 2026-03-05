@@ -13,11 +13,13 @@
 ;;; make-tree : a x (List (Tree a)) -> (Tree a)
 ;;; Construct a rose tree node.
 (define (make-tree value children)
+  (doc 'export #t)
   (list tree-tag value children))
 
 ;;; tree? : a -> Bool
 ;;; Check if value is a rose tree.
 (define (tree? t)
+  (doc 'export #t)
   (and (pair? t)
        (eq? (car t) tree-tag)
        (= (length t) 3)))
@@ -25,6 +27,7 @@
 ;;; tree-value : (Tree a) -> a
 ;;; Get the node value.
 (define (tree-value t)
+  (doc 'export #t)
   (if (tree? t)
       (list-ref t 1)
       (error 'tree-value "not a tree")))
@@ -32,6 +35,7 @@
 ;;; tree-children : (Tree a) -> (List (Tree a))
 ;;; Get the list of children.
 (define (tree-children t)
+  (doc 'export #t)
   (if (tree? t)
       (list-ref t 2)
       (error 'tree-children "not a tree")))
@@ -39,17 +43,20 @@
 ;;; tree-leaf : a -> (Tree a)
 ;;; Create a leaf node (tree with no children).
 (define (tree-leaf value)
+  (doc 'export #t)
   (make-tree value '()))
 
 ;;; tree-leaf? : (Tree a) -> Bool
 ;;; Check if tree is a leaf (no children).
 (define (tree-leaf? t)
+  (doc 'export #t)
   (and (tree? t)
        (null? (tree-children t))))
 
 ;;; tree-node : a x (Tree a) ... -> (Tree a)
 ;;; Variadic constructor for tree with children.
 (define (tree-node value . children)
+  (doc 'export #t)
   (make-tree value children))
 
 ;;; ====
@@ -59,6 +66,7 @@
 ;;; tree-size : (Tree a) -> Nat
 ;;; Count all nodes in tree.
 (define (tree-size t)
+  (doc 'export #t)
   (if (not (tree? t))
       0
       (+ 1 (apply + (map tree-size (tree-children t))))))
@@ -66,6 +74,7 @@
 ;;; tree-depth : (Tree a) -> Nat
 ;;; Compute maximum depth of tree (leaf = 1).
 (define (tree-depth t)
+  (doc 'export #t)
   (if (not (tree? t))
       0
       (if (null? (tree-children t))
@@ -75,6 +84,7 @@
 ;;; tree-map : (a -> b) x (Tree a) -> (Tree b)
 ;;; Map function over all node values.
 (define (tree-map f t)
+  (doc 'export #t)
   (if (not (tree? t))
       t
       (make-tree (f (tree-value t))
@@ -84,6 +94,7 @@
 ;;; tree-fold : (a x [b] -> b) x (Tree a) -> b
 ;;; Fold tree bottom-up. f receives node value and list of child results.
 (define (tree-fold f t)
+  (doc 'export #t)
   (if (not (tree? t))
       (error 'tree-fold "not a tree")
       (let ([child-results (map (lambda (c) (tree-fold f c)) (tree-children t))])
@@ -94,6 +105,7 @@
 ;;; Uses accumulator-passing to avoid (apply append ...) which can hit
 ;;; argument limits for wide trees.
 (define (tree-flatten t)
+  (doc 'export #t)
   (if (not (tree? t))
       '()
       (tree-flatten-acc t '())))
@@ -101,6 +113,7 @@
 ;;; tree-flatten-acc : (Tree a) x (List a) -> (List a)
 ;;; Helper using accumulator for efficient flattening.
 (define (tree-flatten-acc t acc)
+  (doc 'export #t)
   (if (not (tree? t))
       acc
       (cons (tree-value t)
@@ -109,6 +122,7 @@
 ;;; tree-flatten-children : (List (Tree a)) x (List a) -> (List a)
 ;;; Flatten a list of trees, right-to-left for correct order.
 (define (tree-flatten-children children acc)
+  (doc 'export #t)
   (if (null? children)
       acc
       (tree-flatten-acc (car children)
@@ -143,34 +157,41 @@
 ;;; make-crumb : a x (List (Tree a)) x (List (Tree a)) -> (Crumb a)
 ;;; Create a parent context crumb.
 (define (make-crumb parent-value left-siblings right-siblings)
+  (doc 'export #t)
   (list crumb-tag parent-value left-siblings right-siblings))
 
 ;;; crumb? : a -> Bool
 (define (crumb? c)
+  (doc 'export #t)
   (and (pair? c)
        (eq? (car c) crumb-tag)
        (= (length c) 4)))
 
 ;;; crumb-value : (Crumb a) -> a
 (define (crumb-value c)
+  (doc 'export #t)
   (list-ref c 1))
 
 ;;; crumb-left : (Crumb a) -> (List (Tree a))
 (define (crumb-left c)
+  (doc 'export #t)
   (list-ref c 2))
 
 ;;; crumb-right : (Crumb a) -> (List (Tree a))
 (define (crumb-right c)
+  (doc 'export #t)
   (list-ref c 3))
 
 ;;; make-tree-zipper : (Tree a) x (List (Crumb a)) -> (TreeZipper a)
 ;;; Create a tree zipper from focus and crumbs.
 (define (make-tree-zipper focus crumbs)
+  (doc 'export #t)
   (list tree-zipper-tag focus crumbs))
 
 ;;; tree-zipper? : a -> Bool
 ;;; Check if value is a tree zipper.
 (define (tree-zipper? z)
+  (doc 'export #t)
   (and (pair? z)
        (eq? (car z) tree-zipper-tag)
        (= (length z) 3)))
@@ -178,6 +199,7 @@
 ;;; tree-zipper-focus : (TreeZipper a) -> (Tree a)
 ;;; Get the focused subtree.
 (define (tree-zipper-focus z)
+  (doc 'export #t)
   (if (tree-zipper? z)
       (list-ref z 1)
       (error 'tree-zipper-focus "not a tree zipper")))
@@ -185,6 +207,7 @@
 ;;; tree-zipper-crumbs : (TreeZipper a) -> (List (Crumb a))
 ;;; Get the path (list of crumbs).
 (define (tree-zipper-crumbs z)
+  (doc 'export #t)
   (if (tree-zipper? z)
       (list-ref z 2)
       (error 'tree-zipper-crumbs "not a tree zipper")))
@@ -196,6 +219,7 @@
 ;;; tree->zipper : (Tree a) -> (TreeZipper a)
 ;;; Create a zipper focused at the root.
 (define (tree->zipper t)
+  (doc 'export #t)
   (if (not (tree? t))
       (error 'tree->zipper "not a tree")
       (make-tree-zipper t '())))
@@ -203,6 +227,7 @@
 ;;; zipper->tree : (TreeZipper a) -> (Tree a)
 ;;; Reconstruct tree from zipper by navigating to root.
 (define (zipper->tree z)
+  (doc 'export #t)
   (let ([up-result (tree-zipper-up z)])
     (if (nothing? up-result)
         (tree-zipper-focus z)
@@ -211,16 +236,19 @@
 ;;; tree-zipper-at-root? : (TreeZipper a) -> Bool
 ;;; Check if zipper is at the root.
 (define (tree-zipper-at-root? z)
+  (doc 'export #t)
   (null? (tree-zipper-crumbs z)))
 
 ;;; tree-zipper-at-leaf? : (TreeZipper a) -> Bool
 ;;; Check if zipper is at a leaf (no children).
 (define (tree-zipper-at-leaf? z)
+  (doc 'export #t)
   (tree-leaf? (tree-zipper-focus z)))
 
 ;;; tree-zipper-depth : (TreeZipper a) -> Nat
 ;;; Get depth in tree (0 = root).
 (define (tree-zipper-depth z)
+  (doc 'export #t)
   (length (tree-zipper-crumbs z)))
 
 ;;; ====
@@ -230,6 +258,7 @@
 ;;; tree-zipper-up : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move focus to parent. Returns nothing if at root.
 (define (tree-zipper-up z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing
@@ -247,6 +276,7 @@
 ;;; tree-zipper-down-left : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move focus to leftmost (first) child. Returns nothing if leaf.
 (define (tree-zipper-down-left z)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)])
     (let ([children (tree-children focus)])
       (if (null? children)
@@ -261,6 +291,7 @@
 ;;; tree-zipper-down-right : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move focus to rightmost (last) child. Returns nothing if leaf.
 (define (tree-zipper-down-right z)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)])
     (let ([children (tree-children focus)])
       (if (null? children)
@@ -280,6 +311,7 @@
 ;;; tree-zipper-left : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move focus to left sibling. Returns nothing if no left sibling.
 (define (tree-zipper-left z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing  ; At root, no siblings
@@ -299,6 +331,7 @@
 ;;; tree-zipper-right : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move focus to right sibling. Returns nothing if no right sibling.
 (define (tree-zipper-right z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing  ; At root, no siblings
@@ -318,6 +351,7 @@
 ;;; tree-zipper-leftmost : (TreeZipper a) -> (TreeZipper a)
 ;;; Move to leftmost sibling.
 (define (tree-zipper-leftmost z)
+  (doc 'export #t)
   (let ([left-result (tree-zipper-left z)])
     (if (nothing? left-result)
         z
@@ -326,6 +360,7 @@
 ;;; tree-zipper-rightmost : (TreeZipper a) -> (TreeZipper a)
 ;;; Move to rightmost sibling.
 (define (tree-zipper-rightmost z)
+  (doc 'export #t)
   (let ([right-result (tree-zipper-right z)])
     (if (nothing? right-result)
         z
@@ -334,6 +369,7 @@
 ;;; tree-zipper-root : (TreeZipper a) -> (TreeZipper a)
 ;;; Move to root.
 (define (tree-zipper-root z)
+  (doc 'export #t)
   (let ([up-result (tree-zipper-up z)])
     (if (nothing? up-result)
         z
@@ -342,6 +378,7 @@
 ;;; tree-zipper-nth-child : (TreeZipper a) x Nat -> (Maybe (TreeZipper a))
 ;;; Move to nth child (0-indexed). Returns nothing if index out of bounds.
 (define (tree-zipper-nth-child z n)
+  (doc 'export #t)
   (let loop ([current (tree-zipper-down-left z)] [i 0])
     (cond
       [(nothing? current) nothing]
@@ -354,20 +391,24 @@
 
 ;;; tree-zipper-can-go-up? : (TreeZipper a) -> Bool
 (define (tree-zipper-can-go-up? z)
+  (doc 'export #t)
   (not (null? (tree-zipper-crumbs z))))
 
 ;;; tree-zipper-can-go-down? : (TreeZipper a) -> Bool
 (define (tree-zipper-can-go-down? z)
+  (doc 'export #t)
   (not (null? (tree-children (tree-zipper-focus z)))))
 
 ;;; tree-zipper-can-go-left? : (TreeZipper a) -> Bool
 (define (tree-zipper-can-go-left? z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (and (not (null? crumbs))
          (not (null? (crumb-left (car crumbs)))))))
 
 ;;; tree-zipper-can-go-right? : (TreeZipper a) -> Bool
 (define (tree-zipper-can-go-right? z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (and (not (null? crumbs))
          (not (null? (crumb-right (car crumbs)))))))
@@ -379,11 +420,13 @@
 ;;; tree-zipper-get : (TreeZipper a) -> a
 ;;; Get the value at focus.
 (define (tree-zipper-get z)
+  (doc 'export #t)
   (tree-value (tree-zipper-focus z)))
 
 ;;; tree-zipper-set : (TreeZipper a) x a -> (TreeZipper a)
 ;;; Set the value at focus.
 (define (tree-zipper-set z value)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)])
     (make-tree-zipper
      (make-tree value (tree-children focus))
@@ -392,21 +435,25 @@
 ;;; tree-zipper-modify : (TreeZipper a) x (a -> a) -> (TreeZipper a)
 ;;; Modify the value at focus.
 (define (tree-zipper-modify z f)
+  (doc 'export #t)
   (tree-zipper-set z (f (tree-zipper-get z))))
 
 ;;; tree-zipper-set-tree : (TreeZipper a) x (Tree a) -> (TreeZipper a)
 ;;; Replace the entire focused subtree.
 (define (tree-zipper-set-tree z new-tree)
+  (doc 'export #t)
   (make-tree-zipper new-tree (tree-zipper-crumbs z)))
 
 ;;; tree-zipper-modify-tree : (TreeZipper a) x ((Tree a) -> (Tree a)) -> (TreeZipper a)
 ;;; Modify the entire focused subtree.
 (define (tree-zipper-modify-tree z f)
+  (doc 'export #t)
   (tree-zipper-set-tree z (f (tree-zipper-focus z))))
 
 ;;; tree-zipper-children-count : (TreeZipper a) -> Nat
 ;;; Get number of children of focused node.
 (define (tree-zipper-children-count z)
+  (doc 'export #t)
   (length (tree-children (tree-zipper-focus z))))
 
 ;;; ====
@@ -416,6 +463,7 @@
 ;;; tree-zipper-insert-child-left : (TreeZipper a) x (Tree a) -> (TreeZipper a)
 ;;; Insert a tree as the new leftmost child of focused node.
 (define (tree-zipper-insert-child-left z child)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)])
     (make-tree-zipper
      (make-tree (tree-value focus)
@@ -425,6 +473,7 @@
 ;;; tree-zipper-insert-child-right : (TreeZipper a) x (Tree a) -> (TreeZipper a)
 ;;; Insert a tree as the new rightmost child of focused node.
 (define (tree-zipper-insert-child-right z child)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)])
     (make-tree-zipper
      (make-tree (tree-value focus)
@@ -438,6 +487,7 @@
 ;;; tree-zipper-insert-left : (TreeZipper a) x (Tree a) -> (Maybe (TreeZipper a))
 ;;; Insert a tree as left sibling of focus. Returns nothing if at root.
 (define (tree-zipper-insert-left z sibling)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing  ; Can't insert sibling at root
@@ -453,6 +503,7 @@
 ;;; tree-zipper-insert-right : (TreeZipper a) x (Tree a) -> (Maybe (TreeZipper a))
 ;;; Insert a tree as right sibling of focus. Returns nothing if at root.
 (define (tree-zipper-insert-right z sibling)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing  ; Can't insert sibling at root
@@ -476,6 +527,7 @@
 ;;;   3. Parent (with focus as leaf) if exists
 ;;;   Returns nothing if at root (can't delete root).
 (define (tree-zipper-delete z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing  ; Can't delete root
@@ -504,6 +556,7 @@
 ;;; tree-zipper-delete-children : (TreeZipper a) -> (TreeZipper a)
 ;;; Delete all children of focused node (make it a leaf).
 (define (tree-zipper-delete-children z)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)])
     (make-tree-zipper
      (tree-leaf (tree-value focus))
@@ -516,6 +569,7 @@
 ;;; tree-zipper-next-preorder : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move to next node in pre-order traversal.
 (define (tree-zipper-next-preorder z)
+  (doc 'export #t)
   ;; Try going down first
   (let ([down (tree-zipper-down z)])
     (if (just? down)
@@ -534,6 +588,7 @@
 ;;; tree-zipper-prev-preorder : (TreeZipper a) -> (Maybe (TreeZipper a))
 ;;; Move to previous node in pre-order traversal.
 (define (tree-zipper-prev-preorder z)
+  (doc 'export #t)
   ;; Try going to left sibling's rightmost descendant
   (let ([left (tree-zipper-left z)])
     (if (just? left)
@@ -544,6 +599,7 @@
 ;;; rightmost-descendant : (TreeZipper a) -> (TreeZipper a)
 ;;; Navigate to rightmost, deepest descendant.
 (define (rightmost-descendant z)
+  (doc 'export #t)
   (let ([down (tree-zipper-down-right z)])
     (if (nothing? down)
         z
@@ -552,6 +608,7 @@
 ;;; tree-zipper-preorder : (TreeZipper a) -> (List (TreeZipper a))
 ;;; Get list of all zippers in pre-order from current position.
 (define (tree-zipper-preorder z)
+  (doc 'export #t)
   (let loop ([current (just z)] [acc '()])
     (if (nothing? current)
         (reverse acc)
@@ -565,6 +622,7 @@
 ;;; tree-zipper-path : (TreeZipper a) -> (List a)
 ;;; Get path from root to focus (list of values).
 (define (tree-zipper-path z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (append (map crumb-value (reverse crumbs))
             (list (tree-zipper-get z)))))
@@ -572,6 +630,7 @@
 ;;; tree-zipper-sibling-index : (TreeZipper a) -> (Maybe Nat)
 ;;; Get index among siblings (0-indexed). Nothing if at root.
 (define (tree-zipper-sibling-index z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (if (null? crumbs)
         nothing
@@ -582,6 +641,7 @@
 ;;; Each index represents which child to descend into at each level.
 ;;; Empty list means we're at root.
 (define (tree-zipper-index-path z)
+  (doc 'export #t)
   (let ([crumbs (tree-zipper-crumbs z)])
     (reverse (map (lambda (crumb)
                     (length (crumb-left crumb)))
@@ -594,6 +654,7 @@
 ;;; tree-zipper-map : (a -> b) x (TreeZipper a) -> (TreeZipper b)
 ;;; Map function over all values in zipper (focus and context).
 (define (tree-zipper-map f z)
+  (doc 'export #t)
   (make-tree-zipper
    (tree-map f (tree-zipper-focus z))
    (map (lambda (crumb)
@@ -630,6 +691,7 @@
 ;;; This implementation satisfies the law by using index-based navigation,
 ;;; which correctly handles trees with duplicate values among siblings.
 (define (tree-zipper-extend f z)
+  (doc 'export #t)
   ;; Capture the index path BEFORE navigating to root
   ;; This is the structural position we need to return to
   (let ([index-path (tree-zipper-index-path z)])
@@ -643,6 +705,7 @@
 ;;; extend-tree : ((TreeZipper a) -> b) x (TreeZipper a) -> (Tree b)
 ;;; Build a tree by applying f at each position.
 (define (extend-tree f z)
+  (doc 'export #t)
   (let ([value (f z)]
         [children (tree-children (tree-zipper-focus z))])
     (make-tree
@@ -660,6 +723,7 @@
 ;;; This is the correct implementation for Comonad - uses structural position,
 ;;; not value matching, ensuring correct behavior with duplicate values.
 (define (navigate-to-indices tree indices)
+  (doc 'export #t)
   (let ([z (tree->zipper tree)])
     (if (null? indices)
         z
@@ -675,6 +739,7 @@
 ;;; tree-zipper-duplicate : (TreeZipper a) -> (TreeZipper (TreeZipper a))
 ;;; Duplicate: zipper of all possible focuses.
 (define (tree-zipper-duplicate z)
+  (doc 'export #t)
   (tree-zipper-extend (lambda (x) x) z))
 
 ;;; tree-zipper-comonad : (Comonad TreeZipper)
@@ -691,6 +756,7 @@
 ;;; tree-equal? : (Tree a) x (Tree a) -> Bool
 ;;; Check equality of two trees.
 (define (tree-equal? t1 t2)
+  (doc 'export #t)
   (and (tree? t1) (tree? t2)
        (equal? (tree-value t1) (tree-value t2))
        (= (length (tree-children t1)) (length (tree-children t2)))
@@ -699,6 +765,7 @@
 ;;; tree-zipper-equal? : (TreeZipper a) x (TreeZipper a) -> Bool
 ;;; Check equality of two tree zippers.
 (define (tree-zipper-equal? z1 z2)
+  (doc 'export #t)
   (and (tree-equal? (tree-zipper-focus z1) (tree-zipper-focus z2))
        (= (length (tree-zipper-crumbs z1)) (length (tree-zipper-crumbs z2)))
        (andmap* (lambda (c1 c2)
@@ -711,6 +778,7 @@
 ;;; tree->string : (Tree a) -> String
 ;;; Convert tree to string representation.
 (define (tree->string t)
+  (doc 'export #t)
   (if (not (tree? t))
       "#<not-a-tree>"
       (let ([val (tree-value t)]
@@ -727,6 +795,7 @@
 ;;; tree-zipper->string : (TreeZipper a) -> String
 ;;; Convert tree zipper to string showing focus.
 (define (tree-zipper->string z)
+  (doc 'export #t)
   (let ([focus (tree-zipper-focus z)]
         [depth (tree-zipper-depth z)])
     (format "[depth:~a focus:~a tree:~a]"
@@ -743,6 +812,7 @@
 ;;; Also works with two lists: (a x b -> Bool) x (List a) x (List b) -> Bool
 ;;; Named andmap* to distinguish from prelude's single-list andmap.
 (define (andmap* pred . lists)
+  (doc 'export #t)
   (if (null? (car lists))
       #t
       (if (null? (cdr lists))

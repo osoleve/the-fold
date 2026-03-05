@@ -37,11 +37,13 @@
 ;;; md-document : (List Block) -> AST
 ;;; Create a document node containing block elements.
 (define (md-document blocks)
+  (doc 'export #t)
   (cons 'document blocks))
 
 ;;; md-heading : Nat × (List Inline) -> AST
 ;;; Create a heading node (level 1-6).
 (define (md-heading level inlines)
+  (doc 'export #t)
   (let ([tag (case level
                [(1) 'h1] [(2) 'h2] [(3) 'h3]
                [(4) 'h4] [(5) 'h5] [(6) 'h6]
@@ -60,57 +62,68 @@
 ;;; md-paragraph : (List Inline) -> AST
 ;;; Create a paragraph node.
 (define (md-paragraph inlines)
+  (doc 'export #t)
   (cons 'p inlines))
 
 ;;; md-code-block : String × String -> AST
 ;;; Create a fenced code block with optional language.
 (define (md-code-block lang code)
+  (doc 'export #t)
   (list 'code-block lang code))
 
 ;;; md-blockquote : (List Block) -> AST
 ;;; Create a blockquote containing block elements.
 (define (md-blockquote blocks)
+  (doc 'export #t)
   (cons 'blockquote blocks))
 
 ;;; md-unordered-list : (List LI) -> AST
 ;;; Create an unordered list.
 (define (md-unordered-list items)
+  (doc 'export #t)
   (cons 'ul items))
 
 ;;; md-ordered-list : (List LI) -> AST
 ;;; Create an ordered list.
 (define (md-ordered-list items)
+  (doc 'export #t)
   (cons 'ol items))
 
 ;;; md-list-item : (List Inline) -> AST
 ;;; Create a list item.
 (define (md-list-item inlines)
+  (doc 'export #t)
   (cons 'li inlines))
 
 ;;; md-hr : -> AST
 ;;; Create a horizontal rule.
 (define (md-hr)
+  (doc 'export #t)
   '(hr))
 
 ;;; md-table : (List (List Inline)) × (List (List Inline)) -> AST
 ;;; Create a table with header row and data rows.
 ;;; Each row is a list of cells, each cell is a list of inlines.
 (define (md-table header rows)
+  (doc 'export #t)
   (list 'table header rows))
 
 ;;; md-table-row : (List (List Inline)) -> AST
 ;;; Create a table row.
 (define (md-table-row cells)
+  (doc 'export #t)
   (cons 'tr cells))
 
 ;;; md-table-cell : (List Inline) -> AST
 ;;; Create a table cell.
 (define (md-table-cell inlines)
+  (doc 'export #t)
   (cons 'td inlines))
 
 ;;; md-table-header-cell : (List Inline) -> AST
 ;;; Create a table header cell.
 (define (md-table-header-cell inlines)
+  (doc 'export #t)
   (cons 'th inlines))
 
 (doc 'section 'inline-node-constructors)
@@ -118,31 +131,37 @@
 ;;; md-text : String -> AST
 ;;; Create a plain text node.
 (define (md-text str)
+  (doc 'export #t)
   (list 'text str))
 
 ;;; md-strong : (List Inline) -> AST
 ;;; Create bold text.
 (define (md-strong inlines)
+  (doc 'export #t)
   (cons 'strong inlines))
 
 ;;; md-em : (List Inline) -> AST
 ;;; Create italic text.
 (define (md-em inlines)
+  (doc 'export #t)
   (cons 'em inlines))
 
 ;;; md-code : String -> AST
 ;;; Create inline code.
 (define (md-code str)
+  (doc 'export #t)
   (list 'code str))
 
 ;;; md-link : String × String × (List Inline) -> AST
 ;;; Create a hyperlink with URL, optional title, and link text.
 (define (md-link url title inlines)
+  (doc 'export #t)
   (list 'link url title inlines))
 
 ;;; md-br : -> AST
 ;;; Create a line break.
 (define (md-br)
+  (doc 'export #t)
   '(br))
 
 (doc 'section 'predicates)
@@ -150,6 +169,7 @@
 ;;; md-node? : Any -> Boolean
 ;;; Check if x is any markdown node.
 (define (md-node? x)
+  (doc 'export #t)
   (and (pair? x)
        (symbol? (car x))
        (if (memq (car x) '(document h1 h2 h3 h4 h5 h6 p code-block
@@ -160,6 +180,7 @@
 ;;; md-block? : Any -> Boolean
 ;;; Check if x is a block-level node.
 (define (md-block? x)
+  (doc 'export #t)
   (and (pair? x)
        (if (memq (car x) '(document h1 h2 h3 h4 h5 h6 p code-block
                            blockquote ul ol hr table))
@@ -168,18 +189,21 @@
 ;;; md-inline? : Any -> Boolean
 ;;; Check if x is an inline-level node.
 (define (md-inline? x)
+  (doc 'export #t)
   (and (pair? x)
        (if (memq (car x) '(text strong em code link br))
            #t #f)))
 
 ;;; md-heading? : Any -> Boolean
 (define (md-heading? x)
+  (doc 'export #t)
   (and (pair? x)
        (if (memq (car x) '(h1 h2 h3 h4 h5 h6))
            #t #f)))
 
 ;;; md-list? : Any -> Boolean
 (define (md-list? x)
+  (doc 'export #t)
   (and (pair? x)
        (memq (car x) '(ul ol))))
 
@@ -188,16 +212,19 @@
 ;;; md-tag : AST -> Symbol
 ;;; Get the tag of a markdown node.
 (define (md-tag node)
+  (doc 'export #t)
   (car node))
 
 ;;; md-children : AST -> (List AST)
 ;;; Get the children of a markdown node.
 (define (md-children node)
+  (doc 'export #t)
   (cdr node))
 
 ;;; md-heading-level : AST -> Nat
 ;;; Get the level of a heading node (1-6).
 (define (md-heading-level node)
+  (doc 'export #t)
   (case (car node)
     [(h1) 1] [(h2) 2] [(h3) 3]
     [(h4) 4] [(h5) 5] [(h6) 6]
@@ -206,6 +233,7 @@
 ;;; md-code-block-lang : AST -> String
 ;;; Get the language of a code block.
 (define (md-code-block-lang node)
+  (doc 'export #t)
   (if (eq? (car node) 'code-block)
       (cadr node)
       ""))
@@ -213,6 +241,7 @@
 ;;; md-code-block-content : AST -> String
 ;;; Get the content of a code block.
 (define (md-code-block-content node)
+  (doc 'export #t)
   (if (eq? (car node) 'code-block)
       (caddr node)
       ""))
@@ -220,6 +249,7 @@
 ;;; md-text-content : AST -> String
 ;;; Get the string content of a text node.
 (define (md-text-content node)
+  (doc 'export #t)
   (if (eq? (car node) 'text)
       (cadr node)
       ""))
@@ -227,24 +257,28 @@
 ;;; md-code-content : AST -> String
 ;;; Get the string content of an inline code node.
 (define (md-code-content node)
+  (doc 'export #t)
   (if (eq? (car node) 'code)
       (cadr node)
       ""))
 
 ;;; md-link-url : AST -> String
 (define (md-link-url node)
+  (doc 'export #t)
   (if (eq? (car node) 'link)
       (cadr node)
       ""))
 
 ;;; md-link-title : AST -> String
 (define (md-link-title node)
+  (doc 'export #t)
   (if (eq? (car node) 'link)
       (caddr node)
       ""))
 
 ;;; md-link-text : AST -> (List Inline)
 (define (md-link-text node)
+  (doc 'export #t)
   (if (eq? (car node) 'link)
       (cadddr node)
       '()))
@@ -254,6 +288,7 @@
 ;;; md-flatten-text : AST -> String
 ;;; Extract all text content from a node, discarding formatting.
 (define (md-flatten-text node)
+  (doc 'export #t)
   (cond
     [(string? node) node]
     [(not (pair? node)) ""]
@@ -267,6 +302,7 @@
 ;;; md-walk : (AST -> AST) × AST -> AST
 ;;; Walk the AST, applying f to each node (post-order).
 (define (md-walk f node)
+  (doc 'export #t)
   (if (or (not (pair? node)) (null? node))
       (f node)
       (f (cons (car node)

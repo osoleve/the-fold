@@ -12,6 +12,7 @@
 (doc 'section 'helper-functions)
 
 (define (fold-sum exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Fold list of expressions into sum using smart constructors")
   (cond
@@ -20,6 +21,7 @@
    [else (sum (car exprs) (fold-sum (cdr exprs)))]))
 
 (define (fold-product exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) Expr))
   (doc 'description "Fold list of expressions into product using smart constructors")
   (cond
@@ -30,6 +32,7 @@
 (doc 'section 'basic-differentiation)
 
 (define (deriv expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr))
   (doc 'description "Compute derivative of expr with respect to var-sym using standard calculus rules")
   (cond
@@ -124,6 +127,7 @@
    [else (num 0)]))
 
 (define (deriv-fn fn arg)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Expr Expr))
   (doc 'description "Compute derivative of named function, returns derivative evaluated at argument")
   (case fn
@@ -157,6 +161,7 @@
 (doc 'section 'partial-derivatives)
 
 (define (partial expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr))
   (doc 'description "Compute partial derivative ∂expr/∂var-sym (alias for deriv)")
   (deriv expr var-sym))
@@ -164,6 +169,7 @@
 (doc 'section 'gradient)
 
 (define (gradient expr vars)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol) (List Expr)))
   (doc 'description "Compute gradient ∇f = [∂f/∂x₁, ∂f/∂x₂, ..., ∂f/∂xₙ]")
   (map (lambda (v) (partial expr v)) vars))
@@ -171,6 +177,7 @@
 (doc 'section 'jacobian)
 
 (define (jacobian exprs vars)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Symbol) (List (List Expr))))
   (doc 'description "Compute Jacobian matrix for vector-valued function f: ℝⁿ → ℝᵐ")
   (doc 'note "exprs = [f₁, ..., fₘ], vars = [x₁, ..., xₙ], returns m×n matrix where J[i][j] = ∂fᵢ/∂xⱼ")
@@ -179,6 +186,7 @@
 (doc 'section 'hessian)
 
 (define (hessian expr vars)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol) (List (List Expr))))
   (doc 'description "Compute Hessian matrix H = [∂²f/∂xᵢ∂xⱼ]")
   (doc 'note "Returns n×n symmetric matrix of second partial derivatives")
@@ -191,6 +199,7 @@
 (doc 'section 'higher-order-derivatives)
 
 (define (deriv-n expr var-sym n)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Nat Expr))
   (doc 'description "Compute nth derivative of expr with respect to var-sym")
   (if (<= n 0)
@@ -200,6 +209,7 @@
 (doc 'section 'directional-derivative)
 
 (define (directional-derivative expr vars direction)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol) (List Expr) Expr))
   (doc 'description "Compute directional derivative ∇f · v")
   (doc 'note "Returns ∇f · v = Σ(∂f/∂xᵢ * vᵢ)")
@@ -209,6 +219,7 @@
 (doc 'section 'curl)
 
 (define (curl field vars)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Symbol) (List Expr)))
   (doc 'description "Compute curl of 3D vector field F = [F₁, F₂, F₃]")
   (doc 'note "vars should be [x, y, z], returns [∂F₃/∂y - ∂F₂/∂z, ∂F₁/∂z - ∂F₃/∂x, ∂F₂/∂x - ∂F₁/∂y]")
@@ -226,6 +237,7 @@
 (doc 'section 'divergence)
 
 (define (divergence field vars)
+  (doc 'export #t)
   (doc 'type '(-> (List Expr) (List Symbol) Expr))
   (doc 'description "Compute divergence of vector field F = [F₁, F₂, ..., Fₙ]")
   (doc 'note "Returns ∇ · F = Σ(∂Fᵢ/∂xᵢ)")
@@ -234,6 +246,7 @@
 (doc 'section 'laplacian)
 
 (define (laplacian expr vars)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol) Expr))
   (doc 'description "Compute Laplacian ∇²f = Σ(∂²f/∂xᵢ²)")
   (doc 'note "Returns sum of all unmixed second partial derivatives")

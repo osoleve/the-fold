@@ -18,6 +18,7 @@
 (doc 'note "autonomous? : Boolean (time-independent?)")
 
 (define (ode-system? sys)
+  (doc 'export #t)
   (doc 'type '(-> Any Bool))
   (doc 'description "Check if value is an ODE system")
   (and (pair? sys)
@@ -28,23 +29,28 @@
        (boolean? (cadddr sys))))
 
 (define (ode-vector-field sys)
+  (doc 'export #t)
   (doc 'type '(-> Any Any))
   (cadr sys))
 
 (define (ode-dimension sys)
+  (doc 'export #t)
   (doc 'type '(-> Any Nat))
   (caddr sys))
 
 (define (ode-autonomous? sys)
+  (doc 'export #t)
   (doc 'type '(-> Any Bool))
   (cadddr sys))
 
 (define (make-ode-system vector-field dimension autonomous?)
+  (doc 'export #t)
   (doc 'type '(-> (-> Number Any Any) Nat Bool Any))
   (doc 'description "Create an ODE system with explicit autonomy flag")
   (list 'ode-system vector-field dimension autonomous?))
 
 (define (make-autonomous-ode vector-field dimension)
+  (doc 'export #t)
   (doc 'type '(-> (-> Any Any) Nat Any))
   (doc 'description "Create an autonomous ODE system: dx/dt = f(x). Wraps the vector field to accept (but ignore) time parameter")
   (make-ode-system
@@ -53,6 +59,7 @@
    #t))
 
 (define (make-nonautonomous-ode vector-field dimension)
+  (doc 'export #t)
   (doc 'type '(-> (-> Number Any Any) Nat Any))
   (doc 'description "Create a non-autonomous ODE system: dx/dt = f(t, x)")
   (make-ode-system
@@ -63,12 +70,14 @@
 (doc 'section 'vector-field-evaluation)
 
 (define (eval-vector-field sys t state)
+  (doc 'export #t)
   (doc 'type '(-> Any Number Any Any))
   (doc 'description "Evaluate the vector field at a given time and state")
   (doc 'returns "the derivative dx/dt at the point (t, x)")
   ((ode-vector-field sys) t state))
 
 (define (eval-vector-field-batch sys t states)
+  (doc 'export #t)
   (doc 'type '(-> Any Number (List Any) (List Any)))
   (doc 'description "Evaluate the vector field at multiple states at the same time. Useful for phase portrait computation")
   (map (lambda (state) (eval-vector-field sys t state)) states))
@@ -76,6 +85,7 @@
 (doc 'section 'flow-and-trajectory)
 
 (define (make-flow-function sys)
+  (doc 'export #t)
   (doc 'type '(-> Any (-> Number Number Any Any)))
   (doc 'description "Create a flow function φ(t, t0, x0) that represents the solution at time t starting from state x0 at time t0")
   (doc 'note "This is a symbolic/lazy representation - actual computation requires a numerical integrator")
@@ -83,6 +93,7 @@
           `(flow ,sys ,t ,t0 ,x0)))
 
 (define (vector-field-norm sys t state)
+  (doc 'export #t)
   (doc 'type '(-> Any Number Any Number))
   (doc 'description "Compute the magnitude of the vector field at a point. Useful for identifying equilibrium points (where ||f(x)|| ≈ 0)")
   (let ([field (eval-vector-field sys t state)])
@@ -93,6 +104,7 @@
 (doc 'section 'phase-space-utilities)
 
 (define (make-phase-space-grid x-min x-max x-steps y-min y-max y-steps)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Nat Number Number Nat (List Any)))
   (doc 'description "Create a rectangular grid of points in 2D phase space. For higher dimensions, use make-phase-space-grid-nd")
   (doc 'param 'x-min "x-axis minimum")
@@ -117,6 +129,7 @@
                                                    (cons (vector x y) row-result)))))))))))
 
 (define (compute-vector-field-grid sys t grid-points)
+  (doc 'export #t)
   (doc 'type '(-> Any Number (List Any) (List Any)))
   (doc 'description "Compute vector field values at a grid of points")
   (doc 'returns "list of derivative vectors at each grid point")
@@ -125,6 +138,7 @@
 (doc 'section 'standard-ode-systems)
 
 (define (exponential-growth r)
+  (doc 'export #t)
   (doc 'type '(-> Number Any))
   (doc 'description "Simple exponential growth: dx/dt = r*x. Solution: x(t) = x₀ * exp(r*t)")
   (make-autonomous-ode
@@ -135,6 +149,7 @@
    1))
 
 (define (harmonic-oscillator omega)
+  (doc 'export #t)
   (doc 'type '(-> Number Any))
   (doc 'description "Simple harmonic oscillator: d²x/dt² = -ω²x. As first-order system: dx/dt = v, dv/dt = -ω²x. State: [position, velocity]")
   (make-autonomous-ode
@@ -145,6 +160,7 @@
    2))
 
 (define (damped-oscillator omega zeta)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Any))
   (doc 'description "Damped harmonic oscillator: d²x/dt² = -2ζω dx/dt - ω²x. State: [position, velocity]")
   (make-autonomous-ode
@@ -157,6 +173,7 @@
    2))
 
 (define (lotka-volterra alpha beta gamma delta)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Number Any))
   (doc 'description "Lotka-Volterra predator-prey model: dx/dt = αx - βxy (prey), dy/dt = δxy - γy (predator). State: [prey, predator]")
   (make-autonomous-ode
@@ -168,6 +185,7 @@
    2))
 
 (define (lorenz-system sigma rho beta)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Any))
   (doc 'description "Lorenz system (chaotic attractor): dx/dt = σ(y - x), dy/dt = x(ρ - z) - y, dz/dt = xy - βz. Classic parameters: σ=10, ρ=28, β=8/3")
   (make-autonomous-ode
@@ -181,6 +199,7 @@
    3))
 
 (define (van-der-pol mu)
+  (doc 'export #t)
   (doc 'type '(-> Number Any))
   (doc 'description "Van der Pol oscillator (limit cycle): d²x/dt² = μ(1 - x²)dx/dt - x. State: [position, velocity]")
   (make-autonomous-ode
@@ -192,6 +211,7 @@
    2))
 
 (define (pendulum g-over-l)
+  (doc 'export #t)
   (doc 'type '(-> Number Any))
   (doc 'description "Simple pendulum (nonlinear): d²θ/dt² = -g/L sin(θ). State: [angle, angular velocity]. Normalized with g/L = 1")
   (make-autonomous-ode
@@ -203,6 +223,7 @@
    2))
 
 (define (forced-oscillator omega0 omega-drive amplitude)
+  (doc 'export #t)
   (doc 'type '(-> Number Number Number Any))
   (doc 'description "Forced oscillator: d²x/dt² = -ω₀²x + A·cos(ωt). Non-autonomous system (time-dependent forcing). State: [position, velocity]")
   (make-nonautonomous-ode
@@ -215,6 +236,7 @@
    2))
 
 (define (linear-ode A)
+  (doc 'export #t)
   (doc 'type '(-> Any Any))
   (doc 'description "Linear ODE system: dx/dt = Ax where A is an n×n matrix")
   (let ([n (matrix-rows A)])
@@ -226,12 +248,14 @@
 (doc 'section 'equilibrium-points)
 
 (define (is-equilibrium? sys state tolerance)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Bool))
   (doc 'description "Check if a point is an equilibrium (fixed point) within tolerance. An equilibrium satisfies f(x) = 0")
   (let ([field-norm (vector-field-norm sys 0 state)])
        (< field-norm tolerance)))
 
 (define (find-equilibria-grid sys grid-points tolerance)
+  (doc 'export #t)
   (doc 'type '(-> Any (List Any) Number (List Any)))
   (doc 'description "Find approximate equilibrium points from a grid search")
   (doc 'returns "points where ||f(x)|| < tolerance")
@@ -241,6 +265,7 @@
 (doc 'section 'system-composition)
 
 (define (couple-ode-systems sys1 sys2)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Any))
   (doc 'description "Couple two ODE systems into a single higher-dimensional system. The state vector is the concatenation [x1, x2]")
   (let ([dim1 (ode-dimension sys1)]
@@ -263,6 +288,7 @@
 (doc 'section 'time-reversal)
 
 (define (reverse-time-ode sys)
+  (doc 'export #t)
   (doc 'type '(-> Any Any))
   (doc 'description "Create the time-reversed ODE system: dx/dt = -f(t, x). Useful for backward integration and analyzing reversibility")
   (let ([f (ode-vector-field sys)]
@@ -280,6 +306,7 @@
 (doc 'section 'coordinate-transformations)
 
 (define (transform-ode-system sys transform inverse)
+  (doc 'export #t)
   (doc 'type '(-> Any (-> Any Any) (-> Any Any) Any))
   (doc 'description "Transform an ODE system via a coordinate change. If y = T(x), then dy/dt = (DT)(x) · f(x). This is a simplified version - full implementation needs Jacobian")
   (doc 'param 'sys "Original ODE system")

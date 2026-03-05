@@ -71,6 +71,7 @@
 ;;; sql-lexeme : Parser a → Parser a
 ;;; Parse and consume trailing whitespace
 (define (sql-lexeme p)
+  (doc 'export #t)
   (parser-left p sql-whitespace))
 
 ;;; ====
@@ -79,11 +80,13 @@
 
 ;;; char-ci-equal : Char → Char → Boolean
 (define (char-ci-equal c1 c2)
+  (doc 'export #t)
   (char-ci=? c1 c2))
 
 ;;; string-ci-parser : String → Parser String
 ;;; Case-insensitive string match, returns original casing from input
 (define (string-ci-parser str)
+  (doc 'export #t)
   (if (string=? str "")
       (parser-pure "")
       (make-parser
@@ -114,6 +117,7 @@
 
 ;;; string-ci-equal? : String × String → Boolean
 (define (string-ci-equal? s1 s2)
+  (doc 'export #t)
   (and (= (string-length s1) (string-length s2))
        (let loop ([i 0])
             (or (>= i (string-length s1))
@@ -127,6 +131,7 @@
 ;;; sql-keyword : String → Parser String
 ;;; Parse SQL keyword (case-insensitive) with word boundary
 (define (sql-keyword kw)
+  (doc 'export #t)
   (sql-lexeme
    (parser-try
     (parser-bind (string-ci-parser kw)
@@ -168,6 +173,7 @@
 
 ;;; any? : (a → Boolean) × (List a) → Boolean
 (define (any? pred lst)
+  (doc 'export #t)
   (cond
    [(null? lst) #f]
    [(pred (car lst)) #t]
@@ -267,6 +273,7 @@
 ;;; sql-operator : String → Parser String
 ;;; Parse specific operator
 (define (sql-operator op)
+  (doc 'export #t)
   (sql-lexeme (parser-string op)))
 
 ;;; Comparison operators
@@ -303,14 +310,17 @@
 
 ;;; sql-parens : Parser a → Parser a
 (define (sql-parens p)
+  (doc 'export #t)
   (parser-between sql-lparen sql-rparen p))
 
 ;;; sql-comma-sep : Parser a → Parser (List a)
 (define (sql-comma-sep p)
+  (doc 'export #t)
   (parser-sep-by p sql-comma))
 
 ;;; sql-comma-sep1 : Parser a → Parser (List a)
 (define (sql-comma-sep1 p)
+  (doc 'export #t)
   (parser-sep-by1 p sql-comma))
 
 ;;; ====

@@ -18,6 +18,7 @@ delegate to these implementations.")
 ;;; generic-rollout : α × (α → α) × Nat → α
 ;;; Apply step-fn to state n times. Returns final state.
 (define (generic-rollout initial step-fn n)
+  (doc 'export #t)
   (let loop ([state initial] [i 0])
        (if (>= i n)
            state
@@ -27,6 +28,7 @@ delegate to these implementations.")
 ;;; Apply step-fn n times, collecting all intermediate states.
 ;;; Returns list of states from step 0 to step n.
 (define (generic-rollout-trajectory initial step-fn n)
+  (doc 'export #t)
   (let loop ([state initial] [i 0] [trajectory (list initial)])
        (if (>= i n)
            (reverse trajectory)
@@ -36,6 +38,7 @@ delegate to these implementations.")
 ;;; generic-trajectory-final : (List α) → α
 ;;; Extract the final state from a trajectory.
 (define (generic-trajectory-final traj)
+  (doc 'export #t)
   (car (reverse traj)))
 
 (doc 'section 'checkpointing)
@@ -44,12 +47,14 @@ delegate to these implementations.")
 ;;; Compute optimal checkpoint interval for T steps.
 ;;; Returns approximately sqrt(T).
 (define (generic-checkpoint-interval num-steps)
+  (doc 'export #t)
   (max 1 (exact (ceiling (sqrt num-steps)))))
 
 ;;; generic-rollout-checkpoints : α × (α → α) × Nat × Nat → (Vector α)
 ;;; Roll out simulation storing periodic checkpoints.
 ;;; Uses non-traced arithmetic to save memory.
 (define (generic-rollout-checkpoints initial step-fn num-steps checkpoint-freq)
+  (doc 'export #t)
   (let* ([num-checkpoints (+ 1 (exact (ceiling (/ num-steps checkpoint-freq))))]
          [checkpoints (make-vector num-checkpoints)])
         (vector-set! checkpoints 0 initial)
@@ -71,6 +76,7 @@ delegate to these implementations.")
 ;;; Roll out with substepping.
 ;;; substeps: number of sub-iterations per main step.
 (define (generic-rollout-substep initial step-fn num-steps substeps)
+  (doc 'export #t)
   (generic-rollout initial
                    (lambda (state) (generic-rollout state step-fn substeps))
                    num-steps))

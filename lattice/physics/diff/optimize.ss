@@ -40,17 +40,20 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; gradient-descent-step : (List Number) × (List Number) × Number → (List Number)
 ;;; Single gradient descent update: x = x - lr * grad
 (define (gradient-descent-step params grads learning-rate)
+  (doc 'export #t)
   (map (lambda (p g) (- p (* learning-rate g)))
        params grads))
 
 ;;; gradient-descent : ((List Number) → Number) × (List Number) × Number × Nat → (List Number)
 ;;; Vanilla gradient descent optimization. Delegates to sgd from first-order.ss.
 (define (gradient-descent loss-fn initial-params learning-rate max-iters)
+  (doc 'export #t)
   (sgd (lambda args (loss-fn args)) initial-params learning-rate max-iters))
 
 ;;; momentum-step : (List Number) × (List Number) × (List Number) × Number × Number → ((List Number) × (List Number))
 ;;; Momentum update: v = beta*v + grad, x = x - lr*v
 (define (momentum-step params grads velocity learning-rate beta)
+  (doc 'export #t)
   (let* ([new-velocity (map (lambda (v g) (+ (* beta v) g))
                             velocity grads)]
          [new-params (map (lambda (p v) (- p (* learning-rate v)))
@@ -60,6 +63,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; gradient-descent-momentum : ((List Number) → Number) × (List Number) × Number × Number × Nat → (List Number)
 ;;; Gradient descent with momentum.
 (define (gradient-descent-momentum loss-fn initial-params learning-rate beta max-iters)
+  (doc 'export #t)
   (let loop ([params initial-params]
              [velocity (map (lambda (_) 0) initial-params)]
              [iter 0])
@@ -74,6 +78,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; adam-step : (List Number) × (List Number) × (List Number) × (List Number) × Nat × Number × Number × Number × Number → (values (List Number) (List Number) (List Number))
 ;;; Single Adam optimizer update step.
 (define (adam-step params grads m v t learning-rate beta1 beta2 epsilon)
+  (doc 'export #t)
   (let* ([new-m (map (lambda (mi gi) (+ (* beta1 mi) (* (- 1 beta1) gi))) m grads)]
          [new-v (map (lambda (vi gi) (+ (* beta2 vi) (* (- 1 beta2) (* gi gi)))) v grads)]
          [m-hat (map (lambda (mi) (/ mi (- 1 (expt beta1 t)))) new-m)]
@@ -86,6 +91,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; adam : ((List Number) → Number) × (List Number) × Number × Nat → (List Number)
 ;;; Adam optimization with default hyperparameters.
 (define (adam loss-fn initial-params learning-rate max-iters)
+  (doc 'export #t)
   (let loop ([params initial-params]
              [m (map (lambda (_) 0) initial-params)]
              [v (map (lambda (_) 0) initial-params)]
@@ -109,6 +115,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;;   dt: timestep per observation
 ;;;   initial-guess: initial mass estimate
 (define (estimate-mass observations gravity dt initial-guess max-iters)
+  (doc 'export #t)
   (let* ([loss-fn
           (lambda (mass-list)
                   (let ([mass (car mass-list)])
@@ -143,6 +150,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;;   observations: list of (pos0, vel0, pos1, vel1) tuples
 ;;;   dt: timestep between observations
 (define (estimate-gravity observations dt initial-guess max-iters)
+  (doc 'export #t)
   (let* ([loss-fn
           (lambda (g-list)
                   (let ([gx (car g-list)]
@@ -177,12 +185,14 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; sensitivity : ((List Number) → Number) × (List Number) → (List Number)
 ;;; Compute gradient of loss w.r.t. parameters (same as gradient, but semantic).
 (define (sensitivity loss-fn params)
+  (doc 'export #t)
   (gradient (lambda args (apply loss-fn (list args))) params))
 
 ;;; hessian-diagonal : ((List Number) → Number) × (List Number) × Number → (List Number)
 ;;; Approximate diagonal of Hessian using finite differences of gradient.
 ;;; Shows curvature along each parameter dimension.
 (define (hessian-diagonal loss-fn params epsilon)
+  (doc 'export #t)
   (let ([grads (sensitivity loss-fn params)])
        (map (lambda (i)
                     (let* ([params+ (list-update params i (lambda (x) (+ x epsilon)))]
@@ -198,6 +208,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; How much does initial position affect final position?
 ;;; Returns (d(final-x)/d(init-x,y), d(final-y)/d(init-x,y)).
 (define (position-sensitivity body step-fn num-steps)
+  (doc 'export #t)
   (let* ([grads-x (gradient
                    (lambda (px py)
                            (with-fresh-ad-scope
@@ -242,6 +253,7 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; list-update : (List α) × Nat × (α → α) → (List α)
 ;;; Update element at index with function.
 (define (list-update lst idx f)
+  (doc 'export #t)
   (if (= idx 0)
       (cons (f (car lst)) (cdr lst))
       (cons (car lst) (list-update (cdr lst) (- idx 1) f))))
@@ -249,4 +261,5 @@ For trajectory optimization, prefer optic-optimize.ss which provides:
 ;;; print-optimization-progress : Nat × Number × (List Number) → Unit
 ;;; Print optimization iteration info (for debugging).
 (define (print-optimization-progress iter loss params)
+  (doc 'export #t)
   (printf "Iter ~a: loss=~a params=~a~n" iter loss params))

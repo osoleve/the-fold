@@ -21,6 +21,7 @@
 
 ;;; constraint-3d? : Any → Boolean
 (define (constraint-3d? c)
+  (doc 'export #t)
   (and (pair? c) (eq? (car c) 'constraint-3d)))
 
 ;;; Accessors
@@ -51,6 +52,7 @@
 
 ;;; constraint-3d-with-cached-lambda : Constraint3D × Any → Constraint3D
 (define (constraint-3d-with-cached-lambda c new-lambda)
+  (doc 'export #t)
   (make-constraint-3d (constraint-3d-type c)
                       (constraint-3d-id c)
                       (constraint-3d-entity-a c)
@@ -69,6 +71,7 @@
 
 ;;; make-distance-constraint-data-3d : Vec3 × Vec3 × Number → DistanceData3D
 (define (make-distance-constraint-data-3d local-anchor-a local-anchor-b target-distance)
+  (doc 'export #t)
   (list local-anchor-a local-anchor-b target-distance))
 
 ;;; distance-data-3d-anchor-a : DistanceData3D → Vec3
@@ -89,6 +92,7 @@
 
 ;;; make-ball-socket-constraint-data-3d : Vec3 × Vec3 → BallSocketData3D
 (define (make-ball-socket-constraint-data-3d local-anchor-a local-anchor-b)
+  (doc 'export #t)
   (list local-anchor-a local-anchor-b))
 
 ;;; ball-socket-data-3d-anchor-a : BallSocketData3D → Vec3
@@ -106,6 +110,7 @@
 
 ;;; make-hinge-constraint-data-3d : Vec3 × Vec3 × Vec3 × Vec3 → HingeData3D
 (define (make-hinge-constraint-data-3d local-anchor-a local-anchor-b local-axis-a local-axis-b)
+  (doc 'export #t)
   (list local-anchor-a local-anchor-b local-axis-a local-axis-b))
 
 ;;; hinge-data-3d-anchor-a : HingeData3D → Vec3
@@ -129,6 +134,7 @@
 
 ;;; make-fixed-constraint-data-3d : Vec3 × Vec3 × Quat → FixedData3D
 (define (make-fixed-constraint-data-3d local-anchor-a local-anchor-b reference-orientation)
+  (doc 'export #t)
   (list local-anchor-a local-anchor-b reference-orientation))
 
 ;;; fixed-data-3d-anchor-a : FixedData3D → Vec3
@@ -176,6 +182,7 @@
 
 ;;; make-anchor-constraint-data-3d : Vec3 × Vec3 → AnchorData3D
 (define (make-anchor-constraint-data-3d local-anchor world-target)
+  (doc 'export #t)
   (list local-anchor world-target))
 
 ;;; anchor-data-3d-local-anchor : AnchorData3D → Vec3
@@ -192,6 +199,7 @@
 ;;; Transform a local point to world coordinates using body position and orientation.
 ;;; world = pos + rotate(local, orientation)
 (define (local-to-world-3d body local-point)
+  (doc 'export #t)
   ;; Requires the body to have a position accessor and orientation accessor
   ;; For now, assume body has (rigid-body-3d-pos body) and (rigid-body-3d-orientation body)
   ;; This will be resolved when integrated with rigid-body3d.ss
@@ -204,6 +212,7 @@
 ;;; Transform a world point to local coordinates.
 ;;; local = rotate(world - pos, conjugate(orientation))
 (define (world-to-local-3d body world-point)
+  (doc 'export #t)
   (let* ([pos (rigid-body-3d-pos body)]
          [orient (rigid-body-3d-orientation body)]
          [q-inv (quat-conjugate orient)]
@@ -213,6 +222,7 @@
 ;;; local-dir-to-world-3d : RigidBody3D × Vec3 → Vec3
 ;;; Transform a local direction to world coordinates (no translation).
 (define (local-dir-to-world-3d body local-dir)
+  (doc 'export #t)
   (let ([orient (rigid-body-3d-orientation body)])
        (quat-rotate-vec3 orient local-dir)))
 
@@ -241,6 +251,7 @@
 
 ;;; make-distance-constraint-stub-3d : Any × Any × Any × Vec3 × Vec3 × Number → Constraint3D
 (define (make-distance-constraint-stub-3d id entity-a entity-b local-anchor-a local-anchor-b distance)
+  (doc 'export #t)
   (make-constraint-3d 'distance-3d id entity-a entity-b
                       (make-distance-constraint-data-3d local-anchor-a local-anchor-b distance)
                       #f #f  ; solvers attached by constraint-solver3d.ss
@@ -248,6 +259,7 @@
 
 ;;; make-ball-socket-constraint-stub-3d : Any × Any × Any × Vec3 × Vec3 → Constraint3D
 (define (make-ball-socket-constraint-stub-3d id entity-a entity-b local-anchor-a local-anchor-b)
+  (doc 'export #t)
   (make-constraint-3d 'ball-socket-3d id entity-a entity-b
                       (make-ball-socket-constraint-data-3d local-anchor-a local-anchor-b)
                       #f #f
@@ -286,6 +298,7 @@
 ;;; make-anchor-constraint-stub-3d : Any × Any × Vec3 × Vec3 → Constraint3D
 ;;; Pin entity to a world point (entity-b is #f).
 (define (make-anchor-constraint-stub-3d id entity-a local-anchor world-target)
+  (doc 'export #t)
   (make-constraint-3d 'anchor-3d id entity-a #f
                       (make-anchor-constraint-data-3d local-anchor world-target)
                       #f #f

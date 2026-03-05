@@ -28,6 +28,7 @@
 ;;; poly? : Any → Boolean
 ;;; Check if value is a polynomial.
 (define (poly? p)
+  (doc 'export #t)
   (and (pair? p)
        (eq? (car p) 'poly)
        (vector? (cadr p))
@@ -37,28 +38,33 @@
 ;;; Create polynomial from coefficient vector (descending powers).
 ;;; Automatically strips leading zeros.
 (define (make-poly coeffs)
+  (doc 'export #t)
   (let ([stripped (poly-strip-leading-zeros coeffs)])
        (list 'poly stripped)))
 
 ;;; poly-coeffs : Poly → Vector
 ;;; Get the coefficient vector.
 (define (poly-coeffs p)
+  (doc 'export #t)
   (cadr p))
 
 ;;; poly-degree : Poly → Nat
 ;;; Get the degree of the polynomial.
 ;;; Note: zero polynomial has degree 0 by convention.
 (define (poly-degree p)
+  (doc 'export #t)
   (max 0 (- (vector-length (poly-coeffs p)) 1)))
 
 ;;; poly-leading : Poly → Number
 ;;; Get the leading (highest-degree) coefficient.
 (define (poly-leading p)
+  (doc 'export #t)
   (vector-ref (poly-coeffs p) 0))
 
 ;;; poly-coeff : Poly × Nat → Number
 ;;; Get coefficient of x^k (power notation, not index).
 (define (poly-coeff p k)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs p)]
          [n (vector-length coeffs)]
          [idx (- n k 1)])
@@ -69,6 +75,7 @@
 ;;; poly-strip-leading-zeros : Vector → Vector
 ;;; Remove leading zero coefficients, preserving at least one element.
 (define (poly-strip-leading-zeros coeffs)
+  (doc 'export #t)
   (let ([n (vector-length coeffs)])
        (let loop ([i 0])
             (cond
@@ -85,21 +92,25 @@
 ;;; poly-from-list : (List Number) → Poly
 ;;; Create polynomial from list of coefficients (descending powers).
 (define (poly-from-list lst)
+  (doc 'export #t)
   (make-poly (list->vector lst)))
 
 ;;; poly-zero : → Poly
 ;;; The zero polynomial.
 (define (poly-zero)
+  (doc 'export #t)
   (make-poly (vector 0)))
 
 ;;; poly-one : → Poly
 ;;; The constant polynomial 1.
 (define (poly-one)
+  (doc 'export #t)
   (make-poly (vector 1)))
 
 ;;; poly-monomial : Number × Nat → Poly
 ;;; Create a monomial c*x^n.
 (define (poly-monomial coeff degree)
+  (doc 'export #t)
   (if (zero? coeff)
       (poly-zero)
       (make-poly
@@ -112,6 +123,7 @@
 ;;; Roots can be real numbers or complex numbers.
 ;;; Complex roots with nonzero imaginary parts must come in conjugate pairs.
 (define (poly-from-roots roots . opts)
+  (doc 'export #t)
   (let ([gain (if (null? opts) 1 (car opts))])
        (if (null? roots)
            (make-poly (vector gain))
@@ -119,6 +131,7 @@
 
 ;;; poly-from-roots-helper : (List Complex|Number) → Poly
 (define (poly-from-roots-helper roots)
+  (doc 'export #t)
   (if (null? roots)
       (make-poly (vector 1))
       (let ([r (car roots)]
@@ -156,6 +169,7 @@
 ;;; p(x) = a_n*x^n + ... + a_0
 ;;;      = (...((a_n*x + a_{n-1})*x + a_{n-2})*x + ...) + a_0
 (define (poly-eval p x)
+  (doc 'export #t)
   (let ([coeffs (poly-coeffs p)]
         [n (vector-length (poly-coeffs p))])
        (let loop ([i 0] [result 0])
@@ -166,6 +180,7 @@
 ;;; poly-eval-complex : Poly × Complex → Complex
 ;;; Evaluate polynomial at complex value z using Horner's method.
 (define (poly-eval-complex p z)
+  (doc 'export #t)
   (let ([coeffs (poly-coeffs p)]
         [n (vector-length (poly-coeffs p))])
        (let loop ([i 0] [result (make-complex 0 0)])
@@ -183,6 +198,7 @@
 ;;; poly-add : Poly × Poly → Poly
 ;;; Add two polynomials.
 (define (poly-add p1 p2)
+  (doc 'export #t)
   (let* ([c1 (poly-coeffs p1)]
          [c2 (poly-coeffs p2)]
          [n1 (vector-length c1)]
@@ -203,11 +219,13 @@
 ;;; poly-sub : Poly × Poly → Poly
 ;;; Subtract two polynomials.
 (define (poly-sub p1 p2)
+  (doc 'export #t)
   (poly-add p1 (poly-scale p2 -1)))
 
 ;;; poly-scale : Poly × Number → Poly
 ;;; Multiply polynomial by scalar.
 (define (poly-scale p k)
+  (doc 'export #t)
   (let ([coeffs (poly-coeffs p)])
     (make-poly
       (vec-tabulate (vector-length coeffs) i
@@ -216,6 +234,7 @@
 ;;; poly-mul : Poly × Poly → Poly
 ;;; Multiply two polynomials (convolution of coefficients).
 (define (poly-mul p1 p2)
+  (doc 'export #t)
   (let* ([c1 (poly-coeffs p1)]
          [c2 (poly-coeffs p2)]
          [n1 (vector-length c1)]
@@ -235,6 +254,7 @@
 ;;; poly-normalize : Poly → Poly
 ;;; Normalize to monic form (leading coefficient = 1).
 (define (poly-normalize p)
+  (doc 'export #t)
   (let ([lead (poly-leading p)])
        (if (zero? lead)
            p
@@ -245,6 +265,7 @@
 ;;; For p(x) = a_n*x^n + ... + a_1*x + a_0,
 ;;; p'(x) = n*a_n*x^{n-1} + ... + a_1
 (define (poly-derivative p)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs p)]
          [n (vector-length coeffs)])
         (if (<= n 1)
@@ -275,6 +296,7 @@
 ;;;
 ;;; The eigenvalues of this matrix are the roots of the polynomial.
 (define (poly-roots p)
+  (doc 'export #t)
   (let* ([pn (poly-normalize p)]  ; Make monic
          [coeffs (poly-coeffs pn)]
          [n (- (vector-length coeffs) 1)])  ; Degree
@@ -290,6 +312,7 @@
 ;;; poly-roots-quadratic : Vector → (List Complex)
 ;;; Solve x^2 + bx + c = 0 (monic form).
 (define (poly-roots-quadratic coeffs)
+  (doc 'export #t)
   (let* ([b (vector-ref coeffs 1)]
          [c (vector-ref coeffs 2)]
          [disc (- (* b b) (* 4 c))])
@@ -318,6 +341,7 @@
 ;;;
 ;;; The eigenvalues of C are the roots of p(x).
 (define (poly-roots-companion p n)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs p)]
          ;; Build Frobenius companion matrix
          [C (make-matrix n n 0)])
@@ -349,6 +373,7 @@
 ;;; Extract complex eigenvalues from QR algorithm result.
 ;;; eig-vec has real parts, complex-info has (index real imag) tuples.
 (define (poly-extract-complex-eigenvalues eig-vec complex-info)
+  (doc 'export #t)
   (let* ([n (vector-length eig-vec)]
          ;; Mark indices that are part of complex pairs
          [complex-indices
@@ -378,6 +403,7 @@
 ;;; Generate logarithmically spaced points from 10^start to 10^stop.
 ;;; Returns n points (inclusive of endpoints).
 (define (logspace start stop n)
+  (doc 'export #t)
   (if (< n 2)
       (vector (expt 10 start))
       (let ([step (/ (- stop start) (- n 1))])
@@ -388,6 +414,7 @@
 ;;; Generate linearly spaced points from start to stop.
 ;;; Returns n points (inclusive of endpoints).
 (define (linspace start stop n)
+  (doc 'export #t)
   (if (< n 2)
       (vector start)
       (let ([step (/ (- stop start) (- n 1))])
@@ -401,6 +428,7 @@
 ;;; poly->string : Poly → String
 ;;; Pretty-print polynomial.
 (define (poly->string p)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs p)]
          [n (vector-length coeffs)]
          [deg (- n 1)])
@@ -418,6 +446,7 @@
 
 ;;; poly-term->string : Number × Nat × Boolean → String
 (define (poly-term->string c power first?)
+  (doc 'export #t)
   (cond
    [(zero? c) ""]
    [(= power 0)

@@ -22,6 +22,7 @@
 
 (doc 'section 'unnormalized-laplacian)
 (define (laplacian adj)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix))
   (doc 'description "Compute unnormalized Laplacian: L = D - A")
   (doc 'note "L[i,i] = degree(i), L[i,j] = -A[i,j] for i ≠ j")
@@ -32,6 +33,7 @@
         (matrix-sub d a)))
 
 (define (laplacian-from-edges edges . opts)
+  (doc 'export #t)
   (doc 'type '(-> (List Edge) Nat Matrix))
   (doc 'description "Create Laplacian directly from edge list (undirected)")
   (let ([n (if (null? opts) #f (car opts))])
@@ -40,6 +42,7 @@
 (doc 'section 'normalized-laplacian)
 
 (define (laplacian-normalized adj)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Matrix))
   (doc 'description "Normalized symmetric Laplacian: L_sym = I - D^(-1/2) A D^(-1/2)")
   (doc 'note "Eigenvalues in [0, 2] for undirected graphs")
@@ -93,6 +96,7 @@
 ;;; Note: Isolated nodes (degree 0) cause division by zero.
 ;;; This function assigns 0 to rows of isolated nodes.
 (define (laplacian-random-walk adj)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [a (if (sparse-csr? adj)
                 (sparse-csr->dense adj)
@@ -137,6 +141,7 @@
 ;;; For optimization purposes, we compute eigenvalues of the Laplacian
 ;;; and return the second smallest one.
 (define (algebraic-connectivity adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
@@ -158,6 +163,7 @@
 ;;;
 ;;; Returns the eigenvector corresponding to λ_2.
 (define (fiedler-vector adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [n (matrix-rows L)]
          ;; Use symmetric-eigen since Laplacian is symmetric
@@ -173,6 +179,7 @@
 ;;; second-smallest-index : (Vec Real) → Nat
 ;;; Find index of second smallest element in vector.
 (define (second-smallest-index v)
+  (doc 'export #t)
   (let ([n (vector-length v)])
        (if (< n 2)
            0
@@ -207,6 +214,7 @@
 ;;; Uses relative tolerance based on largest eigenvalue to handle
 ;;; numerical precision issues across different graph scales.
 (define (laplacian-connected-components adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
@@ -241,6 +249,7 @@
 ;;;
 ;;; Returns: (partition-A . partition-B) where each is a list of node indices.
 (define (spectral-partition adj)
+  (doc 'export #t)
   (let ([fiedler (fiedler-vector adj)])
        (if (and (pair? fiedler) (eq? (car fiedler) 'error))
            fiedler
@@ -256,6 +265,7 @@
 ;;; Extract the induced subgraph containing only the specified nodes.
 ;;; Returns a new adjacency matrix with nodes renumbered 0..n-1.
 (define (extract-induced-subgraph adj nodes)
+  (doc 'export #t)
   (let* ([n (length nodes)]
          [node-vec (list->vector nodes)]
          [result (make-matrix n n 0)])
@@ -272,6 +282,7 @@
 ;;; remap-partition : (List Nat) × (List Nat) → (List Nat)
 ;;; Remap local node indices back to original node indices.
 (define (remap-partition local-nodes original-nodes)
+  (doc 'export #t)
   (let ([node-vec (list->vector original-nodes)])
        (map (lambda (local-idx) (vector-ref node-vec local-idx))
             local-nodes)))
@@ -287,6 +298,7 @@
 ;;;   2. Split nodes by sign of Fiedler components
 ;;;   3. Recursively partition each half with proper subgraph extraction
 (define (spectral-partition-k adj k)
+  (doc 'export #t)
   (let ([n (adjacency-matrix-node-count adj)])
        (if (<= k 1)
            ;; Base case: return all nodes as one partition
@@ -318,6 +330,7 @@
 ;;; Partition a subgraph induced by given nodes using recursive bisection.
 ;;; Extracts the induced subgraph and recomputes Fiedler vector.
 (define (subgraph-partition adj nodes k)
+  (doc 'export #t)
   (cond
    [(<= k 1) (list nodes)]
    [(<= (length nodes) 1) (list nodes)]
@@ -354,6 +367,7 @@
 ;;; laplacian-trace : (Matrix Real) → Real
 ;;; Compute trace of Laplacian (= 2 x number of edges for undirected).
 (define (laplacian-trace L)
+  (doc 'export #t)
   (let ([n (matrix-rows L)])
        (let loop ([i 0] [sum 0])
             (if (= i n)
@@ -363,6 +377,7 @@
 ;;; laplacian-energy : (Matrix Real) → Real
 ;;; Compute Laplacian energy (sum of absolute eigenvalues).
 (define (laplacian-energy adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
@@ -377,11 +392,13 @@
 ;;; Compute spectral gap (lambda_2 - lambda_1 = lambda_2 for Laplacian since lambda_1 = 0).
 ;;; This is the same as algebraic connectivity for connected graphs.
 (define (spectral-gap adj)
+  (doc 'export #t)
   (algebraic-connectivity adj))
 
 ;;; spectral-radius-laplacian : (Matrix Real) → Real
 ;;; Compute spectral radius (largest eigenvalue) of Laplacian.
 (define (spectral-radius-laplacian adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [result (power-iteration L)])
         (if (and (pair? result) (eq? (car result) 'error))
@@ -396,6 +413,7 @@
 ;;; Compute largest eigenvalue of Laplacian.
 ;;; For d-regular graphs, lambda_max <= 2d.
 (define (laplacian-max-eigenvalue adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [eigs (eigenvalues L)])
         (if (and (pair? eigs) (eq? (car eigs) 'error))
@@ -413,6 +431,7 @@
 ;;; A connected graph is bipartite if and only if lambda_max = 2 x d_max
 ;;; (for the normalized Laplacian, lambda_max = 2 iff bipartite).
 (define (is-bipartite-spectral? adj . opts)
+  (doc 'export #t)
   (let* ([tol (if (null? opts) 1e-6 (car opts))]
          [L-norm (laplacian-normalized adj)]
          [eigs (eigenvalues L-norm)])
@@ -443,6 +462,7 @@
 ;;; Note: This is computationally expensive as it requires
 ;;; eigendecomposition. For many queries, precompute L^+.
 (define (effective-resistance adj i j)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [n (matrix-rows L)]
          [result (symmetric-eigen L)])
@@ -472,6 +492,7 @@
 ;;;
 ;;; The Kirchhoff index is a measure of overall graph connectivity.
 (define (total-effective-resistance adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [n (matrix-rows L)]
          [eigs (eigenvalues L)])
@@ -493,6 +514,7 @@
 ;;; laplacian-summary : (Matrix Real) → (List (Symbol × α))
 ;;; Compute summary statistics of the Laplacian spectrum.
 (define (laplacian-summary adj)
+  (doc 'export #t)
   (let* ([L (laplacian adj)]
          [n (matrix-rows L)]
          [eigs (eigenvalues L)])
@@ -525,6 +547,7 @@
 ;;;
 ;;; Returns: Vector of cluster labels (0 to k-1)
 (define (spectral-clustering adj k)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [L-sym (laplacian-normalized adj)]
          ;; Get eigendecomposition
@@ -546,6 +569,7 @@
 ;;; Uses unnormalized Laplacian L = D - A.
 ;;; Simpler but less robust to varying node degrees.
 (define (spectral-clustering-unnorm adj k)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [L (laplacian adj)]
          [result (symmetric-eigen L)])
@@ -560,6 +584,7 @@
 ;;; k-smallest-indices : (Vector Real) × Nat → (List Nat)
 ;;; Find indices of k smallest values in vector.
 (define (k-smallest-indices v k)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          ;; Create list of (value . index) pairs
          [pairs (let loop ([i 0] [acc '()])
@@ -580,6 +605,7 @@
 ;;; Each row is a point (node), each column is an eigenvector coordinate.
 ;;; Rows are normalized to unit length for Ng-Jordan-Weiss algorithm.
 (define (spectral-embedding eigenvectors k-indices n)
+  (doc 'export #t)
   (let* ([k (length k-indices)]
          [idx-vec (list->vector k-indices)]
          [result (make-matrix n k 0)])
@@ -613,6 +639,7 @@
 ;;;
 ;;; Uses k-means++ initialization for better starting points.
 (define (kmeans-cluster points k . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows points)]
          [d (matrix-cols points)]
          [max-iter (if (pair? opts) (car opts) 100)]
@@ -643,6 +670,7 @@
 ;;; Farthest-point initialization (Hochbaum-Shmoys): deterministically
 ;;; choose the point with maximum squared distance from existing centroids.
 (define (kmeans-init-pp points k)
+  (doc 'export #t)
   (let* ([n (matrix-rows points)]
          [d (matrix-cols points)]
          [centroids (make-matrix k d 0)]
@@ -681,6 +709,7 @@
 ;;; nearest-centroid : Matrix × Nat × Matrix × Nat × Nat → Nat
 ;;; Find index of nearest centroid to point i.
 (define (nearest-centroid points i centroids k d)
+  (doc 'export #t)
   (let loop ([c 0] [min-c 0] [min-dist +inf.0])
     (if (= c k)
         min-c
@@ -692,6 +721,7 @@
 ;;; point-centroid-distance : Matrix × Nat × Matrix × Nat × Nat → Real
 ;;; Compute squared Euclidean distance from point to centroid.
 (define (point-centroid-distance points i centroids c d)
+  (doc 'export #t)
   (let loop ([j 0] [sum 0])
     (if (= j d)
         sum
@@ -702,6 +732,7 @@
 ;;; Recompute centroids as mean of assigned points.
 ;;; Empty clusters are reinitialized to the point furthest from all centroids.
 (define (recompute-centroids points labels k d n)
+  (doc 'export #t)
   (let ([centroids (make-matrix k d 0)]
         [counts (make-vector k 0)])
     ;; Sum points per cluster
@@ -732,6 +763,7 @@
 ;;; find-furthest-point : Matrix × Matrix × Nat × Nat × Nat × Nat → Nat
 ;;; Find point index with maximum distance from all current centroids.
 (define (find-furthest-point points centroids skip-c k d n)
+  (doc 'export #t)
   (let loop ([i 0] [max-idx 0] [max-dist 0])
     (if (= i n)
         max-idx
@@ -755,6 +787,7 @@
 ;;; centroids-converged? : Matrix × Matrix × Nat × Nat × Real → Boolean
 ;;; Check if centroids have converged (total movement < tolerance).
 (define (centroids-converged? old new k d tol)
+  (doc 'export #t)
   (let loop ([c 0] [total 0])
     (if (= c k)
         (< total tol)
@@ -768,6 +801,7 @@
 ;;; copy-matrix! : Matrix × Matrix × Nat × Nat → Void
 ;;; Copy src matrix to dst.
 (define (copy-matrix! src dst rows cols)
+  (doc 'export #t)
   (do ([i 0 (+ i 1)])
       ((= i rows))
     (do ([j 0 (+ j 1)])
@@ -789,6 +823,7 @@
 ;;; Lower conductance = better cut (sparser connection between clusters).
 ;;; Returns 0 if S or S̄ is empty or has zero volume.
 (define (conductance adj nodes)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [node-set (nodes->bitvec nodes n)])
     ;; Calculate all metrics in one pass
@@ -818,6 +853,7 @@
 ;;; nodes->bitvec : (List Nat) × Nat → Vector
 ;;; Convert list of node indices to boolean vector.
 (define (nodes->bitvec nodes n)
+  (doc 'export #t)
   (let ([s (make-vector n #f)])
     (for-each (lambda (i) (when (< i n) (vector-set! s i #t))) nodes)
     s))
@@ -829,6 +865,7 @@
 ;;;
 ;;; Minimizing ratio cut leads to balanced partitions.
 (define (ratio-cut adj nodes)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [node-set (nodes->bitvec nodes n)]
          [size-s (length nodes)]
@@ -860,6 +897,7 @@
 ;;;
 ;;; This is the objective minimized by normalized spectral clustering.
 (define (normalized-cut adj nodes)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [node-set (nodes->bitvec nodes n)])
     ;; Calculate cut and volumes in one pass

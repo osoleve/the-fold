@@ -44,6 +44,7 @@
 ;;; Check if expression satisfies a type constraint.
 ;;; Errors on unknown constraints to catch typos.
 (define (check-constraint constraint expr)
+  (doc 'export #t)
   (case constraint
         [(number) (number? expr)]
         [(symbol) (symbol? expr)]
@@ -62,6 +63,7 @@
 ;;; Match a pattern against an expression, extending the environment.
 ;;; Returns updated environment on success, #f on failure.
 (define (match-pattern pattern expr env)
+  (doc 'export #t)
   (cond
    ;; Metavariable: (?x) or (?x constraint)
    [(metavar? pattern)
@@ -85,6 +87,7 @@
 ;;; match-metavar : Pattern × Expr × Env → Env | #f
 ;;; Handle metavariable matching with constraint checking.
 (define (match-metavar pattern expr env)
+  (doc 'export #t)
   (let* ([var (metavar-name pattern)]
          [constraint (metavar-constraint pattern)]
          [bound (assq var env)])
@@ -109,6 +112,7 @@
 ;;; substitute-template : Template × Env → Expr
 ;;; Replace metavariables in template with their bound values.
 (define (substitute-template template env)
+  (doc 'export #t)
   (cond
    ;; Metavariable: look up in environment
    [(metavar? template)
@@ -135,6 +139,7 @@
 ;;; Try to apply a rule at the root of an expression.
 ;;; Returns (result . bindings) on success, #f on failure.
 (define (apply-rule rule expr)
+  (doc 'export #t)
   (let ([bindings (match-pattern (rule-lhs rule) expr '())])
        (if bindings
            (let ([result (substitute-template (rule-rhs rule) bindings)])
@@ -144,6 +149,7 @@
 ;;; apply-rule-name : Symbol × Expr × Registry → (Expr . Bindings) | #f
 ;;; Apply a named rule from a registry.
 (define (apply-rule-name name expr registry)
+  (doc 'export #t)
   (let ([rule (hashtable-ref registry name #f)])
        (if rule
            (apply-rule rule expr)
@@ -164,17 +170,20 @@
 ;;; Get the subexpression at a position.
 ;;; Uses sexp-zipper for efficient navigation.
 (define (expr-at expr pos)
+  (doc 'export #t)
   (sexp-at expr pos))
 
 ;;; expr-set-at : Expr × Position × Expr → Expr
 ;;; Replace the subexpression at a position.
 ;;; Uses sexp-zipper for efficient modification.
 (define (expr-set-at expr pos new-subexpr)
+  (doc 'export #t)
   (sexp-set-at expr pos new-subexpr))
 
 ;;; apply-rule-at : Rule × Expr × Position → Expr | #f
 ;;; Apply a rule at a specific position.
 (define (apply-rule-at rule expr position)
+  (doc 'export #t)
   (let* ([subexpr (expr-at expr position)]
          [result (apply-rule rule subexpr)])
         (if result
@@ -189,11 +198,13 @@
 ;;; Get all positions in an expression tree.
 ;;; Uses sexp-zipper for efficient enumeration.
 (define (find-all-positions expr)
+  (doc 'export #t)
   (sexp-all-positions expr))
 
 ;;; apply-rule-anywhere : Rule × Expr → (List (Expr × Position × Bindings))
 ;;; Find all positions where a rule can apply.
 (define (apply-rule-anywhere rule expr)
+  (doc 'export #t)
   (let ([positions (find-all-positions expr)])
        (filter-map
         (lambda (pos)
@@ -226,6 +237,7 @@
 ;;; seq : Strategy × Strategy → Strategy
 ;;; Sequential composition: apply s1, then s2 to result.
 (define (seq s1 s2)
+  (doc 'export #t)
   (lambda (expr)
           (let ([r1 (s1 expr)])
                (and r1 (s2 r1)))))
@@ -233,12 +245,14 @@
 ;;; choice : Strategy × Strategy → Strategy
 ;;; Choice: try s1, if fails try s2.
 (define (choice s1 s2)
+  (doc 'export #t)
   (lambda (expr)
           (or (s1 expr) (s2 expr))))
 
 ;;; try : Strategy → Strategy
 ;;; Try: apply strategy, but succeed with identity if it fails.
 (define (try s)
+  (doc 'export #t)
   (lambda (expr)
           (or (s expr) expr)))
 
@@ -265,6 +279,7 @@
 ;;; repeat-n : Strategy × Nat → Strategy
 ;;; Repeat at most n times.
 (define (repeat-n s n)
+  (doc 'export #t)
   (lambda (expr)
           (let loop ([current expr] [count 0])
                (if (>= count n)
@@ -281,6 +296,7 @@
 ;;; map-children : Strategy × Expr → Expr | #f
 ;;; Apply strategy to all immediate children.
 (define (map-children s expr)
+  (doc 'export #t)
   (if (pair? expr)
       (let loop ([lst expr] [acc '()] [changed? #f])
            (if (null? lst)
@@ -294,6 +310,7 @@
 ;;; all-children : Strategy × Expr → Expr | #f
 ;;; Apply strategy to all children; fail if any child fails.
 (define (all-children s expr)
+  (doc 'export #t)
   (if (pair? expr)
       (let loop ([lst expr] [acc '()])
            (if (null? lst)
@@ -307,6 +324,7 @@
 ;;; topdown : Strategy → Strategy
 ;;; Apply strategy at root, then recurse on children.
 (define (topdown s)
+  (doc 'export #t)
   (lambda (expr)
           (let ([result (s expr)])
                (let ([current (or result expr)])
@@ -315,6 +333,7 @@
 ;;; bottomup : Strategy → Strategy
 ;;; Recurse on children first, then apply strategy at root.
 (define (bottomup s)
+  (doc 'export #t)
   (lambda (expr)
           (let ([mapped (map-children (bottomup s) expr)])
                (or (s mapped) mapped))))
@@ -322,11 +341,13 @@
 ;;; innermost : Strategy → Strategy
 ;;; Apply strategy innermost-first (exhaustive).
 (define (innermost s)
+  (doc 'export #t)
   (repeat (bottomup (try s))))
 
 ;;; outermost : Strategy → Strategy
 ;;; Apply strategy outermost-first (exhaustive).
 (define (outermost s)
+  (doc 'export #t)
   (repeat (topdown (try s))))
 
 ;;; ====
@@ -336,6 +357,7 @@
 ;;; rule->strategy : Rule → Strategy
 ;;; Convert a rule into a strategy that applies it at root.
 (define (rule->strategy rule)
+  (doc 'export #t)
   (lambda (expr)
           (let ([result (apply-rule rule expr)])
                (and result (car result)))))
@@ -343,6 +365,7 @@
 ;;; rules->strategy : (List Rule) → Strategy
 ;;; Try each rule in order until one succeeds.
 (define (rules->strategy rules)
+  (doc 'export #t)
   (if (null? rules)
       fail-strategy
       (choice (rule->strategy (car rules))
@@ -355,6 +378,7 @@
 ;;; rewrite-with-trace : Rule × Expr → Trace
 ;;; Apply a rule and return a trace.
 (define (rewrite-with-trace rule expr)
+  (doc 'export #t)
   (let ([trace (make-trace expr)]
         [result (apply-rule rule expr)])
        (if result
@@ -365,6 +389,7 @@
 ;;; rewrite-steps : (List Symbol) × Expr × Registry → Trace
 ;;; Apply a sequence of named rules, building a trace.
 (define (rewrite-steps rule-names expr registry)
+  (doc 'export #t)
   (let loop ([trace (make-trace expr)]
              [current expr]
              [names rule-names])
@@ -388,6 +413,7 @@
 ;;; Apply a strategy exhaustively with fuel limit, building trace.
 ;;; Note: This is a simplified version that doesn't track individual steps.
 (define (simplify-with-trace strategy expr fuel)
+  (doc 'export #t)
   (let ([trace (make-trace expr)])
        (let loop ([current expr] [remaining fuel])
             (if (= remaining 0)

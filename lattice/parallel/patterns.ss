@@ -27,6 +27,7 @@ The boundary layer interprets these plans against the thread pool.")
 (doc 'section 'divide-and-conquer)
 
 (define (par-divide-and-conquer divisible? divide combine base-case thunks fuel)
+  (doc 'export #t)
   (doc 'type '(-> (-> (List Thunk) Boolean)
                   (-> (List Thunk) (Values (List Thunk) (List Thunk)))
                   Symbol
@@ -63,6 +64,7 @@ Returns a plan:tree of nested plan:par and base-case plans.")
 (doc 'section 'parallel-reduction)
 
 (define (par-reduce combiner thunks fuel)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Thunk) Nat Plan))
   (doc 'description "Parallel associative reduction.
 
@@ -94,6 +96,7 @@ Requires >= 2 thunks for parallelism; single thunk returns plan:seq.
 (doc 'section 'parallel-prefix-scan)
 
 (define (par-scan combiner thunks fuel)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Thunk) Nat Plan))
   (doc 'description "Blelloch-style parallel prefix scan skeleton.
 
@@ -115,6 +118,7 @@ Each stage is a balanced tree matching par-reduce's shape.")
                          (cons 'down-sweep (plan-thunks-deep down-plan)))))))
 
 (define (plan-thunks-deep plan)
+  (doc 'export #t)
   (doc 'type '(-> Plan (List Thunk)))
   (doc 'description "Collect all thunks from a plan, recursing into sub-plans.")
   (case (plan-type plan)
@@ -129,6 +133,7 @@ Each stage is a balanced tree matching par-reduce's shape.")
 (doc 'section 'parallel-pipeline)
 
 (define (par-pipeline stages fuel)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair Symbol (List Thunk))) Nat Plan))
   (doc 'description "Multi-stage streaming pipeline.
 
@@ -145,6 +150,7 @@ its thunks in parallel, with inter-stage synchronization.
 (doc 'section 'parallel-sort)
 
 (define (par-sort thunks fuel)
+  (doc 'export #t)
   (doc 'type '(-> (List Thunk) Nat Plan))
   (doc 'description "Parallel merge sort skeleton.
 
@@ -171,6 +177,7 @@ Produces a plan:tree of nested merges.")
 
 ;;; Utility: list-head (take first n elements)
 (define (list-head lst n)
+  (doc 'export #t)
   (doc 'type '(-> (List a) Nat (List a)))
   (if (or (zero? n) (null? lst))
       '()

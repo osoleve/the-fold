@@ -37,12 +37,14 @@ Supports: max-flow computation, min-cut extraction, bipartite matching.")
 (doc make-flow-network 'type '(-> Nat FlowNetwork))
 (doc make-flow-network 'description "Create an empty flow network with n nodes.")
 (define (make-flow-network n)
+  (doc 'export #t)
   (let ([adj (make-vector n '())])
     (list 'flow-network n adj)))
 
 (doc flow-network? 'type '(-> Any Boolean))
 (doc flow-network? 'description "Check if value is a flow network.")
 (define (flow-network? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'flow-network)
        (pair? (cdr x))
@@ -51,11 +53,13 @@ Supports: max-flow computation, min-cut extraction, bipartite matching.")
 (doc flow-network-size 'type '(-> FlowNetwork Nat))
 (doc flow-network-size 'description "Number of nodes in the flow network.")
 (define (flow-network-size net)
+  (doc 'export #t)
   (cadr net))
 
 (doc flow-network-adj 'type '(-> FlowNetwork Vector))
 (doc flow-network-adj 'description "Adjacency vector of the flow network.")
 (define (flow-network-adj net)
+  (doc 'export #t)
   (caddr net))
 
 ;;; Edge accessors
@@ -76,6 +80,7 @@ Supports: max-flow computation, min-cut extraction, bipartite matching.")
 (doc flow-network-add-edge! 'description "Add a directed edge from u to v with given capacity.
 Creates both the forward edge and its residual reverse edge.")
 (define (flow-network-add-edge! net u v cap)
+  (doc 'export #t)
   (let* ([adj (flow-network-adj net)]
          [u-edges (vector-ref adj u)]
          [v-edges (vector-ref adj v)]
@@ -90,6 +95,7 @@ Creates both the forward edge and its residual reverse edge.")
 (doc flow-network-edges 'description "Return all forward edges as (from to capacity flow) lists.
 Excludes residual-only edges (those with capacity 0).")
 (define (flow-network-edges net)
+  (doc 'export #t)
   (let ([adj (flow-network-adj net)]
         [n (flow-network-size net)])
     (let loop-u ([u 0] [result '()])
@@ -109,6 +115,7 @@ Excludes residual-only edges (those with capacity 0).")
 (doc flow-network-flow-on-edge 'type '(-> FlowNetwork Nat Nat Nat))
 (doc flow-network-flow-on-edge 'description "Query flow on edge u->v. Returns 0 if edge not found.")
 (define (flow-network-flow-on-edge net u v)
+  (doc 'export #t)
   (let ([edges (vector-ref (flow-network-adj net) u)])
     (let loop ([es edges])
       (cond
@@ -185,6 +192,7 @@ Time: O(VE²). Space: O(V+E).")
 (doc max-flow 'param 'source "Source node index")
 (doc max-flow 'param 'sink "Sink node index")
 (define (max-flow net source sink)
+  (doc 'export #t)
   (if (= source sink)
       0
       (let ([adj (flow-network-adj net)]
@@ -233,6 +241,7 @@ IMPORTANT: Call max-flow on the network first; this reads the residual graph.")
 (doc min-cut 'param 'source "Source node index")
 (doc min-cut 'param 'sink "Sink node index")
 (define (min-cut net source sink)
+  (doc 'export #t)
   (let* ([adj (flow-network-adj net)]
          [n (flow-network-size net)]
          ;; BFS from source in residual graph to find S-side
@@ -289,6 +298,7 @@ IMPORTANT: Call max-flow on the network first; this reads the residual graph.")
 S-side = nodes reachable from source in residual graph.
 T-side = all other nodes.")
 (define (min-cut-partition net source sink)
+  (doc 'export #t)
   (let* ([adj (flow-network-adj net)]
          [n (flow-network-size net)]
          [s-side (min-cut-reachable adj n source)]
@@ -319,6 +329,7 @@ Nodes in left and right MUST be disjoint non-negative integers.")
 (doc bipartite-max-matching 'param 'right "List of right-side node indices")
 (doc bipartite-max-matching 'param 'edges "List of (left-node right-node) edges")
 (define (bipartite-max-matching left right edges)
+  (doc 'export #t)
   (let* ([all-nodes (append left right)]
          [max-node (if (null? all-nodes) 0
                        (+ 1 (fold-left (lambda (mx x) (if (> x mx) x mx))
@@ -378,6 +389,7 @@ Nodes in left and right MUST be disjoint non-negative integers.")
 (doc copy-flow-network 'type '(-> FlowNetwork FlowNetwork))
 (doc copy-flow-network 'description "Deep copy a flow network so max-flow can be run without mutating the original.")
 (define (copy-flow-network net)
+  (doc 'export #t)
   (let* ([n (flow-network-size net)]
          [old-adj (flow-network-adj net)]
          [new-adj (make-vector n '())])
@@ -394,6 +406,7 @@ Nodes in left and right MUST be disjoint non-negative integers.")
 (doc reset-flow! 'type '(-> FlowNetwork Void))
 (doc reset-flow! 'description "Reset all flows to 0 in a flow network.")
 (define (reset-flow! net)
+  (doc 'export #t)
   (let ([adj (flow-network-adj net)]
         [n (flow-network-size net)])
     (let loop-u ([u 0])

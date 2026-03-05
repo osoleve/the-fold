@@ -26,6 +26,7 @@ function f(t, y) → dy/dt, current time, state, and step size.
 Returns (new-state error-estimate suggested-dt) where error-estimate is
 the RMS difference between the 5th and 4th order solutions.")
 (define (dp45-step f t y dt tol)
+  (doc 'export #t)
   (let* (;; Stage evaluations (Dormand-Prince coefficients)
          [k1 (f t y)]
          [k2 (f (+ t (* 1/5 dt))
@@ -88,6 +89,7 @@ the RMS difference between the 5th and 4th order solutions.")
 (doc 'type '(-> Alist))
 (doc 'description "Default options for adaptive integration.")
 (define (default-ode-opts)
+  (doc 'export #t)
   '((tolerance . 1e-6)
     (max-steps . 10000)
     (min-dt . 1e-12)
@@ -96,6 +98,7 @@ the RMS difference between the 5th and 4th order solutions.")
 (doc 'type '(-> Alist Symbol Any Any))
 (doc 'description "Look up option value with fallback to defaults.")
 (define (ode-opt opts key)
+  (doc 'export #t)
   (let ([pair (assq key opts)])
     (if pair
         (cdr pair)
@@ -127,6 +130,7 @@ Returns a result alist:
   rejections : total rejected steps
   final-dt   : final step size used")
 (define (ode-adaptive-integrate f t0 y0 t-final opts)
+  (doc 'export #t)
   (let ([tol (ode-opt opts 'tolerance)]
         [max-steps (ode-opt opts 'max-steps)]
         [min-dt (ode-opt opts 'min-dt)]
@@ -190,38 +194,45 @@ Returns a result alist:
 (doc 'type '(-> Alist (List (Pair Number (List Number)))))
 (doc 'description "Extract trajectory from integration result.")
 (define (ode-result-trajectory result)
+  (doc 'export #t)
   (cdr (assq 'trajectory result)))
 
 (doc 'type '(-> Alist Nat))
 (doc 'description "Number of accepted steps.")
 (define (ode-result-steps result)
+  (doc 'export #t)
   (cdr (assq 'steps result)))
 
 (doc 'type '(-> Alist Nat))
 (doc 'description "Number of rejected steps.")
 (define (ode-result-rejections result)
+  (doc 'export #t)
   (cdr (assq 'rejections result)))
 
 (doc 'type '(-> Alist Boolean))
 (doc 'description "Was the integration truncated by step limit?")
 (define (ode-result-truncated? result)
+  (doc 'export #t)
   (let ([pair (assq 'truncated result)])
     (and pair (cdr pair))))
 
 (doc 'type '(-> Alist (Pair Number (List Number))))
 (doc 'description "Extract the final (time . state) pair.")
 (define (ode-result-final result)
+  (doc 'export #t)
   (let ([traj (ode-result-trajectory result)])
     (list-ref traj (- (length traj) 1))))
 
 (doc 'type '(-> Alist (List Number)))
 (doc 'description "Extract just the final state vector.")
 (define (ode-result-final-state result)
+  (doc 'export #t)
   (cdr (ode-result-final result)))
 
 (doc 'type '(-> Alist (List Number)))
 (doc 'description "Extract time values from trajectory.")
 (define (ode-result-times result)
+  (doc 'export #t)
   (map car (ode-result-trajectory result)))
 
 ;;; ============================================================
@@ -235,6 +246,7 @@ Returns a result alist:
 Bridges the ode-system abstraction (which uses Scheme vectors) to the
 list-based adaptive solver. State is provided and returned as lists.")
 (define (ode-system-integrate sys t0 y0 t-final opts)
+  (doc 'export #t)
   (let ([vf (ode-vector-field sys)])
     (ode-adaptive-integrate
       (lambda (t y)
@@ -257,6 +269,7 @@ list-based adaptive solver. State is provided and returned as lists.")
 (doc 'description "Quick adaptive integration with default options.
 Equivalent to (ode-adaptive-integrate f t0 y0 t-final '()).")
 (define (ode-solve f t0 y0 t-final)
+  (doc 'export #t)
   (ode-adaptive-integrate f t0 y0 t-final '()))
 
 (doc 'type '(-> (-> Number (List Number) (List Number))
@@ -265,4 +278,5 @@ Equivalent to (ode-adaptive-integrate f t0 y0 t-final '()).")
 (doc 'description "Quick adaptive integration with specified tolerance.
 Equivalent to (ode-adaptive-integrate f t0 y0 t-final '((tolerance . tol))).")
 (define (ode-solve/tol f t0 y0 t-final tol)
+  (doc 'export #t)
   (ode-adaptive-integrate f t0 y0 t-final (list (cons 'tolerance tol))))

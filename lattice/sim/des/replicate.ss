@@ -20,6 +20,7 @@
 (doc 'section 'replication)
 
 (define (des-replicate config make-world n seed)
+  (doc 'export #t)
   (doc 'type '(-> DESConfig (-> RNG DESWorld) Nat Nat (List DESWorld)))
   (doc 'description "Run n independent replications. make-world takes an RNG and returns the initial world for that replication. Each replication gets a unique PCG stream seeded from seed. Returns list of final world states.")
   (map (lambda (i)
@@ -29,12 +30,14 @@
        (iota n)))
 
 (define (des-replicate-metric config make-world n seed metric-name)
+  (doc 'export #t)
   (doc 'type '(-> DESConfig (-> RNG DESWorld) Nat Nat Symbol (List Number)))
   (doc 'description "Run n replications and extract a named metric from each final state.")
   (map (lambda (w) (world-metric w metric-name))
        (des-replicate config make-world n seed)))
 
 (define (des-replicate-summary config make-world n seed metric-name)
+  (doc 'export #t)
   (doc 'type '(-> DESConfig (-> RNG DESWorld) Nat Nat Symbol Alist))
   (doc 'description "Run n replications, extract metric, compute summary statistics. Returns alist with mean, std-dev, min, max, median, sem.")
   (let ([values (des-replicate-metric config make-world n seed metric-name)])
@@ -55,6 +58,7 @@
 (doc 'section 'multi-metric)
 
 (define (des-replicate-metrics config make-world n seed metric-names)
+  (doc 'export #t)
   (doc 'type '(-> DESConfig (-> RNG DESWorld) Nat Nat (List Symbol) Alist))
   (doc 'description "Run n replications, compute summary statistics for each named metric. Returns alist of (metric-name . summary-alist).")
   (let ([finals (des-replicate config make-world n seed)])

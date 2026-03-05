@@ -33,6 +33,7 @@
 ;;;
 ;;; First-order accurate, simple but unstable for stiff problems.
 (define (euler-step f t state dt)
+  (doc 'export #t)
   (let ([derivative (f t state)])
        (state-madd state dt derivative)))
 
@@ -44,6 +45,7 @@
 ;;;
 ;;; Second-order accurate, more stable than Euler.
 (define (midpoint-step f t state dt)
+  (doc 'export #t)
   (let* ([k1 (f t state)]
          [half-dt (/ dt 2)]
          [mid-state (state-madd state half-dt k1)]
@@ -58,6 +60,7 @@
 ;;;
 ;;; Second-order accurate, uses trapezoid rule.
 (define (heun-step f t state dt)
+  (doc 'export #t)
   (let* ([k1 (f t state)]
          [euler-state (state-madd state dt k1)]
          [k2 (f (+ t dt) euler-state)]
@@ -74,6 +77,7 @@
 ;;;
 ;;; Fourth-order accurate, excellent for most non-stiff problems.
 (define (rk4-step f t state dt)
+  (doc 'export #t)
   (let* ([half-dt (/ dt 2)]
          [k1 (f t state)]
          [k2 (f (+ t half-dt) (state-madd state half-dt k1))]
@@ -104,6 +108,7 @@
 ;;;
 ;;; First-order but symplectic. Updates velocity first, then position.
 (define (symplectic-euler-step a t pos vel dt)
+  (doc 'export #t)
   (let* ([accel (a t pos)]
          [new-vel (state-madd vel dt accel)]
          [new-pos (state-madd pos dt new-vel)])
@@ -114,6 +119,7 @@
 ;;; x_{n+1} = x_n + dt * v_n
 ;;; v_{n+1} = v_n + dt * a(t_n, x_{n+1})
 (define (symplectic-euler-step-b a t pos vel dt)
+  (doc 'export #t)
   (let* ([new-pos (state-madd pos dt vel)]
          [accel (a (+ t dt) new-pos)]
          [new-vel (state-madd vel dt accel)])
@@ -126,6 +132,7 @@
 ;;; Second-order, symplectic. Requires previous position.
 ;;; Returns new position and current position (which becomes prev).
 (define (verlet-step a t pos pos-prev dt)
+  (doc 'export #t)
   (let* ([accel (a t pos)]
          [dt-sq (* dt dt)]
          [new-pos (state-add (state-sub (state-scale 2 pos) pos-prev)
@@ -140,6 +147,7 @@
 ;;; Second-order, symplectic, gives both position and velocity.
 ;;; Most commonly used for molecular dynamics and physics engines.
 (define (velocity-verlet-step a t pos vel dt)
+  (doc 'export #t)
   (let* ([accel-n (a t pos)]
          [half-dt (/ dt 2)]
          [dt-sq-half (* half-dt dt)]
@@ -161,6 +169,7 @@
 ;;; Second-order, symplectic, equivalent to velocity Verlet
 ;;; but sometimes more convenient for implementation.
 (define (leapfrog-step a t pos vel dt)
+  (doc 'export #t)
   (let* ([half-dt (/ dt 2)]
          [accel-n (a t pos)]
          ;; Half-step velocity
@@ -181,6 +190,7 @@
 ;;; Integrate an ODE over n steps, returning list of states.
 ;;; step is one of euler-step, midpoint-step, rk4-step, etc.
 (define (integrate step f t0 state0 dt n)
+  (doc 'export #t)
   (let loop ([t t0] [state state0] [i 0] [results (list state0)])
        (if (>= i n)
            (reverse results)
@@ -193,6 +203,7 @@
 ;;; Compatible with: symplectic-euler-step, velocity-verlet-step, leapfrog-step.
 ;;; NOT compatible with verlet-step (different state structure) — use integrate-verlet instead.
 (define (integrate-symplectic step a t0 pos0 vel0 dt n)
+  (doc 'export #t)
   (let loop ([t t0] [pos pos0] [vel vel0] [i 0] [results (list (list pos0 vel0))])
        (if (>= i n)
            (reverse results)
@@ -205,6 +216,7 @@
 ;;; Integrate using Störmer-Verlet, which tracks (pos, pos-prev) instead of (pos, vel).
 ;;; To bootstrap from (pos, vel), compute pos-prev = pos - vel*dt.
 (define (integrate-verlet a t0 pos0 pos-prev0 dt n)
+  (doc 'export #t)
   (let loop ([t t0] [pos pos0] [prev pos-prev0] [i 0] [results (list (list pos0 pos-prev0))])
        (if (>= i n)
            (reverse results)
@@ -224,6 +236,7 @@
 ;;; Wrapper around ode-adaptive-integrate with the original API.
 ;;; Returns list of (time state) pairs (not dotted pairs).
 (define (integrate-adaptive f t0 state0 t-end dt-initial tol max-steps)
+  (doc 'export #t)
   (let* ([opts (list (cons 'tolerance tol)
                      (cons 'max-steps max-steps)
                      (cons 'initial-dt dt-initial))]
@@ -239,18 +252,21 @@
 ;;; kinetic-energy : Vel × Number → Number
 ;;; Compute kinetic energy: 1/2 * m * v²
 (define (kinetic-energy vel mass)
+  (doc 'export #t)
   (* 0.5 mass (apply + (map (lambda (v) (* v v)) vel))))
 
 ;;; total-energy : Pos × Vel × Number × (Pos → Number) → Number
 ;;; Compute total energy: KE + PE
 ;;; potential-fn: (Pos → Number) gives potential energy at position
 (define (total-energy pos vel mass potential-fn)
+  (doc 'export #t)
   (+ (kinetic-energy vel mass)
      (potential-fn pos)))
 
 ;;; energy-drift : (List (Pos × Vel)) × Number × (Pos → Number) → (List Number)
 ;;; Compute energy at each step to measure drift.
 (define (energy-drift trajectory mass potential-fn)
+  (doc 'export #t)
   (map (lambda (state)
                (total-energy (car state) (cadr state) mass potential-fn))
        trajectory))
@@ -258,12 +274,14 @@
 ;;; max-energy-drift : (List Number) → Number
 ;;; Maximum deviation from initial energy.
 (define (max-energy-drift energies)
+  (doc 'export #t)
   (let ([e0 (car energies)])
        (apply max (map (lambda (e) (abs (- e e0))) energies))))
 
 ;;; relative-energy-error : (List Number) → Number
 ;;; Maximum relative energy error.
 (define (relative-energy-error energies)
+  (doc 'export #t)
   (let ([e0 (car energies)])
        (if (= e0 0)
            0

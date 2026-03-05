@@ -86,11 +86,13 @@
 (doc 'note "Navigation operations can be viewed as affine traversals (they may fail to find a target). We model these as functions returning Maybe.")
 
 (define (make-affine getter setter)
+  (doc 'export #t)
   (doc 'type '(-> (-> s (Maybe a)) (-> a s s) Affine))
   (doc 'description "An affine is like a lens that may not have a focus")
   (list 'affine getter setter))
 
 (define (affine? x)
+  (doc 'export #t)
   (doc 'type '(-> α Bool))
   (and (pair? x) (eq? (car x) 'affine)))
 
@@ -98,11 +100,13 @@
 (define (affine-setter a) (caddr a))
 
 (define (preview-affine affine s)
+  (doc 'export #t)
   (doc 'type '(-> Affine s (Maybe a)))
   (doc 'description "Try to get the focus")
   ((affine-getter affine) s))
 
 (define (set-affine affine a s)
+  (doc 'export #t)
   (doc 'type '(-> Affine a s s))
   (doc 'description "Set if focus exists, otherwise return unchanged")
   (let ([result ((affine-getter affine) s)])
@@ -111,6 +115,7 @@
         ((affine-setter affine) a s))))
 
 (define (over-affine affine f s)
+  (doc 'export #t)
   (doc 'type '(-> Affine (-> a a) s s))
   (doc 'description "Modify if focus exists")
   (let ([result ((affine-getter affine) s)])
@@ -131,6 +136,7 @@
    (lambda (new-z _old-z) new-z)))
 
 (define (zipper-nth-affine n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Affine (ListZipper α) α)))
   (doc 'description "Focus on the nth element relative to current position")
   (make-affine
@@ -172,12 +178,14 @@
    (lambda (new-z _old-z) new-z)))
 
 (define (tree-nth-child-affine n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Affine (TreeZipper α) (TreeZipper α))))
   (make-affine
    (lambda (z) (tree-zipper-nth-child z n))
    (lambda (new-z _old-z) new-z)))
 
 (define (tree-child-value-affine n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Affine (TreeZipper α) α)))
   (doc 'description "Focus on the value of the nth child without navigating there")
   (make-affine
@@ -197,6 +205,7 @@
 (doc 'section 'zipper-to-lens-adapter)
 
 (define (follow-path affines z)
+  (doc 'export #t)
   (doc 'type '(-> (List (Affine s s)) s (Maybe s)))
   (doc 'description "Follow a path of navigation affines to create a lens. Returns nothing if any step fails")
   (let loop ([remaining affines] [current z])
@@ -208,12 +217,14 @@
               (loop (cdr remaining) (from-just result)))))))
 
 (define (zipper-to-lens z)
+  (doc 'export #t)
   (doc 'type '(-> (ListZipper α) (Lens (List α) α)))
   (doc 'description "Convert a list zipper to a lens that focuses on the same position. The zipper encodes where in the list; the lens accesses that position")
   (let ([pos (zipper-position z)])
     (lens-nth pos)))
 
 (define (tree-path-to-lens indices)
+  (doc 'export #t)
   (doc 'type '(-> (List Nat) (Lens (Tree α) α)))
   (doc 'description "Convert a list of child indices to a lens for tree access")
   (if (null? indices)
@@ -235,6 +246,7 @@
         (lens-compose child-lens rest-lens))))
 
 (define (list-set lst idx val)
+  (doc 'export #t)
   (doc 'type '(-> (List α) Nat α (List α)))
   (doc 'description "Helper: set element at index")
   (let loop ([i 0] [xs lst] [acc '()])
@@ -247,6 +259,7 @@
 (doc 'section 'comonad-lens-connection)
 
 (define (extend-with-lens lens f z)
+  (doc 'export #t)
   (doc 'type '(-> Lens (-> (ListZipper α) β) (ListZipper α) (ListZipper β)))
   (doc 'description "Apply a contextual function that uses a lens, to all positions")
   (zipper-extend
@@ -257,6 +270,7 @@
    z))
 
 (define (map-with-context lens f z)
+  (doc 'export #t)
   (doc 'type '(-> Lens (-> α Context β) (ListZipper α) (ListZipper β)))
   (doc 'description "Map over elements with access to their local context via a lens")
   (zipper-extend
@@ -277,6 +291,7 @@
      z)))
 
 (define (window-lens left-size right-size)
+  (doc 'export #t)
   (doc 'type '(-> Nat Nat (Lens (ListZipper α) (List α))))
   (doc 'description "Lens focusing on a window around the focus")
   (make-lens
@@ -287,17 +302,20 @@
 (doc 'section 'traversal-utilities)
 
 (define (zipper-each f z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α β) (ListZipper α) (ListZipper β)))
   (doc 'description "Apply function to each element (like map, but preserves position)")
   (zipper-map f z))
 
 (define (zipper-all? pred z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Bool) (ListZipper α) Bool))
   (doc 'description "Check if predicate holds for all elements")
   (let ([as-list (zipper->list z)])
     (andmap pred as-list)))
 
 (define (zipper-any? pred z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α Bool) (ListZipper α) Bool))
   (doc 'description "Check if predicate holds for any element")
   (let ([as-list (zipper->list z)])
@@ -306,6 +324,7 @@
 ;; ormap, andmap provided by prelude
 
 (define (zipper-collect f z)
+  (doc 'export #t)
   (doc 'type '(-> (-> α (Maybe β)) (ListZipper α) (List β)))
   (doc 'description "Collect results from a partial function applied to each element")
   (let loop ([current (zipper-start z)] [acc '()])
@@ -325,6 +344,7 @@
 (define at-focus zipper-focus-lens)
 
 (define (at-left n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Lens (ListZipper α) α)))
   (doc 'description "Lens for the nth element to the left of focus (1 = immediate left). n must be >= 1")
   (if (< n 1)
@@ -344,6 +364,7 @@
                             (zipper-right z))))))))
 
 (define (at-right n)
+  (doc 'export #t)
   (doc 'type '(-> Nat (Lens (ListZipper α) α)))
   (doc 'description "Lens for the nth element to the right of focus (1 = immediate right). n must be >= 1")
   (if (< n 1)

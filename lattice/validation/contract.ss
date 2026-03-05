@@ -140,6 +140,7 @@ and CAS storage.")
 (doc 'type '(-> Symbol Spec Contract))
 (doc 'description "Create a named, content-addressed validation contract.")
 (define (make-contract name spec)
+  (doc 'export #t)
   (let ([hash (sha256-hex (string->utf8 (contract-serialize-spec spec)))])
     (list 'contract
           (list 'name name)
@@ -149,6 +150,7 @@ and CAS storage.")
 (doc 'type '(-> Any Boolean))
 (doc 'description "Check if a value is a contract.")
 (define (contract? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? 'contract (car x))
        (pair? (cdr x))
@@ -174,10 +176,12 @@ and CAS storage.")
 (doc 'type '(-> Spec Any Boolean))
 (doc 'description "Check a value against a spec. Returns #t if the value matches.")
 (define (contract-check spec value)
+  (doc 'export #t)
   (contract-check-with spec value #f))
 
 ;;; Internal: check with optional registry for (ref ...) resolution.
 (define (contract-check-with spec value registry)
+  (doc 'export #t)
   (cond
     ;; Primitives
     [(and (pair? spec) (eq? 'prim (car spec)))
@@ -310,10 +314,12 @@ and CAS storage.")
 (doc 'description "Validate a value against a spec. Returns (ok #t) on success,
 or (error path message) with the location and description of the first failure.")
 (define (contract-validate spec value)
+  (doc 'export #t)
   (contract-validate-at spec value "" #f))
 
 ;;; Internal: validate with path tracking and optional registry.
 (define (contract-validate-at spec value path registry)
+  (doc 'export #t)
   (cond
     ;; Primitives
     [(and (pair? spec) (eq? 'prim (car spec)))
@@ -469,6 +475,7 @@ or (error path message) with the location and description of the first failure."
 
 ;;; Brief type description for error messages.
 (define (brief-type value)
+  (doc 'export #t)
   (cond
     [(symbol? value) "symbol"]
     [(string? value) "string"]
@@ -490,15 +497,18 @@ or (error path message) with the location and description of the first failure."
 (doc 'type '(-> ContractRegistry))
 (doc 'description "Create an empty contract registry.")
 (define (make-contract-registry)
+  (doc 'export #t)
   (list 'contract-registry))
 
 (doc 'type '(-> ContractRegistry Boolean))
 (define (contract-registry? x)
+  (doc 'export #t)
   (and (pair? x) (eq? 'contract-registry (car x))))
 
 (doc 'type '(-> ContractRegistry Contract ContractRegistry))
 (doc 'description "Add a contract to the registry. Returns updated registry.")
 (define (registry-add! reg contract)
+  (doc 'export #t)
   (let ([existing (assq (contract-name contract) (cdr reg))])
     (if existing
         ;; Replace
@@ -516,17 +526,20 @@ or (error path message) with the location and description of the first failure."
 (doc 'type '(-> ContractRegistry Symbol (Maybe Contract)))
 (doc 'description "Look up a contract by name.")
 (define (registry-lookup reg name)
+  (doc 'export #t)
   (let ([entry (assq name (cdr reg))])
     (if entry (cdr entry) #f)))
 
 (doc 'type '(-> ContractRegistry (List Contract)))
 (doc 'description "List all contracts in the registry.")
 (define (registry-contracts reg)
+  (doc 'export #t)
   (map cdr (cdr reg)))
 
 (doc 'type '(-> ContractRegistry String))
 (doc 'description "Content-address the entire registry. Hash of sorted contract hashes.")
 (define (registry-hash reg)
+  (doc 'export #t)
   (let* ([contracts (registry-contracts reg)]
          [sorted-hashes (sort-by string<? (map contract-hash contracts))]
          [combined (apply string-append sorted-hashes)])
@@ -541,6 +554,7 @@ or (error path message) with the location and description of the first failure."
 (doc 'type '(-> Spec String))
 (doc 'description "Serialize a contract spec to a canonical string form for hashing.")
 (define (contract-serialize-spec spec)
+  (doc 'export #t)
   (cond
     [(null? spec) "()"]
     [(symbol? spec) (symbol->string spec)]
@@ -564,6 +578,7 @@ or (error path message) with the location and description of the first failure."
 (doc 'type '(-> Contract String))
 (doc 'description "Serialize an entire contract (name + spec) for display.")
 (define (contract-serialize contract)
+  (doc 'export #t)
   (string-append "(contract " (symbol->string (contract-name contract))
                  " " (contract-serialize-spec (contract-spec contract)) ")"))
 
@@ -576,9 +591,11 @@ or (error path message) with the location and description of the first failure."
 (doc 'type '(-> ContractRegistry Spec Any Boolean))
 (doc 'description "Check a value against a spec, resolving (ref ...) via registry.")
 (define (contract-check-in registry spec value)
+  (doc 'export #t)
   (contract-check-with spec value registry))
 
 (doc 'type '(-> ContractRegistry Spec Any (Or (ok #t) (error String String))))
 (doc 'description "Validate a value against a spec, resolving (ref ...) via registry.")
 (define (contract-validate-in registry spec value)
+  (doc 'export #t)
   (contract-validate-at spec value "" registry))

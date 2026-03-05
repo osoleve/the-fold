@@ -47,6 +47,7 @@
 ;;; ss-poles : SS → (List Complex)
 ;;; Get the poles (eigenvalues of A matrix) of a state space system.
 (define (ss-poles sys)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [n (matrix-rows A)])
         (if (= n 1)
@@ -59,6 +60,7 @@
 ;;; Check if continuous-time state space system is stable.
 ;;; All eigenvalues of A must have negative real parts.
 (define (ss-stable? sys)
+  (doc 'export #t)
   (let ([poles (ss-poles sys)])
        (all? (lambda (p) (< (complex-real p) 0)) poles)))
 
@@ -66,12 +68,14 @@
 ;;; Check if continuous-time transfer function is stable.
 ;;; All poles must have negative real parts.
 (define (tf-stable? tf)
+  (doc 'export #t)
   (let ([poles (tf-poles tf)])
        (all? (lambda (p) (< (complex-real p) 0)) poles)))
 
 ;;; ss-marginally-stable? : SS → Boolean
 ;;; Check if system is marginally stable (poles on imaginary axis, none in RHP).
 (define (ss-marginally-stable? sys)
+  (doc 'export #t)
   (let ([poles (ss-poles sys)])
        (and (all? (lambda (p) (<= (complex-real p) 0)) poles)
             (any? (lambda (p) (< (abs (complex-real p)) 1e-10)) poles))))
@@ -80,6 +84,7 @@
 ;;; Check if discrete-time system is stable.
 ;;; All poles must be inside unit circle (|z| < 1).
 (define (discrete-stable? poles)
+  (doc 'export #t)
   (all? (lambda (p) (< (complex-magnitude p) 1)) poles))
 
 ;;; ====
@@ -98,6 +103,7 @@
 ;;; Compute the Routh array for a polynomial.
 ;;; Returns list of row vectors.
 (define (routh-array poly)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs poly)]
          [n (vector-length coeffs)]
          [degree (- n 1)])
@@ -126,6 +132,7 @@
 ;;; routh-array-iter : (List (Vector Number)) × Nat → (List (Vector Number))
 ;;; Build remaining rows of Routh array.
 (define (routh-array-iter rows remaining)
+  (doc 'export #t)
   (if (<= remaining 0)
       (reverse rows)
       (let* ([prev-row (car rows)]
@@ -148,6 +155,7 @@
 ;;; routh-hurwitz-stable? : Poly → Boolean
 ;;; Check if polynomial has all roots in left half plane using Routh-Hurwitz.
 (define (routh-hurwitz-stable? poly)
+  (doc 'export #t)
   (let* ([array (routh-array poly)]
          [first-col (map (lambda (row) (vector-ref row 0)) array)])
         ;; Check for sign changes
@@ -156,6 +164,7 @@
 ;;; has-sign-changes? : (List Number) → Boolean
 ;;; Check if a list of numbers has sign changes.
 (define (has-sign-changes? nums)
+  (doc 'export #t)
   (cond
    [(null? nums) #f]
    [(null? (cdr nums)) #f]
@@ -171,12 +180,14 @@
 ;;; Count number of right-half-plane poles using Routh-Hurwitz.
 ;;; Returns the number of sign changes in first column.
 (define (routh-hurwitz-count-rhp poly)
+  (doc 'export #t)
   (let* ([array (routh-array poly)]
          [first-col (map (lambda (row) (vector-ref row 0)) array)])
         (count-sign-changes first-col)))
 
 ;;; count-sign-changes : (List Number) → Nat
 (define (count-sign-changes nums)
+  (doc 'export #t)
   (cond
    [(null? nums) 0]
    [(null? (cdr nums)) 0]
@@ -203,6 +214,7 @@
 ;;; Uses vectorization: (A' ⊗ I + I ⊗ A') * vec(P) = vec(-Q)
 ;;; Simplified iterative approach for small systems.
 (define (lyapunov-solve-continuous A Q)
+  (doc 'export #t)
   (let ([n (matrix-rows A)])
        (if (= n 1)
            ;; 1x1 case: 2*a*p = -q, p = -q/(2a)
@@ -218,6 +230,7 @@
 ;;; Iterative solution using fixed-point iteration.
 ;;; P_{k+1} = A' * P_k * A + Q (adapted for continuous case)
 (define (lyapunov-iterate-continuous A Q max-iter)
+  (doc 'export #t)
   (let* ([n (matrix-rows A)]
          ;; Initial guess: P = Q
          [P Q]
@@ -241,6 +254,7 @@
 ;;; lyapunov-solve-discrete : Matrix × Matrix → Matrix | Error
 ;;; Solve the discrete Lyapunov equation A'PA - P = -Q for P.
 (define (lyapunov-solve-discrete A Q)
+  (doc 'export #t)
   (let ([n (matrix-rows A)])
        (if (= n 1)
            ;; 1x1 case: a²p - p = -q, p = q/(1-a²)
@@ -256,6 +270,7 @@
 ;;; lyapunov-iterate-discrete : Matrix × Matrix × Nat → Matrix
 ;;; Iterative solution: P_{k+1} = A' * P_k * A + Q
 (define (lyapunov-iterate-discrete A Q max-iter)
+  (doc 'export #t)
   (let* ([At (matrix-transpose A)]
          [P Q])
         (let loop ([P P] [iter 0])
@@ -271,6 +286,7 @@
 ;;; Check stability using Lyapunov equation.
 ;;; If we can find P > 0 satisfying A'P + PA = -I, system is stable.
 (define (lyapunov-stable? sys)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [n (matrix-rows A)]
          [Q (matrix-identity n)]
@@ -283,6 +299,7 @@
 ;;; Check if symmetric matrix is positive definite.
 ;;; Uses eigenvalue test: all eigenvalues must be positive.
 (define (matrix-positive-definite? M)
+  (doc 'export #t)
   (let* ([n (matrix-rows M)]
          [eigenvalues (if (= n 1)
                           (list (matrix-ref M 0 0))
@@ -292,6 +309,7 @@
 ;;; matrix-frobenius-norm : Matrix → Number
 ;;; Compute Frobenius norm of a matrix.
 (define (matrix-frobenius-norm M)
+  (doc 'export #t)
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)])
         (sqrt (let loop ([i 0] [sum 0])
@@ -316,6 +334,7 @@
 ;;; Compute root locus for a list of gain values.
 ;;; Returns list of pole lists, one for each gain.
 (define (root-locus-points tf gains)
+  (doc 'export #t)
   (let ([num (tf-num tf)]
         [den (tf-den tf)])
        (map (lambda (K)
@@ -328,6 +347,7 @@
 ;;; These are where d(K)/ds = 0, or equivalently where
 ;;; N(s)*D'(s) - N'(s)*D(s) = 0.
 (define (root-locus-breakaway tf)
+  (doc 'export #t)
   (let* ([N (tf-num tf)]
          [D (tf-den tf)]
          [N-prime (poly-derivative N)]
@@ -351,6 +371,7 @@
 ;;; Compute asymptote angles and centroid for root locus.
 ;;; n-m asymptotes at angles (2k+1)*180°/(n-m) from centroid.
 (define (root-locus-asymptotes tf)
+  (doc 'export #t)
   (let* ([poles (tf-poles tf)]
          [zeros (tf-zeros tf)]
          [n (length poles)]
@@ -384,6 +405,7 @@
 ;;; Compute points on Nyquist contour for positive frequencies.
 ;;; Returns G(jw) for w from 0 to large value.
 (define (nyquist-plot-points tf num-points)
+  (doc 'export #t)
   (let* ([w-max 1000]
          [points '()])
         (do ([i 0 (+ i 1)])
@@ -399,6 +421,7 @@
 ;;; Count the number of clockwise encirclements of a point.
 ;;; Uses the winding number algorithm.
 (define (nyquist-count-encirclements contour center)
+  (doc 'export #t)
   (let ([cx (complex-real center)]
         [cy (complex-imag center)])
        ;; Translate contour so center is at origin
@@ -413,6 +436,7 @@
 ;;; Compute winding number around origin.
 ;;; Positive = counterclockwise, negative = clockwise.
 (define (winding-number contour)
+  (doc 'export #t)
   (if (< (length contour) 2)
       0
       (let loop ([pts contour] [total-angle 0])
@@ -426,6 +450,7 @@
 ;;; angle-difference : Complex × Complex → Number
 ;;; Compute angle swept from point p1 to p2 relative to origin.
 (define (angle-difference p1 p2)
+  (doc 'export #t)
   (let* ([a1 (complex-angle p1)]
          [a2 (complex-angle p2)]
          [diff (- a2 a1)])
@@ -439,6 +464,7 @@
 ;;; Check closed-loop stability using Nyquist criterion.
 ;;; Assumes open-loop system (input transfer function).
 (define (nyquist-stable? tf)
+  (doc 'export #t)
   (let* ([open-loop-poles (tf-poles tf)]
          [rhp-poles (length (filter (lambda (p) (> (complex-real p) 0)) open-loop-poles))]
          [contour (nyquist-plot-points tf 500)]
@@ -460,6 +486,7 @@
 ;;; Compute gain margin and phase crossover frequency.
 ;;; Returns (gain-margin-db phase-crossover-freq) or ('infinite 0) if stable.
 (define (gain-margin tf)
+  (doc 'export #t)
   (let* ([w-test (logspace -2 4 1000)]
          [phases (tf-phase tf w-test)]
          [mags (tf-magnitude tf w-test)]
@@ -478,6 +505,7 @@
 ;;; Compute phase margin and gain crossover frequency.
 ;;; Returns (phase-margin-deg gain-crossover-freq) or ('infinite 0).
 (define (phase-margin tf)
+  (doc 'export #t)
   (let* ([w-test (logspace -2 4 1000)]
          [mags (tf-magnitude tf w-test)]
          [phases (tf-phase tf w-test)]
@@ -495,6 +523,7 @@
 ;;; stability-margins : TF → (gm pm w_pc w_gc)
 ;;; Compute both gain and phase margins.
 (define (stability-margins tf)
+  (doc 'export #t)
   (let ([gm-result (gain-margin tf)]
         [pm-result (phase-margin tf)])
        (list (car gm-result)   ; GM in dB
@@ -505,6 +534,7 @@
 ;;; find-crossover : Vector × Number × Vector → (freq . index) | #f
 ;;; Find where signal crosses a threshold (for phase).
 (define (find-crossover signal threshold freqs)
+  (doc 'export #t)
   (let ([n (vector-length signal)])
        (let loop ([i 0])
             (if (>= i (- n 1))
@@ -524,6 +554,7 @@
 ;;; find-crossover-value : Vector × Number × Vector → (freq . index) | #f
 ;;; Find where signal crosses a value (for magnitude).
 (define (find-crossover-value signal target freqs)
+  (doc 'export #t)
   (let ([n (vector-length signal)])
        (let loop ([i 0])
             (if (>= i (- n 1))
@@ -554,11 +585,13 @@
 ;;; bibo-stable? : TF → Boolean
 ;;; Check BIBO stability for continuous-time transfer function.
 (define (bibo-stable? tf)
+  (doc 'export #t)
   (tf-stable? tf))
 
 ;;; bibo-stable-discrete? : TF → Boolean
 ;;; Check BIBO stability for discrete-time transfer function.
 (define (bibo-stable-discrete? tf)
+  (doc 'export #t)
   (let ([poles (tf-poles tf)])
        (discrete-stable? poles)))
 
@@ -572,6 +605,7 @@
 ;;; controllability-matrix : SS → Matrix
 ;;; Build the controllability matrix.
 (define (controllability-matrix sys)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [B (ss-B sys)]
          [n (matrix-rows A)]
@@ -583,6 +617,7 @@
 
 ;;; build-controllability-cols : Matrix × Matrix × Nat → (List Matrix)
 (define (build-controllability-cols A B n)
+  (doc 'export #t)
   (let loop ([i 0] [Ai-B B] [cols '()])
        (if (>= i n)
            (reverse cols)
@@ -593,6 +628,7 @@
 ;;; matrix-hcat-list : (List Matrix) → Matrix
 ;;; Horizontally concatenate a list of matrices.
 (define (matrix-hcat-list matrices)
+  (doc 'export #t)
   (if (null? matrices)
       '(error empty-list)
       (let* ([rows (matrix-rows (car matrices))]
@@ -614,6 +650,7 @@
 ;;; controllable? : SS → Boolean
 ;;; Check if system is controllable.
 (define (controllable? sys)
+  (doc 'export #t)
   (let* ([C (controllability-matrix sys)]
          [n (ss-order sys)]
          [rank (stability-matrix-rank C)])
@@ -622,6 +659,7 @@
 ;;; observability-matrix : SS → Matrix
 ;;; Build the observability matrix: O = [C; CA; CA²; ...; CA^{n-1}]
 (define (observability-matrix sys)
+  (doc 'export #t)
   (let* ([A (ss-A sys)]
          [C (ss-C sys)]
          [n (matrix-rows A)]
@@ -632,6 +670,7 @@
 
 ;;; build-observability-rows : Matrix × Matrix × Nat → (List Matrix)
 (define (build-observability-rows C A n)
+  (doc 'export #t)
   (let loop ([i 0] [CAi C] [rows '()])
        (if (>= i n)
            (reverse rows)
@@ -642,6 +681,7 @@
 ;;; matrix-vcat-list : (List Matrix) → Matrix
 ;;; Vertically concatenate a list of matrices.
 (define (matrix-vcat-list matrices)
+  (doc 'export #t)
   (if (null? matrices)
       '(error empty-list)
       (let* ([cols (matrix-cols (car matrices))]
@@ -663,6 +703,7 @@
 ;;; observable? : SS → Boolean
 ;;; Check if system is observable.
 (define (observable? sys)
+  (doc 'export #t)
   (let* ([O (observability-matrix sys)]
          [n (ss-order sys)]
          [rank (stability-matrix-rank O)])
@@ -676,6 +717,7 @@
 ;;; Compute matrix rank using row echelon form.
 ;;; Local definition to avoid conflicts with other rank implementations.
 (define (stability-matrix-rank M)
+  (doc 'export #t)
   (let* ([m (matrix-rows M)]
          [n (matrix-cols M)]
          ;; Copy matrix for in-place operations
@@ -710,6 +752,7 @@
 
 ;;; matrix-copy : Matrix → Matrix
 (define (matrix-copy M)
+  (doc 'export #t)
   (let* ([m (matrix-rows M)]
          [n (matrix-cols M)]
          [result (make-matrix m n 0)])
@@ -721,6 +764,7 @@
 
 ;;; matrix-swap-rows! : Matrix × Nat × Nat → void
 (define (matrix-swap-rows! M i j)
+  (doc 'export #t)
   (let ([n (matrix-cols M)])
        (do ([k 0 (+ k 1)])
            ((= k n))
@@ -741,6 +785,7 @@
 ;;; stability-report : TF → String
 ;;; Generate a stability report for a transfer function.
 (define (stability-report tf)
+  (doc 'export #t)
   (let* ([poles (tf-poles tf)]
          [stable (tf-stable? tf)]
          [rh-stable (routh-hurwitz-stable? (tf-den tf))]
@@ -757,6 +802,7 @@
 
 ;;; poles->string : (List Complex) → String
 (define (poles->string poles)
+  (doc 'export #t)
   (if (null? poles)
       "()"
       (let ([strs (map complex->string poles)])
@@ -764,6 +810,7 @@
 
 ;;; complex->string : Complex → String
 (define (complex->string c)
+  (doc 'export #t)
   (let ([re (complex-real c)]
         [im (complex-imag c)])
        (cond

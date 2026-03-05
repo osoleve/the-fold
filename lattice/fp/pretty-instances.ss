@@ -9,6 +9,7 @@
 (doc 'description "Vec2 Pretty (tagged list: (vec2 x y)) Note: Scheme vectors use scheme-vec-pretty from core/util/pretty-class.ss Vec2/Vec3 are tagged lists like (vec2 x y), not Scheme vectors. vec2-pretty : Vec2 → Doc Pretty-print a 2D vector as [x, y]")
 (doc 'layer 'lattice)
 (define (vec2-pretty v)
+  (doc 'export #t)
   (brackets
    (<> (text (number->string (cadr v)))
        (<> (text ", ")
@@ -16,6 +17,7 @@
 
 ;;; vec2-pretty-prec : Int → Vec2 → Doc
 (define (vec2-pretty-prec prec v)
+  (doc 'export #t)
   (vec2-pretty v))
 
 ;;; ====
@@ -25,6 +27,7 @@
 ;;; vec3-pretty : Vec3 → Doc
 ;;; Pretty-print a 3D vector as [x, y, z]
 (define (vec3-pretty v)
+  (doc 'export #t)
   (brackets
    (<> (text (number->string (cadr v)))
        (<> (text ", ")
@@ -34,6 +37,7 @@
 
 ;;; vec3-pretty-prec : Int → Vec3 → Doc
 (define (vec3-pretty-prec prec v)
+  (doc 'export #t)
   (vec3-pretty v))
 
 ;;; ====
@@ -44,6 +48,7 @@
 ;;; Pretty-print a matrix with aligned columns.
 ;;; For small matrices, show full content; for large, show dimensions.
 (define (matrix-pretty m)
+  (doc 'export #t)
   (let* ([rows (cadr m)]
          [cols (caddr m)]
          [data (cadddr m)])
@@ -71,6 +76,7 @@
 
 ;;; matrix-pretty-prec : Int → Matrix → Doc
 (define (matrix-pretty-prec prec m)
+  (doc 'export #t)
   (matrix-pretty m))
 
 ;;; ====
@@ -80,6 +86,7 @@
 ;;; complex-pretty : Complex → Doc
 ;;; Pretty-print a complex number as a + bi
 (define (complex-pretty c)
+  (doc 'export #t)
   (let ([real (cadr c)]
         [imag (caddr c)])
     (cond
@@ -98,6 +105,7 @@
 
 ;;; complex-pretty-prec : Int → Complex → Doc
 (define (complex-pretty-prec prec c)
+  (doc 'export #t)
   ;; Complex literals are atoms, no precedence needed
   (complex-pretty c))
 
@@ -109,6 +117,7 @@
 ;;; Pretty-print a polynomial in standard mathematical notation.
 ;;; e.g., x^2 + 3x + 5
 (define (polynomial-pretty p)
+  (doc 'export #t)
   (let* ([coeffs (caddr p)]
          [degree (- (length coeffs) 1)])
     (if (or (null? coeffs) (= degree -1))
@@ -139,6 +148,7 @@
 
 ;;; polynomial-pretty-prec : Int → Polynomial → Doc
 (define (polynomial-pretty-prec prec p)
+  (doc 'export #t)
   ;; Add parens if we're in a tighter context
   (parens-if (> prec prec-add) (polynomial-pretty p)))
 
@@ -149,12 +159,14 @@
 ;;; expr-pretty : Expr → Doc
 ;;; Pretty-print a symbolic expression.
 (define (expr-pretty e)
+  (doc 'export #t)
   (expr-pretty-prec prec-top e))  ; Start with lowest precedence (0)
 
 ;;; expr-pretty-prec : Int → Expr → Doc
 ;;; Pretty-print with precedence tracking for minimal parentheses.
 ;;; Higher prec = tighter binding. Add parens when context is tighter than operator.
 (define (expr-pretty-prec prec e)
+  (doc 'export #t)
   (cond
    ;; Numeric constant
    [(and (pair? e) (eq? (car e) 'num))
@@ -213,6 +225,7 @@
 ;;; block-pretty : Block → Doc
 ;;; Pretty-print a CAS block as {tag payload refs...}
 (define (block-pretty b)
+  (doc 'export #t)
   (if (and (pair? b) (eq? (car b) 'block))
       (let ([tag (cadr b)]
             [payload (caddr b)]
@@ -233,6 +246,7 @@
 
 ;;; block-pretty-prec : Int → Block → Doc
 (define (block-pretty-prec prec b)
+  (doc 'export #t)
   (block-pretty b))
 
 ;;; ====
@@ -245,6 +259,7 @@
 ;;; lattice-pretty-dispatch : Any → Doc
 ;;; Dispatch to appropriate Pretty instance based on value type.
 (define (lattice-pretty-dispatch x)
+  (doc 'export #t)
   (cond
    ;; Primitives (from core)
    [(number? x) (text (number->string x))]

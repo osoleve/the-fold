@@ -30,6 +30,7 @@ Each row of the Jacobian is one gradient (one backward pass per output).
 
 Returns n-out × n-in Jacobian matrix where J[i,j] = ∂f_i/∂x_j.")
 (define (autodiff-jacobian f x n-out)
+  (doc 'export #t)
   ;; Each row is a gradient: ∂f_i/∂x for all x
   (let ([rows (let loop ([i 0] [acc '()])
                 (if (>= i n-out)
@@ -58,6 +59,7 @@ returns list of traced values. Time is held constant (not differentiated).
   t        : Number  (fixed time)
   y        : (List Number)  (state point)")
 (define (ode-jacobian f-traced t y)
+  (doc 'export #t)
   (let ([n (length y)])
     (autodiff-jacobian
       (lambda (traced-y)
@@ -75,6 +77,7 @@ returns list of traced values. Time is held constant (not differentiated).
 (doc 'description "Compute numerical Jacobian via central finite differences.
 For comparing with exact autodiff Jacobians.")
 (define (numerical-jacobian-list f t y)
+  (doc 'export #t)
   (let* ([n (length y)]
          [eps 1e-7]
          [rows (let loop-i ([i 0] [acc '()])
@@ -100,6 +103,7 @@ For comparing with exact autodiff Jacobians.")
 (doc 'description "Compare numerical and exact Jacobians at a point.
 Returns alist with both matrices and max absolute difference.")
 (define (jacobian-check f-numeric f-traced t y)
+  (doc 'export #t)
   (let* ([n (length y)]
          [J-exact (ode-jacobian f-traced t y)]
          [J-num (numerical-jacobian-list f-numeric t y)]
@@ -128,6 +132,7 @@ Returns alist with both matrices and max absolute difference.")
 (doc 'description "Estimate the spectral radius (largest |eigenvalue|) of a matrix
 using the power method. Returns the dominant eigenvalue magnitude.")
 (define (spectral-radius-estimate J max-iter)
+  (doc 'export #t)
   (let* ([n (matrix-rows J)]
          ;; Start with unit vector e_0
          [v0 (let ([v (make-vector n 0)])
@@ -167,6 +172,7 @@ using the power method. Returns the dominant eigenvalue magnitude.")
 (doc 'description "Estimate stiffness at a point using exact Jacobian.
 Large spectral radius suggests stiff dynamics.")
 (define (stiffness-estimate f-traced t y)
+  (doc 'export #t)
   (let ([J (ode-jacobian f-traced t y)])
     (spectral-radius-estimate J 20)))
 
@@ -180,6 +186,7 @@ Large spectral radius suggests stiff dynamics.")
                Number (List Number) Matrix))
 (doc 'description "Compute exact Jacobian of an ode-system's vector field.")
 (define (ode-system-exact-jacobian sys f-traced t y)
+  (doc 'export #t)
   (ode-jacobian f-traced t y))
 
 ;;; ============================================================
@@ -192,6 +199,7 @@ Large spectral radius suggests stiff dynamics.")
 (doc 'description "Linearize an autonomous ODE around an equilibrium using exact
 autodiff Jacobians. Returns alist with A matrix and equilibrium point.")
 (define (autodiff-linearize f-traced y0)
+  (doc 'export #t)
   (let ([A (autodiff-jacobian f-traced y0 (length y0))])
     (list (cons 'A A)
           (cons 'equilibrium y0)
@@ -199,6 +207,7 @@ autodiff Jacobians. Returns alist with A matrix and equilibrium point.")
 
 ;;; Helper: update element at index in a list
 (define (jac-list-update lst idx f)
+  (doc 'export #t)
   (if (= idx 0)
       (cons (f (car lst)) (cdr lst))
       (cons (car lst) (jac-list-update (cdr lst) (- idx 1) f))))

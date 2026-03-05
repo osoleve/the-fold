@@ -35,6 +35,7 @@ Note: We store the FULL expression as value, not just the head.
 This enables pattern matching at each position.")
 
 (define (sexp->tree expr)
+  (doc 'export #t)
   (doc 'type (-> Sexp (Tree Sexp)))
   (doc 'description "Convert an S-expression to rose tree format.")
   (if (pair? expr)
@@ -45,6 +46,7 @@ This enables pattern matching at each position.")
 ;;; Convert a rose tree back to S-expression.
 ;;; Reconstructs from children if present, otherwise returns value.
 (define (tree->sexp t)
+  (doc 'export #t)
   (if (null? (tree-children t))
       (tree-value t)
       (map tree->sexp (tree-children t))))
@@ -58,15 +60,18 @@ This enables pattern matching at each position.")
 
 ;;; make-sexp-zipper : (TreeZipper Sexp) -> SexpZipper
 (define (make-sexp-zipper tree-z)
+  (doc 'export #t)
   (list sexp-zipper-tag tree-z))
 
 ;;; sexp-zipper? : a -> Bool
 (define (sexp-zipper? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) sexp-zipper-tag)))
 
 ;;; sexp-zipper-tree-z : SexpZipper -> (TreeZipper Sexp)
 (define (sexp-zipper-tree-z sz)
+  (doc 'export #t)
   (list-ref sz 1))
 
 ;;; ====
@@ -76,11 +81,13 @@ This enables pattern matching at each position.")
 ;;; sexp->zipper : Sexp -> SexpZipper
 ;;; Create a zipper focused at the root of an S-expression.
 (define (sexp->zipper expr)
+  (doc 'export #t)
   (make-sexp-zipper (tree->zipper (sexp->tree expr))))
 
 ;;; zipper->sexp : SexpZipper -> Sexp
 ;;; Reconstruct S-expression from zipper (navigates to root first).
 (define (zipper->sexp sz)
+  (doc 'export #t)
   (tree->sexp (zipper->tree (sexp-zipper-tree-z sz))))
 
 ;;; ====
@@ -93,6 +100,7 @@ This enables pattern matching at each position.")
 ;;; lift-tree-nav : ((TreeZipper a) -> (Maybe (TreeZipper a))) -> (SexpZipper -> (Maybe SexpZipper))
 ;;; Lift a tree-zipper navigation function to work on sexp-zippers.
 (define (lift-tree-nav tree-op)
+  (doc 'export #t)
   (lambda (sz)
     (let ([result (tree-op (sexp-zipper-tree-z sz))])
       (if (nothing? result)
@@ -102,6 +110,7 @@ This enables pattern matching at each position.")
 ;;; lift-tree-nav-indexed : ((TreeZipper a) x Nat -> (Maybe (TreeZipper a))) -> (SexpZipper x Nat -> (Maybe SexpZipper))
 ;;; Lift an indexed tree-zipper navigation function.
 (define (lift-tree-nav-indexed tree-op)
+  (doc 'export #t)
   (lambda (sz n)
     (let ([result (tree-op (sexp-zipper-tree-z sz) n)])
       (if (nothing? result)
@@ -115,12 +124,14 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-get : SexpZipper -> Sexp
 ;;; Get the S-expression at focus.
 (define (sexp-zipper-get sz)
+  (doc 'export #t)
   (tree-value (tree-zipper-focus (sexp-zipper-tree-z sz))))
 
 ;;; sexp-zipper-set : SexpZipper x Sexp -> SexpZipper
 ;;; Replace the S-expression at focus.
 ;;; Rebuilds children if the new value is a list.
 (define (sexp-zipper-set sz new-expr)
+  (doc 'export #t)
   (let* ([tz (sexp-zipper-tree-z sz)]
          [new-tree (sexp->tree new-expr)]
          [new-tz (tree-zipper-set-tree tz new-tree)])
@@ -129,6 +140,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-modify : SexpZipper x (Sexp -> Sexp) -> SexpZipper
 ;;; Modify the S-expression at focus.
 (define (sexp-zipper-modify sz f)
+  (doc 'export #t)
   (sexp-zipper-set sz (f (sexp-zipper-get sz))))
 
 ;;; ====
@@ -157,6 +169,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-root : SexpZipper -> SexpZipper
 ;;; Move focus to root.
 (define (sexp-zipper-root sz)
+  (doc 'export #t)
   (make-sexp-zipper (tree-zipper-root (sexp-zipper-tree-z sz))))
 
 ;;; sexp-zipper-nth : SexpZipper x Nat -> (Maybe SexpZipper)
@@ -169,19 +182,23 @@ This enables pattern matching at each position.")
 
 ;;; sexp-zipper-at-root? : SexpZipper -> Bool
 (define (sexp-zipper-at-root? sz)
+  (doc 'export #t)
   (tree-zipper-at-root? (sexp-zipper-tree-z sz)))
 
 ;;; sexp-zipper-at-leaf? : SexpZipper -> Bool
 ;;; True if focus is an atom (no children).
 (define (sexp-zipper-at-leaf? sz)
+  (doc 'export #t)
   (tree-zipper-at-leaf? (sexp-zipper-tree-z sz)))
 
 ;;; sexp-zipper-can-go-up? : SexpZipper -> Bool
 (define (sexp-zipper-can-go-up? sz)
+  (doc 'export #t)
   (tree-zipper-can-go-up? (sexp-zipper-tree-z sz)))
 
 ;;; sexp-zipper-can-go-down? : SexpZipper -> Bool
 (define (sexp-zipper-can-go-down? sz)
+  (doc 'export #t)
   (tree-zipper-can-go-down? (sexp-zipper-tree-z sz)))
 
 ;;; ====
@@ -195,6 +212,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-at : SexpZipper x Position -> (Maybe SexpZipper)
 ;;; Navigate to a position from current focus.
 (define (sexp-zipper-at sz pos)
+  (doc 'export #t)
   (if (null? pos)
       (just sz)
       (let ([child (sexp-zipper-nth sz (car pos))])
@@ -205,11 +223,13 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-goto : SexpZipper x Position -> (Maybe SexpZipper)
 ;;; Navigate to a position from root.
 (define (sexp-zipper-goto sz pos)
+  (doc 'export #t)
   (sexp-zipper-at (sexp-zipper-root sz) pos))
 
 ;;; sexp-zipper-position : SexpZipper -> Position
 ;;; Get the current position as a list of indices.
 (define (sexp-zipper-position sz)
+  (doc 'export #t)
   (tree-zipper-index-path (sexp-zipper-tree-z sz)))
 
 ;;; ====
@@ -223,6 +243,7 @@ This enables pattern matching at each position.")
 ;;; Get the subexpression at a position.
 ;;; Drop-in replacement for expr-at.
 (define (sexp-at expr pos)
+  (doc 'export #t)
   (let* ([sz (sexp->zipper expr)]
          [result (sexp-zipper-goto sz pos)])
     (if (nothing? result)
@@ -233,6 +254,7 @@ This enables pattern matching at each position.")
 ;;; Replace the subexpression at a position.
 ;;; Drop-in replacement for expr-set-at.
 (define (sexp-set-at expr pos new-subexpr)
+  (doc 'export #t)
   (let* ([sz (sexp->zipper expr)]
          [at-pos (sexp-zipper-goto sz pos)])
     (if (nothing? at-pos)
@@ -254,6 +276,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-preorder : SexpZipper -> (List SexpZipper)
 ;;; Get all positions in preorder.
 (define (sexp-zipper-preorder sz)
+  (doc 'export #t)
   (map make-sexp-zipper
        (tree-zipper-preorder (sexp-zipper-tree-z (sexp-zipper-root sz)))))
 
@@ -261,6 +284,7 @@ This enables pattern matching at each position.")
 ;;; Get all positions in an S-expression.
 ;;; Drop-in replacement for find-all-positions.
 (define (sexp-all-positions expr)
+  (doc 'export #t)
   (let ([sz (sexp->zipper expr)])
     (map sexp-zipper-position (sexp-zipper-preorder sz))))
 
@@ -271,6 +295,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-depth : SexpZipper -> Nat
 ;;; Get depth in tree (0 = root).
 (define (sexp-zipper-depth sz)
+  (doc 'export #t)
   (tree-zipper-depth (sexp-zipper-tree-z sz)))
 
 ;;; ====
@@ -284,6 +309,7 @@ This enables pattern matching at each position.")
 ;;; Try to transform the focused expression.
 ;;; Returns updated zipper on success, #f on failure.
 (define (sexp-zipper-try-transform sz f)
+  (doc 'export #t)
   (let ([result (f (sexp-zipper-get sz))])
     (if result
         (sexp-zipper-set sz result)
@@ -292,6 +318,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-find-match : SexpZipper x (Sexp -> Bool) -> (Maybe SexpZipper)
 ;;; Find first position (preorder) where predicate is true.
 (define (sexp-zipper-find-match sz pred)
+  (doc 'export #t)
   (let loop ([current (just (sexp-zipper-root sz))])
     (cond
       [(nothing? current) nothing]
@@ -303,6 +330,7 @@ This enables pattern matching at each position.")
 ;;; sexp-zipper-collect-matches : SexpZipper x (Sexp -> Bool) -> (List SexpZipper)
 ;;; Collect all positions where predicate is true.
 (define (sexp-zipper-collect-matches sz pred)
+  (doc 'export #t)
   (let loop ([current (just (sexp-zipper-root sz))] [acc '()])
     (cond
       [(nothing? current)

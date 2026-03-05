@@ -24,6 +24,7 @@
 (doc graph->simplicial-complex 'note "Edge format: (v1 . v2) or (v1 v2) - both are supported")
 (doc graph->simplicial-complex 'export #t)
 (define (graph->simplicial-complex edges vertices)
+  (doc 'export #t)
   (let* ([vertex-simplices (map (lambda (v) (make-simplex (list v))) vertices)]
          [edge-simplices (map (lambda (e)
                                 (let ([v1 (car e)]
@@ -39,6 +40,7 @@
 ;;; AdjList format: ((vertex neighbor1 neighbor2 ...) ...)
 (doc graph-adjacency->simplicial-complex 'export #t)
 (define (graph-adjacency->simplicial-complex adj)
+  (doc 'export #t)
   (let* ([vertices (map car adj)]
          [edges '()])
     (for-each
@@ -60,6 +62,7 @@
 (doc graph-betti-numbers 'note "Uses canonical Z_2 homology implementation from topology/homology.ss with exact mod-2 arithmetic")
 (doc graph-betti-numbers 'export #t)
 (define (graph-betti-numbers edges vertices)
+  (doc 'export #t)
   (let ([sc (graph->simplicial-complex edges vertices)])
     (if (null? edges)
         (cons (length vertices) 0)
@@ -73,6 +76,7 @@
 ;;; Compute Betti numbers from adjacency list representation.
 (doc graph-betti-numbers-from-adjacency 'export #t)
 (define (graph-betti-numbers-from-adjacency adj)
+  (doc 'export #t)
   (let* ([vertices (map car adj)]
          [edges '()])
     (for-each
@@ -94,6 +98,7 @@
 (doc cycle-basis-homology 'note "Algorithm: Build Z_2 boundary matrix, find null space via z2-null-space, convert to edge lists")
 (doc cycle-basis-homology 'export #t)
 (define (cycle-basis-homology edges vertices)
+  (doc 'export #t)
   (let* ([sc (graph->simplicial-complex edges vertices)]
          [n-edges (length edges)]
          [edge-list (sc-edges sc)])
@@ -108,6 +113,7 @@
 ;;; edges-from-z2-null-vector : (List {0,1}) × (List Simplex) → (List Edge)
 ;;; Convert a Z_2 null space vector to a list of edges.
 (define (edges-from-z2-null-vector coeffs edge-simplices)
+  (doc 'export #t)
   (let loop ([cs coeffs] [edges edge-simplices] [result '()])
     (if (or (null? cs) (null? edges))
         (reverse result)
@@ -126,12 +132,14 @@
 ;;; Compute Euler characteristic: χ = V - E
 (doc graph-euler-characteristic 'export #t)
 (define (graph-euler-characteristic edges vertices)
+  (doc 'export #t)
   (- (length vertices) (length edges)))
 
 ;;; graph-cycle-rank : (List Edge) × (List Vertex) → Integer
 ;;; Compute the cycle rank (cyclomatic number): beta_1 = E - V + beta_0
 (doc graph-cycle-rank 'export #t)
 (define (graph-cycle-rank edges vertices)
+  (doc 'export #t)
   (let ([betti (graph-betti-numbers edges vertices)])
     (cdr betti)))
 
@@ -139,6 +147,7 @@
 ;;; A graph is a tree iff it is connected (beta_0 = 1) and acyclic (beta_1 = 0).
 (doc graph-is-tree? 'export #t)
 (define (graph-is-tree? edges vertices)
+  (doc 'export #t)
   (let ([betti (graph-betti-numbers edges vertices)])
     (and (= (car betti) 1)
          (= (cdr betti) 0))))
@@ -147,5 +156,6 @@
 ;;; A graph is a forest iff it is acyclic (beta_1 = 0).
 (doc graph-is-forest? 'export #t)
 (define (graph-is-forest? edges vertices)
+  (doc 'export #t)
   (let ([betti (graph-betti-numbers edges vertices)])
     (= (cdr betti) 0)))

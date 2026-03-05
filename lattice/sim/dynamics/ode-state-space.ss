@@ -21,6 +21,7 @@
 (define *default-epsilon* 1e-7)
 
 (define (numerical-jacobian f x n-out . eps-arg)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec Vec) Vec Nat Vec Matrix))
   (doc 'description "Compute the Jacobian matrix df/dx via central finite differences. f : Vec -> Vec, x is the point, n-out is the output dimension. Returns an n-out x n-in matrix.")
   (let* ([eps (if (null? eps-arg) *default-epsilon* (car eps-arg))]
@@ -51,6 +52,7 @@
 (doc 'section 'linearization)
 
 (define (linearize-ode f-xu x0 u0 n-x n-u . opts)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec Vec Vec) Vec Vec Nat Nat ... SS))
   (doc 'description "Linearize a nonlinear ODE dx/dt = f(x, u) around equilibrium (x0, u0). Computes A = df/dx, B = df/du via numerical Jacobian. Output equation defaults to full-state observation (C = I, D = 0). Optional keyword arguments: pass a (list C-matrix D-matrix) as the first optional arg to override output matrices.")
   (doc 'param 'f-xu "Vector field: (x, u) -> dx/dt, where x is state vec, u is input vec")
@@ -72,6 +74,7 @@
     (make-ss A B C D)))
 
 (define (linearize-autonomous-ode f x0 n-x)
+  (doc 'export #t)
   (doc 'type '(-> (-> Vec Vec) Vec Nat SS))
   (doc 'description "Linearize an autonomous ODE dx/dt = f(x) around equilibrium x0. Produces a state-space model with zero input (B=0, D=0) and full-state output (C=I).")
   (doc 'param 'f "Autonomous vector field: x -> dx/dt")
@@ -90,6 +93,7 @@
 (doc 'section 'state-space-to-ode)
 
 (define (state-space->ode sys . input-fn-arg)
+  (doc 'export #t)
   (doc 'type '(-> SS ... ODE-System))
   (doc 'description "Convert a state-space model to an ODE system for integration. The optional input-fn argument is (t -> Vec) providing the input signal u(t). Defaults to zero input.")
   (doc 'param 'sys "State-space system (ss A B C D)")
@@ -118,6 +122,7 @@
 (doc 'section 'vector-rk4)
 
 (define (vec-rk4-step f t x dt)
+  (doc 'export #t)
   (doc 'type '(-> (-> Number Vec Vec) Number Vec Number Vec))
   (doc 'description "Single RK4 step for Scheme-vector state. f : (t, x) -> dx/dt.")
   (let* ([half-dt (* 0.5 dt)]
@@ -132,6 +137,7 @@
     (vec-add x (vec-scale (/ dt 6.0) weighted))))
 
 (define (vec-rk4-integrate f t0 x0 dt n-steps)
+  (doc 'export #t)
   (doc 'type '(-> (-> Number Vec Vec) Number Vec Number Nat (List (Number Vec))))
   (doc 'description "Integrate dx/dt = f(t, x) using RK4 over n-steps. Returns list of (time state) pairs.")
   (let loop ([t t0] [x x0] [i 0] [results (list (list t0 x0))])
@@ -148,6 +154,7 @@
 (doc 'section 'simulation)
 
 (define (simulate-state-space sys x0 dt n-steps . input-fn-arg)
+  (doc 'export #t)
   (doc 'type '(-> SS Vec Number Nat ... (List (Number Vec Vec))))
   (doc 'description "Simulate a state-space model from initial state x0. Returns list of (time state output) triples. Optional input-fn : (t -> Vec), defaults to zero.")
   (doc 'param 'sys "State-space system (ss A B C D)")
@@ -173,6 +180,7 @@
          trajectory)))
 
 (define (simulate-state-space-final sys x0 dt n-steps . input-fn-arg)
+  (doc 'export #t)
   (doc 'type '(-> SS Vec Number Nat ... (Number Vec Vec)))
   (doc 'description "Like simulate-state-space but returns only the final (time state output) triple. More memory-efficient for long simulations.")
   (let* ([m (ss-inputs sys)]

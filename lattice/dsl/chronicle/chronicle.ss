@@ -89,39 +89,48 @@
 
 ;;; Empty state constructor
 (define (empty-state)
+  (doc 'export #t)
   (make-cstate '() '() '() '()))
 
 ;;; State accessors
 (define (state-get state key default)
+  (doc 'export #t)
   (let ([p (assq key (cstate-vars state))])
        (if p (cdr p) default)))
 
 (define (state-set state key value)
+  (doc 'export #t)
   (let* ([vars (cstate-vars state)]
          [vars* (alist-set vars key value)])
         (make-cstate vars* (cstate-flags state)
                      (cstate-inventory state) (cstate-meta state))))
 
 (define (state-flag? state flag)
+  (doc 'export #t)
   (let ([p (assq flag (cstate-flags state))])
        (and p (cdr p))))
 
 (define (state-set-flag state flag value)
+  (doc 'export #t)
   (let* ([flags (cstate-flags state)]
          [flags* (alist-set flags flag value)])
         (make-cstate (cstate-vars state) flags*
                      (cstate-inventory state) (cstate-meta state))))
 
 (define (state-flag! state flag)
+  (doc 'export #t)
   (state-set-flag state flag #t))
 
 (define (state-unflag! state flag)
+  (doc 'export #t)
   (state-set-flag state flag #f))
 
 (define (state-has-item? state item)
+  (doc 'export #t)
   (and (memq item (cstate-inventory state)) #t))
 
 (define (state-add-item state item)
+  (doc 'export #t)
   (if (state-has-item? state item)
       state
       (make-cstate (cstate-vars state) (cstate-flags state)
@@ -129,12 +138,14 @@
                    (cstate-meta state))))
 
 (define (state-remove-item state item)
+  (doc 'export #t)
   (make-cstate (cstate-vars state) (cstate-flags state)
                (remq item (cstate-inventory state))
                (cstate-meta state)))
 
 ;;; Alist helper
 (define (alist-set alist key value)
+  (doc 'export #t)
   (let ([p (assq key alist)])
        (if p
            (cons (cons key value) (remq p alist))
@@ -148,29 +159,36 @@
 (define (guard-never) (lambda (s) #f))
 
 (define (guard-flag flag)
+  (doc 'export #t)
   (lambda (s) (state-flag? s flag)))
 
 (define (guard-not-flag flag)
+  (doc 'export #t)
   (lambda (s) (not (state-flag? s flag))))
 
 (define (guard-has-item item)
+  (doc 'export #t)
   (lambda (s) (state-has-item? s item)))
 
 (define (guard-var-eq key value)
+  (doc 'export #t)
   (lambda (s) (equal? (state-get s key #f) value)))
 
 (define (guard-var>= key threshold)
+  (doc 'export #t)
   (lambda (s)
           (let ([v (state-get s key 0)])
                (and (number? v) (>= v threshold)))))
 
 (define (guard-var<= key threshold)
+  (doc 'export #t)
   (lambda (s)
           (let ([v (state-get s key 0)])
                (and (number? v) (<= v threshold)))))
 
 ;;; Guard combinators
 (define (guard-and . guards)
+  (doc 'export #t)
   (lambda (s)
           (let loop ([gs guards])
                (or (null? gs)
@@ -178,6 +196,7 @@
                         (loop (cdr gs)))))))
 
 (define (guard-or . guards)
+  (doc 'export #t)
   (lambda (s)
           (let loop ([gs guards])
                (and (not (null? gs))
@@ -185,10 +204,12 @@
                         (loop (cdr gs)))))))
 
 (define (guard-not g)
+  (doc 'export #t)
   (lambda (s) (not (g s))))
 
 ;;; Evaluate a guard (for compatibility with data-based guards)
 (define (guard-check guard state)
+  (doc 'export #t)
   (cond
    [(procedure? guard) (guard state)]
    [(eq? guard #t) #t]
@@ -205,27 +226,34 @@
 (define (effect-none) (lambda (s) s))
 
 (define (effect-set key value)
+  (doc 'export #t)
   (lambda (s) (state-set s key value)))
 
 (define (effect-inc key delta)
+  (doc 'export #t)
   (lambda (s)
           (let ([v (state-get s key 0)])
                (state-set s key (+ v delta)))))
 
 (define (effect-flag flag)
+  (doc 'export #t)
   (lambda (s) (state-flag! s flag)))
 
 (define (effect-unflag flag)
+  (doc 'export #t)
   (lambda (s) (state-unflag! s flag)))
 
 (define (effect-add-item item)
+  (doc 'export #t)
   (lambda (s) (state-add-item s item)))
 
 (define (effect-remove-item item)
+  (doc 'export #t)
   (lambda (s) (state-remove-item s item)))
 
 ;;; Effect combinators
 (define (effect-seq . effects)
+  (doc 'export #t)
   (lambda (s)
           (let loop ([st s] [effs effects])
                (if (null? effs)
@@ -233,6 +261,7 @@
                    (loop ((car effs) st) (cdr effs))))))
 
 (define (effect-when guard effect)
+  (doc 'export #t)
   (lambda (s)
           (if (guard-check guard s)
               (effect s)
@@ -240,11 +269,13 @@
 
 ;;; Apply effect to state
 (define (apply-effect effect state)
+  (doc 'export #t)
   (if (procedure? effect)
       (effect state)
       state))
 
 (define (apply-effects effects state)
+  (doc 'export #t)
   (let loop ([s state] [effs effects])
        (if (null? effs)
            s
@@ -263,6 +294,7 @@
 ;;; Simple string interpolation using ${key} syntax
 ;;; Expands ${key} to (state-get state 'key "")
 (define (expand-template-string str state)
+  (doc 'export #t)
   (let loop ([chars (string->list str)] [result '()] [in-var #f] [var-chars '()])
        (cond
         [(null? chars)
@@ -287,6 +319,7 @@
 
 ;;; Template evaluation
 (define (eval-template template state)
+  (doc 'export #t)
   (cond
    [(string? template)
     (expand-template-string template state)]
@@ -300,6 +333,7 @@
 ;;; ====
 
 (define (chronicle-scene chronicle sid)
+  (doc 'export #t)
   (let ([scenes (chronicle-scenes chronicle)])
        (let loop ([ss scenes])
             (cond
@@ -308,6 +342,7 @@
              [else (loop (cdr ss))]))))
 
 (define (chronicle-has-scene? chronicle sid)
+  (doc 'export #t)
   (and (chronicle-scene chronicle sid) #t))
 
 ;;; ====
@@ -329,26 +364,31 @@
 
 ;;; Run transformers (functional updates)
 (define (crun-with-scene run scene-id)
+  (doc 'export #t)
   (make-crun (crun-chronicle-id run) scene-id
              (crun-state run) (crun-transcript run)
              (crun-done? run) (crun-message run)))
 
 (define (crun-with-state run state)
+  (doc 'export #t)
   (make-crun (crun-chronicle-id run) (crun-scene-id run)
              state (crun-transcript run)
              (crun-done? run) (crun-message run)))
 
 (define (crun-with-done run done?)
+  (doc 'export #t)
   (make-crun (crun-chronicle-id run) (crun-scene-id run)
              (crun-state run) (crun-transcript run)
              done? (crun-message run)))
 
 (define (crun-with-message run msg)
+  (doc 'export #t)
   (make-crun (crun-chronicle-id run) (crun-scene-id run)
              (crun-state run) (crun-transcript run)
              (crun-done? run) msg))
 
 (define (crun-append-transcript run entry)
+  (doc 'export #t)
   (make-crun (crun-chronicle-id run) (crun-scene-id run)
              (crun-state run) (cons entry (crun-transcript run))
              (crun-done? run) (crun-message run)))
@@ -359,6 +399,7 @@
 
 ;;; Start a new run (enters the first scene, applying on-enter effects)
 (define (chronicle-start chronicle . state-opt)
+  (doc 'export #t)
   (let* ([state (if (null? state-opt) (empty-state) (car state-opt))]
          [run (make-crun (chronicle-id chronicle)
                          (chronicle-start-scene chronicle)
@@ -371,6 +412,7 @@
 
 ;;; Enter a scene (applies on-enter effects)
 (define (chronicle-enter-scene chronicle run)
+  (doc 'export #t)
   (let ([scene (chronicle-scene chronicle (crun-scene-id run))])
        (if (not scene)
            (crun-with-message run (format "Missing scene: ~a" (crun-scene-id run)))
@@ -381,6 +423,7 @@
 
 ;;; Get visible choices for current scene
 (define (chronicle-visible-choices chronicle run)
+  (doc 'export #t)
   (let ([scene (chronicle-scene chronicle (crun-scene-id run))])
        (if (not scene)
            '()
@@ -390,6 +433,7 @@
 
 ;;; Make a choice
 (define (chronicle-choose chronicle run choice-num)
+  (doc 'export #t)
   (let ([choices (chronicle-visible-choices chronicle run)])
        (cond
         [(or (< choice-num 1) (> choice-num (length choices)))
@@ -414,6 +458,7 @@
 
 ;;; Render current scene
 (define (chronicle-render chronicle run)
+  (doc 'export #t)
   (let ([scene (chronicle-scene chronicle (crun-scene-id run))])
        (if (not scene)
            (format "Error: Scene ~a not found" (crun-scene-id run))
@@ -445,14 +490,17 @@
 ;;; Build a scene from spec
 ;;; (scene-spec 'id "text" ((choice-spec ...) ...) on-enter on-exit meta)
 (define (build-scene id text choices on-enter on-exit meta)
+  (doc 'export #t)
   (make-scene id text choices on-enter on-exit meta))
 
 ;;; Build a choice from spec
 (define (build-choice label target guard effects meta)
+  (doc 'export #t)
   (make-choice label target guard effects meta))
 
 ;;; Build a chronicle from specs
 (define (build-chronicle id title scenes start meta)
+  (doc 'export #t)
   (make-chronicle id title scenes start meta))
 
 ;;; ====
@@ -472,6 +520,7 @@
 
 ;;; Parse scene definition
 (define (parse-scene-def def)
+  (doc 'export #t)
   (let* ([id (cadr def)]
          [rest (cddr def)]
          [text (car rest)]
@@ -506,6 +555,7 @@
 ;;; Parse choice definition
 ;;; (-> "label" 'target :when guard :do effect ...)
 (define (parse-choice-def def)
+  (doc 'export #t)
   (let* ([label (cadr def)]
          [target (caddr def)]
          [rest (cdddr def)])
@@ -528,6 +578,7 @@
 
 ;;; Parse guard expression
 (define (parse-guard-expr expr)
+  (doc 'export #t)
   (cond
    [(eq? expr #t) (guard-always)]
    [(eq? expr #f) (guard-never)]
@@ -553,6 +604,7 @@
 
 ;;; Parse effect expression
 (define (parse-effect-expr expr)
+  (doc 'export #t)
   (cond
    [(and (pair? expr) (eq? (car expr) 'set!))
     (effect-set (cadr expr) (caddr expr))]
@@ -572,6 +624,7 @@
 
 ;;; Parse chronicle definition
 (define (parse-chronicle-def def)
+  (doc 'export #t)
   (let* ([name (cadr def)]
          [title (caddr def)]
          [body (cdddr def)])

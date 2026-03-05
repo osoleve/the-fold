@@ -30,6 +30,7 @@
 (doc 'section 'conversion)
 
 (define (expr->polynomial expr var-sym field)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Field (Maybe AlgebraPoly)))
   (doc 'description "Convert symbolic expression to polynomial over given field")
   (doc 'note "Returns #f if expression is not polynomial; variable becomes indeterminate, other symbols are constants")
@@ -44,6 +45,7 @@
 ;;; polynomial-expr? : Expr × Symbol → Boolean
 ;;; Check if expression is a polynomial in the given variable.
 (define (polynomial-expr? expr var-sym)
+  (doc 'export #t)
   (cond
     [(num? expr) #t]
     [(var? expr) #t]  ; Constants or the variable itself
@@ -67,6 +69,7 @@
 ;;; expr-degree : Expr × Symbol → Nat
 ;;; Get the degree of the variable in the expression.
 (define (expr-degree expr var-sym)
+  (doc 'export #t)
   (cond
     [(num? expr) 0]
     [(var? expr)
@@ -93,6 +96,7 @@
 ;;; Extract coefficients [a_0, a_1, ..., a_n] from polynomial expression.
 ;;; Coefficients are in ascending power order.
 (define (extract-poly-coeffs expr var-sym degree field)
+  (doc 'export #t)
   (let loop ([k 0] [coeffs '()])
     (if (> k degree)
         (reverse coeffs)
@@ -102,12 +106,14 @@
 ;;; extract-coeff-at : Expr × Symbol × Nat → Number
 ;;; Extract the coefficient of x^k from the expression.
 (define (extract-coeff-at expr var-sym k)
+  (doc 'export #t)
   (let ([expanded (expand expr)])  ; Fully expand first
     (extract-coeff-expanded expanded var-sym k)))
 
 ;;; extract-coeff-expanded : Expr × Symbol × Nat → Number
 ;;; Extract coefficient from expanded expression.
 (define (extract-coeff-expanded expr var-sym k)
+  (doc 'export #t)
   (cond
     [(num? expr)
      (if (= k 0) (num-val expr) 0)]
@@ -145,6 +151,7 @@
 ;;; extract-coeff-product : (List Expr) × Symbol × Nat → Number
 ;;; Extract coefficient of x^k from product of factors.
 (define (extract-coeff-product factors var-sym k)
+  (doc 'export #t)
   (if (null? factors)
       (if (= k 0) 1 0)
       (let ([first (car factors)]
@@ -161,11 +168,13 @@
 ;;; expr-eval-at-zero : Expr × Symbol → Number
 ;;; Evaluate expression at var-sym = 0.
 (define (expr-eval-at-zero expr var-sym)
+  (doc 'export #t)
   (extract-coeff-expanded expr var-sym 0))
 
 ;;; polynomial->expr : AlgebraPoly × Symbol → Expr
 ;;; Convert a polynomial back to symbolic expression.
 (define (polynomial->expr poly var-sym)
+  (doc 'export #t)
   (let* ([coeffs (poly-coeffs poly)]
          [n (length coeffs)]
          [x (var var-sym)])
@@ -183,6 +192,7 @@
 ;;; make-term : Number × Nat × Expr → Expr
 ;;; Create term c * x^k.
 (define (make-term c k x)
+  (doc 'export #t)
   (cond
     [(= k 0) (num c)]
     [(= k 1) (if (= c 1) x (product (num c) x))]
@@ -192,6 +202,7 @@
 (doc 'section 'gcd-simplification)
 
 (define (simplify-rational expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr))
   (doc 'description "Simplify rational expression using polynomial GCD")
   (doc 'note "Cancels common polynomial factors in numerator and denominator")
@@ -215,6 +226,7 @@
 (doc 'section 'partial-fractions)
 
 (define (partial-fractions expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol (Maybe Expr)))
   (doc 'description "Decompose proper rational function into partial fractions")
   (doc 'note "Input should be P(x)/Q(x) where deg(P) < deg(Q); returns #f if decomposition fails")
@@ -238,6 +250,7 @@
 ;;; For P(x)/[(x-a)(x-b)...] = A/(x-a) + B/(x-b) + ...
 ;;; where A = P(a)/[(a-b)(a-c)...], etc. (Heaviside cover-up method)
 (define (partial-fractions-linear numer-poly denom-poly var-sym)
+  (doc 'export #t)
   ;; Get square-free factorization to identify factors
   (let ([sqf (poly-square-free-factorization denom-poly)])
     (if (null? sqf)
@@ -262,6 +275,7 @@
 ;;; Returns (division . remainder) as symbolic expressions.
 ;;; Returns (#f . #f) if inputs are not polynomials or denominator is zero.
 (define (poly-divide-expr numer-expr denom-expr var-sym)
+  (doc 'export #t)
   (let* ([numer-poly (expr->polynomial numer-expr var-sym Q-field-sym)]
          [denom-poly (expr->polynomial denom-expr var-sym Q-field-sym)])
     (cond
@@ -284,6 +298,7 @@
 ;;; Convert expression to standard polynomial form: a_n*x^n + ... + a_1*x + a_0.
 ;;; Fully expands, collects like terms, and orders by descending powers.
 (define (to-polynomial-form expr var-sym)
+  (doc 'export #t)
   (let ([poly (expr->polynomial expr var-sym Q-field-sym)])
     (if poly
         (polynomial->expr poly var-sym)
@@ -298,6 +313,7 @@
 ;;; Compute GCD of two polynomial expressions.
 ;;; Returns the GCD as a symbolic expression.
 (define (expr-poly-gcd expr1 expr2 var-sym)
+  (doc 'export #t)
   (let* ([poly1 (expr->polynomial expr1 var-sym Q-field-sym)]
          [poly2 (expr->polynomial expr2 var-sym Q-field-sym)])
     (if (or (not poly1) (not poly2))
@@ -307,6 +323,7 @@
 ;;; expr-poly-lcm : Expr × Expr × Symbol → Expr
 ;;; Compute LCM of two polynomial expressions.
 (define (expr-poly-lcm expr1 expr2 var-sym)
+  (doc 'export #t)
   (let* ([poly1 (expr->polynomial expr1 var-sym Q-field-sym)]
          [poly2 (expr->polynomial expr2 var-sym Q-field-sym)])
     (if (or (not poly1) (not poly2))
@@ -317,6 +334,7 @@
 (doc 'section 'square-free-factorization)
 
 (define (expr-square-free expr var-sym)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr))
   (doc 'description "Compute square-free part of polynomial expression by removing repeated factors")
   (let ([poly (expr->polynomial expr var-sym Q-field-sym)])
@@ -328,6 +346,7 @@
 ;;; Square-free factorization of polynomial expression.
 ;;; Returns list of (factor . multiplicity) pairs.
 (define (expr-factored expr var-sym)
+  (doc 'export #t)
   (let ([poly (expr->polynomial expr var-sym Q-field-sym)])
     (if poly
         (map (lambda (pair)
@@ -342,6 +361,7 @@
 
 ;;; make-sum-from-list : (List Expr) → Expr
 (define (make-sum-from-list terms)
+  (doc 'export #t)
   (cond
     [(null? terms) (num 0)]
     [(= (length terms) 1) (car terms)]
@@ -349,6 +369,7 @@
 
 ;;; for-all : (α → Bool) × (List α) → Bool
 (define (for-all pred lst)
+  (doc 'export #t)
   (cond
     [(null? lst) #t]
     [(not (pred (car lst))) #f]

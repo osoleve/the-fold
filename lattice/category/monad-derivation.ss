@@ -29,32 +29,39 @@ A MonadOps bundles the four core monad operations:
   - bind : M a → (a → M b) → M b")
 
 (define (make-monad-ops name return-fn fmap-fn join-fn bind-fn)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (-> a (M a)) (-> (-> a b) (M a) (M b)) (-> (M (M a)) (M a)) (-> (M a) (-> a (M b)) (M b)) MonadOps))
   (list 'monad-ops name return-fn fmap-fn join-fn bind-fn))
 
 (define (monad-ops? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'monad-ops)
        (= (length x) 6)))
 
 (define (monad-ops-name m)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps Symbol))
   (if (monad-ops? m) (cadr m) 'unknown))
 
 (define (monad-ops-return m)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps (-> a (M a))))
   (if (monad-ops? m) (caddr m) #f))
 
 (define (monad-ops-fmap m)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps (-> (-> a b) (M a) (M b))))
   (if (monad-ops? m) (cadddr m) #f))
 
 (define (monad-ops-join m)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps (-> (M (M a)) (M a))))
   (if (monad-ops? m) (car (cddddr m)) #f))
 
 (define (monad-ops-bind m)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps (-> (M a) (-> a (M b)) (M b))))
   (if (monad-ops? m) (cadr (cddddr m)) #f))
 
@@ -62,6 +69,7 @@ A MonadOps bundles the four core monad operations:
 ;;; Applicative ap derived from bind and fmap.
 ;;; ap mf ma = bind mf (λf. fmap f ma)
 (define (monad-ops-ap m)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps (-> (M (-> a b)) (M a) (M b))))
   (doc 'description "Applicative <*> derived from monad operations")
   (let ([bind-fn (monad-ops-bind m)]
@@ -72,6 +80,7 @@ A MonadOps bundles the four core monad operations:
 ;;; monad-ap : MonadOps × M (a → b) × M a → M b
 ;;; Convenience function for applicative application.
 (define (monad-ap ops mf ma)
+  (doc 'export #t)
   (doc 'type '(-> MonadOps (M (-> a b)) (M a) (M b)))
   ((monad-ops-ap ops) mf ma))
 
@@ -91,6 +100,7 @@ This gives us join: (G∘F)∘(G∘F) → G∘F")
 ;;; Derive monad operations from an adjunction F ⊣ G.
 ;;; Returns MonadOps for the monad on G∘F.
 (define (monad-from-adjunction adj)
+  (doc 'export #t)
   (let* ([F (adjunction-left adj)]
          [G (adjunction-right adj)]
          [η (adjunction-unit adj)]
@@ -161,6 +171,7 @@ Note: Reader monad (S → A) requires a different construction.")
 ;;;   η : A → (S → (A, S))  -- η(a) = λs. (a, s)
 ;;;   ε : (S → B, S) → B    -- ε(f, s) = f(s)
 (define (make-state-adjunction state-tag)
+  (doc 'export #t)
   (let* (;; F(A) = A × S represented as (a . state-slot)
          ;; F(f)(a . s) = (f a . s)
          [F (make-functor
@@ -220,16 +231,19 @@ The monad derived from the State adjunction is M A = S → (A × S).
 Provide convenience functions for working with this pattern.")
 
 (define (run-state m s)
+  (doc 'export #t)
   (doc 'type '(-> (-> S (* A S)) S (* A S)))
   (doc 'description "Run a state computation with initial state")
   (m s))
 
 (define (eval-state m s)
+  (doc 'export #t)
   (doc 'type '(-> (-> S (* A S)) S A))
   (doc 'description "Run computation and return just the value")
   (car (run-state m s)))
 
 (define (exec-state m s)
+  (doc 'export #t)
   (doc 'type '(-> (-> S (* A S)) S S))
   (doc 'description "Run computation and return just the final state")
   (cdr (run-state m s)))
@@ -259,11 +273,13 @@ a custom equality predicate. Example for State monad:
 ;;; Check: bind (return a) f = f a
 ;;; Uses equal? - only works for data-based monads.
 (define (verify-left-identity ops a f)
+  (doc 'export #t)
   (verify-left-identity-with-eq ops a f equal?))
 
 ;;; verify-left-identity-with-eq : MonadOps × a × (a → M b) × (M b × M b → Boolean) → Boolean
 ;;; Check: bind (return a) f = f a, using custom equality.
 (define (verify-left-identity-with-eq ops a f eq?)
+  (doc 'export #t)
   (let ([return (monad-ops-return ops)]
         [bind (monad-ops-bind ops)])
     (eq? (bind (return a) f)
@@ -273,11 +289,13 @@ a custom equality predicate. Example for State monad:
 ;;; Check: bind m return = m
 ;;; Uses equal? - only works for data-based monads.
 (define (verify-right-identity ops m)
+  (doc 'export #t)
   (verify-right-identity-with-eq ops m equal?))
 
 ;;; verify-right-identity-with-eq : MonadOps × M a × (M a × M a → Boolean) → Boolean
 ;;; Check: bind m return = m, using custom equality.
 (define (verify-right-identity-with-eq ops m eq?)
+  (doc 'export #t)
   (let ([return (monad-ops-return ops)]
         [bind (monad-ops-bind ops)])
     (eq? (bind m return) m)))
@@ -286,11 +304,13 @@ a custom equality predicate. Example for State monad:
 ;;; Check: bind (bind m f) g = bind m (λx. bind (f x) g)
 ;;; Uses equal? - only works for data-based monads.
 (define (verify-associativity ops m f g)
+  (doc 'export #t)
   (verify-associativity-with-eq ops m f g equal?))
 
 ;;; verify-associativity-with-eq : MonadOps × M a × (a → M b) × (b → M c) × (M c × M c → Boolean) → Boolean
 ;;; Check: bind (bind m f) g = bind m (λx. bind (f x) g), using custom equality.
 (define (verify-associativity-with-eq ops m f g eq?)
+  (doc 'export #t)
   (let ([bind (monad-ops-bind ops)])
     (eq? (bind (bind m f) g)
          (bind m (lambda (x) (bind (f x) g))))))
@@ -299,12 +319,14 @@ a custom equality predicate. Example for State monad:
 ;;; Verify all three monad laws for given test values.
 ;;; Uses equal? - only works for data-based monads.
 (define (verify-monad-laws ops a m f g)
+  (doc 'export #t)
   (verify-monad-laws-with-eq ops a m f g equal?))
 
 ;;; verify-monad-laws-with-eq : MonadOps × a × M a × (a → M a) × (a → M a) × (M a × M a → Boolean) → Boolean
 ;;; Verify all three monad laws using custom equality.
 ;;; Use this for function-based monads (State, Reader, Continuation).
 (define (verify-monad-laws-with-eq ops a m f g eq?)
+  (doc 'export #t)
   (and (verify-left-identity-with-eq ops a f eq?)
        (verify-right-identity-with-eq ops m eq?)
        (verify-associativity-with-eq ops m f g eq?)))
@@ -323,11 +345,13 @@ a custom equality predicate. Example for State monad:
 ;;; Check: fmap id m = m
 ;;; Uses equal? - only works for data-based monads.
 (define (verify-functor-identity ops m)
+  (doc 'export #t)
   (verify-functor-identity-with-eq ops m equal?))
 
 ;;; verify-functor-identity-with-eq : MonadOps × M a × (M a × M a → Boolean) → Boolean
 ;;; Check: fmap id m = m, using custom equality.
 (define (verify-functor-identity-with-eq ops m eq?)
+  (doc 'export #t)
   (let ([fmap (monad-ops-fmap ops)])
     (eq? (fmap id m) m)))
 
@@ -335,11 +359,13 @@ a custom equality predicate. Example for State monad:
 ;;; Check: fmap (g . f) m = fmap g (fmap f m)
 ;;; Uses equal? - only works for data-based monads.
 (define (verify-functor-composition ops g f m)
+  (doc 'export #t)
   (verify-functor-composition-with-eq ops g f m equal?))
 
 ;;; verify-functor-composition-with-eq : MonadOps × (b → c) × (a → b) × M a × (M c × M c → Boolean) → Boolean
 ;;; Check: fmap (g . f) m = fmap g (fmap f m), using custom equality.
 (define (verify-functor-composition-with-eq ops g f m eq?)
+  (doc 'export #t)
   (let ([fmap (monad-ops-fmap ops)])
     (eq? (fmap (compose2 g f) m)
          (fmap g (fmap f m)))))
@@ -350,6 +376,7 @@ a custom equality predicate. Example for State monad:
 
 ;;; monad-ops->string : MonadOps → String
 (define (monad-ops->string ops)
+  (doc 'export #t)
   (if (monad-ops? ops)
       (format "MonadOps<~a>" (monad-ops-name ops))
       "Not a MonadOps"))

@@ -16,10 +16,12 @@
 ;;; traced-quat : TracedValue × TracedValue × TracedValue × TracedValue → TracedQuat
 ;;; Create a traced quaternion from traced w, x, y, z components.
 (define (traced-quat w x y z)
+  (doc 'export #t)
   (list 'traced-quat w x y z))
 
 ;;; traced-quat? : Any → Boolean
 (define (traced-quat? q)
+  (doc 'export #t)
   (and (pair? q) (eq? (car q) 'traced-quat)))
 
 ;;; traced-quat-w : TracedQuat → TracedValue
@@ -37,6 +39,7 @@
 ;;; traced-quat-identity : Tape → TracedQuat
 ;;; Create traced identity quaternion (1, 0, 0, 0).
 (define (traced-quat-identity tape)
+  (doc 'export #t)
   (traced-quat (make-traced-var 1 tape)
                (make-traced-var 0 tape)
                (make-traced-var 0 tape)
@@ -49,6 +52,7 @@
 ;;; lift-quat : Quaternion × Tape → TracedQuat
 ;;; Convert regular quaternion to traced quaternion (creates traced variables).
 (define (lift-quat q tape)
+  (doc 'export #t)
   (traced-quat (make-traced-var (quat-w q) tape)
                (make-traced-var (quat-x q) tape)
                (make-traced-var (quat-y q) tape)
@@ -58,11 +62,13 @@
 ;;; Convert regular quaternion to traced quaternion with constant components.
 ;;; Constants have zero gradient and don't need tape tracking.
 (define (lift-quat-const q)
+  (doc 'export #t)
   (traced-quat (quat-w q) (quat-x q) (quat-y q) (quat-z q)))
 
 ;;; unpack-traced-quat : TracedQuat → Quaternion
 ;;; Extract numeric values from traced quaternion.
 (define (unpack-traced-quat tq)
+  (doc 'export #t)
   (quat (traced-value (traced-quat-w tq))
         (traced-value (traced-quat-x tq))
         (traced-value (traced-quat-y tq))
@@ -71,11 +77,13 @@
 ;;; traced-quat->list : TracedQuat → (List TracedValue)
 ;;; Extract components as list.
 (define (traced-quat->list tq)
+  (doc 'export #t)
   (list (traced-quat-w tq) (traced-quat-x tq) (traced-quat-y tq) (traced-quat-z tq)))
 
 ;;; traced-quat-vector : TracedQuat → TracedVec3
 ;;; Get vector (imaginary) part as traced vec3.
 (define (traced-quat-vector q)
+  (doc 'export #t)
   (traced-vec3 (traced-quat-x q) (traced-quat-y q) (traced-quat-z q)))
 
 ;;; ====
@@ -85,6 +93,7 @@
 ;;; traced-quat-add : TracedQuat × TracedQuat → TracedQuat
 ;;; Quaternion addition with gradient tracking.
 (define (traced-quat-add a b)
+  (doc 'export #t)
   (traced-quat (traced-add (traced-quat-w a) (traced-quat-w b))
                (traced-add (traced-quat-x a) (traced-quat-x b))
                (traced-add (traced-quat-y a) (traced-quat-y b))
@@ -93,6 +102,7 @@
 ;;; traced-quat-sub : TracedQuat × TracedQuat → TracedQuat
 ;;; Quaternion subtraction.
 (define (traced-quat-sub a b)
+  (doc 'export #t)
   (traced-quat (traced-sub (traced-quat-w a) (traced-quat-w b))
                (traced-sub (traced-quat-x a) (traced-quat-x b))
                (traced-sub (traced-quat-y a) (traced-quat-y b))
@@ -101,6 +111,7 @@
 ;;; traced-quat-neg : TracedQuat → TracedQuat
 ;;; Negate quaternion.
 (define (traced-quat-neg q)
+  (doc 'export #t)
   (traced-quat (traced-neg (traced-quat-w q))
                (traced-neg (traced-quat-x q))
                (traced-neg (traced-quat-y q))
@@ -109,6 +120,7 @@
 ;;; traced-quat-scale : TracedQuat × TracedValue → TracedQuat
 ;;; Scalar multiplication.
 (define (traced-quat-scale q s)
+  (doc 'export #t)
   (traced-quat (traced-mul (traced-quat-w q) s)
                (traced-mul (traced-quat-x q) s)
                (traced-mul (traced-quat-y q) s)
@@ -117,6 +129,7 @@
 ;;; traced-quat-scale-inv : TracedQuat × TracedValue → TracedQuat
 ;;; Scalar division (q / s).
 (define (traced-quat-scale-inv q s)
+  (doc 'export #t)
   (traced-quat (traced-div (traced-quat-w q) s)
                (traced-div (traced-quat-x q) s)
                (traced-div (traced-quat-y q) s)
@@ -131,6 +144,7 @@
 ;;;   (aw*by - ax*bz + ay*bw + az*bx)*j +
 ;;;   (aw*bz + ax*by - ay*bx + az*bw)*k
 (define (traced-quat-mul a b)
+  (doc 'export #t)
   (let ([aw (traced-quat-w a)] [ax (traced-quat-x a)]
         [ay (traced-quat-y a)] [az (traced-quat-z a)]
         [bw (traced-quat-w b)] [bx (traced-quat-x b)]
@@ -164,6 +178,7 @@
 ;;; traced-quat-dot : TracedQuat × TracedQuat → TracedValue
 ;;; Dot product (4D).
 (define (traced-quat-dot a b)
+  (doc 'export #t)
   (traced-add (traced-mul (traced-quat-w a) (traced-quat-w b))
               (traced-add (traced-mul (traced-quat-x a) (traced-quat-x b))
                           (traced-add (traced-mul (traced-quat-y a) (traced-quat-y b))
@@ -172,18 +187,21 @@
 ;;; traced-quat-magnitude-sq : TracedQuat → TracedValue
 ;;; Squared magnitude.
 (define (traced-quat-magnitude-sq q)
+  (doc 'export #t)
   (traced-quat-dot q q))
 
 ;;; traced-quat-magnitude : TracedQuat → TracedValue
 ;;; Magnitude (norm).
 ;;; WARNING: Gradient undefined at |q|=0. Use smooth-magnitude for safety.
 (define (traced-quat-magnitude q)
+  (doc 'export #t)
   (traced-sqrt (traced-quat-magnitude-sq q)))
 
 ;;; traced-quat-smooth-magnitude : TracedQuat × Number → TracedValue
 ;;; Smoothed magnitude with epsilon to avoid gradient singularity at zero.
 ;;; Returns sqrt(w² + x² + y² + z² + ε²) which is always > 0.
 (define (traced-quat-smooth-magnitude q epsilon)
+  (doc 'export #t)
   (traced-sqrt (traced-add (traced-quat-magnitude-sq q)
                            (* epsilon epsilon))))
 
@@ -191,6 +209,7 @@
 ;;; Return unit quaternion.
 ;;; WARNING: Gradient undefined at |q|=0.
 (define (traced-quat-normalize q)
+  (doc 'export #t)
   (traced-quat-scale-inv q (traced-quat-magnitude q)))
 
 ;;; traced-quat-smooth-normalize : TracedQuat × Number → TracedQuat
@@ -198,6 +217,7 @@
 ;;; Uses sqrt(|q|² + ε²) in denominator for gradient stability.
 ;;; CRITICAL for physics: quaternions must stay normalized.
 (define (traced-quat-smooth-normalize q epsilon)
+  (doc 'export #t)
   (traced-quat-scale-inv q (traced-quat-smooth-magnitude q epsilon)))
 
 ;;; ====
@@ -208,6 +228,7 @@
 ;;; Conjugate: negate the vector part.
 ;;; For unit quaternions, this equals the inverse.
 (define (traced-quat-conjugate q)
+  (doc 'export #t)
   (traced-quat (traced-quat-w q)
                (traced-neg (traced-quat-x q))
                (traced-neg (traced-quat-y q))
@@ -217,11 +238,13 @@
 ;;; Multiplicative inverse: q^(-1) = conjugate(q) / |q|².
 ;;; For unit quaternions, use conjugate instead (more efficient).
 (define (traced-quat-inverse q)
+  (doc 'export #t)
   (traced-quat-scale-inv (traced-quat-conjugate q) (traced-quat-magnitude-sq q)))
 
 ;;; traced-quat-smooth-inverse : TracedQuat × Number → TracedQuat
 ;;; Smooth inverse for gradient stability.
 (define (traced-quat-smooth-inverse q epsilon)
+  (doc 'export #t)
   (let ([mag-sq-smooth (traced-add (traced-quat-magnitude-sq q) (* epsilon epsilon))])
        (traced-quat-scale-inv (traced-quat-conjugate q) mag-sq-smooth)))
 
@@ -234,6 +257,7 @@
 ;;; v' = q * (0,v) * q^(-1) for unit quaternion (use conjugate).
 ;;; For non-unit quaternions, use inverse.
 (define (traced-quat-rotate-vec3 q v)
+  (doc 'export #t)
   (let* ([qv (traced-quat 0
                           (traced-vec3-x v)
                           (traced-vec3-y v)
@@ -247,6 +271,7 @@
 ;;; traced-quat-rotate-vec3-inverse : TracedQuat × TracedVec3 → TracedVec3
 ;;; Rotate a vector by the inverse quaternion.
 (define (traced-quat-rotate-vec3-inverse q v)
+  (doc 'export #t)
   (traced-quat-rotate-vec3 (traced-quat-conjugate q) v))
 
 ;;; ====
@@ -258,6 +283,7 @@
 ;;; dq/dt = 0.5 * omega_quat * q
 ;;; where omega_quat = (0, omega.x, omega.y, omega.z)
 (define (traced-quat-derivative q omega)
+  (doc 'export #t)
   (let ([omega-quat (traced-quat 0
                                  (traced-vec3-x omega)
                                  (traced-vec3-y omega)
@@ -273,6 +299,7 @@
 ;;;   q_new = exp(0.5 * dt * omega) * q
 ;;; But first-order + renormalization is sufficient for physics.
 (define (traced-quat-integrate q omega dt)
+  (doc 'export #t)
   (let* ([dq (traced-quat-derivative q omega)]
          [q-new (traced-quat-add q (traced-quat-scale dq dt))])
         ;; CRITICAL: Renormalize to prevent drift
@@ -282,6 +309,7 @@
 ;;; Integrate orientation by body-space angular velocity.
 ;;; omega is in body-local coordinates.
 (define (traced-quat-integrate-body q omega-body dt)
+  (doc 'export #t)
   (let ([omega-world (traced-quat-rotate-vec3 q omega-body)])
        (traced-quat-integrate q omega-world dt)))
 
@@ -292,6 +320,7 @@
 ;;; traced-quat-lerp : TracedQuat × TracedQuat × TracedValue → TracedQuat
 ;;; Linear interpolation (not normalized).
 (define (traced-quat-lerp a b t)
+  (doc 'export #t)
   (traced-quat-add (traced-quat-scale a (traced-sub 1 t))
                    (traced-quat-scale b t)))
 
@@ -300,6 +329,7 @@
 ;;; Faster than slerp, good for small angles.
 ;;; Note: doesn't handle sign flip (both +q and -q represent same rotation).
 (define (traced-quat-nlerp a b t epsilon)
+  (doc 'export #t)
   (traced-quat-smooth-normalize (traced-quat-lerp a b t) epsilon))
 
 ;;; ====
@@ -310,6 +340,7 @@
 ;;; Convert to 3x3 rotation matrix.
 ;;; Returns matrix as list of rows: ((r00 r01 r02) (r10 r11 r12) (r20 r21 r22))
 (define (traced-quat-to-rotation-matrix q)
+  (doc 'export #t)
   (let* ([w (traced-quat-w q)]
          [x (traced-quat-x q)]
          [y (traced-quat-y q)]
@@ -345,6 +376,7 @@
 ;;; Compute gradient of scalar function f at quaternion q.
 ;;; Returns (∂f/∂w, ∂f/∂x, ∂f/∂y, ∂f/∂z).
 (define (quat-gradient f q)
+  (doc 'export #t)
   (gradient (lambda (w x y z)
                     (f (traced-quat w x y z)))
             (list (quat-w q) (quat-x q) (quat-y q) (quat-z q))))
@@ -352,6 +384,7 @@
 ;;; quat-gradient-2arg : ((TracedQuat × TracedQuat) → TracedValue) × Quat × Quat → ((Numbers) × (Numbers))
 ;;; Compute gradients w.r.t. two quaternion arguments.
 (define (quat-gradient-2arg f a b)
+  (doc 'export #t)
   (let* ([grads (gradient (lambda (aw ax ay az bw bx by bz)
                                   (f (traced-quat aw ax ay az)
                                      (traced-quat bw bx by bz)))

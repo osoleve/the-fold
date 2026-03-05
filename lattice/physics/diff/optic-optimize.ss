@@ -57,6 +57,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;;     0.01
 ;;;     100)
 (define (optimize-physics-param param-optic initial-body make-loss learning-rate max-iters)
+  (doc 'export #t)
   (let loop ([body initial-body] [iter 0])
     (if (>= iter max-iters)
         body
@@ -72,6 +73,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;; The make-loss function receives a body-tracer that converts RigidBody2D to TracedBody.
 ;;; This enables gradient flow through physics simulation.
 (define (physics-optic-gradient param-optic body make-loss)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
      (let* ([tape (make-reverse-tape)]
@@ -94,6 +96,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;; get-traced-focus : Optic × TracedBody → TracedValue
 ;;; Extract the traced focus from a traced body based on optic type.
 (define (get-traced-focus param-optic traced-body)
+  (doc 'export #t)
   (cond
     [(eq? param-optic rigid-body-pos-lens)
      (traced-body-pos traced-body)]
@@ -111,6 +114,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;; make-body-tracer : Optic × RigidBody2D × Tape → (RigidBody2D → TracedBody)
 ;;; Create a function that traces a body with the specified parameter traced.
 (define (make-body-tracer param-optic template-body tape)
+  (doc 'export #t)
   (lambda (body)
     (let* ([pos (rigid-body-pos body)]
            [vel (rigid-body-vel body)]
@@ -163,6 +167,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;; subtract-physics-grad : PhysicsValue × gradient × rate → PhysicsValue
 ;;; Subtract scaled gradient from physics value (Vec2 or Number).
 (define (subtract-physics-grad value grad rate)
+  (doc 'export #t)
   (cond
     [(vec2? value)
      (vec2 (- (vec2-x value) (* rate (vec2-x grad)))
@@ -186,6 +191,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;;   learning-rate: Gradient descent step size
 ;;;   max-iters: Number of optimization iterations
 (define (optimize-physics-all-params initial-body make-loss learning-rate max-iters)
+  (doc 'export #t)
   (let loop ([body initial-body] [iter 0])
     (if (>= iter max-iters)
         body
@@ -204,6 +210,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;; Compute gradient of loss w.r.t. all 6 body parameters.
 ;;; Returns (values grad-pos grad-vel grad-angle grad-omega).
 (define (physics-full-gradient body make-loss)
+  (doc 'export #t)
   (with-fresh-ad-scope
    (lambda ()
      (let* ([tape (make-reverse-tape)]
@@ -324,6 +331,7 @@ Migration guide (optimize.ss → optic-optimize.ss):
 ;;;
 ;;; Returns gradient showing how final position changes with parameter change.
 (define (sensitivity-at-optic initial-body step-fn param-optic num-steps)
+  (doc 'export #t)
   (physics-optic-gradient
    param-optic
    initial-body

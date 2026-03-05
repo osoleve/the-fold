@@ -45,12 +45,14 @@ Standard shapes:
   - span: three objects forming A ← C → B (pushout)")
 
 (define (make-shape name objects morphisms)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Symbol) (List (List Symbol Symbol Symbol)) Shape))
   (doc 'description "Create a diagram shape.
 morphisms is a list of (name source target) triples.")
   (list 'shape name objects morphisms))
 
 (define (shape? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'shape)))
 
 (define (shape-name s) (cadr s))
@@ -95,6 +97,7 @@ A diagram D : J → C assigns:
 We represent diagrams as records with object and morphism mappings.")
 
 (define (make-diagram shape obj-map mor-map)
+  (doc 'export #t)
   (doc 'type '(-> Shape (-> Symbol Any) (-> Symbol (-> Any Any)) Diagram))
   (doc 'description "Create a diagram over a shape.
 obj-map: symbol → object in target category
@@ -102,6 +105,7 @@ mor-map: morphism-name → function between objects")
   (list 'diagram shape obj-map mor-map))
 
 (define (diagram? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'diagram)))
 
 (define (diagram-shape d) (cadr d))
@@ -109,11 +113,13 @@ mor-map: morphism-name → function between objects")
 (define (diagram-mor-map d) (cadddr d))
 
 (define (diagram-at d obj-name)
+  (doc 'export #t)
   (doc 'type '(-> Diagram Symbol Any))
   (doc 'description "Get the object in the diagram at position obj-name")
   ((diagram-obj-map d) obj-name))
 
 (define (diagram-mor d mor-name)
+  (doc 'export #t)
   (doc 'type '(-> Diagram Symbol (-> Any Any)))
   (doc 'description "Get the morphism in the diagram with name mor-name")
   ((diagram-mor-map d) mor-name))
@@ -134,12 +140,14 @@ A cocone is dual: an apex with injections ι_j : D(j) → X
 such that for each f : j → k in J, ι_k ∘ D(f) = ι_j")
 
 (define (make-cone apex diagram projections)
+  (doc 'export #t)
   (doc 'type '(-> Any Diagram (-> Symbol (-> Any Any)) Cone))
   (doc 'description "Create a cone over a diagram.
 projections: symbol → (Apex → D(symbol))")
   (list 'cone apex diagram projections))
 
 (define (cone? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'cone)))
 
 (define (cone-apex c) (cadr c))
@@ -147,17 +155,20 @@ projections: symbol → (Apex → D(symbol))")
 (define (cone-projections c) (cadddr c))
 
 (define (cone-project c obj-name)
+  (doc 'export #t)
   (doc 'type '(-> Cone Symbol (-> Apex Object)))
   (doc 'description "Get the projection morphism to object obj-name")
   ((cone-projections c) obj-name))
 
 (define (make-cocone apex diagram injections)
+  (doc 'export #t)
   (doc 'type '(-> Any Diagram (-> Symbol (-> Any Any)) Cocone))
   (doc 'description "Create a cocone under a diagram.
 injections: symbol → (D(symbol) → Apex)")
   (list 'cocone apex diagram injections))
 
 (define (cocone? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'cocone)))
 
 (define (cocone-apex c) (cadr c))
@@ -165,12 +176,14 @@ injections: symbol → (D(symbol) → Apex)")
 (define (cocone-injections c) (cadddr c))
 
 (define (cocone-inject c obj-name)
+  (doc 'export #t)
   (doc 'type '(-> Cocone Symbol (-> Object Apex)))
   (doc 'description "Get the injection morphism from object obj-name")
   ((cocone-injections c) obj-name))
 
 ;;; Cone verification
 (define (verify-cone cone)
+  (doc 'export #t)
   (doc 'type '(-> Cone Boolean))
   (doc 'description "Verify cone commutativity: D(f) ∘ π_source = π_target
 for all morphisms f in the diagram shape.
@@ -207,6 +220,7 @@ For Set-based limits where apex is a list of elements, verifies pointwise.")
            test-elements)))))
 
 (define (verify-cocone cocone)
+  (doc 'export #t)
   (doc 'type '(-> Cocone Boolean))
   (doc 'description "Verify cocone commutativity: ι_target ∘ D(f) = ι_source
 for all morphisms f in the diagram shape.
@@ -254,12 +268,14 @@ making all triangles commute.
 A colimit is dual: an initial cocone.")
 
 (define (make-limit cone factorizer)
+  (doc 'export #t)
   (doc 'type '(-> Cone (-> Cone (-> Any Any)) Limit))
   (doc 'description "Create a limit from a cone and its universal factorizer.
 factorizer: given any cone, produces the unique morphism to the limit apex.")
   (list 'limit cone factorizer))
 
 (define (limit? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'limit)))
 
 (define (limit-cone lim) (cadr lim))
@@ -267,18 +283,21 @@ factorizer: given any cone, produces the unique morphism to the limit apex.")
 (define (limit-factorizer lim) (caddr lim))
 
 (define (limit-factor lim other-cone)
+  (doc 'export #t)
   (doc 'type '(-> Limit Cone (-> OtherApex LimitApex)))
   (doc 'description "Factor another cone through this limit.
 Returns the unique mediating morphism.")
   ((limit-factorizer lim) other-cone))
 
 (define (make-colimit cocone factorizer)
+  (doc 'export #t)
   (doc 'type '(-> Cocone (-> Cocone (-> Any Any)) Colimit))
   (doc 'description "Create a colimit from a cocone and its universal factorizer.
 factorizer: given any cocone, produces the unique morphism from the colimit apex.")
   (list 'colimit cocone factorizer))
 
 (define (colimit? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'colimit)))
 
 (define (colimit-cocone colim) (cadr colim))
@@ -286,6 +305,7 @@ factorizer: given any cocone, produces the unique morphism from the colimit apex
 (define (colimit-factorizer colim) (caddr colim))
 
 (define (colimit-factor colim other-cocone)
+  (doc 'export #t)
   (doc 'type '(-> Colimit Cocone (-> ColimitApex OtherApex)))
   (doc 'description "Factor another cocone through this colimit.
 Returns the unique mediating morphism.")
@@ -304,6 +324,7 @@ satisfying the universal property: for any C with f : C → A and g : C → B,
 there exists unique ⟨f,g⟩ : C → A×B such that π₁ ∘ ⟨f,g⟩ = f and π₂ ∘ ⟨f,g⟩ = g.")
 
 (define (make-product-diagram a-elements b-elements)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) Diagram))
   (doc 'description "Create a discrete 2-object diagram for product in Set")
   (make-diagram shape-discrete-2
@@ -316,6 +337,7 @@ there exists unique ⟨f,g⟩ : C → A×B such that π₁ ∘ ⟨f,g⟩ = f and
                   (error 'product-diagram "discrete diagram has no morphisms"))))
 
 (define (binary-product a-elements b-elements)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) Limit))
   (doc 'description "Construct the binary product A × B in Set.
 a-elements and b-elements are lists of elements.
@@ -343,22 +365,26 @@ Projections are element-level: π_a = car, π_b = cdr.")
     (make-limit cone factorizer)))
 
 (define (product-pair f g)
+  (doc 'export #t)
   (doc 'type '(-> (-> C A) (-> C B) (-> C (* A B))))
   (doc 'description "The pairing morphism ⟨f,g⟩ : C → A×B")
   (lambda (c) (cons (f c) (g c))))
 
 (define (product-fst p)
+  (doc 'export #t)
   (doc 'type '(-> (* A B) A))
   (doc 'description "First projection π₁")
   (car p))
 
 (define (product-snd p)
+  (doc 'export #t)
   (doc 'type '(-> (* A B) B))
   (doc 'description "Second projection π₂")
   (cdr p))
 
 ;;; n-ary products
 (define (cartesian-product-n sets)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Any)) (List (List Any))))
   (doc 'description "Compute the n-ary cartesian product of a list of sets.
 Returns list of tuples (as lists).")
@@ -373,6 +399,7 @@ Returns list of tuples (as lists).")
          first-set))))
 
 (define (n-ary-product element-sets)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Any)) Limit))
   (doc 'description "Construct the n-ary product of sets in Set.
 element-sets is a list of element lists.
@@ -417,6 +444,7 @@ satisfying the universal property: for any C with f : A → C and g : B → C,
 there exists unique [f,g] : A+B → C such that [f,g] ∘ ι₁ = f and [f,g] ∘ ι₂ = g.")
 
 (define (make-coproduct-diagram a b)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Diagram))
   (doc 'description "Create a discrete 2-object diagram for coproduct")
   (make-diagram shape-discrete-2
@@ -429,6 +457,7 @@ there exists unique [f,g] : A+B → C such that [f,g] ∘ ι₁ = f and [f,g] �
                   (error 'coproduct-diagram "discrete diagram has no morphisms"))))
 
 (define (binary-coproduct a-elements b-elements)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) Colimit))
   (doc 'description "Construct the binary coproduct A + B in Set.
 a-elements and b-elements are element lists.
@@ -458,6 +487,7 @@ Injections are element-level: ι_a(a) = (left . a), ι_b(b) = (right . b).")
     (make-colimit cocone factorizer)))
 
 (define (coproduct-copair f g)
+  (doc 'export #t)
   (doc 'type '(-> (-> A C) (-> B C) (-> (+ A B) C)))
   (doc 'description "The copairing morphism [f,g] : A+B → C")
   (lambda (x)
@@ -484,6 +514,7 @@ Concretely: E = {a ∈ A | f(a) = g(a)}, with e being inclusion.
 Note: In Set, equalizers always exist. In other categories they may not.")
 
 (define (make-equalizer-diagram a b f g)
+  (doc 'export #t)
   (doc 'type '(-> Any Any (-> Any Any) (-> Any Any) Diagram))
   (doc 'description "Create a parallel pair diagram A ⇉ B with morphisms f, g")
   (make-diagram shape-parallel-pair
@@ -499,6 +530,7 @@ Note: In Set, equalizers always exist. In other categories they may not.")
                     [else (error 'equalizer-diagram "unknown morphism" mor)]))))
 
 (define (equalizer a-elements b-elements f g)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) (-> Any Any) (-> Any Any) Limit))
   (doc 'description "Construct the equalizer of f,g : A ⇉ B in Set.
 a-elements is the domain A, b-elements is the codomain B.
@@ -529,6 +561,7 @@ Projections are element-level: π_a(e)=e, π_b(e)=f(e).")
     (make-limit cone factorizer)))
 
 (define (equalizer-inclusion eq)
+  (doc 'export #t)
   (doc 'type '(-> Limit (-> E A)))
   (doc 'description "The inclusion morphism e : E → A from an equalizer")
   (cone-project (limit-cone eq) 'a))
@@ -547,6 +580,7 @@ universal among all such.
 Concretely: Q = B / ~ where f(a) ~ g(a) for all a ∈ A.")
 
 (define (make-coequalizer-diagram a b f g)
+  (doc 'export #t)
   (doc 'type '(-> Any Any (-> Any Any) (-> Any Any) Diagram))
   (doc 'description "Create a parallel pair diagram for coequalizer")
   (make-diagram shape-parallel-pair
@@ -562,6 +596,7 @@ Concretely: Q = B / ~ where f(a) ~ g(a) for all a ∈ A.")
                     [else (error 'coequalizer-diagram "unknown morphism" mor)]))))
 
 (define (coequalizer a-elements b-elements f g)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) (-> Any Any) (-> Any Any) Colimit))
   (doc 'description "Construct the coequalizer of f,g : A ⇉ B in Set.
 Returns B quotiented by f(a) ~ g(a).")
@@ -609,6 +644,7 @@ Returns B quotiented by f(a) ~ g(a).")
     (make-colimit cocone factorizer)))
 
 (define (coequalizer-quotient coeq)
+  (doc 'export #t)
   (doc 'type '(-> Colimit (-> B Q)))
   (doc 'description "The quotient morphism q : B → Q from a coequalizer")
   (cocone-inject (colimit-cocone coeq) 'b))
@@ -627,6 +663,7 @@ such that f ∘ p₁ = g ∘ p₂, universal among all such squares.
 Concretely: P = {(a,b) | f(a) = g(b)}")
 
 (define (make-pullback-diagram a b c f g)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Any (-> Any Any) (-> Any Any) Diagram))
   (doc 'description "Create a cospan diagram A -f→ C ←g- B")
   (make-diagram shape-cospan
@@ -643,6 +680,7 @@ Concretely: P = {(a,b) | f(a) = g(b)}")
                     [else (error 'pullback-diagram "unknown morphism" mor)]))))
 
 (define (pullback a-elements b-elements c f g)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) Any (-> Any Any) (-> Any Any) Limit))
   (doc 'description "Construct the pullback of A -f→ C ←g- B in Set.
 Returns pairs (a,b) where f(a) = g(b).
@@ -687,11 +725,13 @@ Projections are element-level: π_a(p)=fst(p), π_b(p)=snd(p), π_c(p)=f(fst(p))
     (make-limit cone factorizer)))
 
 (define (pullback-p1 pb)
+  (doc 'export #t)
   (doc 'type '(-> Limit (-> P A)))
   (doc 'description "First projection from pullback")
   (cone-project (limit-cone pb) 'a))
 
 (define (pullback-p2 pb)
+  (doc 'export #t)
   (doc 'type '(-> Limit (-> P B)))
   (doc 'description "Second projection from pullback")
   (cone-project (limit-cone pb) 'b))
@@ -710,6 +750,7 @@ such that ι₁ ∘ f = ι₂ ∘ g, universal among all such squares.
 Concretely: Q = (A + B) / ~ where f(c) ~ g(c) for all c ∈ C")
 
 (define (make-pushout-diagram a b c f g)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Any (-> Any Any) (-> Any Any) Diagram))
   (doc 'description "Create a span diagram A ←f- C -g→ B")
   (make-diagram shape-span
@@ -726,6 +767,7 @@ Concretely: Q = (A + B) / ~ where f(c) ~ g(c) for all c ∈ C")
                     [else (error 'pushout-diagram "unknown morphism" mor)]))))
 
 (define (pushout a-elements b-elements c-elements f g)
+  (doc 'export #t)
   (doc 'type '(-> (List Any) (List Any) (List Any) (-> Any Any) (-> Any Any) Colimit))
   (doc 'description "Construct the pushout of A ←f- C -g→ B in Set.
 Returns (A + B) quotiented by f(c) ~ g(c).")
@@ -781,11 +823,13 @@ Returns (A + B) quotiented by f(c) ~ g(c).")
     (make-colimit cocone factorizer)))
 
 (define (pushout-i1 po)
+  (doc 'export #t)
   (doc 'type '(-> Colimit (-> A Q)))
   (doc 'description "First injection into pushout")
   (cocone-inject (colimit-cocone po) 'a))
 
 (define (pushout-i2 po)
+  (doc 'export #t)
   (doc 'type '(-> Colimit (-> B Q)))
   (doc 'description "Second injection into pushout")
   (cocone-inject (colimit-cocone po) 'b))
@@ -806,6 +850,7 @@ It has a unique morphism to every object.
 In Set: 1 is any singleton, 0 is the empty set.")
 
 (define (terminal-object unit-value)
+  (doc 'export #t)
   (doc 'type '(-> Any Limit))
   (doc 'description "Construct a terminal object. unit-value is the single element.")
   (let* ([diagram (make-diagram shape-empty
@@ -819,11 +864,13 @@ In Set: 1 is any singleton, 0 is the empty set.")
     (make-limit cone factorizer)))
 
 (define (terminal-morphism term)
+  (doc 'export #t)
   (doc 'type '(-> Limit (-> A 1)))
   (doc 'description "The unique morphism to the terminal object")
   (limit-factorizer term))
 
 (define (initial-object)
+  (doc 'export #t)
   (doc 'type '(-> Colimit))
   (doc 'description "Construct an initial object (empty set).")
   (let* ([diagram (make-diagram shape-empty
@@ -855,6 +902,7 @@ Key examples:
   - A×- preserves colimits (left adjoint to Hom(A,-))")
 
 (define (functor-preserves-limit? F lim test-cones)
+  (doc 'export #t)
   (doc 'type '(-> Functor Limit (List Cone) Boolean))
   (doc 'description "Test if a functor preserves a specific limit.
 Applies F to the limit cone and checks if F(cone) is still a limit cone
@@ -932,6 +980,7 @@ The universal property follows from those of products and equalizers.
 Dually, colimits can be built from coproducts and coequalizers.")
 
 (define (limit-from-diagram diagram)
+  (doc 'export #t)
   (doc 'type '(-> Diagram Limit))
   (doc 'description "Construct the limit of an arbitrary diagram in Set.
 Uses the general construction: Eq(s,t) where s,t : ∏D(j) → ∏D(cod(f)).
@@ -1037,6 +1086,7 @@ Works for any diagram shape, not just the standard ones.")
         (make-limit limit-cone-obj factorizer))])))
 
 (define (colimit-from-diagram diagram)
+  (doc 'export #t)
   (doc 'type '(-> Diagram Colimit))
   (doc 'description "Construct the colimit of an arbitrary diagram in Set.
 Uses the dual construction: Coeq(s,t) where s,t : ∐D(dom(f)) → ∐D(j).
@@ -1154,6 +1204,7 @@ Works for any diagram shape.")
         (make-colimit colimit-cocone-obj factorizer))])))
 
 (define (n-ary-coproduct element-sets obj-names)
+  (doc 'export #t)
   (doc 'type '(-> (List (List Any)) (List Symbol) Colimit))
   (doc 'description "Construct n-ary coproduct in Set.
 Returns disjoint union with elements tagged by object name: (obj-name . elem)")
@@ -1198,6 +1249,7 @@ Returns disjoint union with elements tagged by object name: (obj-name . elem)")
 (doc 'section 'display)
 
 (define (shape->string s)
+  (doc 'export #t)
   (if (shape? s)
       (format "Shape(~a: ~a objects, ~a morphisms)"
               (shape-name s)
@@ -1206,11 +1258,13 @@ Returns disjoint union with elements tagged by object name: (obj-name . elem)")
       "Not a shape"))
 
 (define (diagram->string d)
+  (doc 'export #t)
   (if (diagram? d)
       (format "Diagram over ~a" (shape-name (diagram-shape d)))
       "Not a diagram"))
 
 (define (cone->string c)
+  (doc 'export #t)
   (if (cone? c)
       (format "Cone(apex: ~a, over: ~a)"
               (cone-apex c)
@@ -1218,12 +1272,14 @@ Returns disjoint union with elements tagged by object name: (obj-name . elem)")
       "Not a cone"))
 
 (define (limit->string lim)
+  (doc 'export #t)
   (if (limit? lim)
       (format "Limit(~a)"
               (cone->string (limit-cone lim)))
       "Not a limit"))
 
 (define (colimit->string colim)
+  (doc 'export #t)
   (if (colimit? colim)
       (format "Colimit(~a)"
               (cocone-apex colim))

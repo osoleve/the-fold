@@ -27,6 +27,7 @@
 (doc 'section 'json-parser)
 
 (define json-null (parser-then (parser-symbol "null") (parser-pure 'json-null)))
+(doc json-null 'export #t)
 (doc json-null 'type '(Parser Symbol))
 (doc json-null 'description "Parse JSON null value")
 
@@ -38,6 +39,7 @@
 (doc json-bool 'description "Parse JSON boolean value")
 
 (define json-number (parser-lexeme decimal))
+(doc json-number 'export #t)
 (doc json-number 'type '(Parser Number))
 (doc json-number 'description "Parse JSON number")
 
@@ -71,6 +73,7 @@
 (doc json-string 'description "Parse JSON string")
 
 (define json-value #f)
+(doc json-value 'export #t)
 (doc json-value 'type '(Parser JsonValue))
 (doc json-value 'description "Forward declaration for recursive parsers")
 
@@ -91,6 +94,7 @@
 (doc json-pair 'description "Parse JSON object key-value pair")
 
 (define json-object (parser-braces (comma-sep json-pair)))
+(doc json-object 'export #t)
 (doc json-object 'type '(Parser (Alist String JsonValue)))
 (doc json-object 'description "Parse JSON object")
 
@@ -103,6 +107,7 @@
                     json-object)))
 
 (define (parse-json input)
+  (doc 'export #t)
   (doc 'type '(-> String (Either Error JsonValue)))
   (doc 'description "Parse complete JSON value")
   (parse-all json-value input))
@@ -118,10 +123,12 @@
 (doc sexp-comment 'description "Skip line comment")
 
 (define sexp-whitespace (parser-many (parser-or parser-space sexp-comment)))
+(doc sexp-whitespace 'export #t)
 (doc sexp-whitespace 'type '(Parser (List α)))
 (doc sexp-whitespace 'description "Skip whitespace and comments")
 
 (define (sexp-lexeme p)
+  (doc 'export #t)
   (parser-left p sexp-whitespace))
 (doc sexp-lexeme 'type '(-> (Parser α) (Parser α)))
 (doc sexp-lexeme 'description "Parse and consume trailing S-expression whitespace/comments")
@@ -174,6 +181,7 @@
 (doc sexp-boolean 'description "Parse S-expression boolean")
 
 (define sexp-value #f)
+(doc sexp-value 'export #t)
 (doc sexp-value 'type '(Parser SExp))
 (doc sexp-value 'description "Forward declaration for recursive S-expressions")
 
@@ -230,11 +238,13 @@
                      sexp-symbol))))
 
 (define (parse-sexp input)
+  (doc 'export #t)
   (doc 'type '(-> String (Either Error SExp)))
   (doc 'description "Parse single S-expression")
   (parse-all sexp-value input))
 
 (define (parse-sexps input)
+  (doc 'export #t)
   (doc 'type '(-> String (Either Error (List SExp))))
   (doc 'description "Parse multiple S-expressions")
   (parse-all (parser-then sexp-whitespace (parser-many sexp-value)) input))
@@ -242,18 +252,22 @@
 (doc 'section 'arithmetic-parser)
 
 (define arith-number (parser-lexeme decimal))
+(doc arith-number 'export #t)
 (doc arith-number 'type '(Parser Number))
 (doc arith-number 'description "Parse arithmetic number")
 
 (define arith-expr #f)
+(doc arith-expr 'export #t)
 (doc arith-expr 'type '(Parser AST))
 (doc arith-expr 'description "Forward declaration for expression")
 
 (define arith-term #f)
+(doc arith-term 'export #t)
 (doc arith-term 'type '(Parser AST))
 (doc arith-term 'description "Forward declaration for term")
 
 (define arith-factor #f)
+(doc arith-factor 'export #t)
 (doc arith-factor 'type '(Parser AST))
 (doc arith-factor 'description "Forward declaration for factor")
 
@@ -306,11 +320,13 @@
 (set! arith-expr arith-term)
 
 (define (parse-arith input)
+  (doc 'export #t)
   (doc 'type '(-> String (Either Error AST)))
   (doc 'description "Parse arithmetic expression")
   (parse-all arith-expr input))
 
 (define (eval-arith ast)
+  (doc 'export #t)
   (doc 'type '(-> AST Number))
   (doc 'description "Evaluate an arithmetic AST")
   (cond
@@ -442,11 +458,13 @@
                (parser-left (parser-many ini-section) (parser-then ini-skip-blanks parser-eof))))
 
 (define (parse-ini input)
+  (doc 'export #t)
   (doc 'type '(-> String (Either Error INI)))
   (doc 'description "Parse INI configuration file")
   (parser-parse ini-file input))
 
 (define (ini-get ini section key)
+  (doc 'export #t)
   (doc 'type '(-> INI String String (Option String)))
   (doc 'description "Get a value from parsed INI file")
   (let ([sec (assoc section ini)])
@@ -458,6 +476,7 @@
 (doc 'section 'demonstration)
 
 (define (demo)
+  (doc 'export #t)
   (doc 'type '(-> Unit Unit))
   (doc 'description "Demonstrate all example parsers")
   (display "

@@ -54,6 +54,7 @@
 (doc label-propagation 'returns "Vector of community labels (0-indexed integers)")
 (doc label-propagation 'note "Complexity: O(k·n²) with adjacency matrix; works best on graphs with clear community structure")
 (define (label-propagation adj . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [max-iter (if (and (pair? opts) (integer? (car opts)))
                        (car opts)
@@ -129,6 +130,7 @@
 ;;; Convert label vector to list of node lists (one per community).
 ;;; Uses hashtable to handle sparse/large label values safely.
 (define (communities->partition labels)
+  (doc 'export #t)
   (let* ([n (vector-length labels)]
          ;; Group nodes by label using HAMT (handles sparse labels)
          [groups (let loop ([i 0] [acc hamt-empty])
@@ -143,6 +145,7 @@
 ;;; num-communities : Vector → Nat
 ;;; Count number of distinct communities.
 (define (num-communities labels)
+  (doc 'export #t)
   (length (communities->partition labels)))
 
 (doc modularity 'type '(-> Matrix Vector Num))
@@ -151,6 +154,7 @@
 (doc modularity 'param 'labels "Community labels (vector of integers)")
 (doc modularity 'returns "Modularity score in [-0.5, 1]; Q > 0.3 indicates good community structure")
 (define (modularity adj labels)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          ;; Total edges (2m for undirected = sum of all entries)
          [two-m (matrix-sum adj)]
@@ -204,6 +208,7 @@
 (doc prim-mst 'note "Complexity: O((V + E) log V); uses lazy deletion for efficiency")
 (doc prim-mst 'note "For disconnected graphs, returns MST of component containing start")
 (define (prim-mst adj . opts)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [start (if (pair? opts) (car opts) 0)]
          ;; Track which nodes are in the MST
@@ -259,6 +264,7 @@
 ;;; Original O(n²) implementation using linear scan for min extraction.
 ;;; Kept for comparison and cases where heap overhead isn't worth it.
 (define (prim-mst-naive adj . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [start (if (pair? opts) (car opts) 0)]
          [in-mst (make-vector n #f)]
@@ -304,6 +310,7 @@
 ;;; mst-weight : (List Edge) → Num
 ;;; Compute total weight of MST.
 (define (mst-weight edges)
+  (doc 'export #t)
   (fold-left (lambda (sum edge) (+ sum (caddr edge))) 0 edges))
 
 (doc kruskal-mst 'type '(-> (List Edge) Nat (List Edge)))
@@ -313,6 +320,7 @@
 (doc kruskal-mst 'returns "List of edges forming the MST")
 (doc kruskal-mst 'note "Complexity: O(m log m) for sorting, O(m α(n)) for union-find")
 (define (kruskal-mst edges n)
+  (doc 'export #t)
   (let* (;; Sort edges by weight (ascending)
          [sorted-edges (sort-by (lambda (a b) (< (caddr a) (caddr b)))
                                   edges)]
@@ -371,6 +379,7 @@
 ;;; Returns vector where labels[i] = component ID for node i.
 ;;; Uses level-by-level BFS for O(n + m) complexity on sparse graphs.
 (define (connected-components adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [labels (make-vector n -1)])
         (let outer ([start 0] [component 0])
@@ -406,12 +415,14 @@
 ;;; is-connected? : Matrix → Boolean
 ;;; Check if graph is connected.
 (define (is-connected? adj)
+  (doc 'export #t)
   (let ([components (connected-components adj)])
        (= (num-communities components) 1)))
 
 ;;; mst-from-adjacency : Matrix → (List Edge)
 ;;; Convenience: compute MST from adjacency matrix using Prim's.
 (define (mst-from-adjacency adj)
+  (doc 'export #t)
   (prim-mst adj))
 
 (doc modularity-ilp 'type '(-> Matrix Vector))
@@ -421,6 +432,7 @@
 (doc modularity-ilp 'note "Complexity: Exponential in worst case; recommended for small graphs (n < 20)")
 (doc modularity-ilp 'note "For large graphs, use label-propagation instead")
 (define (modularity-ilp adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          ;; Compute modularity matrix B[i,j] = A[i,j] - k_i·k_j/(2m)
          [two-m (matrix-sum adj)])
@@ -610,6 +622,7 @@
 (doc community-induced-edges 'param 'nodes "List of node indices in the community")
 (doc community-induced-edges 'returns "List of edges (i . j) where both i and j are in nodes")
 (define (community-induced-edges adj nodes)
+  (doc 'export #t)
   (let* (;; Build set for O(1) membership
          [node-set (fold-left (lambda (acc n) (hamt-assoc n #t acc)) hamt-empty nodes)]
          ;; Extract edges between community members (undirected: only i < j)
@@ -635,6 +648,7 @@
 (doc community-betti-numbers 'returns "Pair (B_0 . B_1) where B_0=components, B_1=independent cycles")
 (doc community-betti-numbers 'note "B_0 > 1 indicates disconnected community (poor quality)")
 (define (community-betti-numbers adj nodes)
+  (doc 'export #t)
   (if (null? nodes)
       (cons 0 0)
       (let ([edges (community-induced-edges adj nodes)])
@@ -646,6 +660,7 @@
 (doc all-communities-betti 'param 'labels "Community label vector from label-propagation")
 (doc all-communities-betti 'returns "List of (original-label size B_0 B_1) tuples, preserving original community IDs")
 (define (all-communities-betti adj labels)
+  (doc 'export #t)
   (let* ([n (vector-length labels)]
          ;; Group nodes by label
          [groups (let loop ([i 0] [acc hamt-empty])
@@ -676,6 +691,7 @@
   - Cycle density: B_1 / max-B_1 where max-B_1 = (n-1)(n-2)/2 for K_n
   - Final: weighted combination favoring connectivity (0.7) over density (0.3)")
 (define (community-homology-quality size b0 b1)
+  (doc 'export #t)
   (cond
     [(= size 0) 0.0]
     [(= b0 0) 0.0]
@@ -702,6 +718,7 @@
 (doc aggregate-community-quality 'param 'labels "Community label vector")
 (doc aggregate-community-quality 'returns "Size-weighted average quality score")
 (define (aggregate-community-quality adj labels)
+  (doc 'export #t)
   (let* ([betti-list (all-communities-betti adj labels)]
          [n (vector-length labels)])
     (fold-left
@@ -730,6 +747,7 @@
 (doc community-homology-report 'param 'adj "Adjacency matrix of full graph")
 (doc community-homology-report 'param 'labels "Community label vector from label-propagation")
 (define (community-homology-report adj labels)
+  (doc 'export #t)
   (let* ([betti-list (all-communities-betti adj labels)]
          [n (vector-length labels)]
          [num-communities (length betti-list)]

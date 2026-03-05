@@ -16,6 +16,7 @@
 
 ;;; point-in-aabb3d? : Vec3 × AABB3D → Boolean
 (define (point-in-aabb3d? point aabb)
+  (doc 'export #t)
   (let ([px (vec3-x point)]
         [py (vec3-y point)]
         [pz (vec3-z point)]
@@ -27,6 +28,7 @@
 
 ;;; point-in-sphere3d? : Vec3 × Sphere3D → Boolean
 (define (point-in-sphere3d? point sphere)
+  (doc 'export #t)
   (let ([d-sq (vec3-distance-sq point (sphere3d-center sphere))]
         [r (sphere3d-radius sphere)])
        (<= d-sq (* r r))))
@@ -34,6 +36,7 @@
 ;;; point-in-box3d? : Vec3 × Box3D → Boolean
 ;;; Test if point is inside axis-aligned box.
 (define (point-in-box3d? point box)
+  (doc 'export #t)
   (let* ([center (box3d-center box)]
          [half (box3d-half-extents box)]
          [local (vec3-sub point center)])
@@ -48,6 +51,7 @@
 ;;; closest-point-on-segment-3d : Vec3 × Vec3 × Vec3 → Vec3
 ;;; Find closest point on line segment [v1, v2] to point.
 (define (closest-point-on-segment-3d point v1 v2)
+  (doc 'export #t)
   (let* ([edge (vec3-sub v2 v1)]
          [edge-len-sq (vec3-magnitude-sq edge)]
          [to-point (vec3-sub point v1)]
@@ -60,6 +64,7 @@
 ;;; closest-point-on-aabb3d : Vec3 × AABB3D → Vec3
 ;;; Find closest point on AABB to given point.
 (define (closest-point-on-aabb3d point aabb)
+  (doc 'export #t)
   (let ([min-p (aabb3d-min aabb)]
         [max-p (aabb3d-max aabb)])
        (vec3 (max (vec3-x min-p) (min (vec3-x point) (vec3-x max-p)))
@@ -69,6 +74,7 @@
 ;;; closest-point-on-box3d : Vec3 × Box3D → Vec3
 ;;; Find closest point on axis-aligned box to given point.
 (define (closest-point-on-box3d point box)
+  (doc 'export #t)
   (let* ([center (box3d-center box)]
          [half (box3d-half-extents box)]
          [local (vec3-sub point center)]
@@ -84,6 +90,7 @@
 ;;; sphere-sphere? : Sphere3D × Sphere3D → Boolean
 ;;; Test if two spheres overlap.
 (define (sphere-sphere? a b)
+  (doc 'export #t)
   (let ([dist-sq (vec3-distance-sq (sphere3d-center a) (sphere3d-center b))]
         [r-sum (+ (sphere3d-radius a) (sphere3d-radius b))])
        (<= dist-sq (* r-sum r-sum))))
@@ -92,6 +99,7 @@
 ;;; Generate collision manifold for two spheres.
 ;;; Returns (normal penetration contact) or #f if no collision.
 (define (sphere-sphere-manifold a b)
+  (doc 'export #t)
   (let* ([center-a (sphere3d-center a)]
          [center-b (sphere3d-center b)]
          [radius-a (sphere3d-radius a)]
@@ -117,6 +125,7 @@
 ;;; aabb3d-aabb3d? : AABB3D × AABB3D → Boolean
 ;;; Test if two AABBs overlap.
 (define (aabb3d-aabb3d? a b)
+  (doc 'export #t)
   (let ([a-min (aabb3d-min a)]
         [a-max (aabb3d-max a)]
         [b-min (aabb3d-min b)]
@@ -132,6 +141,7 @@
 ;;; Generate collision manifold for two AABBs.
 ;;; Returns (normal penetration contact) or #f if no collision.
 (define (aabb3d-aabb3d-manifold a b)
+  (doc 'export #t)
   (if (not (aabb3d-aabb3d? a b))
       #f
       (let* ([a-center (aabb3d-center a)]
@@ -184,6 +194,7 @@
 ;;; sphere-aabb3d? : Sphere3D × AABB3D → Boolean
 ;;; Test if sphere and AABB overlap.
 (define (sphere-aabb3d? sphere aabb)
+  (doc 'export #t)
   (let* ([center (sphere3d-center sphere)]
          [r (sphere3d-radius sphere)]
          [closest (closest-point-on-aabb3d center aabb)]
@@ -193,6 +204,7 @@
 ;;; sphere-aabb3d-manifold : Sphere3D × AABB3D → Manifold | #f
 ;;; Generate collision manifold for sphere vs AABB.
 (define (sphere-aabb3d-manifold sphere aabb)
+  (doc 'export #t)
   (let* ([center (sphere3d-center sphere)]
          [r (sphere3d-radius sphere)]
          [closest (closest-point-on-aabb3d center aabb)]
@@ -211,6 +223,7 @@
 ;;; sphere-inside-aabb-normal : Vec3 × AABB3D → Vec3
 ;;; Compute normal when sphere center is inside AABB.
 (define (sphere-inside-aabb-normal center aabb)
+  (doc 'export #t)
   (let* ([min-p (aabb3d-min aabb)]
          [max-p (aabb3d-max aabb)]
          [cx (vec3-x center)]
@@ -239,6 +252,7 @@
 ;;; sphere-box3d? : Sphere3D × Box3D → Boolean
 ;;; Test if sphere and box overlap.
 (define (sphere-box3d? sphere box)
+  (doc 'export #t)
   (let* ([center (sphere3d-center sphere)]
          [r (sphere3d-radius sphere)]
          [closest (closest-point-on-box3d center box)]
@@ -248,6 +262,7 @@
 ;;; sphere-box3d-manifold : Sphere3D × Box3D → Manifold | #f
 ;;; Generate collision manifold for sphere vs box.
 (define (sphere-box3d-manifold sphere box)
+  (doc 'export #t)
   (let* ([center (sphere3d-center sphere)]
          [r (sphere3d-radius sphere)]
          [closest (closest-point-on-box3d center box)]
@@ -266,6 +281,7 @@
 ;;; sphere-inside-box-normal : Vec3 × Box3D → Vec3
 ;;; Compute normal when sphere center is inside box.
 (define (sphere-inside-box-normal center box)
+  (doc 'export #t)
   (let* ([box-center (box3d-center box)]
          [half (box3d-half-extents box)]
          [local (vec3-sub center box-center)]
@@ -292,11 +308,13 @@
 ;;; box3d-box3d? : Box3D × Box3D → Boolean
 ;;; Test if two axis-aligned boxes overlap.
 (define (box3d-box3d? a b)
+  (doc 'export #t)
   (aabb3d-aabb3d? (box3d-aabb a) (box3d-aabb b)))
 
 ;;; box3d-box3d-manifold : Box3D × Box3D → Manifold | #f
 ;;; Generate collision manifold for two axis-aligned boxes.
 (define (box3d-box3d-manifold a b)
+  (doc 'export #t)
   (let* ([a-aabb (box3d-aabb a)]
          [b-aabb (box3d-aabb b)])
         (aabb3d-aabb3d-manifold a-aabb b-aabb)))
@@ -307,6 +325,7 @@
 
 ;;; shape-type-3d : Shape3D → Symbol
 (define (shape-type-3d s)
+  (doc 'export #t)
   (cond
    [(sphere3d? s) 'sphere3d]
    [(box3d? s) 'box3d]
@@ -316,6 +335,7 @@
 ;;; shape-aabb-3d : Shape3D → AABB3D
 ;;; Get bounding AABB for any shape.
 (define (shape-aabb-3d s)
+  (doc 'export #t)
   (cond
    [(sphere3d? s) (sphere3d-aabb s)]
    [(box3d? s) (box3d-aabb s)]
@@ -325,6 +345,7 @@
 ;;; shapes-collide-3d? : Shape3D × Shape3D → Boolean
 ;;; Test if two shapes overlap.
 (define (shapes-collide-3d? a b)
+  (doc 'export #t)
   (let ([type-a (shape-type-3d a)]
         [type-b (shape-type-3d b)])
        (cond
@@ -358,6 +379,7 @@
 ;;; shapes-manifold-3d : Shape3D × Shape3D → Manifold | #f
 ;;; Generate collision manifold for any shape pair.
 (define (shapes-manifold-3d a b)
+  (doc 'export #t)
   (let ([type-a (shape-type-3d a)]
         [type-b (shape-type-3d b)])
        (cond
@@ -405,6 +427,7 @@
 ;;; cell-key-3d : (Int × Int × Int) → Integer
 ;;; Convert cell coordinates to a unique integer key.
 (define (cell-key-3d cell)
+  (doc 'export #t)
   (let ([x (car cell)]
         [y (cadr cell)]
         [z (caddr cell)])
@@ -416,6 +439,7 @@
 
 ;;; make-spatial-hash-3d : Number → SpatialHash3D
 (define (make-spatial-hash-3d cell-size)
+  (doc 'export #t)
   (list 'spatial-hash-3d cell-size (cons hamt-empty '())))
 
 ;;; spatial-hash-3d-cell-size : SpatialHash3D → Number
@@ -431,6 +455,7 @@
 ;;; point-to-cell-3d : Vec3 × Number → (Int × Int × Int)
 ;;; Convert point to cell coordinates.
 (define (point-to-cell-3d point cell-size)
+  (doc 'export #t)
   (list (exact (floor (/ (vec3-x point) cell-size)))
         (exact (floor (/ (vec3-y point) cell-size)))
         (exact (floor (/ (vec3-z point) cell-size)))))
@@ -438,6 +463,7 @@
 ;;; aabb-to-cells-3d : AABB3D × Number → (List (Int × Int × Int))
 ;;; Get all cells that an AABB overlaps.
 (define (aabb-to-cells-3d aabb cell-size)
+  (doc 'export #t)
   (let* ([min-cell (point-to-cell-3d (aabb3d-min aabb) cell-size)]
          [max-cell (point-to-cell-3d (aabb3d-max aabb) cell-size)]
          [min-x (car min-cell)]
@@ -463,6 +489,7 @@
 ;;; spatial-hash-3d-insert! : SpatialHash3D × Any × AABB3D → Unit
 ;;; Insert object into spatial hash using its AABB.
 (define (spatial-hash-3d-insert! sh obj aabb)
+  (doc 'export #t)
   (let* ([cell-size (spatial-hash-3d-cell-size sh)]
          [mcell (spatial-hash-3d-cell sh)]
          [cells (aabb-to-cells-3d aabb cell-size)])
@@ -476,6 +503,7 @@
 ;;; spatial-hash-3d-query : SpatialHash3D × AABB3D → (List Any)
 ;;; Query for objects that may overlap with given AABB.
 (define (spatial-hash-3d-query sh aabb)
+  (doc 'export #t)
   (let* ([cell-size (spatial-hash-3d-cell-size sh)]
          [table (spatial-hash-3d-table sh)]
          [cells (aabb-to-cells-3d aabb cell-size)])
@@ -497,6 +525,7 @@
 ;;; spatial-hash-3d-clear! : SpatialHash3D → Unit
 ;;; Clear all entries from spatial hash.
 (define (spatial-hash-3d-clear! sh)
+  (doc 'export #t)
   (set-car! (spatial-hash-3d-cell sh) hamt-empty))
 
 ;;; ====
@@ -506,6 +535,7 @@
 ;;; pair-key-3d : Any × Any → String
 ;;; Create a canonical key for an unordered pair.
 (define (pair-key-3d a b)
+  (doc 'export #t)
   ;; Use string representation for comparison
   (let ([sa (format "~s" a)]
         [sb (format "~s" b)])
@@ -516,6 +546,7 @@
 ;;; find-collision-pairs-3d : (List (Object × Shape3D)) × SpatialHash3D → (List (Object × Object))
 ;;; Find all potentially colliding pairs using spatial hash.
 (define (find-collision-pairs-3d items sh)
+  (doc 'export #t)
   (spatial-hash-3d-clear! sh)
   ;; Insert all items
   (for-each (lambda (item)
@@ -546,6 +577,7 @@
 ;;; narrow-phase-3d : (Object × Object) × (Object → Shape3D) → Manifold | #f
 ;;; Perform narrow phase collision detection on a pair.
 (define (narrow-phase-3d pair get-shape)
+  (doc 'export #t)
   (let ([shape-a (get-shape (car pair))]
         [shape-b (get-shape (cdr pair))])
        (shapes-manifold-3d shape-a shape-b)))

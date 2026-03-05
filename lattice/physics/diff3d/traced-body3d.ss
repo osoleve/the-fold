@@ -17,18 +17,22 @@
 
 ;;; mat3-identity : → Mat3
 (define (mat3-identity)
+  (doc 'export #t)
   (list (list 1 0 0) (list 0 1 0) (list 0 0 1)))
 
 ;;; mat3-diagonal : Number × Number × Number → Mat3
 (define (mat3-diagonal a b c)
+  (doc 'export #t)
   (list (list a 0 0) (list 0 b 0) (list 0 0 c)))
 
 ;;; mat3-ref : Mat3 × Nat × Nat → Number
 (define (mat3-ref m i j)
+  (doc 'export #t)
   (list-ref (list-ref m i) j))
 
 ;;; mat3-mul-vec3 : Mat3 × Vec3 → Vec3
 (define (mat3-mul-vec3 m v)
+  (doc 'export #t)
   (vec3 (+ (* (mat3-ref m 0 0) (vec3-x v))
            (* (mat3-ref m 0 1) (vec3-y v))
            (* (mat3-ref m 0 2) (vec3-z v)))
@@ -41,12 +45,14 @@
 
 ;;; mat3-transpose : Mat3 → Mat3
 (define (mat3-transpose m)
+  (doc 'export #t)
   (list (list (mat3-ref m 0 0) (mat3-ref m 1 0) (mat3-ref m 2 0))
         (list (mat3-ref m 0 1) (mat3-ref m 1 1) (mat3-ref m 2 1))
         (list (mat3-ref m 0 2) (mat3-ref m 1 2) (mat3-ref m 2 2))))
 
 ;;; mat3-mul : Mat3 × Mat3 → Mat3
 (define (mat3-mul a b)
+  (doc 'export #t)
   (let ([b-t (mat3-transpose b)])
        (map (lambda (row)
                     (map (lambda (col)
@@ -58,6 +64,7 @@
 
 ;;; mat3-scale : Mat3 × Number → Mat3
 (define (mat3-scale m s)
+  (doc 'export #t)
   (map (lambda (row) (map (lambda (x) (* x s)) row)) m))
 
 ;;; ====
@@ -67,6 +74,7 @@
 ;;; traced-mat3-mul-vec3 : Mat3 × TracedVec3 → TracedVec3
 ;;; Multiply constant matrix by traced vector.
 (define (traced-mat3-mul-vec3 m v)
+  (doc 'export #t)
   (let ([vx (traced-vec3-x v)]
         [vy (traced-vec3-y v)]
         [vz (traced-vec3-z v)])
@@ -98,6 +106,7 @@
 ;;; make-traced-body-3d : TracedVec3 × TracedVec3 × TracedQuat × TracedVec3 × Number × Mat3 → TracedBody3D
 ;;; Create a traced 3D rigid body.
 (define (make-traced-body-3d pos vel orientation angular-vel mass inertia)
+  (doc 'export #t)
   (list 'traced-body-3d
         pos
         vel
@@ -111,6 +120,7 @@
 ;;; mat3-invert-diagonal : Mat3 → Mat3
 ;;; Invert a diagonal matrix (assumes diagonal, doesn't check).
 (define (mat3-invert-diagonal m)
+  (doc 'export #t)
   (let ([a (mat3-ref m 0 0)]
         [b (mat3-ref m 1 1)]
         [c (mat3-ref m 2 2)])
@@ -120,6 +130,7 @@
 
 ;;; traced-body-3d? : Any → Boolean
 (define (traced-body-3d? b)
+  (doc 'export #t)
   (and (pair? b) (eq? (car b) 'traced-body-3d)))
 
 ;;; ====
@@ -152,10 +163,12 @@
 
 ;;; traced-body-3d-static? : TracedBody3D → Boolean
 (define (traced-body-3d-static? b)
+  (doc 'export #t)
   (= (traced-body-3d-inv-mass b) 0))
 
 ;;; traced-body-3d-dynamic? : TracedBody3D → Boolean
 (define (traced-body-3d-dynamic? b)
+  (doc 'export #t)
   (not (traced-body-3d-static? b)))
 
 ;;; ====
@@ -169,6 +182,7 @@
 ;;; traced-quat-to-rotation-matrix : TracedQuat → (values Number ...) → Mat3
 ;;; Convert quaternion to 3x3 rotation matrix (extracts numeric values).
 (define (quat-to-rotation-matrix q)
+  (doc 'export #t)
   (let* ([w (traced-value (traced-quat-w q))]
          [x (traced-value (traced-quat-x q))]
          [y (traced-value (traced-quat-y q))]
@@ -190,6 +204,7 @@
 ;;; traced-body-3d-world-inv-inertia : TracedBody3D → Mat3
 ;;; Compute world-space inverse inertia tensor.
 (define (traced-body-3d-world-inv-inertia b)
+  (doc 'export #t)
   (if (traced-body-3d-static? b)
       (mat3-scale (mat3-identity) 0)
       (let* ([R (quat-to-rotation-matrix (traced-body-3d-orientation b))]
@@ -204,6 +219,7 @@
 
 ;;; traced-body-3d-with-pos : TracedBody3D × TracedVec3 → TracedBody3D
 (define (traced-body-3d-with-pos b new-pos)
+  (doc 'export #t)
   (list 'traced-body-3d
         new-pos
         (traced-body-3d-vel b)
@@ -216,6 +232,7 @@
 
 ;;; traced-body-3d-with-vel : TracedBody3D × TracedVec3 → TracedBody3D
 (define (traced-body-3d-with-vel b new-vel)
+  (doc 'export #t)
   (list 'traced-body-3d
         (traced-body-3d-pos b)
         new-vel
@@ -228,6 +245,7 @@
 
 ;;; traced-body-3d-with-orientation : TracedBody3D × TracedQuat → TracedBody3D
 (define (traced-body-3d-with-orientation b new-orientation)
+  (doc 'export #t)
   (list 'traced-body-3d
         (traced-body-3d-pos b)
         (traced-body-3d-vel b)
@@ -240,6 +258,7 @@
 
 ;;; traced-body-3d-with-angular-vel : TracedBody3D × TracedVec3 → TracedBody3D
 (define (traced-body-3d-with-angular-vel b new-angular-vel)
+  (doc 'export #t)
   (list 'traced-body-3d
         (traced-body-3d-pos b)
         (traced-body-3d-vel b)
@@ -253,6 +272,7 @@
 ;;; traced-body-3d-with-state : TracedBody3D × TracedVec3 × TracedVec3 × TracedQuat × TracedVec3 → TracedBody3D
 ;;; Update all kinematic state at once.
 (define (traced-body-3d-with-state b new-pos new-vel new-orientation new-angular-vel)
+  (doc 'export #t)
   (list 'traced-body-3d
         new-pos
         new-vel
@@ -271,6 +291,7 @@
 ;;; Flatten body state to list of 13 traced values:
 ;;; (px, py, pz, vx, vy, vz, qw, qx, qy, qz, wx, wy, wz)
 (define (traced-body-3d-state->list tb)
+  (doc 'export #t)
   (list (traced-vec3-x (traced-body-3d-pos tb))
         (traced-vec3-y (traced-body-3d-pos tb))
         (traced-vec3-z (traced-body-3d-pos tb))
@@ -288,6 +309,7 @@
 ;;; list->traced-body-3d-state : (List TracedValue) × Number × Mat3 → TracedBody3D
 ;;; Reconstruct body state from flattened list.
 (define (list->traced-body-3d-state vals mass inertia)
+  (doc 'export #t)
   (make-traced-body-3d
    (traced-vec3 (list-ref vals 0) (list-ref vals 1) (list-ref vals 2))
    (traced-vec3 (list-ref vals 3) (list-ref vals 4) (list-ref vals 5))
@@ -308,6 +330,7 @@
 ;;; Compute velocity at a world-space point on the body.
 ;;; v_point = v_cm + omega × r
 (define (traced-body-3d-velocity-at body world-point)
+  (doc 'export #t)
   (let* ([r (traced-vec3-sub world-point (traced-body-3d-pos body))]
          [omega (traced-body-3d-angular-vel body)]
          [rotational-vel (traced-vec3-cross omega r)])
@@ -317,6 +340,7 @@
 ;;; Apply an impulse J at world-space point contact.
 ;;; Changes linear velocity by J/m and angular velocity by I_world^-1 * (r × J).
 (define (traced-apply-impulse-3d body impulse contact)
+  (doc 'export #t)
   (if (traced-body-3d-static? body)
       body
       (let* ([r (traced-vec3-sub contact (traced-body-3d-pos body))]
@@ -338,6 +362,7 @@
 ;;; traced-apply-central-impulse-3d : TracedBody3D × TracedVec3 → TracedBody3D
 ;;; Apply impulse at center of mass (no torque).
 (define (traced-apply-central-impulse-3d body impulse)
+  (doc 'export #t)
   (if (traced-body-3d-static? body)
       body
       (let* ([delta-vel (traced-vec3-scale impulse (traced-body-3d-inv-mass body))]
@@ -347,6 +372,7 @@
 ;;; traced-apply-torque-impulse-3d : TracedBody3D × TracedVec3 → TracedBody3D
 ;;; Apply angular impulse (torque * dt) directly.
 (define (traced-apply-torque-impulse-3d body torque-impulse)
+  (doc 'export #t)
   (if (traced-body-3d-static? body)
       body
       (let* ([I-world-inv (traced-body-3d-world-inv-inertia body)]
@@ -357,11 +383,13 @@
 ;;; traced-apply-force-3d : TracedBody3D × TracedVec3 × TracedVec3 × TracedValue → TracedBody3D
 ;;; Apply force F at world-space point for duration dt.
 (define (traced-apply-force-3d body force point dt)
+  (doc 'export #t)
   (traced-apply-impulse-3d body (traced-vec3-scale force dt) point))
 
 ;;; traced-apply-central-force-3d : TracedBody3D × TracedVec3 × TracedValue → TracedBody3D
 ;;; Apply force at center of mass (no torque).
 (define (traced-apply-central-force-3d body force dt)
+  (doc 'export #t)
   (if (traced-body-3d-static? body)
       body
       (let* ([impulse (traced-vec3-scale force dt)]
@@ -372,6 +400,7 @@
 ;;; traced-apply-torque-3d : TracedBody3D × TracedVec3 × TracedValue → TracedBody3D
 ;;; Apply torque for duration dt.
 (define (traced-apply-torque-3d body torque dt)
+  (doc 'export #t)
   (traced-apply-torque-impulse-3d body (traced-vec3-scale torque dt)))
 
 ;;; ====
@@ -382,6 +411,7 @@
 ;;; Transform a point from body-local coordinates to world coordinates.
 ;;; world = pos + rotate(local, orientation)
 (define (traced-local-to-world-3d body local-point)
+  (doc 'export #t)
   (traced-vec3-add (traced-body-3d-pos body)
                    (traced-quat-rotate-vec3 (traced-body-3d-orientation body) local-point)))
 
@@ -389,6 +419,7 @@
 ;;; Transform a point from world coordinates to body-local coordinates.
 ;;; local = rotate(world - pos, conjugate(orientation))
 (define (traced-world-to-local-3d body world-point)
+  (doc 'export #t)
   (let ([q-inv (traced-quat-conjugate (traced-body-3d-orientation body))])
        (traced-quat-rotate-vec3 q-inv
                                 (traced-vec3-sub world-point (traced-body-3d-pos body)))))
@@ -396,11 +427,13 @@
 ;;; traced-local-dir-to-world-3d : TracedBody3D × TracedVec3 → TracedVec3
 ;;; Transform a direction vector from body-local to world coordinates.
 (define (traced-local-dir-to-world-3d body local-dir)
+  (doc 'export #t)
   (traced-quat-rotate-vec3 (traced-body-3d-orientation body) local-dir))
 
 ;;; traced-world-dir-to-local-3d : TracedBody3D × TracedVec3 → TracedVec3
 ;;; Transform a direction vector from world to body-local coordinates.
 (define (traced-world-dir-to-local-3d body world-dir)
+  (doc 'export #t)
   (let ([q-inv (traced-quat-conjugate (traced-body-3d-orientation body))])
        (traced-quat-rotate-vec3 q-inv world-dir)))
 
@@ -411,6 +444,7 @@
 ;;; traced-body-3d-kinetic-energy : TracedBody3D → TracedValue
 ;;; Compute total kinetic energy: (1/2)mv² + (1/2)ω·I·ω
 (define (traced-body-3d-kinetic-energy body)
+  (doc 'export #t)
   (let* ([m (traced-body-3d-mass body)]
          [I (traced-body-3d-inertia body)]
          [v-sq (traced-vec3-magnitude-sq (traced-body-3d-vel body))]
@@ -424,11 +458,13 @@
 ;;; traced-body-3d-momentum : TracedBody3D → TracedVec3
 ;;; Compute linear momentum: p = mv
 (define (traced-body-3d-momentum body)
+  (doc 'export #t)
   (traced-vec3-scale (traced-body-3d-vel body) (traced-body-3d-mass body)))
 
 ;;; traced-body-3d-angular-momentum : TracedBody3D → TracedVec3
 ;;; Compute angular momentum in world space: L = I_world * ω
 (define (traced-body-3d-angular-momentum body)
+  (doc 'export #t)
   (let* ([R (quat-to-rotation-matrix (traced-body-3d-orientation body))]
          [I (traced-body-3d-inertia body)]
          [omega (traced-body-3d-angular-vel body)]
@@ -445,6 +481,7 @@
 ;;; make-traced-static-body-3d : TracedVec3 × TracedQuat → TracedBody3D
 ;;; Create a static (immovable) traced 3D rigid body.
 (define (make-traced-static-body-3d pos orientation)
+  (doc 'export #t)
   (let ([tape (or (and (traced? (traced-vec3-x pos))
                        (traced-tape (traced-vec3-x pos)))
                   (and (traced? (traced-quat-w orientation))
@@ -470,18 +507,21 @@
 ;;; inertia-solid-sphere : Number × Number → Mat3
 ;;; I = (2/5) * m * r² for solid sphere.
 (define (inertia-solid-sphere mass radius)
+  (doc 'export #t)
   (let ([I (* (/ 2 5) mass radius radius)])
        (mat3-diagonal I I I)))
 
 ;;; inertia-hollow-sphere : Number × Number → Mat3
 ;;; I = (2/3) * m * r² for thin hollow sphere.
 (define (inertia-hollow-sphere mass radius)
+  (doc 'export #t)
   (let ([I (* (/ 2 3) mass radius radius)])
        (mat3-diagonal I I I)))
 
 ;;; inertia-solid-box : Number × Number × Number × Number → Mat3
 ;;; I_xx = (1/12) * m * (h² + d²), etc. for solid box with dimensions (w, h, d).
 (define (inertia-solid-box mass width height depth)
+  (doc 'export #t)
   (let ([c (/ mass 12)])
        (mat3-diagonal (* c (+ (* height height) (* depth depth)))
                       (* c (+ (* width width) (* depth depth)))
@@ -492,6 +532,7 @@
 ;;; I_xx = I_yy = (1/12) * m * (3r² + h²)
 ;;; I_zz = (1/2) * m * r²
 (define (inertia-solid-cylinder mass radius height)
+  (doc 'export #t)
   (let ([I-xy (* (/ 1 12) mass (+ (* 3 radius radius) (* height height)))]
         [I-z (* (/ 1 2) mass radius radius)])
        (mat3-diagonal I-xy I-xy I-z)))

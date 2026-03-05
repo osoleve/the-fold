@@ -18,6 +18,7 @@
 (doc 'section 'general-list-utilities)
 
 (define (foldr f init lst)
+  (doc 'export #t)
   (doc 'type '(-> (-> A B B) B (List A) B))
   (doc 'description "Right-associative fold over a list. Processes elements from right to left: (f x1 (f x2 (f x3 ... init)))")
   (if (null? lst)
@@ -38,11 +39,13 @@
                       (cons (vector-ref refs i) result))))))
 
 (define (collection-size collection)
+  (doc 'export #t)
   (doc 'type '(-> Block Integer))
   (doc 'description "Get the number of members in a collection")
   (vector-length (block-refs collection)))
 
 (define (collection-empty? collection)
+  (doc 'export #t)
   (doc 'type '(-> Block Boolean))
   (doc 'description "Check if collection has no members")
   (= (vector-length (block-refs collection)) 0))
@@ -50,6 +53,7 @@
 (doc 'section 'higher-order-collection-functions)
 
 (define (map-collection fs f collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block A) Block (List A)))
   (doc 'description "Map function over all members of a collection. Loads each member block and applies function")
   (let ([hashes (collection-hashes collection)])
@@ -61,6 +65,7 @@
             hashes)))
 
 (define (filter-collection fs predicate collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Boolean) Block (List Block)))
   (doc 'description "Filter collection members by predicate. Returns list of blocks that match predicate")
   (let ([hashes (collection-hashes collection)])
@@ -73,6 +78,7 @@
                     hashes))))
 
 (define (fold-collection fs f init collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> A Block A) A Block A))
   (doc 'description "Fold over collection members (left-to-right)")
   (let ([hashes (collection-hashes collection)])
@@ -85,6 +91,7 @@
                   hashes)))
 
 (define (foldr-collection fs f init collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block A A) A Block A))
   (doc 'description "Fold over collection members (right-to-left). Function signature is (Block A → A) to match foldr convention")
   (let ([hashes (collection-hashes collection)])
@@ -97,6 +104,7 @@
               hashes)))
 
 (define (for-each-collection fs f collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Void) Block Void))
   (doc 'description "Execute function for each member (for side effects)")
   (let ([hashes (collection-hashes collection)])
@@ -108,6 +116,7 @@
 (doc 'section 'collection-queries)
 
 (define (collection-find fs predicate collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Boolean) Block (Maybe Block)))
   (doc 'description "Find first block in collection matching predicate")
   (let ([hashes (collection-hashes collection)])
@@ -120,11 +129,13 @@
                          (loop (cdr hashes))))))))
 
 (define (collection-any? fs predicate collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Boolean) Block Boolean))
   (doc 'description "Check if any member satisfies predicate")
   (not (eq? (collection-find fs predicate collection) #f)))
 
 (define (collection-all? fs predicate collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Boolean) Block Boolean))
   (doc 'description "Check if all members satisfy predicate. Missing blocks are skipped for consistency with other collection functions")
   (let ([hashes (collection-hashes collection)])
@@ -139,6 +150,7 @@
                          (loop (cdr hashes))))))))
 
 (define (collection-count-matching fs predicate collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Boolean) Block Integer))
   (doc 'description "Count how many members satisfy predicate")
   (length (filter-collection fs predicate collection)))
@@ -146,6 +158,7 @@
 (doc 'section 'collection-transformation)
 
 (define (collection-partition fs predicate collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block Boolean) Block (Values (List Block) (List Block))))
   (doc 'description "Partition collection into (matching, non-matching)")
   (let ([hashes (collection-hashes collection)])
@@ -166,6 +179,7 @@
                          (loop (cdr hashes) matching non-matching)))))))
 
 (define (collection-group-by fs key-fn collection)
+  (doc 'export #t)
   (doc 'type '(-> FSCap (-> Block A) Block (List (Pair A (List Block)))))
   (doc 'description "Group collection members by key function. Returns association list: ((key1 . [blocks...]) (key2 . [blocks...]) ...). Uses HAMT internally for O(N log32 N) complexity instead of O(N*G)")
   (let ([groups (fold-collection
@@ -180,6 +194,7 @@
 (doc 'section 'collection-construction)
 
 (define (make-collection-from-blocks tag name blocks)
+  (doc 'export #t)
   (doc 'type '(-> Symbol String (List Block) Block))
   (doc 'description "Create a collection from a list of blocks")
   (let ([hashes (map hash-block blocks)])
@@ -188,6 +203,7 @@
                    (list->vector hashes))))
 
 (define (collection-add collection new-member)
+  (doc 'export #t)
   (doc 'type '(-> Block Block Block))
   (doc 'description "Create new collection with additional member. Returns new collection block (original is immutable)")
   (let* ([old-refs (block-refs collection)]
@@ -198,6 +214,7 @@
                     new-refs)))
 
 (define (collection-remove collection member-hash)
+  (doc 'export #t)
   (doc 'type '(-> Block Hash Block))
   (doc 'description "Create new collection with member removed. Returns new collection block (original is immutable)")
   (let* ([old-refs (block-refs collection)]
@@ -209,6 +226,7 @@
                     new-refs)))
 
 (define (collection-merge coll1 coll2)
+  (doc 'export #t)
   (doc 'type '(-> Block Block Block))
   (doc 'description "Merge two collections into one. Combines refs from both (may have duplicates)")
   (let* ([refs1 (block-refs coll1)]

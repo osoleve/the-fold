@@ -48,34 +48,40 @@ Monad operations:
 ;;; maybe-just : a → Maybe a
 ;;; Wrap a value in Just
 (define (maybe-just x)
+  (doc 'export #t)
   (doc 'type '(-> a (Maybe a)))
   (list 'just x))
 
 ;;; maybe-just? : Maybe a → Boolean
 ;;; Is this a Just value?
 (define (maybe-just? ma)
+  (doc 'export #t)
   (doc 'type '(-> (Maybe a) Boolean))
   (and (pair? ma) (eq? (car ma) 'just)))
 
 ;;; maybe-nothing? : Maybe a → Boolean
 ;;; Is this Nothing?
 (define (maybe-nothing? ma)
+  (doc 'export #t)
   (doc 'type '(-> (Maybe a) Boolean))
   (not ma))
 
 ;;; maybe-from-just : Maybe a → a
 ;;; Extract value (undefined for Nothing)
 (define (maybe-from-just ma)
+  (doc 'export #t)
   (doc 'type '(-> (Maybe a) a))
   (cadr ma))
 
 ;;; maybe-return : a → Maybe a
 (define (maybe-return x)
+  (doc 'export #t)
   (doc 'type '(-> a (Maybe a)))
   (maybe-just x))
 
 ;;; maybe-bind : Maybe a → (a → Maybe b) → Maybe b
 (define (maybe-bind ma f)
+  (doc 'export #t)
   (doc 'type '(-> (Maybe a) (-> a (Maybe b)) (Maybe b)))
   (if (maybe-just? ma)
       (f (maybe-from-just ma))
@@ -83,6 +89,7 @@ Monad operations:
 
 ;;; maybe-fmap : (a → b) → Maybe a → Maybe b
 (define (maybe-fmap f ma)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (Maybe a) (Maybe b)))
   (if (maybe-just? ma)
       (maybe-just (f (maybe-from-just ma)))
@@ -90,6 +97,7 @@ Monad operations:
 
 ;;; maybe-join : Maybe (Maybe a) → Maybe a
 (define (maybe-join mma)
+  (doc 'export #t)
   (doc 'type '(-> (Maybe (Maybe a)) (Maybe a)))
   (if (maybe-just? mma)
       (maybe-from-just mma)  ; unwrap outer Just, inner is already Maybe a
@@ -107,12 +115,14 @@ Monad operations:
 ;;; maybe? : Any → Boolean
 ;;; Test if value is a valid Maybe
 (define (maybe? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (or (not x) (maybe-just? x)))
 
 ;;; maybe-from-default : a → Maybe a → a
 ;;; Extract value with default fallback
 (define (maybe-from-default default ma)
+  (doc 'export #t)
   (doc 'type '(-> a (Maybe a) a))
   (if (maybe-just? ma)
       (maybe-from-just ma)
@@ -121,6 +131,7 @@ Monad operations:
 ;;; maybe-or-else : Maybe a → (-> Maybe a) → Maybe a
 ;;; Try first, if Nothing then try alternative
 (define (maybe-or-else ma alt)
+  (doc 'export #t)
   (doc 'type '(-> (Maybe a) (-> (Maybe a)) (Maybe a)))
   (if (maybe-just? ma) ma (alt)))
 
@@ -147,16 +158,19 @@ Monad operations (right-biased):
 
 ;;; make-left : e → Either e a
 (define (make-left err)
+  (doc 'export #t)
   (doc 'type '(-> e (Either e a)))
   (list 'left err))
 
 ;;; make-right : a → Either e a
 (define (make-right val)
+  (doc 'export #t)
   (doc 'type '(-> a (Either e a)))
   (list 'right val))
 
 ;;; either? : Any → Boolean
 (define (either? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (or (eq? (car x) 'left)
@@ -164,39 +178,46 @@ Monad operations (right-biased):
 
 ;;; either-left? : Either e a → Boolean
 (define (either-left? ea)
+  (doc 'export #t)
   (doc 'type '(-> (Either e a) Boolean))
   (and (pair? ea) (eq? (car ea) 'left)))
 
 ;;; either-right? : Either e a → Boolean
 (define (either-right? ea)
+  (doc 'export #t)
   (doc 'type '(-> (Either e a) Boolean))
   (and (pair? ea) (eq? (car ea) 'right)))
 
 ;;; either-from-left : Either e a → e
 ;;; Extract Left value (undefined for Right)
 (define (either-from-left ea)
+  (doc 'export #t)
   (doc 'type '(-> (Either e a) e))
   (cadr ea))
 
 ;;; either-from-right : Either e a → a
 ;;; Extract Right value (undefined for Left)
 (define (either-from-right ea)
+  (doc 'export #t)
   (doc 'type '(-> (Either e a) a))
   (cadr ea))
 
 ;;; either-value : Either e a → (Union e a)
 ;;; Extract the wrapped value (either error or success)
 (define (either-value ea)
+  (doc 'export #t)
   (doc 'type '(-> (Either e a) (Union e a)))
   (if (either? ea) (cadr ea) ea))
 
 ;;; either-return : a → Either e a
 (define (either-return x)
+  (doc 'export #t)
   (doc 'type '(-> a (Either e a)))
   (make-right x))
 
 ;;; either-bind : Either e a → (a → Either e b) → Either e b
 (define (either-bind ea f)
+  (doc 'export #t)
   (doc 'type '(-> (Either e a) (-> a (Either e b)) (Either e b)))
   (cond
     [(either-right? ea) (f (either-from-right ea))]
@@ -205,6 +226,7 @@ Monad operations (right-biased):
 
 ;;; either-fmap : (a → b) → Either e a → Either e b
 (define (either-fmap f ea)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (Either e a) (Either e b)))
   (cond
     [(either-right? ea) (make-right (f (either-from-right ea)))]
@@ -213,6 +235,7 @@ Monad operations (right-biased):
 
 ;;; either-join : Either e (Either e a) → Either e a
 (define (either-join eea)
+  (doc 'export #t)
   (doc 'type '(-> (Either e (Either e a)) (Either e a)))
   (cond
     [(either-right? eea) (either-from-right eea)]  ; unwrap outer Right
@@ -231,6 +254,7 @@ Monad operations (right-biased):
 ;;; either-from-default : a → Either e a → a
 ;;; Extract Right value with default for Left
 (define (either-from-default default ea)
+  (doc 'export #t)
   (doc 'type '(-> a (Either e a) a))
   (if (either-right? ea)
       (either-from-right ea)
@@ -239,6 +263,7 @@ Monad operations (right-biased):
 ;;; either-map-left : (e → e') → Either e a → Either e' a
 ;;; Transform the error type
 (define (either-map-left f ea)
+  (doc 'export #t)
   (doc 'type '(-> (-> e e2) (Either e a) (Either e2 a)))
   (cond
     [(either-left? ea) (make-left (f (either-from-left ea)))]
@@ -248,6 +273,7 @@ Monad operations (right-biased):
 ;;; either-fold : (e → r) → (a → r) → Either e a → r
 ;;; Eliminate Either by providing handlers for both cases
 (define (either-fold on-left on-right ea)
+  (doc 'export #t)
   (doc 'type '(-> (-> e r) (-> a r) (Either e a) r))
   (cond
     [(either-left? ea) (on-left (either-from-left ea))]
@@ -272,23 +298,27 @@ Unlike State, the environment is immutable - no 'put' operation.")
 
 ;;; reader-return : a → Reader e a
 (define (reader-return x)
+  (doc 'export #t)
   (doc 'type '(-> a (-> e a)))
   (lambda (env) x))
 
 ;;; reader-bind : Reader e a → (a → Reader e b) → Reader e b
 (define (reader-bind ra f)
+  (doc 'export #t)
   (doc 'type '(-> (-> e a) (-> a (-> e b)) (-> e b)))
   (lambda (env)
     ((f (ra env)) env)))
 
 ;;; reader-fmap : (a → b) → Reader e a → Reader e b
 (define (reader-fmap f ra)
+  (doc 'export #t)
   (doc 'type '(-> (-> a b) (-> e a) (-> e b)))
   (lambda (env)
     (f (ra env))))
 
 ;;; reader-join : Reader e (Reader e a) → Reader e a
 (define (reader-join rra)
+  (doc 'export #t)
   (doc 'type '(-> (-> e (-> e a)) (-> e a)))
   (lambda (env)
     ((rra env) env)))
@@ -311,12 +341,14 @@ Unlike State, the environment is immutable - no 'put' operation.")
 ;;; reader-asks : (e → a) → Reader e a
 ;;; Read a computed projection of the environment
 (define (reader-asks f)
+  (doc 'export #t)
   (doc 'type '(-> (-> e a) (-> e a)))
   (lambda (env) (f env)))
 
 ;;; reader-local : (e → e) → Reader e a → Reader e a
 ;;; Run a computation with a modified environment
 (define (reader-local modify ra)
+  (doc 'export #t)
   (doc 'type '(-> (-> e e) (-> e a) (-> e a)))
   (lambda (env)
     (ra (modify env))))
@@ -324,6 +356,7 @@ Unlike State, the environment is immutable - no 'put' operation.")
 ;;; run-reader : Reader e a → e → a
 ;;; Execute a Reader computation with an environment
 (define (run-reader ra env)
+  (doc 'export #t)
   (doc 'type '(-> (-> e a) e a))
   (ra env))
 

@@ -29,6 +29,7 @@
 (doc make-fem-mesh 'type '(-> (List Triangle2) FEMMesh))
 (doc make-fem-mesh 'description "Convert Delaunay triangulation to indexed FEM mesh")
 (define (make-fem-mesh triangles)
+  (doc 'export #t)
   ;; Extract unique nodes with tolerance-based deduplication
   ;; Uses HAMT for O(log32 n) lookup instead of O(N) assoc
   (let* ([tolerance 1e-10]
@@ -83,16 +84,19 @@
 (doc fem-mesh-node 'type '(-> FEMMesh Nat Point2))
 (doc fem-mesh-node 'description "Get node coordinates by index")
 (define (fem-mesh-node mesh i)
+  (doc 'export #t)
   (vector-ref (fem-mesh-nodes mesh) i))
 
 (doc fem-mesh-element 'type '(-> FEMMesh Nat (Vector Nat Nat Nat)))
 (doc fem-mesh-element 'description "Get element node indices")
 (define (fem-mesh-element mesh e)
+  (doc 'export #t)
   (vector-ref (fem-mesh-elements mesh) e))
 
 (doc fem-mesh-element-nodes 'type '(-> FEMMesh Nat (List Point2)))
 (doc fem-mesh-element-nodes 'description "Get element node coordinates")
 (define (fem-mesh-element-nodes mesh e)
+  (doc 'export #t)
   (let ([elem (fem-mesh-element mesh e)]
         [nodes (fem-mesh-nodes mesh)])
     (list (vector-ref nodes (vector-ref elem 0))
@@ -112,6 +116,7 @@
 (doc element-area 'type '(-> Point2 Point2 Point2 Number))
 (doc element-area 'description "Compute signed area of triangle element")
 (define (element-area p1 p2 p3)
+  (doc 'export #t)
   (let ([x1 (point2-x p1)] [y1 (point2-y p1)]
         [x2 (point2-x p2)] [y2 (point2-y p2)]
         [x3 (point2-x p3)] [y3 (point2-y p3)])
@@ -121,6 +126,7 @@
 (doc basis-gradients 'type '(-> Point2 Point2 Point2 (List (Vector Number Number))))
 (doc basis-gradients 'description "Compute gradients of P1 basis functions on element")
 (define (basis-gradients p1 p2 p3)
+  (doc 'export #t)
   ;; For P1 elements, gradients are constant over the element.
   ;; ∇φ_i = (1/2A) * [y_j - y_k, x_k - x_j] for cyclic (i,j,k)
   (let* ([x1 (point2-x p1)] [y1 (point2-y p1)]
@@ -148,6 +154,7 @@
 (doc element-stiffness 'type '(-> Point2 Point2 Point2 Matrix))
 (doc element-stiffness 'description "Compute 3x3 local stiffness matrix for P1 element")
 (define (element-stiffness p1 p2 p3)
+  (doc 'export #t)
   ;; K_ij = ∫_Ω ∇φ_i · ∇φ_j dΩ = A * (∇φ_i · ∇φ_j)
   ;; For P1 elements, gradients are constant, so integral is trivial.
   (let* ([area (abs (element-area p1 p2 p3))]
@@ -167,6 +174,7 @@
 (doc element-mass 'type '(-> Point2 Point2 Point2 Matrix))
 (doc element-mass 'description "Compute 3x3 local mass matrix for P1 element")
 (define (element-mass p1 p2 p3)
+  (doc 'export #t)
   ;; M_ij = ∫_Ω φ_i φ_j dΩ
   ;; For P1 elements: M_ii = A/6, M_ij = A/12 (i≠j)
   (let ([area (abs (element-area p1 p2 p3))])
@@ -178,6 +186,7 @@
 (doc element-load 'type '(-> Point2 Point2 Point2 (-> Number Number Number) Vector))
 (doc element-load 'description "Compute 3-element local load vector for source term f(x,y)")
 (define (element-load p1 p2 p3 f)
+  (doc 'export #t)
   ;; F_i = ∫_Ω f φ_i dΩ ≈ (A/3) * f(centroid) for all i (equal weights)
   ;; More accurate: use quadrature, but this is fine for smooth f.
   (let* ([area (abs (element-area p1 p2 p3))]
@@ -199,6 +208,7 @@
 (doc assemble-stiffness 'type '(-> FEMMesh SparseCOO))
 (doc assemble-stiffness 'description "Assemble global stiffness matrix in COO format")
 (define (assemble-stiffness mesh)
+  (doc 'export #t)
   (let ([n (fem-mesh-num-nodes mesh)]
         [ne (fem-mesh-num-elements mesh)])
     ;; Accumulate triplets over elements via named let
@@ -230,6 +240,7 @@
 (doc assemble-mass 'type '(-> FEMMesh SparseCOO))
 (doc assemble-mass 'description "Assemble global mass matrix in COO format")
 (define (assemble-mass mesh)
+  (doc 'export #t)
   (let ([n (fem-mesh-num-nodes mesh)]
         [ne (fem-mesh-num-elements mesh)])
     (let loop-e ([e 0] [triplets '()])
@@ -259,6 +270,7 @@
 (doc assemble-load 'type '(-> FEMMesh (-> Number Number Number) Vector))
 (doc assemble-load 'description "Assemble global load vector for source term f(x,y)")
 (define (assemble-load mesh f)
+  (doc 'export #t)
   (let* ([n (fem-mesh-num-nodes mesh)]
          [ne (fem-mesh-num-elements mesh)]
          [F (make-vector n 0.0)])
@@ -287,6 +299,7 @@
 (doc find-boundary-nodes 'type '(-> FEMMesh (List Nat)))
 (doc find-boundary-nodes 'description "Find indices of nodes on mesh boundary")
 (define (find-boundary-nodes mesh)
+  (doc 'export #t)
   ;; A boundary edge appears in exactly one triangle.
   ;; Boundary nodes are endpoints of boundary edges.
   (let* ([ne (fem-mesh-num-elements mesh)]
@@ -323,6 +336,7 @@
 (doc apply-dirichlet-bc! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) FEMMesh Void))
 (doc apply-dirichlet-bc! 'description "Apply Dirichlet BC by elimination method (zeros row/col, sets diagonal to 1)")
 (define (apply-dirichlet-bc! K F boundary-nodes g mesh)
+  (doc 'export #t)
   ;; For each boundary node i with u_i = g(x_i, y_i):
   ;; 1. Zero row i of K (all entries)
   ;; 2. Zero column i of K, adjusting RHS: F_j -= K_ji * g_i
@@ -382,6 +396,7 @@
 (doc apply-dirichlet-penalty! 'type '(-> SparseCOO Vector (List Nat) (-> Number Number Number) FEMMesh Void))
 (doc apply-dirichlet-penalty! 'description "Apply Dirichlet BC using penalty method (simpler, preserves symmetry)")
 (define (apply-dirichlet-penalty! K F boundary-nodes g mesh)
+  (doc 'export #t)
   ;; Penalty method: Add large value to diagonal, scale RHS accordingly
   ;; K_ii += penalty, F_i = penalty * g_i
   ;; This approximately enforces u_i ≈ g_i when penalty >> other entries
@@ -425,6 +440,7 @@
 (doc sparse-cg 'type '(-> SparseCSR Vector Vector (List Vector Number Nat)))
 (doc sparse-cg 'description "Conjugate gradient for sparse CSR matrices")
 (define (sparse-cg A b x0)
+  (doc 'export #t)
   ;; CG for Ax = b where A is sparse CSR
   (let* ([n (sparse-csr-rows A)]
          [tol *fem-tolerance*]
@@ -439,6 +455,7 @@
         (sparse-cg-loop A b (vector-copy x0) r p rr 0 max-iter tol n))))
 
 (define (sparse-cg-loop A b x r p rr iter max-iter tol n)
+  (doc 'export #t)
   (let ([r-norm (sqrt rr)])
     (cond
       [(< r-norm tol)
@@ -469,6 +486,7 @@
 (doc sparse-csr-diagonal 'type '(-> SparseCSR Vector))
 (doc sparse-csr-diagonal 'description "Extract diagonal of sparse CSR matrix")
 (define (sparse-csr-diagonal A)
+  (doc 'export #t)
   (let* ([n (sparse-csr-rows A)]
          [row-ptrs (sparse-csr-row-ptrs A)]
          [col-indices (sparse-csr-col-indices A)]
@@ -486,6 +504,7 @@
 (doc vec-div-pointwise 'type '(-> Vector Vector Vector))
 (doc vec-div-pointwise 'description "Element-wise division z_i = x_i / y_i")
 (define (vec-div-pointwise x y)
+  (doc 'export #t)
   (vec-tabulate (vector-length x) i
     (let ([yi (vector-ref y i)])
       (if (< (abs yi) 1e-30)
@@ -495,6 +514,7 @@
 (doc sparse-pcg 'type '(-> SparseCSR Vector Vector (List Vector Number Nat)))
 (doc sparse-pcg 'description "Preconditioned conjugate gradient with Jacobi preconditioning")
 (define (sparse-pcg A b x0)
+  (doc 'export #t)
   ;; PCG for Ax = b where A is sparse CSR, M = diag(A)
   (let* ([n (sparse-csr-rows A)]
          [tol *fem-tolerance*]
@@ -513,6 +533,7 @@
         (sparse-pcg-loop A b (vector-copy x0) r z p rz M 0 max-iter tol n))))
 
 (define (sparse-pcg-loop A b x r z p rz M iter max-iter tol n)
+  (doc 'export #t)
   (let ([r-norm (sqrt (vec-dot r r))])
     (cond
       [(< r-norm tol)
@@ -537,6 +558,7 @@
 
 ;;; Vector operations for CG (if not already available)
 (define (vec-dot v1 v2)
+  (doc 'export #t)
   (let ([n (vector-length v1)])
     (let loop ([i 0] [sum 0.0])
       (if (= i n)
@@ -544,14 +566,17 @@
           (loop (+ i 1) (+ sum (* (vector-ref v1 i) (vector-ref v2 i))))))))
 
 (define (vec-add v1 v2)
+  (doc 'export #t)
   (vec-tabulate (vector-length v1) i
     (+ (vector-ref v1 i) (vector-ref v2 i))))
 
 (define (vec-sub v1 v2)
+  (doc 'export #t)
   (vec-tabulate (vector-length v1) i
     (- (vector-ref v1 i) (vector-ref v2 i))))
 
 (define (vec-scale s v)
+  (doc 'export #t)
   (vec-tabulate (vector-length v) i
     (* s (vector-ref v i))))
 
@@ -564,6 +589,7 @@
 (doc fem-solve-poisson 'type '(-> FEMMesh (-> Number Number Number) (-> Number Number Number) Vector))
 (doc fem-solve-poisson 'description "Solve -∇²u = f with u = g on boundary")
 (define (fem-solve-poisson mesh f g)
+  (doc 'export #t)
   ;; Assemble system
   (let* ([K (assemble-stiffness mesh)]
          [F (assemble-load mesh f)]
@@ -581,6 +607,7 @@
 (doc fem-solve-poisson-full 'type '(-> FEMMesh (-> Number Number Number) (-> Number Number Number) (Values Vector Number Nat)))
 (doc fem-solve-poisson-full 'description "Solve Poisson and return (solution residual iterations)")
 (define (fem-solve-poisson-full mesh f g)
+  (doc 'export #t)
   (let* ([K (assemble-stiffness mesh)]
          [F (assemble-load mesh f)]
          [boundary (find-boundary-nodes mesh)])
@@ -606,6 +633,7 @@
 (doc make-fem-spatial-index 'type '(-> FEMMesh Nat FEMSpatialIndex))
 (doc make-fem-spatial-index 'description "Build grid-based spatial index for fast point location")
 (define (make-fem-spatial-index mesh grid-size)
+  (doc 'export #t)
   ;; Compute mesh bounding box
   (let* ([nodes (fem-mesh-nodes mesh)]
          [n (fem-mesh-num-nodes mesh)]
@@ -666,6 +694,7 @@
 (doc fem-point-in-element? 'type '(-> FEMMesh Nat Number Number (Or #f (List Number Number Number))))
 (doc fem-point-in-element? 'description "Test if point is in element, return barycentric coords or #f")
 (define (fem-point-in-element? mesh e x y)
+  (doc 'export #t)
   (let* ([pts (fem-mesh-element-nodes mesh e)]
          [p1 (car pts)] [p2 (cadr pts)] [p3 (caddr pts)]
          [area (element-area p1 p2 p3)]
@@ -682,6 +711,7 @@
 (doc fem-locate-point 'type '(-> FEMSpatialIndex Number Number (Or #f (List Nat Number Number Number))))
 (doc fem-locate-point 'description "Find element containing point using spatial index, return (element l1 l2 l3) or #f")
 (define (fem-locate-point index x y)
+  (doc 'export #t)
   (let* ([mesh (fem-spatial-index-mesh index)]
          [grid (fem-spatial-index-grid index)]
          [gs (fem-spatial-index-grid-size index)]
@@ -707,6 +737,7 @@
 (doc fem-solution-at-indexed 'type '(-> FEMSpatialIndex Vector Number Number Number))
 (doc fem-solution-at-indexed 'description "Interpolate FEM solution using spatial index (O(1) average)")
 (define (fem-solution-at-indexed index solution x y)
+  (doc 'export #t)
   (let ([loc (fem-locate-point index x y)])
     (if (not loc)
         0.0  ; Point not in mesh
@@ -730,6 +761,7 @@
 (doc fem-solution-at 'type '(-> FEMMesh Vector Number Number Number))
 (doc fem-solution-at 'description "Interpolate FEM solution at point (x,y) - O(N) linear search")
 (define (fem-solution-at mesh solution x y)
+  (doc 'export #t)
   ;; Find containing element and interpolate using basis functions
   ;; NOTE: For repeated queries, use fem-solution-at-indexed instead
   (let ([ne (fem-mesh-num-elements mesh)])
@@ -748,6 +780,7 @@
 (doc fem-render-solution 'type '(-> FEMMesh Vector Nat Nat String))
 (doc fem-render-solution 'description "Render FEM solution as ASCII heatmap (uses spatial index)")
 (define (fem-render-solution mesh solution width height)
+  (doc 'export #t)
   (let* ([nodes (fem-mesh-nodes mesh)]
          [n (fem-mesh-num-nodes mesh)]
          [xs (let loop ([i 0] [acc '()])
@@ -796,6 +829,7 @@
 (doc make-unit-square-mesh 'type '(-> Nat FEMMesh))
 (doc make-unit-square-mesh 'description "Create mesh on unit square [0,1]² with n² points")
 (define (make-unit-square-mesh n)
+  (doc 'export #t)
   ;; Generate regular grid points
   (let* ([h (/ 1.0 (- n 1))]
          [pts (let loop-i ([i 0] [acc '()])
@@ -813,6 +847,7 @@
 (doc make-disk-mesh 'type '(-> Number Nat FEMMesh))
 (doc make-disk-mesh 'description "Create mesh on disk of given radius with n points")
 (define (make-disk-mesh radius n)
+  (doc 'export #t)
   ;; Generate points in disk using rejection sampling + boundary points
   (let* ([boundary-n (max 8 (inexact->exact (round (sqrt n))))]
          [boundary-pts (let loop ([i 0] [acc '()])
@@ -841,6 +876,7 @@
 (doc fem-l2-error 'type '(-> FEMMesh Vector (-> Number Number Number) Number))
 (doc fem-l2-error 'description "Compute L² error between FEM solution and exact solution")
 (define (fem-l2-error mesh solution exact)
+  (doc 'export #t)
   ;; L2 error: integral (u - u_exact)^2 dO, approximated per element
   (let ([ne (fem-mesh-num-elements mesh)])
     (sqrt

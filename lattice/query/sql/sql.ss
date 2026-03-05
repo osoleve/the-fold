@@ -28,6 +28,7 @@
 ;;;   (parse-sql "SELEC * FROM users")
 ;;;   => (left (parse-error ...))
 (define (parse-sql input)
+  (doc 'export #t)
   (parse-sql-stmt input))
 
 ;;; validate-sql : AST → Validation (List Error) AST
@@ -70,6 +71,7 @@
 ;;;   (check-sql "SELECT * FROM users")
 ;;;   => (right (sql-ast 'select ...))
 (define (check-sql input)
+  (doc 'export #t)
   (let ([parse-result (parse-sql input)])
        (if (left? parse-result)
            parse-result
@@ -89,6 +91,7 @@
 ;;;   (reformat-sql "select * from users" '((compact . #t)))
 ;;;   => (right "SELECT * FROM users")
 (define (reformat-sql input . opts-arg)
+  (doc 'export #t)
   (let* ([opts (if (null? opts-arg) default-format-options (car opts-arg))]
          [check-result (check-sql input)])
         (if (left? check-result)
@@ -98,11 +101,13 @@
 ;;; format-sql-compact : AST → String
 ;;; Format SQL as a single line.
 (define (format-sql-compact ast)
+  (doc 'export #t)
   (format-sql ast '((compact . #t))))
 
 ;;; format-sql-pretty : AST → String
 ;;; Format SQL with nice indentation.
 (define (format-sql-pretty ast)
+  (doc 'export #t)
   (format-sql ast '((indent . 2) (uppercase-keywords . #t) (compact . #f))))
 
 ;;; ====
@@ -112,6 +117,7 @@
 ;;; format-parse-errors : Either Error a → String
 ;;; Format parse or validation errors for display.
 (define (format-sql-errors result)
+  (doc 'export #t)
   (if (right? result)
       ""
       (let ([errors (from-left result)])
@@ -135,6 +141,7 @@
 ;;;     "SELECT name FROM users"
 ;;;     '(("users" . ("id" "name" "email"))))
 (define (check-sql-with-schema input schema)
+  (doc 'export #t)
   (let ([parse-result (parse-sql input)])
        (if (left? parse-result)
            parse-result
@@ -151,6 +158,7 @@
 ;;; sql-type : AST → Symbol
 ;;; Get the type of an SQL AST node.
 (define (sql-type ast)
+  (doc 'export #t)
   (if (sql-ast? ast)
       (sql-tag ast)
       'unknown))

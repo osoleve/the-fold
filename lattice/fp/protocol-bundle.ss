@@ -10,40 +10,49 @@
 (doc 'description "Bundle Data Structures A bundle is metadata describing a set of protocol pairs (getter/setter). Structure: (protocol-bundle name (slot ...)) Each slot: (bundle-slot getter-proto setter-proto label) make-protocol-bundle : Symbol × (List Slot) → Bundle")
 (doc 'layer 'lattice)
 (define (make-protocol-bundle name slots)
+  (doc 'export #t)
   (list 'protocol-bundle name slots))
 
 ;;; bundle? : Any → Boolean
 (define (bundle? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? 'protocol-bundle (car x))))
 
 ;;; bundle-name : Bundle → Symbol
 (define (bundle-name b)
+  (doc 'export #t)
   (cadr b))
 
 ;;; bundle-slots : Bundle → (List Slot)
 (define (bundle-slots b)
+  (doc 'export #t)
   (caddr b))
 
 ;;; make-bundle-slot : Symbol × Symbol × String → Slot
 (define (make-bundle-slot getter-proto setter-proto label)
+  (doc 'export #t)
   (list 'bundle-slot getter-proto setter-proto label))
 
 ;;; slot? : Any → Boolean
 (define (slot? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? 'bundle-slot (car x))))
 
 ;;; slot-getter : Slot → Symbol
 (define (slot-getter s)
+  (doc 'export #t)
   (cadr s))
 
 ;;; slot-setter : Slot → Symbol
 (define (slot-setter s)
+  (doc 'export #t)
   (caddr s))
 
 ;;; slot-label : Slot → String
 (define (slot-label s)
+  (doc 'export #t)
   (cadddr s))
 
 ;;; ====
@@ -54,14 +63,17 @@
 
 ;;; register-bundle! : Bundle → Void
 (define (register-bundle! bundle)
+  (doc 'export #t)
   (set! *bundle-registry* (hamt-assoc (bundle-name bundle) bundle *bundle-registry*)))
 
 ;;; get-bundle : Symbol → Bundle | #f
 (define (get-bundle name)
+  (doc 'export #t)
   (hamt-lookup name *bundle-registry*))
 
 ;;; list-bundles : → (List Symbol)
 (define (list-bundles)
+  (doc 'export #t)
   (hamt-keys *bundle-registry*))
 
 ;;; ====
@@ -102,12 +114,14 @@
 ;;; Helper: Build getter name from prefix and label
 ;;; Convention: <prefix>-<label> (e.g., rigid-body-pos)
 (define (build-getter-name prefix label)
+  (doc 'export #t)
   (string->symbol
    (string-append (symbol->string prefix) "-" label)))
 
 ;;; Helper: Build setter name from prefix and label
 ;;; Convention: <prefix>-with-<label> (e.g., rigid-body-with-pos)
 (define (build-setter-name prefix label)
+  (doc 'export #t)
   (string->symbol
    (string-append (symbol->string prefix) "-with-" label)))
 
@@ -142,6 +156,7 @@
 ;;; Runtime implementation of derive-bundle!.
 ;;; Looks up functions by name at expansion time using the naming convention.
 (define (derive-bundle-runtime! bundle type-tag prefix overrides)
+  (doc 'export #t)
   (let ([slots (bundle-slots bundle)])
     (for-each
      (lambda (slot)
@@ -167,6 +182,7 @@
 ;;; find-override : String × (List Override) → Override | #f
 ;;; Find override for a given label.
 (define (find-override label overrides)
+  (doc 'export #t)
   (cond
    [(null? overrides) #f]
    [(string=? label (car (car overrides))) (car overrides)]
@@ -196,6 +212,7 @@
 ;;;
 ;;; Runtime implementation of implement-bundle!.
 (define (implement-bundle-runtime! bundle type-tag impl-specs)
+  (doc 'export #t)
   (let ([slots (bundle-slots bundle)])
     ;; Verify all slots are covered
     (for-each
@@ -222,6 +239,7 @@
 
 ;;; find-impl-spec : String × (List Impl-Spec) → Impl-Spec | #f
 (define (find-impl-spec label specs)
+  (doc 'export #t)
   (cond
    [(null? specs) #f]
    [(string=? label (car (car specs))) (car specs)]
@@ -229,6 +247,7 @@
 
 ;;; find-slot-by-label : String × (List Slot) → Slot | #f
 (define (find-slot-by-label label slots)
+  (doc 'export #t)
   (cond
    [(null? slots) #f]
    [(string=? label (slot-label (car slots))) (car slots)]
@@ -241,6 +260,7 @@
 ;;; bundle-types : Bundle → (List Symbol)
 ;;; List all types that have registered implementations for all slots of a bundle.
 (define (bundle-types bundle)
+  (doc 'export #t)
   (let* ([slots (bundle-slots bundle)]
          [first-slot (car slots)]
          [first-proto (slot-getter first-slot)]
@@ -256,6 +276,7 @@
 ;;; bundle-protocols : Bundle → (List Symbol)
 ;;; List all protocol names in a bundle (both getters and setters).
 (define (bundle-protocols bundle)
+  (doc 'export #t)
   (let ([slots (bundle-slots bundle)])
     (append
      (map slot-getter slots)
@@ -263,6 +284,7 @@
 
 ;;; bundle-slot-count : Bundle → Number
 (define (bundle-slot-count bundle)
+  (doc 'export #t)
   (length (bundle-slots bundle)))
 
 ;;; ====
@@ -276,6 +298,7 @@
 ;;;   (implements-bundle? 'rigid-body-2d body-ops) → #t
 ;;;   (implements-bundle? 'string body-ops) → #f
 (define (implements-bundle? type-tag bundle)
+  (doc 'export #t)
   (let ([slots (bundle-slots bundle)])
     (and-map (lambda (slot)
                (and (type-implements? type-tag (slot-getter slot))
@@ -291,6 +314,7 @@
 ;;;   (define drawable-ops ...)
 ;;;   (define game-object-ops (compose-bundles 'game-object-ops movable-ops drawable-ops))
 (define (compose-bundles name . bundles)
+  (doc 'export #t)
   (let* ([all-slots (append-map bundle-slots bundles)]
          [unique-slots (dedupe-slots all-slots)])
     (let ([composed (make-protocol-bundle name unique-slots)])
@@ -300,6 +324,7 @@
 ;;; dedupe-slots : (List Slot) → (List Slot)
 ;;; Remove duplicate slots by label, keeping first occurrence.
 (define (dedupe-slots slots)
+  (doc 'export #t)
   (let loop ([remaining slots] [seen '()] [result '()])
     (cond
      [(null? remaining) (reverse result)]
@@ -319,6 +344,7 @@
 ;;;     (assert-bundle! body body-ops)  ; Validates body type
 ;;;     (body-set-pos body (vec2-add (body-pos body) delta)))
 (define (assert-bundle! value bundle)
+  (doc 'export #t)
   (let ([type-tag (get-type-tag value)])
     (if (implements-bundle? type-tag bundle)
         value
@@ -331,6 +357,7 @@
 ;;; missing-protocols : Symbol × Bundle → (List Symbol)
 ;;; List protocols from a bundle that a type doesn't implement.
 (define (missing-protocols type-tag bundle)
+  (doc 'export #t)
   (let ([slots (bundle-slots bundle)])
     (filter
      (lambda (proto)
@@ -342,6 +369,7 @@
 ;;; ====
 
 (define (and-map pred lst)
+  (doc 'export #t)
   (cond
    [(null? lst) #t]
    [(pred (car lst)) (and-map pred (cdr lst))]

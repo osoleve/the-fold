@@ -24,6 +24,7 @@
 (doc 'type '(-> Rlm2State Nat String))
 (doc 'description "Render the state as a HUD string for the model's context. Budget is char limit for the rendered output.")
 (define (rlm2-render-state state budget)
+  (doc 'export #t)
   (let* (;; Fixed sections (always included, estimated sizes)
          [task-section (rlm2-render-task state)]
          [fuel-section (rlm2-render-fuel state)]
@@ -66,9 +67,11 @@
 ;;; ====
 
 (define (rlm2-render-task state)
+  (doc 'export #t)
   (format "  (task ~s)" (rlm2-state-task state)))
 
 (define (rlm2-render-plan state budget)
+  (doc 'export #t)
   (let ([plan (rlm2-state-plan state)])
     (if (null? plan)
         "  (plan ())"
@@ -82,6 +85,7 @@
           (string-append "  (plan\n    (" truncated "))")))))
 
 (define (rlm2-render-env state budget)
+  (doc 'export #t)
   (let ([env (rlm2-state-env state)])
     (if (null? env)
         "  (env ())"
@@ -96,6 +100,7 @@
           (string-append "  (env\n    (" truncated "))")))))
 
 (define (rlm2-render-loaded state budget)
+  (doc 'export #t)
   (let ([loaded (rlm2-state-loaded state)])
     (if (null? loaded)
         "  (loaded ())"
@@ -105,6 +110,7 @@
           (string-append "  (loaded (" truncated "))")))))
 
 (define (rlm2-render-notes state budget)
+  (doc 'export #t)
   (let ([notes (rlm2-state-notes state)])
     (if (null? notes)
         "  (notes ())"
@@ -115,6 +121,7 @@
           (string-append "  (notes\n    (" (rlm2-join-lines items) "))")))))
 
 (define (rlm2-render-episodic state budget)
+  (doc 'export #t)
   (let ([episodic (rlm2-state-episodic state)])
     (if (null? episodic)
         "  (episodic ())"
@@ -149,6 +156,7 @@
                    (loop (cdr entries) (cons entry acc) (+ used cost))))])))))
 
 (define (rlm2-render-journal state budget)
+  (doc 'export #t)
   (let ([journal (rlm2-state-journal state)])
     (if (null? journal)
         "  (journal ())"
@@ -164,6 +172,7 @@
           (string-append "  (journal (tags " truncated "))")))))
 
 (define (rlm2-render-last-result state)
+  (doc 'export #t)
   (let ([result (rlm2-state-last-result state)])
     (if (not result)
         "  (last-result #f)"
@@ -175,9 +184,11 @@
           (format "  (last-result ~a)" truncated)))))
 
 (define (rlm2-render-fuel state)
+  (doc 'export #t)
   (format "  (fuel ~a)" (rlm2-state-fuel state)))
 
 (define (rlm2-render-step state)
+  (doc 'export #t)
   (format "  (step ~a)" (rlm2-state-step state)))
 
 ;;; ====
@@ -189,6 +200,7 @@
 (doc 'type '(-> String String))
 (doc 'description "Build the system prompt for the agent — includes action grammar and semantics")
 (define (rlm2-build-system-prompt base-prompt)
+  (doc 'export #t)
   ;; If base-prompt already contains the action grammar, it's a pre-built
   ;; or fitted prompt — return it as-is (idempotent).
   (if (and (string? base-prompt)
@@ -271,6 +283,7 @@
 ;;; is always complete so the parser accepts any action the model emits.
 
 (define (rlm2-full-action-grammar)
+  (doc 'export #t)
   (string-append
    "Action grammar:\n"
    "\n"
@@ -327,6 +340,7 @@
 ;;;   Code intel: shown when loaded modules > 0
 ;;;   Memory: always shown (compact)
 (define (rlm2-render-state-staged state budget)
+  (doc 'export #t)
   (let* ([base (rlm2-render-state state budget)]
          [loaded (rlm2-state-loaded state)]
          [env (rlm2-state-env state)]
@@ -364,6 +378,7 @@
 (doc 'type '(-> (Maybe String) Any Any String))
 (doc 'description "Build the reflection prompt from thought + action + observation")
 (define (rlm2-build-reflection-prompt thought action observation)
+  (doc 'export #t)
   (string-append
    "Distill the following step into a single concise note (one sentence, max 120 chars). "
    "The note should capture what was learned or accomplished — not what was done.\n\n"
@@ -396,11 +411,13 @@
 (doc 'type '(-> Symbol (List (Pair Symbol Any)) Rlm2Diagnostic))
 (doc 'description "Build a structured error diagnostic. Type is the error category, fields is an alist of (key . value) pairs.")
 (define (rlm2-error type . fields)
+  (doc 'export #t)
   (cons 'error (cons (list 'type type) fields)))
 
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a structured diagnostic (error, nudge, or warning)")
 (define (rlm2-diagnostic? x)
+  (doc 'export #t)
   (and (pair? x)
        (memq (car x) '(error nudge warning))
        #t))
@@ -408,6 +425,7 @@
 (doc 'type '(-> Symbol Nat String Rlm2Diagnostic))
 (doc 'description "Build a think-streak nudge. Constructive, not punitive.")
 (define (rlm2-nudge type count suggestion)
+  (doc 'export #t)
   (list 'nudge
         (list 'type type)
         (list 'count count)
@@ -416,6 +434,7 @@
 (doc 'type '(-> Symbol String String Rlm2Diagnostic))
 (doc 'description "Build a warning diagnostic (e.g. loop detection, fuel status).")
 (define (rlm2-warning type detail suggestion)
+  (doc 'export #t)
   (list 'warning
         (list 'type type)
         (list 'detail detail)
@@ -423,10 +442,12 @@
 
 ;;; Field extraction from diagnostics
 (define (rlm2-diagnostic-type d)
+  (doc 'export #t)
   (let ([entry (assq 'type (cdr d))])
     (and entry (cadr entry))))
 
 (define (rlm2-diagnostic-field d key)
+  (doc 'export #t)
   (let ([entry (assq key (cdr d))])
     (and entry (cadr entry))))
 
@@ -441,6 +462,7 @@
 (doc 'type '(-> Any String))
 (doc 'description "Format a structured diagnostic (or plain string) to readable HUD text. Backwards-compatible: plain strings pass through unchanged.")
 (define (rlm2-format-diagnostic d)
+  (doc 'export #t)
   (cond
     [(string? d) d]  ; backwards compat: plain strings pass through
     [(not (pair? d)) (format "~a" d)]
@@ -483,6 +505,7 @@
 (doc 'type '(-> String (List String) Rlm2Diagnostic))
 (doc 'description "Build an unknown-action error with the given name and list of valid actions.")
 (define (rlm2-error-unknown-action given valid-actions)
+  (doc 'export #t)
   (rlm2-error 'action-unknown
     (list 'given given)
     (list 'hint (string-append "Valid actions: "
@@ -492,6 +515,7 @@
 (doc 'type '(-> Any String Rlm2Diagnostic))
 (doc 'description "Build a parse error diagnostic with the problematic input and a description.")
 (define (rlm2-error-parse given detail)
+  (doc 'export #t)
   (rlm2-error 'parse-error
     (list 'given (if (string? given)
                      (if (> (string-length given) 200)
@@ -507,6 +531,7 @@
 (doc 'type '(-> Any String Rlm2Diagnostic))
 (doc 'description "Build an eval error diagnostic with the expression and error message.")
 (define (rlm2-error-eval expr error-msg)
+  (doc 'export #t)
   (rlm2-error 'eval-error
     (list 'expr expr)
     (list 'detail error-msg)
@@ -515,6 +540,7 @@
 (doc 'type '(-> Symbol String Rlm2Diagnostic))
 (doc 'description "Build a require/load error diagnostic with module name and error.")
 (define (rlm2-error-require module-name error-msg)
+  (doc 'export #t)
   (rlm2-error 'require-error
     (list 'given (format "~a" module-name))
     (list 'detail error-msg)
@@ -523,6 +549,7 @@
 (doc 'type '(-> Symbol Rlm2Diagnostic))
 (doc 'description "Build a key-not-found error for env operations.")
 (define (rlm2-error-key-not-found key)
+  (doc 'export #t)
   (rlm2-error 'key-not-found
     (list 'given (format "~a" key))
     (list 'hint "Use (peek 'key) only for keys shown in the env section of your HUD")
@@ -531,6 +558,7 @@
 (doc 'type '(-> String Any String Rlm2Diagnostic))
 (doc 'description "Build a type validation error.")
 (define (rlm2-error-type-mismatch expected given context)
+  (doc 'export #t)
   (rlm2-error 'type-mismatch
     (list 'given (format "~a" given))
     (list 'detail (format "Expected ~a in ~a" expected context))
@@ -539,6 +567,7 @@
 (doc 'type '(-> Nat Nat Rlm2Diagnostic))
 (doc 'description "Build a fuel/budget status warning. Framed as budget info, not scarcity anxiety.")
 (define (rlm2-warning-fuel remaining total)
+  (doc 'export #t)
   (let ([pct (if (> total 0) (quotient (* remaining 100) total) 0)])
     (rlm2-warning 'budget-status
       (format "~a/~a fuel remaining (~a%)" remaining total pct)
@@ -549,6 +578,7 @@
 (doc 'type '(-> Nat Rlm2Diagnostic))
 (doc 'description "Build a think-streak nudge at level 1 (count >= 3).")
 (define (rlm2-nudge-think-streak count)
+  (doc 'export #t)
   (rlm2-nudge 'think-streak count
     (if (>= count 5)
         "You have enough context. Compute your answer with (store 'answer expr), then (submit answer)."
@@ -557,6 +587,7 @@
 (doc 'type '(-> Rlm2Diagnostic))
 (doc 'description "Build a loop-detected warning.")
 (define (rlm2-warning-loop)
+  (doc 'export #t)
   (rlm2-warning 'loop-detected
     "Repeated action pattern detected"
     "Try a different approach: new search terms, a different module, or break the problem into smaller steps."))
@@ -568,6 +599,7 @@
 ;;; Good enough for action names (short strings).
 
 (define (rlm2-diag-suggest-closest given candidates)
+  (doc 'export #t)
   (let* ([given-lower (string-downcase (if (string? given) given (format "~a" given)))]
          [matches (filter
                     (lambda (c)
@@ -582,10 +614,12 @@
         (format "(~a ...)" (car matches)))))
 
 (define (rlm2-diag-prefix? prefix str)
+  (doc 'export #t)
   (and (>= (string-length str) (string-length prefix))
        (string=? (substring str 0 (string-length prefix)) prefix)))
 
 (define (rlm2-diag-substring? needle haystack)
+  (doc 'export #t)
   (let ([nlen (string-length needle)]
         [hlen (string-length haystack)])
     (and (<= nlen hlen)
@@ -596,6 +630,7 @@
              [else (loop (+ i 1))])))))
 
 (define (rlm2-diag-join-with sep items)
+  (doc 'export #t)
   (if (null? items) ""
       (let loop ([rest (cdr items)] [acc (car items)])
         (if (null? rest) acc
@@ -609,6 +644,7 @@
 
 ;;; Simple substring containment check.
 (define (rlm2-string-contains? haystack needle)
+  (doc 'export #t)
   (let ([hlen (string-length haystack)]
         [nlen (string-length needle)])
     (and (<= nlen hlen)
@@ -619,6 +655,7 @@
              [else (loop (+ i 1))])))))
 
 (define (rlm2-join-lines items)
+  (doc 'export #t)
   (if (null? items)
       ""
       (let loop ([rest (cdr items)] [acc (car items)])
@@ -627,6 +664,7 @@
             (loop (cdr rest) (string-append acc "\n" (car rest)))))))
 
 (define (rlm2-join-with-space items)
+  (doc 'export #t)
   (if (null? items)
       ""
       (let loop ([rest (cdr items)] [acc (car items)])
@@ -635,6 +673,7 @@
             (loop (cdr rest) (string-append acc " " (car rest)))))))
 
 (define (rlm2-truncate-to text max-chars)
+  (doc 'export #t)
   (if (<= (string-length text) max-chars)
       text
       ;; Find last newline before budget to avoid breaking S-expressions mid-token

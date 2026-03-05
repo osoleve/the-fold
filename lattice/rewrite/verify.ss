@@ -23,12 +23,14 @@ Two expressions are alpha-equivalent if they normalize to
 the same de Bruijn form.")
 
 (define (alpha-equiv? e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Boolean))
   (doc 'description "Check if two expressions are alpha-equivalent.
 Uses de Bruijn indices to ignore variable naming.")
   (equal? (normalize e1) (normalize e2)))
 
 (define alpha-normalize normalize)
+(doc alpha-normalize 'export #t)
 (doc alpha-normalize 'type '(-> Expr Expr))
 (doc alpha-normalize 'description "Normalize an expression to de Bruijn form.
 Re-export from normalize.ss for convenience.")
@@ -38,6 +40,7 @@ Re-export from normalize.ss for convenience.")
 direct structural comparison.")
 
 (define (struct-equiv? e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Boolean))
   (doc 'description "Check structural equality (no normalization).")
   (equal? e1 e2))
@@ -49,32 +52,39 @@ direct structural comparison.")
   (error 'tag message)    - Could not determine")
 
 (define (equiv-ok result reason)
+  (doc 'export #t)
   (doc 'type '(-> Boolean Symbol EquivResult))
   `(ok ,result ,reason))
 
 (define (equiv-error tag message)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Any EquivResult))
   `(error ,tag ,message))
 
 (define (equiv-ok? r)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? r) (eq? (car r) 'ok)))
 
 (define (equiv-error? r)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? r) (eq? (car r) 'error)))
 
 (define (equiv-result r)
+  (doc 'export #t)
   (doc 'type '(-> EquivResult Boolean))
   (if (equiv-ok? r) (cadr r) #f))
 
 (define (equiv-reason r)
+  (doc 'export #t)
   (doc 'type '(-> EquivResult Symbol))
   (if (equiv-ok? r) (caddr r) #f))
 
 (doc 'section 'verification-functions)
 
 (define (verify-equivalence e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr EquivResult))
   (doc 'description "Check if two expressions are equivalent using multiple methods.")
   (cond
@@ -88,11 +98,13 @@ direct structural comparison.")
     (equiv-ok #f 'not-equivalent)]))
 
 (define (quick-equiv? e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Boolean))
   (doc 'description "Fast equivalence check (structural only).")
   (struct-equiv? e1 e2))
 
 (define (full-equiv? e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr Boolean))
   (doc 'description "Full equivalence check (alpha + structural).")
   (or (struct-equiv? e1 e2)
@@ -101,6 +113,7 @@ direct structural comparison.")
 (doc 'section 'trace-verification)
 
 (define (verify-trace trace)
+  (doc 'export #t)
   (doc 'type '(-> Trace EquivResult))
   (doc 'description "Verify that a trace's initial and final expressions are equivalent.
 Note: This only checks endpoints, not individual steps.")
@@ -109,6 +122,7 @@ Note: This only checks endpoints, not individual steps.")
        (verify-equivalence initial final)))
 
 (define (verify-trace-steps trace)
+  (doc 'export #t)
   (doc 'type '(-> Trace (List EquivResult)))
   (doc 'description "Verify each step in a trace preserves meaning.
 Returns list of verification results for each step.")
@@ -118,6 +132,7 @@ Returns list of verification results for each step.")
             steps)))
 
 (define (trace-all-valid? trace)
+  (doc 'export #t)
   (doc 'type '(-> Trace Boolean))
   (doc 'description "Check if all steps in a trace are valid equivalences.")
   (let ([results (verify-trace-steps trace)])
@@ -128,6 +143,7 @@ Returns list of verification results for each step.")
 (doc 'description "A certificate is a record of how equivalence was established.")
 
 (define (make-certificate method e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Expr Expr Certificate))
   `((method . ,method)
     (lhs . ,e1)
@@ -135,15 +151,18 @@ Returns list of verification results for each step.")
     (timestamp . ,(current-time))))
 
 (define (current-time)
+  (doc 'export #t)
   (doc 'description "Current time helper (returns seconds since epoch)")
   (let ([t (current-date)])
        (date->seconds t)))
 
 (define (date->seconds d)
+  (doc 'export #t)
   (doc 'description "Date to seconds (approximate)")
   0)
 
 (define (equiv-certificate e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr (Union Certificate Boolean)))
   (doc 'description "Attempt to produce a certificate of equivalence.")
   (cond
@@ -159,11 +178,13 @@ Returns list of verification results for each step.")
 (doc 'description "When expressions are not equivalent, it's helpful to know why.")
 
 (define (find-difference e1 e2)
+  (doc 'export #t)
   (doc 'type '(-> Expr Expr (Union (List Position Expr Expr) Boolean)))
   (doc 'description "Find the first position where expressions differ.")
   (find-diff-helper e1 e2 '()))
 
 (define (find-diff-helper e1 e2 path)
+  (doc 'export #t)
   (cond
    [(equal? e1 e2) #f]
 
@@ -174,6 +195,7 @@ Returns list of verification results for each step.")
    [else (list path e1 e2)]))
 
 (define (diff-description diff)
+  (doc 'export #t)
   (doc 'type '(-> (Union (List Position Expr Expr) Boolean) String))
   (doc 'description "Format a difference for display.")
   (if diff
@@ -187,11 +209,13 @@ Returns list of verification results for each step.")
 (doc 'description "For checking side conditions like eta-reduction.")
 
 (define (free-vars expr)
+  (doc 'export #t)
   (doc 'type '(-> Expr (List Symbol)))
   (doc 'description "Collect free variables from an expression.")
   (free-vars-helper expr '()))
 
 (define (free-vars-helper expr bound)
+  (doc 'export #t)
   (cond
    [(symbol? expr)
     (if (memq expr bound) '() (list expr))]
@@ -222,6 +246,7 @@ Returns list of verification results for each step.")
             (free-vars-helper (cdr expr) bound))]))
 
 (define (not-free? var expr)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Expr Boolean))
   (doc 'description "Check if a variable is NOT free in an expression.")
   (not (memq var (free-vars expr))))
@@ -230,6 +255,7 @@ Returns list of verification results for each step.")
 (doc 'description "For verifying beta reduction is correct.")
 
 (define (substitute expr var value)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr Expr))
   (doc 'description "Substitute value for variable in expression.
 Captures naive substitution (no renaming).")
@@ -250,6 +276,7 @@ Captures naive substitution (no renaming).")
           (substitute (cdr expr) var value))]))
 
 (define (verify-substitution body var value expected)
+  (doc 'export #t)
   (doc 'type '(-> Expr Symbol Expr Expr Boolean))
   (doc 'description "Check that expected = substitute(body, var, value).")
   (equal? (substitute body var value) expected))

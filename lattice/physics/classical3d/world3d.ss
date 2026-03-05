@@ -22,10 +22,12 @@
 
 ;;; make-entity-3d : Any × RigidBody3D × Shape3D × Material × Any → Entity3D
 (define (make-entity-3d id body shape material user-data)
+  (doc 'export #t)
   (list 'entity-3d id body shape material user-data))
 
 ;;; entity-3d? : Any → Boolean
 (define (entity-3d? e)
+  (doc 'export #t)
   (and (pair? e) (eq? (car e) 'entity-3d)))
 
 ;;; entity-3d-id : Entity3D → Any
@@ -45,6 +47,7 @@
 
 ;;; entity-3d-with-body : Entity3D × RigidBody3D → Entity3D
 (define (entity-3d-with-body e new-body)
+  (doc 'export #t)
   (make-entity-3d (entity-3d-id e) new-body (entity-3d-shape e)
                   (entity-3d-material e) (entity-3d-user-data e)))
 
@@ -64,10 +67,12 @@
 ;;; make-material : Number × Number → Material
 ;;; Create physics material with restitution and friction.
 (define (make-material restitution friction)
+  (doc 'export #t)
   (list 'material restitution friction))
 
 ;;; material? : Any → Boolean
 (define (material? m)
+  (doc 'export #t)
   (and (pair? m) (eq? (car m) 'material)))
 
 ;;; material-restitution : Material → Number
@@ -88,6 +93,7 @@
 ;;; make-time-acc-3d : Number × Nat → TimeAcc3D
 ;;; Create timestep accumulator for fixed-timestep simulation.
 (define (make-time-acc-3d fixed-dt max-substeps)
+  (doc 'export #t)
   (list 'time-acc-3d fixed-dt max-substeps 0.0))
 
 ;;; time-acc-3d-fixed-dt : TimeAcc3D → Number
@@ -102,6 +108,7 @@
 ;;; time-acc-3d-add : TimeAcc3D × Number → TimeAcc3D
 ;;; Add elapsed time to accumulator.
 (define (time-acc-3d-add acc dt)
+  (doc 'export #t)
   (list 'time-acc-3d
         (time-acc-3d-fixed-dt acc)
         (time-acc-3d-max-substeps acc)
@@ -111,6 +118,7 @@
 ;;; Consume one fixed timestep if available.
 ;;; Returns (new-acc, consumed-dt) where consumed-dt is 0 or fixed-dt.
 (define (time-acc-3d-consume acc)
+  (doc 'export #t)
   (let ([fixed-dt (time-acc-3d-fixed-dt acc)]
         [accumulated (time-acc-3d-accumulated acc)])
        (if (>= accumulated fixed-dt)
@@ -128,6 +136,7 @@
 ;;; make-spatial-hash-3d : Number → SpatialHash3D
 ;;; Create 3D spatial hash with given cell size.
 (define (make-spatial-hash-3d cell-size)
+  (doc 'export #t)
   (list 'spatial-hash-3d
         cell-size
         (cons hamt-empty '())))
@@ -145,6 +154,7 @@
 ;;; spatial-hash-3d-key : SpatialHash3D × Vec3 → (Integer × Integer × Integer)
 ;;; Convert position to cell key.
 (define (spatial-hash-3d-key hash pos)
+  (doc 'export #t)
   (let ([cell-size (spatial-hash-3d-cell-size hash)])
        (list (exact (floor (/ (vec3-x pos) cell-size)))
              (exact (floor (/ (vec3-y pos) cell-size)))
@@ -153,6 +163,7 @@
 ;;; spatial-hash-3d-aabb-keys : SpatialHash3D × AABB3D → (List Key)
 ;;; Get all cell keys overlapping an AABB.
 (define (spatial-hash-3d-aabb-keys hash aabb)
+  (doc 'export #t)
   (let* ([cell-size (spatial-hash-3d-cell-size hash)]
          [min-pt (aabb3d-min aabb)]
          [max-pt (aabb3d-max aabb)]
@@ -178,11 +189,13 @@
 
 ;;; spatial-hash-3d-clear! : SpatialHash3D → Void
 (define (spatial-hash-3d-clear! hash)
+  (doc 'export #t)
   (set-car! (spatial-hash-3d-cell hash) hamt-empty))
 
 ;;; spatial-hash-3d-insert! : SpatialHash3D × Any × AABB3D → Void
 ;;; Insert id into all cells overlapping its AABB.
 (define (spatial-hash-3d-insert! hash id aabb)
+  (doc 'export #t)
   (let ([mcell (spatial-hash-3d-cell hash)]
         [keys (spatial-hash-3d-aabb-keys hash aabb)])
        (set-car! mcell
@@ -194,6 +207,7 @@
 ;;; spatial-hash-3d-query : SpatialHash3D × AABB3D → (List Any)
 ;;; Query all ids in cells overlapping the AABB.
 (define (spatial-hash-3d-query hash aabb)
+  (doc 'export #t)
   (let* ([table (spatial-hash-3d-table hash)]
          [keys (spatial-hash-3d-aabb-keys hash aabb)])
         (let loop ([ks keys] [seen hamt-empty] [results '()])
@@ -224,6 +238,7 @@
 
 ;;; make-world-config-3d : → WorldConfig3D
 (define (make-world-config-3d)
+  (doc 'export #t)
   (list 'world-config-3d
         0.016667            ; fixed-dt (60 fps)
         10                  ; max-substeps
@@ -245,6 +260,7 @@
 ;;; make-world-3d : Vec3 → World3D
 ;;; Create a new 3D physics world with given gravity.
 (define (make-world-3d gravity)
+  (doc 'export #t)
   (let ([config (make-world-config-3d)])
        (list 'world-3d
              (cons hamt-empty '())  ; entities (mutable cell → HAMT)
@@ -257,6 +273,7 @@
 
 ;;; world-3d? : Any → Boolean
 (define (world-3d? w)
+  (doc 'export #t)
   (and (pair? w) (eq? (car w) 'world-3d)))
 
 ;;; world-3d-entities-cell : World3D → Cell(HAMT)
@@ -285,6 +302,7 @@
 
 ;;; world-3d-with-time-acc : World3D × TimeAcc3D → World3D
 (define (world-3d-with-time-acc w new-acc)
+  (doc 'export #t)
   (list 'world-3d
         (world-3d-entities-cell w)
         (world-3d-gravity w)
@@ -299,24 +317,29 @@
 
 ;;; world-3d-add-entity! : World3D × Entity3D → Void
 (define (world-3d-add-entity! world entity)
+  (doc 'export #t)
   (let ([cell (world-3d-entities-cell world)])
        (set-car! cell (hamt-assoc (entity-3d-id entity) entity (car cell)))))
 
 ;;; world-3d-remove-entity! : World3D × Any → Void
 (define (world-3d-remove-entity! world id)
+  (doc 'export #t)
   (let ([cell (world-3d-entities-cell world)])
        (set-car! cell (hamt-dissoc id (car cell)))))
 
 ;;; world-3d-get-entity : World3D × Any → Entity3D | #f
 (define (world-3d-get-entity world id)
+  (doc 'export #t)
   (hamt-lookup id (world-3d-entities world)))
 
 ;;; world-3d-entity-list : World3D → (List Entity3D)
 (define (world-3d-entity-list world)
+  (doc 'export #t)
   (hamt-values (world-3d-entities world)))
 
 ;;; world-3d-update-entity! : World3D × Any × (Entity3D → Entity3D) → Void
 (define (world-3d-update-entity! world id f)
+  (doc 'export #t)
   (let ([entity (world-3d-get-entity world id)])
        (when entity
              (let ([cell (world-3d-entities-cell world)])
@@ -328,21 +351,25 @@
 
 ;;; world-3d-add-constraint! : World3D × Constraint3D → Void
 (define (world-3d-add-constraint! world constraint)
+  (doc 'export #t)
   (let ([id (constraint-3d-id constraint)]
         [cell (world-3d-constraints-cell world)])
        (set-car! cell (hamt-assoc id constraint (car cell)))))
 
 ;;; world-3d-remove-constraint! : World3D × Any → Void
 (define (world-3d-remove-constraint! world id)
+  (doc 'export #t)
   (let ([cell (world-3d-constraints-cell world)])
        (set-car! cell (hamt-dissoc id (car cell)))))
 
 ;;; world-3d-get-constraint : World3D × Any → Constraint3D | #f
 (define (world-3d-get-constraint world id)
+  (doc 'export #t)
   (hamt-lookup id (world-3d-constraints world)))
 
 ;;; world-3d-constraint-list : World3D → (List Constraint3D)
 (define (world-3d-constraint-list world)
+  (doc 'export #t)
   (hamt-values (world-3d-constraints world)))
 
 ;;; ====
@@ -352,6 +379,7 @@
 ;;; world-3d-step! : World3D × Number → World3D
 ;;; Step the physics simulation forward by dt seconds.
 (define (world-3d-step! world dt)
+  (doc 'export #t)
   (let* ([config (world-3d-config world)]
          [fixed-dt (config-3d-fixed-dt config)]
          [max-steps (config-3d-max-substeps config)]
@@ -372,6 +400,7 @@
 ;;; world-3d-fixed-step! : World3D × Number → Void
 ;;; Perform one fixed-timestep physics update.
 (define (world-3d-fixed-step! world dt)
+  (doc 'export #t)
   ;; 1. Apply forces and integrate velocities
   (world-3d-integrate-velocities! world dt)
   ;; 2. Detect collisions
@@ -402,6 +431,7 @@
 ;;; world-3d-integrate-velocities! : World3D × Number → Void
 ;;; Apply forces and update velocities (first half of integration).
 (define (world-3d-integrate-velocities! world dt)
+  (doc 'export #t)
   (let ([gravity (world-3d-gravity world)]
         [entities (world-3d-entity-list world)])
        (for-each
@@ -427,6 +457,7 @@
 ;;; world-3d-integrate-positions! : World3D × Number → Void
 ;;; Update positions and orientations from velocities.
 (define (world-3d-integrate-positions! world dt)
+  (doc 'export #t)
   (let ([entities (world-3d-entity-list world)])
        (for-each
         (lambda (e)
@@ -454,6 +485,7 @@
 ;;; Detect all collisions in the world.
 ;;; Returns list of (entity-a entity-b manifold).
 (define (world-3d-detect-collisions world)
+  (doc 'export #t)
   (let* ([hash (world-3d-spatial-hash world)]
          [entities (world-3d-entity-list world)])
         ;; Clear and rebuild spatial hash
@@ -491,6 +523,7 @@
 ;;; make-pair-key-3d : Any × Any → Any
 ;;; Create a canonical key for a pair of ids.
 (define (make-pair-key-3d a b)
+  (doc 'export #t)
   (if (< (equal-hash a) (equal-hash b))
       (cons a b)
       (cons b a)))
@@ -502,6 +535,7 @@
 ;;; world-3d-resolve-collision-velocities! : World3D × (List Collision3D) → Void
 ;;; Resolve collision velocity constraints (impulses only).
 (define (world-3d-resolve-collision-velocities! world collisions)
+  (doc 'export #t)
   (for-each
    (lambda (collision)
            (let* ([ent-a (car collision)]
@@ -535,6 +569,7 @@
 ;;; resolve-collision-3d : Body × Body × Vec3 × Vec3 × Number × Number → (Body × Body)
 ;;; Apply collision impulse between two bodies using protocol dispatch.
 (define (resolve-collision-3d body-a body-b normal contact restitution friction)
+  (doc 'export #t)
   ;; Compute relative velocity at contact point
   (let* ([rel-vel (vec3-sub (col3d-vel-at body-a contact)
                             (col3d-vel-at body-b contact))]
@@ -556,6 +591,7 @@
 ;;; apply-friction-3d : Body × Body × Vec3 × Vec3 × Vec3 × Number × Number → (Body × Body)
 ;;; Apply friction impulse using protocol dispatch.
 (define (apply-friction-3d body-a body-b contact rel-vel normal j-normal friction)
+  (doc 'export #t)
   (let* ([tangent-vel (vec3-sub rel-vel (vec3-scale normal (vec3-dot rel-vel normal)))]
          [tangent-speed (vec3-magnitude tangent-vel)])
         (if (< tangent-speed 0.0001)
@@ -570,6 +606,7 @@
 ;;; world-3d-correct-collision-positions! : World3D × (List Collision3D) → Void
 ;;; Apply position correction for collisions.
 (define (world-3d-correct-collision-positions! world collisions)
+  (doc 'export #t)
   (let ([slop 0.01]
         [percent 0.2])
        (for-each
@@ -608,6 +645,7 @@
 
 ;;; world-3d-solve-constraint-velocities! : World3D × (List Constraint3D) × Number → Void
 (define (world-3d-solve-constraint-velocities! world constraints dt)
+  (doc 'export #t)
   (for-each
    (lambda (c)
            (when (constraint-3d-solver-velocity c)
@@ -616,6 +654,7 @@
 
 ;;; world-3d-correct-constraint-positions! : World3D × (List Constraint3D) → Void
 (define (world-3d-correct-constraint-positions! world constraints)
+  (doc 'export #t)
   (for-each
    (lambda (c)
            (when (constraint-3d-solver-position c)
@@ -629,6 +668,7 @@
 ;;; make-sphere-entity-3d : Any × Vec3 × Number × Number × Material → Entity3D
 ;;; Create a spherical physics entity.
 (define (make-sphere-entity-3d id pos radius mass material)
+  (doc 'export #t)
   (let* ([inertia (inertia-solid-sphere mass radius)]
          [body (make-rigid-body-3d pos (vec3-zero) (quat-identity) (vec3-zero)
                                    mass inertia)]
@@ -638,6 +678,7 @@
 ;;; make-box-entity-3d : Any × Vec3 × Vec3 × Number × Material → Entity3D
 ;;; Create a box physics entity.
 (define (make-box-entity-3d id pos half-extents mass material)
+  (doc 'export #t)
   (let* ([inertia (inertia-solid-box mass
                                      (* 2 (vec3-x half-extents))
                                      (* 2 (vec3-y half-extents))
@@ -649,12 +690,14 @@
 
 ;;; make-static-sphere-3d : Any × Vec3 × Number × Material → Entity3D
 (define (make-static-sphere-3d id pos radius material)
+  (doc 'export #t)
   (let* ([body (make-static-body-3d pos (quat-identity))]
          [shape (sphere3d pos radius)])
         (make-entity-3d id body shape material #f)))
 
 ;;; make-static-box-3d : Any × Vec3 × Vec3 × Material → Entity3D
 (define (make-static-box-3d id pos half-extents material)
+  (doc 'export #t)
   (let* ([body (make-static-body-3d pos (quat-identity))]
          [shape (box3d pos half-extents)])
         (make-entity-3d id body shape material #f)))
@@ -662,6 +705,7 @@
 ;;; make-ground-3d : Any × Number × Number × Material → Entity3D
 ;;; Create a static ground plane at given y position.
 (define (make-ground-3d id y extent material)
+  (doc 'export #t)
   (let* ([pos (vec3 0 (- y 50) 0)]
          [body (make-static-body-3d pos (quat-identity))]
          [shape (aabb3d (vec3 (- extent) (- y 100) (- extent))
@@ -675,6 +719,7 @@
 ;;; world-3d-query-aabb : World3D × AABB3D → (List Entity3D)
 ;;; Find all entities overlapping an AABB.
 (define (world-3d-query-aabb world aabb)
+  (doc 'export #t)
   (let* ([hash (world-3d-spatial-hash world)]
          [entities (world-3d-entity-list world)])
         ;; Rebuild spatial hash with current entities
@@ -695,6 +740,7 @@
 ;;; world-3d-query-point : World3D × Vec3 → (List Entity3D)
 ;;; Find all entities containing a point.
 (define (world-3d-query-point world point)
+  (doc 'export #t)
   (let ([entities (world-3d-entity-list world)])
        (filter
         (lambda (e)
@@ -713,6 +759,7 @@
 ;;; apply-force-3d! : World3D × Any × Vec3 → Void
 ;;; Apply a force to an entity (integrated over dt).
 (define (apply-force-3d! world id force)
+  (doc 'export #t)
   (world-3d-update-entity!
    world id
    (lambda (e)
@@ -728,6 +775,7 @@
 ;;; apply-impulse-3d! : World3D × Any × Vec3 → Void
 ;;; Apply an impulse to an entity at center of mass.
 (define (apply-impulse-3d! world id impulse)
+  (doc 'export #t)
   (world-3d-update-entity!
    world id
    (lambda (e)
@@ -743,6 +791,7 @@
 ;;; apply-impulse-at-3d! : World3D × Any × Vec3 × Vec3 → Void
 ;;; Apply an impulse at a world point.
 (define (apply-impulse-at-3d! world id impulse point)
+  (doc 'export #t)
   (world-3d-update-entity!
    world id
    (lambda (e)
@@ -754,6 +803,7 @@
 
 ;;; set-velocity-3d! : World3D × Any × Vec3 → Void
 (define (set-velocity-3d! world id velocity)
+  (doc 'export #t)
   (world-3d-update-entity!
    world id
    (lambda (e)
@@ -763,6 +813,7 @@
 
 ;;; set-position-3d! : World3D × Any × Vec3 → Void
 (define (set-position-3d! world id position)
+  (doc 'export #t)
   (world-3d-update-entity!
    world id
    (lambda (e)
@@ -772,6 +823,7 @@
 
 ;;; set-orientation-3d! : World3D × Any × Quat → Void
 (define (set-orientation-3d! world id orientation)
+  (doc 'export #t)
   (world-3d-update-entity!
    world id
    (lambda (e)

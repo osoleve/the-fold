@@ -21,6 +21,7 @@
 ;;; Compute soft contact force and torque between two spherical bodies.
 ;;; Returns (force-on-A, torque-on-A).
 (define (traced-sphere-collision-force body-a radius-a body-b radius-b mat)
+  (doc 'export #t)
   (let* ([pos-a (traced-body-3d-pos body-a)]
          [vel-a (traced-body-3d-vel body-a)]
          [pos-b (traced-body-3d-pos body-b)]
@@ -59,6 +60,7 @@
 ;;; Apply soft collision forces to both bodies for time dt.
 ;;; Returns updated (body-a, body-b).
 (define (traced-sphere-collision-impulses body-a radius-a body-b radius-b mat dt)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-sphere-collision-force body-a radius-a body-b radius-b mat))
    (lambda (force-a torque-a)
@@ -87,6 +89,7 @@
 ;;; Ground normal is (0, 1, 0).
 ;;; Returns (force, torque).
 (define (traced-ground-collision-force-3d body radius ground-y mat)
+  (doc 'export #t)
   (let* ([pos (traced-body-3d-pos body)]
          [stiffness (soft-material-3d-stiffness mat)]
          [damping (soft-material-3d-damping mat)]
@@ -126,6 +129,7 @@
 ;;; traced-ground-collision-step-3d : TracedBody3D × Number × Number × SoftMaterial3D × Number → TracedBody3D
 ;;; Apply ground collision forces for time dt.
 (define (traced-ground-collision-step-3d body radius ground-y mat dt)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-ground-collision-force-3d body radius ground-y mat))
    (lambda (force torque)
@@ -142,6 +146,7 @@
 ;;; make-collision-pair-3d : Nat × Nat × Number × Number → CollisionPair3D
 ;;; Define a collision pair for the system.
 (define (make-collision-pair-3d idx-a idx-b radius-a radius-b)
+  (doc 'export #t)
   (list 'collision-pair-3d idx-a idx-b radius-a radius-b))
 
 ;;; collision-pair-3d-idx-a : CollisionPair3D → Nat
@@ -160,6 +165,7 @@
 ;;; Compute force and torque on each body from all collision pairs.
 ;;; Returns vector of forces and vector of torques per body.
 (define (traced-accumulate-collision-forces-3d bodies pairs mat)
+  (doc 'export #t)
   (let* ([n (vector-length bodies)]
          ;; Initialize force accumulators
          [forces (make-vector n)]
@@ -211,6 +217,7 @@
 ;;;   approach-vel: initial approach velocity
 ;;; This is an approximation based on linearized contact dynamics.
 (define (effective-restitution-3d stiffness damping mass approach-vel)
+  (doc 'export #t)
   (let* ([omega (sqrt (/ stiffness mass))]
          [zeta (/ damping (* 2 (sqrt (* stiffness mass))))])  ; damping ratio
         (if (>= zeta 1)
@@ -230,12 +237,14 @@
 ;;; Check if two spheres overlap (for filtering).
 ;;; Uses traced values but returns boolean (non-differentiable).
 (define (traced-spheres-overlapping? pos-a radius-a pos-b radius-b)
+  (doc 'export #t)
   (let ([dist (traced-value (traced-vec3-smooth-distance pos-a pos-b 1e-10))])
        (< dist (+ radius-a radius-b))))
 
 ;;; traced-sphere-ground-overlapping? : TracedVec3 × Number × Number → Boolean
 ;;; Check if sphere overlaps ground plane.
 (define (traced-sphere-ground-overlapping? pos radius ground-y)
+  (doc 'export #t)
   (< (traced-value (traced-vec3-y pos)) (+ ground-y radius)))
 
 ;;; ====
@@ -251,6 +260,7 @@
 ;;;   mat: soft material properties
 ;;;   dt: timestep
 (define (traced-collision-step-3d body radius others ground-y mat dt)
+  (doc 'export #t)
   (let* (;; Accumulate forces from all collisions
          [initial-force (lift-vec3-const (vec3-zero))]
          [initial-torque (lift-vec3-const (vec3-zero))]
@@ -295,6 +305,7 @@
 ;;; Compute forces from box-shaped boundary walls.
 ;;; Returns (force, torque).
 (define (traced-wall-collision-force-3d body radius min-corner max-corner mat)
+  (doc 'export #t)
   (let* ([pos (traced-body-3d-pos body)]
          [vel (traced-body-3d-vel body)]
          [force (traced-wall-forces-3d pos vel radius min-corner max-corner mat)]
@@ -306,6 +317,7 @@
 ;;; traced-wall-collision-step-3d : TracedBody3D × Number × Vec3 × Vec3 × SoftMaterial3D × Number → TracedBody3D
 ;;; Apply wall collision forces for time dt.
 (define (traced-wall-collision-step-3d body radius min-corner max-corner mat dt)
+  (doc 'export #t)
   (call-with-values
    (lambda () (traced-wall-collision-force-3d body radius min-corner max-corner mat))
    (lambda (force torque)
@@ -321,6 +333,7 @@
 ;;; Apply gravity acceleration for time dt.
 ;;; Gravity is typically (vec3 0 -9.8 0).
 (define (traced-apply-gravity-3d body gravity dt)
+  (doc 'export #t)
   (let* ([tape (traced-tape (traced-vec3-x (traced-body-3d-pos body)))]
          [g (if tape (lift-vec3 gravity tape) (lift-vec3-const gravity))])
         (traced-euler-step-3d body g (lift-vec3-const (vec3-zero)) dt)))
@@ -340,6 +353,7 @@
 ;;;   mat: soft material
 ;;;   dt: timestep
 (define (traced-physics-step-3d body radius others ground-y gravity min-corner max-corner mat dt)
+  (doc 'export #t)
   (let* (;; Apply gravity
          [body-with-gravity (traced-apply-gravity-3d body gravity dt)]
          ;; Apply collision forces

@@ -28,6 +28,7 @@
 (doc edge-list? 'type '(-> Any Boolean))
 (doc edge-list? 'description "Check if value is a valid edge list")
 (define (edge-list? edges)
+  (doc 'export #t)
   (and (list? edges)
        (or (null? edges)
            (let ([first (car edges)])
@@ -74,6 +75,7 @@
 (doc edges->adjacency-matrix 'param 'undirected "If #t, adds both (i,j) and (j,i) for each edge")
 (doc edges->adjacency-matrix 'note "Raises error if n > *dense-adjacency-max-nodes* (use sparse matrix instead)")
 (define (edges->adjacency-matrix edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (not (null? opts)) (car opts))
                 (car opts)
                 (infer-node-count edges))]
@@ -101,6 +103,7 @@
 ;;; Convert adjacency matrix back to edge list.
 ;;; If weighted is #t, includes weights; otherwise just (from to).
 (define (adjacency-matrix->edges m . opts)
+  (doc 'export #t)
   (let* ([weighted (if (null? opts) #t (car opts))]
          [n (matrix-rows m)]
          [data (matrix-data m)])
@@ -140,10 +143,12 @@
 
 ;;; adjacency-matrix-has-edge? : Matrix × Nat × Nat → Boolean
 (define (adjacency-matrix-has-edge? m i j)
+  (doc 'export #t)
   (not (= (matrix-ref m i j) 0)))
 
 ;;; adjacency-matrix-edge-weight : Matrix × Nat × Nat → Num
 (define (adjacency-matrix-edge-weight m i j)
+  (doc 'export #t)
   (matrix-ref m i j))
 
 ;;; ====
@@ -154,6 +159,7 @@
 ;;; Convert edge list to sparse adjacency matrix (CSR format).
 ;;; Efficient for large, sparse graphs.
 (define (edges->sparse-adjacency edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (not (null? opts)) (car opts))
                 (car opts)
                 (infer-node-count edges))]
@@ -182,6 +188,7 @@
 ;;; sparse-adjacency->edges : SparseCSR × (Option Boolean) → (List Edge)
 ;;; Convert sparse adjacency matrix to edge list.
 (define (sparse-adjacency->edges m . opts)
+  (doc 'export #t)
   (let* ([weighted (if (null? opts) #t (car opts))]
          [n (sparse-csr-rows m)]
          [row-ptrs (sparse-csr-row-ptrs m)]
@@ -209,6 +216,7 @@
 
 ;;; adjacency-matrix-node-count : Matrix|SparseCSR → Nat
 (define (adjacency-matrix-node-count m)
+  (doc 'export #t)
   (if (sparse-csr? m)
       (sparse-csr-rows m)
       (matrix-rows m)))
@@ -216,6 +224,7 @@
 ;;; adjacency-matrix-edge-count : Matrix|SparseCSR → Nat
 ;;; Count non-zero entries (edges).
 (define (adjacency-matrix-edge-count m)
+  (doc 'export #t)
   (if (sparse-csr? m)
       (sparse-csr-nnz m)
       (let ([data (matrix-data m)]
@@ -231,6 +240,7 @@
 ;;; adjacency-out-degree : Matrix|SparseCSR × Nat → Nat
 ;;; Out-degree of node i (number of outgoing edges).
 (define (adjacency-out-degree m i)
+  (doc 'export #t)
   (if (sparse-csr? m)
       (let ([row-ptrs (sparse-csr-row-ptrs m)])
            (- (vector-ref row-ptrs (+ i 1))
@@ -248,6 +258,7 @@
 ;;; adjacency-in-degree : Matrix|SparseCSR × Nat → Nat
 ;;; In-degree of node i (number of incoming edges).
 (define (adjacency-in-degree m i)
+  (doc 'export #t)
   (if (sparse-csr? m)
       ;; For CSR, need to scan all values
       (let ([n (sparse-csr-rows m)]
@@ -275,6 +286,7 @@
 ;;; adjacency-neighbors : Matrix|SparseCSR × Nat → (List Nat)
 ;;; Get list of neighbors (outgoing edges) of node i.
 (define (adjacency-neighbors m i)
+  (doc 'export #t)
   (if (sparse-csr? m)
       (let ([row-ptrs (sparse-csr-row-ptrs m)]
             [col-idx (sparse-csr-col-indices m)]
@@ -300,6 +312,7 @@
 ;;; For unweighted graphs, weight is 1 for existing edges.
 ;;; This enables O(degree) iteration instead of O(V) for sparse graphs.
 (define (adjacency-neighbors-with-weights m i)
+  (doc 'export #t)
   (if (sparse-csr? m)
       ;; Delegate to sparse-csr-row-alist for O(degree) access
       (sparse-csr-row-alist m i)
@@ -322,6 +335,7 @@
 ;;; adjacency-transpose : Matrix|SparseCSR → Matrix|SparseCSR
 ;;; Transpose adjacency matrix (reverse all edges).
 (define (adjacency-transpose m)
+  (doc 'export #t)
   (if (sparse-csr? m)
       (sparse-csr-transpose m)
       (matrix-transpose m)))
@@ -329,11 +343,13 @@
 ;;; adjacency-symmetrize : Matrix → Matrix
 ;;; Make graph undirected by adding A + A^T.
 (define (adjacency-symmetrize m)
+  (doc 'export #t)
   (matrix-add m (matrix-transpose m)))
 
 ;;; adjacency-symmetrize-sparse : SparseCSR → SparseCSR
 ;;; Make sparse graph undirected.
 (define (adjacency-symmetrize-sparse m)
+  (doc 'export #t)
   (sparse-csr-add m (sparse-csr-transpose m)))
 
 ;;; ====
@@ -344,6 +360,7 @@
 ;;; Create diagonal degree matrix.
 ;;; mode: 'out (default), 'in, or 'total
 (define (degree-matrix m . mode-opt)
+  (doc 'export #t)
   (let* ([mode (if (null? mode-opt) 'out (car mode-opt))]
          [n (adjacency-matrix-node-count m)]
          [degrees (vec-tabulate n i
@@ -357,6 +374,7 @@
 ;;; degree-matrix-sparse : Matrix|SparseCSR × [Symbol] → SparseCSR
 ;;; Create sparse diagonal degree matrix.
 (define (degree-matrix-sparse m . mode-opt)
+  (doc 'export #t)
   (let* ([mode (if (null? mode-opt) 'out (car mode-opt))]
          [n (adjacency-matrix-node-count m)]
          [degrees (vec-tabulate n i
@@ -375,6 +393,7 @@
 ;;; Create adjacency matrix for complete graph K_n.
 ;;; If weighted is #t, all edges have weight 1.
 (define (complete-graph n . opts)
+  (doc 'export #t)
   (let ([data (vec-tabulate (* n n) k
                (let ([i (quotient k n)] [j (remainder k n)])
                  (if (= i j) 0 1)))])
@@ -384,6 +403,7 @@
 ;;; Create adjacency matrix for cycle graph C_n.
 ;;; If directed is #f (default), creates undirected cycle.
 (define (cycle-graph n . opts)
+  (doc 'export #t)
   (let* ([directed (if (null? opts) #f (car opts))]
          [data (vec-tabulate (* n n) k
                  (let ([i (quotient k n)] [j (remainder k n)])
@@ -397,6 +417,7 @@
 ;;; Create adjacency matrix for path graph P_n.
 ;;; If directed is #f (default), creates undirected path.
 (define (path-graph n . opts)
+  (doc 'export #t)
   (let* ([directed (if (null? opts) #f (car opts))]
          [data (vec-tabulate (* n n) k
                  (let ([i (quotient k n)] [j (remainder k n)])
@@ -409,6 +430,7 @@
 ;;; star-graph : Nat → Matrix
 ;;; Create adjacency matrix for star graph S_n (center at node 0).
 (define (star-graph n)
+  (doc 'export #t)
   (let ([data (vec-tabulate (* n n) k
                (let ([i (quotient k n)] [j (remainder k n)])
                  (if (or (and (= i 0) (> j 0))    ; 0 -> j
@@ -421,6 +443,7 @@
 ;;; n nodes in second partition, and given edges.
 ;;; Edges are (i, j) where i in [0,m), j in [0,n).
 (define (bipartite-graph m n edges)
+  (doc 'export #t)
   (let* ([total (+ m n)]
          [data (make-vector (* total total) 0)])
         (for-each
@@ -439,6 +462,7 @@
 ;;; adjacency-power : Matrix × Nat → Matrix
 ;;; Compute A^k (paths of length exactly k).
 (define (adjacency-power m k)
+  (doc 'export #t)
   (if (= k 0)
       (matrix-identity (matrix-rows m))
       (let loop ([result m] [remaining (- k 1)])
@@ -450,6 +474,7 @@
 ;;; Compute reachability matrix (I + A + A^2 + ... + A^k).
 ;;; Entry (i,j) > 0 iff j is reachable from i in at most k steps.
 (define (adjacency-reachability m k)
+  (doc 'export #t)
   (let ([n (matrix-rows m)])
        (let loop ([step 1] [result (matrix-identity n)] [power m])
             (if (> step k)
@@ -462,6 +487,7 @@
 (doc matrix-power-fast 'description "Compute A^k using repeated squaring (binary exponentiation)")
 (doc matrix-power-fast 'note "Complexity: O(log k) matrix multiplications instead of O(k)")
 (define (matrix-power-fast m k)
+  (doc 'export #t)
   (cond [(= k 0) (matrix-identity (matrix-rows m))]
         [(= k 1) m]
         [(even? k)
@@ -478,6 +504,7 @@
 (doc transitive-closure 'description "Compute transitive closure using Warshall's algorithm; entry (i,j) = 1 iff j reachable from i")
 (doc transitive-closure 'note "Complexity: O(n³)")
 (define (transitive-closure adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [data (vector-copy (matrix-data adj))])
         ;; Set diagonal to 1 (self-reachable)
@@ -505,6 +532,7 @@
 (doc floyd-warshall 'returns "Distance matrix where D[i,j] = shortest path length i→j; *infinity* for unreachable pairs")
 (doc floyd-warshall 'note "Complexity: O(n³); detects negative cycles (diagonal becomes negative)")
 (define (floyd-warshall adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [data (make-vector (* n n) *infinity*)])
         ;; Initialize distance matrix
@@ -539,6 +567,7 @@
 ;;; Check if graph has a negative cycle.
 ;;; Run floyd-warshall first, then check if any diagonal < 0.
 (define (has-negative-cycle? dist)
+  (doc 'export #t)
   (let ([n (matrix-rows dist)])
        (let loop ([i 0])
             (cond [(= i n) #f]
@@ -553,6 +582,7 @@
 (doc dijkstra 'note "Time complexity: O((V + E) log V); for non-negative weights only")
 (doc dijkstra 'note "Uses lazy deletion: inserts new (distance, node) pairs rather than updating")
 (define (dijkstra adj source)
+  (doc 'export #t)
   (let* ([n (adjacency-matrix-node-count adj)]
          [dist (make-vector n *infinity*)]
          [pred (make-vector n -1)]
@@ -636,6 +666,7 @@
 ;;; Example:
 ;;;   (dijkstra-path adj 0 3) => (0 1 2 3)
 (define (dijkstra-path adj source target)
+  (doc 'export #t)
   (let* ([result (dijkstra adj source)]
          [dist (car result)]
          [pred (cdr result)])
@@ -651,6 +682,7 @@
 ;;; dijkstra-distance : Matrix × Nat × Nat → Nat | Infinity
 ;;; Get shortest distance from source to target.
 (define (dijkstra-distance adj source target)
+  (doc 'export #t)
   (let* ([result (dijkstra adj source)]
          [dist (car result)])
         (vector-ref dist target)))
@@ -660,6 +692,7 @@
 ;;; Uses BFS from each node. Complexity: O(n²) for sparse, O(n³) for dense.
 ;;; Returns distance matrix with *infinity* for unreachable pairs.
 (define (distance-matrix-unweighted adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [adj-data (matrix-data adj)]
          [dist (make-vector (* n n) *infinity*)])
@@ -692,6 +725,7 @@
 ;;; Eccentricity of node i: max distance to any reachable node.
 ;;; Returns *infinity* if node is isolated (no reachable neighbors).
 (define (graph-eccentricity dist i)
+  (doc 'export #t)
   (let ([n (matrix-rows dist)])
        (let loop ([j 0] [max-d 0] [found-any #f])
             (if (= j n)
@@ -706,6 +740,7 @@
 ;;; Diameter: maximum eccentricity (longest shortest path).
 ;;; Input should be a distance matrix.
 (define (graph-diameter dist)
+  (doc 'export #t)
   (let ([n (matrix-rows dist)])
        (let loop ([i 0] [diam 0])
             (if (= i n)
@@ -720,6 +755,7 @@
 ;;; Radius: minimum eccentricity.
 ;;; Input should be a distance matrix.
 (define (graph-radius dist)
+  (doc 'export #t)
   (let ([n (matrix-rows dist)])
        (let loop ([i 0] [rad *infinity*])
             (if (= i n)
@@ -734,6 +770,7 @@
 ;;; Center: nodes with eccentricity equal to radius.
 ;;; Input should be a distance matrix.
 (define (graph-center dist)
+  (doc 'export #t)
   (let* ([n (matrix-rows dist)]
          [rad (graph-radius dist)])
         (let loop ([i 0] [center '()])
@@ -752,16 +789,19 @@
 ;;; adjacency-to-sparse : Matrix → SparseCSR
 ;;; Convert dense adjacency matrix to sparse.
 (define (adjacency-to-sparse m)
+  (doc 'export #t)
   (dense->sparse-csr m))
 
 ;;; adjacency-to-dense : SparseCSR → Matrix
 ;;; Convert sparse adjacency matrix to dense.
 (define (adjacency-to-dense m)
+  (doc 'export #t)
   (sparse-csr->dense m))
 
 ;;; adjacency-density : Matrix|SparseCSR → Num
 ;;; Compute edge density (edges / possible_edges).
 (define (adjacency-density m)
+  (doc 'export #t)
   (let ([n (adjacency-matrix-node-count m)]
         [edges (adjacency-matrix-edge-count m)])
        (if (= n 0)

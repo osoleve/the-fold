@@ -48,21 +48,25 @@ Objects in C×C are pairs (A, B).
 Morphisms are pairs of morphisms (f, g) : (A, B) → (A', B').")
 
 (define (make-pair-obj a b)
+  (doc 'export #t)
   (doc 'type '(-> A B (Pair A B)))
   (doc 'description "Create a pair object (A, B)")
   (cons a b))
 
 (define (pair-fst p)
+  (doc 'export #t)
   (doc 'type '(-> (Pair A B) A))
   (doc 'description "Extract first component of pair")
   (car p))
 
 (define (pair-snd p)
+  (doc 'export #t)
   (doc 'type '(-> (Pair A B) B))
   (doc 'description "Extract second component of pair")
   (cdr p))
 
 (define (make-pair-mor f g)
+  (doc 'export #t)
   (doc 'type '(-> (-> A A*) (-> B B*) (-> (Pair A B) (Pair A* B*))))
   (doc 'description "Lift morphisms to pair morphism")
   (lambda (p)
@@ -72,11 +76,13 @@ Morphisms are pairs of morphisms (f, g) : (A, B) → (A', B').")
 (doc 'description "Diagonal Functor Δ : C → C×C")
 
 (define (diagonal-obj a)
+  (doc 'export #t)
   (doc 'type '(-> A (Pair A A)))
   (doc 'description "Diagonal on objects: a ↦ (a, a)")
   (make-pair-obj a a))
 
 (define (diagonal-mor f)
+  (doc 'export #t)
   (doc 'type '(-> (-> A B) (-> (Pair A A) (Pair B B))))
   (doc 'description "Diagonal on morphisms: f ↦ (f, f)")
   (make-pair-mor f f))
@@ -93,6 +99,7 @@ The product functor sends (A, B) to A×B.
 At the value level, this is just pairing.")
 
 (define (product-obj pair-of-sets)
+  (doc 'export #t)
   (doc 'type '(-> (Pair A B) (* A B)))
   (doc 'description "Product on objects: (A, B) ↦ A×B
 We represent A×B as a pair (Scheme cons).
@@ -100,6 +107,7 @@ For concrete values, this is identity (pairs are products)")
   pair-of-sets)
 
 (define (product-mor pair-of-fns)
+  (doc 'export #t)
   (doc 'type '(-> (Pair (-> A A*) (-> B B*)) (-> (* A B) (* A* B*))))
   (doc 'description "Product on morphisms: (f, g) ↦ f×g")
   (let ([f (pair-fst pair-of-fns)]
@@ -119,36 +127,43 @@ The coproduct (sum) functor sends (A, B) to A+B.
 We represent sums as tagged values: ('left . a) or ('right . b).")
 
 (define (make-left a)
+  (doc 'export #t)
   (doc 'type '(-> A (+ A B)))
   (doc 'description "Left injection into coproduct")
   (cons 'left a))
 
 (define (make-right b)
+  (doc 'export #t)
   (doc 'type '(-> B (+ A B)))
   (doc 'description "Right injection into coproduct")
   (cons 'right b))
 
 (define (left? x)
+  (doc 'export #t)
   (doc 'type '(-> (+ A B) Boolean))
   (doc 'description "Test if coproduct value is left")
   (and (pair? x) (eq? (car x) 'left)))
 
 (define (right? x)
+  (doc 'export #t)
   (doc 'type '(-> (+ A B) Boolean))
   (doc 'description "Test if coproduct value is right")
   (and (pair? x) (eq? (car x) 'right)))
 
 (define (from-left x)
+  (doc 'export #t)
   (doc 'type '(-> (+ A B) A))
   (doc 'description "Extract value from left injection")
   (if (left? x) (cdr x) (error 'from-left "Not a left value")))
 
 (define (from-right x)
+  (doc 'export #t)
   (doc 'type '(-> (+ A B) B))
   (doc 'description "Extract value from right injection")
   (if (right? x) (cdr x) (error 'from-right "Not a right value")))
 
 (define (coproduct-mor pair-of-fns)
+  (doc 'export #t)
   (doc 'type '(-> (Pair (-> A A*) (-> B B*)) (-> (+ A B) (+ A* B*))))
   (doc 'description "Coproduct on morphisms: (f, g) ↦ f+g")
   (let ([f (pair-fst pair-of-fns)]
@@ -173,11 +188,13 @@ Counit ε : Δ∘× → Id
   ε_{(A,B)} : (A×B, A×B) → (A, B)   (projections)")
 
 (define (unit-diagonal-product a)
+  (doc 'export #t)
   (doc 'type '(-> A (* A A)))
   (doc 'description "The diagonal map: a ↦ (a, a)")
   (make-pair-obj a a))
 
 (define (counit-diagonal-product pair-of-products)
+  (doc 'export #t)
   (doc 'type '(-> (Pair (* A B) (* A B)) (Pair A B)))
   (doc 'description "Project out components: ((a,b), (a,b)) ↦ (a, b)")
   (let ([ab1 (pair-fst pair-of-products)])
@@ -211,6 +228,7 @@ Counit ε : +∘Δ → Id
   ε_A : A+A → A   (codiagonal/fold)")
 
 (define (unit-coproduct-diagonal pair)
+  (doc 'export #t)
   (doc 'type '(-> (Pair A B) (Pair (+ A B) (+ A B))))
   (doc 'description "Inject into coproduct: (a, b) ↦ (left(a), right(b))
 
@@ -219,6 +237,7 @@ The unit for + ⊣ Δ at (A,B) is the pair (inl, inr) : (A,B) → (A+B, A+B)")
                  (make-right (pair-snd pair))))
 
 (define (counit-coproduct-diagonal x)
+  (doc 'export #t)
   (doc 'type '(-> (+ A A) A))
   (doc 'description "The codiagonal (fold): combine two copies")
   (if (left? x)
@@ -271,21 +290,25 @@ A family over type I is a function I → Type.
 We represent this as a record with the index type and the family function.")
 
 (define (make-family index-type type-fn)
+  (doc 'export #t)
   (doc 'type '(-> Type (-> I Type) Family))
   (doc 'description "Create a type family over index type")
   (list 'family index-type type-fn))
 
 (define (family? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (doc 'description "Test if value is a family")
   (and (pair? x) (eq? (car x) 'family)))
 
 (define (family-index fam)
+  (doc 'export #t)
   (doc 'type '(-> Family Type))
   (doc 'description "Get the index type of a family")
   (if (family? fam) (cadr fam) #f))
 
 (define (family-at fam i)
+  (doc 'export #t)
   (doc 'type '(-> Family I Type))
   (doc 'description "Get the type of the family at index i")
   (if (family? fam)
@@ -299,6 +322,7 @@ Given f : I → J and a family P over J, the substitution f*(P) is
 the family over I defined by (f*P)(i) = P(f(i)).")
 
 (define (subst-family f fam-over-j i-type)
+  (doc 'export #t)
   (doc 'type '(-> (-> I J) (Family J) Type (Family I)))
   (doc 'description "Reindex a family along a morphism")
   (make-family i-type
@@ -306,6 +330,7 @@ the family over I defined by (f*P)(i) = P(f(i)).")
                  (family-at fam-over-j (f i)))))
 
 (define (make-subst-functor f i-type)
+  (doc 'export #t)
   (doc 'type '(-> (-> I J) Type Functor))
   (doc 'description "Create the substitution functor f* for a given f : I → J
 
@@ -330,26 +355,31 @@ At the type level:
   Σ types are dependent pairs (x : A, B(x))")
 
 (define (make-sigma-type var domain codomain-fn)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Type (-> A Type) ΣType))
   (doc 'description "Construct a sigma type (Σ ((x : A)) B(x))")
   (list 'Σ (list (list var ': domain)) codomain-fn))
 
 (define (sigma-fst pair)
+  (doc 'export #t)
   (doc 'type '(-> (Σ A (-> A B)) A))
   (doc 'description "First projection from a sigma type inhabitant")
   (car pair))
 
 (define (sigma-snd pair)
+  (doc 'export #t)
   (doc 'type '(-> (Σ A (-> A B)) B))
   (doc 'description "Second projection from a sigma type inhabitant")
   (cdr pair))
 
 (define (make-sigma-pair a b)
+  (doc 'export #t)
   (doc 'type '(-> A B (Σ A (-> A B))))
   (doc 'description "Construct a sigma pair (a, b) where b : B(a)")
   (cons a b))
 
 (define (sigma-along f fam-over-i j-type)
+  (doc 'export #t)
   (doc 'type '(-> (-> I J) (Family I) Type (Family J)))
   (doc 'description "Existential quantification along f.
 (Σ_f P)(j) represents exists i. f(i)=j ∧ P(i)")
@@ -370,21 +400,25 @@ At the type level:
   Π types are dependent functions (x : A) → B(x)")
 
 (define (make-pi-type var domain codomain-fn)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Type (-> A Type) ΠType))
   (doc 'description "Construct a pi type (Π ((x : A)) B(x))")
   (list 'Π (list (list var ': domain)) codomain-fn))
 
 (define (pi-apply f a)
+  (doc 'export #t)
   (doc 'type '(-> (Π A (-> A B)) A B))
   (doc 'description "Apply a pi type inhabitant (dependent function) to an argument")
   (f a))
 
 (define (make-pi-fn f)
+  (doc 'export #t)
   (doc 'type '(-> (-> A B) (Π A (-> A B))))
   (doc 'description "Construct a pi term from a Scheme function")
   f)
 
 (define (pi-along f fam-over-i j-type)
+  (doc 'export #t)
   (doc 'type '(-> (-> I J) (Family I) Type (Family J)))
   (doc 'description "Universal quantification along f.
 (Π_f P)(j) represents forall i. f(i)=j → P(i)")
@@ -448,31 +482,37 @@ The fact that Σ ⊣ f* ⊣ Π means:
 (doc 'section 'logical-connectives)
 
 (define (conj-intro a b)
+  (doc 'export #t)
   (doc 'type '(-> A B (∧ A B)))
   (doc 'description "Conjunction introduction (pair)")
   (make-pair-obj a b))
 
 (define (conj-elim-left ab)
+  (doc 'export #t)
   (doc 'type '(-> (∧ A B) A))
   (doc 'description "Conjunction elimination (left projection)")
   (pair-fst ab))
 
 (define (conj-elim-right ab)
+  (doc 'export #t)
   (doc 'type '(-> (∧ A B) B))
   (doc 'description "Conjunction elimination (right projection)")
   (pair-snd ab))
 
 (define (disj-intro-left a)
+  (doc 'export #t)
   (doc 'type '(-> A (∨ A B)))
   (doc 'description "Disjunction introduction (left injection)")
   (make-left a))
 
 (define (disj-intro-right b)
+  (doc 'export #t)
   (doc 'type '(-> B (∨ A B)))
   (doc 'description "Disjunction introduction (right injection)")
   (make-right b))
 
 (define (disj-elim ab f g)
+  (doc 'export #t)
   (doc 'type '(-> (∨ A B) (-> A C) (-> B C) C))
   (doc 'description "Disjunction elimination (case analysis)")
   (if (left? ab)
@@ -484,6 +524,7 @@ The fact that Σ ⊣ f* ⊣ Π means:
 (define exists-intro make-sigma-pair)
 
 (define (exists-elim witness-proof f)
+  (doc 'export #t)
   (doc 'type '(-> (∃ A B) (-> A B C) C))
   (doc 'description "Existential elimination (with proof-irrelevant conclusion)")
   (let ([witness (sigma-fst witness-proof)]

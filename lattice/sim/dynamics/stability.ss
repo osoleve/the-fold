@@ -21,6 +21,7 @@
 (doc 'section 'fixed-point-detection)
 
 (define (find-fixed-point-newton sys initial-guess tolerance step-size max-iter)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Number Nat Any))
   (doc 'description "Find a fixed point using Newton's method")
   (doc 'param 'sys "ODE system")
@@ -44,6 +45,7 @@
                            (loop x-new (+ iter 1))))))))
 
 (define (find-fixed-point-robust sys initial-guess tolerance step-size max-iter)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Number Nat Any))
   (doc 'description "Find a fixed point using Newton's method with pseudoinverse for robustness near singularities")
   (doc 'param 'sys "ODE system")
@@ -71,6 +73,7 @@
                                      (loop x-new (+ iter 1))))))))))
 
 (define (find-fixed-point-levenberg-marquardt sys initial-guess tolerance step-size max-iter)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Number Nat Any))
   (doc 'description "Find a fixed point using Levenberg-Marquardt algorithm for robust convergence")
   (doc 'param 'sys "ODE system")
@@ -112,6 +115,7 @@
                                               (loop x (* lambda lambda-up) (+ iter 1))))))))))))
 
 (define (matrix-add-diagonal m lambda)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Number Matrix))
   (doc 'description "Add lambda to diagonal elements: M + λI")
   (let* ([n (matrix-rows m)]
@@ -123,6 +127,7 @@
         (list 'matrix n n data)))
 
 (define (solve-linear-system a b)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Vec (Option Vec)))
   (doc 'description "Solve Ax = b using LU decomposition with partial pivoting")
   (doc 'returns "solution vector x or #f if singular")
@@ -132,6 +137,7 @@
         (gaussian-eliminate-with-pivot aug n)))
 
 (define (augment-matrix a b)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Vec Matrix))
   (doc 'description "Create augmented matrix [A|b]")
   (let* ([n (matrix-rows a)]
@@ -145,6 +151,7 @@
         (list 'matrix n nc data)))
 
 (define (gaussian-eliminate-with-pivot aug n)
+  (doc 'export #t)
   (doc 'type '(-> Matrix Nat (Option Vec)))
   (doc 'description "Gaussian elimination with partial pivoting")
   (let ([data (vector-copy (matrix-data aug))]
@@ -174,6 +181,7 @@
                             (elim-loop (+ k 1)))))))))
 
 (define (find-pivot-row data k n nc)
+  (doc 'export #t)
   (doc 'type '(-> Vector Nat Nat Nat Nat))
   (let loop ([i k] [best-row k] [best-val (abs (vector-ref data (+ (* k nc) k)))])
        (if (= i n)
@@ -184,6 +192,7 @@
                     (loop (+ i 1) best-row best-val))))))
 
 (define (swap-rows! data row1 row2 nc)
+  (doc 'export #t)
   (doc 'type '(-> Vector Nat Nat Nat Void))
   (unless (= row1 row2)
           (do ([j 0 (+ j 1)])
@@ -194,6 +203,7 @@
                    (vector-set! data (+ (* row2 nc) j) temp)))))
 
 (define (back-substitute data n nc)
+  (doc 'export #t)
   (doc 'type '(-> Vector Nat Nat Vec))
   (let ([x (make-vector n 0)])
        (let loop ([i (- n 1)])
@@ -211,11 +221,13 @@
                                 (loop (- i 1))))))))))
 
 (define (is-fixed-point? sys point tolerance)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Bool))
   (doc 'description "Check if a point is a fixed point (equilibrium) within tolerance")
   (< (vector-field-norm sys 0 point) tolerance))
 
 (define (refine-fixed-point sys point tolerance step-size)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Number Any))
   (doc 'description "Refine a fixed point estimate using Newton iteration")
   (find-fixed-point-newton sys point tolerance step-size 20))
@@ -223,6 +235,7 @@
 (doc 'section 'jacobian-matrix-computation)
 
 (define (compute-jacobian sys point h)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Any))
   (doc 'description "Compute the Jacobian matrix of a vector field at a point using finite differences for numerical differentiation. For f : R^n → R^n, Jacobian J[i,j] = ∂f_i/∂x_j")
   (doc 'param 'sys "ODE system")
@@ -248,6 +261,7 @@
         (list 'matrix n n jac-data)))
 
 (define (linearize-at-equilibrium sys equilibrium step-size)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Any))
   (doc 'description "Linearize an ODE system at an equilibrium point")
   (doc 'returns "the Jacobian matrix A where dx/dt ≈ A(x - x*)")
@@ -256,6 +270,7 @@
 (doc 'section 'matrix-utilities)
 
 (define (matrix-invert-simple m)
+  (doc 'export #t)
   (doc 'type '(-> Any Any))
   (doc 'description "Simple matrix inversion using Gauss-Jordan elimination. Only works for small matrices - uses simple pivoting")
   (let* ([n (matrix-rows m)]
@@ -317,6 +332,7 @@
 (doc 'section '2x2-eigenvalue-computation)
 
 (define (matrix-eigenvalues-2d m)
+  (doc 'export #t)
   (doc 'type '(-> Any (List Complex)))
   (doc 'description "Compute eigenvalues of a 2x2 matrix analytically. For A = [[a, b], [c, d]], eigenvalues satisfy: λ² - (a+d)λ + (ad-bc) = 0, λ = (trace ± sqrt(trace² - 4*det)) / 2")
   (let* ([a (matrix-ref m 0 0)]
@@ -339,6 +355,7 @@
                        (make-complex (- half-trace (/ sqrt-disc 2)) 0))))))
 
 (define (matrix-dominant-eigenvalue m)
+  (doc 'export #t)
   (doc 'type '(-> Any Complex))
   (doc 'description "Estimate dominant (largest magnitude) eigenvalue using power iteration")
   (let* ([n (matrix-rows m)]
@@ -349,6 +366,7 @@
             (make-complex (car result) 0))))
 
 (define (power-iteration m v max-iter tol)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Nat Number (Pair Number Any)))
   (doc 'description "Simple power iteration to find dominant eigenvalue")
   (let loop ([v-curr v] [iter 0] [lambda-prev 0])
@@ -368,6 +386,7 @@
 (doc 'section 'eigenvalue-based-stability-classification)
 
 (define (classify-stability-2d eigenvalues)
+  (doc 'export #t)
   (doc 'type '(-> (List Complex) Symbol))
   (doc 'description "Classify stability for 2D system based on eigenvalues")
   (doc 'returns "'stable-node, 'unstable-node, 'saddle, 'stable-spiral, 'unstable-spiral, 'center, or 'degenerate")
@@ -396,6 +415,7 @@
              [else 'degenerate]))))
 
 (define (analyze-stability sys equilibrium step-size)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number (Pair Symbol (List Complex))))
   (doc 'description "Analyze stability of an equilibrium point")
   (doc 'returns "(stability-type . eigenvalues)")
@@ -406,16 +426,19 @@
 (doc 'section 'stability-predicates)
 
 (define (stable? stability-type)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Bool))
   (doc 'description "Check if a stability type is stable")
   (if (memq stability-type '(stable-node stable-spiral)) #t #f))
 
 (define (asymptotically-stable? stability-type)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Bool))
   (doc 'description "Check if equilibrium is asymptotically stable")
   (if (memq stability-type '(stable-node stable-spiral)) #t #f))
 
 (define (unstable? stability-type)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Bool))
   (doc 'description "Check if a stability type is unstable")
   (if (memq stability-type '(unstable-node unstable-spiral saddle)) #t #f))
@@ -423,6 +446,7 @@
 (doc 'section 'higher-dimensional-stability)
 
 (define (classify-stability-nd eigenvalues)
+  (doc 'export #t)
   (doc 'type '(-> (List Complex) Symbol))
   (doc 'description "Classify stability for n-dimensional system based on eigenvalues")
   (doc 'returns "'stable, 'unstable, 'neutrally-stable, or 'unknown")
@@ -435,6 +459,7 @@
         [else 'saddle-type])))
 
 (define (analyze-stability-nd sys equilibrium step-size)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number (Pair Symbol (List Complex))))
   (doc 'description "Analyze stability for n-dimensional system using QR eigenvalues")
   (let* ([jac (linearize-at-equilibrium sys equilibrium step-size)]
@@ -447,6 +472,7 @@
                  (eigenvalue-result->stability eigs)))))
 
 (define (eigenvalue-result->stability eig-result)
+  (doc 'export #t)
   (doc 'type '(-> Any (Pair Symbol (List Complex))))
   (doc 'description "Convert eigenvalue result to stability classification")
   (cond
@@ -468,6 +494,7 @@
    [else (cons 'unknown (list (make-complex 0 0)))]))
 
 (define (eigenvalues-from-qr-result real-vec complex-info)
+  (doc 'export #t)
   (doc 'type '(-> Vec (List Any) (List Complex)))
   (doc 'description "Reconstruct complex eigenvalues from QR result")
   ;; Build a list of complex eigenvalues
@@ -498,6 +525,7 @@
 (doc 'section 'standard-system-analysis)
 
 (define (analyze-linear-system A)
+  (doc 'export #t)
   (doc 'type '(-> Any (Pair Symbol (List Complex))))
   (doc 'description "Analyze stability of a linear ODE system dx/dt = Ax")
   (let ([eigenvalues (matrix-eigenvalues-2d A)])
@@ -506,6 +534,7 @@
 (doc 'section 'trajectory-analysis)
 
 (define (estimate-basin-of-attraction sys equilibrium radius grid-points)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number (List Any) (List Any)))
   (doc 'description "Estimate basin of attraction by testing which initial conditions converge to the given equilibrium")
   (doc 'returns "list of initial conditions that converge")
@@ -515,6 +544,7 @@
           grid-points))
 
 (define (is-stable-numerically? sys equilibrium perturbation-size time-steps dt)
+  (doc 'export #t)
   (doc 'type '(-> Any Any Number Number Nat Bool))
   (doc 'description "Test stability by numerical integration from nearby initial condition")
   (doc 'returns "#t if trajectory appears to converge to equilibrium")
@@ -530,6 +560,7 @@
                 (* 2 perturbation-size)))))
 
 (define (integrate-euler sys t0 state0 dt n)
+  (doc 'export #t)
   (doc 'type '(-> Any Number Any Number Nat (List Any)))
   (doc 'description "Simple forward Euler integration (for testing)")
   (let loop ([t t0] [state state0] [i 0] [result (list state0)])

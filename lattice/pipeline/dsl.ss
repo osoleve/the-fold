@@ -16,6 +16,7 @@
 (doc 'type '(-> Symbol Alist Stage PipelineDef))
 (doc 'description "Create a named pipeline definition")
 (define (define-pipeline* name config stage)
+  (doc 'export #t)
   (make-pipeline-def name stage config))
 
 ;;; Example usage:
@@ -30,6 +31,7 @@
 (doc 'type '(-> Symbol Stage Stage))
 (doc 'description "Wrap a stage with a name for logging/debugging")
 (define (named-stage name stage)
+  (doc 'export #t)
   (make-stage name (stage-run-fn stage)))
 
 (doc stage* 'type '(-> Symbol Stage Stage))
@@ -41,11 +43,13 @@
 (doc 'type 'Alist)
 (doc 'description "Just an alias to make config clear in pipeline defs")
 (define (config . pairs)
+  (doc 'export #t)
   pairs)
 
 (doc 'type '(-> Symbol Stage Stage))
 (doc 'description "Set default model for LLM stages")
 (define (with-model model stage)
+  (doc 'export #t)
   (stage-local
    (lambda (ctx)
            (ctx-extend-env ctx (list (cons 'default-model model))))
@@ -54,6 +58,7 @@
 (doc 'type '(-> Nat Stage Stage))
 (doc 'description "Set fuel limit")
 (define (with-fuel fuel stage)
+  (doc 'export #t)
   (stage-local
    (lambda (ctx)
            (ctx-with-fuel ctx fuel))
@@ -62,6 +67,7 @@
 (doc 'type '(-> Persona Stage Stage))
 (doc 'description "Set persona for LLM stages")
 (define (with-persona persona stage)
+  (doc 'export #t)
   (stage-local
    (lambda (ctx)
            (ctx-with-persona ctx persona))
@@ -70,6 +76,7 @@
 (doc 'type '(-> Alist Stage Stage))
 (doc 'description "Extend environment")
 (define (with-env bindings stage)
+  (doc 'export #t)
   (stage-local
    (lambda (ctx)
            (ctx-extend-env ctx bindings))
@@ -89,6 +96,7 @@
 (doc 'type '(-> a (-> a Stage) Stage))
 (doc 'description "Pipe value into stage constructor")
 (define (pipe-into value stage-fn)
+  (doc 'export #t)
   (stage-fn value))
 
 (doc 'section 'common-stage-patterns)
@@ -128,16 +136,19 @@
 (doc 'type '(-> Stage Stage Stage))
 (doc 'description "Run second stage only if first succeeds")
 (define (on-success s1 s2)
+  (doc 'export #t)
   (stage->>> s1 s2))
 
 (doc 'type '(-> Stage Stage Stage))
 (doc 'description "Run fallback if primary fails")
 (define (on-failure primary fallback)
+  (doc 'export #t)
   (stage-catch (lambda (err) fallback) primary))
 
 (doc 'type '(-> (List Stage) Stage))
 (doc 'description "Try stages in order until one succeeds")
 (define (try-all stages)
+  (doc 'export #t)
   (if (null? stages)
       (stage-fail 'all-failed "All stages failed")
       (on-failure (car stages)
@@ -146,6 +157,7 @@
 (doc 'type '(-> Nat Stage Stage))
 (doc 'description "Retry stage up to n times on failure")
 (define (retry n stage)
+  (doc 'export #t)
   (if (= n 0)
       stage
       (on-failure stage (retry (- n 1) stage))))
@@ -153,6 +165,7 @@
 (doc 'type '(-> RetryPolicy Stage Stage))
 (doc 'description "Apply retry policy to stage. Returns stage-retry result with delay for interpreter to handle, since Core is pure and cannot perform IO like sleeping.")
 (define (with-retry-policy policy stage)
+  (doc 'export #t)
   (let ([max-attempts (retry-max-attempts policy)]
         [delay-fn (retry-delay-fn policy)]
         [retry-pred (retry-on-predicate policy)]
@@ -192,6 +205,7 @@
 (doc 'type '(-> (-> a Boolean) Stage Stage))
 (doc 'description "Only proceed if condition met")
 (define (gate pred stage)
+  (doc 'export #t)
   (stage-if pred stage (stage-skip-with "Gate condition not met")))
 
 (doc 'section 'collection-processing)
@@ -199,6 +213,7 @@
 (doc 'type '(-> (Stage ctx a b) (Stage ctx (List a) (List b))))
 (doc 'description "Apply stage to each element")
 (define (map-stage stage)
+  (doc 'export #t)
   (make-stage 'map
               (lambda (ctx input)
                       (let loop ([items input] [results '()])
@@ -212,11 +227,13 @@
 (doc 'type '(-> (-> a Boolean) (Stage ctx (List a) (List a))))
 (doc 'description "Filter list by predicate")
 (define (filter-stage pred)
+  (doc 'export #t)
   (stage-arr (lambda (items) (filter pred items))))
 
 (doc 'type '(-> (-> b a (Stage ctx a b)) b (Stage ctx (List a) b)))
 (doc 'description "Reduce list with stage")
 (define (reduce-stage f init)
+  (doc 'export #t)
   (make-stage 'reduce
               (lambda (ctx input)
                       (let loop ([items input] [acc init])
@@ -230,11 +247,13 @@
 (doc 'type '(-> Nat (Stage ctx (List a) (List a))))
 (doc 'description "Take first n elements")
 (define (take-stage n)
+  (doc 'export #t)
   (stage-arr (lambda (items) (take n items))))
 
 (doc 'type '(-> Nat (Stage ctx (List a) (List a))))
 (doc 'description "Drop first n elements")
 (define (drop-stage n)
+  (doc 'export #t)
   (stage-arr (lambda (items) (drop n items))))
 
 ;; take and drop are provided by prelude (via context.ss)
@@ -244,6 +263,7 @@
 (doc 'type '(-> (List Stage) (Stage ctx a (List b))))
 (doc 'description "Run multiple stages in parallel on same input")
 (define (parallel stages)
+  (doc 'export #t)
   (if (null? stages)
       (stage-pure '())
       (stage-map
@@ -255,6 +275,7 @@
 (doc 'type '(-> (List Stage) (Stage ctx a b)))
 (doc 'description "Return first successful result")
 (define (race stages)
+  (doc 'export #t)
   (make-stage 'race
               (lambda (ctx input)
                       ;; Interpreter handles actual racing
@@ -263,6 +284,7 @@
 (doc 'type '(-> (List Stage) (Stage ctx a (List b))))
 (doc 'description "All stages must succeed")
 (define (all-of stages)
+  (doc 'export #t)
   (stage-sequence stages))
 
 (doc any-of 'type '(-> (List Stage) (Stage ctx a b)))
@@ -274,6 +296,7 @@
 (doc 'type '(-> Alist Symbol Stage))
 (doc 'description "Create FSM-based pipeline. Each state maps to (stage . ((result-pred . next-state) ...))")
 (define (fsm-pipeline states initial-state accepting-states)
+  (doc 'export #t)
   (make-stage 'fsm
               (lambda (ctx input)
                       (let loop ([current-state initial-state]
@@ -307,6 +330,7 @@
 (doc 'type '(-> Symbol Alist (Maybe Symbol)))
 (doc 'description "Find transition target for a given result type")
 (define (find-transition result-type transitions)
+  (doc 'export #t)
   (let ([entry (assq result-type transitions)])
        (if entry (cdr entry) #f)))
 
@@ -329,6 +353,7 @@
 (doc 'type '(-> Symbol String (Stage ctx String Hash)))
 (doc 'description "Post to forum channel")
 (define (post-to channel title-template)
+  (doc 'export #t)
   (make-stage 'post-to
               (lambda (ctx input)
                       (run-stage (forum-post channel title-template input) ctx input))))
@@ -344,6 +369,7 @@
 (doc 'type '(-> Stage ... Stage))
 (doc 'description "Chain multiple stages sequentially")
 (define (chain . stages)
+  (doc 'export #t)
   (if (null? stages)
       stage-read
       (if (null? (cdr stages))

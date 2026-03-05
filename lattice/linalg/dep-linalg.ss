@@ -88,21 +88,25 @@
 (doc 'section 'vector-operations)
 
 (define (vec-append-typed n m A v1 v2)
+  (doc 'export #t)
   (doc 'type "Π n m A. Vec n A → Vec m A → Vec (n+m) A")
   (doc 'description "Appends two vectors, with length tracked at type level.")
   (vec-append v1 v2))
 
 (define (vec-zip-typed n A B v1 v2)
+  (doc 'export #t)
   (doc 'type "Π n A B. Vec n A → Vec n B → Vec n (× A B)")
   (doc 'description "Zips two same-length vectors into pairs.")
   (vec-zip-with (lambda (x y) (cons x y)) v1 v2))
 
 (define (vec-head-typed n A v)
+  (doc 'export #t)
   (doc 'type "Π n A. Vec (1+n) A → A")
   (doc 'description "Gets the first element of a non-empty vector.")
   (vec-ref v 0))
 
 (define (vec-tail-typed n A v)
+  (doc 'export #t)
   (doc 'type "Π n A. Vec (1+n) A → Vec n A")
   (doc 'description "Gets all but the first element of a non-empty vector.")
   (let ([len (vec-length v)])
@@ -111,11 +115,13 @@
            (vec-from-list (cdr (vec->list v))))))
 
 (define (vec-map-typed n A B f v)
+  (doc 'export #t)
   (doc 'type "Π n A B. (A → B) → Vec n A → Vec n B")
   (doc 'description "Maps a function over a vector, preserving length.")
   (vec-map f v))
 
 (define (vec-fold-typed n A B f init v)
+  (doc 'export #t)
   (doc 'type "Π n A B. (B → A → B) → B → Vec n A → B")
   (doc 'description "Folds a vector with an accumulator.")
   (vec-fold f init v))
@@ -123,21 +129,25 @@
 (doc 'section 'matrix-operations)
 
 (define (matrix-mul-typed m n p A m1 m2)
+  (doc 'export #t)
   (doc 'type "Π m n p A. Matrix m n A → Matrix n p A → Matrix m p A")
   (doc 'description "Multiplies two matrices with dimension-safe type.")
   (matrix-mul m1 m2))
 
 (define (matrix-add-typed m n A m1 m2)
+  (doc 'export #t)
   (doc 'type "Π m n A. Matrix m n A → Matrix m n A → Matrix m n A")
   (doc 'description "Adds two matrices of the same dimensions.")
   (matrix-add m1 m2))
 
 (define (matrix-transpose-typed m n A mat)
+  (doc 'export #t)
   (doc 'type "Π m n A. Matrix m n A → Matrix n m A")
   (doc 'description "Transposes a matrix, swapping dimensions.")
   (matrix-transpose mat))
 
 (define (matrix-scale-typed m n A scalar mat)
+  (doc 'export #t)
   (doc 'type "Π m n A. A → Matrix m n A → Matrix m n A")
   (doc 'description "Scales a matrix by a scalar.")
   (matrix-scale scalar mat))
@@ -145,11 +155,13 @@
 (doc 'section 'safe-indexing)
 
 (define (vec-ref-safe n A i proof v)
+  (doc 'export #t)
   (doc 'type "Π n A. (i : Nat) → (proof : i < n) → Vec n A → A")
   (doc 'description "Safe vector indexing with proof that index is in bounds. At runtime, we trust the proof exists and just do the access.")
   (vec-ref v i))
 
 (define (matrix-ref-safe m n A i j proof-i proof-j mat)
+  (doc 'export #t)
   (doc 'type "Π m n A. (i : Nat) → (j : Nat) → i < m → j < n → Matrix m n A → A")
   (doc 'description "Safe matrix indexing with bounds proofs.")
   (matrix-ref mat i j))
@@ -157,11 +169,13 @@
 (doc 'section 'constructors)
 
 (define (vec-nil-typed A)
+  (doc 'export #t)
   (doc 'type "Π A. Vec 0 A")
   (doc 'description "Empty vector typed constructor.")
   (vec))
 
 (define (vec-cons-typed n A x v)
+  (doc 'export #t)
   (doc 'type "Π n A. A → Vec n A → Vec (+ 1 n) A")
   (doc 'description "Cons an element onto a vector.")
   (vec-from-list (cons x (vec->list v))))
@@ -169,10 +183,12 @@
 (doc 'section 'type-context-utilities)
 
 (define (make-dep-linalg-ctx)
+  (doc 'export #t)
   (doc 'description "Creates a type context with all dependent linalg operations.")
   dep-linalg-types)
 
 (define (extend-ctx-with-dep-linalg ctx)
+  (doc 'export #t)
   (doc 'description "Extends an existing context with dependent linalg types.")
   (append dep-linalg-types ctx))
 
@@ -181,6 +197,7 @@
 (doc 'note "These operations integrate with the autodiff system. The implementations delegate to core/autodiff/reverse-diff.ss and core/autodiff/higher-order-diff.ss. At type-checking time, the type signatures above ensure dimension safety. At runtime, these stubs validate dimensions and call the underlying autodiff primitives.")
 
 (define (diff-grad n A diff-fn x)
+  (doc 'export #t)
   (doc 'type "Π n α. Diff (Vec n α) α → Vec n α → Vec n α")
   (doc 'description "Compute gradient of a scalar-valued differentiable function.")
   ;; Delegates to reverse-mode autodiff
@@ -191,6 +208,7 @@
            (error 'diff-grad "Not a differentiable function" diff-fn))))
 
 (define (diff-jacobian n m A diff-fn x)
+  (doc 'export #t)
   (doc 'type "Π n m α. Diff (Vec n α) (Vec m α) → Vec n α → Matrix m n α")
   (doc 'description "Compute Jacobian matrix.")
   ;; Delegates to higher-order-diff for Jacobian computation
@@ -200,6 +218,7 @@
            (error 'diff-jacobian "Cannot compute Jacobian" diff-fn))))
 
 (define (diff-hessian n A diff-fn x)
+  (doc 'export #t)
   (doc 'type "Π n α. Diff (Vec n α) α → Vec n α → Matrix n n α")
   (doc 'description "Compute Hessian matrix (second derivatives).")
   (let ([hessian-fn (cdr (assq 'hessian diff-fn))])
@@ -208,6 +227,7 @@
            (error 'diff-hessian "Cannot compute Hessian" diff-fn))))
 
 (define (diff-compose A B C diff-g diff-f)
+  (doc 'export #t)
   (doc 'type "Π A B C. Diff B C → Diff A B → Diff A C")
   (doc 'description "Compose two differentiable functions. Chain rule: ∇(g∘f)(x) = ∇g(f(x)) · ∇f(x)")
   ;; Composition result is also differentiable (chain rule)
@@ -232,6 +252,7 @@
                                               "Non-scalar chain rule not yet implemented"))))))))
 
 (define (diff-lift A B f)
+  (doc 'export #t)
   (doc 'type "Π A B. (A → B) → Diff A B")
   (doc 'description "Lift a numeric function to a differentiable one. For full implementation, this would integrate with traced evaluation.")
   ;; Creates a differentiable wrapper
@@ -240,11 +261,13 @@
                          (error 'diff-lift "Gradient not available for lifted function")))))
 
 (define (diff-primal A B diff-fn)
+  (doc 'export #t)
   (doc 'type "Π A B. Diff A B → (A → B)")
   (doc 'description "Extract the underlying function from a differentiable wrapper.")
   (cdr (assq 'primal diff-fn)))
 
 (define (diff-scalar diff-fn x)
+  (doc 'export #t)
   (doc 'type "(Diff Int Int) → Int → Int")
   (doc 'description "Differentiate a scalar function at a point.")
   (let ([grad-fn (cdr (assq 'gradient diff-fn))])
@@ -253,6 +276,7 @@
            0.0)))
 
 (define (diff-jvp n m A diff-fn x v)
+  (doc 'export #t)
   (doc 'type "Π n m α. Diff (Vec n α) (Vec m α) → Vec n α → Vec n α → Vec m α")
   (doc 'description "Jacobian-Vector Product (forward-mode AD).")
   (let ([jvp-fn (cdr (assq 'jvp diff-fn))])
@@ -261,6 +285,7 @@
            (error 'diff-jvp "JVP not available" diff-fn))))
 
 (define (diff-vjp n m A diff-fn x w)
+  (doc 'export #t)
   (doc 'type "Π n m α. Diff (Vec n α) (Vec m α) → Vec n α → Vec m α → Vec n α")
   (doc 'description "Vector-Jacobian Product (reverse-mode AD).")
   (let ([vjp-fn (cdr (assq 'vjp diff-fn))])

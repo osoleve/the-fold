@@ -25,6 +25,7 @@
 
 ;;; md-special-char? : Char -> Boolean
 (define (md-special-char? c)
+  (doc 'export #t)
   (memv c *md-special-chars*))
 
 (doc 'section 'inline-parsers)
@@ -112,6 +113,7 @@
 ;;; md-link-title-parser : Parser String
 ;;; Parse optional link title: "title" or 'title'
 (define (md-link-title-parser)
+  (doc 'export #t)
   (parser-or
    ;; Double-quoted title
    (parser-bind (parser-char #\")
@@ -231,6 +233,7 @@
 ;;; md-inline-not : String -> Parser AST
 ;;; Parse inline element that doesn't start with the given terminator.
 (define (md-inline-not terminator)
+  (doc 'export #t)
   (parser-bind (parser-not-followed-by (parser-string terminator))
                (lambda (_)
                  (parser-or md-inline-element
@@ -242,6 +245,7 @@
 ;;; md-inline-not-char : Char -> Parser AST
 ;;; Parse inline element that doesn't start with the given character.
 (define (md-inline-not-char c)
+  (doc 'export #t)
   (parser-bind (parser-not-followed-by (parser-char c))
                (lambda (_)
                  (parser-or md-inline-element
@@ -259,11 +263,13 @@
 ;;; parse-inline : String -> (Either Error (List AST))
 ;;; Parse a string of inline markdown into a list of AST nodes.
 (define (parse-inline input)
+  (doc 'export #t)
   (parse-all md-inline-seq input))
 
 ;;; parse-inline-or-text : String -> (List AST)
 ;;; Parse inline markdown, falling back to plain text on error.
 (define (parse-inline-or-text input)
+  (doc 'export #t)
   (let ([result (parse-inline input)])
     (if (right? result)
         (from-right result)

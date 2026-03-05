@@ -18,10 +18,12 @@
 (doc "make-ray2 : Vec2 x Vec2 x Number -> Ray2")
 (doc "Create a 2D ray with origin, direction (auto-normalized), and max distance.")
 (define (make-ray2 origin direction max-dist)
+  (doc 'export #t)
   (list 'ray2 origin (vec2-normalize direction) max-dist))
 
 (doc "ray2? : Any -> Boolean")
 (define (ray2? r)
+  (doc 'export #t)
   (and (pair? r) (eq? (car r) 'ray2)))
 
 (doc "ray2-origin : Ray2 -> Vec2")
@@ -36,6 +38,7 @@
 (doc "ray2-point-at : Ray2 x Number -> Vec2")
 (doc "Get point at parameter t along ray.")
 (define (ray2-point-at ray t)
+  (doc 'export #t)
   (vec2-add (ray2-origin ray)
             (vec2-scale (ray2-direction ray) t)))
 
@@ -44,10 +47,12 @@
 (doc 'make-hit-info 'type 'Number x Vec2 x Vec2 x Shape -> HitInfo)
 (doc "Create hit result with distance (t), hit point, surface normal, and shape.")
 (define (make-hit-info distance point normal shape)
+  (doc 'export #t)
   (list 'hit-info distance point normal shape))
 
 (doc "hit-info? : Any -> Boolean")
 (define (hit-info? h)
+  (doc 'export #t)
   (and (pair? h) (eq? (car h) 'hit-info)))
 
 (define (hit-info-distance h) (list-ref h 1))
@@ -67,6 +72,7 @@
 (doc "ray2-aabb : Ray2 x AABB -> HitInfo or #f")
 (doc "Cast ray against AABB using slab method.")
 (define (ray2-aabb ray aabb)
+  (doc 'export #t)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
          [max-dist (ray2-max-dist ray)]
@@ -138,6 +144,7 @@
 (doc "ray2-circle : Ray2 x Circle -> HitInfo or #f")
 (doc "Cast ray against circle using quadratic formula.")
 (define (ray2-circle ray circle)
+  (doc 'export #t)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
          [max-dist (ray2-max-dist ray)]
@@ -175,6 +182,7 @@
 (doc "Intersect ray with line segment.")
 (doc "Returns (t . u) where t is ray param and u is segment param [0,1].")
 (define (ray2-segment-intersection ray-origin ray-dir p1 p2)
+  (doc 'export #t)
   (let* ([edge (vec2-sub p2 p1)]
          [origin-to-p1 (vec2-sub p1 ray-origin)]
          [denom (vec2-cross ray-dir edge)])
@@ -191,6 +199,7 @@
 (doc "ray2-polygon : Ray2 x Polygon -> HitInfo or #f")
 (doc "Cast ray against convex polygon, finding closest edge hit.")
 (define (ray2-polygon ray polygon)
+  (doc 'export #t)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
          [max-dist (ray2-max-dist ray)]
@@ -223,6 +232,7 @@
 (doc "ray2-polygon-exit : Ray2 x Polygon x Number -> HitInfo or #f")
 (doc "Find exit point when ray origin is inside polygon.")
 (define (ray2-polygon-exit ray polygon max-dist)
+  (doc 'export #t)
   (let* ([origin (ray2-origin ray)]
          [dir (ray2-direction ray)]
          [verts (polygon-vertices polygon)]
@@ -250,6 +260,7 @@
 (doc "ray2-shape : Ray2 x Shape -> HitInfo or #f")
 (doc "Cast ray against any supported shape type.")
 (define (ray2-shape ray shape)
+  (doc 'export #t)
   (cond
    [(aabb? shape) (ray2-aabb ray shape)]
    [(circle? shape) (ray2-circle ray shape)]
@@ -261,10 +272,12 @@
 (doc "make-ray2-infinite : Vec2 x Vec2 -> Ray2")
 (doc "Create a ray with effectively infinite max distance.")
 (define (make-ray2-infinite origin direction)
+  (doc 'export #t)
   (make-ray2 origin direction 1e308))
 
 (doc "make-ray2-between : Vec2 x Vec2 -> Ray2")
 (doc "Create a ray from start to end point.")
 (define (make-ray2-between start end)
+  (doc 'export #t)
   (let ([diff (vec2-sub end start)])
        (make-ray2 start diff (vec2-magnitude diff))))

@@ -40,6 +40,7 @@ KEY USE CASE: Free ⊣ Forgetful for algebraic effects
 ;;;   on-obj: Object mapping F : Obj(C) → Obj(D)
 ;;;   on-mor: Morphism mapping F : Mor(C) → Mor(D)
 (define (make-functor-general name source target on-obj on-mor)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Category Category
                   (-> Obj Obj)
                   (-> Mor Mor)
@@ -47,28 +48,34 @@ KEY USE CASE: Free ⊣ Forgetful for algebraic effects
   (list 'functor-general name source target on-obj on-mor))
 
 (define (functor-general? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'functor-general)
        (= (length x) 6)))
 
 (define (functor-general-name fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Symbol))
   (if (functor-general? fg) (cadr fg) 'unknown))
 
 (define (functor-general-source fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Category))
   (if (functor-general? fg) (caddr fg) #f))
 
 (define (functor-general-target fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Category))
   (if (functor-general? fg) (cadddr fg) #f))
 
 (define (functor-general-on-obj fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral (-> Obj Obj)))
   (if (functor-general? fg) (car (cddddr fg)) #f))
 
 (define (functor-general-on-mor fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral (-> Mor Mor)))
   (if (functor-general? fg) (cadr (cddddr fg)) #f))
 
@@ -79,12 +86,14 @@ KEY USE CASE: Free ⊣ Forgetful for algebraic effects
 ;;; functor-apply-obj : FunctorGeneral × Obj → Obj
 ;;; Apply functor to an object: F(A).
 (define (functor-apply-obj fg obj)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Obj Obj))
   ((functor-general-on-obj fg) obj))
 
 ;;; functor-apply-mor : FunctorGeneral × Mor → Mor
 ;;; Apply functor to a morphism: F(f).
 (define (functor-apply-mor fg mor)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Mor Mor))
   ((functor-general-on-mor fg) mor))
 
@@ -95,6 +104,7 @@ KEY USE CASE: Free ⊣ Forgetful for algebraic effects
 ;;; id-functor-for : Category → FunctorGeneral
 ;;; The identity functor Id_C : C → C.
 (define (id-functor-for cat)
+  (doc 'export #t)
   (doc 'type '(-> Category FunctorGeneral))
   (doc 'description "The identity functor on category C.
 Id_C(A) = A, Id_C(f) = f")
@@ -114,6 +124,7 @@ Id_C(A) = A, Id_C(f) = f")
 ;;; Result: G∘F : A → C
 ;;; Precondition: target of F = source of G (not checked).
 (define (functor-compose-general G F)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral FunctorGeneral FunctorGeneral))
   (doc 'description "Compose functors G ∘ F.
 (G ∘ F)(A) = G(F(A)), (G ∘ F)(f) = G(F(f))")
@@ -158,6 +169,7 @@ The free algebra Free(X) has:
 ;;; Since we're in multi/ we define the structure; actual implementation
 ;;; needs the signature operations.
 (define (make-free-functor-gen sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature FunctorGeneral))
   (doc 'description "The Free functor Free_Σ : Set → Σ-Alg.
 Free(X) = term algebra over generators from X.
@@ -188,6 +200,7 @@ Free(f) = lift f to terms by mapping generators.")
 ;;; build-free-algebra-ops : Signature → OpList
 ;;; Build the syntactic operation implementations for a free algebra.
 (define (build-free-algebra-ops sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature OpList))
   (if (not (and (pair? sig) (eq? (car sig) 'signature)))
       '()
@@ -206,6 +219,7 @@ Free(f) = lift f to terms by mapping generators.")
 ;;; free-fmap-term : Signature × (a → b) × Term → Term
 ;;; Apply a function to all generators in a term.
 (define (free-fmap-term sig f term)
+  (doc 'export #t)
   (doc 'type '(-> Signature (-> a b) Term Term))
   (cond
     ;; Generator: apply f
@@ -239,6 +253,7 @@ retaining only the underlying set and function.")
 ;;; make-forgetful-functor-gen : Signature → FunctorGeneral
 ;;; Create the Forgetful functor for a signature.
 (define (make-forgetful-functor-gen sig)
+  (doc 'export #t)
   (doc 'type '(-> Signature FunctorGeneral))
   (doc 'description "The Forgetful functor U_Σ : Σ-Alg → Set.
 U(A) = carrier of A.
@@ -272,6 +287,7 @@ U(h) = underlying function of homomorphism h.")
 ;;; verify-functor-identity : FunctorGeneral × Obj × Any → Boolean
 ;;; Verify F(id_A) = id_{F(A)} at a test value.
 (define (verify-functor-identity fg obj test-value)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Obj Any Boolean))
   (doc 'description "Verify functor preserves identity morphisms.")
   (let* ([source-cat (functor-general-source fg)]
@@ -286,6 +302,7 @@ U(h) = underlying function of homomorphism h.")
 ;;; verify-functor-composition : FunctorGeneral × Mor × Mor × Any → Boolean
 ;;; Verify F(g ∘ f) = F(g) ∘ F(f) at a test value.
 (define (verify-functor-composition fg g f test-value)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Mor Mor Any Boolean))
   (doc 'description "Verify functor preserves composition.")
   (let* ([source-cat (functor-general-source fg)]
@@ -312,6 +329,7 @@ with the multi-category framework.")
 ;;; functor->functor-general : Functor → FunctorGeneral
 ;;; Lift a standard endofunctor to a general functor Set → Set.
 (define (functor->functor-general func)
+  (doc 'export #t)
   (doc 'type '(-> Functor FunctorGeneral))
   (doc 'description "Convert standard endofunctor to general functor.
 The source and target categories are both Set.")
@@ -334,6 +352,7 @@ The source and target categories are both Set.")
 ;;; Extract a standard endofunctor from a general functor.
 ;;; Only works if source = target = Set.
 (define (functor-general->functor fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral Functor))
   (doc 'description "Convert general functor to standard functor.
 Requires source and target to both be Set.")
@@ -350,6 +369,7 @@ Requires source and target to both be Set.")
 
 ;;; functor-general->string : FunctorGeneral → String
 (define (functor-general->string fg)
+  (doc 'export #t)
   (doc 'type '(-> FunctorGeneral String))
   (if (functor-general? fg)
       (format "~a : ~a → ~a"

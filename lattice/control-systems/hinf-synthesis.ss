@@ -56,6 +56,7 @@
 ;;; The closed-loop is T_zw = F_l(P, K) = P11 + P12*K*(I - P22*K)^-1*P21
 
 (define (make-generalized-plant A B1 B2 C1 C2 D11 D12 D21 D22)
+  (doc 'export #t)
   (doc 'type "Matrix^9 → GeneralizedPlant")
   (doc 'description "Create a generalized plant structure for H-infinity synthesis.
   w: disturbance inputs (B1), z: performance outputs (C1)
@@ -63,6 +64,7 @@
   (list 'gen-plant A B1 B2 C1 C2 D11 D12 D21 D22))
 
 (define (gp? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'gen-plant)))
 
 (define (gp-A gp) (list-ref gp 1))
@@ -98,6 +100,7 @@
 ;;;   - W3 large at high freq → good noise rejection
 
 (define (hinf-mixed-sensitivity-plant G W1 W3)
+  (doc 'export #t)
   (doc 'type "SS × SS × SS → GeneralizedPlant | Error")
   (doc 'description "Construct generalized plant for mixed-sensitivity H-infinity.
   Stacks [W1*S; W3*T] for minimization.
@@ -179,6 +182,7 @@
                                           D11-aug D12-aug D21-aug D22-aug)))))
 
 (define (matrix-copy-block! dest row col src)
+  (doc 'export #t)
   (doc 'type "Matrix × Nat × Nat × Matrix → Void")
   (doc 'description "Copy src matrix into dest starting at (row, col)")
   (let ([m (matrix-rows src)]
@@ -201,6 +205,7 @@
 ;;; The bisection narrows down to the optimal γ*.
 
 (define (hinf-gamma-iteration gp gamma-min gamma-max tolerance max-iter)
+  (doc 'export #t)
   (doc 'type "GeneralizedPlant × Number × Number × Number × Nat → (γ K) | Error")
   (doc 'description "Find minimum achievable γ via bisection.
   Returns (optimal-gamma controller-K) or error if infeasible.")
@@ -254,6 +259,7 @@
 ;;; where F = B2'X, L = Y C2', Z = (I - γ^-2 YX)^-1
 
 (define (hinf-check-gamma gp gamma)
+  (doc 'export #t)
   (doc 'type "GeneralizedPlant × Number → (ok K) | (error ...)")
   (doc 'description "Check if γ is achievable and compute controller if so.
   Uses the two-Riccati approach (Glover-Doyle).
@@ -311,6 +317,7 @@
                                           (hinf-construct-controller A B1 B2 C1 C2 X Y gamma))))))))))
 
 (define (solve-hinf-riccati A R Q max-iter)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Matrix × Nat → Matrix | Error")
   (doc 'description "Solve H-infinity Riccati: A'X + XA + Q + X*R*X = 0
   This is a generalization of CARE with indefinite R.
@@ -345,6 +352,7 @@
                                       (loop X-stabilized (+ iter 1))))))))))
 
 (define (solve-hinf-riccati-dual A R Q max-iter)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Matrix × Nat → Matrix | Error")
   (doc 'description "Solve dual H-infinity Riccati: AY + YA' + Q + Y*R*Y = 0")
   ;; This is the dual: swap A and A'
@@ -352,6 +360,7 @@
        (solve-hinf-riccati At R Q max-iter)))
 
 (define (hinf-riccati-residual A R Q X)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Matrix × Matrix → Number")
   (doc 'description "Compute ||A'X + XA + Q + XRX||_F")
   (let* ([At (matrix-transpose A)]
@@ -363,6 +372,7 @@
         (matrix-frobenius-norm-hinf residual)))
 
 (define (matrix-frobenius-norm-hinf M)
+  (doc 'export #t)
   (doc 'type "Matrix → Number")
   (let* ([rows (matrix-rows M)]
          [cols (matrix-cols M)])
@@ -377,6 +387,7 @@
                                                     (+ row-sum (expt (matrix-ref M i j) 2))))))))))))
 
 (define (matrix-near-zero? M tol)
+  (doc 'export #t)
   (doc 'type "Matrix × Number → Boolean")
   (doc 'description "Check if all elements of matrix are within tolerance of zero")
   (let* ([rows (matrix-rows M)]
@@ -392,6 +403,7 @@
                               (inner (+ j 1)))))))))
 
 (define (lyapunov-solve-hinf A Q max-iter)
+  (doc 'export #t)
   (doc 'type "Matrix × Matrix × Nat → Matrix")
   (doc 'description "Solve A'X + XA = -Q via iteration (for Newton step)")
   (let* ([n (matrix-rows A)]
@@ -411,6 +423,7 @@
                            (loop X-new (+ iter 1))))))))
 
 (define (matrix-psd-project M)
+  (doc 'export #t)
   (doc 'type "Matrix → Matrix")
   (doc 'description "Project matrix onto positive semi-definite cone.
   Uses eigendecomposition: M = V D V', clamp D to D' = max(D,0), return V D' V'.
@@ -440,6 +453,7 @@
                                   (matrix-mul V-D Vt))))))))
 
 (define (matrix-psd-project-simple M)
+  (doc 'export #t)
   (doc 'type "Matrix → Matrix")
   (doc 'description "Simple fallback PSD projection: clamp diagonal to non-negative.
   This is a crude approximation used when eigendecomposition fails.")
@@ -456,6 +470,7 @@
                                       val)))))))
 
 (define (spectral-radius M)
+  (doc 'export #t)
   (doc 'type "Matrix → Number")
   (doc 'description "Compute spectral radius (maximum |eigenvalue|)")
   (let* ([n (matrix-rows M)])
@@ -496,6 +511,7 @@
 ;;; ============================================================================
 
 (define (hinf-construct-controller A B1 B2 C1 C2 X Y gamma)
+  (doc 'export #t)
   (doc 'type "Matrix^5 × Matrix × Matrix × Number → SS")
   (doc 'description "Construct H-infinity controller from Riccati solutions.
   K: state-space controller (Ak, Bk, Ck, Dk)")
@@ -538,6 +554,7 @@
 ;;; ============================================================================
 
 (define (hinf-synthesize plant W1 W3 . opts)
+  (doc 'export #t)
   (doc 'type "SS × SS × SS × ... → (γ K) | Error")
   (doc 'description "Synthesize H-infinity controller for mixed-sensitivity problem.
 
@@ -575,6 +592,7 @@
             (hinf-gamma-iteration gp gamma-min gamma-max tolerance max-iter))))
 
 (define (get-opt opts key default)
+  (doc 'export #t)
   (doc 'type "(List Any) × Symbol × Any → Any")
   (let loop ([lst opts])
        (cond
@@ -588,6 +606,7 @@
 ;;; ============================================================================
 
 (define (hinf-weight-first-order dc hf wc)
+  (doc 'export #t)
   (doc 'type "Number × Number × Number → SS")
   (doc 'description "Create first-order weighting function.
   W(s) = (s/M + wc) / (s + wc*A)
@@ -607,6 +626,7 @@
         (tf->ss tf-w)))
 
 (define (hinf-weight-constant k)
+  (doc 'export #t)
   (doc 'type "Number → SS")
   (doc 'description "Create constant (static) weighting function W(s) = k.
   Returns a zero-order (static) state-space system with only D matrix.")
@@ -621,6 +641,7 @@
 ;;; ============================================================================
 
 (define (tf->ss tf)
+  (doc 'export #t)
   (doc 'type "TF → SS")
   (doc 'description "Convert transfer function to controllable canonical state space.
   G(s) = (b_m s^m + ... + b_0) / (s^n + a_{n-1} s^{n-1} + ... + a_0)
@@ -693,6 +714,7 @@
 ;;; ============================================================================
 
 (define (hinf-closed-loop-norm plant controller)
+  (doc 'export #t)
   (doc 'type "SS × SS → Number")
   (doc 'description "Compute H-infinity norm of closed-loop system.
   Uses frequency gridding for verification.")
@@ -703,6 +725,7 @@
         (hinf-norm T-tf)))
 
 (define (ss->tf sys)
+  (doc 'export #t)
   (doc 'type "SS → TF")
   (doc 'description "Convert state-space to transfer function (SISO only).
   G(s) = C(sI - A)^-1 B + D
@@ -723,6 +746,7 @@
                   (make-tf num-poly char-poly)))))
 
 (define (ss-numerator-poly sys)
+  (doc 'export #t)
   (doc 'type "SS → Poly")
   (doc 'description "Compute numerator polynomial of SISO transfer function.
   Uses coefficient matching from frequency response samples.")
@@ -749,6 +773,7 @@
                   (poly-from-complex-samples s-vals num-vals n)))))
 
 (define (ss-eval-complex sys s)
+  (doc 'export #t)
   (doc 'type "SS × Complex → Complex")
   (doc 'description "Evaluate G(s) = C(sI-A)^-1 B + D at complex s")
   (let* ([A (ss-A sys)]
@@ -776,6 +801,7 @@
 
 ;; Simplified complex matrix operations (for small matrices)
 (define (matrix-scale-complex s M)
+  (doc 'export #t)
   (let* ([n (matrix-rows M)]
          [m (matrix-cols M)]
          [sr (complex-real s)]
@@ -792,6 +818,7 @@
         (list result-r result-i)))
 
 (define (matrix-sub-scalar-diag sM A)
+  (doc 'export #t)
   (doc 'description "Compute sI - A where sM = (Re, Im) parts of s*I")
   (let* ([sr (car sM)]
          [si (cadr sM)]
@@ -809,6 +836,7 @@
                      (matrix-set! result-i i j s-i))))))
 
 (define (matrix-inverse-complex M-complex)
+  (doc 'export #t)
   (doc 'description "Invert complex matrix (simple 2x2 or use augmented real)")
   ;; Use augmented real matrix approach:
   ;; [Mr -Mi]^-1 gives real and imag parts
@@ -841,6 +869,7 @@
                               (matrix-set! inv-i i j (matrix-ref aug-inv (+ i n) j)))))))))
 
 (define (matrix-mul-complex A-complex B-complex)
+  (doc 'export #t)
   (let* ([Ar (car A-complex)] [Ai (cadr A-complex)]
          [Br (car B-complex)] [Bi (cadr B-complex)]
          [Cr (matrix-sub (matrix-mul Ar Br) (matrix-mul Ai Bi))]
@@ -848,10 +877,12 @@
         (list Cr Ci)))
 
 (define (matrix-ref-complex M-complex i j)
+  (doc 'export #t)
   (make-complex (matrix-ref (car M-complex) i j)
                 (matrix-ref (cadr M-complex) i j)))
 
 (define (poly-eval-complex poly s)
+  (doc 'export #t)
   (doc 'type "Poly × Complex → Complex")
   (doc 'description "Evaluate polynomial at complex value using Horner's method")
   (let* ([coeffs (poly-coeffs poly)]
@@ -864,6 +895,7 @@
                                     (make-complex (vector-ref coeffs i) 0)))))))
 
 (define (poly-from-complex-samples s-vals num-vals degree)
+  (doc 'export #t)
   (doc 'type "(List Complex) × (List Complex) × Nat → Poly")
   (doc 'description "Fit polynomial to complex samples using least squares.
   Given samples (s_k, y_k) where y_k = p(s_k), recover polynomial p of given degree.
@@ -915,6 +947,7 @@
                        (fill-loop (+ k 1) (cdr s-rest) (cdr y-rest)))))))
 
 (define (ipow-real power)
+  (doc 'export #t)
   (doc 'type "Nat → Number")
   (doc 'description "Real part of i^power: pattern 1, 0, -1, 0, 1, ...")
   (case (modulo power 4)
@@ -924,6 +957,7 @@
     [(3) 0]))
 
 (define (ipow-imag power)
+  (doc 'export #t)
   (doc 'type "Nat → Number")
   (doc 'description "Imaginary part of i^power: pattern 0, 1, 0, -1, 0, ...")
   (case (modulo power 4)
@@ -933,12 +967,14 @@
     [(3) -1]))
 
 (define (complex-mul a b)
+  (doc 'export #t)
   (make-complex (- (* (complex-real a) (complex-real b))
                    (* (complex-imag a) (complex-imag b)))
                 (+ (* (complex-real a) (complex-imag b))
                    (* (complex-imag a) (complex-real b)))))
 
 (define (complex-add a b)
+  (doc 'export #t)
   (make-complex (+ (complex-real a) (complex-real b))
                 (+ (complex-imag a) (complex-imag b))))
 
@@ -947,6 +983,7 @@
 ;;; ============================================================================
 
 (define (hinf-synthesis-info)
+  (doc 'export #t)
   (doc 'type "→ String")
   "H-infinity Synthesis Module:
    - hinf-synthesize: Main entry point for mixed-sensitivity design

@@ -30,22 +30,26 @@ Dependencies:
      'type (-> Number Number Number Number Quaternion)
      'description "Create a quaternion (w, x, y, z)")
 (define (quat w x y z)
+  (doc 'export #t)
   (list 'quat w x y z))
 
 ;;; quat-identity : → Quaternion
 ;;; Identity quaternion (represents no rotation).
 (define (quat-identity)
+  (doc 'export #t)
   (quat 1 0 0 0))
 
 ;;; quat-zero : → Quaternion
 ;;; Zero quaternion (not a valid rotation).
 (define (quat-zero)
+  (doc 'export #t)
   (quat 0 0 0 0))
 
 ;;; quat-from-axis-angle : Vec3 × Number → Quaternion
 ;;; Create quaternion from axis-angle representation.
 ;;; Axis should be a unit vector, angle in radians.
 (define (quat-from-axis-angle axis angle)
+  (doc 'export #t)
   (let* ([half-angle (/ angle 2)]
          [s (sin half-angle)]
          [c (cos half-angle)])
@@ -58,6 +62,7 @@ Dependencies:
 ;;; Create quaternion from Euler angles (roll, pitch, yaw) in radians.
 ;;; Uses ZYX convention (yaw-pitch-roll).
 (define (quat-from-euler roll pitch yaw)
+  (doc 'export #t)
   (let* ([cr (cos (/ roll 2))]
          [sr (sin (/ roll 2))]
          [cp (cos (/ pitch 2))]
@@ -73,6 +78,7 @@ Dependencies:
 ;;; Create quaternion from 3x3 rotation matrix.
 ;;; Matrix is represented as ((m00 m01 m02) (m10 m11 m12) (m20 m21 m22)).
 (define (quat-from-rotation-matrix m)
+  (doc 'export #t)
   (let* ([m00 (list-ref (list-ref m 0) 0)]
          [m11 (list-ref (list-ref m 1) 1)]
          [m22 (list-ref (list-ref m 2) 2)]
@@ -139,6 +145,7 @@ Dependencies:
 ;;; Create quaternion that rotates v1 to v2.
 ;;; Both vectors should be unit vectors.
 (define (quat-from-two-vectors v1 v2)
+  (doc 'export #t)
   (let* ([dot (vec3-dot v1 v2)]
          [cross (vec3-cross v1 v2)])
         (cond
@@ -162,6 +169,7 @@ Dependencies:
 ;;; Create quaternion that rotates forward to look at direction.
 ;;; forward = direction to look, up = world up vector.
 (define (quat-look-at forward up)
+  (doc 'export #t)
   (let* ([f (vec3-normalize forward)]
          [r (vec3-normalize (vec3-cross up f))]
          [u (vec3-cross f r)]
@@ -177,11 +185,13 @@ Dependencies:
 
 ;;; quat? : Any → Boolean
 (define (quat? q)
+  (doc 'export #t)
   (and (pair? q) (eq? (car q) 'quat)))
 
 ;;; quat-identity? : Quaternion → Boolean
 ;;; Check if quaternion is (near) identity.
 (define (quat-identity? q)
+  (doc 'export #t)
   (and (< (abs (- (quat-w q) 1.0)) 1e-10)
        (< (abs (quat-x q)) 1e-10)
        (< (abs (quat-y q)) 1e-10)
@@ -190,6 +200,7 @@ Dependencies:
 ;;; quat-unit? : Quaternion → Boolean
 ;;; Check if quaternion is (near) unit length.
 (define (quat-unit? q)
+  (doc 'export #t)
   (< (abs (- (quat-magnitude-sq q) 1.0)) 1e-10))
 
 ;;; ====
@@ -215,14 +226,17 @@ Dependencies:
 ;;; quat-vector : Quaternion → Vec3
 ;;; Get vector (imaginary) part.
 (define (quat-vector q)
+  (doc 'export #t)
   (vec3 (quat-x q) (quat-y q) (quat-z q)))
 
 ;;; quat->list : Quaternion → (List Number)
 (define (quat->list q)
+  (doc 'export #t)
   (list (quat-w q) (quat-x q) (quat-y q) (quat-z q)))
 
 ;;; list->quat : (List Number) → Quaternion
 (define (list->quat lst)
+  (doc 'export #t)
   (quat (car lst) (cadr lst) (caddr lst) (cadddr lst)))
 
 (doc 'section 'quaternion-arithmetic
@@ -232,6 +246,7 @@ Dependencies:
      'type (-> Quaternion Quaternion Quaternion)
      'description "Quaternion addition")
 (define (quat-add a b)
+  (doc 'export #t)
   (quat (+ (quat-w a) (quat-w b))
         (+ (quat-x a) (quat-x b))
         (+ (quat-y a) (quat-y b))
@@ -240,6 +255,7 @@ Dependencies:
 ;;; quat-sub : Quaternion × Quaternion → Quaternion
 ;;; Quaternion subtraction.
 (define (quat-sub a b)
+  (doc 'export #t)
   (quat (- (quat-w a) (quat-w b))
         (- (quat-x a) (quat-x b))
         (- (quat-y a) (quat-y b))
@@ -248,6 +264,7 @@ Dependencies:
 ;;; quat-neg : Quaternion → Quaternion
 ;;; Negate quaternion.
 (define (quat-neg q)
+  (doc 'export #t)
   (quat (- (quat-w q))
         (- (quat-x q))
         (- (quat-y q))
@@ -256,6 +273,7 @@ Dependencies:
 ;;; quat-scale : Quaternion × Number → Quaternion
 ;;; Scalar multiplication.
 (define (quat-scale q s)
+  (doc 'export #t)
   (quat (* (quat-w q) s)
         (* (quat-x q) s)
         (* (quat-y q) s)
@@ -265,6 +283,7 @@ Dependencies:
 ;;; Quaternion multiplication (Hamilton product).
 ;;; Represents composition of rotations: first b, then a.
 (define (quat-mul a b)
+  (doc 'export #t)
   (let ([aw (quat-w a)] [ax (quat-x a)] [ay (quat-y a)] [az (quat-z a)]
         [bw (quat-w b)] [bx (quat-x b)] [by (quat-y b)] [bz (quat-z b)])
        (quat (- (* aw bw) (* ax bx) (* ay by) (* az bz))
@@ -279,6 +298,7 @@ Dependencies:
 ;;; quat-magnitude-sq : Quaternion → Number
 ;;; Squared magnitude.
 (define (quat-magnitude-sq q)
+  (doc 'export #t)
   (+ (* (quat-w q) (quat-w q))
      (* (quat-x q) (quat-x q))
      (* (quat-y q) (quat-y q))
@@ -287,11 +307,13 @@ Dependencies:
 ;;; quat-magnitude : Quaternion → Number
 ;;; Magnitude (norm).
 (define (quat-magnitude q)
+  (doc 'export #t)
   (sqrt (quat-magnitude-sq q)))
 
 ;;; quat-normalize : Quaternion → Quaternion
 ;;; Return unit quaternion.
 (define (quat-normalize q)
+  (doc 'export #t)
   (let ([mag (quat-magnitude q)])
        (if (< mag 1e-10)
            (quat-identity)
@@ -308,6 +330,7 @@ Dependencies:
 ;;; Conjugate: negate the vector part.
 ;;; For unit quaternions, this equals the inverse.
 (define (quat-conjugate q)
+  (doc 'export #t)
   (quat (quat-w q)
         (- (quat-x q))
         (- (quat-y q))
@@ -316,6 +339,7 @@ Dependencies:
 ;;; quat-inverse : Quaternion → Quaternion
 ;;; Multiplicative inverse: q^(-1) = conjugate(q) / |q|^2.
 (define (quat-inverse q)
+  (doc 'export #t)
   (let ([mag-sq (quat-magnitude-sq q)])
        (if (< mag-sq 1e-10)
            (quat-identity)
@@ -328,6 +352,7 @@ Dependencies:
 ;;; quat-dot : Quaternion × Quaternion → Number
 ;;; Dot product (4D).
 (define (quat-dot a b)
+  (doc 'export #t)
   (+ (* (quat-w a) (quat-w b))
      (* (quat-x a) (quat-x b))
      (* (quat-y a) (quat-y b))
@@ -336,6 +361,7 @@ Dependencies:
 ;;; quat-angle : Quaternion × Quaternion → Number
 ;;; Angle between two quaternions in radians.
 (define (quat-angle a b)
+  (doc 'export #t)
   (let ([dot (abs (quat-dot a b))])
        (* 2 (acos (min 1.0 dot)))))
 
@@ -346,6 +372,7 @@ Dependencies:
 ;;; quat-lerp : Quaternion × Quaternion → Number → Quaternion
 ;;; Linear interpolation (not normalized).
 (define (quat-lerp a b t)
+  (doc 'export #t)
   (quat-add (quat-scale a (- 1 t))
             (quat-scale b t)))
 
@@ -353,6 +380,7 @@ Dependencies:
 ;;; Normalized linear interpolation.
 ;;; Faster than slerp, good for small angles.
 (define (quat-nlerp a b t)
+  (doc 'export #t)
   ;; Take shortest path
   (let ([b (if (< (quat-dot a b) 0) (quat-neg b) b)])
        (quat-normalize (quat-lerp a b t))))
@@ -361,6 +389,7 @@ Dependencies:
 ;;; Spherical linear interpolation.
 ;;; Constant angular velocity, best for animation.
 (define (quat-slerp a b t)
+  (doc 'export #t)
   (let* ([dot (quat-dot a b)]
          ;; Take shortest path
          [dot (if (< dot 0) (- dot) dot)]
@@ -382,6 +411,7 @@ Dependencies:
      'type (-> Quaternion Vec3 Vec3)
      'description "Rotate a vector by the quaternion. v' = q * v * q^(-1) for unit quaternion.")
 (define (quat-rotate-vec3 q v)
+  (doc 'export #t)
   (let* ([qv (quat 0 (vec3-x v) (vec3-y v) (vec3-z v))]
          [result (quat-mul (quat-mul q qv) (quat-conjugate q))])
         (vec3 (quat-x result) (quat-y result) (quat-z result))))
@@ -389,12 +419,14 @@ Dependencies:
 ;;; quat-rotate-vec3-inverse : Quaternion × Vec3 → Vec3
 ;;; Rotate a vector by the inverse quaternion.
 (define (quat-rotate-vec3-inverse q v)
+  (doc 'export #t)
   (quat-rotate-vec3 (quat-conjugate q) v))
 
 ;;; quat-to-axis-angle : Quaternion → (Vec3 × Number)
 ;;; Convert to axis-angle representation.
 ;;; Returns (axis, angle) where axis is unit and angle is in radians.
 (define (quat-to-axis-angle q)
+  (doc 'export #t)
   (let* ([q (quat-normalize q)]
          [w (quat-w q)]
          [angle (* 2 (acos (max -1.0 (min 1.0 w))))]
@@ -411,6 +443,7 @@ Dependencies:
 ;;; Convert to Euler angles (ZYX convention).
 ;;; Returns (roll, pitch, yaw) in radians.
 (define (quat-to-euler q)
+  (doc 'export #t)
   (let* ([w (quat-w q)]
          [x (quat-x q)]
          [y (quat-y q)]
@@ -433,6 +466,7 @@ Dependencies:
 ;;; quat-to-rotation-matrix : Quaternion → Matrix3
 ;;; Convert to 3x3 rotation matrix.
 (define (quat-to-rotation-matrix q)
+  (doc 'export #t)
   (let* ([q (quat-normalize q)]
          [w (quat-w q)]
          [x (quat-x q)]
@@ -453,6 +487,7 @@ Dependencies:
 ;;; Compute angular velocity from q1 to q2 over time dt.
 ;;; Returns angular velocity vector in radians/second.
 (define (quat-angular-velocity q1 q2 dt)
+  (doc 'export #t)
   (if (< dt 1e-10)
       (vec3-zero)
       (let* ([dq (quat-mul q2 (quat-inverse q1))]
@@ -466,6 +501,7 @@ Dependencies:
 ;;; Integrate orientation by angular velocity over time dt.
 ;;; omega is angular velocity vector in radians/second.
 (define (quat-integrate q omega dt)
+  (doc 'export #t)
   (let* ([omega-mag (vec3-magnitude omega)]
          [theta (* omega-mag dt 0.5)])
         (if (< omega-mag 1e-10)
@@ -484,22 +520,26 @@ Dependencies:
 ;;; quat-forward : Quaternion → Vec3
 ;;; Get the forward direction (rotated +Z axis).
 (define (quat-forward q)
+  (doc 'export #t)
   (quat-rotate-vec3 q (vec3 0 0 1)))
 
 ;;; quat-right : Quaternion → Vec3
 ;;; Get the right direction (rotated +X axis).
 (define (quat-right q)
+  (doc 'export #t)
   (quat-rotate-vec3 q (vec3 1 0 0)))
 
 ;;; quat-up : Quaternion → Vec3
 ;;; Get the up direction (rotated +Y axis).
 (define (quat-up q)
+  (doc 'export #t)
   (quat-rotate-vec3 q (vec3 0 1 0)))
 
 ;;; quat-equal? : Quaternion × Quaternion → Boolean
 ;;; Check if quaternions represent the same rotation.
 ;;; Note: q and -q represent the same rotation.
 (define (quat-equal? a b)
+  (doc 'export #t)
   (or (and (< (abs (- (quat-w a) (quat-w b))) 1e-10)
            (< (abs (- (quat-x a) (quat-x b))) 1e-10)
            (< (abs (- (quat-y a) (quat-y b))) 1e-10)
@@ -512,6 +552,7 @@ Dependencies:
 ;;; quat-nearly-equal? : Quaternion × Quaternion × Number → Boolean
 ;;; Check if quaternions are approximately equal within tolerance.
 (define (quat-nearly-equal? a b epsilon)
+  (doc 'export #t)
   (or (and (< (abs (- (quat-w a) (quat-w b))) epsilon)
            (< (abs (- (quat-x a) (quat-x b))) epsilon)
            (< (abs (- (quat-y a) (quat-y b))) epsilon)

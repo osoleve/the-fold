@@ -46,6 +46,7 @@
 
 ;;; get-option : Alist × Symbol × Any → Any
 (define (get-option opts key default)
+  (doc 'export #t)
   (let ([pair (assq key opts)])
        (if pair (cdr pair) default)))
 
@@ -55,16 +56,19 @@
 
 ;;; format-keyword : String × Alist → String
 (define (format-keyword kw opts)
+  (doc 'export #t)
   (if (get-option opts 'uppercase-keywords #t)
       (string-upcase kw)
       (string-downcase kw)))
 
 ;;; string-upcase : String → String
 (define (string-upcase s)
+  (doc 'export #t)
   (list->string (map char-upcase (string->list s))))
 
 ;;; string-downcase : String → String
 (define (string-downcase s)
+  (doc 'export #t)
   (list->string (map char-downcase (string->list s))))
 
 ;;; ====
@@ -74,6 +78,7 @@
 ;;; make-indent : Nat × Alist → String
 ;;; Supports numeric indent (spaces) or 'tab for tab characters
 (define (make-indent level opts)
+  (doc 'export #t)
   (let ([indent-val (get-option opts 'indent 'tab)])
        (if (eq? indent-val 'tab)
            (make-string level #\tab)
@@ -81,10 +86,12 @@
 
 ;;; make-string : Nat × Char → String
 (define (make-string n ch)
+  (doc 'export #t)
   (list->string (make-list n ch)))
 
 ;;; make-list : Nat × a → (List a)
 (define (make-list n val)
+  (doc 'export #t)
   (if (<= n 0) '() (cons val (make-list (- n 1) val))))
 
 ;;; ====
@@ -94,6 +101,7 @@
 ;;; format-sql : AST × Alist → String
 ;;; Main entry point for formatting
 (define (format-sql ast . opts-arg)
+  (doc 'export #t)
   (let* ([opts (if (null? opts-arg) default-format-options (car opts-arg))]
          [trailing-semicolon? (get-option opts 'trailing-semicolon #f)]
          [result (cond
@@ -112,6 +120,7 @@
 
 ;;; format-select : AST × Alist → String
 (define (format-select ast opts)
+  (doc 'export #t)
   (let* ([compact? (get-option opts 'compact #f)]
          [nl (if compact? " " "
 ")]
@@ -155,6 +164,7 @@
 
 ;;; format-select-list : (List AST) × Alist → String
 (define (format-select-list items opts)
+  (doc 'export #t)
   (let* ([compact? (get-option opts 'compact #f)]
          [leading-commas? (get-option opts 'leading-commas #t)]
          [column-per-line? (get-option opts 'column-per-line #t)]
@@ -181,6 +191,7 @@
 
 ;;; format-select-item : AST × Alist → String
 (define (format-select-item item opts)
+  (doc 'export #t)
   (cond
    [(star? item)
     (let ([table (star-table item)])
@@ -196,10 +207,12 @@
 
 ;;; format-from-list : (List AST) × Alist → String
 (define (format-from-list items opts)
+  (doc 'export #t)
   (string-join (map (lambda (item) (format-from-item item opts)) items) ", "))
 
 ;;; format-from-item : AST × Alist → String
 (define (format-from-item item opts)
+  (doc 'export #t)
   (cond
    [(table-ref? item)
     (let ([name (table-ref-name item)]
@@ -218,6 +231,7 @@
 
 ;;; format-join : AST × Alist → String
 (define (format-join j opts)
+  (doc 'export #t)
   (let* ([type (join-type j)]
          [left (join-left j)]
          [right (join-right j)]
@@ -242,6 +256,7 @@
 
 ;;; format-join-type : Symbol × Alist → String
 (define (format-join-type type opts)
+  (doc 'export #t)
   (case type
         [(inner) (format-keyword "INNER" opts)]
         [(left) (format-keyword "LEFT" opts)]
@@ -253,6 +268,7 @@
 
 ;;; format-order-item : AST × Alist → String
 (define (format-order-item item opts)
+  (doc 'export #t)
   (let ([expr (order-item-expr item)]
         [direction (order-item-direction item)]
         [nulls (order-item-nulls item)])
@@ -267,6 +283,7 @@
 
 ;;; format-limit-clause : AST × Alist → String
 (define (format-limit-clause limit opts)
+  (doc 'export #t)
   (let ([val (limit-value limit)]
         [offset (limit-offset limit)])
        (string-append
@@ -281,6 +298,7 @@
 
 ;;; format-insert : AST × Alist → String
 (define (format-insert ast opts)
+  (doc 'export #t)
   (let* ([compact? (get-option opts 'compact #f)]
          [nl (if compact? " " "
 ")]
@@ -298,6 +316,7 @@
 
 ;;; format-insert-values : AST × Alist → String
 (define (format-insert-values values opts)
+  (doc 'export #t)
   (cond
    [(values-clause? values)
     (string-append
@@ -312,6 +331,7 @@
 
 ;;; format-values-row : (List AST) × Alist → String
 (define (format-values-row row opts)
+  (doc 'export #t)
   (string-join (map (lambda (val)
                             (if (default-value? val)
                                 (format-keyword "DEFAULT" opts)
@@ -325,6 +345,7 @@
 
 ;;; format-update : AST × Alist → String
 (define (format-update ast opts)
+  (doc 'export #t)
   (let* ([compact? (get-option opts 'compact #f)]
          [nl (if compact? " " "
 ")]
@@ -344,6 +365,7 @@
 
 ;;; format-set-clause : AST × Alist → String
 (define (format-set-clause clause opts)
+  (doc 'export #t)
   (string-append
    (set-clause-column clause)
    " = "
@@ -355,6 +377,7 @@
 
 ;;; format-delete : AST × Alist → String
 (define (format-delete ast opts)
+  (doc 'export #t)
   (let* ([compact? (get-option opts 'compact #f)]
          [nl (if compact? " " "
 ")]
@@ -374,6 +397,7 @@
 
 ;;; format-expression : AST × Alist → String
 (define (format-expression expr opts)
+  (doc 'export #t)
   (cond
    [(literal? expr) (format-literal expr opts)]
    [(column-ref? expr) (format-column-ref expr opts)]
@@ -391,6 +415,7 @@
 
 ;;; format-literal : AST × Alist → String
 (define (format-literal lit opts)
+  (doc 'export #t)
   (let ([value (literal-value lit)]
         [type (literal-type lit)])
        (case type
@@ -403,6 +428,7 @@
 ;;; escape-sql-string : String → String
 ;;; Escape single quotes by doubling them
 (define (escape-sql-string s)
+  (doc 'export #t)
   (let loop ([chars (string->list s)]
              [result '()])
        (if (null? chars)
@@ -414,6 +440,7 @@
 
 ;;; format-column-ref : AST × Alist → String
 (define (format-column-ref ref opts)
+  (doc 'export #t)
   (let ([table (column-ref-table ref)]
         [column (column-ref-name ref)])
        (if table
@@ -422,6 +449,7 @@
 
 ;;; format-binary-op : AST × Alist → String
 (define (format-binary-op expr opts)
+  (doc 'export #t)
   (let* ([op (binary-op-op expr)]
          [left (binary-op-left expr)]
          [right (binary-op-right expr)]
@@ -455,6 +483,7 @@
 
 ;;; format-unary-op : AST × Alist → String
 (define (format-unary-op expr opts)
+  (doc 'export #t)
   (let ([op (unary-op-op expr)]
         [operand (unary-op-operand expr)])
        (if (eq? op 'not)
@@ -463,6 +492,7 @@
 
 ;;; format-operator : Symbol × Alist → String
 (define (format-operator op opts)
+  (doc 'export #t)
   (case op
         [(and) (format-keyword "AND" opts)]
         [(or) (format-keyword "OR" opts)]
@@ -472,6 +502,7 @@
 
 ;;; format-function-call : AST × Alist → String
 (define (format-function-call expr opts)
+  (doc 'export #t)
   (let* ([name (function-call-name expr)]
          [args (function-call-args expr)]
          [distinct? (function-call-distinct? expr)]
@@ -488,6 +519,7 @@
 
 ;;; format-case-expr : AST × Alist → String
 (define (format-case-expr expr opts)
+  (doc 'export #t)
   (let ([operand (case-expr-operand expr)]
         [when-clauses (case-expr-when-clauses expr)]
         [else-clause (case-expr-else expr)])
@@ -503,12 +535,14 @@
 
 ;;; format-when-clause : AST × Alist → String
 (define (format-when-clause clause opts)
+  (doc 'export #t)
   (string-append
    (format-keyword "WHEN" opts) " " (format-expression (when-condition clause) opts)
    " " (format-keyword "THEN" opts) " " (format-expression (when-result clause) opts)))
 
 ;;; format-in-expr : AST × Alist → String
 (define (format-in-expr expr opts)
+  (doc 'export #t)
   (let ([left (in-expr-expr expr)]
         [values (in-expr-values expr)]
         [not? (in-expr-not? expr)])
@@ -521,6 +555,7 @@
 
 ;;; format-between-expr : AST × Alist → String
 (define (format-between-expr expr opts)
+  (doc 'export #t)
   (let ([left (between-expr-expr expr)]
         [low (between-expr-low expr)]
         [high (between-expr-high expr)]
@@ -535,6 +570,7 @@
 
 ;;; format-like-expr : AST × Alist → String
 (define (format-like-expr expr opts)
+  (doc 'export #t)
   (let ([left (like-expr-expr expr)]
         [pattern (like-expr-pattern expr)]
         [escape (like-expr-escape expr)]
@@ -550,6 +586,7 @@
 
 ;;; format-is-null-expr : AST × Alist → String
 (define (format-is-null-expr expr opts)
+  (doc 'export #t)
   (let ([left (is-null-expr-expr expr)]
         [not? (is-null-expr-not? expr)])
        (string-append
@@ -560,10 +597,12 @@
 
 ;;; format-subquery : AST × Alist → String
 (define (format-subquery expr opts)
+  (doc 'export #t)
   (string-append "(" (format-select (subquery-select expr) opts) ")"))
 
 ;;; format-exists-expr : AST × Alist → String
 (define (format-exists-expr expr opts)
+  (doc 'export #t)
   (let ([subq (exists-expr-subquery expr)]
         [not? (exists-expr-not? expr)])
        (string-append

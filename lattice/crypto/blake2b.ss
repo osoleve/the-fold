@@ -12,12 +12,15 @@
 (define u64-mask #xFFFFFFFFFFFFFFFF)
 
 (define (u64 x)
+  (doc 'export #t)
   (bitwise-and x u64-mask))
 
 (define (u64+ . args)
+  (doc 'export #t)
   (u64 (apply + args)))
 
 (define (rotr64 x n)
+  (doc 'export #t)
   (u64 (bitwise-ior
          (bitwise-arithmetic-shift-right x n)
          (bitwise-arithmetic-shift-left x (- 64 n)))))
@@ -50,6 +53,7 @@
 (doc 'section 'blake2b-mixing)
 
 (define (G v a b c d x y)
+  (doc 'export #t)
   (doc 'type '(-> Vector Integer Integer Integer Integer Integer Integer Void))
   (doc 'description "The mixing function. Modifies v in place")
   (let ([va (vector-ref v a)]
@@ -72,6 +76,7 @@
 (doc 'section 'blake2b-compression)
 
 (define (blake2b-compress h block offset t last)
+  (doc 'export #t)
   (doc 'type '(-> Vector Bytevector Integer Integer Boolean Void))
   (let ([v (make-vector 16)])
     ;; v[0..7] = h[0..7]
@@ -126,6 +131,7 @@
 
 ;;; blake2b-full : Bytevector × Bytevector × Integer → Bytevector
 (define (blake2b-full msg key outlen)
+  (doc 'export #t)
   (let* ([keylen (bytevector-length key)]
          [msglen (bytevector-length msg)]
          [h (vector-copy IV)])
@@ -166,6 +172,7 @@
 
 ;;; bytevector-append : Bytevector × Bytevector → Bytevector
 (define (bytevector-append bv1 bv2)
+  (doc 'export #t)
   (let* ([len1 (bytevector-length bv1)]
          [len2 (bytevector-length bv2)]
          [result (make-bytevector (+ len1 len2))])
@@ -193,6 +200,7 @@
 
 ;;; hash->hex : Bytevector → String
 (define (hash->hex hash)
+  (doc 'export #t)
   (let ([hex-chars "0123456789abcdef"])
     (apply string-append
            (map (lambda (i)
@@ -204,6 +212,7 @@
 
 ;;; iota : Integer → (List Integer)
 (define (iota n)
+  (doc 'export #t)
   (let loop ([i 0] [acc '()])
     (if (= i n)
         (reverse acc)

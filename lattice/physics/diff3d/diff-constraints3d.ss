@@ -25,6 +25,7 @@
 ;;;   stiffness: spring constant (k in F = -kx)
 ;;; Returns force on point a (negate for b).
 (define (traced-spring-force-3d a b rest-length stiffness)
+  (doc 'export #t)
   (let* ([delta (traced-vec3-sub b a)]
          [dist (traced-vec3-smooth-magnitude delta 1e-8)]
          [stretch (traced-sub dist rest-length)]
@@ -38,6 +39,7 @@
 ;;; Spring force with velocity damping.
 ;;;   va, vb: velocities at attachment points
 (define (traced-spring-force-damped-3d a b va vb rest-length stiffness damping)
+  (doc 'export #t)
   (let* ([delta (traced-vec3-sub b a)]
          [dist (traced-vec3-smooth-magnitude delta 1e-8)]
          [dir (traced-vec3-smooth-normalize delta 1e-8)]
@@ -92,6 +94,7 @@
 ;;; make-distance-constraint-3d : Nat × Vec3 × Nat × Vec3 × Number → DistanceConstraint3D
 ;;; Create a distance constraint (rigid connection).
 (define (make-distance-constraint-3d body-a-idx anchor-a body-b-idx anchor-b distance)
+  (doc 'export #t)
   (make-spring-constraint-3d body-a-idx anchor-a body-b-idx anchor-b
                              distance
                              *distance-constraint-stiffness-3d*
@@ -109,6 +112,7 @@
 ;;;   local-anchor: attachment point in body-local coordinates
 ;;;   world-target: target position in world coordinates
 (define (make-anchor-constraint-3d body-idx local-anchor world-target stiffness damping)
+  (doc 'export #t)
   (list 'anchor-constraint-3d body-idx local-anchor world-target stiffness damping))
 
 ;;; Anchor constraint accessors
@@ -122,6 +126,7 @@
 ;;; Compute force and torque from anchor constraint.
 ;;; Returns (force-on-body, torque-on-body).
 (define (traced-anchor-force-3d body local-anchor world-target stiffness damping)
+  (doc 'export #t)
   (let* (;; World position of anchor point
          [world-anchor (traced-local-to-world-3d body (lift-vec3-const local-anchor))]
          ;; Velocity at anchor point
@@ -150,6 +155,7 @@
 ;;;   anchor-a: pivot point in body A's local coordinates
 ;;;   anchor-b: pivot point in body B's local coordinates
 (define (make-ball-socket-joint-3d body-a-idx anchor-a body-b-idx anchor-b stiffness damping)
+  (doc 'export #t)
   (list 'ball-socket-joint-3d body-a-idx anchor-a body-b-idx anchor-b stiffness damping))
 
 ;;; Ball-socket joint accessors
@@ -165,6 +171,7 @@
 ;;; Compute forces and torques for ball-socket joint.
 ;;; Returns ((force-a, torque-a), (force-b, torque-b)).
 (define (traced-ball-socket-forces-3d body-a anchor-a body-b anchor-b stiffness damping)
+  (doc 'export #t)
   (let* (;; World positions of anchors
          [world-a (traced-local-to-world-3d body-a (lift-vec3-const anchor-a))]
          [world-b (traced-local-to-world-3d body-b (lift-vec3-const anchor-b))]
@@ -196,6 +203,7 @@
 ;;;   anchor-a, anchor-b: pivot points in local coordinates
 ;;;   axis-a, axis-b: hinge axis in local coordinates (must align)
 (define (make-hinge-joint-3d body-a-idx anchor-a axis-a body-b-idx anchor-b axis-b stiffness damping)
+  (doc 'export #t)
   (list 'hinge-joint-3d body-a-idx anchor-a axis-a body-b-idx anchor-b axis-b stiffness damping))
 
 ;;; Hinge joint accessors
@@ -213,6 +221,7 @@
 ;;; Compute forces and torques for hinge joint.
 ;;; Returns ((force-a, torque-a), (force-b, torque-b)).
 (define (traced-hinge-forces-3d body-a anchor-a axis-a body-b anchor-b axis-b stiffness damping)
+  (doc 'export #t)
   (let* (;; First, apply ball-socket constraint for position
          [world-a (traced-local-to-world-3d body-a (lift-vec3-const anchor-a))]
          [world-b (traced-local-to-world-3d body-b (lift-vec3-const anchor-b))]
@@ -273,6 +282,7 @@
 ;;; Create a fixed joint between two bodies.
 ;;;   ref-orientation: desired relative orientation (B relative to A)
 (define (make-fixed-joint-3d body-a-idx anchor-a body-b-idx anchor-b ref-orientation stiffness damping)
+  (doc 'export #t)
   (list 'fixed-joint-3d body-a-idx anchor-a body-b-idx anchor-b ref-orientation stiffness damping))
 
 ;;; Fixed joint accessors
@@ -289,6 +299,7 @@
 ;;; Compute forces and torques for fixed joint.
 ;;; Returns ((force-a, torque-a), (force-b, torque-b)).
 (define (traced-fixed-forces-3d body-a anchor-a body-b anchor-b ref-orientation stiffness damping)
+  (doc 'export #t)
   (let* (;; Position constraint (same as ball-socket)
          [world-a (traced-local-to-world-3d body-a (lift-vec3-const anchor-a))]
          [world-b (traced-local-to-world-3d body-b (lift-vec3-const anchor-b))]
@@ -364,6 +375,7 @@
 ;;; traced-apply-spring-constraint-3d : (Vector TracedBody3D) × SpringConstraint3D × Number → (Vector TracedBody3D)
 ;;; Apply a spring constraint to the body system.
 (define (traced-apply-spring-constraint-3d bodies spring dt)
+  (doc 'export #t)
   (let* ([idx-a (spring-constraint-3d-body-a spring)]
          [anchor-a (spring-constraint-3d-anchor-a spring)]
          [idx-b (spring-constraint-3d-body-b spring)]
@@ -404,6 +416,7 @@
 ;;; traced-apply-anchor-constraint-3d : (Vector TracedBody3D) × AnchorConstraint3D × Number → (Vector TracedBody3D)
 ;;; Apply an anchor constraint to the body system.
 (define (traced-apply-anchor-constraint-3d bodies anchor dt)
+  (doc 'export #t)
   (let* ([idx (anchor-constraint-3d-body anchor)]
          [local-anchor (anchor-constraint-3d-local-anchor anchor)]
          [world-target (anchor-constraint-3d-world-target anchor)]
@@ -423,6 +436,7 @@
 ;;; traced-apply-ball-socket-joint-3d : (Vector TracedBody3D) × BallSocketJoint3D × Number → (Vector TracedBody3D)
 ;;; Apply a ball-socket joint to the body system.
 (define (traced-apply-ball-socket-joint-3d bodies joint dt)
+  (doc 'export #t)
   (let* ([idx-a (ball-socket-joint-3d-body-a joint)]
          [anchor-a (ball-socket-joint-3d-anchor-a joint)]
          [idx-b (ball-socket-joint-3d-body-b joint)]
@@ -452,6 +466,7 @@
 ;;; traced-apply-hinge-joint-3d : (Vector TracedBody3D) × HingeJoint3D × Number → (Vector TracedBody3D)
 ;;; Apply a hinge joint to the body system.
 (define (traced-apply-hinge-joint-3d bodies joint dt)
+  (doc 'export #t)
   (let* ([idx-a (hinge-joint-3d-body-a joint)]
          [anchor-a (hinge-joint-3d-anchor-a joint)]
          [axis-a (hinge-joint-3d-axis-a joint)]
@@ -483,6 +498,7 @@
 ;;; traced-apply-fixed-joint-3d : (Vector TracedBody3D) × FixedJoint3D × Number → (Vector TracedBody3D)
 ;;; Apply a fixed joint to the body system.
 (define (traced-apply-fixed-joint-3d bodies joint dt)
+  (doc 'export #t)
   (let* ([idx-a (fixed-joint-3d-body-a joint)]
          [anchor-a (fixed-joint-3d-anchor-a joint)]
          [idx-b (fixed-joint-3d-body-b joint)]
@@ -513,6 +529,7 @@
 ;;; traced-apply-constraint-3d : (Vector TracedBody3D) × Constraint × Number → (Vector TracedBody3D)
 ;;; Apply any constraint type.
 (define (traced-apply-constraint-3d bodies constraint dt)
+  (doc 'export #t)
   (case (constraint-type-3d constraint)
         [(spring-constraint-3d) (traced-apply-spring-constraint-3d bodies constraint dt)]
         [(anchor-constraint-3d) (traced-apply-anchor-constraint-3d bodies constraint dt)]
@@ -524,6 +541,7 @@
 ;;; traced-apply-all-constraints-3d : (Vector TracedBody3D) × (List Constraint) × Number → (Vector TracedBody3D)
 ;;; Apply all constraints to the system.
 (define (traced-apply-all-constraints-3d bodies constraints dt)
+  (doc 'export #t)
   (fold-left
    (lambda (current-bodies constraint)
            (traced-apply-constraint-3d current-bodies constraint dt))
@@ -542,6 +560,7 @@
 ;;; For differentiable physics, use iterations=1 (or small k).
 ;;; Higher iterations improve accuracy but increase gradient complexity.
 (define (traced-constraint-step-3d bodies constraints gravity dt iterations)
+  (doc 'export #t)
   (let loop ([current bodies] [i 0])
        (if (>= i iterations)
            current
@@ -559,6 +578,7 @@
 
 ;;; Helper: vector-map for mutable vectors
 (define (vector-map-3d f v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -572,6 +592,7 @@
 ;;; make-pendulum-system-3d : Vec3 × Number × Number × Number × Tape → (TracedBody3D × AnchorConstraint3D)
 ;;; Create a single pendulum bob anchored at a pivot.
 (define (make-pendulum-system-3d pivot length mass radius tape)
+  (doc 'export #t)
   (let* (;; Bob starts directly below pivot
          [bob-pos (lift-vec3 (vec3 (vec3-x pivot) (- (vec3-y pivot) length) (vec3-z pivot)) tape)]
          [bob-vel (lift-vec3 (vec3-zero) tape)]
@@ -591,6 +612,7 @@
 ;;; make-chain-system-3d : Vec3 × Number × Number × Number × Number × Tape → (Vector TracedBody3D × List Constraint)
 ;;; Create a chain of linked bodies.
 (define (make-chain-system-3d start-pos num-links link-length mass radius tape)
+  (doc 'export #t)
   (let* ([inertia (inertia-solid-sphere mass radius)]
          ;; Create bodies
          [bodies

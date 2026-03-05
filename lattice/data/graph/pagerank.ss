@@ -44,6 +44,7 @@
 (doc adjacency->transition 'note "Convention: A[i][j] = 1 means edge i→j; M[j][i] = 1/out-degree(i)")
 (doc adjacency->transition 'note "Column i sums to 1 (node i's vote distributed to neighbors)")
 (define (adjacency->transition adj)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [m (matrix-cols adj)])
         (if (not (= n m))
@@ -88,6 +89,7 @@
 (doc make-google-matrix 'param 'transition-matrix "Column-stochastic transition matrix M")
 (doc make-google-matrix 'param 'damping-factor "Damping factor d")
 (define (make-google-matrix transition-matrix damping-factor)
+  (doc 'export #t)
   (let* ([n (matrix-rows transition-matrix)]
          [teleport (/ (- 1.0 damping-factor) n)]
          ;; G[i][j] = d*M[i][j] + (1-d)/N
@@ -107,6 +109,7 @@
 (doc pagerank-from-matrix 'param 'tol "Convergence tolerance (default: 1e-8)")
 (doc pagerank-from-matrix 'returns "Vector of PageRank scores (one per node)")
 (define (pagerank-from-matrix adj . opts)
+  (doc 'export #t)
   (let* ([damping (if (and (pair? opts) (number? (car opts)))
                       (car opts)
                       *default-damping-factor*)]
@@ -172,6 +175,7 @@
 (doc pagerank 'param 'tol "Convergence tolerance (default: 1e-8)")
 (doc pagerank 'returns "Vector of PageRank scores")
 (define (pagerank edges . opts)
+  (doc 'export #t)
   (let* ([n (if (and (pair? opts) (integer? (car opts)))
                 (car opts)
                 (infer-node-count edges))]
@@ -193,6 +197,7 @@
 (doc personalized-pagerank 'param 'tol "Convergence tolerance (default: 1e-8)")
 (doc personalized-pagerank 'note "Standard PageRank uses uniform distribution; teleportation vector determines where random jumps go")
 (define (personalized-pagerank adj teleport-vec . opts)
+  (doc 'export #t)
   (let* ([n (matrix-rows adj)]
          [damping (if (and (pair? opts) (number? (car opts)))
                       (car opts)
@@ -232,6 +237,7 @@
 (doc top-k-nodes 'type '(-> Vec Nat (List (Pair Nat Num))))
 (doc top-k-nodes 'description "Return top k nodes by PageRank score, sorted descending")
 (define (top-k-nodes scores k)
+  (doc 'export #t)
   (let* ([n (vector-length scores)]
          [pairs (let loop ([i 0] [acc '()])
                      (if (>= i n)

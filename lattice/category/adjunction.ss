@@ -11,32 +11,39 @@
 (doc 'section 'adjunction-definition)
 
 (define (make-adjunction name left right unit counit)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Functor Functor NatTransform NatTransform Adjunction))
   (list 'adjunction name left right unit counit))
 
 (define (adjunction? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x)
        (eq? (car x) 'adjunction)
        (= (length x) 6)))
 
 (define (adjunction-name adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction Symbol))
   (if (adjunction? adj) (cadr adj) 'unknown))
 
 (define (adjunction-left adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction Functor))
   (if (adjunction? adj) (caddr adj) #f))
 
 (define (adjunction-right adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction Functor))
   (if (adjunction? adj) (cadddr adj) #f))
 
 (define (adjunction-unit adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction NatTransform))
   (if (adjunction? adj) (car (cddddr adj)) #f))
 
 (define (adjunction-counit adj)
+  (doc 'export #t)
   (doc 'type '(-> Adjunction NatTransform))
   (if (adjunction? adj) (cadr (cddddr adj)) #f))
 
@@ -50,6 +57,7 @@
 ;;; Verify (ε ◁ F) ∘ (F ▷ η) = id_F at a specific value.
 ;;; Left triangle: ε_{F(A)} ∘ F(η_A) = id_{F(A)}
 (define (verify-triangle-left adj val)
+  (doc 'export #t)
   (let* ([F (adjunction-left adj)]
          [η (adjunction-unit adj)]
          [ε (adjunction-counit adj)]
@@ -70,6 +78,7 @@
 ;;; Verify (G ▷ ε) ∘ (η ◁ G) = id_G
 ;;; Right triangle: G(ε_B) ∘ η_{G(B)} = id_{G(B)}
 (define (verify-triangle-right adj val)
+  (doc 'export #t)
   (let* ([G (adjunction-right adj)]
          [η (adjunction-unit adj)]
          [ε (adjunction-counit adj)]
@@ -85,6 +94,7 @@
 
 ;;; verify-adjunction : Adjunction × F(A) × G(B) → Boolean
 (define (verify-adjunction adj val-in-left val-in-right)
+  (doc 'export #t)
   (and (verify-triangle-left adj val-in-left)
        (verify-triangle-right adj val-in-right)))
 
@@ -95,6 +105,7 @@
 ;;; adjunction-transpose-left : Adjunction × (F(A) → B) → (A → G(B))
 ;;; Left-to-Right: f ↦ G(f) ∘ η_A
 (define (adjunction-transpose-left adj f)
+  (doc 'export #t)
   (let* ([G (adjunction-right adj)]
          [η (adjunction-unit adj)]
          [G-fmap (functor-fmap G)]
@@ -105,6 +116,7 @@
 ;;; adjunction-transpose-right : Adjunction × (A → G(B)) → (F(A) → B)
 ;;; Right-to-Left: g ↦ ε_B ∘ F(g)
 (define (adjunction-transpose-right adj g)
+  (doc 'export #t)
   (let* ([F (adjunction-left adj)]
          [ε (adjunction-counit adj)]
          [F-fmap (functor-fmap F)]
@@ -121,6 +133,7 @@
 ;;; Precondition: both arguments are valid adjunctions.
 ;;; This is pure lattice code.
 (define (adjunction-compose adj2 adj1)
+  (doc 'export #t)
   (let* ([F (adjunction-left adj1)]
          [G (adjunction-right adj1)]
          [η (adjunction-unit adj1)]
@@ -171,10 +184,12 @@
 ;;; Create a Galois connection (adjunction between preorders).
 ;;; Lower adjoint (left) and Upper adjoint (right).
 (define (make-galois name lower upper)
+  (doc 'export #t)
   (list 'galois name lower upper))
 
 ;;; galois? : Any → Boolean
 (define (galois? x)
+  (doc 'export #t)
   (and (pair? x)
        (eq? (car x) 'galois)
        (= (length x) 4)))
@@ -188,11 +203,13 @@
 ;;; galois-closure : Galois × P → P
 ;;; Closure operator: u ∘ l
 (define (galois-closure g x)
+  (doc 'export #t)
   ((galois-upper g) ((galois-lower g) x)))
 
 ;;; galois-kernel : Galois × Q → Q
 ;;; Kernel/Interior operator: l ∘ u
 (define (galois-kernel g x)
+  (doc 'export #t)
   ((galois-lower g) ((galois-upper g) x)))
 
 ;;; galois-floor-ceil : Galois Connection
@@ -212,6 +229,7 @@
 
 ;;; adjunction->string : Adjunction → String
 (define (adjunction->string adj)
+  (doc 'export #t)
   (if (adjunction? adj)
       (format "~a : ~a ⊣ ~a"
               (adjunction-name adj)

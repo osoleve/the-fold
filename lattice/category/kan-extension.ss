@@ -63,25 +63,30 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; make-ran : Functor -> Functor -> ((a -> K b) -> F b) -> Ran K F a
 ;;; Create a Right Kan extension value.
 (define (make-ran k-functor f-functor computation)
+  (doc 'export #t)
   (list 'ran k-functor f-functor computation))
 
 ;;; ran? : Any -> Boolean
 (define (ran? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'ran)))
 
 ;;; ran-k : Ran K F a -> Functor
 ;;; Get the K functor.
 (define (ran-k ran)
+  (doc 'export #t)
   (list-ref ran 1))
 
 ;;; ran-f : Ran K F a -> Functor
 ;;; Get the F functor.
 (define (ran-f ran)
+  (doc 'export #t)
   (list-ref ran 2))
 
 ;;; ran-computation : Ran K F a -> ((a -> K b) -> F b)
 ;;; Get the underlying computation.
 (define (ran-computation ran)
+  (doc 'export #t)
   (list-ref ran 3))
 
 ;;; ran-apply : Ran K F a -> (a -> K b) -> F b
@@ -89,6 +94,7 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; This is the fundamental operation: given how to go from a to K b,
 ;;; produce F b.
 (define (ran-apply ran k-morphism)
+  (doc 'export #t)
   ((ran-computation ran) k-morphism))
 
 ;;; ====
@@ -101,6 +107,7 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; ran-fmap : (a -> b) -> Ran K F a -> Ran K F b
 ;;; Functor instance for Ran K F.
 (define (ran-fmap f ran)
+  (doc 'export #t)
   (make-ran (ran-k ran)
             (ran-f ran)
             (lambda (k)
@@ -109,6 +116,7 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; functor-ran : Functor -> Functor -> Functor
 ;;; Create the functor instance for Ran K F.
 (define (functor-ran k-functor f-functor)
+  (doc 'export #t)
   (make-functor
    (lambda (f ran)
      (ran-fmap f ran))))
@@ -160,6 +168,7 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; Example: If K is a comonad with extract : K a -> a, then:
 ;;;   transform = (lambda (k fa) (fmap-F (compose extract k) fa))
 (define (ran-lift-with-transform transform k-functor f-functor fa)
+  (doc 'export #t)
   (make-ran k-functor
             f-functor
             (lambda (k)
@@ -175,6 +184,7 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; For the common case of Codensity (K = Id, F = M a monad),
 ;;; use codensity-lift which correctly handles the bind operation.
 (define (ran-lift-identity k-functor f-functor fa)
+  (doc 'export #t)
   (make-ran k-functor
             f-functor
             (lambda (k)
@@ -190,6 +200,7 @@ Where computation : (a -> K b) -> F b for all b")
 ;;; This function is preserved for backward compatibility but will
 ;;; raise an error to prevent silent type violations.
 (define (ran-lift k-functor f-functor fa)
+  (doc 'export #t)
   (error 'ran-lift
          "ran-lift is deprecated due to incorrect semantics for K ≠ Id. \
 Use codensity-lift for the Codensity monad (K = Id), or \
@@ -213,28 +224,34 @@ Where k-morphism : K b -> a and f-value : F b")
 ;;; make-lan : Functor -> Functor -> (K b -> a) -> F b -> Lan K F a
 ;;; Create a Left Kan extension value.
 (define (make-lan k-functor f-functor k-morphism f-value)
+  (doc 'export #t)
   (list 'lan k-functor f-functor k-morphism f-value))
 
 ;;; lan? : Any -> Boolean
 (define (lan? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'lan)))
 
 ;;; lan-k : Lan K F a -> Functor
 (define (lan-k lan)
+  (doc 'export #t)
   (list-ref lan 1))
 
 ;;; lan-f : Lan K F a -> Functor
 (define (lan-f lan)
+  (doc 'export #t)
   (list-ref lan 2))
 
 ;;; lan-morphism : Lan K F a -> (K b -> a)
 ;;; Get the K-morphism.
 (define (lan-morphism lan)
+  (doc 'export #t)
   (list-ref lan 3))
 
 ;;; lan-value : Lan K F a -> F b
 ;;; Get the F-value.
 (define (lan-value lan)
+  (doc 'export #t)
   (list-ref lan 4))
 
 ;;; ====
@@ -247,6 +264,7 @@ Where k-morphism : K b -> a and f-value : F b")
 ;;; lan-fmap : (a -> b) -> Lan K F a -> Lan K F b
 ;;; Functor instance for Lan K F.
 (define (lan-fmap f lan)
+  (doc 'export #t)
   (make-lan (lan-k lan)
             (lan-f lan)
             (compose2 f (lan-morphism lan))
@@ -255,6 +273,7 @@ Where k-morphism : K b -> a and f-value : F b")
 ;;; functor-lan : Functor -> Functor -> Functor
 ;;; Create the functor instance for Lan K F.
 (define (functor-lan k-functor f-functor)
+  (doc 'export #t)
   (make-functor
    (lambda (f lan)
      (lan-fmap f lan))))
@@ -272,12 +291,14 @@ Where k-morphism : K b -> a and f-value : F b")
 ;;; lan-inject : F b -> (K b -> a) -> Lan K F a
 ;;; Inject an F-value with a K-morphism.
 (define (lan-inject k-functor f-functor f-value k-morphism)
+  (doc 'export #t)
   (make-lan k-functor f-functor k-morphism f-value))
 
 ;;; lan-lower : ((F b -> G (K b)) for all b) -> Lan K F a -> G a
 ;;; Given a natural transformation F => G . K, lower Lan to G.
 ;;; This is the universal property in action.
 (define (lan-lower nat-transform lan g-fmap)
+  (doc 'export #t)
   (let* ([fb (lan-value lan)]
          [k-morph (lan-morphism lan)]
          ;; Apply nat-transform to get G (K b)
@@ -326,20 +347,24 @@ the (a -> M r) functions waiting to be applied.")
 
 ;;; make-codensity : (a -> M a) -> ((a -> M r) -> M r) -> Codensity M a
 (define (make-codensity m-return run-computation)
+  (doc 'export #t)
   (list 'codensity m-return run-computation))
 
 ;;; codensity? : Any -> Boolean
 (define (codensity? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'codensity)))
 
 ;;; codensity-return-fn : Codensity M a -> (a -> M a)
 ;;; Get the underlying monad's return.
 (define (codensity-return-fn c)
+  (doc 'export #t)
   (list-ref c 1))
 
 ;;; codensity-run : Codensity M a -> ((a -> M r) -> M r)
 ;;; Get the run function.
 (define (codensity-run c)
+  (doc 'export #t)
   (list-ref c 2))
 
 ;;; ====
@@ -350,6 +375,7 @@ the (a -> M r) functions waiting to be applied.")
 ;;; Monadic return for Codensity.
 ;;; return x = \k -> k x
 (define (codensity-return m-return x)
+  (doc 'export #t)
   (make-codensity m-return
                   (lambda (k) (k x))))
 
@@ -361,6 +387,7 @@ the (a -> M r) functions waiting to be applied.")
 ;;;
 ;;; Instead of traversing structure, we compose continuations.
 (define (codensity-bind ca f)
+  (doc 'export #t)
   (let ([m-return (codensity-return-fn ca)]
         [run-a (codensity-run ca)])
     (make-codensity
@@ -375,6 +402,7 @@ the (a -> M r) functions waiting to be applied.")
 ;;; codensity-map : (a -> b) -> Codensity M a -> Codensity M b
 ;;; Functor instance.
 (define (codensity-map f ca)
+  (doc 'export #t)
   (codensity-bind ca
                   (lambda (a)
                     (codensity-return (codensity-return-fn ca) (f a)))))
@@ -389,6 +417,7 @@ the (a -> M r) functions waiting to be applied.")
 ;;;
 ;;; lift m = \k -> m >>= k
 (define (codensity-lift m-return m-bind ma)
+  (doc 'export #t)
   (make-codensity m-return
                   (lambda (k)
                     (m-bind ma k))))
@@ -399,6 +428,7 @@ the (a -> M r) functions waiting to be applied.")
 ;;;
 ;;; lower c = run_c return
 (define (codensity-lower ca)
+  (doc 'export #t)
   (let ([m-return (codensity-return-fn ca)]
         [run (codensity-run ca)])
     (run m-return)))
@@ -440,12 +470,14 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 ;;; Use codensity-bind for monadic composition (O(1)).
 ;;; For list concatenation with O(1) append, use dlist-* instead.
 (define (codensity-list-singleton x)
+  (doc 'export #t)
   (make-codensity list
                   (lambda (k) (k x))))
 
 ;;; codensity-list-lower : Codensity List a -> List a
 ;;; Lower Codensity back to a regular list.
 (define (codensity-list-lower c)
+  (doc 'export #t)
   ((codensity-run c) list))
 
 ;;; ====
@@ -461,14 +493,17 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 ;;; make-dlist : ([a] -> [a]) -> DList a
 ;;; Create a difference list from a prepend function.
 (define (make-dlist prepend-fn)
+  (doc 'export #t)
   (list 'dlist prepend-fn))
 
 ;;; dlist? : Any -> Boolean
 (define (dlist? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'dlist)))
 
 ;;; dlist-prepend : DList a -> ([a] -> [a])
 (define (dlist-prepend dl)
+  (doc 'export #t)
   (cadr dl))
 
 ;;; dlist-empty : DList a
@@ -479,17 +514,20 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 ;;; dlist-singleton : a -> DList a
 ;;; O(1) - create a single-element difference list.
 (define (dlist-singleton x)
+  (doc 'export #t)
   (make-dlist (lambda (tail) (cons x tail))))
 
 ;;; dlist-from-list : [a] -> DList a
 ;;; O(n) - convert a list to a difference list.
 (define (dlist-from-list xs)
+  (doc 'export #t)
   (make-dlist (lambda (tail) (append xs tail))))
 
 ;;; dlist-append : DList a -> DList a -> DList a
 ;;; O(1)! - append two difference lists via function composition.
 ;;; This is the key operation that makes difference lists useful.
 (define (dlist-append dl1 dl2)
+  (doc 'export #t)
   (make-dlist (lambda (tail)
                 ((dlist-prepend dl1)
                  ((dlist-prepend dl2) tail)))))
@@ -497,24 +535,28 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 ;;; dlist-cons : a -> DList a -> DList a
 ;;; O(1) - prepend an element.
 (define (dlist-cons x dl)
+  (doc 'export #t)
   (make-dlist (lambda (tail)
                 (cons x ((dlist-prepend dl) tail)))))
 
 ;;; dlist-snoc : DList a -> a -> DList a
 ;;; O(1) - append an element to the end.
 (define (dlist-snoc dl x)
+  (doc 'export #t)
   (dlist-append dl (dlist-singleton x)))
 
 ;;; dlist-to-list : DList a -> [a]
 ;;; O(n) - convert back to a regular list.
 ;;; This is where all the deferred work happens.
 (define (dlist-to-list dl)
+  (doc 'export #t)
   ((dlist-prepend dl) '()))
 
 ;;; dlist-concat : [DList a] -> DList a
 ;;; O(k) where k is the number of difference lists.
 ;;; The total to-list is still O(n) where n is total elements.
 (define (dlist-concat dls)
+  (doc 'export #t)
   (fold-right dlist-append dlist-empty dls))
 
 ;;; ====
@@ -523,12 +565,14 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 
 ;;; codensity-maybe-return : a -> Codensity Maybe a
 (define (codensity-maybe-return x)
+  (doc 'export #t)
   (make-codensity just
                   (lambda (k) (k x))))
 
 ;;; codensity-maybe-bind : Codensity Maybe a -> (a -> Codensity Maybe b) -> Codensity Maybe b
 ;;; O(1) bind for Maybe via Codensity.
 (define (codensity-maybe-bind ca f)
+  (doc 'export #t)
   (codensity-bind ca f))
 
 ;;; codensity-maybe-fail : Codensity Maybe a
@@ -544,6 +588,7 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 ;;; Create a Codensity monad instance for any monad M.
 ;;; Returns a record of operations.
 (define (make-codensity-monad m-return m-bind)
+  (doc 'export #t)
   (list
    'codensity-monad
    ;; return : a -> Codensity M a
@@ -557,18 +602,22 @@ dlist encoding ([a] -> [a] endomorphisms), not from Codensity's CPS encoding.")
 
 ;;; codensity-monad-return : CodensityMonad M -> (a -> Codensity M a)
 (define (codensity-monad-return cm)
+  (doc 'export #t)
   (list-ref cm 1))
 
 ;;; codensity-monad-bind : CodensityMonad M -> (Codensity M a -> (a -> Codensity M b) -> Codensity M b)
 (define (codensity-monad-bind cm)
+  (doc 'export #t)
   (list-ref cm 2))
 
 ;;; codensity-monad-lift : CodensityMonad M -> (M a -> Codensity M a)
 (define (codensity-monad-lift cm)
+  (doc 'export #t)
   (list-ref cm 3))
 
 ;;; codensity-monad-lower : CodensityMonad M -> (Codensity M a -> M a)
 (define (codensity-monad-lower cm)
+  (doc 'export #t)
   (list-ref cm 4))
 
 (doc 'section 'yoneda-relationship)

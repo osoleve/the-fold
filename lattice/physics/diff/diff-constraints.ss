@@ -32,6 +32,7 @@ Supported constraint types:
 ;;;   stiffness: spring constant (k in F = -kx)
 ;;; Returns force on point a (negate for b).
 (define (traced-spring-force a b rest-length stiffness)
+  (doc 'export #t)
   (let* ([delta (traced-vec2-sub b a)]
          [dist (traced-vec2-smooth-magnitude delta 1e-8)]
          [stretch (traced-sub dist rest-length)]
@@ -45,6 +46,7 @@ Supported constraint types:
 ;;; Spring force with velocity damping.
 ;;;   va, vb: velocities at attachment points
 (define (traced-spring-force-damped a b va vb rest-length stiffness damping)
+  (doc 'export #t)
   (let* ([delta (traced-vec2-sub b a)]
          [dist (traced-vec2-smooth-magnitude delta 1e-8)]
          [dir (traced-vec2-smooth-normalize delta 1e-8)]
@@ -74,6 +76,7 @@ Supported constraint types:
 
 ;;; spring-constraint? : Any → Boolean
 (define (spring-constraint? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'spring-constraint)))
 
 ;;; Spring constraint accessors
@@ -103,6 +106,7 @@ Supported constraint types:
 ;;; make-distance-constraint : Nat × TracedVec2 × Nat × TracedVec2 × Number → DistanceConstraint
 ;;; Create a distance constraint (rigid connection).
 (define (make-distance-constraint body-a-idx anchor-a body-b-idx anchor-b distance)
+  (doc 'export #t)
   (make-spring-constraint body-a-idx anchor-a body-b-idx anchor-b
                           distance
                           *distance-constraint-stiffness*
@@ -120,10 +124,12 @@ Supported constraint types:
 ;;;   local-anchor: attachment point in body-local coordinates
 ;;;   world-target: target position in world coordinates
 (define (make-anchor-constraint body-idx local-anchor world-target stiffness damping)
+  (doc 'export #t)
   (list 'anchor-constraint body-idx local-anchor world-target stiffness damping))
 
 ;;; anchor-constraint? : Any → Boolean
 (define (anchor-constraint? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'anchor-constraint)))
 
 ;;; Anchor constraint accessors
@@ -137,6 +143,7 @@ Supported constraint types:
 ;;; Compute force and torque from anchor constraint.
 ;;; Returns (force-on-body, torque-on-body).
 (define (traced-anchor-force body local-anchor world-target stiffness damping)
+  (doc 'export #t)
   (let* (;; World position of anchor point
          [world-anchor (traced-local-to-world body local-anchor)]
          ;; Velocity at anchor point
@@ -165,10 +172,12 @@ Supported constraint types:
 ;;;   anchor-a: pivot point in body A's local coordinates
 ;;;   anchor-b: pivot point in body B's local coordinates
 (define (make-revolute-joint body-a-idx anchor-a body-b-idx anchor-b stiffness damping)
+  (doc 'export #t)
   (list 'revolute-joint body-a-idx anchor-a body-b-idx anchor-b stiffness damping))
 
 ;;; revolute-joint? : Any → Boolean
 (define (revolute-joint? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'revolute-joint)))
 
 ;;; Revolute joint accessors
@@ -183,6 +192,7 @@ Supported constraint types:
 ;;; Compute forces and torques for revolute joint.
 ;;; Returns ((force-a, torque-a), (force-b, torque-b)).
 (define (traced-revolute-forces body-a anchor-a body-b anchor-b stiffness damping)
+  (doc 'export #t)
   (let* (;; World positions of anchors
          [world-a (traced-local-to-world body-a anchor-a)]
          [world-b (traced-local-to-world body-b anchor-b)]
@@ -240,6 +250,7 @@ Supported constraint types:
 ;;; traced-apply-spring-constraint : (Vector TracedBody) × SpringConstraint × Number → (Vector TracedBody)
 ;;; Apply a spring constraint to the body system.
 (define (traced-apply-spring-constraint bodies spring dt)
+  (doc 'export #t)
   (let* ([idx-a (spring-constraint-body-a spring)]
          [anchor-a (spring-constraint-anchor-a spring)]
          [idx-b (spring-constraint-body-b spring)]
@@ -280,6 +291,7 @@ Supported constraint types:
 ;;; traced-apply-anchor-constraint : (Vector TracedBody) × AnchorConstraint × Number → (Vector TracedBody)
 ;;; Apply an anchor constraint to the body system.
 (define (traced-apply-anchor-constraint bodies anchor dt)
+  (doc 'export #t)
   (let* ([idx (anchor-constraint-body anchor)]
          [local-anchor (anchor-constraint-local-anchor anchor)]
          [world-target (anchor-constraint-world-target anchor)]
@@ -299,6 +311,7 @@ Supported constraint types:
 ;;; traced-apply-revolute-joint : (Vector TracedBody) × RevoluteJoint × Number → (Vector TracedBody)
 ;;; Apply a revolute joint to the body system.
 (define (traced-apply-revolute-joint bodies joint dt)
+  (doc 'export #t)
   (let* ([idx-a (revolute-joint-body-a joint)]
          [anchor-a (revolute-joint-anchor-a joint)]
          [idx-b (revolute-joint-body-b joint)]
@@ -328,6 +341,7 @@ Supported constraint types:
 ;;; traced-apply-constraint : (Vector TracedBody) × Constraint × Number → (Vector TracedBody)
 ;;; Apply any constraint type.
 (define (traced-apply-constraint bodies constraint dt)
+  (doc 'export #t)
   (case (constraint-type constraint)
         [(spring-constraint) (traced-apply-spring-constraint bodies constraint dt)]
         [(anchor-constraint) (traced-apply-anchor-constraint bodies constraint dt)]
@@ -337,6 +351,7 @@ Supported constraint types:
 ;;; traced-apply-all-constraints : (Vector TracedBody) × (List Constraint) × Number → (Vector TracedBody)
 ;;; Apply all constraints to the system.
 (define (traced-apply-all-constraints bodies constraints dt)
+  (doc 'export #t)
   (fold-left
    (lambda (current-bodies constraint)
            (traced-apply-constraint current-bodies constraint dt))
@@ -355,6 +370,7 @@ Supported constraint types:
 ;;; For differentiable physics, use iterations=1 (or small k).
 ;;; Higher iterations improve accuracy but increase gradient complexity.
 (define (traced-constraint-step bodies constraints gravity dt iterations)
+  (doc 'export #t)
   (let loop ([current bodies] [i 0])
        (if (>= i iterations)
            current
@@ -372,6 +388,7 @@ Supported constraint types:
 
 ;;; Helper: vector-map for mutable vectors
 (define (vector-map f v)
+  (doc 'export #t)
   (let* ([n (vector-length v)]
          [result (make-vector n)])
         (do ([i 0 (+ i 1)])
@@ -385,6 +402,7 @@ Supported constraint types:
 ;;; make-pendulum-system : TracedVec2 × Number × Number × Number × Tape → (TracedBody × AnchorConstraint)
 ;;; Create a single pendulum bob anchored at a pivot.
 (define (make-pendulum-system pivot length mass radius tape)
+  (doc 'export #t)
   (let* (;; Bob starts directly below pivot
          [bob-pos (lift-vec2 (vec2 (vec2-x pivot) (- (vec2-y pivot) length)) tape)]
          [bob-vel (lift-vec2 (vec2-zero) tape)]
@@ -404,6 +422,7 @@ Supported constraint types:
 ;;; make-chain-system : TracedVec2 × Number × Number × Number × Number × Tape → (Vector TracedBody × List Constraint)
 ;;; Create a chain of linked bodies.
 (define (make-chain-system start-pos num-links link-length mass radius tape)
+  (doc 'export #t)
   (let* ([inertia (circle-inertia mass radius)]
          ;; Create bodies
          [bodies

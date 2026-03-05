@@ -15,10 +15,12 @@
 (doc 'section 'core-representation)
 
 (define avl-empty 'avl-empty)
+(doc avl-empty 'export #t)
 (doc avl-empty 'type 'AVL)
 (doc avl-empty 'description "The empty AVL tree")
 
 (define (avl-empty? tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL Boolean))
   (doc 'description "Check if tree is empty")
   (eq? tree 'avl-empty))
@@ -29,27 +31,34 @@
   (list 'avl-node height key value left right))
 
 (define (avl-node? x)
+  (doc 'export #t)
   (doc 'type '(-> Any Boolean))
   (and (pair? x) (eq? (car x) 'avl-node)))
 
 (define (avl-height tree)
+  (doc 'export #t)
   (if (avl-empty? tree) 0 (cadr tree)))
 
 (define (avl-key tree)
+  (doc 'export #t)
   (caddr tree))
 
 (define (avl-value tree)
+  (doc 'export #t)
   (cadddr tree))
 
 (define (avl-left tree)
+  (doc 'export #t)
   (car (cddddr tree)))
 
 (define (avl-right tree)
+  (doc 'export #t)
   (cadr (cddddr tree)))
 
 (doc 'section 'smart-constructor-and-rotations)
 
 (define (avl-balance-factor tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL Int))
   (doc 'description "Compute balance factor: height(left) - height(right). AVL invariant: -1 <= balance-factor <= 1")
   (if (avl-empty? tree)
@@ -115,11 +124,13 @@
 (doc 'section 'basic-operations)
 
 (define (avl-lookup key tree)
+  (doc 'export #t)
   (doc 'type '(-> κ AVL (Maybe α)))
   (doc 'description "Look up value by key. Returns #f if not found")
   (avl-lookup-by < key tree))
 
 (define (avl-lookup-by cmp key tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ κ Boolean) κ AVL (Maybe α)))
   (doc 'description "Look up with custom comparator")
   (if (avl-empty? tree)
@@ -131,11 +142,13 @@
           [else (avl-value tree)]))))
 
 (define (avl-contains? key tree)
+  (doc 'export #t)
   (doc 'type '(-> κ AVL Boolean))
   (doc 'description "Check if key exists in tree")
   (avl-contains-by? < key tree))
 
 (define (avl-contains-by? cmp key tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ κ Boolean) κ AVL Boolean))
   (if (avl-empty? tree)
       #f
@@ -146,11 +159,13 @@
           [else #t]))))
 
 (define (avl-insert key value tree)
+  (doc 'export #t)
   (doc 'type '(-> κ α AVL AVL))
   (doc 'description "Insert key-value pair. If key exists, updates value")
   (avl-insert-by < key value tree))
 
 (define (avl-insert-by cmp key value tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ κ Boolean) κ α AVL AVL))
   (doc 'description "Insert with custom comparator")
   (if (avl-empty? tree)
@@ -170,6 +185,7 @@
 (doc 'section 'deletion)
 
 (define (avl-min-node tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL (Pair κ α)))
   (doc 'description "Find minimum key-value pair")
   (if (avl-empty? tree)
@@ -179,6 +195,7 @@
           (avl-min-node (avl-left tree)))))
 
 (define (avl-max-node tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL (Pair κ α)))
   (doc 'description "Find maximum key-value pair")
   (if (avl-empty? tree)
@@ -188,11 +205,13 @@
           (avl-max-node (avl-right tree)))))
 
 (define (avl-delete-min tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL AVL))
   (doc 'description "Delete minimum element")
   (avl-delete-min-by < tree))
 
 (define (avl-delete-min-by cmp tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ κ Boolean) AVL AVL))
   (if (avl-empty? tree)
       (error 'avl-delete-min "Cannot delete from empty tree")
@@ -203,11 +222,13 @@
                                     (avl-right tree))))))
 
 (define (avl-delete key tree)
+  (doc 'export #t)
   (doc 'type '(-> κ AVL AVL))
   (doc 'description "Delete key from tree. Returns unchanged tree if key not found")
   (avl-delete-by < key tree))
 
 (define (avl-delete-by cmp key tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ κ Boolean) κ AVL AVL))
   (if (avl-empty? tree)
       tree
@@ -233,26 +254,31 @@
 (doc 'section 'accessors)
 
 (define (avl-min tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL κ))
   (doc 'description "Get minimum key")
   (car (avl-min-node tree)))
 
 (define (avl-max tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL κ))
   (doc 'description "Get maximum key")
   (car (avl-max-node tree)))
 
 (define (avl-min-value tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL α))
   (doc 'description "Get value associated with minimum key")
   (cdr (avl-min-node tree)))
 
 (define (avl-max-value tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL α))
   (doc 'description "Get value associated with maximum key")
   (cdr (avl-max-node tree)))
 
 (define (avl-size tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL Nat))
   (doc 'description "Get number of elements. O(n)")
   (if (avl-empty? tree)
@@ -262,6 +288,7 @@
 (doc 'section 'conversions)
 
 (define (avl->list tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL (List (Pair κ α))))
   (doc 'description "Convert to sorted association list (in-order traversal)")
   (if (avl-empty? tree)
@@ -271,16 +298,19 @@
               (avl->list (avl-right tree)))))
 
 (define (avl-keys tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL (List κ)))
   (doc 'description "Get all keys in sorted order")
   (map car (avl->list tree)))
 
 (define (avl-values tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL (List α)))
   (doc 'description "Get all values in key-sorted order")
   (map cdr (avl->list tree)))
 
 (define (list->avl lst)
+  (doc 'export #t)
   (doc 'type '(-> (List (Pair κ α)) AVL))
   (doc 'description "Build tree from association list")
   (fold-left (lambda (tree pair)
@@ -289,6 +319,7 @@
              lst))
 
 (define (avl-from-keys keys)
+  (doc 'export #t)
   (doc 'type '(-> (List κ) AVL))
   (doc 'description "Build tree from keys (values are the keys themselves)")
   (fold-left (lambda (tree key)
@@ -299,6 +330,7 @@
 (doc 'section 'higher-order-operations)
 
 (define (avl-fold f init tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> β κ α β) β AVL β))
   (doc 'description "Fold over tree in key order (left-to-right)")
   (if (avl-empty? tree)
@@ -310,6 +342,7 @@
                 (avl-right tree))))
 
 (define (avl-fold-right f init tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ α β β) β AVL β))
   (doc 'description "Fold over tree in reverse key order (right-to-left)")
   (if (avl-empty? tree)
@@ -321,6 +354,7 @@
                       (avl-left tree))))
 
 (define (avl-map f tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> α β) AVL[κ,α] AVL[κ,β]))
   (doc 'description "Map function over values, preserving tree structure")
   (if (avl-empty? tree)
@@ -331,6 +365,7 @@
                      (avl-map f (avl-right tree)))))
 
 (define (avl-filter pred tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ α Boolean) AVL AVL))
   (doc 'description "Filter tree by predicate on key-value pairs")
   (avl-fold (lambda (acc k v)
@@ -343,11 +378,13 @@
 (doc 'section 'range-queries)
 
 (define (avl-range lo hi tree)
+  (doc 'export #t)
   (doc 'type '(-> κ κ AVL (List (Pair κ α))))
   (doc 'description "Get all key-value pairs where lo <= key <= hi")
   (avl-range-by < lo hi tree))
 
 (define (avl-range-by cmp lo hi tree)
+  (doc 'export #t)
   (doc 'type '(-> (-> κ κ Boolean) κ κ AVL (List (Pair κ α))))
   (if (avl-empty? tree)
       '()
@@ -365,11 +402,13 @@
              '())))))
 
 (define (avl-keys-between lo hi tree)
+  (doc 'export #t)
   (doc 'type '(-> κ κ AVL (List κ)))
   (doc 'description "Get all keys in range [lo, hi]")
   (map car (avl-range lo hi tree)))
 
 (define (avl-less-than bound tree)
+  (doc 'export #t)
   (doc 'type '(-> κ AVL (List (Pair κ α))))
   (doc 'description "Get all pairs with key < bound")
   (if (avl-empty? tree)
@@ -382,6 +421,7 @@
             (avl-less-than bound (avl-left tree))))))
 
 (define (avl-greater-than bound tree)
+  (doc 'export #t)
   (doc 'type '(-> κ AVL (List (Pair κ α))))
   (doc 'description "Get all pairs with key > bound")
   (if (avl-empty? tree)
@@ -396,6 +436,7 @@
 (doc 'section 'set-operations)
 
 (define (avl-set-insert key tree)
+  (doc 'export #t)
   (doc 'type '(-> κ AVL AVL))
   (doc 'description "Insert key as a set element (value = key)")
   (avl-insert key key tree))
@@ -405,16 +446,19 @@
 (define avl-set-member? avl-contains?)
 
 (define (avl-set-union t1 t2)
+  (doc 'export #t)
   (doc 'type '(-> AVL AVL AVL))
   (doc 'description "Union of two sets")
   (avl-fold (lambda (acc k v) (avl-set-insert k acc)) t1 t2))
 
 (define (avl-set-intersection t1 t2)
+  (doc 'export #t)
   (doc 'type '(-> AVL AVL AVL))
   (doc 'description "Intersection of two sets")
   (avl-filter (lambda (k v) (avl-contains? k t2)) t1))
 
 (define (avl-set-difference t1 t2)
+  (doc 'export #t)
   (doc 'type '(-> AVL AVL AVL))
   (doc 'description "Set difference (t1 - t2)")
   (avl-filter (lambda (k v) (not (avl-contains? k t2))) t1))
@@ -422,6 +466,7 @@
 (doc 'section 'verification)
 
 (define (avl-valid? tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL Boolean))
   (doc 'description "Check if tree satisfies AVL invariant")
   (if (avl-empty? tree)
@@ -433,6 +478,7 @@
              (avl-valid? (avl-right tree))))))
 
 (define (avl-bst-valid? tree)
+  (doc 'export #t)
   (doc 'type '(-> AVL Boolean))
   (doc 'description "Check if tree satisfies BST property")
   (avl-bst-valid-range? tree #f #f))

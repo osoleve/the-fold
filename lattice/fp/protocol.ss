@@ -31,10 +31,12 @@ Type Dispatch:
 (doc 'section 'registry)
 
 (define *protocol-registry* hamt-empty)
+(doc *protocol-registry* 'export #t)
 (doc *protocol-registry* 'type '(HAMT Symbol (HAMT Symbol Procedure)))
 (doc *protocol-registry* 'description "Global registry: Protocol Name -> (Type Tag -> Implementation). Structure: HAMT of HAMTs")
 
 (define (register-protocol-impl! protocol-name type-tag impl)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol Procedure Void))
   (doc 'description "Register an implementation for a protocol and type")
   (let ([type-table (hamt-lookup protocol-name *protocol-registry*)])
@@ -42,6 +44,7 @@ Type Dispatch:
       (set! *protocol-registry* (hamt-assoc protocol-name new-type-table *protocol-registry*)))))
 
 (define (get-protocol-impl protocol-name type-tag)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol (Or Procedure #f)))
   (doc 'description "Look up implementation for protocol and type")
   (let ([type-table (hamt-lookup protocol-name *protocol-registry*)])
@@ -49,6 +52,7 @@ Type Dispatch:
          (hamt-lookup type-tag type-table))))
 
 (define (protocol-implementations protocol-name)
+  (doc 'export #t)
   (doc 'type '(-> Symbol (List Symbol)))
   (doc 'description "List all types implementing a protocol")
   (let ([type-table (hamt-lookup protocol-name *protocol-registry*)])
@@ -59,6 +63,7 @@ Type Dispatch:
 (doc 'section 'type-tag-extraction)
 
 (define (get-type-tag obj)
+  (doc 'export #t)
   (doc 'type '(-> Any (Or Symbol #f)))
   (doc 'description "Extract type tag from object. Symbols are their own type tag (for empty collections like 'avl-empty). Tagged lists use (car obj). Returns #f for other values.")
   (cond
@@ -69,6 +74,7 @@ Type Dispatch:
 (doc 'section 'dispatch)
 
 (define (protocol-dispatch protocol-name obj . args)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Any ... Any))
   (doc 'description "Dispatch to implementation based on the first argument's type tag. Raises error if no implementation found")
   (let ([type-tag (get-type-tag obj)])
@@ -84,6 +90,7 @@ Type Dispatch:
       (apply impl obj args))))
 
 (define (protocol-dispatch/default protocol-name obj default-fn . args)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Any Procedure ... Any))
   (doc 'description "Like protocol-dispatch but calls default-fn if no implementation")
   (let ([type-tag (get-type-tag obj)])
@@ -128,16 +135,19 @@ Type Dispatch:
 (doc 'section 'introspection)
 
 (define (protocol-exists? protocol-name)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Boolean))
   (doc 'description "Check if a protocol has any implementations registered")
   (hamt-has-key? protocol-name *protocol-registry*))
 
 (define (type-implements? type-tag protocol-name)
+  (doc 'export #t)
   (doc 'type '(-> Symbol Symbol Boolean))
   (doc 'description "Check if a type implements a protocol")
   (and (get-protocol-impl protocol-name type-tag) #t))
 
 (define (list-protocols)
+  (doc 'export #t)
   (doc 'type '(-> (List Symbol)))
   (doc 'description "List all registered protocol names")
   (hamt-keys *protocol-registry*))

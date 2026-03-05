@@ -38,6 +38,7 @@
 ;;; Local list predicate — avoids dependence on R6RS for-all which can be
 ;;; shadowed by quickcheck's for-all in the interaction environment.
 (define (every pred lst)
+  (doc 'export #t)
   (or (null? lst)
       (and (pred (car lst))
            (every pred (cdr lst)))))
@@ -67,150 +68,191 @@
 ;;; AST node constructors
 
 (define (regex-lit char)
+  (doc 'export #t)
   (doc 'type '(-> Char RegexAST))
   (list 'regex-lit char))
 
 (define (regex-lit? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-lit)))
 
 (define (regex-lit-char x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-dot)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST))
   '(regex-dot))
 
 (define (regex-dot? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-dot)))
 
 (define (regex-class chars negated?)
+  (doc 'export #t)
   (doc 'type '(-> (List Char) Boolean RegexAST))
   (doc 'description "Character class. negated? = #t for [^...]")
   (list 'regex-class chars negated?))
 
 (define (regex-class? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-class)))
 
 (define (regex-class-chars x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-class-negated? x)
+  (doc 'export #t)
   (caddr x))
 
 (define (regex-seq exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List RegexAST) RegexAST))
   (doc 'description "Concatenation of expressions")
   (list 'regex-seq exprs))
 
 (define (regex-seq? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-seq)))
 
 (define (regex-seq-exprs x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-alt exprs)
+  (doc 'export #t)
   (doc 'type '(-> (List RegexAST) RegexAST))
   (doc 'description "Alternation (union) of expressions")
   (list 'regex-alt exprs))
 
 (define (regex-alt? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-alt)))
 
 (define (regex-alt-exprs x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-star expr)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST RegexAST))
   (list 'regex-star expr))
 
 (define (regex-star? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-star)))
 
 (define (regex-star-expr x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-plus expr)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST RegexAST))
   (list 'regex-plus expr))
 
 (define (regex-plus? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-plus)))
 
 (define (regex-plus-expr x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-opt expr)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST RegexAST))
   (list 'regex-opt expr))
 
 (define (regex-opt? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-opt)))
 
 (define (regex-opt-expr x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-group expr)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST RegexAST))
   (doc 'description "Grouping (non-capturing)")
   (list 'regex-group expr))
 
 (define (regex-group? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-group)))
 
 (define (regex-group-expr x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-empty)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST))
   (doc 'description "Empty regex - matches empty string")
   '(regex-empty))
 
 (define (regex-empty? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-empty)))
 
 ;;; Quantifier ranges: {n}, {n,m}, {n,}, {,m}
 (define (regex-repeat expr min max)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST Nat (Option Nat) RegexAST))
   (doc 'description "Bounded repetition. max = #f means unbounded.")
   (list 'regex-repeat expr min max))
 
 (define (regex-repeat? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-repeat)))
 
 (define (regex-repeat-expr x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-repeat-min x)
+  (doc 'export #t)
   (caddr x))
 
 (define (regex-repeat-max x)
+  (doc 'export #t)
   (cadddr x))
 
 ;;; Anchors: ^ (start of string), $ (end of string)
 (define (regex-anchor type)
+  (doc 'export #t)
   (doc 'type '(-> Symbol RegexAST))
   (doc 'description "Zero-width anchor. type = 'start or 'end")
   (list 'regex-anchor type))
 
 (define (regex-anchor? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-anchor)))
 
 (define (regex-anchor-type x)
+  (doc 'export #t)
   (cadr x))
 
 ;;; Lookahead assertions: (?=...) and (?!...)
 (define (regex-lookahead expr positive?)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST Boolean RegexAST))
   (doc 'description "Lookahead assertion. positive? = #t for (?=...), #f for (?!...)")
   (list 'regex-lookahead expr positive?))
 
 (define (regex-lookahead? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'regex-lookahead)))
 
 (define (regex-lookahead-expr x)
+  (doc 'export #t)
   (cadr x))
 
 (define (regex-lookahead-positive? x)
+  (doc 'export #t)
   (caddr x))
 
 ;;; ============================================================
@@ -233,6 +275,7 @@
 
 ;;; Escape sequences
 (define (parse-escape)
+  (doc 'export #t)
   (doc 'type '(Parser Char))
   (parser-bind
    (parser-char #\\)
@@ -250,6 +293,7 @@
 
 ;;; Literal character (not a metachar, or escaped)
 (define (parse-literal)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-map regex-lit
               (parser-or (parse-escape)
@@ -259,12 +303,14 @@
 
 ;;; Dot (any character)
 (define (parse-dot)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-bind (parser-char #\.)
                (lambda (_) (parser-pure (regex-dot)))))
 
 ;;; Character class: [abc] or [^abc] or [a-z]
 (define (parse-class)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-bind
    (parser-char #\[)
@@ -285,6 +331,7 @@
 
 ;;; Class item: single char or range (a-z)
 (define (parse-class-item)
+  (doc 'export #t)
   (doc 'type '(Parser (List Char)))
   (parser-or
    (parser-try (parse-class-range))  ; Use try to backtrack if range fails after consuming start char
@@ -292,6 +339,7 @@
 
 ;;; Character inside a class (handles escapes and literal ']' at start)
 (define (parse-class-char)
+  (doc 'export #t)
   (doc 'type '(Parser Char))
   (parser-or
    (parse-escape)
@@ -300,6 +348,7 @@
 
 ;;; Character range: a-z (but not if dash is at start/end)
 (define (parse-class-range)
+  (doc 'export #t)
   (doc 'type '(Parser (List Char)))
   (parser-bind
    (parse-class-char)
@@ -319,6 +368,7 @@
 
 ;;; Grouped expression: (regex)
 (define (parse-group)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-bind
    (parser-char #\()
@@ -334,6 +384,7 @@
 ;;; Lookahead assertion: (?=...) or (?!...)
 ;;; Wrapped in try for backtracking when used in choice with parse-group
 (define (parse-lookahead)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-try
    (parser-bind
@@ -356,6 +407,7 @@
 
 ;;; Anchor: ^ or $
 (define (parse-anchor)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-or
    (parser-bind (parser-char #\^) (lambda (_) (parser-pure (regex-anchor 'start))))
@@ -363,6 +415,7 @@
 
 ;;; Interval quantifier: {n}, {n,}, {,m}, {n,m}
 (define (parse-interval)
+  (doc 'export #t)
   (doc 'type '(Parser (Pair Nat (Option Nat))))
   (doc 'description "Parse interval quantifier, returns (min . max) where max=#f means unbounded")
   (parser-bind
@@ -399,6 +452,7 @@
 
 ;;; Atom: lookahead | group | class | anchor | dot | literal
 (define (parse-atom)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-choice (list (parse-lookahead)  ; Must come before parse-group
                 (parse-group)
@@ -409,6 +463,7 @@
 
 ;;; Single postfix operator: *, +, ?, or {n,m}
 (define (parse-postfix-op)
+  (doc 'export #t)
   (doc 'type '(Parser (Union Char (Pair Nat (Option Nat)))))
   (parser-or
    (parser-one-of "*+?")
@@ -416,6 +471,7 @@
 
 ;;; Apply a postfix operator to an expression
 (define (apply-postfix-op expr op)
+  (doc 'export #t)
   (cond
    [(char? op)
     (cond
@@ -428,6 +484,7 @@
 
 ;;; Postfix operators: atom followed by *, +, ?, {n,m}
 (define (parse-postfix)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-bind
    (parse-atom)
@@ -439,6 +496,7 @@
 
 ;;; Sequence: one or more postfix expressions concatenated
 (define (parse-seq)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-bind
    (parser-many (parse-postfix))
@@ -451,6 +509,7 @@
 
 ;;; Alternation: seq | seq | ...
 (define (parse-alt)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parser-bind
    (parse-seq)
@@ -465,11 +524,13 @@
 
 ;;; Top-level regex parser
 (define (parse-regex)
+  (doc 'export #t)
   (doc 'type '(Parser RegexAST))
   (parse-alt))
 
 ;;; Parse a regex string into an AST
 (define (regex-parse str)
+  (doc 'export #t)
   (doc 'type '(-> String (Either ParseError RegexAST)))
   (doc 'description "Parse a regex string into an AST")
   (parser-parse (parser-left (parse-regex) parser-eof) str))
@@ -484,6 +545,7 @@
 ;;; Uses the existing FSM library operations
 
 (define (regex-compile ast universe)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST (List Char) FSM))
   (doc 'description "Compile regex AST to NFA using Thompson's construction")
   (cond
@@ -573,6 +635,7 @@
 
 ;;; Helper: compile repeat quantifier {n,m}
 (define (compile-repeat expr min max universe)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST Nat (Option Nat) (List Char) FSM))
   (let ([base (regex-compile expr universe)])
     (cond
@@ -612,6 +675,7 @@
 
 ;;; Helper: compile anchor (^ or $)
 (define (compile-anchor type)
+  (doc 'export #t)
   (doc 'type '(-> Symbol FSM))
   (let ([s0 (fsm-fresh-state "anc")]
         [s1 (fsm-fresh-state "anc")])
@@ -621,6 +685,7 @@
 
 ;;; Helper: compile lookahead assertion
 (define (compile-lookahead expr positive? universe)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST Boolean (List Char) FSM))
   (let ([inner (regex-compile expr universe)]
         [s0 (fsm-fresh-state "la")]
@@ -685,6 +750,7 @@
 (doc 'section 'utilities)
 
 (define (regex-ast->string ast)
+  (doc 'export #t)
   (doc 'type '(-> RegexAST String))
   (doc 'description "Convert regex AST to string representation for debugging")
   (cond

@@ -24,18 +24,22 @@
 (define *wumpus-lcg-m* 2147483648) ; 2^31
 
 (define (make-wumpus-rng seed)
+  (doc 'export #t)
   (modulo (abs seed) *wumpus-lcg-m*))
 
 (define (wumpus-rng-next rng)
+  (doc 'export #t)
   (modulo (+ (* rng *wumpus-lcg-a*) *wumpus-lcg-c*) *wumpus-lcg-m*))
 
 ;;; Return (values index-in-[0,n) next-rng-state)
 (define (wumpus-rng-range rng n)
+  (doc 'export #t)
   (let ([next (wumpus-rng-next rng)])
     (values (modulo (quotient next 65536) n) next)))
 
 ;;; Fisher-Yates shuffle, deterministic from RNG state
 (define (wumpus-rng-shuffle rng lst)
+  (doc 'export #t)
   (let* ([vec (list->vector lst)]
          [len (vector-length vec)])
     (let loop ([i (- len 1)] [r rng])
@@ -104,6 +108,7 @@
 ;;; ====
 
 (define (cave-graph-add-neighbor graph room neighbor)
+  (doc 'export #t)
   (map (lambda (entry)
          (if (eq? (car entry) room)
              (if (memq neighbor (cdr entry))
@@ -115,6 +120,7 @@
 ;;; Build bidirectional adjacency from directed deps.
 ;;; Each dep edge A->B creates tunnels A<->B.
 (define (deps->cave-graph deps)
+  (doc 'export #t)
   (let ([graph (map (lambda (entry) (cons (car entry) '())) deps)])
     (fold-left
       (lambda (g entry)
@@ -127,19 +133,24 @@
       graph deps)))
 
 (define (cave-graph-neighbors graph room)
+  (doc 'export #t)
   (let ([entry (assq room graph)])
     (if entry (cdr entry) '())))
 
 (define (cave-graph-rooms graph)
+  (doc 'export #t)
   (map car graph))
 
 (define (cave-graph-degree graph room)
+  (doc 'export #t)
   (length (cave-graph-neighbors graph room)))
 
 (define (cave-graph-adjacent? graph a b)
+  (doc 'export #t)
   (and (memq b (cave-graph-neighbors graph a)) #t))
 
 (define (cave-graph-add-edge graph a b)
+  (doc 'export #t)
   (cave-graph-add-neighbor
     (cave-graph-add-neighbor graph a b)
     b a))
@@ -149,6 +160,7 @@
 ;;; ====
 
 (define (cave-graph-bfs graph start)
+  (doc 'export #t)
   (let loop ([queue (list start)] [visited '()])
     (if (null? queue)
         visited
@@ -161,6 +173,7 @@
                     (cons room visited)))))))
 
 (define (cave-graph-connected-components graph)
+  (doc 'export #t)
   (let ([rooms (cave-graph-rooms graph)])
     (let loop ([remaining rooms] [components '()])
       (if (null? remaining)
@@ -171,6 +184,7 @@
             (loop remaining* (cons comp components)))))))
 
 (define (cave-graph-highest-degree graph rooms)
+  (doc 'export #t)
   (let loop ([best (car rooms)]
              [best-deg (cave-graph-degree graph (car rooms))]
              [rest (cdr rooms)])
@@ -183,6 +197,7 @@
 ;;; Bridge disconnected components to the largest one via hub nodes.
 ;;; Returns a new graph (pure).
 (define (cave-graph-ensure-connected graph)
+  (doc 'export #t)
   (let ([components (cave-graph-connected-components graph)])
     (if (<= (length components) 1)
         graph
@@ -221,6 +236,7 @@
 ;;; Build a cave-graph from a subset of rooms, keeping only edges
 ;;; where both endpoints are in the set.
 (define (induce-subgraph full-graph rooms)
+  (doc 'export #t)
   (map (lambda (room)
          (cons room (filter (lambda (n) (memq n rooms))
                             (cave-graph-neighbors full-graph room))))
@@ -228,6 +244,7 @@
 
 ;;; Is the room set connected within the full graph?
 (define (wumpus-connected? full-graph rooms)
+  (doc 'export #t)
   (or (null? rooms)
       (let ([reached (cave-graph-bfs (induce-subgraph full-graph rooms)
                                       (car rooms))])
@@ -235,11 +252,13 @@
 
 ;;; Find room with minimum/maximum degree in induced subgraph.
 (define (wumpus-min-deg-room sg rooms)
+  (doc 'export #t)
   (fold-left (lambda (best r)
                (if (< (cave-graph-degree sg r) (cave-graph-degree sg best)) r best))
              (car rooms) (cdr rooms)))
 
 (define (wumpus-max-deg-room sg rooms)
+  (doc 'export #t)
   (fold-left (lambda (best r)
                (if (> (cave-graph-degree sg r) (cave-graph-degree sg best)) r best))
              (car rooms) (cdr rooms)))
@@ -247,6 +266,7 @@
 ;;; Phase 1: Random walk to collect ~target rooms.
 ;;; Walks through full graph but only collects rooms with full-graph degree ≥ 2.
 (define (wumpus-walk full-graph walkable start rng target)
+  (doc 'export #t)
   (let loop ([cur start] [rooms (list start)] [rng rng] [steps 0])
     (if (or (>= (length rooms) target) (>= steps 100))
         (values rooms rng)
@@ -264,6 +284,7 @@
 
 ;;; Phase 2: Trim over-degree hubs by removing their most peripheral neighbors.
 (define (wumpus-trim-hubs full-graph rooms)
+  (doc 'export #t)
   (let loop ([rooms rooms])
     (let* ([sg (induce-subgraph full-graph rooms)]
            [hub (wumpus-max-deg-room sg rooms)])
@@ -295,6 +316,7 @@
 
 ;;; Phase 3: Prune rooms with degree < min-deg.
 (define (wumpus-prune-leaves full-graph rooms)
+  (doc 'export #t)
   (let loop ([rooms rooms])
     (let* ([sg (induce-subgraph full-graph rooms)]
            [leaf (find (lambda (r) (< (cave-graph-degree sg r) *subgraph-min-deg*))
@@ -309,6 +331,7 @@
 
 ;;; Validate: connected, size in bounds, all degrees in [min-deg, max-deg].
 (define (wumpus-subgraph-valid? sg)
+  (doc 'export #t)
   (let ([rooms (cave-graph-rooms sg)])
     (and (>= (length rooms) *subgraph-min*)
          (<= (length rooms) *subgraph-max*)
@@ -321,6 +344,7 @@
 ;;; Main extraction: walk → trim → prune → validate, with retry.
 ;;; Returns (values subgraph rng) or (values #f rng) on exhausted retries.
 (define (extract-playable-subgraph full-graph rng)
+  (doc 'export #t)
   (let* ([walkable (filter (lambda (r) (>= (cave-graph-degree full-graph r) 2))
                            (cave-graph-rooms full-graph))]
          [n-walkable (length walkable)])
@@ -345,6 +369,7 @@
 ;;; ====
 
 (define (make-wumpus-config arrows pits arrow-range max-moves)
+  (doc 'export #t)
   (list 'wumpus-config arrows pits arrow-range max-moves))
 
 (define (wumpus-config-arrows cfg)      (list-ref cfg 1))
@@ -354,6 +379,7 @@
 
 ;; 3 arrows, 3 pits, range 3, 25 moves
 (define (default-wumpus-config)
+  (doc 'export #t)
   (make-wumpus-config 3 3 3 25))
 
 (define *wumpus-arrow-range* 3)
@@ -381,10 +407,12 @@
 (define (wumpus-game-rng g)         (list-ref g 10))
 
 (define (wumpus-terminal? game)
+  (doc 'export #t)
   (not (eq? (wumpus-game-status game) 'active)))
 
 ;;; Functional update: specify only changed fields as key-value pairs.
 (define (wumpus-game-update g . kvs)
+  (doc 'export #t)
   (let loop ([player  (wumpus-game-player-room g)]
              [wumpus  (wumpus-game-wumpus-room g)]
              [pits    (wumpus-game-pit-rooms g)]
@@ -415,10 +443,12 @@
 ;;; ====
 
 (define (wumpus-take lst n)
+  (doc 'export #t)
   (if (or (null? lst) (= n 0)) '()
       (cons (car lst) (wumpus-take (cdr lst) (- n 1)))))
 
 (define (wumpus-make-episode graph config seed)
+  (doc 'export #t)
   (let* ([rng (make-wumpus-rng seed)])
     ;; Extract a playable subgraph (15-25 rooms, degree 2-7)
     (let-values ([(subgraph rng*) (extract-playable-subgraph graph rng)])
@@ -444,6 +474,7 @@
 ;;; ====
 
 (define (wumpus-perceive game)
+  (doc 'export #t)
   (let* ([graph (wumpus-game-cave-graph game)]
          [room (wumpus-game-player-room game)]
          [neighbors (cave-graph-neighbors graph room)]
@@ -462,6 +493,7 @@
 
 ;;; Check and apply timeout if moves exhausted (only when still active)
 (define (wumpus-check-timeout game)
+  (doc 'export #t)
   (if (and (eq? (wumpus-game-status game) 'active)
            (>= (wumpus-game-moves-used game) (wumpus-game-max-moves game)))
       (wumpus-game-update game 'status 'timeout)
@@ -469,6 +501,7 @@
 
 ;;; Trace arrow through a path of rooms. Returns #t if wumpus hit.
 (define (wumpus-follow-arrow graph from-room wumpus-room path)
+  (doc 'export #t)
   (let loop ([current from-room] [remaining path])
     (if (null? remaining)
         #f
@@ -481,6 +514,7 @@
 ;;; 75% chance wumpus moves to random adjacent room after missed shot.
 ;;; If wumpus enters player's room, caller handles eaten status.
 (define (wumpus-maybe-move game)
+  (doc 'export #t)
   (let-values ([(roll rng*) (wumpus-rng-range (wumpus-game-rng game) 100)])
     (if (< roll 75)
         (let ([neighbors (cave-graph-neighbors
@@ -501,6 +535,7 @@
 ;;; Each returns (values updated-game message-string).
 
 (define (wumpus-step-move game room)
+  (doc 'export #t)
   (cond
     [(wumpus-terminal? game)
      (values game "The game is over.")]
@@ -534,6 +569,7 @@
                   (format "You enter the ~a cavern." room))]))]))
 
 (define (wumpus-step-shoot game path)
+  (doc 'export #t)
   (cond
     [(wumpus-terminal? game)
      (values game "The game is over.")]
@@ -577,6 +613,7 @@
                            "Your arrow vanishes into the darkness.")))))]))
 
 (define (wumpus-step-look game)
+  (doc 'export #t)
   (cond
     [(wumpus-terminal? game)
      (values game "The game is over.")]
@@ -591,6 +628,7 @@
 ;;; ====
 
 (define (wumpus-reward game)
+  (doc 'export #t)
   (case (wumpus-game-status game)
     [(won)     1.0]
     [(eaten)  -1.0]
@@ -604,6 +642,7 @@
 ;;; Returns a string resembling an S-expression for HUD display.
 
 (define (wumpus-format-observation game message)
+  (doc 'export #t)
   (let* ([room (wumpus-game-player-room game)]
          [graph (wumpus-game-cave-graph game)]
          [neighbors (cave-graph-neighbors graph room)]

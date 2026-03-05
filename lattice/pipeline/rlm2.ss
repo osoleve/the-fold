@@ -33,9 +33,11 @@
 (doc 'type '(-> String Alist Alist (List Symbol) (List String) Alist (List (Symbol . String)) Any Nat Nat Rlm2State))
 (doc 'description "Create an RLM v2 state — the complete HUD for one agent step")
 (define (make-rlm2-state task plan env loaded notes episodic journal last-result fuel step)
+  (doc 'export #t)
   (list 'rlm2-state task plan env loaded notes episodic journal last-result fuel step))
 
 (define (rlm2-state? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-state)))
 
 (define (rlm2-state-task s)        (list-ref s 1))
@@ -52,6 +54,7 @@
 (doc 'type '(-> String Any Nat Rlm2State))
 (doc 'description "Create an initial state with just task, input as last-result, and fuel budget")
 (define (make-initial-rlm2-state task initial-result fuel)
+  (doc 'export #t)
   (make-rlm2-state task '() '() '() '() '() '() initial-result fuel 0))
 
 ;;; ====
@@ -63,6 +66,7 @@
 (doc 'type '(-> Rlm2State Alist Rlm2State))
 (doc 'description "Return a new state with the plan replaced")
 (define (rlm2-state-with-plan s plan)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) plan (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -72,6 +76,7 @@
 (doc 'type '(-> Rlm2State Alist Rlm2State))
 (doc 'description "Return a new state with the env replaced")
 (define (rlm2-state-with-env s env)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) env
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -81,6 +86,7 @@
 (doc 'type '(-> Rlm2State (List Symbol) Rlm2State))
 (doc 'description "Return a new state with loaded modules replaced")
 (define (rlm2-state-with-loaded s loaded)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    loaded (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -91,6 +97,7 @@
 (doc 'description "Return a new state with a note appended (sliding window, keeps last 5)")
 (define *rlm2-max-notes* 5)
 (define (rlm2-state-add-note s note)
+  (doc 'export #t)
   (let* ([notes (append (rlm2-state-notes s) (list note))]
          [notes (if (> (length notes) *rlm2-max-notes*)
                     (list-tail notes (- (length notes) *rlm2-max-notes*))
@@ -104,6 +111,7 @@
 (doc 'type '(-> Rlm2State (List String) Rlm2State))
 (doc 'description "Return a new state with notes replaced (for compaction)")
 (define (rlm2-state-with-notes s notes)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) notes
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -113,6 +121,7 @@
 (doc 'type '(-> Rlm2State Nat String Symbol Boolean Rlm2State))
 (doc 'description "Return a new state with an episodic entry added: (step-num hash action-type ok?)")
 (define (rlm2-state-add-episodic s step-num cas-hash action-type ok?)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (append (rlm2-state-episodic s)
@@ -124,6 +133,7 @@
 (doc 'type '(-> Rlm2State Any Rlm2State))
 (doc 'description "Return a new state with last-result replaced")
 (define (rlm2-state-with-last-result s result)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -133,6 +143,7 @@
 (doc 'type '(-> Rlm2State Nat Rlm2State))
 (doc 'description "Return a new state with fuel reduced")
 (define (rlm2-state-use-fuel s amount)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -143,6 +154,7 @@
 (doc 'type '(-> Rlm2State Rlm2State))
 (doc 'description "Return a new state with step counter incremented")
 (define (rlm2-state-advance-step s)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -153,6 +165,7 @@
 (doc 'type '(-> Rlm2State Symbol String Rlm2State))
 (doc 'description "Return a new state with a journal entry appended")
 (define (rlm2-state-add-journal s tag text)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s)
@@ -163,6 +176,7 @@
 (doc 'type '(-> Rlm2State (List (Symbol . String)) Rlm2State))
 (doc 'description "Return a new state with journal replaced")
 (define (rlm2-state-with-journal s journal)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) journal
@@ -172,6 +186,7 @@
 (doc 'type '(-> Rlm2State String Rlm2State))
 (doc 'description "Return a new state with the task replaced (for reframe)")
 (define (rlm2-state-with-task s task)
+  (doc 'export #t)
   (make-rlm2-state task (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -181,6 +196,7 @@
 (doc 'type '(-> Rlm2State Nat Rlm2State))
 (doc 'description "Return a new state with fuel set to a specific value (for refueling)")
 (define (rlm2-state-with-fuel s fuel)
+  (doc 'export #t)
   (make-rlm2-state (rlm2-state-task s) (rlm2-state-plan s) (rlm2-state-env s)
                    (rlm2-state-loaded s) (rlm2-state-notes s)
                    (rlm2-state-episodic s) (rlm2-state-journal s)
@@ -196,21 +212,25 @@
 (doc 'type '(-> Rlm2State Boolean))
 (doc 'description "True when the state carries a successful result (submit was accepted)")
 (define (rlm2-state-complete? s)
+  (doc 'export #t)
   (let ([r (rlm2-state-last-result s)])
     (and (pair? r) (eq? (car r) 'rlm2-result))))
 
 (doc 'type '(-> Rlm2State Any))
 (doc 'description "Extract the final result from a completed state")
 (define (rlm2-state-result s)
+  (doc 'export #t)
   (let ([r (rlm2-state-last-result s)])
     (and (pair? r) (eq? (car r) 'rlm2-result) (cadr r))))
 
 (doc 'type '(-> Any Rlm2Result))
 (doc 'description "Wrap a value as a completion result")
 (define (make-rlm2-result value)
+  (doc 'export #t)
   (list 'rlm2-result value))
 
 (define (rlm2-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-result)))
 
 ;;; ====
@@ -222,10 +242,12 @@
 (doc 'type '(-> Rlm2State Boolean))
 (doc 'description "True when the agent has voluntarily paused via (idle)")
 (define (rlm2-state-idle? s)
+  (doc 'export #t)
   (let ([r (rlm2-state-last-result s)])
     (and (pair? r) (eq? (car r) 'rlm2-idle))))
 
 (define (make-rlm2-idle-marker)
+  (doc 'export #t)
   (list 'rlm2-idle))
 
 ;;; ====
@@ -237,9 +259,11 @@
 (doc 'type '(-> Symbol String Nat Nat Rlm2WakeResult))
 (doc 'description "Result of a wake cycle: status, state-hash, remaining fuel, last step number")
 (define (make-rlm2-wake-result status state-hash fuel-remaining last-step)
+  (doc 'export #t)
   (list 'rlm2-wake-result status state-hash fuel-remaining last-step))
 
 (define (rlm2-wake-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-wake-result)))
 
 (define (rlm2-wake-result-status r)         (list-ref r 1))
@@ -262,6 +286,7 @@
         chunk-size max-depth loop-window context-budget verifier max-tokens))
 
 (define (rlm2-config? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-config)))
 
 (define (rlm2-config-provider cfg)       (list-ref cfg 1))
@@ -278,16 +303,19 @@
 (doc 'type '(-> Rlm2Config (List Msg)))
 (doc 'description "Few-shot examples as user/assistant message pairs. Empty list if not set.")
 (define (rlm2-config-few-shot cfg)
+  (doc 'export #t)
   (if (> (length cfg) 11) (list-ref cfg 11) '()))
 
 (doc 'type '(-> Rlm2Config (List Action)))
 (doc 'description "Setup actions to replay before the main loop. List of (load ...), (store ...), (eval ...) sexps. Empty list if not set.")
 (define (rlm2-config-setup cfg)
+  (doc 'export #t)
   (if (> (length cfg) 12) (list-ref cfg 12) '()))
 
 (doc 'type '(-> RlmProvider String Rlm2Config))
 (doc 'description "Sensible defaults: 20 steps, 50k fuel, 2k chunks, depth 2, window 3, 8k budget, no verifier, 2048 max-tokens")
 (define (make-rlm2-config-default provider system-prompt)
+  (doc 'export #t)
   (make-rlm2-config provider system-prompt
                     20     ; max-steps
                     50000  ; max-fuel
@@ -301,6 +329,7 @@
 (doc 'type '(-> Rlm2State Rlm2Config Boolean))
 (doc 'description "True when fuel or steps are exhausted")
 (define (rlm2-state-exhausted? s cfg)
+  (doc 'export #t)
   (or (<= (rlm2-state-fuel s) 0)
       (>= (rlm2-state-step s) (rlm2-config-max-steps cfg))))
 
@@ -334,6 +363,7 @@
 (doc 'type '(-> Any Boolean))
 (doc 'description "True if x is a well-formed action (tagged list with known type)")
 (define (rlm2-action? x)
+  (doc 'export #t)
   (and (pair? x)
        (symbol? (car x))
        (memq (car x) *rlm2-action-types*)
@@ -374,6 +404,7 @@
 ;;; Unquote helper: (quote x) -> x, else identity.
 ;;; After `read`, model output like (peek 'x) has (quote x) as the arg.
 (define (rlm2-unquote arg)
+  (doc 'export #t)
   (if (and (pair? arg) (eq? (car arg) 'quote) (pair? (cdr arg)))
       (cadr arg)
       arg))
@@ -459,6 +490,7 @@
 (doc 'type '(-> Symbol (Maybe (U Nat (Pair Nat Nat)))))
 (doc 'description "Look up expected arity for an action type. #f for variadic (begin). (min . max) for range.")
 (define (rlm2-action-expected-arity type)
+  (doc 'export #t)
   (let ([entry (assq type *rlm2-action-arity*)])
     (and entry (cdr entry))))
 
@@ -471,6 +503,7 @@
 (doc 'type '(-> Any (Result Action String)))
 (doc 'description "Validate an S-expression as a well-formed action. Returns (ok action) or (err reason).")
 (define (rlm2-validate-action expr)
+  (doc 'export #t)
   (cond
     [(not (pair? expr))
      (list 'err "Action must be a list")]
@@ -527,9 +560,11 @@
 (doc 'type '(-> (Maybe String) Action ActResult))
 (doc 'description "Package agent output: optional raw thought + parsed action")
 (define (make-rlm2-act-result thought action)
+  (doc 'export #t)
   (list 'rlm2-act-result thought action))
 
 (define (rlm2-act-result? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-act-result)))
 
 (define (rlm2-act-result-thought r) (list-ref r 1))
@@ -544,9 +579,11 @@
 (doc 'type '(-> Symbol Any Any Boolean Rlm2Observation))
 (doc 'description "Record an action's execution result")
 (define (make-rlm2-observation action-type target value ok?)
+  (doc 'export #t)
   (list 'rlm2-observation action-type target value ok?))
 
 (define (rlm2-observation? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-observation)))
 
 (define (rlm2-observation-action-type o) (list-ref o 1))
@@ -563,9 +600,11 @@
 (doc 'type '(-> Nat Action Rlm2Observation String String Rlm2StepRecord))
 (doc 'description "Immutable record of a single v2 step — stored in CAS")
 (define (make-rlm2-step-record step-num action observation note state-hash)
+  (doc 'export #t)
   (list 'rlm2-step step-num action observation note state-hash))
 
 (define (rlm2-step-record? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-step)))
 
 (define (rlm2-step-record-num r)         (list-ref r 1))
@@ -589,6 +628,7 @@
         steps total-fuel status started finished depth))
 
 (define (rlm2-trajectory? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-trajectory)))
 
 (define (rlm2-trajectory-config-hash t) (list-ref t 1))
@@ -614,6 +654,7 @@
 (doc 'type '(-> Rlm2State Symbol String))
 (doc 'description "Create a semantic fingerprint from plan status + action type")
 (define (rlm2-semantic-fingerprint state action-type)
+  (doc 'export #t)
   (let* ([plan (rlm2-state-plan state)]
          ;; Guard: only extract status from well-formed alist entries
          [plan-status (map (lambda (item)
@@ -627,6 +668,7 @@
 (doc 'type '(-> (List String) String Nat Boolean))
 (doc 'description "Check if fingerprint appears in recent history window")
 (define (rlm2-loop-detected? history current-fingerprint window-size)
+  (doc 'export #t)
   (let loop ([h history] [k window-size])
     (cond
       [(or (= k 0) (null? h)) #f]
@@ -642,9 +684,11 @@
 (doc 'type '(-> String Symbol Nat Nat Boolean String Rlm2Telemetry))
 (doc 'description "Lightweight telemetry for action logging")
 (define (make-rlm2-telemetry model-id action-type step-num duration-ms ok? detail)
+  (doc 'export #t)
   (list 'rlm2-telemetry model-id action-type step-num duration-ms ok? detail))
 
 (define (rlm2-telemetry? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'rlm2-telemetry)))
 
 (define (rlm2-telemetry-model-id t)    (list-ref t 1))
@@ -663,8 +707,10 @@
 (doc 'type '(-> Rlm2Config String Nat (Stage ctx i o)))
 (doc 'description "Create an RLM v2 effect stage for pipeline composition")
 (define (rlm2-effect config system-prompt max-steps)
+  (doc 'export #t)
   (effect 'rlm2 (list 'run config system-prompt max-steps)))
 
 (define (rlm2-effect? e)
+  (doc 'export #t)
   (and (stage-effect? e)
        (eq? (stage-effect-type e) 'rlm2)))

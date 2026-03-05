@@ -28,11 +28,13 @@
 
 (define (make-constraint type id entity-a entity-b data
                          solver-velocity solver-position cached-lambda)
+  (doc 'export #t)
   (doc 'type '(make-constraint : Symbol x Any x Any x Any x Any x Proc x Proc x Any -> Constraint))
   (list 'constraint type id entity-a entity-b data
         solver-velocity solver-position cached-lambda))
 (doc "constraint? : Any -> Boolean")
 (define (constraint? c)
+  (doc 'export #t)
   (and (pair? c) (eq? (car c) 'constraint)))
 
 (doc "Accessors")
@@ -62,6 +64,7 @@
   (doc 'type '(constraint-cached-lambda : Constraint -> Any))
 
 (define (constraint-with-cached-lambda c new-lambda)
+  (doc 'export #t)
   (doc 'type '(constraint-with-cached-lambda : Constraint x Any -> Constraint))
   (make-constraint (constraint-type c)
                    (constraint-id c)
@@ -78,6 +81,7 @@
 (doc "  (list local-anchor-a local-anchor-b target-distance)")
 
 (define (make-distance-constraint-data local-anchor-a local-anchor-b target-distance)
+  (doc 'export #t)
   (doc 'type '(make-distance-constraint-data : Vec2 x Vec2 x Number -> DistanceData))
   (list local-anchor-a local-anchor-b target-distance))
 
@@ -96,6 +100,7 @@
 (doc "  (list local-anchor-a local-anchor-b)")
 
 (define (make-revolute-constraint-data local-anchor-a local-anchor-b)
+  (doc 'export #t)
   (doc 'type '(make-revolute-constraint-data : Vec2 x Vec2 -> RevoluteData))
   (list local-anchor-a local-anchor-b))
 
@@ -135,6 +140,7 @@
 (doc "  (list local-anchor-a local-anchor-b reference-angle)")
 
 (define (make-weld-constraint-data local-anchor-a local-anchor-b reference-angle)
+  (doc 'export #t)
   (doc 'type '(make-weld-constraint-data : Vec2 x Vec2 x Number -> WeldData))
   (list local-anchor-a local-anchor-b reference-angle))
 
@@ -155,6 +161,7 @@
 (doc 'constraint-anchor-world-a 'type 'World x Constraint -> Vec2)
 (doc "Get world position of anchor A.")
 (define (constraint-anchor-world-a world constraint)
+  (doc 'export #t)
   (let* ([entity-id (constraint-entity-a constraint)]
          [data (constraint-data constraint)]
          [local-anchor (car data)])  ; First element is always local-anchor-a
@@ -164,6 +171,7 @@
 (doc "Get world position of anchor B.")
 (doc "If entity-b is #f, local-anchor-b IS the world position.")
 (define (constraint-anchor-world-b world constraint)
+  (doc 'export #t)
   (let* ([entity-id (constraint-entity-b constraint)]
          [data (constraint-data constraint)]
          [local-anchor (cadr data)])  ; Second element is always local-anchor-b
@@ -174,6 +182,7 @@
 (doc 'constraint-entity-anchor-world 'type 'World x Any x Vec2 -> Vec2)
 (doc "Transform local anchor to world space for an entity.")
 (define (constraint-entity-anchor-world world entity-id local-anchor)
+  (doc 'export #t)
   (let ([entity (world-get-entity world entity-id)])
        (if entity
            (let ([body (entity-body entity)])
@@ -190,6 +199,7 @@
 (doc "Get the two bodies connected by a constraint.")
 (doc "Returns (body-a . body-b) where body-b may be #f for world anchor.")
 (define (constraint-get-bodies world constraint)
+  (doc 'export #t)
   (let* ([id-a (constraint-entity-a constraint)]
          [id-b (constraint-entity-b constraint)]
          [ent-a (world-get-entity world id-a)]

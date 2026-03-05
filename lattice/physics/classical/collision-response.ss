@@ -20,11 +20,13 @@
 (doc "  - contact-point: point of contact")
 
 (define (make-manifold body-a body-b normal penetration contact-point)
+  (doc 'export #t)
   (doc 'type '(make-manifold : Body2D × Body2D × Vec2 × Number × Vec2 → Manifold))
   (list 'manifold body-a body-b normal penetration contact-point))
 
 (doc "manifold? : Any → Boolean")
 (define (manifold? m)
+  (doc 'export #t)
   (and (pair? m) (eq? (car m) 'manifold)))
 
 (define (manifold-body-a m) (list-ref m 1))
@@ -50,11 +52,13 @@
 (doc "  - dynamic-friction: friction when sliding")
 
 (define (make-material restitution static-friction dynamic-friction)
+  (doc 'export #t)
   (doc 'type '(make-material : Number × Number × Number → Material))
   (list 'material restitution static-friction dynamic-friction))
 
 (doc "material? : Any → Boolean")
 (define (material? m)
+  (doc 'export #t)
   (and (pair? m) (eq? (car m) 'material)))
 
 (define (material-restitution m) (list-ref m 1))
@@ -76,6 +80,7 @@
 (doc 'combine-materials 'type 'Material × Material → (Restitution × StaticFriction × DynamicFriction))
 (doc "Combine two materials for collision using geometric mean.")
 (define (combine-materials mat-a mat-b)
+  (doc 'export #t)
   (let ([e-a (material-restitution mat-a)]
         [e-b (material-restitution mat-b)]
         [sf-a (material-static-friction mat-a)]
@@ -91,6 +96,7 @@
 (doc 'velocity-at-point 'type 'Body × Vec2 → Vec2)
 (doc "Get velocity at a world point, including angular contribution for rigid bodies.")
 (define (velocity-at-point body point)
+  (doc 'export #t)
   (if (rigid-body? body)
       (rigid-body-velocity-at body point)
       (body-vel body)))
@@ -98,26 +104,31 @@
 (doc 'relative-velocity-at 'type 'Body × Body × Vec2 → Vec2)
 (doc "Calculate relative velocity at contact point (B relative to A).")
 (define (relative-velocity-at body-a body-b contact)
+  (doc 'export #t)
   (vec2-sub (velocity-at-point body-b contact)
             (velocity-at-point body-a contact)))
 
 (doc "Legacy: simple relative velocity for backwards compatibility")
 (define (relative-velocity body-a body-b)
+  (doc 'export #t)
   (vec2-sub (body-vel body-b) (body-vel body-a)))
 
 (doc 'normal-velocity-at 'type 'Body × Body × Vec2 × Vec2 → Number)
 (doc "Velocity along the collision normal at contact point (positive = approaching).")
 (define (normal-velocity-at body-a body-b contact normal)
+  (doc 'export #t)
   (vec2-dot (relative-velocity-at body-a body-b contact) normal))
 
 (doc 'normal-velocity 'type 'Body2D × Body2D × Vec2 → Number)
 (doc "Legacy: Velocity along normal (no angular).")
 (define (normal-velocity body-a body-b normal)
+  (doc 'export #t)
   (vec2-dot (relative-velocity body-a body-b) normal))
 
 (doc 'tangent-velocity 'type 'Body2D × Body2D × Vec2 → Vec2)
 (doc "Velocity perpendicular to the collision normal.")
 (define (tangent-velocity body-a body-b normal)
+  (doc 'export #t)
   (let* ([rel-vel (relative-velocity body-a body-b)]
          [normal-component (vec2-scale normal (vec2-dot rel-vel normal))])
         (vec2-sub rel-vel normal-component)))
@@ -127,6 +138,7 @@
 (doc 'get-inv-mass 'type 'Body → Number)
 (doc "Get inverse mass from either Body2D or RigidBody2D.")
 (define (get-inv-mass body)
+  (doc 'export #t)
   (if (rigid-body? body)
       (rigid-body-inv-mass body)
       (body-inv-mass body)))
@@ -134,6 +146,7 @@
 (doc 'get-inv-inertia 'type 'Body → Number)
 (doc "Get inverse inertia (0 for non-rigid bodies).")
 (define (get-inv-inertia body)
+  (doc 'export #t)
   (if (rigid-body? body)
       (rigid-body-inv-inertia body)
       0))
@@ -141,6 +154,7 @@
 (doc 'get-body-pos 'type 'Body → Vec2)
 (doc "Get position from either Body2D or RigidBody2D.")
 (define (get-body-pos body)
+  (doc 'export #t)
   (if (rigid-body? body)
       (rigid-body-pos body)
       (body-pos body)))
@@ -149,6 +163,7 @@
 (doc "Calculate normal impulse magnitude including rotational effects.")
 (doc "contact: world space contact point")
 (define (calculate-impulse-with-rotation body-a body-b contact normal restitution)
+  (doc 'export #t)
   (let* ([vel-along-normal (normal-velocity-at body-a body-b contact normal)]
          [inv-mass-a (get-inv-mass body-a)]
          [inv-mass-b (get-inv-mass body-b)]
@@ -175,6 +190,7 @@
 
 (doc "Legacy: calculate-impulse without rotation")
 (define (calculate-impulse body-a body-b normal restitution)
+  (doc 'export #t)
   (let* ([vel-along-normal (normal-velocity body-a body-b normal)]
          [inv-mass-a (body-inv-mass body-a)]
          [inv-mass-b (body-inv-mass body-b)]
@@ -191,6 +207,7 @@
 (doc "j-normal: the normal impulse magnitude")
 (doc "static-friction, dynamic-friction: friction coefficients")
 (define (calculate-friction-impulse body-a body-b normal j-normal static-friction dynamic-friction)
+  (doc 'export #t)
   (let* ([rel-vel (relative-velocity body-a body-b)]
          ;; Get tangent direction
          [normal-component (vec2-scale normal (vec2-dot rel-vel normal))]
@@ -214,6 +231,7 @@
 (doc "body-is-static? : Body → Boolean")
 (doc "Check if body is static (works for both Body2D and RigidBody2D).")
 (define (body-is-static? body)
+  (doc 'export #t)
   (if (rigid-body? body)
       (< (rigid-body-inv-mass body) 0.0001)
       (body-static? body)))
@@ -221,6 +239,7 @@
 (doc 'apply-impulse-at 'type 'Body × Vec2 × Vec2 → Body)
 (doc "Apply an impulse at a contact point, updating both linear and angular velocity.")
 (define (apply-impulse-at body impulse contact)
+  (doc 'export #t)
   (if (body-is-static? body)
       body
       (if (rigid-body? body)
@@ -243,6 +262,7 @@
 
 (doc "Legacy: apply-impulse without rotation")
 (define (apply-impulse body impulse)
+  (doc 'export #t)
   (if (body-static? body)
       body
       (let ([new-vel (vec2-add (body-vel body)
@@ -253,6 +273,7 @@
 (doc "Resolve collision between two bodies using impulse method.")
 (doc "Returns updated bodies.")
 (define (resolve-collision manifold mat-a mat-b)
+  (doc 'export #t)
   (let* ([body-a (manifold-body-a manifold)]
          [body-b (manifold-body-b manifold)]
          [normal (manifold-normal manifold)]
@@ -290,6 +311,7 @@
 (doc 'resolve-collision-with-rotation 'type 'Manifold × Material × Material → (Body × Body))
 (doc "Resolve collision with full angular impulse support for rigid bodies.")
 (define (resolve-collision-with-rotation manifold mat-a mat-b)
+  (doc 'export #t)
   (let* ([body-a (manifold-body-a manifold)]
          [body-b (manifold-body-b manifold)]
          [normal (manifold-normal manifold)]
@@ -353,6 +375,7 @@
 (doc 'body-with-position 'type 'Body × Vec2 → Body)
 (doc "Set position for either Body2D or RigidBody2D.")
 (define (body-with-position body new-pos)
+  (doc 'export #t)
   (if (rigid-body? body)
       (rigid-body-with-pos body new-pos)
       (body-with-pos body new-pos)))
@@ -360,6 +383,7 @@
 (doc 'correct-positions 'type 'Manifold → (Body × Body))
 (doc "Apply position correction to prevent sinking. Works with both Body2D and RigidBody2D.")
 (define (correct-positions manifold)
+  (doc 'export #t)
   (let* ([body-a (manifold-body-a manifold)]
          [body-b (manifold-body-b manifold)]
          [normal (manifold-normal manifold)]
@@ -387,6 +411,7 @@
 (doc 'resolve-with-correction 'type 'Manifold × Material × Material → (Body2D × Body2D))
 (doc "Full collision resolution with impulse and position correction.")
 (define (resolve-with-correction manifold mat-a mat-b)
+  (doc 'export #t)
   (let* ([result (resolve-collision manifold mat-a mat-b)]
          [body-a (car result)]
          [body-b (cadr result)]
@@ -402,6 +427,7 @@
 (doc "Full collision resolution with angular impulse and position correction.")
 (doc "Supports both Body2D and RigidBody2D.")
 (define (resolve-with-rotation-and-correction manifold mat-a mat-b)
+  (doc 'export #t)
   (let* ([result (resolve-collision-with-rotation manifold mat-a mat-b)]
          [body-a (car result)]
          [body-b (cadr result)]
@@ -419,6 +445,7 @@
 (doc "Generate collision manifold for two circles using bodies.")
 (doc "Returns #f if no collision.")
 (define (body-circle-circle-manifold body-a radius-a body-b radius-b)
+  (doc 'export #t)
   (let* ([pos-a (body-pos body-a)]
          [pos-b (body-pos body-b)]
          [diff (vec2-sub pos-b pos-a)]
@@ -439,6 +466,7 @@
 (doc "Generate manifold for circle vs axis-aligned bounding box using bodies.")
 (doc "aabb-min and aabb-max define the box corners.")
 (define (body-circle-aabb-manifold body radius aabb-min aabb-max)
+  (doc 'export #t)
   (let* ([pos (body-pos body)]
          [px (vec2-x pos)]
          [py (vec2-y pos)]
@@ -472,6 +500,7 @@
 (doc "Resolve multiple collisions, returning updated unique bodies.")
 (doc "mat-fn extracts materials for a collision.")
 (define (resolve-all-collisions manifolds mat-fn)
+  (doc 'export #t)
   (if (null? manifolds)
       '()
       ;; Collect all unique bodies
@@ -515,6 +544,7 @@
 (doc 'solve-iterations 'type '(List Manifold) × (Manifold → Material × Material) × Nat → (List Body2D))
 (doc "Iteratively solve collisions for stability (sequential impulses).")
 (define (solve-iterations manifolds mat-fn iterations)
+  (doc 'export #t)
   (if (or (null? manifolds) (= iterations 0))
       (if (null? manifolds)
           '()

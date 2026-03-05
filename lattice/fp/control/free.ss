@@ -10,29 +10,35 @@
 (doc 'description "Free Monad Representation Free f a is either: ('pure a)                    — A pure value ('free functor-value)        — A suspended computation Where functor-value is (f (Free f a))")
 (doc 'layer 'lattice)
 (define (pure-free x)
+  (doc 'export #t)
   (list 'pure x))
 
 ;;; free : f (Free f a) -> Free f a
 ;;; Wrap a functor value.
 (define (free fx)
+  (doc 'export #t)
   (list 'free fx))
 
 ;;; pure-free? : Free f a -> Boolean
 (define (pure-free? fr)
+  (doc 'export #t)
   (and (pair? fr) (eq? (car fr) 'pure)))
 
 ;;; free-suspended? : Free f a -> Boolean
 (define (free-suspended? fr)
+  (doc 'export #t)
   (and (pair? fr) (eq? (car fr) 'free)))
 
 ;;; from-pure-free : Free f a -> a
 ;;; Extract value from Pure (partial).
 (define (from-pure-free fr)
+  (doc 'export #t)
   (cadr fr))
 
 ;;; from-free : Free f a -> f (Free f a)
 ;;; Extract functor value from Free (partial).
 (define (from-free fr)
+  (doc 'export #t)
   (cadr fr))
 
 ;;; ====
@@ -49,6 +55,7 @@
 ;;; free-map : (a -> b) -> (f a -> f b) -> Free f a -> Free f b
 ;;; Map over the Free monad. Requires the underlying functor's fmap.
 (define (free-map f fmap fr)
+  (doc 'export #t)
   (cond
    [(pure-free? fr)
     (pure-free (f (from-pure-free fr)))]
@@ -98,22 +105,27 @@
 
 ;;; make-free-queue : Free f a -> (f a -> f b) -> (List (a -> Free f b)) -> Free-Queue f b
 (define (make-free-queue base fmap conts)
+  (doc 'export #t)
   (list 'free-queue base fmap conts))
 
 ;;; free-queue? : Any -> Boolean
 (define (free-queue? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'free-queue)))
 
 ;;; free-queue-base : Free-Queue f a -> Free f x
 (define (free-queue-base q)
+  (doc 'export #t)
   (list-ref q 1))
 
 ;;; free-queue-fmap : Free-Queue f a -> (f a -> f b)
 (define (free-queue-fmap q)
+  (doc 'export #t)
   (list-ref q 2))
 
 ;;; free-queue-conts : Free-Queue f a -> (List (x -> Free f a))
 (define (free-queue-conts q)
+  (doc 'export #t)
   (list-ref q 3))
 
 ;;; free-bind : (f a -> f b) -> Free f a -> (a -> Free f b) -> Free f b
@@ -122,6 +134,7 @@
 ;;; to the continuation queue instead of rebuilding structure.
 ;;; Note: append is O(queue_length), not O(1). See header for details.
 (define (free-bind fmap fr f)
+  (doc 'export #t)
   (cond
    ;; Pure value: apply continuation immediately (O(1))
    [(pure-free? fr) (f (from-pure-free fr))]
@@ -138,6 +151,7 @@
 ;;; Convert queue form back to standard form for interpretation.
 ;;; This is called by interpreters when they need to process the free monad.
 (define (free-normalize fmap fr)
+  (doc 'export #t)
   (if (free-queue? fr)
       (free-apply-queue (free-queue-fmap fr)
                         (free-queue-base fr)
@@ -148,6 +162,7 @@
 ;;; Apply queued continuations to a free monad.
 ;;; This is where the actual work happens, but only once at run time.
 (define (free-apply-queue fmap fr conts)
+  (doc 'export #t)
   (if (null? conts)
       fr
       (free-apply-queue-step fmap fr conts)))
@@ -155,6 +170,7 @@
 ;;; free-apply-queue-step : (f a -> f b) -> Free f a -> (List (a -> Free f b)) -> Free f b
 ;;; Step through the free monad, threading continuations.
 (define (free-apply-queue-step fmap fr conts)
+  (doc 'export #t)
   (cond
    [(null? conts) fr]
    [(pure-free? fr)
@@ -175,11 +191,13 @@
 ;;; free-then : (f a -> f b) -> Free f a -> Free f b -> Free f b
 ;;; Sequence, discarding first result.
 (define (free-then fmap fr1 fr2)
+  (doc 'export #t)
   (free-bind fmap fr1 (lambda (_) fr2)))
 
 ;;; free-ap : (f a -> f b) -> Free f (a -> b) -> Free f a -> Free f b
 ;;; Applicative apply for Free.
 (define (free-ap fmap fr-f fr-a)
+  (doc 'export #t)
   (free-bind fmap fr-f
              (lambda (f)
                      (free-bind fmap fr-a
@@ -194,6 +212,7 @@
 ;;; Lift a value into a suspended Free using the functor's point.
 ;;; For command-style DSLs, this wraps a command.
 (define (lift-free wrap x)
+  (doc 'export #t)
   (free (wrap (pure-free x))))
 
 ;;; ====
@@ -207,6 +226,7 @@
 ;;; - fmap: the functor's map
 ;;; Handles the queue form by normalizing first.
 (define (fold-free on-pure on-free fmap fr)
+  (doc 'export #t)
   (cond
    [(pure-free? fr)
     (on-pure (from-pure-free fr))]
@@ -220,6 +240,7 @@
 ;;; iter-free : (f a -> a) -> (f a -> f b) -> Free f a -> a
 ;;; Iterate the Free structure, collapsing it to a value.
 (define (iter-free collapse fmap fr)
+  (doc 'export #t)
   (fold-free identity collapse fmap fr))
 
 ;;; run-free : (a -> m a) -> (f (m a) -> m a) -> (f a -> f b) -> Free f a -> m a
@@ -228,6 +249,7 @@
 ;;; - interpret: how to interpret each functor layer into the monad
 ;;; - fmap: the functor's map
 (define (run-free m-pure interpret fmap fr)
+  (doc 'export #t)
   (fold-free m-pure interpret fmap fr))
 
 ;;; ====
@@ -257,21 +279,25 @@
 ;;; kv-get : α → (Free KVF (Maybe β))
 ;;; Get value for key from KV store.
 (define (kv-get key)
+  (doc 'export #t)
   (free (list 'get key pure-free)))
 
 ;;; kv-put : α × β → (Free KVF Unit)
 ;;; Put key-value pair in KV store.
 (define (kv-put key val)
+  (doc 'export #t)
   (free (list 'put key val (pure-free '()))))
 
 ;;; kv-delete : α → (Free KVF Unit)
 ;;; Delete key from KV store.
 (define (kv-delete key)
+  (doc 'export #t)
   (free (list 'delete key (pure-free '()))))
 
 ;;; kv-fmap : (α → β) × (KVF α) → (KVF β)
 ;;; Functor instance for KV commands.
 (define (kv-fmap f cmd)
+  (doc 'export #t)
   (let ([tag (car cmd)])
        (cond
         [(eq? tag 'get)
@@ -293,6 +319,7 @@
 ;;; Interpret KV DSL as stateful computation over an alist.
 ;;; Handles the queue form by normalizing first.
 (define (run-kv program)
+  (doc 'export #t)
   (lambda (store)
           (cond
            [(pure-free? program)
@@ -338,6 +365,7 @@
 ;;; console-print : String → (Free ConsoleF Unit)
 ;;; Print a message to console.
 (define (console-print msg)
+  (doc 'export #t)
   (free (list 'print msg (pure-free '()))))
 
 ;;; console-read : (Free ConsoleF String)
@@ -348,6 +376,7 @@
 ;;; console-fmap : (α → β) × (ConsoleF α) → (ConsoleF β)
 ;;; Functor instance for Console commands.
 (define (console-fmap f cmd)
+  (doc 'export #t)
   (let ([tag (car cmd)])
        (cond
         [(eq? tag 'print)
@@ -363,6 +392,7 @@
 ;;; Pure interpreter: uses list of strings as mock input, collects output.
 ;;; Handles the queue form by normalizing first.
 (define (run-console-pure program inputs)
+  (doc 'export #t)
   (let loop ([prog program] [ins inputs] [outs '()])
        (cond
         [(pure-free? prog)
@@ -392,6 +422,7 @@
 ;;; free-sequence : (f a -> f b) -> (List (Free f a)) -> Free f (List a)
 ;;; Sequence a list of Free computations.
 (define (free-sequence fmap frees)
+  (doc 'export #t)
   (if (null? frees)
       (pure-free '())
       (free-bind fmap (car frees)
@@ -403,11 +434,13 @@
 ;;; free-map-m : (f a -> f b) -> (a -> Free f b) -> (List a) -> Free f (List b)
 ;;; Map a Free-returning function over a list.
 (define (free-map-m fmap f lst)
+  (doc 'export #t)
   (free-sequence fmap (map f lst)))
 
 ;;; free-for-each : (f a -> f b) -> (List a) -> (a -> Free f ()) -> Free f ()
 ;;; Execute a Free action for each element.
 (define (free-for-each fmap lst f)
+  (doc 'export #t)
   (if (null? lst)
       (pure-free '())
       (free-then fmap (f (car lst))
@@ -416,10 +449,12 @@
 ;;; free-when : (f a -> f b) -> Boolean -> Free f () -> Free f ()
 ;;; Conditional execution.
 (define (free-when fmap condition action)
+  (doc 'export #t)
   (if condition action (pure-free '())))
 
 ;;; free-unless : (f a -> f b) -> Boolean -> Free f () -> Free f ()
 (define (free-unless fmap condition action)
+  (doc 'export #t)
   (free-when fmap (not condition) action))
 
 ;;; ====
@@ -432,6 +467,7 @@
 ;;; Extract a list of commands (for debugging/optimization).
 ;;; Handles the queue form by normalizing first.
 (define (free-commands fmap fr)
+  (doc 'export #t)
   (cond
    [(pure-free? fr) '()]
    [(free-queue? fr)
@@ -455,15 +491,18 @@
 ;;; make-coyoneda : (f α) → (Coyoneda f α)
 ;;; Lift a functor value into Coyoneda.
 (define (make-coyoneda fa)
+  (doc 'export #t)
   (list 'coyoneda identity fa))
 
 ;;; coyoneda? : Any → Boolean
 (define (coyoneda? x)
+  (doc 'export #t)
   (and (pair? x) (eq? (car x) 'coyoneda)))
 
 ;;; coyoneda-map : (α → β) × (Coyoneda f α) → (Coyoneda f β)
 ;;; Map over a Coyoneda value.
 (define (coyoneda-map f cy)
+  (doc 'export #t)
   (let ([g (cadr cy)]
         [fa (caddr cy)])
        (list 'coyoneda (compose f g) fa)))
@@ -471,6 +510,7 @@
 ;;; lower-coyoneda : ((α → β) → (f α) → (f β)) × (Coyoneda f α) → (f α)
 ;;; Lower Coyoneda back to the original functor (requires fmap).
 (define (lower-coyoneda fmap cy)
+  (doc 'export #t)
   (let ([f (cadr cy)]
         [fa (caddr cy)])
        (fmap f fa)))
