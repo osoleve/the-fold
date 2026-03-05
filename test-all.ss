@@ -744,7 +744,6 @@
     "meta/test-docs.ss"
     "meta/test-source-loc.ss"
     "meta/test-manifest-optics.ss"
-    "meta/test-cache-migration.ss"
     "meta/test-serendipity.ss"
     "meta/test-module-manifest.ss"
     "meta/test-promotion.ss"

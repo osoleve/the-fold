@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require)
   (load "core/lang/module.ss"))
-;;; @requires optics hamt
+;;; @requires optics hamt sort
 (require 'optics)
 (require 'hamt)
+(require 'sort)
 
 (doc 'module 'optic-query)
 (doc 'description "Optic-Based Query Language")
@@ -330,51 +331,13 @@
 ;;; Get targets sorted by a numeric key (ascending).
 (define (oquery-sort-by s optic key-fn)
   (doc 'export #t)
-  (merge-sort-by key-fn (^.. s optic)))
-
-;;; merge-sort-by : (a → Number) × (List a) → (List a)
-;;; O(N log N) merge sort by key function.
-(define (merge-sort-by key-fn xs)
-  (let ([n (length xs)])
-    (if (<= n 1)
-        xs
-        (let* ([mid (quotient n 2)]
-               [left (take-n mid xs)]
-               [right (drop-n mid xs)])
-          (merge-by key-fn
-                    (merge-sort-by key-fn left)
-                    (merge-sort-by key-fn right))))))
-
-;;; merge-by : (a → Number) × (List a) × (List a) → (List a)
-;;; Merge two sorted lists by key function.
-(define (merge-by key-fn xs ys)
-  (cond
-    [(null? xs) ys]
-    [(null? ys) xs]
-    [(<= (key-fn (car xs)) (key-fn (car ys)))
-     (cons (car xs) (merge-by key-fn (cdr xs) ys))]
-    [else
-     (cons (car ys) (merge-by key-fn xs (cdr ys)))]))
-
-;;; take-n : Nat × (List a) → (List a)
-;;; Take first n elements.
-(define (take-n n xs)
-  (if (or (<= n 0) (null? xs))
-      '()
-      (cons (car xs) (take-n (- n 1) (cdr xs)))))
-
-;;; drop-n : Nat × (List a) → (List a)
-;;; Drop first n elements.
-(define (drop-n n xs)
-  (if (or (<= n 0) (null? xs))
-      xs
-      (drop-n (- n 1) (cdr xs))))
+  (sort-by-key key-fn (^.. s optic)))
 
 ;;; oquery-sort-by-desc : s × Optic s a × (a → Number) → (List a)
 ;;; Get targets sorted by a numeric key (descending).
 (define (oquery-sort-by-desc s optic key-fn)
   (doc 'export #t)
-  (reverse (oquery-sort-by s optic key-fn)))
+  (sort-by-key-desc key-fn (^.. s optic)))
 
 ;;; ============================================================
 ;;; Part 7: Query Builder DSL

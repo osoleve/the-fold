@@ -150,7 +150,7 @@
  (register-module-path! 'collision-detection3d "lattice/physics/classical3d/collision-detection3d.ss")
  (register-module-path! 'constraints3d "lattice/physics/classical3d/constraints3d.ss")
  (register-module-path! 'collision-protocol3d "lattice/physics/classical3d/collision-protocol3d.ss")
- (register-module-path! 'collision-impl3d "lattice/physics/classical3d/collision-impl3d.ss")
+ ;; collision-impl3d merged into world3d.ss
  (register-module-path! 'constraint-solver3d "lattice/physics/classical3d/constraint-solver3d.ss")
  (register-module-path! 'world3d "lattice/physics/classical3d/world3d.ss")
  (register-module-path! 'dynamics-ops "lattice/physics/diff/dynamics-ops.ss")
@@ -376,7 +376,6 @@
  (register-module-path! 'meta/derive-deps "lattice/meta/derive-deps.ss")
  (register-module-path! 'meta/fuel-normalize "lattice/meta/fuel-normalize.ss")
  (register-module-path! 'meta/bm25 "lattice/meta/bm25.ss")
- (register-module-path! 'meta/cache-migration "lattice/meta/cache-migration.ss")
  (register-module-path! 'meta/dag "lattice/meta/dag.ss")
  (register-module-path! 'meta/docs "lattice/meta/docs.ss")
  (register-module-path! 'meta/docstrings "lattice/meta/docstrings.ss")

@@ -1,13 +1,13 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module world3d
-;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d collision-impl3d constraint-solver3d hamt
+;;; @requires prelude vec3 quaternion rigid-body3d shapes3d collision-detection3d collision-protocol3d constraint-solver3d hamt
 (require 'prelude)
 (require 'vec3)
 (require 'quaternion)
 (require 'rigid-body3d)
 (require 'shapes3d)
 (require 'collision-detection3d)
-(require 'collision-impl3d)
+(require 'collision-protocol3d)
 (require 'constraint-solver3d)
 (require 'hamt)
 
@@ -15,6 +15,31 @@
 (doc 'description "3D Physics World - The physics world coordinates all 3D physics components: Body management (add, remove, query), Collision detection (broad + narrow phase), Collision resolution (impulse + correction), Constraint solving, Integration (forces, velocity, position).")
 (doc 'layer 'lattice)
 (doc 'purity 'partial)
+
+;;; ====
+;;; Collision Protocol Registrations for rigid-body-3d
+;;; ====
+;;; (merged from collision-impl3d.ss)
+
+(implement-protocol! 'col3d-inv-mass 'rigid-body-3d
+  rigid-body-3d-inv-mass)
+
+(implement-protocol! 'col3d-inv-inertia-world 'rigid-body-3d
+  rigid-body-3d-world-inv-inertia)
+
+(implement-protocol! 'col3d-static? 'rigid-body-3d
+  rigid-body-3d-static?)
+
+(implement-protocol! 'col3d-pos 'rigid-body-3d
+  rigid-body-3d-pos)
+
+(implement-protocol! 'col3d-vel-at 'rigid-body-3d
+  (lambda (b point)
+    (rigid-body-3d-velocity-at b point)))
+
+(implement-protocol! 'col3d-apply-impulse 'rigid-body-3d
+  (lambda (b impulse contact)
+    (rigid-body-3d-apply-impulse b impulse contact)))
 
 (doc 'section 'physics-entity)
 

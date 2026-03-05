@@ -15,7 +15,6 @@
     shapes3d
     collision-detection3d
     collision-protocol3d
-    collision-impl3d
     constraints3d
     constraint-solver3d
     world3d
