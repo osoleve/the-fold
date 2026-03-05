@@ -12,15 +12,38 @@
 ;;; I/O Orchestration
 ;;; ====
 
+;;; extract-header-description : String -> (Option String)
+;;; Extract @description from a file's header annotations.
+;;; Returns the description string or #f if not found.
+(define (extract-header-description path)
+  (let ([meta (guard (exn [else #f]) (parse-module-metadata path))])
+    (and meta (cdr (assq 'description meta)))))
+
 ;;; extract-docs-from-file : String -> (List (file line tag content target?))
 ;;; Extract all doc forms from a source file.
+;;; When an @description header annotation exists, it replaces any
+;;; module-level (doc 'description ...) form to prevent drift.
 (define (extract-docs-from-file path)
-  (let ([sexps (read-all-sexps path)])
+  (let ([sexps (read-all-sexps path)]
+        [header-desc (extract-header-description path)])
     (if (or (not sexps) (null? sexps))
-        '()
+        ;; Even with no sexps, inject @description if present
+        (if header-desc
+            (list (list path 0 'description (list header-desc) #f))
+            '())
         (let loop ([sexps sexps] [line 1] [acc '()])
           (if (null? sexps)
-              acc
+              (if header-desc
+                  ;; Prepend @description, filtering out the module-level (doc 'description ...)
+                  ;; Only remove untargeted descriptions in the header area (first ~15 lines)
+                  ;; to preserve function-level (doc 'description ...) forms deeper in the file
+                  (cons (list path 0 'description (list header-desc) #f)
+                        (filter (lambda (entry)
+                                  (not (and (eq? (caddr entry) 'description)
+                                            (not (list-ref entry 4))
+                                            (< (cadr entry) 15))))
+                                acc))
+                  acc)
               (let* ([sexp (car sexps)]
                      [docs (extract-docs-from-sexp sexp line)]
                      [tagged (map (lambda (d) (cons path d)) docs)])

@@ -38,23 +38,22 @@
                       (when (< i 8)
                         (let ([line (get-line p)])
                           (when (string? line)
-                            (if (and (> (string-length line) 12)
-                                     (string=? (substring line 0 12) ";;; @module "))
-                                ;; Found annotation — extract name and register
-                                (let* ([name-str (substring line 12 (string-length line))]
-                                       ;; Trim trailing whitespace/comments
-                                       [name-end (let scan ([j 0])
-                                                   (if (or (>= j (string-length name-str))
-                                                           (char=? (string-ref name-str j) #\space)
-                                                           (char=? (string-ref name-str j) #\tab))
-                                                       j
-                                                       (scan (+ j 1))))]
-                                       [name (string->symbol (substring name-str 0 name-end))])
-                                  (unless (hashtable-contains? *module-paths* name)
-                                    (hashtable-set! *module-paths* name path)
-                                    (set! count (+ count 1))))
-                                ;; Not this line — keep scanning
-                                (loop (+ i 1)))))))
+                            (let* ([trimmed (string-trim line)]
+                                   [mod-name
+                                    (and (> (string-length trimmed) 3)
+                                         (string-starts-with? trimmed ";;;")
+                                         (let ([after (string-trim (substring trimmed 3 (string-length trimmed)))])
+                                           (and (string-starts-with? after "@module ")
+                                                (let ([val (string-trim (substring after 8 (string-length after)))])
+                                                  (and (> (string-length val) 0) val)))))])
+                              (if mod-name
+                                  ;; Found annotation — extract name and register
+                                  (let ([name (string->symbol mod-name)])
+                                    (unless (hashtable-contains? *module-paths* name)
+                                      (hashtable-set! *module-paths* name path)
+                                      (set! count (+ count 1))))
+                                  ;; Not this line — keep scanning
+                                  (loop (+ i 1))))))))
                     (close-input-port p)))])))
          (directory-list dir))))
     (scan-dir "core")
