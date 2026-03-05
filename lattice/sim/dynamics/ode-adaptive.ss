@@ -176,14 +176,14 @@ Returns a result alist:
                        (+ steps 1) rejections
                        (cons (cons t-new y-new) traj)))
                ;; Reject step — shrink dt, enforce minimum
-               (let ([dt-new (max (/ dt 2) min-dt)])
-                 (if (<= dt-new min-dt)
-                     ;; Hit minimum dt — accept anyway to avoid infinite loop
-                     (let ([t-new (+ t dt-clamped)])
-                       (loop t-new y-new min-dt
-                             (+ steps 1) (+ rejections 1)
-                             (cons (cons t-new y-new) traj)))
-                     ;; Retry with smaller dt
+               (if (<= dt min-dt)
+                   ;; Already at minimum dt — accept anyway to avoid infinite loop
+                   (let ([t-new (+ t dt-clamped)])
+                     (loop t-new y-new min-dt
+                           (+ steps 1) (+ rejections 1)
+                           (cons (cons t-new y-new) traj)))
+                   ;; Retry with smaller dt
+                   (let ([dt-new (max (/ dt 2) min-dt)])
                      (loop t y dt-new
                            steps (+ rejections 1)
                            traj)))))]))))
