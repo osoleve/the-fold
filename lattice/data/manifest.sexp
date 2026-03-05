@@ -25,6 +25,7 @@
              community-detection label-propagation modularity modularity-ilp
              minimum-spanning-tree mst prim kruskal union-find
              homology betti-numbers simplicial-complex cycle-basis euler-characteristic
+             maximum-matching blossom edmonds matching general-matching
              kdtree kd-tree spatial nearest-neighbor knn range-query delete
              quadtree spatial-index point-query 2d dynamic
              protocol polymorphism dispatch generic collection-protocol
@@ -251,6 +252,9 @@
      max-flow min-cut min-cut-partition
      bipartite-max-matching)
 
+   (graph-matching
+     max-matching perfect-matching? matching-size)
+
    (random-graphs
      erdos-renyi barabasi-albert watts-strogatz)
 
@@ -282,5 +286,6 @@
    (graph-bridge "graph/graph-bridge.ss" "Bidirectional graph-matrix bridge: graph ADT to/from adjacency and Laplacian")
    (graph-filtration "graph/graph-filtration.ss" "Edge-weight filtration to persistent homology")
    (max-flow "graph/max-flow.ss" "Edmonds-Karp max-flow, min-cut, bipartite matching")
+   (graph-matching "graph/graph-matching.ss" "Edmonds' Blossom algorithm for maximum matching in general graphs")
    (random-graphs "graph/random-graphs.ss" "Erdos-Renyi, Barabasi-Albert, Watts-Strogatz generators")
    (spectral-community "graph/spectral-community.ss" "Spectral bipartition and community detection")))

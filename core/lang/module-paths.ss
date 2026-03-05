@@ -79,6 +79,7 @@
  (register-module-path! 'spectral-community "lattice/data/graph/spectral-community.ss")
  (register-module-path! 'shortest-path "lattice/data/graph/shortest-path.ss")
  (register-module-path! 'max-flow "lattice/data/graph/max-flow.ss")
+ (register-module-path! 'graph-matching "lattice/data/graph/graph-matching.ss")
 
  ;; Optics layer
  (register-module-path! 'optics "lattice/optics/optics.ss")
