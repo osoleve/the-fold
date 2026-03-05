@@ -38,10 +38,6 @@
 (define (sort-by-var pairs)
   (sort-by (lambda (a b) (symbol<? (car a) (car b))) pairs))
 
-;;; symbol<? : Symbol × Symbol → Boolean
-(define (symbol<? a b)
-  (string<? (symbol->string a) (symbol->string b)))
-
 ;;; mono-one : → Monomial
 ;;; The constant monomial 1.
 (define (mono-one) '())

@@ -535,12 +535,6 @@
     (and (equal? props1 props2)
          (equal? recvs1 recvs2))))
 
-;;; symbol<? : Symbol × Symbol → Boolean
-;;; Lexicographic comparison for symbols.
-(define (symbol<? a b)
-  (doc 'export #t)
-  (string<? (symbol->string a) (symbol->string b)))
-
 (doc 'section 'ilp-matching)
 (doc 'note "These algorithms use Integer Linear Programming for matching problems that require integral solutions (exact matchings)")
 

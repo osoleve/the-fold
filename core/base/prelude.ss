@@ -835,3 +835,43 @@ arithmetic, comparisons, lambda, if, let, apply.")
                            (loop (cdr cs))
                            cs)))])
         (list->string chars))))
+
+;;; ====
+;;; Comparison Utilities
+;;; ====
+
+(doc symbol<? 'type (-> Symbol Symbol Boolean))
+(doc symbol<? 'description "Lexicographic ordering on symbols.")
+(doc symbol<? 'export #t)
+(define (symbol<? a b)
+  (string<? (symbol->string a) (symbol->string b)))
+
+(doc clamp 'type (-> Number Number Number Number))
+(doc clamp 'description "Clamp x to the range [lo, hi].")
+(doc clamp 'export #t)
+(define (clamp x lo hi)
+  (max lo (min hi x)))
+
+;;; ====
+;;; Numeric Utilities
+;;; ====
+
+(doc factorial 'type (-> Nat Nat))
+(doc factorial 'description "Factorial of n. For non-integer arguments, use gamma from special-functions.")
+(doc factorial 'export #t)
+(define (factorial n)
+  (if (<= n 1) 1 (* n (factorial (- n 1)))))
+
+;;; ====
+;;; Combinatorics
+;;; ====
+
+(doc combinations 'type (-> (List a) Nat (List (List a))))
+(doc combinations 'description "All k-element subsets of lst.")
+(doc combinations 'export #t)
+(define (combinations lst k)
+  (cond [(= k 0) '(())]
+        [(null? lst) '()]
+        [else (append (map (lambda (rest) (cons (car lst) rest))
+                           (combinations (cdr lst) (- k 1)))
+                      (combinations (cdr lst) k))]))

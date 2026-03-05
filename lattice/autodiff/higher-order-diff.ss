@@ -398,9 +398,6 @@
 (define (jet-deriv j k)
   (rec-mul (factorial k) (jet-coeff j k)))
 
-;;; factorial : Nat → Nat
-(define (factorial n)
-  (if (<= n 1) 1 (* n (factorial (- n 1)))))
 
 ;;; jet-value : Jet → Number
 ;;; Get the function value (0-th derivative).

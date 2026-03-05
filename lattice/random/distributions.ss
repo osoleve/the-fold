@@ -89,11 +89,7 @@
                (* 0.5 (log-num (* 2 (pi-value))))
                series)))))
 
-(define (factorial n)
-  (doc 'export #t)
-  (doc 'type '(-> Nat Nat))
-  (doc 'description "Factorial of n")
-  (if (<= n 1) 1 (* n (factorial (- n 1)))))
+
 
 (define (binomial-coeff n k)
   (doc 'export #t)

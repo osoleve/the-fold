@@ -171,11 +171,7 @@
   '(e se sw))
 
 (doc 'section 'utilities)
-
-(define (clamp value min-val max-val)
-  (doc 'type '(-> Number Number Number Number))
-  (doc 'description "Clamp value between min and max")
-  (max min-val (min max-val value)))
+;; clamp is provided by prelude
 
 (define (sign n)
   (doc 'type '(-> Number Number))

@@ -129,17 +129,6 @@
   (doc 'description "Exactly k of vars are true")
   (append (at-least-k vars k) (at-most-k vars k)))
 
-(define (combinations lst k)
-  (doc 'type '(-> (List a) Nat (List (List a))))
-  (doc 'description "Generate all k-combinations of list")
-  (cond
-   [(= k 0) '(())]
-   [(null? lst) '()]
-   [else
-    (append
-     (map (lambda (rest) (cons (car lst) rest))
-          (combinations (cdr lst) (- k 1)))
-     (combinations (cdr lst) k))]))
 
 (doc 'section 'sequential-counter)
 (doc 'note "Sequential counter encoding for at-most-k - O(n*k) clauses instead of O(C(n,k+1))")

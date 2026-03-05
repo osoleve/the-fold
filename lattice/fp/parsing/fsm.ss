@@ -370,11 +370,6 @@
                              (sort-by symbol<? states))
                   "}")))
 
-;;; symbol<? : Symbol × Symbol → Boolean
-(define (symbol<? a b)
-  (doc 'export #t)
-  (string<? (symbol->string a) (symbol->string b)))
-
 (define (nfa->dfa nfa)
   (doc 'export #t)
   (doc 'type '(-> FSM FSM))

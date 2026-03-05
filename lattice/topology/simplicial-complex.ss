@@ -183,19 +183,6 @@
         '()
         (map make-simplex (combinations verts needed)))))
 
-(define (combinations lst k)
-  (doc 'type '(-> (List α) Integer (List (List α))))
-  (doc 'description "Generate all k-combinations of elements from a list")
-  (cond
-    [(= k 0) '(())]
-    [(null? lst) '()]
-    [else
-     (append
-       ; Combinations including first element
-       (map (lambda (c) (cons (car lst) c))
-            (combinations (cdr lst) (- k 1)))
-       ; Combinations not including first element
-       (combinations (cdr lst) k))]))
 
 (define (simplex-all-faces s)
   (doc 'export #t)

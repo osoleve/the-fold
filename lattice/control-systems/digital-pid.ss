@@ -167,13 +167,6 @@
          [new-state (list 'pid-state integral-new error output-clamped)])
         (cons output-clamped new-state)))
 
-;;; clamp : Number × Number × Number → Number
-(define (clamp x min-val max-val)
-  (doc 'export #t)
-  (cond
-   [(< x min-val) min-val]
-   [(> x max-val) max-val]
-   [else x]))
 
 ;;; ====
 ;;; PID with Derivative Filter

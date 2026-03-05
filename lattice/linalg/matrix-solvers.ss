@@ -101,24 +101,8 @@ Dependencies (must be loaded by client in correct order):
 ;;; Determinant
 ;;; ====
 
-;;; permutation-parity : Vec Nat → Int
-;;; Compute the parity of a permutation vector. Returns 1 for even, -1 for odd.
-(define (permutation-parity p)
-  (doc 'export #t)
-  (let* ([n (vector-length p)]
-         [visited (make-vector n #f)])
-        (let loop ([i 0] [swaps 0])
-             (if (= i n)
-                 (if (even? swaps) 1 -1)
-                 (if (vector-ref visited i)
-                     (loop (+ i 1) swaps)
-                     (begin
-                      (let cycle-loop ([curr i] [len 0])
-                           (if (vector-ref visited curr)
-                               (loop (+ i 1) (+ swaps (- len 1)))
-                               (begin
-                                (vector-set! visited curr #t)
-                                (cycle-loop (vector-ref p curr) (+ len 1)))))))))))
+;;; permutation-parity : alias for permutation-sign (from matrix-decomp.ss)
+(define permutation-parity permutation-sign)
 
 ;;; matrix-determinant is now defined in matrix-decomp.ss (alias of matrix-det)
 

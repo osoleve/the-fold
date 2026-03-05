@@ -508,18 +508,7 @@ capped at CONCEPT-BOOST-CAP. Results with no concept match are unchanged.")
                [sorted (sort-by (lambda (a b) (> (cadr a) (cadr b))) all-matches)])
               (take k sorted))))
 
-;;; string-contains? : String String -> Bool
-;;; Check if haystack contains needle
-(define (string-contains? haystack needle)
-  (let ([h-len (string-length haystack)]
-        [n-len (string-length needle)])
-       (if (> n-len h-len)
-           #f
-           (let loop ([i 0])
-                (cond
-                 [(> (+ i n-len) h-len) #f]
-                 [(string=? (substring haystack i (+ i n-len)) needle) #t]
-                 [else (loop (+ i 1))])))))
+;;; string-contains? provided by prelude (via sort → prelude)
 
 ;;; find-module-by-name : Symbol -> (Key . Block) | #f
 ;;; Uses pre-computed *module-cache* for O(N) lookup instead of O(S×M)
