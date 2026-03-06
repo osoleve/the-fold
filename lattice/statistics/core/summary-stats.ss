@@ -184,13 +184,6 @@
 
 ;;; vec-sum : Vec → Num
 ;;; Sum of vector elements.
-(define (vec-sum v)
-  (let ([n (vector-length v)])
-       (let loop ([i 0] [s 0])
-            (if (= i n)
-                s
-                (loop (+ i 1) (+ s (vector-ref v i)))))))
-
 ;;; vec-mean : Vec → Num
 ;;; Mean of vector elements.
 (define (vec-mean v)
