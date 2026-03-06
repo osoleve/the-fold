@@ -408,7 +408,6 @@
 
 (doc 'section 'poisson-laplace)
 
-
 ;;; Jacobi iteration for Poisson (avoids dependency on pde-time)
 ;;; Defined before solve-poisson-1d which calls it
 (define (jacobi-solve A b x0 tol max-iter)

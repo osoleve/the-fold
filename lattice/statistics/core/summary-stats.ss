@@ -182,8 +182,6 @@
 ;;; Vector-Optimized Versions
 ;;; ====
 
-;;; vec-sum : Vec → Num
-;;; Sum of vector elements.
 ;;; vec-mean : Vec → Num
 ;;; Mean of vector elements.
 (define (vec-mean v)
