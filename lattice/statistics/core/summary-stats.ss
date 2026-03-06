@@ -1,8 +1,9 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module summary-stats
-;;; @requires prelude sort
+;;; @requires prelude sort vec
 (require 'prelude)
 (require 'sort)
+(require 'vec)
 
 (doc 'module 'summary-stats)
 (doc 'description "Descriptive Statistics — Basic statistical summary functions")
@@ -219,28 +220,6 @@
 (define (vec-std-dev v)
   (doc 'export #t)
   (sqrt (vec-variance v)))
-
-;;; vec-min : Vec → Num
-;;; Minimum element.
-(define (vec-min v)
-  (let ([n (vector-length v)])
-       (if (= n 0)
-           (error 'vec-min "empty vector")
-           (let loop ([i 1] [m (vector-ref v 0)])
-                (if (= i n)
-                    m
-                    (loop (+ i 1) (min m (vector-ref v i))))))))
-
-;;; vec-max : Vec → Num
-;;; Maximum element.
-(define (vec-max v)
-  (let ([n (vector-length v)])
-       (if (= n 0)
-           (error 'vec-max "empty vector")
-           (let loop ([i 1] [m (vector-ref v 0)])
-                (if (= i n)
-                    m
-                    (loop (+ i 1) (max m (vector-ref v i))))))))
 
 ;;; vec-median : Vec → Num
 ;;; Median of vector elements. Errors on empty vectors.

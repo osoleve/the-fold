@@ -7,6 +7,7 @@
 
 (require 'prelude)
 (require 'iteration)
+(require 'vec)
 (require 'sparse)
 
 (doc 'module 'finite-diff)
@@ -407,18 +408,6 @@
 
 (doc 'section 'poisson-laplace)
 
-;;; Simple vector utilities (avoid circular deps)
-;;; Defined before jacobi-solve which uses them
-(define (vec-sub-simple v1 v2)
-  (vec-tabulate (vector-length v1) i
-    (- (vector-ref v1 i) (vector-ref v2 i))))
-
-(define (vec-norm-simple v)
-  (let ([n (vector-length v)])
-    (sqrt (let loop ([i 0] [sum 0.0])
-            (if (= i n)
-                sum
-                (loop (+ i 1) (+ sum (expt (vector-ref v i) 2))))))))
 
 ;;; Jacobi iteration for Poisson (avoids dependency on pde-time)
 ;;; Defined before solve-poisson-1d which calls it
@@ -431,8 +420,8 @@
     (let loop ([iter 0])
       ;; Compute residual
       (let* ([Ax (sparse-csr-vec-mul A x)]
-             [r (vec-sub-simple b Ax)]
-             [r-norm (vec-norm-simple r)])
+             [r (vec-sub b Ax)]
+             [r-norm (vec-norm r)])
         (if (or (< r-norm tol) (>= iter max-iter))
             (values x r-norm iter)
             ;; Jacobi update: x_new[i] = (b[i] - sum_{j≠i} A[i,j]*x[j]) / A[i,i]

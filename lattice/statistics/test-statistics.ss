@@ -1214,10 +1214,10 @@
               (assert-error (lambda () (vec-median (vector)))))
 
             (define-test "vec-min of empty vector errors"
-              (assert-error (lambda () (vec-min (vector)))))
+              (assert-equal '(error empty-vector) (vec-min (vector))))
 
             (define-test "vec-max of empty vector errors"
-              (assert-error (lambda () (vec-max (vector)))))
+              (assert-equal '(error empty-vector) (vec-max (vector))))
 
             (define-test "vec-sem of empty vector errors"
               (assert-error (lambda () (vec-sem (vector)))))

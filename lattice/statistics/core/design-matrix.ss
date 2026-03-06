@@ -1,10 +1,11 @@
 (unless (top-level-bound? 'require) (load "core/lang/module.ss"))
 ;;; @module design-matrix
-;;; @requires prelude matrix summary-stats iteration
+;;; @requires prelude matrix summary-stats iteration vec
 (require 'prelude)
 (require 'matrix)
 (require 'summary-stats)
 (require 'iteration)
+(require 'vec)
 
 (doc 'module 'design-matrix)
 (doc 'description "Design Matrix Construction — Utilities for constructing design matrices for regression")
@@ -392,7 +393,7 @@
          [ncols (+ degree 1)]
          ;; Standardize for Hermite (Gaussian weighting)
          [mu (vec-mean xs)]
-         [sigma (vec-std xs)]
+         [sigma (vec-std-dev xs)]
          [scale (lambda (x)
                   (if (= sigma 0)
                       0
@@ -434,37 +435,3 @@
                  "unknown basis (use legendre, chebyshev, hermite, or laguerre)"
                  basis)]))
 
-;;; vec-min : Vector → Num
-;;; Errors on empty vectors.
-(define (vec-min v)
-  (let ([n (vector-length v)])
-    (if (= n 0)
-        (error 'vec-min "empty vector")
-        (let loop ([i 1] [m (vector-ref v 0)])
-          (if (= i n)
-              m
-              (loop (+ i 1) (min m (vector-ref v i))))))))
-
-;;; vec-max : Vector → Num
-;;; Errors on empty vectors.
-(define (vec-max v)
-  (let ([n (vector-length v)])
-    (if (= n 0)
-        (error 'vec-max "empty vector")
-        (let loop ([i 1] [m (vector-ref v 0)])
-          (if (= i n)
-              m
-              (loop (+ i 1) (max m (vector-ref v i))))))))
-
-;;; vec-std : Vector → Num
-(define (vec-std v)
-  (let* ([n (vector-length v)]
-         [mu (vec-mean v)])
-    (if (<= n 1)
-        0
-        (let ([ss (let loop ([i 0] [s 0])
-                    (if (= i n)
-                        s
-                        (loop (+ i 1)
-                              (+ s (expt (- (vector-ref v i) mu) 2)))))])
-          (sqrt (/ ss (- n 1)))))))

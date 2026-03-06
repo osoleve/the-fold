@@ -358,22 +358,6 @@ Algorithms:
 ;;; Utility Functions
 ;;; ====
 
-;;; matrix-vec-mul : Matrix × (Vector Number) → (Vector Number)
-;;; Matrix-vector multiplication.
-(define (matrix-vec-mul m v)
-  (let* ([rows (matrix-rows m)]
-         [cols (matrix-cols m)]
-         [result (make-vector rows 0)])
-        (do ([i 0 (+ i 1)])
-            ((= i rows) result)
-            (let ([sum (let inner ([j 0] [s 0])
-                            (if (= j cols)
-                                s
-                                (inner (+ j 1)
-                                       (+ s (* (matrix-ref m i j)
-                                               (vector-ref v j))))))])
-                 (vector-set! result i sum)))))
-
 ;;; matrix-from-data : Nat × Nat × (Vector Number) → Matrix
 ;;; Create matrix from dimensions and data vector.
 ;;; Note: Don't use make-matrix here as it conflicts with linalg's make-matrix
