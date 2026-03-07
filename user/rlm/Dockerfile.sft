@@ -1,0 +1,29 @@
+FROM nvcr.io/nvidia/pytorch:25.11-py3
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+ENV UV_SYSTEM_PYTHON=1
+ENV UV_BREAK_SYSTEM_PACKAGES=1
+ENV TORCH_CUDA_ARCH_LIST="12.0"
+
+WORKDIR /tmp
+
+# causal-conv1d: must build from source for aarch64 + CUDA 13
+RUN git clone https://github.com/Dao-AILab/causal-conv1d.git && \
+    cd causal-conv1d && \
+    pip install --no-build-isolation -e . && \
+    python3 -c "from causal_conv1d import causal_conv1d_fn; print('causal_conv1d CUDA extension OK')"
+
+# fla: Triton kernels for DeltaNet gated delta rule
+RUN uv pip install flash-linear-attention
+
+# Training stack
+RUN uv pip install \
+    trl \
+    peft \
+    accelerate \
+    datasets \
+    optuna \
+    wandb
+
+WORKDIR /workspace

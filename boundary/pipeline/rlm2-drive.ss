@@ -57,6 +57,22 @@
 (define *rlm2-timing-enabled?*
   (and (getenv "RLM_TIMING") #t))
 
+;;; Step viewer — RLM_STEP_VIEW=1 dumps full context at each step
+(define *rlm2-step-view?*
+  (and (getenv "RLM_STEP_VIEW") #t))
+
+(define (rlm2-step-view-header step-num action-type fuel max-fuel)
+  (let ([bar (make-string 47 #\x2550)])  ; ═
+    (format (current-output-port)
+      "\n~a\n STEP ~a  |  ~a  |  fuel: ~a/~a\n~a\n"
+      bar step-num action-type fuel max-fuel bar)
+    (flush-output-port)))
+
+(define (rlm2-step-view-section header text)
+  (let ([pad (make-string (max 0 (- 40 (string-length header))) #\x2500)])  ; ─
+    (format (current-output-port) "\n-- ~a ~a\n~a\n" header pad text)
+    (flush-output-port)))
+
 ;;; Act temperature — overridable via RLM_TEMPERATURE env var (default 0.7)
 (define *rlm2-act-temperature*
   (let ([env (getenv "RLM_TEMPERATURE")])
@@ -91,12 +107,16 @@
     (lambda (st action)
       (let ([type (car action)])
         (case type
-          [(load)  (let ([result (rlm2-exec-load st action)])
-                    (cadr result))]
-          [(store) (let ([result (rlm2-exec-store st action config)])
-                    (cadr result))]
-          [(eval)  (let ([result (rlm2-exec-eval st action config)])
-                    (cadr result))]
+          [(load)    (let ([result (rlm2-exec-load st action)])
+                      (cadr result))]
+          [(store)   (let ([result (rlm2-exec-store st action config)])
+                      (cadr result))]
+          [(eval)    (let ([result (rlm2-exec-eval st action config)])
+                      (cadr result))]
+          [(plan!)   (let ([result (rlm2-exec-plan! st action)])
+                      (cadr result))]
+          [(journal) (let ([result (rlm2-exec-journal st action)])
+                      (cadr result))]
           [else st])))
     state
     setup))
@@ -172,6 +192,24 @@
                               few-shot
                               history-msgs
                               (list (rlm2-make-msg "user" hud)))]
+                  ;; === STEP VIEW: input context ===
+                  [_sv1 (when *rlm2-step-view?*
+                          (rlm2-step-view-header
+                            (rlm2-state-step state) "..."
+                            (rlm2-state-fuel state)
+                            (rlm2-config-max-fuel config))
+                          (rlm2-step-view-section "HUD (user message to model)" hud)
+                          (when (pair? history-msgs)
+                            (rlm2-step-view-section "HISTORY"
+                              (apply string-append
+                                (map (lambda (m)
+                                       (format "[~a]: ~a\n"
+                                         (cdr (assq 'role m))
+                                         (let ([c (cdr (assq 'content m))])
+                                           (if (> (string-length c) 500)
+                                               (string-append (substring c 0 497) "...")
+                                               c))))
+                                     history-msgs)))))]
                   [act-response (rlm-chat (rlm2-config-provider config)
                                           messages (rlm2-config-max-tokens config) *rlm2-act-temperature*)]
                   [t2 (and *rlm2-timing-enabled?* (rlm2-time-ms))])
@@ -197,8 +235,14 @@
                        [action (rlm2-parse-result-action parse-result)]
                        [raw-thought (rlm2-parse-result-thought parse-result)]
                        ;; One-shot retry: if parser fell back to (think ...)
-                       ;; and raw text looks truncated, retry at 8192
+                       ;; because a non-think action was truncated. Skip retry
+                       ;; when the model intended to write a think — detected
+                       ;; by raw text starting with "(think" even if truncated.
+                       [intended-think? (let ([t (rlm2-parse-trim raw-text)])
+                                          (and (> (string-length t) 6)
+                                               (string=? (substring t 0 6) "(think")))]
                        [truncated? (and (rlm2-think? action)
+                                        (not intended-think?)
                                         (rlm2-looks-truncated? raw-text))]
                        ;; Retry with higher budget if truncated
                        [retry-result (and truncated?
@@ -219,6 +263,15 @@
                                         (rlm2-parse-response effective-text))]
                        [action (rlm2-parse-result-action final-parse)]
                        [raw-thought (rlm2-parse-result-thought final-parse)]
+                       ;; === STEP VIEW: model response ===
+                       [_sv2 (when *rlm2-step-view?*
+                               (rlm2-step-view-section "MODEL RESPONSE"
+                                 (if (eq? effective-text raw-text)
+                                     effective-text
+                                     (string-append "[RETRIED] " effective-text)))
+                               (rlm2-step-view-section
+                                 (format "PARSED -> ~a" (rlm2-action-type action))
+                                 (format "~s" action)))]
                        ;; === EXECUTE PHASE ===
                        [_trace (when (getenv "RLM_TRACE")
                                  (format (current-error-port)
@@ -243,6 +296,14 @@
                                                (> (string-length obs-text) 300))
                                           (substring obs-text 0 300)
                                           obs-text))))]
+                       ;; === STEP VIEW: execution result ===
+                       [_sv3 (when *rlm2-step-view?*
+                               (let ([obs-text (rlm2-observation-value observation)]
+                                     [obs-ok (rlm2-observation-ok? observation)])
+                                 (rlm2-step-view-section "RESULT"
+                                   (format "ok: ~a\n~a" obs-ok
+                                     (if (string? obs-text) obs-text
+                                         (format "~a" obs-text))))))]
                        [t3 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
                        ;; === REFLECT PHASE ===
                        ;; Skip LLM reflection for mechanical actions
@@ -261,6 +322,11 @@
                                    (rlm2-alias-correction-note alias-info)
                                    " " note)
                                  note)]
+                       ;; === STEP VIEW: reflect note ===
+                       [_sv4 (when *rlm2-step-view?*
+                               (rlm2-step-view-section
+                                 (if mechanical? "REFLECT [mechanical]" "REFLECT")
+                                 note))]
                        [t4 (and *rlm2-timing-enabled?* (rlm2-time-ms))]
                        ;; Emit timing to stderr if enabled
                        [_timing (when *rlm2-timing-enabled?*
@@ -278,9 +344,9 @@
                              action-type)]
                        [looping? (rlm2-loop-detected? fingerprints fp
                                    (rlm2-config-loop-window config))]
-                       ;; Inject loop-break note if stuck
+                       ;; Inject loop/think warnings into last-result (transient, not notes)
                        [state** (if looping?
-                                    (rlm2-state-add-note state*
+                                    (rlm2-state-with-last-result state*
                                       (rlm2-format-diagnostic (rlm2-warning-loop)))
                                     state*)]
                        ;; === THINK-SPAM DETECTION ===
@@ -289,7 +355,7 @@
                                    0)]
                        [state** (cond
                                   [(>= thinks 3)
-                                   (rlm2-state-add-note state**
+                                   (rlm2-state-with-last-result state**
                                      (rlm2-format-diagnostic
                                        (rlm2-nudge-think-streak thinks)))]
                                   [else state**])]
@@ -302,7 +368,8 @@
                        ;; Add episodic entry
                        [state*** (rlm2-state-add-episodic state**
                                    (rlm2-state-step state)
-                                   step-hash)]
+                                   step-hash action-type
+                                   (rlm2-observation-ok? observation))]
                        ;; === PROGRESS SIDEBAND ===
                        [_progress (rlm2-emit-progress!
                                    (rlm2-state-step state) action-type
@@ -322,9 +389,11 @@
                                  '()  ; reset after loop break
                                  (cons fp fingerprints))]
                        ;; === SLIDING WINDOW ===
-                       ;; Use formatted parsed action (not raw text) to avoid
-                       ;; showing truncated begin blocks as if they all executed
-                       [action-text (format "~s" action)]
+                       ;; Thinks go to notes via reflect — don't echo full text
+                       ;; in history (causes recursive escape nesting)
+                       [action-text (if (eq? action-type 'think)
+                                        "(think)"
+                                        (format "~s" action))]
                        [obs-summary (rlm2-observation-summary observation)]
                        [history* (rlm2-history-push history
                                    action-text obs-summary 3)])
@@ -630,7 +699,7 @@
          [episodic (rlm2-state-episodic state)]
          [entry (assv n episodic)])
     (if entry
-        (let* ([hash (cdr entry)]
+        (let* ([hash (cadr entry)]
                [blk (fetch-persistent (hex->hash hash))])
           (if blk
               (let ([payload (utf8->string (block-payload blk))])
@@ -691,9 +760,9 @@
               state 1))))
 
 (define (rlm2-exec-think state action)
-  ;; Think is ephemeral — no state change, no observation stored
-  (list (make-rlm2-observation 'think (rlm2-think-text action)
-          "noted" #t)
+  ;; Think is ephemeral — no state change, observation is just an ack
+  (list (make-rlm2-observation 'think 'think
+          "ok" #t)
         state 0))
 
 (define (rlm2-exec-plan! state action)
@@ -1199,8 +1268,13 @@
                        [parse-result (rlm2-parse-response raw-text)]
                        [action (rlm2-parse-result-action parse-result)]
                        [raw-thought (rlm2-parse-result-thought parse-result)]
-                       ;; Truncation retry (same as rlm2-run)
+                       ;; Truncation retry — only when model intended a non-think
+                       ;; action that got truncated and fell back to think
+                       [intended-think? (let ([t (rlm2-parse-trim raw-text)])
+                                          (and (> (string-length t) 6)
+                                               (string=? (substring t 0 6) "(think")))]
                        [truncated? (and (rlm2-think? action)
+                                        (not intended-think?)
                                         (rlm2-looks-truncated? raw-text))]
                        [retry-result (and truncated?
                                          (rlm-chat (rlm2-config-provider config)
@@ -1248,7 +1322,7 @@
                        [looping? (rlm2-loop-detected? fingerprints fp
                                    (rlm2-config-loop-window config))]
                        [state** (if looping?
-                                    (rlm2-state-add-note state*
+                                    (rlm2-state-with-last-result state*
                                       (rlm2-format-diagnostic (rlm2-warning-loop)))
                                     state*)]
                        ;; === THINK-SPAM ===
@@ -1256,7 +1330,7 @@
                                    (+ consecutive-thinks 1) 0)]
                        [state** (cond
                                   [(>= thinks 3)
-                                   (rlm2-state-add-note state**
+                                   (rlm2-state-with-last-result state**
                                      (rlm2-format-diagnostic
                                        (rlm2-nudge-think-streak thinks)))]
                                   [else state**])]
@@ -1266,7 +1340,9 @@
                                    (rlm2-config-provider config) fuel-used
                                    prev-step-hash)]
                        [state*** (rlm2-state-add-episodic state**
-                                   (rlm2-state-step state) step-hash)]
+                                   (rlm2-state-step state) step-hash
+                                   action-type
+                                   (rlm2-observation-ok? observation))]
                        ;; === PROGRESS ===
                        [_progress (rlm2-emit-progress!
                                    (rlm2-state-step state) action-type
@@ -1274,7 +1350,9 @@
                        ;; Fingerprints
                        [fps* (if looping? '() (cons fp fingerprints))]
                        ;; === SLIDING WINDOW ===
-                       [action-text (format "~s" action)]
+                       [action-text (if (eq? action-type 'think)
+                                        "(think)"
+                                        (format "~s" action))]
                        [obs-summary (rlm2-observation-summary observation)]
                        [history* (rlm2-history-push history action-text obs-summary 3)])
                   (loop state*** (+ steps-taken 1) fps* step-hash

@@ -182,7 +182,7 @@
     (make-rlm2-state task-text '() env '() '() '() '()
                      #f max-fuel 0)))
 
-(define (collect-apply-action state action note fuel-used step-hash)
+(define (collect-apply-action state action note fuel-used step-hash obs-ok)
   (let* ([action-type (if (pair? action) (car action) 'unknown)]
          [env (rlm2-state-env state)]
          [env* (case action-type
@@ -207,7 +207,7 @@
          [notes* (if (and (string? note) (> (string-length note) 0))
                      (cons note (rlm2-state-notes state))
                      (rlm2-state-notes state))]
-         [episodic* (cons (cons (rlm2-state-step state) step-hash)
+         [episodic* (cons (list (rlm2-state-step state) step-hash action-type obs-ok)
                           (rlm2-state-episodic state))]
          [journal* (if (and (eq? action-type 'journal)
                             (>= (length action) 3))
@@ -311,6 +311,7 @@
                   result)
                 (let* ([step-rec (car remaining)]
                        [action (cdr (assq 'action step-rec))]
+                       [obs-ok (cdr (assq 'observation-ok step-rec))]
                        [note (cdr (assq 'note step-rec))]
                        [fuel-used (cdr (assq 'fuel-used step-rec))]
                        [step-num (cdr (assq 'step step-rec))]
@@ -334,7 +335,7 @@
                                     note label step-num traj-hex))
                             '())]
                        [state* (collect-apply-action
-                                 state action note fuel-used step-hash)])
+                                 state action note fuel-used step-hash obs-ok)])
                   (loop (cdr remaining) state*
                         (append reflect-examples
                                 (cons act-example examples)))))))))))

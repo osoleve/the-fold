@@ -32,7 +32,7 @@
     "- **draft** — A bottomless pit is in an adjacent room\n"
     "- No senses means adjacent rooms are safe\n\n"
     "### Rules\n\n"
-    "- You have 3 arrows and 30 moves\n"
+    "- You have 3 arrows and 25 moves\n"
     "- Moving into the wumpus room: you die (eaten)\n"
     "- Moving into a pit room: you die (fell)\n"
     "- Shooting: name 1-3 rooms forming a path from your room. "
@@ -40,16 +40,20 @@
     "- If you miss, the wumpus may move to an adjacent room\n"
     "- Invalid moves (non-adjacent rooms) waste a move\n\n"
     "### Strategy\n\n"
-    "Senses tell you THAT danger is adjacent, not WHICH room. Triangulate:\n\n"
-    "1. When you sense stench, note ALL your tunnel exits as wumpus candidates.\n"
-    "2. Move to a nearby room. If no stench there, REMOVE that room's tunnels "
-    "from your suspect list.\n"
-    "3. Intersect candidate sets from 2-3 stench rooms to narrow to 1-2 suspects, "
-    "then shoot.\n\n"
-    "For the pit (draft): do NOT enter unvisited rooms from a draft-sensing room. "
-    "Retreat to a visited room and approach from a different direction.\n\n"
-    "Use `(think ...)` for deductive reasoning about candidate sets. "
-    "The `(visited ...)` list in each observation shows where you've already been.\n\n"
+    "**CRITICAL SAFETY RULE:** NEVER move into an unvisited room when you sense "
+    "stench or draft. Entering a stench-candidate room kills you. "
+    "Use arrows to probe — arrows are your safe information-gathering tool.\n\n"
+    "**Triangulation procedure:**\n"
+    "1. Sense stench → mark ALL current tunnels as wumpus candidates.\n"
+    "2. Retreat to a VISITED (safe) room. If no stench there, eliminate that "
+    "room's non-overlapping tunnels from suspects.\n"
+    "3. Gather stench data from 2-3 rooms. Intersect candidate sets to narrow "
+    "to 1-2 suspects.\n"
+    "4. Shoot the suspects. Do NOT walk to them.\n\n"
+    "**Pit avoidance:** Same rule — never enter unvisited rooms when sensing draft. "
+    "Retreat and approach from a different direction.\n\n"
+    "Use `(think ...)` to track candidate sets. "
+    "The `(visited ...)` list shows where you've safely been.\n\n"
     "### Submission\n\n"
     "When the game ends (won, eaten, fell, or out of moves), call:\n"
     "`(submit (wumpus-result))`\n\n"
@@ -121,7 +125,11 @@
          [label (format "wumpus-~a" i)]
          [task "Hunt the wumpus! Navigate the caves, sense danger, and shoot the wumpus. Use (eval (wumpus-look!)) to see your surroundings, (eval (wumpus-move! 'room)) to move, and (eval (wumpus-shoot! '(rooms...))) to fire. When the game ends, (submit (wumpus-result))."]
          [setup `((eval (load "lattice/pipeline/wumpus-session.ss"))
-                  (eval (wumpus-init! ,seed)))])
+                  (eval (wumpus-init! ,seed))
+                  (plan! ((STENCH . NEVER-enter-unvisited-rooms--use-arrows-to-probe)
+                          (DRAFT . NEVER-enter-unvisited-rooms--retreat-and-reroute)
+                          (triangulate . sense-from-2-3-safe-rooms-then-shoot-intersection)
+                          (track-candidates . use-think-after-each-observation))))])
 
     (display (format "\n=== [~a/~a] ~a (seed ~a) ===\n" (+ i 1) total label seed))
     (flush-output-port)

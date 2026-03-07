@@ -1,0 +1,17 @@
+[project]
+name = "fold-sft"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "flash-linear-attention",
+    "trl",
+    "peft",
+    "accelerate",
+    "datasets",
+    "optuna",
+    "wandb",
+]
+
+[tool.uv]
+# Don't pull torch from PyPI — use the container's CUDA-matched torch
+override-dependencies = ["torch"]

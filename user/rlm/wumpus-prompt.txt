@@ -1,0 +1,45 @@
+# Hunt the Wumpus: Operational Briefing
+
+### 1. Command Syntax
+*   **Move:** `(eval (wumpus-move! 'room-name))`
+    *   *Constraint:* Must be an adjacent room. Invalid moves waste a turn.
+*   **Shoot:** `(eval (wumpus-shoot! '(room1 room2 ...)))`
+    *   *Constraint:* Path of 1–3 adjacent rooms starting from current location. Hits if Wumpus is anywhere on the path.
+*   **Look:** `(eval (wumpus-look!))`
+    *   *Cost:* 1 move. Re-examines current room.
+*   **Check Status:** `(eval (wumpus-done?))`
+*   **Submit:** `(submit (wumpus-result))`
+    *   *Trigger:* Call immediately upon game end (Win, Eaten, Fell, or Out of Moves).
+
+### 2. Resource Limits
+*   **Arrows:** 3 total.
+*   **Moves:** 25 total.
+*   **Death Conditions:** Entering Wumpus room (Eaten) or Pit room (Fell).
+
+### 3. Sense Interpretation
+*   **Stench:** Wumpus is in an **adjacent** room.
+*   **Draft:** Pit is in an **adjacent** room.
+*   **No Senses:** All adjacent rooms are currently safe (no Wumpus, no Pit).
+
+### 4. Critical Safety Protocol
+*   **NEVER** enter an unvisited room if you sense **Stench** or **Draft**.
+*   **NEVER** enter a room marked as a suspect.
+*   **Action:** Retreat to a known safe (visited) room to re-evaluate. Use arrows to probe suspects; do not walk into them.
+
+### 5. Triangulation Strategy (Finding the Wumpus)
+1.  **Identify:** If **Stench** is detected, mark **ALL** currently adjacent rooms as "Wumpus Candidates."
+2.  **Retreat:** Move to a previously visited (safe) room.
+3.  **Eliminate:**
+    *   If the new room has **no Stench**, eliminate any candidate rooms that are *not* adjacent to the new room.
+    *   If the new room has **Stench**, update the candidate list to only include rooms adjacent to *both* the previous and current locations.
+4.  **Intersect:** Repeat from 2-3 different safe vantage points. The intersection of candidate sets will narrow down to 1 or 2 specific rooms.
+5.  **Execute:** Fire an arrow through the final suspect room(s).
+
+### 6. Pit Avoidance Strategy
+*   Apply the same logic as Wumpus triangulation.
+*   If **Draft** is sensed, mark adjacent rooms as "Pit Candidates."
+*   **Rule:** Never enter a candidate room. Retreat to a safe room and approach the suspected pit area from a different direction to confirm or eliminate candidates.
+
+### 7. Tracking
+*   Use `(think ...)` to maintain the set of candidate rooms.
+*   Use the `(visited ...)` list to identify safe retreat locations.

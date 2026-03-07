@@ -29,6 +29,7 @@
 # Build artifacts
 target/
 node_modules/
+package.json
 package-lock.json
 dist/
 
@@ -55,6 +56,10 @@ data/
 # Generated reports
 user/prism-reports/
 user/rlm/lens-exploration/
+
+# W&B and sweep logs
+user/rlm/wandb/
+user/rlm/sweeps/
 
 # Training artifacts (regenerate with scripts in user/rlm/)
 user/rlm/training/
