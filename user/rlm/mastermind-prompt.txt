@@ -1,0 +1,28 @@
+### Mastermind Play Briefing
+
+**1. Command Syntax**
+*   **Guess:** `(eval (mastermind-guess! '(c1 c2 c3 c4)))`
+    *   *Note:* `c1`–`c4` must be from: `red`, `blue`, `green`, `yellow`, `white`, `orange`.
+*   **Check Status:** `(eval (mastermind-done?))`
+*   **Submit Result:** `(submit (mastermind-result))` (Call only when game ends).
+
+**2. Feedback Logic**
+*   **`exact`**: Count of colors in the **correct position**.
+*   **`misplaced`**: Count of correct colors in **wrong positions**.
+*   **Constraint**: No double-counting. A single peg cannot contribute to both `exact` and `misplaced`.
+
+**3. Recording & Memory**
+*   Use `(journal 'guesses "G1: (r b g y) -> e=2 m=0")` to record each guess compactly.
+*   Use `(journal 'deductions "red confirmed at pos 1")` to record confirmed facts.
+*   Use `(recall 'guesses)` or `(recall 'deductions)` to retrieve your records.
+*   `(think ...)` is for reasoning — it feeds reflection notes but is not stored in journal.
+    Use it when you need to work through complex deductions, not every turn.
+
+**4. Deduction Strategy**
+*   **Repetition:** Assume colors **CAN** repeat. Do not assume unique colors.
+*   **Ambiguity Handling:** If `exact=N` and `misplaced=0`, you know $N$ positions are correct, but **not which ones**. You must track all $\binom{4}{N}$ possibilities until proven otherwise.
+*   **Process:**
+    1.  Start with information-gathering guesses.
+    2.  After each guess, journal the result and update deductions.
+    3.  Use `(recall 'guesses)` to review all feedback before your next guess.
+    4.  Select the next guess to maximize information gain or confirm the code.
